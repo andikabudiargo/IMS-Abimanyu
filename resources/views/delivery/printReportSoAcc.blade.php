@@ -170,14 +170,14 @@
             <tr>
                 <td colspan="8" align='center' class="font-10"> <strong>SO REPORT</strong></td>
             </tr>
-             <tr>
-                <td valign='' width='3%' class='font-10 header-padding' style='border-right-color: white;border-left-color: white;'>Customer</td>
-                <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-right-color: white;'>: {{ $customer }}</td>
+            <tr>
+                <td valign='' width='3%' class='font-10 header-padding' style='border-right-color: white;border-left-color: white;border-bottom-color: white;'>Customer</td>
+                <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-right-color: white;border-bottom-color: white;'>: {{ $customer }}</td>
             </tr>
         </tbody>
     </table>
     <main>
-        <table width="100%" class="font-8">
+        <table width="100%" class="font-8" style="table-layout:fixed;">
             <tbody>
                 {!! $barisDetail !!}                
             </tbody>

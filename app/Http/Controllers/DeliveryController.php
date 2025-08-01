@@ -1928,6 +1928,7 @@ class DeliveryController extends Controller
         $data['title'] = "Report SO";
         $soNumber=$request->so_code;
         $soNumbers = explode(',',$soNumber);
+        $soNumberArr = implode("','", $soNumbers);
 
         $barisIsiJudul='';
         $barisAll='';
@@ -1953,201 +1954,122 @@ class DeliveryController extends Controller
             ->select('sales_order_hdr.so_code','sales_order_hdr.so_date','sales_order_hdr.po_number','third_party.nama')
             ->orderBy('so_code')
             ->first();
-
-            // $headerBySO = "<tr>
-            //                 <td valign='' width='3%' class='font-10 header-padding' style='border-color: white;'></td>
-            //                 <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-color: white;'></td>
-            //             </tr>
-            //             <tr>
-            //                 <td valign='' width='3%' class='font-10 header-padding' style='border-color: white;'>So Date</td>
-            //                 <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-color: white;'>: ".$salesOrders->so_date."</td>
-            //             </tr>
-            //             <tr>
-            //                 <td valign='' width='3%' class='font-10 header-padding' style='border-color: white;'>No Order</td>
-            //                 <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-color: white;'>: ".$salesOrders->so_code."</td>
-            //             </tr>
-            //             <tr>
-            //                 <td valign='' width='3%' class='font-10 header-padding' style='border-color: white;'>No PO</td>
-            //                 <td valign='' width='80%' class='font-10 header-padding' colspan='3' style='border-color: white;'>: ".$salesOrders->po_number."</td>
-            //             </tr>
-            //             <tr>
-            //                 <td valign='' width='3%' class='font-10 header-padding' style='border-right-color: white;border-left-color: white;'>Customer</td>
-            //                 <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-right-color: white;'>: ".$salesOrders->nama."</td>
-            //             </tr>";
             
             $data["customer"] = $salesOrders->nama;
+            $akumQtySo=0;
+            $assrSo="";
+            $totalSO = 0;
             
-
             foreach($headers as $kunci=>$val){
                 $articleCode = $val->article_code;
                 $articleDesc = $val->article_desc;
-                $articleAlternative = $val->article_alternative_code;
-                $qtySo = $val->qty_so;
-                $qtyDelivery = $val->qty_delivery;
-                $qtySisa = $qtySo -$qtyDelivery;
+                $qtyDelivery = 0;
 
                 $judul = $val->article_alternative_code." - ".$articleDesc;
 
-                $barisIsiJudul = "<tr>
-                                    <td colspan='7' class='font-10' align='left' style='border-right-color:white;'>".strtoupper($judul)."</td>
-                                    <td class='font-10' align='right' style=''> Qty SO:".number_format($qtySo,2)."</td>
-                                  </tr>";
-                $barisIsiJudul .= "<tr class='font-9'>
-                        <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>No</td>
-                        <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Delivery Number</td>
-                        <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>Delivery Date</td>
-                        <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Qty Delivery</td>
-                        <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>SO Date</td>
-                        <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px' width='5%'>No Order</td>
-                        <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>No PO</td>
-                        <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>Invoice No.</td>
-                    </tr>";
+                $barisIsiJudulDetail ="";
+                $akumQtySisa=0;
                 
-                $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number
+                $isiJudul=DB::select("SELECT 
+                a.article_code
+                ,c.article_alternative_code
+                ,c.article_desc
+                ,a.delivery_number
                 ,b.delivery_date
+                ,b.so_number
+                ,b.po_number
+                ,(select so_date from sales_order_hdr soh where so_code = b.so_number) as so_date
                 ,TO_DATE(b.delivery_date,'dd-mm-yyyy') as date_delivery
                 ,a.qty
-                ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
+                ,a.qty_so
+                --,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
                 ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
-                ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
+                --,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
                 ,(select invoice_number from invoice_det where dn_number = a.delivery_number limit 1) as invoice_number
                 from delivery_det a 
                 left join delivery_hdr b on b.delivery_number = a.delivery_number
                 left join article c on c.article_code = a.article_code
-                where a.so_number = '$value' and a.article_code = '$articleCode'
+                where a.so_number in ('$soNumberArr')
+                and a.article_code = '$articleCode'
                 and b.status not in ('5','7','10')
-                order by date_delivery,b.delivery_number");
+                order by date_delivery,c.article_alternative_code"); 
+
                 $jumlahBaris++;
                 foreach($isiJudul as $key=>$item){
+                    $qtyDelivery = $qtyDelivery+$item->qty;
+                    $qtySisaDetail = $item->qty_so-$item->qty;
+                    $assrSo .= "'".$item->so_number."',"; 
+
                     $no = $key+1;
-                    $barisIsiJudul .= "<tr class='font-8'>
-                        <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>$no</td>
+                    $barisIsiJudulDetail .= "<tr class='font-8'>
+                        <td class='detail-padding' align='center' style='padding-left:0px;padding-right:0px'>$no</td>
                         <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_number</td>
+                        <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>".number_format($item->qty_so,2)."</td>
                         <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_date</td>
                         <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>".number_format($item->qty,2)."</td>
-                        <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$salesOrders->so_date</td>
-                        <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$salesOrders->so_code</td>
-                        <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$salesOrders->po_number</td>
+                        <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>".number_format($qtySisaDetail,2)."</td>
+                        <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$item->so_date</td>
+                        <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$item->so_number</td>
+                        <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$item->po_number</td>
                         <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->invoice_number</td>
                     </tr>";
                     $jumlahBaris++;
                 }
 
-                $barisTotal = "<tr>
-                                    <td class='font-10' colspan='3' style='background-color:white;border-right-color:white;'></td>
-                                    <td  class='font-10' colspan='4' style='background-color:white;border-left-color:white' align='left'>".number_format($qtyDelivery,2)."</td>
-                                    <td  class='font-10' style='background-color:white;border-left-color:white' align='right'>QTY Sisa:".number_format($qtySisa,2)."</td>
-                                    </td> 
-                                </tr>";
+                $assrSo = substr($assrSo, 0, -1);
+                $totalSO = DB::select("select sum(qty) as qty_so from sales_order_det where so_code in ($assrSo) and article_code = '$articleCode'");
+                $akumQtySo = $totalSO[0]->qty_so;
+
+                $barisIsiJudul = "<tr>
+                                    <td colspan='8' class='font-10' align='left' style='border-right-color:white;'>".strtoupper($judul)."</td>
+                                    <td colspan='2' class='font-10' align='right' style=''> Qty SO:".number_format($akumQtySo,2)."</td>
+                                  </tr>";
+                
+                $barisIsiJudul .= "<tr >
+                        <td style='width:3%;' align='center' style='padding-left:0px;padding-right:0px'>No</td>
+                        <td style='width:15%;'>Delivery Number</td>
+                        <td style='width:7%;'>Qty SO</td>
+                        <td style='width:9%;'>Delivery Date</td>
+                        <td style='width:7%;'>Qty delivery</td>
+                        <td style='width:7%;'>Qty Sisa</td>
+                        <td style='width:9%;'>SO Date</td>
+                        <td>No Order</td>
+                        <td>No PO</td>
+                        <td style='width:15%;'>Invoice No.</td>
+                    </tr>";
+                
+                $akumQtySisa = $akumQtySo-$qtyDelivery;
 
                 $barisTotal = "<tr>
-                                    <td class='font-10' colspan='3' style='background-color:white;border-right-color:white;'></td>
+                                    <td class='font-10' colspan='4' style='background-color:white;border-right-color:white;'></td>
                                     <td  class='font-10' colspan='4' align='left' style='padding-left:5px;background-color:white;border-right-color:white;'>".number_format($qtyDelivery,2)."</td>
-                                    <td  class='font-10'  align='right'>QTY Sisa:".number_format($qtySisa,2)."</td>
+                                    <td  class='font-10' colspan='2' align='right'>QTY Sisa:".number_format($akumQtySisa,2)."</td>
                                     </td> 
                                 </tr>";
                 
                 end($headers);
-                $pemisah = "<tr><td colspan='8' style='border-right-color:white;border-left-color:white;'></td> </tr>";
-                if ($kunci === key($headers)) {
-                    $pemisah = "<tr><td colspan='8' style='border-right-color:white;border-left-color:white;border-bottom-color:white;border-top-color:white'></td> </tr>";
+
+                $pemisah = "<tr><td colspan='10' style='border-right-color:white;border-left-color:white;'></td> </tr>";
+
+                if ($kunci === 0) {
+                    $pemisah = "<tr><td colspan='10' style='border-top-color:white;border-right-color:white;border-left-color:white;'></td> </tr>";
                 }
+
+                // if ($kunci === key($headers)) {
+                //     $pemisah = "<tr><td colspan='10' style='border-color:white'></td> </tr>";
+                // }
 
                 // $pemisah = "";
 
-                $barisTotal = $barisTotal.$pemisah;
-                $barisAll1 .=  $barisIsiJudul.$barisTotal;
+                // $barisTotal = $barisTotal.$pemisah;
+                // $barisAll1 .=  $barisIsiJudul.$barisTotal;
+
+                $barisAll1 .= $pemisah.$barisIsiJudul.$barisIsiJudulDetail.$barisTotal;
             };
 
-            // $barisAll .= "<div class='page-break'></div>".$headerBySO.$barisAll1;
-            // $barisAll .= "<div class='page-break'></div>".$barisAll1;
             $barisAll .= $barisAll1;
 
         }
-
-        // dd($barisAll);
-
-
-        // $soNumber = 'SO/ASN/22/12/2571';
-        
-        // $headers=DB::select("SELECT DISTINCT ON (a.article_code) c.article_alternative_code,a.article_code , a.so_number,c.article_alternative_code, c.article_desc,a.delivery_number
-        // ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
-        // ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
-        // ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
-        // from delivery_det a 
-        // left join delivery_hdr b on b.delivery_number = a.delivery_number
-        // left join article c on c.article_code = a.article_code
-        // where a.so_number = '$soNumber' 
-        // and b.status not in ('5','7','10')
-        // order by a.article_code");
-        
-        // $barisIsiJudul='';
-        // $barisAll='';
-        // $jumlahBaris=0;
-
-        // foreach($headers as $kunci=>$val){
-        //     $articleCode = $val->article_code;
-        //     $articleDesc = $val->article_desc;
-        //     $articleAlternative = $val->article_alternative_code;
-        //     $qtySo = $val->qty_so;
-        //     $qtyDelivery = $val->qty_delivery;
-        //     $qtySisa = $qtySo -$qtyDelivery;
-
-        //     $judul = $val->article_alternative_code." - ".$articleDesc;
-        //     $barisIsiJudul = "<tr><td colspan='4' align='left' style='background-color:white;border-right-color:white'>".strtoupper($judul)."</td>
-        //                             <td align='right' style='background-color:white;'> Qty SO:".number_format($qtySo,2)."</td> </tr>";
-        //     $barisIsiJudul .= "<tr >
-        //             <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>No</td>
-        //             <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Delivery Number</td>
-        //             <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>Delivery Date</td>
-        //             <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Qty Delivery</td>
-        //             <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>Invoice No.</td>
-        //         </tr>";
-            
-        //     $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number
-        //     ,b.delivery_date
-        //     ,TO_DATE(b.delivery_date,'dd-mm-yyyy') as date_delivery
-        //     ,a.qty
-        //     ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
-        //     ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
-        //     ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
-        //     ,(select invoice_number from invoice_det where dn_number = a.delivery_number limit 1) as invoice_number
-        //     from delivery_det a 
-        //     left join delivery_hdr b on b.delivery_number = a.delivery_number
-        //     left join article c on c.article_code = a.article_code
-        //     where a.so_number = '$soNumber' and a.article_code = '$articleCode'
-        //     and b.status not in ('5','7','10')
-        //     order by date_delivery,b.delivery_number");
-        //     $jumlahBaris++;
-        //     foreach($isiJudul as $key=>$item){
-        //         $no = $key+1;
-        //         $barisIsiJudul .= "<tr >
-        //             <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>$no</td>
-        //             <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_number</td>
-        //             <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_date</td>
-        //             <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>".number_format($item->qty,2)."</td>
-        //             <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->invoice_number</td>
-        //         </tr>";
-        //         $jumlahBaris++;
-        //     }
-        //     $barisTotal = "<tr><td colspan='3' style='background-color:white;border-right-color:white;'></td>
-        //                         <td colspan='2'align='left' style='background-color:white;border-left-color:white;padding-left:5px;padding-right:3px'>
-        //                         <div style='float:left;width:50%;'>".number_format($qtyDelivery,2)."</div>
-        //                         <div style='float:right;width:50%;padding-right:10px' align='right'>Qty Sisa:".number_format($qtySisa,2)."</div>
-        //                         </td> 
-        //                     </tr>";
-            
-        //     end($headers);
-        //     $pemisah = "<tr><td colspan='5' style='border-right-color:white;border-left-color:white;'></td> </tr>";
-        //     if ($kunci === key($headers)) {
-        //         $pemisah = "<tr><td colspan='5' style='border-right-color:white;border-left-color:white;border-bottom-color:white'></td> </tr>";
-        //     }
-
-        //     $barisTotal = $barisTotal.$pemisah;
-        //     // $barisTotal = "<tr><td colspan='4' align='right' style='background-color:white'>QTY SO:".number_format($qtySo,2)."    |    Qty Delivery:".number_format($qtyDelivery)."     |     Qty Sisa:".number_format($qtySisa)." </td> </tr>";
-            
-        //     $barisAll .= $barisIsiJudul.$barisTotal;
-        // };
 
         $salesOrders = DB::table('sales_order_hdr')
         ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
@@ -2157,16 +2079,262 @@ class DeliveryController extends Controller
         ->first();
               
         $data['barisDetail']=$barisAll;
-        // $data['soNumber'] = $salesOrders->so_code;
-        // $data['poNumber'] = $salesOrders->po_number;
-        // $data['customer'] = $salesOrders->nama;
         $data['jumlahBaris'] = $jumlahBaris;
 
-        // dd($barisAll);
         view()->share($data);
         $pdf = PDF::loadView('delivery.printReportSoAcc')->setPaper([0, 0, 595.28, 841.89], 'portrait');
-        return $pdf->stream("Report_$soNumber.pdf");
+        // return $pdf->stream("Report_$soNumber.pdf");
+        return $pdf->stream("report_so_acc.pdf");
     }
+
+    // public function printReportSo(Request $request)
+    // {
+    //     $data['title'] = "Report SO";
+    //     $soNumber=$request->so_code;
+    //     $soNumbers = explode(',',$soNumber);
+
+    //     $barisIsiJudul='';
+    //     $barisAll='';
+    //     $jumlahBaris=0;
+
+    //     foreach($soNumbers as $key => $value){
+    //         $headers=DB::select("SELECT DISTINCT ON (a.article_code) c.article_alternative_code,a.article_code , a.so_number,c.article_alternative_code, c.article_desc,a.delivery_number
+    //         ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
+    //         ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
+    //         ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
+    //         from delivery_det a 
+    //         left join delivery_hdr b on b.delivery_number = a.delivery_number
+    //         left join article c on c.article_code = a.article_code
+    //         where a.so_number = '$value' 
+    //         and b.status not in ('5','7','10')
+    //         order by a.article_code");
+
+    //         $barisAll1='';
+
+    //         $salesOrders = DB::table('sales_order_hdr')
+    //         ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
+    //         ->where('so_code',$value)
+    //         ->select('sales_order_hdr.so_code','sales_order_hdr.so_date','sales_order_hdr.po_number','third_party.nama')
+    //         ->orderBy('so_code')
+    //         ->first();
+
+    //         // $headerBySO = "<tr>
+    //         //                 <td valign='' width='3%' class='font-10 header-padding' style='border-color: white;'></td>
+    //         //                 <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-color: white;'></td>
+    //         //             </tr>
+    //         //             <tr>
+    //         //                 <td valign='' width='3%' class='font-10 header-padding' style='border-color: white;'>So Date</td>
+    //         //                 <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-color: white;'>: ".$salesOrders->so_date."</td>
+    //         //             </tr>
+    //         //             <tr>
+    //         //                 <td valign='' width='3%' class='font-10 header-padding' style='border-color: white;'>No Order</td>
+    //         //                 <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-color: white;'>: ".$salesOrders->so_code."</td>
+    //         //             </tr>
+    //         //             <tr>
+    //         //                 <td valign='' width='3%' class='font-10 header-padding' style='border-color: white;'>No PO</td>
+    //         //                 <td valign='' width='80%' class='font-10 header-padding' colspan='3' style='border-color: white;'>: ".$salesOrders->po_number."</td>
+    //         //             </tr>
+    //         //             <tr>
+    //         //                 <td valign='' width='3%' class='font-10 header-padding' style='border-right-color: white;border-left-color: white;'>Customer</td>
+    //         //                 <td valign='' width='30%' class='font-10 header-padding' colspan='3' style='border-right-color: white;'>: ".$salesOrders->nama."</td>
+    //         //             </tr>";
+            
+    //         $data["customer"] = $salesOrders->nama;
+            
+
+    //         foreach($headers as $kunci=>$val){
+    //             $articleCode = $val->article_code;
+    //             $articleDesc = $val->article_desc;
+    //             $articleAlternative = $val->article_alternative_code;
+    //             $qtySo = $val->qty_so;
+    //             $qtyDelivery = $val->qty_delivery;
+    //             $qtySisa = $qtySo -$qtyDelivery;
+
+    //             $judul = $val->article_alternative_code." - ".$articleDesc;
+
+    //             $barisIsiJudul = "<tr>
+    //                                 <td colspan='8' class='font-10' align='left' style='border-right-color:white;'>".strtoupper($judul)."</td>
+    //                                 <td colspan='2' class='font-10' align='right' style=''> Qty SO:".number_format($qtySo,2)."</td>
+    //                               </tr>";
+    //             $barisIsiJudul .= "<tr class='font-9'>
+    //                     <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>No</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Delivery Number</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Qty SO</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Delivery Date</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Qty Delivery</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Qty Sisa</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>SO Date</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px' width='5%'>No Order</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>No PO</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Invoice No.</td>
+    //                 </tr>";
+                
+    //             $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number
+    //             ,b.delivery_date
+    //             ,TO_DATE(b.delivery_date,'dd-mm-yyyy') as date_delivery
+    //             ,a.qty
+    //             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
+    //             ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
+    //             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
+    //             ,(select invoice_number from invoice_det where dn_number = a.delivery_number limit 1) as invoice_number
+    //             from delivery_det a 
+    //             left join delivery_hdr b on b.delivery_number = a.delivery_number
+    //             left join article c on c.article_code = a.article_code
+    //             where a.so_number = '$value' and a.article_code = '$articleCode'
+    //             and b.status not in ('5','7','10')
+    //             order by date_delivery,b.delivery_number");
+    //             $jumlahBaris++;
+    //             foreach($isiJudul as $key=>$item){
+    //                 $no = $key+1;
+    //                 $barisIsiJudul .= "<tr class='font-8'>
+    //                     <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>$no</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_number</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>".number_format($item->qty,2)."</td>
+    //                     <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_date</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>".number_format($item->qty,2)."</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>".number_format($item->qty,2)."</td>
+    //                     <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$salesOrders->so_date</td>
+    //                     <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$salesOrders->so_code</td>
+    //                     <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$salesOrders->po_number</td>
+    //                     <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->invoice_number</td>
+    //                 </tr>";
+    //                 $jumlahBaris++;
+    //             }
+
+    //             // $barisTotal = "<tr>
+    //             //                     <td class='font-10' colspan='5' style='background-color:white;border-right-color:white;'></td>
+    //             //                     <td  class='font-10' colspan='3' style='background-color:white;border-left-color:white' align='left'>".number_format($qtyDelivery,2)."</td>
+    //             //                     <td  class='font-10' style='background-color:white;border-left-color:white' align='right'>QTY Sisa:".number_format($qtySisa,2)."</td>
+    //             //                     </td> 
+    //             //                 </tr>";
+
+    //             $barisTotal = "<tr>
+    //                                 <td class='font-10' colspan='4' style='background-color:white;border-right-color:white;'></td>
+    //                                 <td  class='font-10' colspan='4' align='left' style='padding-left:5px;background-color:white;border-right-color:white;'>".number_format($qtyDelivery,2)."</td>
+    //                                 <td  class='font-10' colspan='2' align='right'>QTY Sisa:".number_format($qtySisa,2)."</td>
+    //                                 </td> 
+    //                             </tr>";
+                
+    //             end($headers);
+    //             $pemisah = "<tr><td colspan='10' style='border-right-color:white;border-left-color:white;'></td> </tr>";
+    //             if ($kunci === key($headers)) {
+    //                 $pemisah = "<tr><td colspan='10' style='border-right-color:white;border-left-color:white;border-bottom-color:white;border-top-color:white'></td> </tr>";
+    //             }
+
+    //             // $pemisah = "";
+
+    //             $barisTotal = $barisTotal.$pemisah;
+    //             $barisAll1 .=  $barisIsiJudul.$barisTotal;
+    //         };
+
+    //         // $barisAll .= "<div class='page-break'></div>".$headerBySO.$barisAll1;
+    //         // $barisAll .= "<div class='page-break'></div>".$barisAll1;
+    //         $barisAll .= $barisAll1;
+
+    //     }
+
+    //     // dd($barisAll);
+
+
+    //     // $soNumber = 'SO/ASN/22/12/2571';
+        
+    //     // $headers=DB::select("SELECT DISTINCT ON (a.article_code) c.article_alternative_code,a.article_code , a.so_number,c.article_alternative_code, c.article_desc,a.delivery_number
+    //     // ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
+    //     // ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
+    //     // ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
+    //     // from delivery_det a 
+    //     // left join delivery_hdr b on b.delivery_number = a.delivery_number
+    //     // left join article c on c.article_code = a.article_code
+    //     // where a.so_number = '$soNumber' 
+    //     // and b.status not in ('5','7','10')
+    //     // order by a.article_code");
+        
+    //     // $barisIsiJudul='';
+    //     // $barisAll='';
+    //     // $jumlahBaris=0;
+
+    //     // foreach($headers as $kunci=>$val){
+    //     //     $articleCode = $val->article_code;
+    //     //     $articleDesc = $val->article_desc;
+    //     //     $articleAlternative = $val->article_alternative_code;
+    //     //     $qtySo = $val->qty_so;
+    //     //     $qtyDelivery = $val->qty_delivery;
+    //     //     $qtySisa = $qtySo -$qtyDelivery;
+
+    //     //     $judul = $val->article_alternative_code." - ".$articleDesc;
+    //     //     $barisIsiJudul = "<tr><td colspan='4' align='left' style='background-color:white;border-right-color:white'>".strtoupper($judul)."</td>
+    //     //                             <td align='right' style='background-color:white;'> Qty SO:".number_format($qtySo,2)."</td> </tr>";
+    //     //     $barisIsiJudul .= "<tr >
+    //     //             <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>No</td>
+    //     //             <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Delivery Number</td>
+    //     //             <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>Delivery Date</td>
+    //     //             <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>Qty Delivery</td>
+    //     //             <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>Invoice No.</td>
+    //     //         </tr>";
+            
+    //     //     $isiJudul=DB::select("SELECT a.article_code, c.article_alternative_code, c.article_desc,a.delivery_number
+    //     //     ,b.delivery_date
+    //     //     ,TO_DATE(b.delivery_date,'dd-mm-yyyy') as date_delivery
+    //     //     ,a.qty
+    //     //     ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
+    //     //     ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
+    //     //     ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) - (select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10'))) as sisa_so
+    //     //     ,(select invoice_number from invoice_det where dn_number = a.delivery_number limit 1) as invoice_number
+    //     //     from delivery_det a 
+    //     //     left join delivery_hdr b on b.delivery_number = a.delivery_number
+    //     //     left join article c on c.article_code = a.article_code
+    //     //     where a.so_number = '$soNumber' and a.article_code = '$articleCode'
+    //     //     and b.status not in ('5','7','10')
+    //     //     order by date_delivery,b.delivery_number");
+    //     //     $jumlahBaris++;
+    //     //     foreach($isiJudul as $key=>$item){
+    //     //         $no = $key+1;
+    //     //         $barisIsiJudul .= "<tr >
+    //     //             <td class='detail-padding' align='left' scope='row' style='padding-left:5px;padding-right:3px' width='5%'>$no</td>
+    //     //             <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_number</td>
+    //     //             <td class='detail-padding  align='left' style='padding-left:5px;padding-right:3px'>$item->delivery_date</td>
+    //     //             <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>".number_format($item->qty,2)."</td>
+    //     //             <td class='detail-padding' align='left' style='padding-left:5px;padding-right:3px'>$item->invoice_number</td>
+    //     //         </tr>";
+    //     //         $jumlahBaris++;
+    //     //     }
+    //     //     $barisTotal = "<tr><td colspan='3' style='background-color:white;border-right-color:white;'></td>
+    //     //                         <td colspan='2'align='left' style='background-color:white;border-left-color:white;padding-left:5px;padding-right:3px'>
+    //     //                         <div style='float:left;width:50%;'>".number_format($qtyDelivery,2)."</div>
+    //     //                         <div style='float:right;width:50%;padding-right:10px' align='right'>Qty Sisa:".number_format($qtySisa,2)."</div>
+    //     //                         </td> 
+    //     //                     </tr>";
+            
+    //     //     end($headers);
+    //     //     $pemisah = "<tr><td colspan='5' style='border-right-color:white;border-left-color:white;'></td> </tr>";
+    //     //     if ($kunci === key($headers)) {
+    //     //         $pemisah = "<tr><td colspan='5' style='border-right-color:white;border-left-color:white;border-bottom-color:white'></td> </tr>";
+    //     //     }
+
+    //     //     $barisTotal = $barisTotal.$pemisah;
+    //     //     // $barisTotal = "<tr><td colspan='4' align='right' style='background-color:white'>QTY SO:".number_format($qtySo,2)."    |    Qty Delivery:".number_format($qtyDelivery)."     |     Qty Sisa:".number_format($qtySisa)." </td> </tr>";
+            
+    //     //     $barisAll .= $barisIsiJudul.$barisTotal;
+    //     // };
+
+    //     $salesOrders = DB::table('sales_order_hdr')
+    //     ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
+    //     ->where('so_code',$soNumber)
+    //     ->select('sales_order_hdr.so_code','sales_order_hdr.po_number','third_party.nama')
+    //     ->orderBy('so_code')
+    //     ->first();
+              
+    //     $data['barisDetail']=$barisAll;
+    //     // $data['soNumber'] = $salesOrders->so_code;
+    //     // $data['poNumber'] = $salesOrders->po_number;
+    //     // $data['customer'] = $salesOrders->nama;
+    //     $data['jumlahBaris'] = $jumlahBaris;
+
+    //     // dd($barisAll);
+    //     view()->share($data);
+    //     $pdf = PDF::loadView('delivery.printReportSoAcc')->setPaper([0, 0, 595.28, 841.89], 'portrait');
+    //     return $pdf->stream("Report_$soNumber.pdf");
+    // }
 
     public function exportSo(Request $request) 
     {
@@ -2177,7 +2345,8 @@ class DeliveryController extends Controller
             $filename = $filename.explode('/', $value)[4].'_';
         }
 
-        $filename = 'SO_'.substr_replace($filename,"", -1);
+        // $filename = 'SO_'.substr_replace($filename,"", -1);
+        $filename = 'SO_REPORTS_ACC';
         // $filename = str_replace(',','_', $filename);
         // $filename = 'SO_' . Carbon::now()->format('Ymd_His') . '_' . Str::random(3);
         return Excel::download(new ReportDnExport($soNumber), $filename.'.xlsx');
