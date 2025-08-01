@@ -1930,6 +1930,13 @@ class DeliveryController extends Controller
         $soNumbers = explode(',',$soNumber);
         $soNumberArr = implode("','", $soNumbers);
 
+        $filename = '';
+        foreach ($soNumbers as $key => $value) {
+            $filename = $filename.explode('/', $value)[4].'_';
+        }
+
+        $filename = 'SO_'.substr_replace($filename,"", -1);
+
         $barisIsiJudul='';
         $barisAll='';
         $jumlahBaris=0;
@@ -2084,7 +2091,8 @@ class DeliveryController extends Controller
         view()->share($data);
         $pdf = PDF::loadView('delivery.printReportSoAcc')->setPaper([0, 0, 595.28, 841.89], 'portrait');
         // return $pdf->stream("Report_$soNumber.pdf");
-        return $pdf->stream("report_so_acc.pdf");
+        return $pdf->stream("$filename.pdf");
+        // return $pdf->stream("report_so_acc.pdf");
     }
 
     // public function printReportSo(Request $request)
@@ -2345,8 +2353,8 @@ class DeliveryController extends Controller
             $filename = $filename.explode('/', $value)[4].'_';
         }
 
-        // $filename = 'SO_'.substr_replace($filename,"", -1);
-        $filename = 'SO_REPORTS_ACC';
+        $filename = 'SO_'.substr_replace($filename,"", -1);
+        // $filename = 'SO_REPORTS_ACC';
         // $filename = str_replace(',','_', $filename);
         // $filename = 'SO_' . Carbon::now()->format('Ymd_His') . '_' . Str::random(3);
         return Excel::download(new ReportDnExport($soNumber), $filename.'.xlsx');
