@@ -363,7 +363,7 @@ class ReportDnExport extends DefaultValueBinder implements FromView,ShouldAutoSi
                 order by date_delivery,c.article_alternative_code");
 
                 $jumlahBaris++;
-
+                $assrSo="";
                 foreach($isiJudul as $key=>$item){
                     // $akumQtySo=$akumQtySo+$item->qty_so;
                     $qtyDelivery = $qtyDelivery+$item->qty;
