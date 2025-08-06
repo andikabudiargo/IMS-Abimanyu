@@ -2002,6 +2002,7 @@ class DeliveryController extends Controller
                 order by date_delivery,c.article_alternative_code"); 
 
                 $jumlahBaris++;
+                $assrSo="";
                 foreach($isiJudul as $key=>$item){
                     $qtyDelivery = $qtyDelivery+$item->qty;
                     $qtySisaDetail = $item->qty_so-$item->qty;
