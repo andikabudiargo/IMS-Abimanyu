@@ -371,7 +371,7 @@
         <div class="sub_div_tengah">
             <table id="tblContent" class="font-14" style="table-layout:fixed;">
                 <thead>
-                    <tr style="height: 50px;">
+                    <tr style="height: 35px;">
                         <th width="6%">No</th>
                         <th width="50%" >Description</th>
                         <th width="10%" align="center">Qty</th>
