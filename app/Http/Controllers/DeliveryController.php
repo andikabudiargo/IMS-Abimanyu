@@ -1941,7 +1941,7 @@ class DeliveryController extends Controller
         $barisAll='';
         $jumlahBaris=0;
 
-        foreach($soNumbers as $key => $value){
+        // foreach($soNumbers as $key => $value){
             $headers=DB::select("SELECT DISTINCT ON (a.article_code) c.article_alternative_code,a.article_code , a.so_number,c.article_alternative_code, c.article_desc,a.delivery_number
             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
             ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
@@ -1949,15 +1949,17 @@ class DeliveryController extends Controller
             from delivery_det a 
             left join delivery_hdr b on b.delivery_number = a.delivery_number
             left join article c on c.article_code = a.article_code
-            where a.so_number = '$value' 
+            where a.so_number in ('$soNumberArr')
             and b.status not in ('5','7','10')
             order by a.article_code");
+
+            // dd($headers);
 
             $barisAll1='';
 
             $salesOrders = DB::table('sales_order_hdr')
             ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
-            ->where('so_code',$value)
+            ->where('so_code',$headers[0]->so_number)
             ->select('sales_order_hdr.so_code','sales_order_hdr.so_date','sales_order_hdr.po_number','third_party.nama')
             ->orderBy('so_code')
             ->first();
@@ -2055,7 +2057,7 @@ class DeliveryController extends Controller
                                     </td> 
                                 </tr>";
                 
-                end($headers);
+                // end($headers);
 
                 $pemisah = "<tr><td colspan='10' style='border-right-color:white;border-left-color:white;'></td> </tr>";
 
@@ -2076,15 +2078,16 @@ class DeliveryController extends Controller
             };
 
             $barisAll .= $barisAll1;
+           
 
-        }
+        // }
 
-        $salesOrders = DB::table('sales_order_hdr')
-        ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
-        ->where('so_code',$soNumber)
-        ->select('sales_order_hdr.so_code','sales_order_hdr.po_number','third_party.nama')
-        ->orderBy('so_code')
-        ->first();
+        // $salesOrders = DB::table('sales_order_hdr')
+        // ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
+        // ->where('so_code',$soNumber)
+        // ->select('sales_order_hdr.so_code','sales_order_hdr.po_number','third_party.nama')
+        // ->orderBy('so_code')
+        // ->first();
               
         $data['barisDetail']=$barisAll;
         $data['jumlahBaris'] = $jumlahBaris;

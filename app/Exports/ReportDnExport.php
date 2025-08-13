@@ -301,7 +301,8 @@ class ReportDnExport extends DefaultValueBinder implements FromView,ShouldAutoSi
 
         $barisPemisah = "<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>";
 
-        foreach($soNumbers as $key => $value){
+        // foreach($soNumbers as $key => $value){
+
             $headers=DB::select("SELECT DISTINCT ON (c.article_alternative_code) a.article_code, a.so_number,c.article_alternative_code, c.article_desc,a.delivery_number
             ,ceil((select sum(qty) from sales_order_det where so_code = a.so_number and article_code = a.article_code)) as qty_so 
             ,ceil((select sum(qty) from delivery_det where so_number = a.so_number and article_code = a.article_code and delivery_det.delivery_number in (select delivery_number from delivery_hdr where status not in ('5','7','10')))) as qty_delivery
@@ -309,14 +310,15 @@ class ReportDnExport extends DefaultValueBinder implements FromView,ShouldAutoSi
             from delivery_det a 
             left join delivery_hdr b on b.delivery_number = a.delivery_number
             left join article c on c.article_code = a.article_code
-            where a.so_number = '$value' 
+            where a.so_number in ('$soNumberArr') 
             and b.status not in ('5','7','10')
-            order by c.article_alternative_code"); 
+            order by c.article_alternative_code");
+
 
             $barisAll1='';
             $salesOrders = DB::table('sales_order_hdr')
                 ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
-                ->where('so_code',$value)
+                ->where('so_code',$headers[0]->so_number)
                 ->select('sales_order_hdr.so_code','sales_order_hdr.so_date','sales_order_hdr.po_number','third_party.nama')
                 ->orderBy('so_code')
                 ->first();
@@ -431,7 +433,7 @@ class ReportDnExport extends DefaultValueBinder implements FromView,ShouldAutoSi
                 $barisAll1 .= $barisIsiJudul.$barisIsiJudulDetail.$barisTotal;
             }; 
             $barisAll .= $barisAll1;
-        }
+        // }
 
         $customer = "<tr>
                         <td valign=''>Customer</td><td valign=''>: $namaCustomer</td><td></td><td></td><td></td><td></td><td>
