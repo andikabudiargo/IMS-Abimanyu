@@ -1597,6 +1597,13 @@ class InvoiceController extends Controller
         $listpo=DB::select("SELECT string_agg(distinct (select po_number from sales_order_hdr where so_code = so_number),', ') as po_list from invoice_det where invoice_number = '$invNumber'");
 
         $data['listpo'] = $listpo[0]->po_list;
+        
+        $dataListPo = $listpo[0]->po_list;
+        if($dataListPo == null){
+           $data['listpo'] = ""; 
+        }elseIf(count(explode(",",$dataListPo)) > 1){
+            $data['listpo'] = implode(", ",array_slice(explode(",", trim($dataListPo)),0,1)). " dst...";
+        }
 
         $data['totals']=DB::select("SELECT 
         b.dpp_lain_value,
