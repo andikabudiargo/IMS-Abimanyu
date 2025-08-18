@@ -1602,7 +1602,7 @@ class InvoiceController extends Controller
         if($dataListPo == null){
            $data['listpo'] = ""; 
         }elseIf(count(explode(",",$dataListPo)) > 10){
-            $data['listpo'] = implode(", ",array_slice(explode(",", trim($dataListPo)),0,11)). " dst...";
+            $data['listpo'] = implode(", ",array_slice(explode(",", trim($dataListPo)),0,11)). "dst...";
         }
 
         $data['totals']=DB::select("SELECT 
