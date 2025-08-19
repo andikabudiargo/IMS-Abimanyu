@@ -82,6 +82,8 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+        <button type="button" class="btn btn-primary d-none" id ="btnDetail" name="btnDetail" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data detail">Detail</button>
+        <button type="button" class="btn btn-primary d-none" id ="btnSummary" name="btnSummary" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data summary">Summary</button>
         <div class="row">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">
@@ -106,6 +108,9 @@
 @section('scripts')
 <script type="text/javascript">
   let currentDate = todayDate('dd-mm-yyyy');  
+  let btnSummary = $('#btnSummary');
+  let btnDetail = $('#btnDetail');
+
   $(document).ready(function(){    
     let href;
     $(document).on('click', '#deleteButton', function(event) {
@@ -128,16 +133,40 @@
     });
   }
 
-  $("#btnSearch").click(function(e){
+   btnDetail.click(function(){
     let searchPo = $("#searchPo").val();
     let searchAp = $("#searchAp").val();
     let searchSupplier = $("#searchSupplier").val(); 
     let searchStatus = $("#searchStatus").val();
     let apDate = $("#apDate").val();
     let aPeriod = $("#period").val();
-    
-    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod);
+    btnDetail.addClass('d-none');
+    btnSummary.removeClass('d-none');
+    showListDetail(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod);
+  });
 
+  btnSummary.click(function(){
+    let searchPo = $("#searchPo").val();
+    let searchAp = $("#searchAp").val();
+    let searchSupplier = $("#searchSupplier").val(); 
+    let searchStatus = $("#searchStatus").val();
+    let apDate = $("#apDate").val();
+    let aPeriod = $("#period").val();
+    btnDetail.addClass('d-none');
+    btnSummary.removeClass('d-none');
+    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod);
+  });
+
+  $("#btnSearch").click(function(e){
+    btnSummary.addClass('d-none');
+    btnDetail.addClass('d-none');
+    let searchPo = $("#searchPo").val();
+    let searchAp = $("#searchAp").val();
+    let searchSupplier = $("#searchSupplier").val(); 
+    let searchStatus = $("#searchStatus").val();
+    let apDate = $("#apDate").val();
+    let aPeriod = $("#period").val();
+    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod);
   });
 
   const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod) => {
@@ -181,8 +210,54 @@
         apDate:apDate,
         apPeriod:aPeriod
       },
+      initComplete: function() {
+        let api = this.api();
+        if (api.data().length > 0) {
+          btnDetail.removeClass('d-none');
+          btnSummary.addClass('d-none');
+        }
+      },
       orderColumn:[[ 34, 'desc' ]],
       excelFileName:'invoice_supplier'
+    });
+  }
+
+  const showListDetail = (searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod) => {
+    if ($('#detailedTable tr').length >0){
+        let table= $('#detailedTable').DataTable();
+        table.destroy();
+        $('#detailedTable tbody > tr').remove();
+        $("#detailedTable thead > tr").remove();
+    }
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('accountPayable.list.detail') }}",
+      kolom:{!! $kolomDetail !!},
+      arrColPrint:[0,1,2,3,4,5,6,7,8],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+        {
+          targets: [6,7,8],
+          render: $.fn.dataTable.render.number(',', '.', 2, ''),
+          className: "text-right"
+        },
+      ],
+      type:"POST",
+      excelCustomize:function(xlsx) {
+        let sheet = xlsx.xl.worksheets['sheet1.xml'];
+        $('row:last c', sheet).attr('s','50');
+      },
+      excelMessageBottom:function () { return "Tanggal export : "+currentDate },
+      dataSearch:  {
+        searchPo:searchPo,
+        searchAp:searchAp,
+        searchSupplier:searchSupplier,
+        searchStatus:searchStatus,
+        apDate:apDate,
+        apPeriod:aPeriod
+      },
+      orderColumn:[[ 0, 'asc' ],[ 1, 'asc' ]],
+      excelFileName:'invoice_supplier_det'
     });
   }
 

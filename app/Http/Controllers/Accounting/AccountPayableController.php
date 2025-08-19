@@ -143,6 +143,23 @@ class AccountPayableController extends Controller
         return json_encode($kolom, true);
     }
 
+    public function getTableColoumnDetail()
+    {
+        $kolom=
+        [
+            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'],
+            ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'],
+            ['data'=> 'article', 'name'=> 'article','title'=>'Article Code'],
+            ['data'=> 'desc', 'name'=> 'desc','title'=>'Description'],
+            ['data'=> 'dept', 'name'=> 'dept','title'=>'Dept'],
+            ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'],
+            ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'],
+            ['data'=> 'price', 'name'=> 'price','title'=>'Price'],
+            ['data'=> 'total', 'name'=> 'total','title'=>'Total'],
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = "List $this->title";
@@ -152,7 +169,8 @@ class AccountPayableController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['kolom'] = $this->getTableColoumn();        
+        $data['kolom'] = $this->getTableColoumn();  
+        $data['kolomDetail'] = $this->getTableColoumnDetail();        
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','7'=>'PAID'];
         $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','6'=>'PAID'];
@@ -2389,6 +2407,88 @@ class AccountPayableController extends Controller
         })
         ->rawColumns(['action','status','ap_number'])
         ->make(true);
+    }
+
+    public function listDetail(Request $request)
+    {
+        // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
+        $searchPo = $request->searchPo;
+        $searchAp = $request->searchAp;
+        $searchSupplier = $request->searchSupplier;
+        $searchStatus = $request->searchStatus;
+        $apDate = $request->apDate;
+        $fromDate = "";
+        $toDate = "";
+        $apPeriod = $request->apPeriod;
+
+        if ($apDate){
+            $date = explode("to",$apDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
+
+        $apNumber = DB::table('ap_invoice')
+        ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate,$apPeriod) {
+            $searchPo ? $query->where('ap_invoice.po_number','ilike','%'.$searchPo.'%') : '';
+            $searchAp ? $query->where('ap_invoice.ap_number','ilike','%'.$searchAp.'%') : '';
+            $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
+            $searchStatus ? $query->where('ap_invoice.status','=',$searchStatus) : '';
+            $apDate ? $query->whereBetween(DB::raw("to_date(ap_invoice.inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $apPeriod ? $query->where('ap_invoice.period',$apPeriod) : '';
+        })
+        ->whereNotIn('ap_invoice.status',['5'])
+        // ->value('ap_invoice_det.ap_number'); 
+        ->pluck('ap_invoice.ap_number')->toArray();
+
+        // dd($apNumber);
+
+        $listRec= DB::table("receiving_hdr") 
+        ->whereIn(DB::raw("rec_number"), function($query) use ($apNumber) {
+            $query->select("rec_number")
+            ->from('ap_invoice_detail')
+            ->whereIn('ap_number',$apNumber);
+        })
+        ->pluck('rec_number')->toArray();
+
+        // dd($listRec);
+
+
+        $data = DB::table('receiving_det')
+        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+        ->leftJoin('article','article.article_code','receiving_det.article_code')
+        // ->leftJoin(DB::RAW("(select distinct account, reference from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
+        ->whereIn(DB::raw("receiving_det.rec_number"), function($query) use ($apNumber) {
+            $query->select("rec_number")
+            ->from('ap_invoice_detail')
+            ->whereIn('ap_number',$apNumber);
+        })
+        // ->whereIn('receiving_det.rec_number',$listRec)
+        ->where('receiving_det.qty','>',0)
+        ->select('article.article_alternative_code as article'
+            ,'article.article_desc as desc'
+            ,'receiving_det.uom_rec as uom'
+            ,db::raw("sum(receiving_det.qty) as qty")
+            ,'receiving_det.price'
+            ,db::raw("(sum(receiving_det.qty*receiving_det.price)) as total")
+            ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1) as dept")
+            ,db::raw("(select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) as ap_number")
+            ,db::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)) as ap_date")
+        )
+        ->groupBy('article.article_alternative_code')
+        ->groupBy('article.article_desc')
+        ->groupBy('receiving_det.uom_rec')
+        ->groupBy('receiving_det.price')
+        ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1)"))
+        ->groupBy('ap_number')
+        ->groupBy('ap_date')
+        ->get();
+
+        return Datatables::of($data)->make(true);
     }
 
     public function print(Request $request)

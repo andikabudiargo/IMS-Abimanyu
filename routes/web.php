@@ -423,6 +423,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('accountPayable/print/draft',['as'=>'accountPayable.print.draft','uses'=>'Accounting\AccountPayableController@printDraft']);
 	Route::get('accountPayable/notif/approve',['as'=>'accountPayable.notif.approve','uses'=>'Accounting\AccountPayableController@approve']);
 
+	Route::post('accountPayable/listDetail',['as'=>'accountPayable.list.detail','uses'=>'Accounting\AccountPayableController@listDetail']);
+
 	// Route::get('ap/posting/all',['as'=>'ap.posting.all','uses'=>'AccountPayableController@prosesAllPosting']);
 
 	// Route::get('receivings/search',['as'=>'ap.search','uses'=>'ReceivingController@search']);
