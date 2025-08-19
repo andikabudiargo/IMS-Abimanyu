@@ -131,6 +131,8 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+        <button type="button" class="btn btn-primary d-none" id ="btnDetail" name="btnDetail" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data detail">Detail</button>
+        <button type="button" class="btn btn-primary d-none" id ="btnSummary" name="btnSummary" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data summary">Summary</button>
         <div class="row">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">
@@ -154,6 +156,9 @@
 @section('scripts')
 <script type="text/javascript">
   let currentDate = todayDate('dd-mm-yyyy');  
+  let btnSummary = $('#btnSummary');
+  let btnDetail = $('#btnDetail');
+
   $(document).ready(function(){    
     let href;
     $(document).on('click', '#deleteButton', function(event) {
@@ -162,15 +167,6 @@
         $('#modalConfirmation').attr("action", href);
     });
   });
-
-  // let showAlert = "{{ Session::get('alert') }}";
-
-  // if ( showAlert ){
-  //   // showList();
-  //   $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-  //     $("#alert-message-alert").slideUp(500);
-  //   });
-  // }
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
@@ -185,15 +181,41 @@
     });
   }
 
-  $("#btnSearch").click(function(e){
+  btnDetail.click(function(){
     let searchInv = $("#searchInv").val();
     let searchSo = $("#searchSo").val();
     let searchCustomer = $("#searchCustomer").val(); 
     let searchStatus = $("#searchStatus").val();
     let recDate = $("#recDate").val();
     let searchPeriod = $("#period").val();
-    showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod);
+    btnDetail.addClass('d-none');
+    btnSummary.removeClass('d-none');
+    showListDetail(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod);
+  });
 
+  btnSummary.click(function(){
+    let searchInv = $("#searchInv").val();
+    let searchSo = $("#searchSo").val();
+    let searchCustomer = $("#searchCustomer").val(); 
+    let searchStatus = $("#searchStatus").val();
+    let recDate = $("#recDate").val();
+    let searchPeriod = $("#period").val();
+    btnSummary.addClass('d-none');
+    btnDetail.removeClass('d-none');
+    showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod);
+  });
+
+  $("#btnSearch").click(function(e){
+    btnSummary.addClass('d-none');
+    btnDetail.addClass('d-none');
+    let searchInv = $("#searchInv").val();
+    let searchSo = $("#searchSo").val();
+    let searchCustomer = $("#searchCustomer").val(); 
+    let searchStatus = $("#searchStatus").val();
+    let recDate = $("#recDate").val();
+    let searchPeriod = $("#period").val();
+    // btnDetail.removeClass('d-none');
+    showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod);
   });
 
   const showList = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod) => {
@@ -230,8 +252,55 @@
         recDate:recDate,
         searchPeriod:searchPeriod
       },
+      initComplete: function() {
+        let api = this.api();
+        if (api.data().length === 0) {
+          btnDetail.addClass('d-none');
+        } else {
+          btnDetail.removeClass('d-none');
+        }
+      },
       orderColumn:[[ 28, 'desc' ]],
       excelFileName:'invoice_customer'
+    });
+  }
+
+  const showListDetail = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod) => {
+    if ($('#detailedTable tr').length >0){
+        let table= $('#detailedTable').DataTable();
+        table.destroy();
+        $('#detailedTable tbody > tr').remove();
+        $("#detailedTable thead > tr").remove();
+    }
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('invoice.list.detail') }}",
+      kolom:{!! $kolomDetail !!},
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
+      columnDefs :[
+        { width: '5%', targets: 0 },
+        {
+          targets: [5,6,7,8,9,10,11],
+          render: $.fn.dataTable.render.number(',', '.', 2, ''),
+          className: "text-right"
+        },
+      ],
+      type:"POST",
+      excelCustomize:function(xlsx) {
+        let sheet = xlsx.xl.worksheets['sheet1.xml'];
+        $('row:last c', sheet).attr('s','50');
+      },
+      excelMessageBottom:function () { return "Tanggal export : "+currentDate },
+      dataSearch:  {
+        searchInv:searchInv,
+        searchSo:searchSo,
+        searchCustomer:searchCustomer,
+        searchStatus:searchStatus,
+        recDate:recDate,
+        searchPeriod:searchPeriod
+      },
+      orderColumn:[[ 1, 'asc' ],[ 2, 'asc' ]],
+      excelFileName:'invoice_customer_detail'
     });
   }
 

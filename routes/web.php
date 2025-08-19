@@ -373,6 +373,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('invoice/posting',['as'=>'invoice.posting','uses'=>'InvoiceController@posting']);
 	Route::post('invoice/approve',['as'=>'invoice.approve','uses'=>'InvoiceController@approve']);
 	Route::get('invoice/notif/approve',['as'=>'invoice.notif.approve','uses'=>'InvoiceController@approve']);
+	Route::post('invoice/listDetail',['as'=>'invoice.list.detail','uses'=>'InvoiceController@listDetail']);
 
 	Route::get('invoice/posting/all',['as'=>'invoice.posting.all','uses'=>'InvoiceController@prosesAllPosting']);
 

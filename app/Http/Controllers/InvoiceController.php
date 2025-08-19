@@ -118,6 +118,26 @@ class InvoiceController extends Controller
         return json_encode($kolom, true);
     }
 
+    public function getTableColoumnDetail()
+    {
+        $kolom=
+        [
+            ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date'],
+            ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date','visible'=>false],
+            ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number'],
+            ['data'=> 'article_code', 'name'=> 'article_code','title'=>'Article Code'],
+            ['data'=> 'article_desc', 'name'=> 'article_desc','title'=>'Desc'],
+            ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'],
+            ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'],
+            ['data'=> 'price', 'name'=> 'price','title'=>'M. Price'],
+            ['data'=> 'price_service', 'name'=> 'price_service','title'=>'S. Price'],
+            ['data'=> 'total_price_material', 'name'=> 'total_price_material','title'=>'T. Material'],
+            ['data'=> 'total_price_service', 'name'=> 'total_price_service','title'=>'T. Service'],
+            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total'],
+        ];
+        return json_encode($kolom, true);
+    }
+
     public function index(Request $request)
     {
         $data['title'] = $this->title;
@@ -128,6 +148,7 @@ class InvoiceController extends Controller
         ->get();
 
         $data['kolom'] = $this->getTableColoumn();
+        $data['kolomDetail'] = $this->getTableColoumnDetail();
 
         $statistic = db::select("SELECT sum(grand_total) as grand_total
         ,sum(case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end) as total_paid 
@@ -1499,6 +1520,59 @@ class InvoiceController extends Controller
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusInv[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','invoice_number'])
+        ->make(true);
+    }
+
+    public function listDetail(Request $request)
+    {
+       
+        $searchInv = strtolower($request->searchInv);
+        $searchSo = strtolower($request->searchSo);
+        $searchCustomer = $request->searchCustomer; 
+        $searchStatus = $request->searchStatus;
+        $invDate = $request->recDate;
+        $searchPeriod = $request->searchPeriod;
+        $fromDate = "";
+        $toDate = "";
+
+        if ($invDate){
+            $date = explode("to",$invDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
+
+        $data = DB::table('invoice_det')
+        ->leftJoin('invoice_hdr','invoice_det.invoice_number','invoice_hdr.invoice_number')
+        ->leftJoin('article','article.article_code','=','invoice_det.article_code')
+        ->where(function ($query) use ($searchInv,$searchSo,$searchCustomer,$searchStatus,$invDate,$fromDate,$toDate,$searchPeriod) {
+            $searchInv ? $query->where('invoice_det.invoice_number','ilike','%'.$searchInv.'%') : '';
+            $searchSo ? $query->where('invoice_hdr.so_number','ilike','%'.$searchSo.'%') : '';
+            $searchCustomer ? $query->where('invoice_hdr.customer_id','ilike','%'.$searchCustomer.'%') : '';
+            $searchStatus ? $query->where('invoice_hdr.status','=',$searchStatus) : '';
+            $invDate ? $query->whereBetween(DB::raw("to_date(invoice_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $searchPeriod ? $query->where('invoice_hdr.period','=',$searchPeriod) : '';
+        })
+        // ->where('invoice_hdr.status','<>','6')
+        ->select(
+            'invoice_det.*'
+            ,'article.article_alternative_code as article_code'
+            ,'article.article_desc as article_desc'
+            ,DB::raw("to_char(to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as invoice_date")
+            ,DB::raw("to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY') as invoice_date_2")
+            ,DB::raw("qty*price as total_price_material")
+            ,DB::raw("qty*price_service as total_price_service")
+            ,DB::raw("(qty*price) + (qty*price_service) as grand_total")
+        )
+        ->orderBy('article.article_alternative_code')
+        ->get(); 
+
+                
+        return Datatables::of($data)
         ->make(true);
     }
 
