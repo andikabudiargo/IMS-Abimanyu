@@ -184,7 +184,8 @@ class AssetController extends Controller
         $data= DB::table("ap_invoice_det") 
         ->leftJoin('ap_invoice','ap_invoice_det.ap_number','ap_invoice.ap_number')
         ->where("ap_invoice_det.account",$coa)
-        ->whereIn("ap_invoice.status",["3","6"])
+        // ->whereIn("ap_invoice.status",["3","6"])
+        ->whereIn("ap_invoice.status",["3","4","6"]) //status approved
         ->whereNotIn(DB::raw("CONCAT(ap_invoice_det.id,'_',ap_invoice_det.ap_number)"),$assetList)
         ->distinct("ap_invoice_det.ap_number")
         ->get();          
