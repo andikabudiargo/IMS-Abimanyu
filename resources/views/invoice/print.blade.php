@@ -583,8 +583,8 @@
                                         @endif
                                         <strong>No. NPWP : </strong> {{ $customers->npwp }}</strong>
                                     </td>
-                                    <td width="38%" valign="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
-                                        <strong>PO Number : </strong>{{ $listpo }}<br>
+                                    <td width="38%" valign="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px;font-size:13px">
+                                        <strong style="font-size:15px">PO Number : </strong>{{ $listpo }}<br>
                                     </td>
                                 </tr>
                             </table>
