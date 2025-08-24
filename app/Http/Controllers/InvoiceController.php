@@ -1559,16 +1559,27 @@ class InvoiceController extends Controller
         })
         // ->where('invoice_hdr.status','<>','6')
         ->select(
-            'invoice_det.*'
+            // 'invoice_det.*'
+            DB::RAW("max(invoice_det.uom) as uom")
+            ,DB::RAW("max(invoice_hdr.invoice_number) as invoice_number")
             ,'article.article_alternative_code as article_code'
-            ,'article.article_desc as article_desc'
+            ,'article.article_desc'
             ,DB::raw("to_char(to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as invoice_date")
             ,DB::raw("to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY') as invoice_date_2")
-            ,DB::raw("qty*price as total_price_material")
-            ,DB::raw("qty*price_service as total_price_service")
-            ,DB::raw("(qty*price) + (qty*price_service) as grand_total")
+            ,DB::raw("sum(qty) as qty")
+            ,'price'
+            ,'price_service'
+            ,DB::raw("sum(qty*price) as total_price_material")
+            ,DB::raw("sum(qty*price_service) as total_price_service")
+            ,DB::raw("sum(qty*price) + sum(qty*price_service) as grand_total")
         )
-        ->orderBy('article.article_alternative_code')
+        ->groupBy('invoice_hdr.invoice_number')
+        ->groupBy('invoice_hdr.invoice_date')
+        ->groupBy('price')
+        ->groupBy('price_service')
+        ->groupBy('article.article_alternative_code')
+        ->groupBy('article.article_desc')
+        // ->orderBy('article.article_alternative_code')
         ->get(); 
 
                 
