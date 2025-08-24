@@ -303,7 +303,6 @@
         clearDataPenyusutan();
     }
 
-
     $('#kelompokPenyusutan').change(function(){
         let nilaiPenyusutan = $(this).find(":selected").data("nilai-penyusutan");
         let masaManfaat = $(this).find(":selected").data("masa-manfaat"); 

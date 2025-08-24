@@ -118,18 +118,30 @@ class AssetController extends Controller
     }
 
     // public function getLastCode($key)
-    public function getLastCode($key)
+    public function getLastCode($key, $invoiceDate)
     {
+
+        /*
+            22-8-2025
+            CR: permintan untuk tahun pembuatan disesuaikan dengan tahun invoice bukan dengan taghun pembuatan
+
+        */
         $key = 'ASET';
-        $getCurrentYear = date('Y');
-        $getCurrentMonth = date('m');
+
+        $year = date('Y', strtotime($invoiceDate));
+        $month = date('m', strtotime($invoiceDate));
+
+        $getCurrentYear = $year;
+        $getCurrentMonth = $month;
+        // $getCurrentYear = date('Y');
+        // $getCurrentMonth = date('m');
         // ASET-ASN-24-IX-00001
         $basicCode = "$key-ASN-$getCurrentYear";
         $getResetRule = 'YEAR';
 
-        $getResetRule = DB::table('master_code')
-        ->where('code_key',$key)
-        ->value('reset_by');
+        // $getResetRule = DB::table('master_code')
+        // ->where('code_key',$key)
+        // ->value('reset_by');
 
         if($getResetRule == 'YEAR'){
             $getLastNumber = DB::table('assets')
@@ -145,11 +157,11 @@ class AssetController extends Controller
         }       
 
         if ($getLastNumber){
-            $getYear = explode('-',$getLastNumber->asset_number)[2];
+            // $getYear = explode('-',$getLastNumber->asset_number)[2];
             $getLastCode = explode('-',$getLastNumber->asset_number)[4];
             $newCode = ($getLastCode*1)+1;
         }else{
-            $getYear = $getCurrentYear;
+            // $getYear = $getCurrentYear;
             $newCode = 1;
         }
 
@@ -348,7 +360,8 @@ class AssetController extends Controller
 
         $this->validate($request,$rule,$messages);
 
-        $assetNumber = $this->getLastCode($this->moduleCode);
+        $assetNumber = $this->getLastCode($this->moduleCode,$tanggalPembelian);
+
         DB::beginTransaction();
         try {
                 $rowAffected = DB::table('assets')->insert([
