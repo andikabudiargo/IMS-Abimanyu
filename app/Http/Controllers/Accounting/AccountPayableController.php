@@ -103,42 +103,42 @@ class AccountPayableController extends Controller
     {
         $kolom=
         [
-            ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false],
-            ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'],
-            // ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'],
-            ['data'=> 'ap_date_1', 'name'=> 'ap_date_1','title'=>'AP Date'],
-            ['data'=> 'ap_date_2', 'name'=> 'ap_date_2','title'=>'AP Date','visible'=>false],
-            ['data'=> 'period', 'name'=> 'period','title'=>'Period'],
-            ['data'=> 'status', 'name'=> 'status','title'=>'Status'],
-            ['data'=> 'kode', 'name'=> 'kode','title'=>'Supplier Code'],
-            ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier'],
-            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'],
-            ['data'=> 'list_rec', 'name'=> 'list_rec','title'=>'Rec Number'],
-            ['data'=> 'rec_date', 'name'=> 'rec_date','title'=>'Rec Date','visible'=>false],
-            ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false],
-            ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number'],
-            ['data'=> 'proforma_inv_number', 'name'=> 'proforma_inv_number','title'=>'Proforma','visible'=>false],
-            ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number'],
-            ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date'],
-            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'Receive AP'],
-            ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date'],
-            ['data'=> 'basis_amount', 'name'=> 'basis_amount','title'=>'DPP'],
-            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],
-            ['data'=> 'vat', 'name'=> 'vat','title'=>'VAT'],
-            ['data'=> 'pph21', 'name'=> 'pph21','title'=>'PPH21'],
-            ['data'=> 'pph23', 'name'=> 'pph23','title'=>'PPH23'],
-            ['data'=> 'pph42', 'name'=> 'pph42','title'=>'PPH4(2)'],
-            ['data'=> 'total_discount', 'name'=> 'total_discount','title'=>'Discount'],
-            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Grand Total'],
-            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
-            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
-            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
-            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],
-            ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
-            ['data'=> 'approval_by','name'=> 'approval_by','title'=>'Approved By'],
-            ['data'=> 'approval_at','name'=> 'approval_at','title'=>'Approved At'],
-            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
-            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']
+            ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false], //0
+            ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'], //1
+            // ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'], 
+            ['data'=> 'ap_date_1', 'name'=> 'ap_date_1','title'=>'AP Date'],//2
+            ['data'=> 'ap_date_2', 'name'=> 'ap_date_2','title'=>'AP Date','visible'=>false],//3
+            ['data'=> 'period', 'name'=> 'period','title'=>'Period'],//4
+            ['data'=> 'status', 'name'=> 'status','title'=>'Status'],//5
+            ['data'=> 'kode', 'name'=> 'kode','title'=>'Supplier Code'],//6
+            ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier'],//7
+            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'],//8
+            ['data'=> 'list_rec', 'name'=> 'list_rec','title'=>'Rec Number'],//9
+            ['data'=> 'rec_date', 'name'=> 'rec_date','title'=>'Rec Date','visible'=>false],//10
+            ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false],//11
+            ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number'],//12
+            ['data'=> 'proforma_inv_number', 'name'=> 'proforma_inv_number','title'=>'Proforma','visible'=>false],//13
+            ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number'],//14
+            ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date'],//15
+            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'Receive AP'],//16
+            ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date'],//17
+            ['data'=> 'basis_amount', 'name'=> 'basis_amount','title'=>'DPP'],//18
+            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],//19
+            ['data'=> 'vat', 'name'=> 'vat','title'=>'VAT'],//20
+            ['data'=> 'pph21', 'name'=> 'pph21','title'=>'PPH21'],//21
+            ['data'=> 'pph23', 'name'=> 'pph23','title'=>'PPH23'],//22
+            ['data'=> 'pph42', 'name'=> 'pph42','title'=>'PPH4(2)'],//23
+            ['data'=> 'total_discount', 'name'=> 'total_discount','title'=>'Discount'],//24
+            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Grand Total'],//25
+            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],//26
+            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],//27
+            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],//28
+            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],//29
+            ['data'=> 'note', 'name'=> 'note','title'=>'Note'],//30
+            ['data'=> 'approval_by','name'=> 'approval_by','title'=>'Approved By'],//31
+            ['data'=> 'approval_at','name'=> 'approval_at','title'=>'Approved At'],//32
+            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],//33
+            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']//34
         ];
         return json_encode($kolom, true);
     }
@@ -147,15 +147,28 @@ class AccountPayableController extends Controller
     {
         $kolom=
         [
-            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'],
-            ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'],
-            ['data'=> 'article', 'name'=> 'article','title'=>'Article Code'],
-            ['data'=> 'desc', 'name'=> 'desc','title'=>'Description'],
-            ['data'=> 'dept', 'name'=> 'dept','title'=>'Dept'],
-            ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'],
-            ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'],
-            ['data'=> 'price', 'name'=> 'price','title'=>'Price'],
-            ['data'=> 'total', 'name'=> 'total','title'=>'Total'],
+            ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'], //0
+            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'], //1
+            ['data'=> 'period', 'name'=> 'period','title'=>'Period'], //2
+            ['data'=> 'status', 'name'=> 'status','title'=>'Status'], //3
+            ['data'=> 'kode', 'name'=> 'kode','title'=>'Supplier Code'],//4
+            ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier'], //5
+            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'], //6
+            ['data'=> 'list_rec', 'name'=> 'list_rec','title'=>'Rec Number'], //7
+            ['data'=> 'rec_date', 'name'=>'rec_date','title'=>'Rec Date'], //8
+            ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false], //9
+            ['data'=> 'inv_number', 'name'=> 'inv_number ','title'=>'Invoice Number'], //10
+            ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number'], //11
+            ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date'], //12
+            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'Receive AP'], //13
+            ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date'], //14
+            ['data'=> 'article', 'name'=> 'article','title'=>'Article Code'], //15
+            ['data'=> 'desc', 'name'=> 'desc','title'=>'Description'], //16
+            ['data'=> 'dept', 'name'=> 'dept','title'=>'Dept'], //17
+            ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'], //18
+            ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'], //19
+            ['data'=> 'price', 'name'=> 'price','title'=>'Price'], //20
+            ['data'=> 'total', 'name'=> 'total','title'=>'Total'], //21
         ];
         return json_encode($kolom, true);
     }
@@ -2447,20 +2460,20 @@ class AccountPayableController extends Controller
 
         // dd($apNumber);
 
-        $listRec= DB::table("receiving_hdr") 
-        ->whereIn(DB::raw("rec_number"), function($query) use ($apNumber) {
-            $query->select("rec_number")
-            ->from('ap_invoice_detail')
-            ->whereIn('ap_number',$apNumber);
-        })
-        ->pluck('rec_number')->toArray();
-
-        // dd($listRec);
-
+        // $listRec= DB::table("receiving_hdr") 
+        // ->whereIn(DB::raw("rec_number"), function($query) use ($apNumber) {
+        //     $query->select("rec_number")
+        //     ->from('ap_invoice_detail')
+        //     ->whereIn('ap_number',$apNumber);
+        // })
+        // ->pluck('rec_number')->toArray();
 
         $data = DB::table('receiving_det')
+        ->leftJoin('ap_invoice_detail','ap_invoice_detail.rec_number','receiving_det.rec_number')
+        ->leftJoin('ap_invoice','ap_invoice.ap_number','ap_invoice_detail.ap_number')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
+        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
         // ->leftJoin(DB::RAW("(select distinct account, reference from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
         ->whereIn(DB::raw("receiving_det.rec_number"), function($query) use ($apNumber) {
             $query->select("rec_number")
@@ -2476,19 +2489,40 @@ class AccountPayableController extends Controller
             ,'receiving_det.price'
             ,db::raw("(sum(receiving_det.qty*receiving_det.price)) as total")
             ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1) as dept")
-            ,db::raw("(select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) as ap_number")
-            ,db::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)) as ap_date")
+            // ,db::raw("(select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) as ap_number")
+            // ,db::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)) as ap_date")
+            ,db::raw("max(ap_invoice.inv_number) as inv_number")
+            ,db::raw("max(ap_invoice.tax_inv_number) as tax_inv_number")
+            ,db::raw("max(ap_invoice.inv_date) as inv_date")
+            ,db::raw("max(ap_invoice.ap_date) as ap_date")
+            ,db::raw("max(ap_invoice.due_date) as due_date")
+            ,db::raw("max(receiving_hdr.rec_date) as rec_date")
+            ,db::raw("max(receiving_hdr.num_revision) as num_revision")
+            ,db::raw("max(ap_invoice_detail.ap_number) as ap_number")
+            ,db::raw("max(ap_invoice.status) as status")
+            ,db::raw("max(ap_invoice.period) as period")
+            ,db::raw("max(ap_invoice.po_number) as po_number")
+            ,db::raw("max(ap_invoice.supplier_id) as kode")
+            ,db::raw("max(third_party.nama) as supplier_name")
+            ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
         )
         ->groupBy('article.article_alternative_code')
         ->groupBy('article.article_desc')
         ->groupBy('receiving_det.uom_rec')
         ->groupBy('receiving_det.price')
         ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1)"))
-        ->groupBy('ap_number')
-        ->groupBy('ap_date')
+        ->groupBy('ap_invoice.ap_number')
+        // ->groupBy('ap_date')
         ->get();
 
-        return Datatables::of($data)->make(true);
+        return Datatables::of($data)
+        ->addColumn('status', function ($data) {
+            // $badges=['badge-light-primary','badge-light-info','badge-light-success','badge-light-warning','badge-light-danger','badge-light-dark','badge-light-secondary','badge-light-danger'];
+            $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
+            return $statusCode[$data->status - 1];
+        })
+        ->rawColumns(['action','status','ap_number'])
+        ->make(true);
     }
 
     public function print(Request $request)
