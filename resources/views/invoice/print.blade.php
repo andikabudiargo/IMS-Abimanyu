@@ -371,12 +371,12 @@
         <div class="sub_div_tengah">
             <table id="tblContent" class="font-14" style="table-layout:fixed;">
                 <thead>
-                    <tr style="height: 35px;">
+                    <tr style="height: 32px;">
                         <th width="6%">No</th>
                         <th width="50%" >Description</th>
                         <th width="10%" align="center">Qty</th>
-                        <th width="12%">Material Price</th>
-                        <th width="10.5%">Service Price</th>
+                        <th width="12%" Style="font-size: 10pt">Material Price</th>
+                        <th width="10.5%" Style="font-size: 9pt">Service Price</th>
                         <th width="16.5%">Total Material</th>
                         <th width="15%">Total Service</th>
                     </tr>
@@ -605,12 +605,12 @@
             <div class="sub_div_tengah">
                 <table id="tblContent" class="font-14" style="table-layout:fixed;">
                     <thead>
-                        <tr style="height: 50px;">
+                        <tr style="height: 32px;">
                             <th width="6%">No</th>
                             <th width="50%" >Description</th>
                             <th width="10%" align="center">Qty</th>
-                            <th width="12%">Material Price</th>
-                            <th width="10.5%">Service Price</th>
+                            <th width="12%" Style="font-size: 10pt">Material Price</th>
+                            <th width="10.5%" Style="font-size: 9pt">Service Price</th>
                             <th width="16.5%">Total Material</th>
                             <th width="15%">Total Service</th>
                         </tr>
