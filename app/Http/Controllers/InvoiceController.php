@@ -1352,10 +1352,10 @@ class InvoiceController extends Controller
         $searchCustomer = $request->searchCustomer; 
         $searchStatus = $request->searchStatus;
         $invDate = $request->recDate;
-        $searchPeriod = $request->searchPeriod;
+        $searchPeriod1 = $request->searchPeriod1;
+        $searchPeriod2 = $request->searchPeriod2;
         $fromDate = "";
         $toDate = "";
-
         if ($invDate){
             $date = explode("to",$invDate);
             if(count($date)>1){
@@ -1369,13 +1369,14 @@ class InvoiceController extends Controller
 
         $data = DB::table('invoice_hdr')
         ->leftJoin('third_party','third_party.kode','invoice_hdr.customer_id')
-        ->where(function ($query) use ($searchInv,$searchSo,$searchCustomer,$searchStatus,$invDate,$fromDate,$toDate,$searchPeriod) {
+        ->where(function ($query) use ($searchInv,$searchSo,$searchCustomer,$searchStatus,$invDate,$fromDate,$toDate,$searchPeriod1,$searchPeriod2) {
             $searchInv ? $query->where('invoice_number','ilike','%'.$searchInv.'%') : '';
             $searchSo ? $query->where('so_number','ilike','%'.$searchSo.'%') : '';
             $searchCustomer ? $query->where('customer_id','ilike','%'.$searchCustomer.'%') : '';
             $searchStatus ? $query->where('invoice_hdr.status','=',$searchStatus) : '';
             $invDate ? $query->whereBetween(DB::raw("to_date(invoice_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $searchPeriod ? $query->where('invoice_hdr.period','=',$searchPeriod) : '';
+            $searchPeriod1 ? $query->whereBetween(db::raw("invoice_hdr.period::integer"),[$searchPeriod1,$searchPeriod2]) : '';
+            // $searchPeriod ? $query->where('invoice_hdr.period','=',$searchPeriod) : '';
             
         })
         // ->where('invoice_hdr.status','<>','6')
@@ -1531,9 +1532,10 @@ class InvoiceController extends Controller
         $searchCustomer = $request->searchCustomer; 
         $searchStatus = $request->searchStatus;
         $invDate = $request->recDate;
-        $searchPeriod = $request->searchPeriod;
         $fromDate = "";
         $toDate = "";
+        $searchPeriod1 = $request->searchPeriod1;
+        $searchPeriod2 = $request->searchPeriod2;
 
         if ($invDate){
             $date = explode("to",$invDate);
@@ -1549,13 +1551,14 @@ class InvoiceController extends Controller
         $data = DB::table('invoice_det')
         ->leftJoin('invoice_hdr','invoice_det.invoice_number','invoice_hdr.invoice_number')
         ->leftJoin('article','article.article_code','=','invoice_det.article_code')
-        ->where(function ($query) use ($searchInv,$searchSo,$searchCustomer,$searchStatus,$invDate,$fromDate,$toDate,$searchPeriod) {
+        ->where(function ($query) use ($searchInv,$searchSo,$searchCustomer,$searchStatus,$invDate,$fromDate,$toDate,$searchPeriod1,$searchPeriod2) {
             $searchInv ? $query->where('invoice_det.invoice_number','ilike','%'.$searchInv.'%') : '';
             $searchSo ? $query->where('invoice_hdr.so_number','ilike','%'.$searchSo.'%') : '';
             $searchCustomer ? $query->where('invoice_hdr.customer_id','ilike','%'.$searchCustomer.'%') : '';
             $searchStatus ? $query->where('invoice_hdr.status','=',$searchStatus) : '';
             $invDate ? $query->whereBetween(DB::raw("to_date(invoice_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $searchPeriod ? $query->where('invoice_hdr.period','=',$searchPeriod) : '';
+            $searchPeriod1 ? $query->whereBetween(db::raw("invoice_hdr.period::integer"),[$searchPeriod1,$searchPeriod2]) : '';
+            // $searchPeriod ? $query->where('invoice_hdr.period','=',$searchPeriod) : '';
         })
         // ->where('invoice_hdr.status','<>','6')
         ->select(
@@ -1582,7 +1585,6 @@ class InvoiceController extends Controller
         // ->orderBy('article.article_alternative_code')
         ->get(); 
 
-                
         return Datatables::of($data)
         ->make(true);
     }

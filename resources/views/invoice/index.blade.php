@@ -95,7 +95,24 @@
                     @endforeach
                 </select>
               </div>
-              <div class="form-group col-md-2">
+              <div class="col-md-1 form-group">
+                <label class="form-label" for="arPeriod1">Period Awal</label>
+                <select class="select2 form-control" id="arPeriod1" name="arPeriod1" >
+                    @for ($i = 1; $i <= 12; $i++)
+                        <option value="{{ $i }}">{{ $i }}</option>
+                    @endfor
+                </select>
+              </div>
+              <div class="col-md-1 form-group">
+                <label class="form-label" for="arPeriod2">Period Akhir</label>
+                <select class="select2 form-control" id="arPeriod2" name="arPeriod2" >
+                    @for ($i = 1; $i <= 12; $i++)
+                        <option value="{{ $i }}">{{ $i }}</option>
+                    @endfor
+                </select>
+              </div>
+
+              {{-- <div class="form-group col-md-2">
                 <label class="form-label" for="period">Period</label>
                 <select class="select2 form-control" id="period" name="period" >
                     <option value=""></option>
@@ -103,7 +120,7 @@
                         <option value="{{ $i }}">{{ $i }}</option>
                     @endfor
                 </select>
-              </div>
+              </div> --}}
             </div>
             <div class="form-row">
                 <div class="col-12"> 
@@ -181,44 +198,43 @@
     });
   }
 
-  btnDetail.click(function(){
+  function searcData($type){
     let searchInv = $("#searchInv").val();
     let searchSo = $("#searchSo").val();
     let searchCustomer = $("#searchCustomer").val(); 
     let searchStatus = $("#searchStatus").val();
     let recDate = $("#recDate").val();
-    let searchPeriod = $("#period").val();
-    btnDetail.addClass('d-none');
-    btnSummary.removeClass('d-none');
-    showListDetail(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod);
+    let searchPeriod1 = $("#arPeriod1").val();
+    let searchPeriod2 = $("#arPeriod2").val();
+    btnSummary.addClass('d-none');
+    btnDetail.removeClass('d-none');
+    if($type == 'detail'){
+      btnDetail.addClass('d-none');
+      btnSummary.removeClass('d-none');
+      showListDetail(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2);
+    }
+    if($type == 'summary'){
+      btnSummary.addClass('d-none');
+      btnDetail.removeClass('d-none');
+      showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2);
+    }
+  }
+
+  btnDetail.click(function(){
+    searcData('detail');
   });
 
   btnSummary.click(function(){
-    let searchInv = $("#searchInv").val();
-    let searchSo = $("#searchSo").val();
-    let searchCustomer = $("#searchCustomer").val(); 
-    let searchStatus = $("#searchStatus").val();
-    let recDate = $("#recDate").val();
-    let searchPeriod = $("#period").val();
-    btnSummary.addClass('d-none');
-    btnDetail.removeClass('d-none');
-    showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod);
+    searcData('summary');
   });
 
   $("#btnSearch").click(function(e){
     btnSummary.addClass('d-none');
     btnDetail.addClass('d-none');
-    let searchInv = $("#searchInv").val();
-    let searchSo = $("#searchSo").val();
-    let searchCustomer = $("#searchCustomer").val(); 
-    let searchStatus = $("#searchStatus").val();
-    let recDate = $("#recDate").val();
-    let searchPeriod = $("#period").val();
-    // btnDetail.removeClass('d-none');
-    showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod);
+    searcData('summary');
   });
 
-  const showList = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod) => {
+  const showList = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -250,7 +266,9 @@
         searchCustomer:searchCustomer,
         searchStatus:searchStatus,
         recDate:recDate,
-        searchPeriod:searchPeriod
+        searchPeriod1:searchPeriod1,
+        searchPeriod2:searchPeriod2
+        // searchPeriod:searchPeriod
       },
       initComplete: function() {
         let api = this.api();
@@ -265,7 +283,7 @@
     });
   }
 
-  const showListDetail = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod) => {
+  const showListDetail = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -297,7 +315,9 @@
         searchCustomer:searchCustomer,
         searchStatus:searchStatus,
         recDate:recDate,
-        searchPeriod:searchPeriod
+        searchPeriod1:searchPeriod1,
+        searchPeriod2:searchPeriod2
+        // searchPeriod:searchPeriod
       },
       orderColumn:[[ 1, 'asc' ],[ 2, 'asc' ]],
       excelFileName:'invoice_customer_detail'
