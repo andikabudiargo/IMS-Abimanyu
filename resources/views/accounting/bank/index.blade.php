@@ -24,20 +24,27 @@
                 <label for="vcDate">Date</label>
                 <input type="text" id="vcDate" name="vcDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-3">
-                <label class="form-label" for="period">Period</label>
-                <select class="select2 form-control" id="period" name="period" >
-                    <option value=""></option>
+              <div class="col-md-1 form-group">
+                <label class="form-label" for="period1">Period Awal</label>
+                <select class="select2 form-control" id="period1" name="period1" >
                     @for ($i = 1; $i <= 12; $i++)
                         <option value="{{ $i }}">{{ $i }}</option>
                     @endfor
                 </select>
               </div>
-              <div class="form-group col-md-3">
+              <div class="col-md-1 form-group">
+                <label class="form-label" for="period2">Period Akhir</label>
+                <select class="select2 form-control" id="period2" name="period2" >
+                    @for ($i = 1; $i <= 12; $i++)
+                        <option value="{{ $i }}">{{ $i }}</option>
+                    @endfor
+                </select>
+              </div>
+              <div class="col-md-1 form-group">
                 <label class="form-label" for="year">Year</label>
                 <select class="select2 form-control" id="year" name="year" >
                   <option value=""></option>
-                  @for ($i = 2000; $i <= 2050 ; $i++)
+                  @for ($i = 2023; $i <= 2050 ; $i++)
                       <option value="{{ $i }}">{{ $i }}</option>
                   @endfor
                 </select>
@@ -125,18 +132,7 @@ td.wrapok {
     });
   });
 
-  //refresh di cards
-  $('a[data-action="reload"]').on('click', function () {
-    let seachVc = $("#seachVc").val();
-    let vcDate = $("#vcDate").val();
-    let period = $("#period").val();
-    let year = $("#year").val();
-    let searchStatus = $("#searchStatus").val();
-    let searchRecFrom = $("#recFrom").val();
-    showList(seachVc,vcDate,period,year,searchStatus,searchRecFrom);
-  });
-
-  rangePickr = $('.flatpickr-range');
+  const rangePickr = $('.flatpickr-range');
   if (rangePickr.length) {
     rangePickr.flatpickr({
       dateFormat: "d-m-Y",
@@ -144,17 +140,27 @@ td.wrapok {
     });
   }
 
-  $("#btnSearch").click(function(e){
+  function searchData(){
     let seachVc = $("#seachVc").val();
     let vcDate = $("#vcDate").val();
-    let period = $("#period").val();
     let year = $("#year").val();
     let searchStatus = $("#searchStatus").val();
     let searchRecFrom = $("#recFrom").val();
-    showList(seachVc,vcDate,period,year,searchStatus,searchRecFrom);
+    let period1 = $('#period1').val();
+    let period2 = $('#period2').val();
+    showList(seachVc,vcDate,year,searchStatus,searchRecFrom,period1,period2);
+  }
+
+  //refresh di cards
+  $('a[data-action="reload"]').on('click', function () {
+    searchData();
   });
 
-  const showList = (seachVc,vcDate,period,year,searchStatus,searchRecFrom) => {
+  $("#btnSearch").click(function(e){
+    searchData();
+  });
+
+  const showList = (seachVc,vcDate,year,searchStatus,searchRecFrom,period1,period2) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -183,10 +189,11 @@ td.wrapok {
       dataSearch:  {
         seachVc:seachVc,
         vcDate:vcDate,
-        period:period,
         year:year,
         searchStatus:searchStatus,
-        searchRecFrom:searchRecFrom
+        searchRecFrom:searchRecFrom,
+        period1:period1,
+        period2:period2
       },
       orderColumn:[[ 12, 'desc' ]],
       excelFileName:'bank_penerimaan'
