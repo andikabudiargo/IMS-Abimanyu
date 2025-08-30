@@ -2187,10 +2187,10 @@ class AccountPayableController extends Controller
         $apDate = $request->apDate;
         $fromDate = "";
         $toDate = "";
-        $apPeriod = $request->apPeriod;
+        // $apPeriod = $request->apPeriod;
+        $apPeriod1 = $request->apPeriod1;
+        $apPeriod2 = $request->apPeriod2;
 
-        // dd($searchStatus);
-       
         if ($apDate){
             $date = explode("to",$apDate);
             if(count($date)>1){
@@ -2242,7 +2242,7 @@ class AccountPayableController extends Controller
 
         $data = DB::table('ap_invoice')
         ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
-        ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate,$apPeriod) {
+        ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate,$apPeriod1,$apPeriod2) {
             $searchPo ? $query->where('po_number','ilike','%'.$searchPo.'%') : '';
             $searchAp ? $query->where('ap_number','ilike','%'.$searchAp.'%') : '';
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
@@ -2250,7 +2250,8 @@ class AccountPayableController extends Controller
             // $apDate ? $query->whereBetween(DB::raw("to_date(ap_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             // $apDate ? $query->whereBetween('ap_invoice.created_at', [$fromDate, $toDate]) : '';
             $apDate ? $query->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $apPeriod ? $query->where('period',$apPeriod) : '';
+            // $apPeriod ? $query->where('period',$apPeriod) : '';
+            $apPeriod1 ? $query->whereBetween(db::raw("period::integer"),[$apPeriod1,$apPeriod2]) : '';
         })
         ->whereNotIn('ap_invoice.status',['5'])
         ->select(

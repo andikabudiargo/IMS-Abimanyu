@@ -16,7 +16,7 @@
       <div class="card-body">
         <form class="needs-validation" novalidate>
             <div class="form-row">
-              <div class="form-group col-md-3"> 
+              <div class="form-group col-md-2"> 
                 <label for="searchPo">PO Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
               </div>
@@ -37,7 +37,25 @@
                 <label for="apDate">Ap Date Invoice</label>
                 <input type="text" id="apDate" name="apDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-3">
+            </div>
+            <div class="form-row">
+              <div class="col-md-1 form-group">
+                <label class="form-label" for="apPeriod1">Period Awal</label>
+                <select class="select2 form-control" id="apPeriod1" name="apPeriod1" >
+                    @for ($i = 1; $i <= 12; $i++)
+                        <option value="{{ $i }}">{{ $i }}</option>
+                    @endfor
+                </select>
+              </div>
+              <div class="col-md-1 form-group">
+                <label class="form-label" for="apPeriod2">Period Akhir</label>
+                <select class="select2 form-control" id="apPeriod2" name="apPeriod2" >
+                    @for ($i = 1; $i <= 12; $i++)
+                        <option value="{{ $i }}">{{ $i }}</option>
+                    @endfor
+                </select>
+              </div>
+              {{-- <div class="form-group col-md-3">
                 <label class="form-label" for="period">Period</label>
                 <select class="select2 form-control" id="period" name="period" >
                     <option value=""></option>
@@ -45,7 +63,7 @@
                         <option value="{{ $i }}">{{ $i }}</option>
                     @endfor
                 </select>
-              </div>
+              </div> --}}
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Invoice Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
@@ -139,10 +157,13 @@
     let searchSupplier = $("#searchSupplier").val(); 
     let searchStatus = $("#searchStatus").val();
     let apDate = $("#apDate").val();
-    let aPeriod = $("#period").val();
+    // let aPeriod = $("#period").val();
+    let apPeriod1 = $("#apPeriod1").val();
+    let apPeriod2 = $("#apPeriod2").val();
+
     btnDetail.addClass('d-none');
     btnSummary.removeClass('d-none');
-    showListDetail(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod);
+    showListDetail(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod,apPeriod1,apPeriod2);
   });
 
   btnSummary.click(function(){
@@ -151,10 +172,13 @@
     let searchSupplier = $("#searchSupplier").val(); 
     let searchStatus = $("#searchStatus").val();
     let apDate = $("#apDate").val();
-    let aPeriod = $("#period").val();
+    // let aPeriod = $("#period").val();
+    let apPeriod1 = $("#apPeriod1").val();
+    let apPeriod2 = $("#apPeriod2").val();
+
     btnDetail.addClass('d-none');
     btnSummary.removeClass('d-none');
-    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod);
+    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod,apPeriod1,apPeriod2);
   });
 
   $("#btnSearch").click(function(e){
@@ -165,11 +189,13 @@
     let searchSupplier = $("#searchSupplier").val(); 
     let searchStatus = $("#searchStatus").val();
     let apDate = $("#apDate").val();
-    let aPeriod = $("#period").val();
-    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod);
+    // let aPeriod = $("#period").val();
+    let apPeriod1 = $("#apPeriod1").val();
+    let apPeriod2 = $("#apPeriod2").val();
+    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2);
   });
 
-  const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod) => {
+  const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -208,7 +234,9 @@
         searchSupplier:searchSupplier,
         searchStatus:searchStatus,
         apDate:apDate,
-        apPeriod:aPeriod
+        // apPeriod:aPeriod,
+        apPeriod1:apPeriod1,
+        apPeriod2:apPeriod2
       },
       initComplete: function() {
         let api = this.api();
@@ -222,7 +250,7 @@
     });
   }
 
-  const showListDetail = (searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod) => {
+  const showListDetail = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -254,7 +282,9 @@
         searchSupplier:searchSupplier,
         searchStatus:searchStatus,
         apDate:apDate,
-        apPeriod:aPeriod
+        // apPeriod:aPeriod,
+        apPeriod1:apPeriod1,
+        apPeriod2:apPeriod2
       },
       orderColumn:[[ 0, 'asc' ],[ 1, 'asc' ]],
       excelFileName:'invoice_supplier_det'
