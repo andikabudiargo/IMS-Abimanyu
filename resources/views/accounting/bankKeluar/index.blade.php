@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 
 <section id="article-index">
   <div class="card">
@@ -26,20 +25,29 @@
                 <label class="form-label" for="vcDate">Date</label>
                 <input type="text" id="vcDate" name="vcDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-3">
-                <label class="form-label" for="period">Period</label>
-                <select class="select2 form-control" id="period" name="period" >
+              <div class="form-group col-md-1">
+                <label class="form-label" for="period1">Period Awal</label>
+                <select class="select2 form-control" id="period1" name="period1" >
                     <option value=""></option>
                     @for ($i = 1; $i <= 12; $i++)
                         <option value="{{ $i }}">{{ $i }}</option>
                     @endfor
                 </select>
               </div>
-              <div class="form-group col-md-3">
+              <div class="form-group col-md-1">
+                <label class="form-label" for="period2">Period Akahir</label>
+                <select class="select2 form-control" id="period2" name="period2" >
+                    <option value=""></option>
+                    @for ($i = 1; $i <= 12; $i++)
+                        <option value="{{ $i }}">{{ $i }}</option>
+                    @endfor
+                </select>
+              </div>
+              <div class="form-group col-md-1">
                 <label class="form-label" for="year">Year</label>
                 <select class="select2 form-control" id="year" name="year" >
                   <option value=""></option>
-                  @for ($i = 2000; $i <= 2050 ; $i++)
+                  @for ($i = 2023; $i <= 2050 ; $i++)
                       <option value="{{ $i }}">{{ $i }}</option>
                   @endfor
                 </select>
@@ -127,27 +135,7 @@
     });
   });
 
-  let showAlert = "{{ Session::get('alert') }}";
-
-  if ( showAlert ){
-    // showList();
-    $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-      $("#alert-message-alert").slideUp(500);
-    });
-  }
-
-  //refresh di cards
-  $('a[data-action="reload"]').on('click', function () {
-    let seachVc = $("#seachVc").val();
-    let vcDate = $("#vcDate").val();
-    let period = $("#period").val();
-    let year = $("#year").val();
-    let searchStatus = $("#searchStatus").val();
-    let searchPaidTo = $("#paidTo").val();
-    showList(seachVc,vcDate,period,year,searchStatus,searchPaidTo);
-  });
-
-  rangePickr = $('.flatpickr-range');
+  const rangePickr = $('.flatpickr-range');
   if (rangePickr.length) {
     rangePickr.flatpickr({
       dateFormat: "d-m-Y",
@@ -155,18 +143,27 @@
     });
   }
 
-  $("#btnSearch").click(function(e){
+  function searchdData(){
     let seachVc = $("#seachVc").val();
     let vcDate = $("#vcDate").val();
-    let period = $("#period").val();
+    let period1 = $("#period1").val();
+    let period2 = $("#period2").val();
     let year = $("#year").val();
     let searchStatus = $("#searchStatus").val();
     let searchPaidTo = $("#paidTo").val();
-    showList(seachVc,vcDate,period,year,searchStatus,searchPaidTo);
+    showList(seachVc,vcDate,year,searchStatus,searchPaidTo,period1,period2);
+  }
 
+  //refresh di cards
+  $('a[data-action="reload"]').on('click', function () {
+    searchdData();
   });
 
-  const showList = (seachVc,vcDate,period,year,searchStatus,searchPaidTo) => {
+  $("#btnSearch").click(function(e){
+    searchdData();
+  });
+
+  const showList = (seachVc,vcDate,year,searchStatus,searchPaidTo,period1,period2) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -194,7 +191,8 @@
       dataSearch:  {
         seachVc:seachVc,
         vcDate:vcDate,
-        period:period,
+        period1:period1,
+        period2:period2,
         year:year,
         searchStatus:searchStatus,
         searchPaidTo:searchPaidTo

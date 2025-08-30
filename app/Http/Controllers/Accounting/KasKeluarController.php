@@ -821,7 +821,8 @@ class KasKeluarController extends Controller
     {
         $seachVc = strtolower($request->seachVc);
         $vcDate = $request->vcDate;
-        $period = $request->period;
+        $period1 = $request->period1;
+        $period2 = $request->period2;
         $year = $request->year;
         $vcType = $this->moduleCode;
         $fromDate = "";
@@ -844,10 +845,10 @@ class KasKeluarController extends Controller
 
         $data = DB::table('kas_hdr')
         ->leftJoin('third_party','third_party.kode','kas_hdr.paid_to')
-        ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$period,$year,$searchStatus,$paidTo) {
+        ->where(function ($query) use ($seachVc,$vcDate,$fromDate,$toDate,$year,$searchStatus,$paidTo,$period1,$period2) {
             $seachVc ? $query->where('voucher_number','ilike','%'.$seachVc.'%') : '';
             $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $period ? $query->where('period', $period) : '';
+            $period1 ? $query->whereBetween(db::raw("period::integer"),[$period1,$period2]) : '';
             $year ? $query->where('year', $year) : '';
             $searchStatus ? $query->where('kas_hdr.status', $searchStatus) : '';
             $paidTo ? $query->where('kas_hdr.paid_to', $paidTo) : '';
