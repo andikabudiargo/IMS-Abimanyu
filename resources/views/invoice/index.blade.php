@@ -97,18 +97,20 @@
               </div>
               <div class="col-md-1 form-group">
                 <label class="form-label" for="arPeriod1">Period Awal</label>
-                <select class="select2 form-control" id="arPeriod1" name="arPeriod1" >
-                    @for ($i = 1; $i <= 12; $i++)
-                        <option value="{{ $i }}">{{ $i }}</option>
-                    @endfor
+                <select class="select2 form-control" id="arPeriod1" name="arPeriod1">
+                  <option value=""></option>
+                  @for ($i = 1; $i <= 12; $i++)
+                      <option value="{{ $i }}">{{ $i }}</option>
+                  @endfor
                 </select>
               </div>
               <div class="col-md-1 form-group">
                 <label class="form-label" for="arPeriod2">Period Akhir</label>
-                <select class="select2 form-control" id="arPeriod2" name="arPeriod2" >
-                    @for ($i = 1; $i <= 12; $i++)
-                        <option value="{{ $i }}">{{ $i }}</option>
-                    @endfor
+                <select class="select2 form-control" id="arPeriod2" name="arPeriod2">
+                  <option value=""></option>
+                  @for ($i = 1; $i <= 12; $i++)
+                      <option value="{{ $i }}">{{ $i }}</option>
+                  @endfor
                 </select>
               </div>
 

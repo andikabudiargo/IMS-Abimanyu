@@ -39,22 +39,6 @@
               </div>
             </div>
             <div class="form-row">
-              <div class="col-md-1 form-group">
-                <label class="form-label" for="apPeriod1">Period Awal</label>
-                <select class="select2 form-control" id="apPeriod1" name="apPeriod1" >
-                    @for ($i = 1; $i <= 12; $i++)
-                        <option value="{{ $i }}">{{ $i }}</option>
-                    @endfor
-                </select>
-              </div>
-              <div class="col-md-1 form-group">
-                <label class="form-label" for="apPeriod2">Period Akhir</label>
-                <select class="select2 form-control" id="apPeriod2" name="apPeriod2" >
-                    @for ($i = 1; $i <= 12; $i++)
-                        <option value="{{ $i }}">{{ $i }}</option>
-                    @endfor
-                </select>
-              </div>
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Invoice Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
@@ -62,6 +46,24 @@
                     @foreach($status as $index=>$val)
                         <option value="{{ $index }}">{{ $val }}</option>
                     @endforeach
+                </select>
+              </div>
+              <div class="col-md-1 form-group">
+                <label class="form-label" for="apPeriod1">Period Awal</label>
+                <select class="select2 form-control" id="apPeriod1" name="apPeriod1" >
+                  <option value=""></option>
+                  @for ($i = 1; $i <= 12; $i++)
+                      <option value="{{ $i }}">{{ $i }}</option>
+                  @endfor
+                </select>
+              </div>
+              <div class="col-md-1 form-group">
+                <label class="form-label" for="apPeriod2">Period Akhir</label>
+                <select class="select2 form-control" id="apPeriod2" name="apPeriod2" >
+                  <option value=""></option>
+                  @for ($i = 1; $i <= 12; $i++)
+                      <option value="{{ $i }}">{{ $i }}</option>
+                  @endfor
                 </select>
               </div>
             </div>
