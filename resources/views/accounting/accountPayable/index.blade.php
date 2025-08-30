@@ -55,15 +55,6 @@
                     @endfor
                 </select>
               </div>
-              {{-- <div class="form-group col-md-3">
-                <label class="form-label" for="period">Period</label>
-                <select class="select2 form-control" id="period" name="period" >
-                    <option value=""></option>
-                    @for ($i = 1; $i <= 12; $i++)
-                        <option value="{{ $i }}">{{ $i }}</option>
-                    @endfor
-                </select>
-              </div> --}}
               <div class="form-group col-md-2"> 
                 <label class="form-label" for="searchStatus">Invoice Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
@@ -140,10 +131,10 @@
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-      showList();
+      dataSearch('summary');
   });
 
-  rangePickr = $('.flatpickr-range');
+  const rangePickr = $('.flatpickr-range');
   if (rangePickr.length) {
     rangePickr.flatpickr({
       dateFormat: "d-m-Y",
@@ -151,48 +142,41 @@
     });
   }
 
-   btnDetail.click(function(){
+  function dataSearch($type){
     let searchPo = $("#searchPo").val();
     let searchAp = $("#searchAp").val();
     let searchSupplier = $("#searchSupplier").val(); 
     let searchStatus = $("#searchStatus").val();
     let apDate = $("#apDate").val();
-    // let aPeriod = $("#period").val();
     let apPeriod1 = $("#apPeriod1").val();
     let apPeriod2 = $("#apPeriod2").val();
 
-    btnDetail.addClass('d-none');
-    btnSummary.removeClass('d-none');
-    showListDetail(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod,apPeriod1,apPeriod2);
+    if($type == 'detail'){
+      btnDetail.addClass('d-none');
+      btnSummary.removeClass('d-none');
+      showListDetail(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2);
+    }
+
+    if($type == 'summary'){
+      btnDetail.addClass('d-none');
+      btnSummary.removeClass('d-none');
+      showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2);  
+    }
+    
+  }
+
+  btnDetail.click(function(){
+    dataSearch('detail');
   });
 
   btnSummary.click(function(){
-    let searchPo = $("#searchPo").val();
-    let searchAp = $("#searchAp").val();
-    let searchSupplier = $("#searchSupplier").val(); 
-    let searchStatus = $("#searchStatus").val();
-    let apDate = $("#apDate").val();
-    // let aPeriod = $("#period").val();
-    let apPeriod1 = $("#apPeriod1").val();
-    let apPeriod2 = $("#apPeriod2").val();
-
-    btnDetail.addClass('d-none');
-    btnSummary.removeClass('d-none');
-    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,aPeriod,apPeriod1,apPeriod2);
+    dataSearch('summary');
   });
 
   $("#btnSearch").click(function(e){
     btnSummary.addClass('d-none');
     btnDetail.addClass('d-none');
-    let searchPo = $("#searchPo").val();
-    let searchAp = $("#searchAp").val();
-    let searchSupplier = $("#searchSupplier").val(); 
-    let searchStatus = $("#searchStatus").val();
-    let apDate = $("#apDate").val();
-    // let aPeriod = $("#period").val();
-    let apPeriod1 = $("#apPeriod1").val();
-    let apPeriod2 = $("#apPeriod2").val();
-    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2);
+    dataSearch('summary');
   });
 
   const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2) => {
@@ -234,7 +218,6 @@
         searchSupplier:searchSupplier,
         searchStatus:searchStatus,
         apDate:apDate,
-        // apPeriod:aPeriod,
         apPeriod1:apPeriod1,
         apPeriod2:apPeriod2
       },
@@ -282,7 +265,6 @@
         searchSupplier:searchSupplier,
         searchStatus:searchStatus,
         apDate:apDate,
-        // apPeriod:aPeriod,
         apPeriod1:apPeriod1,
         apPeriod2:apPeriod2
       },
