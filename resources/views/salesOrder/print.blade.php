@@ -239,7 +239,8 @@
         </table> --}}
     </main>
 
-    @if($no % 26 == 0 )
+    {{-- @if($no % 26 == 0 ) --}}
+    @if($no >= 26 )
         <div class="breakNow"></div>
     @endif
     <footer>
