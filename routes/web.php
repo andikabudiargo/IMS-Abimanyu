@@ -361,7 +361,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('invoice/list/so',['as'=>'invoice.list.so','uses'=>'InvoiceController@listSo']);
 	Route::get('invoice/list/dn',['as'=>'invoice.list.dn','uses'=>'InvoiceController@listDn']);
 	Route::get('invoice/list/uom',['as'=>'invoice.list.uom','uses'=>'InvoiceController@listUom']);
-	Route::get('invoice/dn/det',['as'=>'invoice.dn.det','uses'=>'InvoiceController@dnDetail']);
+	Route::post('invoice/dn/det',['as'=>'invoice.dn.det','uses'=>'InvoiceController@dnDetail']); //perubahan method dari get jadi post 9/8/2025
 	Route::post('invoice/store',['as'=>'invoice.store','uses'=>'InvoiceController@store']);
 	Route::post('invoice/list',['as'=>'invoice.list','uses'=>'InvoiceController@list']);
 	Route::get('invoice/show',['as'=>'invoice.show','uses'=>'InvoiceController@show']);

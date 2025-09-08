@@ -651,7 +651,7 @@
         if(jumlahCheck > 0 ){
             $.ajax({
                 url:"{{ route('invoice.dn.det') }}",
-                method:"GET",
+                method:"POST",
                 data:{
                     soNumber:soNumber,
                     dnNumber:dnNumber
