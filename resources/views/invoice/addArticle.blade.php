@@ -648,6 +648,12 @@
         $("#articleRow").empty();
         
         // if(jumlahCheck > 0 && soNumber){
+        if(edit == 'true'){
+            edit = 'false'
+        }
+        
+        console.log("Edit : "+edit);
+
         if(jumlahCheck > 0 ){
             $.ajax({
                 url:"{{ route('invoice.dn.det') }}",
