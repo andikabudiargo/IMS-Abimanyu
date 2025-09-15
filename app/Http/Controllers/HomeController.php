@@ -129,7 +129,7 @@ class HomeController extends Controller
                 and approval_order not in(
                 select approval_order from approval_history where username = '$username' and module_code = 'PR' and module_number = a.pr_number)),0) as berhak_approve1
             from purchase_request_hdr a
-            where status not in ('3','4','5','6','7','8')
+            where status not in ('3','4','5','6','7','8','9')
             ) as Oki
         where current_level+1 = berhak_approve");
 
