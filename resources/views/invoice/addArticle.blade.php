@@ -69,9 +69,6 @@
                         <input type="text" class="form-control-plaintext text-hitam" id = "articleId" name="articleId[]" data-code="" data-uom=""  data-price="" data-po-number="" data-so-code="" disabled>
                         <input type="hidden" class="form-control-plaintext" id = "dnNumber" name="dnNumber[]" >
                     </td>
-                    {{-- <td class="isian disabled" style="width: 5%">
-                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qty_po" name="qty_po[]" disabled>
-                    </td> --}}
                     <td class="isian" style="width: 5%">
                         <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qtyInv" name="qtyInv[]" maxlength="9">
                     </td>
@@ -85,27 +82,14 @@
                         <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "priceJasa" name="priceJasa[]"  oninput='inputDecimal(this)' maxlength="15">
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
-                        {{-- <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalLine" name="totalLine[]" > --}}
-                        {{-- <span id="totalLine" name="totalLine[]"></span> --}}
                         <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "totalLine" name="totalLine[]" disabled>
-                        {{-- <span class="text-hitam text-hitam" id="totalLine" name="totalLine[]"></span> --}}
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
-                        {{-- <input type="text" class="form-control-plaintext numeral-mask text-right" id="totalJasa" name="totalJasa[]" > --}}
-                        {{-- <span id="totalJasa" name="totalJasa[]"></span> --}}
                         <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "totalJasa" name="totalJasa[]" disabled>
-                        {{-- <span class="text-hitam text-hitam" id="totalJasa" name="totalJasa[]""></span> --}}
                     </td>
                     <td class="isian disabled text-right" style="width: 10%">
                         <input type="text" class="form-control-plaintext numeral-mask-digit text-right" id = "subTotal" name="subTotal[]" disabled>
-                        {{-- <span class="text-hitam text-hitam" id="subTotal" name="subTotal[]"></span> --}}
                     </td>
-                    {{-- <td class="isian text-center" style="width: 5%">
-                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
-                            <i data-feather="trash-2" class="remove_button feather-24">
-                            </i>
-                        </a>
-                    </td> --}}
                 </tr>
             </tbody>
         </table>
@@ -216,6 +200,7 @@
     function searchDn(soNumberKu) {
         let invNumber = $('#invNumber').val();
         let soNumber = getNewSoforList(soNumberKu);
+        let statusKu = "{{ $status }}";
         if(soNumber.length > 0){
             $.ajax({
                 url:"{{ route('invoice.list.dn') }}",
@@ -227,11 +212,13 @@
                 },
                 success:function(result){
                     if(result){
-                        $('#cmdSubmit').removeAttr('disabled');
+                        if ( statusKu != 'PAID') {
+                            $('#cmdSubmit').removeAttr('disabled');
+                        }
+
                         $("#listOfDn tbody").append(result);
                         deleteSoNotInList();
                     }else{
-                        // $('#cmdSubmit').attr('disabled','disabled');
                         const currentValues = $('#soNumber').val();
                         const newValues = currentValues.filter(item => item !== soNumber[0 ]); // Removes all instances of 3
                         let simpleArray = newValues.join(",").split(",");
@@ -282,15 +269,10 @@
     
     soNumber.change(function(){
         if($(this).val().length > 0){
-            // let ppn = $(this).find(":selected").data("ppn");
-            // $('#ppn').val(ppn);
-            // sNilaiPPN=ppn;
-            // console.log(`Nilai PPN SO : ${sNilaiPPN}%`);
             searchDn($(this).val());
         }else{
             customer.removeAttr('disabled')
             soDate.removeAttr('disabled')
-            // soNumber.attr('disabled','disabled')
             $("#listOfDn > tbody").empty();
         }
     })

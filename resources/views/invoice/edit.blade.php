@@ -33,7 +33,7 @@
                                         </div>
                                         <div class="form-group col-md-6">
                                             <label for="invDate">Invoice Date*</label>
-                                            <input type="text" id="invDate" name="invDate" value="{{ $header->invoice_date }}" class="form-control" placeholder="DD-MM-YYYY" required />
+                                            <input type="text" id="invDate" name="invDate" value="{{ $header->invoice_date }}" class="form-control" placeholder="DD-MM-YYYY" required  />
                                         </div>                               
                                     </div>
                                     <div class="form-row">
@@ -72,19 +72,8 @@
                                         <div class="form-group col-md-6">
                                             <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
                                                 <label class="form-label" for="soNumber">SO Number*</label>
-                                                <select class="select2 form-control" id="soNumber" name="soNumber" title="List SO adalah SO yang masih ada DN dan DN sudah di receipt tapi belum dibuatkan invoice" multiple required>
+                                                <select class="select2 form-control" id="soNumber" name="soNumber" title="List SO adalah SO yang masih ada DN dan DN sudah di receipt tapi belum dibuatkan invoice" multiple required {{ $status=='PAID' ? 'disabled' : '' }}>
                                                     @foreach($listSo as $val)
-                                                        {{-- <option value="{{ $val->so_code }}" 
-                                                            data-po-number="{{ $val->po_number }}" 
-                                                            data-ppn="{{ $val->ppn }}" 
-                                                            data-pph23="{{ $val->pph23 }}'" 
-                                                            {{ in_array($val->so_code, old('soNumber',$soNumbers)) ? " selected ":"" }} 
-                                                            {{ $val->jumlah_del_no == 0 ? "Disabled" : ""}}
-                                                            title = "{{ $val->jumlah_del_no == 0 ? "DN kosong" : ""}}"
-                                                            >
-                                                            {{ $val->so_code }} - {{ $val->po_number }}
-                                                        </option> --}}
-
                                                         <option value="{{ $val->so_code }}" 
                                                             data-po-number="{{ $val->po_number }}" 
                                                             data-ppn="{{ $val->ppn }}" 
@@ -127,7 +116,7 @@
                                     <br>
                                     <div class="form-row">
                                         <div class="col-md-12">
-                                            <button class="btn btn-primary" type="button" id="cmdSubmit" name="cmdSubmit">Submit</button>
+                                            <button class="btn btn-primary" type="button" id="cmdSubmit" name="cmdSubmit" {{ $status=='PAID' ? 'disabled' : '' }}>Submit</button>
                                         </div>
                                     </div>
                                 </div>
@@ -178,7 +167,7 @@
                                 <label for="nilaiLainCheck" class="col-sm-4 col-form-label titik-dua">VAT Object <span id="nilaiDppLain">{{ $header->dpp_lain_value  ? $header->dpp_lain_pembilang."/".$header->dpp_lain_penyebut : '' }}</span></label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck" {{ $header->dpp_lain_value >0 ? 'checked' : '' }}/>
+                                        <input type="checkbox" class="custom-control-input" id="nilaiLainCheck" name="nilaiLainCheck" {{ $header->dpp_lain_value >0 ? 'checked' : '' }} {{ $status=='PAID' ? 'disabled' : '' }}/>
                                         <label class="custom-control-label" for="nilaiLainCheck"></label>
                                     </div>
                                 </div>    
@@ -190,19 +179,19 @@
                                 <label for="totalPPN" class="col-sm-4 col-form-label titik-dua">VAT <span id="nilaiPPN"></span></label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ $header->total_ppn >0 ? 'checked' : '' }} />
+                                        <input type="checkbox" class="custom-control-input" id="vatCheck" name="vatCheck" {{ $header->total_ppn >0 ? 'checked' : '' }} {{ $status=='PAID' ? 'disabled' : '' }}/>
                                         <label class="custom-control-label" for="vatCheck"></label>
                                     </div>
                                 </div>    
                                 <div class="col-sm-5">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPN"  name="totalPPN" value="{{ $header->total_ppn>0 ? number_format($header->total_ppn,2) : 0 }}"  {{ $header->total_ppn > 0 ? '' : 'disabled' }} {{ $header->total_ppn > 0 ? 'required' : '' }}/>
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPN"  name="totalPPN" value="{{ $header->total_ppn>0 ? number_format($header->total_ppn,2) : 0 }}"  {{ $header->total_ppn > 0 ? '' : 'disabled' }} {{ $header->total_ppn > 0 ? 'required' : '' }} {{ $status=='PAID' ? 'disabled' : '' }}/>
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
                                 <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">WHT 23 <span id="nilaiPPH"></span> </label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" name="vatCheck" {{ $header->total_pph >0 ? 'checked' : '' }}/>
+                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" name="vatCheck" {{ $header->total_pph >0 ? 'checked' : '' }} {{ $status=='PAID' ? 'disabled' : '' }}/>
                                         <label class="custom-control-label" for="pph23Check"></label>
                                     </div>
                                 </div> 

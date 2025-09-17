@@ -24,6 +24,14 @@ use App\Http\Controllers\AttributeController as Attributes;
 
     Sebelumnya untuk AR besaran PPN nya berdasarkan inputan dari SO, sekarang berubah menjadi sesuai dengan invoice date
 
+
+    Update 16/9/2025
+    Pada saat status PAID, invoice masih bisa di edit tapi hanya form :
+        1. Invoice Date
+        2. Sending Date
+        3. Tax Number
+        4. Notes
+
 */
 
 class InvoiceController extends Controller
@@ -800,6 +808,8 @@ class InvoiceController extends Controller
         $dppPembilang = $request->pembilangNumber;
         $dppPenyebut = $request->penyebutNumber;
 
+        $statusInvoice = db::table('invoice_hdr')->where('invoice_number', $invNumber)->value('status');
+
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
 
         $customMessages = [
@@ -872,51 +882,66 @@ class InvoiceController extends Controller
                         ]
                     );
 
-                    $dataset=[];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            $invNumber.$val->po_number.$val->dn_number.$val->article_code
-                        ];
+                    if ($statusInvoice != '6') {
+                        if ($row_affected > 0) {
+                            $dataSet=[];
+                            foreach ($articles as $val) {
+                                $dataSet[] = [
+                                    $invNumber.$val->po_number.$val->dn_number.$val->article_code
+                                ];
+                            }
+        
+                            //berdasarkan 3 kondisi
+                            DB::table('invoice_det')
+                                ->whereNotIn(DB::raw("CONCAT(invoice_number,po_number,dn_number,article_code)"),$dataSet)
+                                ->where('invoice_number',$invNumber)
+                                ->delete();
+                                          
+                            foreach ($articles as $val) {
+                                DB::table('invoice_det')
+                                ->updateOrInsert(
+                                    ['invoice_number' => $invNumber
+                                        ,'article_code' => $val->article_code
+                                        ,'po_number' => $val->po_number
+                                        ,'dn_number' => $val->dn_number
+                                    ],
+                                    [
+                                        'invoice_number' => $invNumber,
+                                        'article_code' => $val->article_code,
+                                        'so_number' => $val->so_number,
+                                        'po_number' => $val->po_number,
+                                        'dn_number' => $val->dn_number,
+                                        'qty' => $val->qty,
+                                        'uom' => $val->uom,
+                                        'price' => $val->price,
+                                        'price_service' => $val->price_service,
+                                        'ppn' => ($val->price*$val->qty) * $ppn/100,
+                                        'pph23' => ($val->price_service*$val->qty) * $pph23/100,
+                                        'updated_by' => Auth::user()->username,
+                                        'updated_at' => date('Y-m-d H:i:s')
+                                    ]
+                                );
+                            }
+        
+                            $this->prosesUpdatePosting($invNumber);
+                            DB::commit();
+                            $title ="Update $this->title";
+                            $alert  ="success";
+                            $message  = "$title $invNumber is successfully updated";
+
+                        }else{
+                            DB::rollBack();
+                            $title ="Update $this->title";
+                            $alert  ="warning";
+                            $message  = "$title $invNumber is failed to updated";
+                        }
+                    }else{
+                        DB::commit();
+                        $title ="Update status PAID $this->title";
+                        $alert  ="success";
+                        $message  = "$title $invNumber is successfully updated on paid status";
                     }
 
-                    //berdasarkan 3 kondisi
-                    DB::table('invoice_det')
-                        ->whereNotIn(DB::raw("CONCAT(invoice_number,po_number,dn_number,article_code)"),$dataSet)
-                        ->where('invoice_number',$invNumber)
-                        ->delete();
-                                  
-                    foreach ($articles as $val) {
-                        DB::table('invoice_det')
-                        ->updateOrInsert(
-                            ['invoice_number' => $invNumber
-                                ,'article_code' => $val->article_code
-                                ,'po_number' => $val->po_number
-                                ,'dn_number' => $val->dn_number
-                            ],
-                            [
-                                'invoice_number' => $invNumber,
-                                'article_code' => $val->article_code,
-                                'so_number' => $val->so_number,
-                                'po_number' => $val->po_number,
-                                'dn_number' => $val->dn_number,
-                                'qty' => $val->qty,
-                                'uom' => $val->uom,
-                                'price' => $val->price,
-                                'price_service' => $val->price_service,
-                                'ppn' => ($val->price*$val->qty) * $ppn/100,
-                                'pph23' => ($val->price_service*$val->qty) * $pph23/100,
-                                'updated_by' => Auth::user()->username,
-                                'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
-                    }
-
-                    $this->prosesUpdatePosting($invNumber);
-                                                                
-                    DB::commit();
-                    $title ="Update $this->title";
-                    $alert  ="success";
-                    $message  = "$title $invNumber is successfully updated";
                     \LogActivity::addToLog($title,"username: $username Status $message");
                     return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'invNumber'=>$invNumber));
 
@@ -1444,7 +1469,9 @@ class InvoiceController extends Controller
             }
 
             //sibuka sementara dari pak leo 6-11-2023
-            if (($data->status != '5') && ($data->status != '6')){
+            // CR, status sudah paid masih bisa di edit tapi hanya field tertentu yang di edit nya
+            // if (($data->status != '5') && ($data->status != '6')){
+            if ($data->status != '5'){
                 $invDate = date('Y-m-d', strtotime($data->invoice_date_2));
                 if($invDate>=$lockDateToDate){
                     if ($bisaEdit) {
@@ -1813,6 +1840,8 @@ class InvoiceController extends Controller
         $output="";
         $edit = $request->edit;
 
+        $statusInvoice = db::table("invoice_hdr")->where("invoice_number",$invNumber)->value("status");
+
         if($edit == 'true'){
             $data= DB::table("delivery_hdr") 
             ->leftJoin('dn_receipt','dn_receipt.delivery_number','delivery_hdr.delivery_number')
@@ -1866,12 +1895,13 @@ class InvoiceController extends Controller
             $details=[];
         }
         
-        $showDetail ='false';
+        // $showDetail ='false';
         foreach ($data as $key=>$row){
             $checked = in_array($row->delivery_number, $details) ? 'checked' :'';
             $rowId = str_replace('/', '', $row->so_number);
             $rowKey = $row->so_number.'_'.$key;
             $cutomCheck = 'customCheck'.$rowId.$key;
+            $disabledCheck = $statusInvoice == '6' ? 'disabled' : '';
             $output .="<tr class='$rowId' id='$rowKey'>
                             <td>
                                 <div class='custom-control custom-checkbox'>
@@ -1880,7 +1910,7 @@ class InvoiceController extends Controller
                                     data-dn-number = '$row->delivery_number'
                                     data-sum-qty = '$row->po_number' 
                                     data-so-number = '$row->so_number' 
-                                    $checked>
+                                    $checked $disabledCheck>
                                     <label class='custom-control-label' for='$cutomCheck'></label>
                                 </div>
                             </td>
