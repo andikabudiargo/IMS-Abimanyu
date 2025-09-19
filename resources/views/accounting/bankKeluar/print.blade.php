@@ -334,7 +334,7 @@
             for (let i = 0; i < dataDetails.length; i++) {
                 let noAccount = dataDetails[i].account;
                 let accountName = dataDetails[i].account_name;
-                let referensi = dataDetails[i].reference;
+                let referensi = dataDetails[i].reference ?dataDetails[i].reference : '';
                 let keterangan = dataDetails[i].description;
                 let debet = dataDetails[i].debit;
                 let kredit = dataDetails[i].credit;
