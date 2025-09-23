@@ -1964,30 +1964,46 @@ class InvoiceController extends Controller
             }
         }      
 
-        $data= DB::table("sales_order_hdr") 
-        ->where("customer_id",$cust)
-        ->where("status","3")
-        ->whereIn('so_code', function($query) use ($cust) {
-            $query->select('so_number')
-            ->from('delivery_hdr') 
-            ->where('customer_id',$cust)
-            // ->where('status','4');
-            ->where('status','8') // sudah di invoice receive
-            //tidak ada di invoice detail berarti sudah di receipt tapi belum dibikin invoice
-            ->whereNotIn('delivery_number', function($query) {
-                $query->select('dn_number') 
-                ->from('invoice_det');
-            });
-        })
-        ->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate])
-        ->orderBy("so_code")
-        ->select("so_code"
-            ,"po_number"
-            ,"ppn"
-            ,"pph23"
-            // ,DB::raw("(select count(*) as jumlahDelNo from delivery_hdr where so_number = sales_order_hdr.so_code and status = '8' and delivery_number not in (select delivery_number from invoice_det where so_number = sales_order_hdr.so_code)) as jumlah_del_no")
-        )
-        ->get();          
+
+        /* Query baru menggunakan join */
+        $data= DB::select("SELECT DISTINCT soh.so_code, soh.po_number, soh.ppn, soh.pph23 
+            FROM sales_order_hdr soh
+            INNER JOIN delivery_hdr dh ON soh.so_code = dh.so_number 
+                                    AND soh.customer_id = dh.customer_id
+            LEFT JOIN invoice_det id ON dh.delivery_number = id.dn_number 
+            WHERE soh.customer_id = '$cust' 
+            AND soh.status = '3'
+            AND dh.status = '8'
+            AND id.dn_number IS NULL
+            AND to_date(soh.so_date,'DD-MM-YYYY') BETWEEN '$fromDate' AND '$toDate'
+            ORDER BY soh.so_code ASC;"
+        );
+
+
+        // $data= DB::table("sales_order_hdr") 
+        // ->where("customer_id",$cust)
+        // ->where("status","3")
+        // ->whereIn('so_code', function($query) use ($cust) {
+        //     $query->select('so_number')
+        //     ->from('delivery_hdr') 
+        //     ->where('customer_id',$cust)
+        //     // ->where('status','4');
+        //     ->where('status','8') // sudah di invoice receive
+        //     //tidak ada di invoice detail berarti sudah di receipt tapi belum dibikin invoice
+        //     ->whereNotIn('delivery_number', function($query) {
+        //         $query->select('dn_number') 
+        //         ->from('invoice_det');
+        //     });
+        // })
+        // ->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate])
+        // ->orderBy("so_code")
+        // ->select("so_code"
+        //     ,"po_number"
+        //     ,"ppn"
+        //     ,"pph23"
+        //     // ,DB::raw("(select count(*) as jumlahDelNo from delivery_hdr where so_number = sales_order_hdr.so_code and status = '8' and delivery_number not in (select delivery_number from invoice_det where so_number = sales_order_hdr.so_code)) as jumlah_del_no")
+        // )
+        // ->get();          
 
         $output .='<option value=""></option>';            
         foreach ($data as $row){
