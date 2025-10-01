@@ -332,7 +332,7 @@
                     <td>
                         <table width="100%">
                             <tr>
-                                <td width="65%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
+                                <td width="46%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
                                     <h2 style="margin:0px">INVOICE</h2>
                                 </td>
                                 <td style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
@@ -340,7 +340,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td width="65%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                                <td width="46%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px;font-size:14px">
                                     <strong> Customer: </strong><br>
                                     {{ $customers->nama }} <br>
                                     {{ $customers->alamat_kirim_1 }} <br>
@@ -566,7 +566,7 @@
                         <td>
                             <table width="100%">
                                 <tr>
-                                    <td width="65%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
+                                    <td width="46%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
                                         <h2 style="margin:0px">INVOICE</h2>
                                     </td>
                                     <td style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
@@ -574,7 +574,7 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td width="65%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                                    <td width="46%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                         <strong> Customer: </strong><br>
                                         {{ $customers->nama }} <br>
                                         {{ $customers->alamat_kirim_1 }} <br>

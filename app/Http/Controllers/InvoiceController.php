@@ -1732,12 +1732,35 @@ class InvoiceController extends Controller
 
         $data['listpo'] = $listpo[0]->po_list;
         
+        
+
+        // if($dataListPo == null){
+        //    $data['listpo'] = ""; 
+        // }elseIf(count(explode(",",$dataListPo)) > 10){
+        //     $data['listpo'] = implode(", ",array_slice(explode(",", trim($dataListPo)),0,11)). "dst...";
+        // }
+
+        
         $dataListPo = $listpo[0]->po_list;
-        if($dataListPo == null){
-           $data['listpo'] = ""; 
-        }elseIf(count(explode(",",$dataListPo)) > 10){
-            $data['listpo'] = implode(", ",array_slice(explode(",", trim($dataListPo)),0,11)). "dst...";
+        $maxChar = 275;
+        
+        if( strlen($dataListPo) > $maxChar ){
+            $data['listpo'] = ""; 
+            $dataListPo = substr($dataListPo,0,$maxChar);
+            $arrDataListPo = explode(",",trim($dataListPo));
+            array_pop($arrDataListPo);
+            $data['listpo'] = implode(", ",$arrDataListPo). ",dst...";
         }
+
+        // dd(substr($dataListPo,0,270));
+
+        // $maxPoLIst = 19;
+
+        // if($dataListPo == null){
+        //    $data['listpo'] = ""; 
+        // }elseIf(count(explode(",",$dataListPo)) > $maxPoLIst){
+        //     $data['listpo'] = implode(", ",array_slice(explode(",", trim($dataListPo)),0,$maxPoLIst)). ",dst...";
+        // }
 
         $data['totals']=DB::select("SELECT 
         b.dpp_lain_value,
