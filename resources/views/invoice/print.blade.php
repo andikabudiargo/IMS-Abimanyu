@@ -340,11 +340,11 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td width="46%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px;font-size:14px">
+                                <td width="46%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
                                     <strong> Customer: </strong><br>
                                     {{ $customers->nama }} <br>
                                     {{ $customers->alamat_kirim_1 }} <br>
-                                    @if(strlen($customers->alamat_kirim_1)<69)
+                                    @if(strlen($customers->alamat_kirim_1)<60)
                                     <br>
                                     @endif
                                     <strong>No. NPWP : </strong> {{ $customers->npwp }}</strong>
@@ -375,8 +375,10 @@
                         <th width="6%">No</th>
                         <th width="50%" >Description</th>
                         <th width="10%" align="center">Qty</th>
-                        <th width="12%" Style="font-size: 10pt">Material Price</th>
-                        <th width="10.5%" Style="font-size: 9pt">Service Price</th>
+                        {{-- <th width="12%" Style="font-size: 10pt">Material Price</th>
+                        <th width="10.5%" Style="font-size: 9pt">Service Price</th> --}}
+                        <th width="12%">Material Price</th>
+                        <th width="10.5%">Service Price</th>
                         <th width="16.5%">Total Material</th>
                         <th width="15%">Total Service</th>
                     </tr>
@@ -578,7 +580,7 @@
                                         <strong> Customer: </strong><br>
                                         {{ $customers->nama }} <br>
                                         {{ $customers->alamat_kirim_1 }} <br>
-                                        @if(strlen($customers->alamat_kirim_1)<69)
+                                        @if(strlen($customers->alamat_kirim_1)<60)
                                         <br>
                                         @endif
                                         <strong>No. NPWP : </strong> {{ $customers->npwp }}</strong>
@@ -609,8 +611,10 @@
                             <th width="6%">No</th>
                             <th width="50%" >Description</th>
                             <th width="10%" align="center">Qty</th>
-                            <th width="12%" Style="font-size: 10pt">Material Price</th>
-                            <th width="10.5%" Style="font-size: 9pt">Service Price</th>
+                            {{-- <th width="12%" Style="font-size: 10pt">Material Price</th>
+                            <th width="10.5%" Style="font-size: 9pt">Service Price</th> --}}
+                            <th width="12%">Material Price</th>
+                            <th width="10.5%">Service Price</th>
                             <th width="16.5%">Total Material</th>
                             <th width="15%">Total Service</th>
                         </tr>
