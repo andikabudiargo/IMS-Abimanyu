@@ -163,6 +163,7 @@
         $("#grandTotalQty").val(humanizeNumber(0));
         $('#statusText').text('New');
         $('#recDate').val(currentDate);
+        $('#doDate').val(currentDate);
         $('#cmdSave').show();
         // $('#cmdPosting').hide();
         $('#cmdPrint').hide();
