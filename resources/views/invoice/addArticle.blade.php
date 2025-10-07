@@ -812,4 +812,24 @@
         });
     }
 
+    // function getBuktiPotong(noBuktiPotong,customer,noInvoice, callback) {
+    //     $.ajax({
+    //         url:"{{ route('invoice.get.bukti.potong') }}",
+    //         method:"GET",
+    //         data:{
+    //             noBuktiPotong:noBuktiPotong,
+    //             customer:customer,
+    //             noInvoice:noInvoice
+    //         },
+    //         success:function(result){
+    //             callback(null, result); // Success: null error, result data
+    //         },
+    //         error: function (response) {
+    //             //Error here
+    //             Swal.fire("Warning","Get Bukti Potong failed","warning");
+    //             callback(response, null); // Error: response error, null data
+    //         }
+    //     })
+    // }
+
 </script>

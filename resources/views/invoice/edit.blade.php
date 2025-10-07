@@ -31,10 +31,19 @@
                                             <label for="invNumber">Invoice Number</label> <small class="text-muted"> automatic </small>
                                             <input type="text" id="invNumber" name="invNumber" value="{{ $header->invoice_number }}" class="form-control text-hitam disabled-el"  disabled />
                                         </div>
-                                        <div class="form-group col-md-6">
+                                        <div class="form-group col-md-4">
                                             <label for="invDate">Invoice Date*</label>
                                             <input type="text" id="invDate" name="invDate" value="{{ $header->invoice_date }}" class="form-control" placeholder="DD-MM-YYYY" required  />
-                                        </div>                               
+                                        </div>                            
+                                        <div class="form-group col-md-2">
+                                            <label for="period">Period*</label>
+                                            <select class="select2 form-control" id="period" name="period" required>
+                                                <option value=""></option>
+                                                @for ($i = 1; $i <= 12; $i++)
+                                                    <option value="{{ $i }}" {{$i == $header->period ? "selected" : ""}}>{{ $i }}</option>
+                                                @endfor
+                                            </select>
+                                        </div>   
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">
@@ -60,13 +69,21 @@
 
                                     <div class="form-row">
                                         <div class="form-group col-md-6">
-                                            <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
-                                                <label for="soDate">SO Date</label>
-                                                <input type="text" id="soDate" name="soDate" value="{{ $soDateRange }}" class="form-control flatpickr-range" placeholder="DD-MM-YYYY" disabled/>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-12">
+                                                    <label for="soDate">SO Date</label>
+                                                    <input type="text" id="soDate" name="soDate" value="{{ $soDateRange }}" class="form-control flatpickr-range" placeholder="DD-MM-YYYY" disabled/>
+                                                </div>
                                             </div>
-                                            <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
-                                                <label for="fakturPajak">Tax Number</label>
-                                                <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" />
+                                            <div class="form-row">
+                                                <div class="form-group col-md-6">
+                                                    <label for="fakturPajak">Tax Number</label>
+                                                    <input type="text" id="fakturPajak" name="fakturPajak"  value="{{ $header->faktur_pajak }}"  class="form-control" />
+                                                </div>
+                                                <div class="form-group col-md-6">
+                                                    <label for="buktiPotong">No Bukti Potong</label>
+                                                    <input type="text" id="buktiPotong" name="buktiPotong" value="{{ $header->bukti_potong }}" class="form-control" />
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="form-group col-md-6">
@@ -444,130 +461,157 @@
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{ 
-            $('.disabled-el').removeAttr('disabled');
-            // ambil semua data article
-            let objQty= $('#article_row input[name="qtyInv[]"]');
-            let objPrice= $('#article_row input[name="price[]"]');
-            let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
-            let objUom= $('#article_row span[name="uom[]"]'); 
-            let articles = []; 
-            let flag=0; 
-            let pesan="";
+            // getBuktiPotong($('#buktiPotong').val(),$('#customer').val(),$('#invNumber').val(), function(error, result) {
+            //     if (error) {
+            //         console.error("Error:", error);
+            //         return;
+            //     }
 
-            $("#article_row input[name='articleId[]']").map(function(i) {  
-                let $this=$(this);
-                if ($this.val()){
-                    let articleCode = $this.data("code");
-                    let articleDesc = $this.data("desc");
-                    let articleUom = $this.data("uom");
-                    let articleSoCode = $this.data("so-code");
-                    let articleDnNumber = $this.data("dn-number");
-                    let poNumber = $this.data("po-number");
-                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                    let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
-                    let priceJasa=objPriceJasa.eq(i).val().replace(/,/gi, '') || 0;
-                    
-                    if ((articleCode!=='') && (qty> 0)){
-                        articles.push({
-                            "article_code":articleCode,
-                            "qty":qty,
-                            "uom":articleUom,
-                            "price":price,
-                            "price_service":priceJasa,
-                            "so_number":articleSoCode,
-                            "dn_number":articleDnNumber,
-                            "po_number":poNumber
-                        });
-                    }
+            //     if(result['status']){
+            //         swal.fire({
+            //             title: "Warning",
+            //             text: "Bukti Potong "+$('#buktiPotong').val()+" sudah digunakan oleh invoice : "+result['detail']['invoice_number']+" !",
+            //             type: "warning",
+            //             confirmButtonClass: "btn-danger",})
+            //         .then((result) => {
+            //             $('#buktiPotong').focus();
+            //         });
+            //     }else{
+                    $('.disabled-el').removeAttr('disabled');
+                    // ambil semua data article
+                    let objQty= $('#article_row input[name="qtyInv[]"]');
+                    let objPrice= $('#article_row input[name="price[]"]');
+                    let objPriceJasa= $('#article_row input[name="priceJasa[]"]');
+                    let objUom= $('#article_row span[name="uom[]"]'); 
+                    let articles = []; 
+                    let flag=0; 
+                    let pesan="";
 
-                    if (qty == 0){
-                        pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
+                    $("#article_row input[name='articleId[]']").map(function(i) {  
+                        let $this=$(this);
+                        if ($this.val()){
+                            let articleCode = $this.data("code");
+                            let articleDesc = $this.data("desc");
+                            let articleUom = $this.data("uom");
+                            let articleSoCode = $this.data("so-code");
+                            let articleDnNumber = $this.data("dn-number");
+                            let poNumber = $this.data("po-number");
+                            let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                            let price=objPrice.eq(i).val().replace(/,/gi, '') || 0;
+                            let priceJasa=objPriceJasa.eq(i).val().replace(/,/gi, '') || 0;
+                            
+                            if ((articleCode!=='') && (qty> 0)){
+                                articles.push({
+                                    "article_code":articleCode,
+                                    "qty":qty,
+                                    "uom":articleUom,
+                                    "price":price,
+                                    "price_service":priceJasa,
+                                    "so_number":articleSoCode,
+                                    "dn_number":articleDnNumber,
+                                    "po_number":poNumber
+                                });
+                            }
+
+                            if (qty == 0){
+                                pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
+                                flag=1;
+                            }
+                            // if (inisial !== customer){
+                            //     pesan +="This article "+ articleName +" does not belong to the customer "+custName +" <br>"; 
+                            //     flag=1;
+                            // }
+                        }
+                    });
+
+                    if (articles.length == 0){
+                        pesan +="Articles must be filled in completely <br>"; 
                         flag=1;
                     }
-                    // if (inisial !== customer){
-                    //     pesan +="This article "+ articleName +" does not belong to the customer "+custName +" <br>"; 
-                    //     flag=1;
-                    // }
-                }
-            });
 
-            if (articles.length == 0){
-                pesan +="Articles must be filled in completely <br>"; 
-                flag=1;
-            }
-
-            if (flag==0){
-
-                let invDate = $('#invDate').val();
-                let customer = $('#customer').val()
-                let soNumber = $('#soNumber').val()
-                let dnNumber = $('#dnNumber').val()
-                let ppn = $('#ppn').val().replace(/,/gi, '');
-                let pph23 = $('#pph23').val().replace(/,/gi, '');
-                let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
-                let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
-                let invNumber = $('#invNumber').val();
-                let note = $('#note').val();
-                let fakturPajak =$('#fakturPajak').val();
-                let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
-                let grandTotal = $('#totalNetto').val().replace(/,/gi, '') || 0;
-                let sendingDate = $('#sendingDate').val();
-                let aPembilangNumber = $('#pembilangNumber').val();
-                let aPenyebutNumber = $('#penyebutNumber').val();
-                let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
-
-                $.ajax({
-                    type: "post",
-                    url: "{{ route('invoice.update') }}",
-                    data: {
-                        articles:JSON.stringify(articles),
-                        invNumber:invNumber,
-                        invDate:invDate,
-                        customer:customer,
-                        ppn:ppn,
-                        pph23:pph23,
-                        totalPpn:totalPpn,
-                        totalPph:totalPph,
-                        note:note,
-                        soNumber:soNumber,
-                        dnNumber:dnNumber,
-                        fakturPajak:fakturPajak,
-                        totalAmount:totalAmount,
-                        grandTotal:grandTotal,
-                        sendingDate:sendingDate,
-                        pembilangNumber:aPembilangNumber,
-                        penyebutNumber:aPenyebutNumber,
-                        totalDppNilaiLain:aTotalDppNilaiLain
-                    },
-                    dataType: "json",
-                    success: function(data) {
-                        if (data.status == 0 ){
-                            for(let i = 0; i < data.message.length; i++) {
-                                show_msg(data.title, data.message[i], data.alert);
-                            }
-                            $('#invNumber').attr('disabled','disabled');
-                            $('#totalAmount').attr('disabled','disabled');
-                            $('#customer').attr('disabled','disabled');
-                        }else{
-                            show_msg(data.title, data.message, data.alert);
-                            $('#invNumber').val(data.invNumber);
-                            $('#totalAmount').attr('disabled','disabled');
-                            $('#invNumber').attr('disabled','disabled');
-                            $('#customer').attr('disabled','disabled');
-                            $('#totalPPN').attr('disabled','disabled');
-                            $('#totalPPH').attr('disabled','disabled');
-                            $('#totalDppNilaiLain').attr('disabled','disabled');
-                            // $('#cmdSave').attr('disabled','disabled');
-                        }
-                    },
-                    error: function(error) {
-                        console.log(error);
+                    if($('#period').val()==''){
+                        pesan +="Period must be filled in <br>"; 
+                        flag=1;
                     }
-                });
 
-            }else{
-                Swal.fire('Warning..',pesan,'warning');
-            }
+                    if (flag==0){
+
+                        let invDate = $('#invDate').val();
+                        let customer = $('#customer').val()
+                        let soNumber = $('#soNumber').val()
+                        let dnNumber = $('#dnNumber').val()
+                        let ppn = $('#ppn').val().replace(/,/gi, '');
+                        let pph23 = $('#pph23').val().replace(/,/gi, '');
+                        let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
+                        let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
+                        let invNumber = $('#invNumber').val();
+                        let note = $('#note').val();
+                        let fakturPajak =$('#fakturPajak').val();
+                        let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;
+                        let grandTotal = $('#totalNetto').val().replace(/,/gi, '') || 0;
+                        let sendingDate = $('#sendingDate').val();
+                        let aPembilangNumber = $('#pembilangNumber').val();
+                        let aPenyebutNumber = $('#penyebutNumber').val();
+                        let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
+                        let aPeriode = $('#period').val();
+                        let aBuktiPotong = $('#buktiPotong').val();
+
+                        $.ajax({
+                            type: "post",
+                            url: "{{ route('invoice.update') }}",
+                            data: {
+                                articles:JSON.stringify(articles),
+                                invNumber:invNumber,
+                                invDate:invDate,
+                                customer:customer,
+                                ppn:ppn,
+                                pph23:pph23,
+                                totalPpn:totalPpn,
+                                totalPph:totalPph,
+                                note:note,
+                                soNumber:soNumber,
+                                dnNumber:dnNumber,
+                                fakturPajak:fakturPajak,
+                                totalAmount:totalAmount,
+                                grandTotal:grandTotal,
+                                sendingDate:sendingDate,
+                                pembilangNumber:aPembilangNumber,
+                                penyebutNumber:aPenyebutNumber,
+                                totalDppNilaiLain:aTotalDppNilaiLain,
+                                aPeriode:aPeriode,
+                                aBuktiPotong:aBuktiPotong
+                            },
+                            dataType: "json",
+                            success: function(data) {
+                                if (data.status == 0 ){
+                                    for(let i = 0; i < data.message.length; i++) {
+                                        show_msg(data.title, data.message[i], data.alert);
+                                    }
+                                    $('#invNumber').attr('disabled','disabled');
+                                    $('#totalAmount').attr('disabled','disabled');
+                                    $('#customer').attr('disabled','disabled');
+                                }else{
+                                    show_msg(data.title, data.message, data.alert);
+                                    $('#invNumber').val(data.invNumber);
+                                    $('#totalAmount').attr('disabled','disabled');
+                                    $('#invNumber').attr('disabled','disabled');
+                                    $('#customer').attr('disabled','disabled');
+                                    $('#totalPPN').attr('disabled','disabled');
+                                    $('#totalPPH').attr('disabled','disabled');
+                                    $('#totalDppNilaiLain').attr('disabled','disabled');
+                                    // $('#cmdSave').attr('disabled','disabled');
+                                }
+                            },
+                            error: function(error) {
+                                console.log(error);
+                            }
+                        });
+
+                    }else{
+                        Swal.fire('Warning..',pesan,'warning');
+                    }
+                // }
+            // });
         }
     });
            

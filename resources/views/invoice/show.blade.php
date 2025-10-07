@@ -56,6 +56,24 @@
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-6">
+                                            <div class="form-row">
+                                                <div class="form-group col-md-12">
+                                                    <label for="soDate">SO Date</label>
+                                                    <input type="text" id="soDate" name="soDate" value="{{ $soDateRange }}" class="form-control flatpickr-range" placeholder="DD-MM-YYYY" disabled/>
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-6">
+                                                    <label for="fakturPajak">Tax Number</label>
+                                                    <input type="text" id="fakturPajak" name="fakturPajak"  value="{{ $header->faktur_pajak }}"  class="form-control" />
+                                                </div>
+                                                <div class="form-group col-md-6">
+                                                    <label for="buktiPotong">No Bukti Potong</label>
+                                                    <input type="text" id="buktiPotong" name="buktiPotong" value="{{ $header->bukti_potong }}" class="form-control" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {{-- <div class="form-group col-md-6">
                                             <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
                                                 <label for="soDate">SO Date</label>
                                                 <input type="text" id="soDate" name="soDate" value="{{ $soDateRange }}" class="form-control flatpickr-range" placeholder="DD-MM-YYYY" disabled/>
@@ -64,7 +82,7 @@
                                                 <label for="fakturPajak">Tax Number</label>
                                                 <input type="text" id="fakturPajak" name="fakturPajak" value="{{ $header->faktur_pajak }}" class="form-control" />
                                             </div>
-                                        </div>
+                                        </div> --}}
                                         <div class="form-group col-md-6">
                                             <label class="form-label" for="soNumber" disabled>SO Number*</label>
                                             <textarea type="text" id="soNumber" name="soNumber" class="form-control" rows="4"  disabled>{{ $soNumbers }}</textarea>

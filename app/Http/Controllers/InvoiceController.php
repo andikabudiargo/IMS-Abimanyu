@@ -90,36 +90,37 @@ class InvoiceController extends Controller
     {
         $kolom=
         [
-            ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
-            ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number' ],
-            ['data'=> 'status', 'name'=> 'status','title'=>'Status' ],
-            ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date' ],
-            ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date','visible'=>false ],
-            ['data'=> 'period', 'name'=> 'period','title'=>'Period' ],
-            ['data'=> 'so_number_2', 'name'=> 'so_number_2','title'=>'SO Number' ],
-            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
-            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
-            ['data'=> 'faktur_pajak', 'name'=> 'faktur_pajak','title'=>'Tax number' ],
-            ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP' ],
-            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],
-            ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN' ],
-            ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH' ],
-            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total' ],
-            ['data'=> 'jatuh_tempo', 'name'=> 'jatuh_tempo','title'=>'Jatuh Tempo' ],
-            ['data'=> 'jatuh_tempo_2', 'name'=> 'jatuh_tempo_2','title'=>'Jatuh Tempo','visible'=>false ],  
-            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],
-            ['data'=> 'voucher_date_2', 'name'=> 'voucher_date_2','title'=>'Paid Date','visible'=>false ],
-            ['data'=> 'sending_date', 'name'=> 'sending_date','title'=>'Sending Date'],
-            ['data'=> 'sending_date_2', 'name'=> 'sending_date_2','title'=>'Sending Date','visible'=>false ],
-            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],
-            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],
-            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],
-            ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
-            ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By' ],
-            ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At' ],
-            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By' ],
-            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At' ],
-            ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number' ],
+            ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false], //0
+            ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number'], //1
+            ['data'=> 'status', 'name'=> 'status','title'=>'Status'], //2
+            ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date'], //3
+            ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date','visible'=>false], //4
+            ['data'=> 'period', 'name'=> 'period','title'=>'Period'], //5
+            ['data'=> 'so_number_2', 'name'=> 'so_number_2','title'=>'SO Number'], //6
+            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'], //7
+            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer'], //8
+            ['data'=> 'faktur_pajak', 'name'=> 'faktur_pajak','title'=>'Tax number'], //9   
+            ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'], //10
+            ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP'], //11
+            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'], //12
+            ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN'], //13
+            ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH'], //14
+            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total'], //15
+            ['data'=> 'jatuh_tempo', 'name'=> 'jatuh_tempo','title'=>'Jatuh Tempo'], //16
+            ['data'=> 'jatuh_tempo_2', 'name'=> 'jatuh_tempo_2','title'=>'Jatuh Tempo','visible'=>false], //17
+            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'], //18
+            ['data'=> 'voucher_date_2', 'name'=> 'voucher_date_2','title'=>'Paid Date','visible'=>false], //19
+            ['data'=> 'sending_date', 'name'=> 'sending_date','title'=>'Sending Date'], //20
+            ['data'=> 'sending_date_2', 'name'=> 'sending_date_2','title'=>'Sending Date','visible'=>false], //21
+            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'], //22
+            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'], //23
+            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'], //24
+            ['data'=> 'note', 'name'=> 'note','title'=>'Note'], //25
+            ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By'], //26
+            ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At'], //27
+            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'], //28
+            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'], //29
+            ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number'], //30
             // ['data'=> 'updated_by', 'name'=> 'updated_by','title'=>'Updated By'],
             // ['data'=> 'updated_at', 'name'=> 'updated_at','title'=>'Updated At']
         ];
@@ -407,9 +408,12 @@ class InvoiceController extends Controller
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
-        $period = (int)explode('-', $invDate)[1];
-        $periodNomor = (int)explode('-', $invDate)[1];
-
+        // $period = (int)explode('-', $invDate)[1];
+        // $periodNomor = (int)explode('-', $invDate)[1];
+        $period = $request->aPeriode;
+        $periodNomor = $request->aPeriode;
+        $buktiPotong =  $request->aBuktiPotong;
+    
         $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
 
@@ -511,7 +515,8 @@ class InvoiceController extends Controller
                     'dpp_lain_pembilang' => $dppPembilang,
                     'dpp_lain_penyebut' => $dppPenyebut,
                     'start_date' => $startDate,
-                    'end_date' => $endDate
+                    'end_date' => $endDate,
+                    'bukti_potong' => $buktiPotong
                 ]);
 
                 $dataSet = [];
@@ -568,6 +573,9 @@ class InvoiceController extends Controller
         $invoiceNumber = $data['header']->invoice_number;
         $data['soDateRange'] = $data['header']->start_date.' to '.$data['header']->end_date;
 
+        $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $data['status'] = $status[$data['header']->status-1];
+
         $soNumbers = DB::table('invoice_det')
         ->select('so_number')
         ->where('invoice_number',$invoiceNumber)
@@ -609,7 +617,6 @@ class InvoiceController extends Controller
         ->get();
 
         
-
         $data['delivery'] = DB::table('delivery_hdr')
         ->whereIn('delivery_hdr.delivery_number', function($query) use ($invoiceNumber) {
             $query->select('dn_number')
@@ -817,7 +824,10 @@ class InvoiceController extends Controller
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
 
-        $period = (int)explode('-', $invDate)[1];
+        // $period = (int)explode('-', $invDate)[1];
+
+        $period = $request->aPeriode;
+        $buktiPotong =  $request->aBuktiPotong;
 
         $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
@@ -898,7 +908,8 @@ class InvoiceController extends Controller
                             'sending_date' => $sendingDate,
                             'dpp_lain_value' => $dppLainValue,
                             'dpp_lain_pembilang' => $dppPembilang,
-                            'dpp_lain_penyebut' => $dppPenyebut
+                            'dpp_lain_penyebut' => $dppPenyebut,
+                            'bukti_potong' => $buktiPotong
                         ]
                     );
 
@@ -2433,6 +2444,30 @@ class InvoiceController extends Controller
         return "beres";
 
     }
+
+    public function getBuktiPotong(Request $request){
+        $noBuktiPotong = $request->noBuktiPotong;
+        $customer = $request->customer;
+        $dataResult =[];
+        $noInvoice = $request->noInvoice;
+
+        $noBuktiPotong = DB::table('invoice_hdr')->where('invoice_number',$noInvoice)->value('bukti_potong');
+        
+        $data = DB::table('invoice_hdr')
+        ->where('customer_id',$customer)
+        ->where('bukti_potong',$noBuktiPotong)
+        ->where('invoice_number','<>',$noBuktiPotong)
+        ->first();
+
+        if($data){
+            $dataResult['status'] = true;
+            $dataResult['detail'] = $data;
+        }else{
+            $dataResult['status'] = false;
+            $dataResult['detail'] = $data;
+        }
+        return $dataResult;
+    } 
 
       // // ada perubahan di multi SO
     // public function listDn(Request $request)

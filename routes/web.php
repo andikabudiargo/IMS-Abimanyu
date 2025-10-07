@@ -375,6 +375,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('invoice/notif/approve',['as'=>'invoice.notif.approve','uses'=>'InvoiceController@approve']);
 	Route::post('invoice/listDetail',['as'=>'invoice.list.detail','uses'=>'InvoiceController@listDetail']);
 
+	Route::get('invoice/get/bukti-potong',['as'=>'invoice.get.bukti.potong','uses'=>'InvoiceController@getBuktiPotong']);
+
 	Route::get('invoice/posting/all',['as'=>'invoice.posting.all','uses'=>'InvoiceController@prosesAllPosting']);
 
 	Route::get('aps',['as'=>'aps.index','uses'=>'AccountPayableController@index','middleware' => ['permission:ap-index']]);
