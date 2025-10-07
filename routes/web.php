@@ -250,6 +250,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('salesOrderReport',['as'=>'salesOrder.report','uses'=>'SalesOrderController@report']);
 	Route::get('salesOrderReport/list',['as'=>'salesOrder.list.report','uses'=>'SalesOrderController@listReport']);
 	Route::get('salesOrderReport/detail/dn',['as'=>'salesOrder.list.report.detail.dn','uses'=>'SalesOrderController@listReportDetailDn']);
+	
+	Route::get('salesOrderReport/detail/dnHdr',['as'=>'salesOrder.list.report.detail.dn.hdr','uses'=>'SalesOrderController@listReportDetailDnHdr']);
 
 	Route::get('salesOrderReport/export',['as'=>'salesOrderReport.export','uses'=>'SalesOrderController@exportSo']);
 

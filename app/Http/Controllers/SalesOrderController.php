@@ -75,7 +75,7 @@ class SalesOrderController extends Controller
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Num Revision'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At','visible'=>false],
-            // ['data'=>'detail','name'=>'detail','title'=>'Detail'],
+            ['data'=>'detail','name'=>'detail','title'=>'Detail DN'],
 
         ];
         return json_encode($kolom, true);
@@ -114,7 +114,7 @@ class SalesOrderController extends Controller
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
-        $data['kolomDetailDn'] = $this->getTableColoumnDetailDn();
+        $data['kolomDetailDn'] = $this->getTableColoumnDetailDnHdr();
 
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -1046,7 +1046,7 @@ class SalesOrderController extends Controller
             ,'sales_order_hdr.so_code as so_code_1'
             ,'third_party.nama'
             ,'third_party.nama as cust_name'
-
+            ,db::raw("(select count(*) from delivery_hdr a where a.so_number = sales_order_hdr.so_code and a.status not in ('5','7')) as jumlah_kirim")
          )
         ->leftJoin('third_party', 'third_party.kode', '=', 'sales_order_hdr.customer_id')
         ->whereNotIn('sales_order_hdr.status',['5','8'])
@@ -1159,15 +1159,15 @@ class SalesOrderController extends Controller
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusSo[$data->status - 1]."</div>";
         })
 
-        // ->addColumn('detail', function ($data) {
-        //     if($data->qty_kirim <> 0){
-        //         return '<a href="javascript:void(0);" onclick="detailDelivery(\''.$data->article_code.'\',\''.$data->so_code.'\',\''.preg_replace("/\"/"," ",$data->article_desc).'\')">
-        //         <span>Detail</span>
-        //         </a>';
-        //     }else{
-        //         return '';
-        //     }
-        // })
+        ->addColumn('detail', function ($data) {
+            if($data->jumlah_kirim <> 0){
+                return '<a href="javascript:void(0);" onclick="detailDelivery(\''.$data->so_code.'\')">
+                <span>Detail</span>
+                </a>';
+            }else{
+                return '';
+            }
+        })
 
         ->rawColumns(['action','status','so_code','detail'])
         ->make(true);
@@ -1406,6 +1406,17 @@ class SalesOrderController extends Controller
             ['data'=>'delivery_number','name'=>'delivery_number','title'=>'Delivery Number'],
             ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
             ['data'=>'qty','name'=>'qty','title'=>'QTY'],
+            ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
+            ['data'=>'note','name'=>'note','title'=>'Note']
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnDetailDnHdr(){
+        $kolom=    
+        [
+            ['data'=>'delivery_number','name'=>'delivery_number','title'=>'Delivery Number'],
+            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
             ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note']
         ];
@@ -1708,6 +1719,26 @@ class SalesOrderController extends Controller
         
         return Excel::download(new ReportSoExport($searchOrder,$seachPo,$searchCustomer,$orderDate), $filename.'.xlsx');
 
+    }
+
+    public function listReportDetailDnHdr(Request $request)
+    {
+        $soNumber = $request->soNumber;
+
+        $data = DB::table('delivery_hdr')
+        ->where('so_number',$soNumber)
+        ->whereNotIn('status',['5','7'])
+        ->orderBy('id')
+        ->get(); 
+    
+        return Datatables::of($data)
+        ->addColumn('statusku', function ($data) {
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
+            return $statusDel[$data->status- 1];
+        })
+
+        ->rawColumns(['statusku'])
+        ->make(true);
     }
 
     
