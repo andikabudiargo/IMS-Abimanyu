@@ -2,7 +2,6 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
 <section id="article-index">
   <div class="card">
     <div class="card-header">  
@@ -39,7 +38,8 @@
                 <select class="select2 form-control" id="searchSalesman" name="searchSalesman">
                     <option value="">All</option>
                     @foreach($employees as $val)
-                        <option value="{{$val->employee_id}}">{{$val->employee_id}} - {{$val->name}}</option>
+                        {{-- <option value="{{$val->employee_id}}">{{$val->employee_id}} - {{$val->name}}</option> --}}
+                        <option value="{{$val->username}}">{{$val->name}}</option>
                     @endforeach
                 </select>
               </div>
@@ -94,8 +94,8 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
-        <button type="button" class="btn btn-primary" id ="btnDetail" name="btnDetail" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data detail">Detail</button>
-        <button type="button" class="btn btn-primary" id ="btnSummary" name="btnSummary" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data summary">Summary</button>
+        <button type="button" class="btn btn-primary d-none" id ="btnDetail" name="btnDetail" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data detail">Detail</button>
+        <button type="button" class="btn btn-primary d-none" id ="btnSummary" name="btnSummary" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data summary">Summary</button>
         <div class="row">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">
@@ -118,8 +118,8 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  let btnSummary = document.querySelector('#btnSummary');
-  let btnDetail = document.querySelector('#btnDetail');
+  let btnSummary = $('#btnSummary');
+  let btnDetail = $('#btnDetail');
 
   $(document).ready(function(){    
     let href;
@@ -127,26 +127,11 @@
     $(document).on('click', '#deleteButton', function(event) {
         event.preventDefault();
         href = $(this).data('href');
-        console.log(href);
+        // console.log(href);
         $('#modalConfirmation').attr("action", href);
     });
-
-    btnSummary.style.display = "none";
-    btnDetail.style.display = "none";
   });
 
-  let showAlert = "{{ Session::get('alert') }}";
-  if ( showAlert ){
-    showList();
-    $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
-      $("#alert-message-alert").slideUp(500);
-    });
-  }
-
-  //refresh di cards
-  $('a[data-action="reload"]').on('click', function () {
-      showList();
-  });
 
   rangePickr = $('.flatpickr-range');
 
@@ -158,7 +143,7 @@
     });
   }
 
-  $("#btnSearch").click(function(e){
+  function filterData(type){
     let searchOrder = $("#searchOrder").val();
     let seachPo = $("#seachPo").val();
     let searchCustomer = $("#searchCustomer").val();
@@ -167,58 +152,48 @@
     let searchStatus = $("#searchStatus").val();
     let orderDate = $("#orderDate").val();
 
-    btnDetail.style.display = "block";
-    btnSummary.style.display = "none";
-    
+    btnSummary.addClass('d-none');
+    btnDetail.addClass('d-none');
+
     if(searchOrder || seachPo){
-      showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+      if(type == 'detail'){
+        showListDetail(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+      }else{
+        showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+      }
     }else{
       if (!$("#frmAdd")[0].checkValidity()){
           $("#frmAdd").submit();
       }else{ 
-          showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+          if(type == 'detail'){
+            showListDetail(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+          }else{
+            showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
+          }
       }
     }
 
+  }
 
+  //refresh di cards
+  $('a[data-action="reload"]').on('click', function () {
+    filterData('summary');
   });
 
-  btnSummary.addEventListener("click", function(){
-    btnSummary.style.display = "none";
-    btnDetail.style.display = "block";
-    let searchOrder = $("#searchOrder").val();
-    let seachPo = $("#seachPo").val();
-    let searchCustomer = $("#searchCustomer").val();
-    let searchSalesman = $("#searchSalesman").val();
-    let searchType = $("#searchType").val();
-    let searchStatus = $("#searchStatus").val();
-    let orderDate = $("#orderDate").val();
+  $("#btnSearch").click(function(e){
+    filterData('summary');
+  });
 
-    if (!$("#frmAdd")[0].checkValidity()){
-        $("#frmAdd").submit();
-    }else{ 
-        showList(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
-    }  
-
+  btnSummary.click(function(e){
+    filterData('summary');
+    btnDetail.removeClass('d-none');
+    btnSummary.addClass('d-none');
   });
   
-  btnDetail.addEventListener("click", function(){
-    btnSummary.style.display = "block";
-    btnDetail.style.display = "none";
-    let searchOrder = $("#searchOrder").val();
-    let seachPo = $("#seachPo").val();
-    let searchCustomer = $("#searchCustomer").val();
-    let searchSalesman = $("#searchSalesman").val();
-    let searchType = $("#searchType").val();
-    let searchStatus = $("#searchStatus").val();
-    let orderDate = $("#orderDate").val();
-    
-    if (!$("#frmAdd")[0].checkValidity()){
-      $("#frmAdd").submit();
-    }else{ 
-      showListDetail(searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate);
-    }
-
+  btnDetail.click(function(e){
+    filterData('detail');
+    btnDetail.addClass('d-none');
+    btnSummary.removeClass('d-none');
   });
 
   const showList = (searchOrder,seachPo,searchCustomer,searchSalesman,searchType,searchStatus,orderDate) => {
@@ -244,6 +219,13 @@
         searchType:searchType,
         searchStatus:searchStatus,
         orderDate:orderDate
+      },
+      initComplete: function() {
+        let api = this.api();
+        if (api.data().length > 0) {
+          btnDetail.removeClass('d-none');
+          btnSummary.addClass('d-none');
+        }
       },
       orderColumn:[[ 12, 'desc' ]],
       excelFileName:'sales_order'

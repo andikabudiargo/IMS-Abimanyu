@@ -88,7 +88,8 @@ class SalesOrderController extends Controller
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
             ['data'=>'so_date','name'=>'so_date','title'=>'Date'],
             ['data'=>'customer','name'=>'customer','title'=>'Customer'],
-            ['data'=>'salesman','name'=>'salesman','title'=>'Salesman'],
+            // ['data'=>'salesman','name'=>'salesman','title'=>'Salesman'],
+            ['data'=>'salesman_code','name'=>'salesman_code','title'=>'Salesman'],
             ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
             ['data'=>'order_type','name'=>'order_type','title'=>'Order Type'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
@@ -120,9 +121,22 @@ class SalesOrderController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['employees'] = DB::table('employees')
-        ->where('job_position','05')
+        // $data['employees'] = DB::table('employees')
+        // ->where('job_position','05')
+        // ->get();
+
+        $data['employees'] = DB::table('user_dept')
+        ->leftJoin('users','users.username','=','user_dept.username')
+        ->select('users.username','users.name')
+        ->where('dept','009')
+        ->whereNotIn('user_dept.username',['oki','yoga','Administrator','Supervisor','admin','konsultan','itabimanyu','budi','yorin'])
+        ->orderBy('users.name')
         ->get();
+
+        $data['employees']->push((object)[
+            'username' => '02090051',
+            'name' => 'Kantor'
+        ]);
 
         $data['types'] = ['NEW','REPEAT'];
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'RECEIVED','6'=>"CLOSED",'7'=>'PAID'];
@@ -163,9 +177,22 @@ class SalesOrderController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['employees'] = DB::table('employees')
-        ->where('job_position','05')
+        // $data['employees'] = DB::table('employees')
+        // ->where('job_position','05')
+        // ->get();
+
+        $data['employees'] = DB::table('user_dept')
+        ->leftJoin('users','users.username','=','user_dept.username')
+        ->select('users.username','users.name')
+        ->where('dept','009')
+        ->whereNotIn('user_dept.username',['oki','yoga','Administrator','Supervisor','admin','konsultan','itabimanyu','budi','yorin'])
+        ->orderBy('users.name')
         ->get();
+
+        $data['employees']->push((object)[
+            'username' => '02090051',
+            'name' => 'Kantor'
+        ]);
 
         $data['types'] = ['NEW','REPEAT'];
         $data['currency'] = ['IDR','USD'];
@@ -452,9 +479,22 @@ class SalesOrderController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['employees'] = DB::table('employees')
-        ->where('job_position','05')
+        // $data['employees'] = DB::table('employees')
+        // ->where('job_position','05')
+        // ->get();
+
+        $data['employees'] = DB::table('user_dept')
+        ->leftJoin('users','users.username','=','user_dept.username')
+        ->select('users.username','users.name')
+        ->where('dept','009')
+        ->whereNotIn('user_dept.username',['oki','yoga','Administrator','Supervisor','admin','konsultan','itabimanyu','budi','yorin'])
+        ->orderBy('users.name')
         ->get();
+
+        $data['employees']->push((object)[
+            'username' => '02090051',
+            'name' => 'Kantor'
+        ]);
 
         $data['types'] = ['NEW','REPEAT'];
         $data['currency'] = ['IDR','USD'];
@@ -522,9 +562,22 @@ class SalesOrderController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['employees'] = DB::table('employees')
-        ->where('job_position','05')
+        // $data['employees'] = DB::table('employees')
+        // ->where('job_position','05')
+        // ->get();
+
+        $data['employees'] = DB::table('user_dept')
+        ->leftJoin('users','users.username','=','user_dept.username')
+        ->select('users.username','users.name')
+        ->where('dept','009')
+        ->whereNotIn('user_dept.username',['oki','yoga','Administrator','Supervisor','admin','konsultan','itabimanyu','budi','yorin'])
+        ->orderBy('users.name')
         ->get();
+
+        $data['employees']->push((object)[
+            'username' => '02090051',
+            'name' => 'Kantor'
+        ]);
 
         $data['types'] = ['NEW','REPEAT'];
         $data['currency'] = ['IDR','USD'];
@@ -589,9 +642,22 @@ class SalesOrderController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $data['employees'] = DB::table('employees')
-        ->where('job_position','05')
+        // $data['employees'] = DB::table('employees')
+        // ->where('job_position','05')
+        // ->get();
+
+        $data['employees'] = DB::table('user_dept')
+        ->leftJoin('users','users.username','=','user_dept.username')
+        ->select('users.username','users.name')
+        ->where('dept','009')
+        ->whereNotIn('user_dept.username',['oki','yoga','Administrator','Supervisor','admin','konsultan','itabimanyu','budi','yorin'])
+        ->orderBy('users.name')
         ->get();
+
+        $data['employees']->push((object)[
+            'username' => '02090051',
+            'name' => 'Kantor'
+        ]);
 
         $data['types'] = ['NEW','REPEAT'];
         $data['currency'] = ['IDR','USD'];
@@ -1135,7 +1201,7 @@ class SalesOrderController extends Controller
         ->leftJoin('third_party','third_party.kode','sales_order_hdr.customer_id')
         ->leftJoin('article','article.article_code','sales_order_det.article_code')
         ->leftJoin('uom','uom.code','sales_order_det.uom')
-        ->leftJoin('employees','employees.employee_id','sales_order_hdr.salesman_code')
+        // ->leftJoin('employees','employees.employee_id','sales_order_hdr.salesman_code')
         ->where(function ($query) use ($seachPo,$searchOrder,$searchCustomer,$searchSalesman,$searchType,$searchStatus,$fromDate,$toDate) {
             $seachPo ? $query->where('po_number','ilike','%'.$seachPo.'%') :'';
             $searchOrder ? $query->where('sales_order_hdr.so_code','ilike','%'.$searchOrder.'%') :'';
@@ -1167,9 +1233,10 @@ class SalesOrderController extends Controller
         ,'article.article_desc'
         ,'third_party.nama as customer'
         ,'sales_order_det.ppn as ppn_price'
-        ,'employees.name as salesman'
+        // ,'employees.name as salesman'
         ,'sales_order_det.id as id_det'
         ,'sales_order_hdr.status as statusKu'
+        ,'sales_order_hdr.salesman_code'
         ,db::raw("to_date(sales_order_hdr.so_date,'dd-mm-yyyy') as tanggal_so")
         // ,'uom_group'
         // ,'qty_target'
@@ -1210,7 +1277,10 @@ class SalesOrderController extends Controller
         );
                 
         $soHdr=DB::table('sales_order_hdr')
-        ->where('id',$id)
+        ->select(
+            'sales_order_hdr.*','users.name')
+        ->leftJoin('users','users.username','sales_order_hdr.salesman_code')
+        ->where('sales_order_hdr.id',$id)
         ->first();
 
         // $supplier=DB::table('third_party')
@@ -1263,7 +1333,8 @@ class SalesOrderController extends Controller
         $data['keterangan']= $soHdr -> note;
         $data['soNumber'] = $soNumber;
         $data['soDate'] = $soHdr -> so_date; 
-        $data['soSalesman'] = $soHdr -> salesman_code; 
+        // $data['soSalesman'] = $soHdr -> salesman_code; 
+        $data['soSalesman'] = $soHdr -> name ? $soHdr -> name : $soHdr -> salesman_code; 
         $data['soCurrency'] = $soHdr -> currency; 
         $data['soPoNumber'] = $soHdr -> po_number; 
         $data['soNote'] = $soHdr -> note; 

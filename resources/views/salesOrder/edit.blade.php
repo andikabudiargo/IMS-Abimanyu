@@ -33,8 +33,10 @@
                                     <select class="select2 form-control" id="salesman" name="salesman" required>
                                         <option value="">Choose salesman</option>
                                         @foreach($employees as $val)
-                                        <option value="{{$val->employee_id}}" {{ $val->employee_id == $header->salesman_code ? "selected" : ""}}>{{$val->employee_id}} - {{$val->name}}</option>
+                                        {{-- <option value="{{$val->employee_id}}" {{ $val->employee_id == $header->salesman_code ? "selected" : ""}}>{{$val->employee_id}} - {{$val->name}}</option> --}}
+                                        <option value="{{$val->username}}" {{ $val->username == $header->salesman_code ? "selected" : ""}}>{{$val->name}}</option>
                                         @endforeach
+                                        
                                     </select>
                                 </div>
                             </div>
