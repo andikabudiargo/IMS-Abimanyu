@@ -100,20 +100,21 @@ class InvoiceController extends Controller
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'], //7
             ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer'], //8
             ['data'=> 'faktur_pajak', 'name'=> 'faktur_pajak','title'=>'Tax number'], //9   
-            ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'], //10
-            ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP'], //11
-            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'], //12
-            ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN'], //13
-            ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH'], //14
-            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total'], //15
-            ['data'=> 'jatuh_tempo', 'name'=> 'jatuh_tempo','title'=>'Jatuh Tempo'], //16
-            ['data'=> 'jatuh_tempo_2', 'name'=> 'jatuh_tempo_2','title'=>'Jatuh Tempo','visible'=>false], //17
-            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'], //18
-            ['data'=> 'voucher_date_2', 'name'=> 'voucher_date_2','title'=>'Paid Date','visible'=>false], //19
-            ['data'=> 'sending_date', 'name'=> 'sending_date','title'=>'Sending Date'], //20
-            ['data'=> 'sending_date_2', 'name'=> 'sending_date_2','title'=>'Sending Date','visible'=>false], //21
-            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'], //22
-            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'], //23
+            // ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'], //10
+            ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP'], //10
+            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'], //11
+            ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN'], //12
+            ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH'], //13
+            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total'], //14
+            ['data'=> 'jatuh_tempo', 'name'=> 'jatuh_tempo','title'=>'Jatuh Tempo'], //15
+            ['data'=> 'jatuh_tempo_2', 'name'=> 'jatuh_tempo_2','title'=>'Jatuh Tempo','visible'=>false], //16
+            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'], //17
+            ['data'=> 'voucher_date_2', 'name'=> 'voucher_date_2','title'=>'Paid Date','visible'=>false], //18
+            ['data'=> 'sending_date', 'name'=> 'sending_date','title'=>'Sending Date'], //19
+            ['data'=> 'sending_date_2', 'name'=> 'sending_date_2','title'=>'Sending Date','visible'=>false], //20
+            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'], //21
+            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'], //22
+            ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'], //23
             ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'], //24
             ['data'=> 'note', 'name'=> 'note','title'=>'Note'], //25
             ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By'], //26
