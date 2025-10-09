@@ -280,7 +280,7 @@
           btnDetail.removeClass('d-none');
         }
       },
-      orderColumn:[[ 30, 'desc' ]],
+      orderColumn:[[ 29, 'desc' ]],
       excelFileName:'invoice_customer'
     });
   }
