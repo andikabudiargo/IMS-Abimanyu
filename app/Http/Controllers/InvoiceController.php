@@ -114,8 +114,8 @@ class InvoiceController extends Controller
             ['data'=> 'sending_date_2', 'name'=> 'sending_date_2','title'=>'Sending Date','visible'=>false], //20
             ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'], //21
             ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'], //22
-            ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'], //23
-            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'], //24
+            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'], //23
+            ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'], //24
             ['data'=> 'note', 'name'=> 'note','title'=>'Note'], //25
             ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By'], //26
             ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At'], //27
