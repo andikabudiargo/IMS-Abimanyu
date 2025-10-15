@@ -1054,7 +1054,7 @@ class PurchaseRequestController extends Controller
     public function listDetail(Request $request)
     {
         $username =  Auth::user()->username;
-        $seachPr = strtolower($request->seachPr);
+        $searchPr = strtolower($request->searchPr);
         $orderType = strtolower($request->orderType);
         $searchStatus = $request->searchStatus;
         $requestDate = $request->requestDate;
@@ -1083,13 +1083,14 @@ class PurchaseRequestController extends Controller
         ->leftJoin('third_party','third_party.kode','purchase_request_det.supp_code')
         ->leftJoin('uom','uom.code','purchase_request_det.uom')
         ->leftJoin('depts','purchase_request_hdr.dept','depts.code')
-        ->where(function ($query) use ($orderType,$seachPr,$searchStatus,$requestDate,$fromDate,$toDate,$dept) {
+        ->where(function ($query) use ($orderType,$searchPr,$searchStatus,$requestDate,$fromDate,$toDate,$dept) {
             $orderType ? $query->where('order_type',$orderType) : '';
             $dept ? $query->where('purchase_request_hdr.dept',$dept) : '';
-            $seachPr ? $query->where('purchase_request_det.pr_number','ilike','%'.$seachPr.'%') : '';
+            $searchPr ? $query->where('purchase_request_det.pr_number','ilike','%'.$searchPr.'%') : '';
             $searchStatus ? $query->where('purchase_request_hdr.status',$searchStatus) : '';
             $requestDate ? $query->whereBetween(DB::raw("to_date(purchase_request_hdr.date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
+        ->where('purchase_request_hdr.status','!=','8')
         ->whereIn('purchase_request_hdr.dept', function($query) use ($username,$deptPurcashing) {
             if($deptPurcashing > 0){
                 $query->select('code')
