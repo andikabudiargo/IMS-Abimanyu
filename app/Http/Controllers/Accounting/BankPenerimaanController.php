@@ -918,9 +918,8 @@ class BankPenerimaanController extends Controller
 
         if ($vcDate){
             $date = explode("to",$vcDate);
-            $fromDate = trim($date[0]);
-            $toDate = trim($date[1]);
-
+            // $fromDate = trim($date[0]);
+            // $toDate = trim($date[1]);
             if(count($date)>1){
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
                 $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
