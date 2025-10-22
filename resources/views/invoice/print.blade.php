@@ -390,7 +390,8 @@
                             <tr style="font-size: 10pt;height:19.5px">
                         @else
                             {{-- <tr style="font-size: 11pt;height:23px" class="isiTabel1"> --}}
-                            <tr style="font-size: 11pt;height:23px">
+                            {{-- <tr style="font-size: 11pt;height:23px"> --}}
+                            <tr style="font-size: 11pt;">
                         @endif
                             <td style="border-right: 1px solid black;border-bottom: none;" align="center" scope="row" >{{ ++$no }}</td>
                             <td  style="border-right: 1px solid black;" align="left">{{ $val->article_desc }}</td>
