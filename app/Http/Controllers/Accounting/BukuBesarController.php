@@ -15,6 +15,10 @@ use PDF;
 use AppHelpers;
 use Approval;
 
+// ini_set('memory_limit', '512M');
+ini_set('memory_limit', '1024M');
+set_time_limit(300); // 5 minutes
+
 class BukuBesarController extends Controller
 {
     private $title;
@@ -72,6 +76,8 @@ class BukuBesarController extends Controller
 
     public function index(Request $request)
     {
+        ini_set('memory_limit', '1024M');
+
         $data['title'] = $this->title;
         
         $data['kolom'] = $this->getTableColoumn();

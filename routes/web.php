@@ -669,6 +669,49 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('warehouse/article',['as'=>'warehouse.article','uses'=>'WarehouseController@article','middleware' => ['permission:warehouse-index']]);
 	Route::get('warehouse/articles/list',['as'=>'warehouse.article.list','uses'=>'WarehouseController@listArticle']);
 
+	/* new transfer in and out */
+
+	Route::get('transferIn',['as'=>'transferIn.index','uses'=>'Transfer\TransferInController@index','middleware' => ['permission:transferIn-index']]);
+	Route::get('transferIn/create',['as'=>'transferIn.create','uses'=>'Transfer\TransferInController@create']);
+	Route::post('transferIn/store',['as'=>'transferIn.store','uses'=>'Transfer\TransferInController@store']);
+	Route::get('transferIn/list',['as'=>'transferIn.list','uses'=>'Transfer\TransferInController@list']);
+	Route::get('transferIn/list/detail',['as'=>'transferIn.list.detail','uses'=>'Transfer\TransferInController@listDetail']);
+	Route::get('transferIn/show',['as'=>'transferIn.show','uses'=>'Transfer\TransferInController@show']);
+	Route::get('transferIn/edit',['as'=>'transferIn.edit','uses'=>'Transfer\TransferInController@edit','middleware' => ['permission:transferIn-edit']]);
+	Route::post('transferIn/update',['as'=>'transferIn.update','uses'=>'Transfer\TransferInController@update']);
+	Route::post('transferIn/delete',['as'=>'transferIn.destroy','uses'=>'Transfer\TransferInController@destroy']);
+	Route::get('transferIn/approve',['as'=>'transferIn.approve','uses'=>'Transfer\TransferInController@approve']);
+	Route::post('transferIn/posting',['as'=>'transferIn.posting','uses'=>'Transfer\TransferInController@posting']);
+	Route::post('transferIn/cancel',['as'=>'transferIn.cancel','uses'=>'Transfer\TransferInController@cancel']);
+	Route::get('transferIn/article',['as'=>'transferIn.article','uses'=>'Transfer\TransferInController@article','middleware' => ['permission:transferIn-index']]);
+	Route::get('transferIn/print',['as'=>'transferIn.print','uses'=>'Transfer\TransferInController@print']);
+
+	Route::post('transferIn/import-excel',['as'=>'transferIn.import.excel','uses'=>'Transfer\TransferInController@importExcel']);
+	Route::get('transferIn/export-excel',['as'=>'transferIn.export.excel','uses'=>'Transfer\TransferInController@export']);
+
+	Route::get('transferOut',['as'=>'transferOut.index','uses'=>'Transfer\TransferOutController@index','middleware' => ['permission:transferOut-index']]);
+	Route::get('transferOut/create',['as'=>'transferOut.create','uses'=>'Transfer\TransferOutController@create']);
+	Route::post('transferOut/store',['as'=>'transferOut.store','uses'=>'Transfer\TransferOutController@store']);
+	Route::get('transferOut/list',['as'=>'transferOut.list','uses'=>'Transfer\TransferOutController@list']);
+	Route::get('transferOut/list/detail',['as'=>'transferOut.list.detail','uses'=>'Transfer\TransferOutController@listDetail']);
+	Route::get('transferOut/show',['as'=>'transferOut.show','uses'=>'Transfer\TransferOutController@show']);
+	Route::get('transferOut/edit',['as'=>'transferOut.edit','uses'=>'Transfer\TransferOutController@edit','middleware' => ['permission:transferOut-edit']]);
+	Route::post('transferOut/update',['as'=>'transferOut.update','uses'=>'Transfer\TransferOutController@update']);
+	Route::post('transferOut/delete',['as'=>'transferOut.destroy','uses'=>'Transfer\TransferOutController@destroy']);
+	Route::get('transferOut/approve',['as'=>'transferOut.approve','uses'=>'Transfer\TransferOutController@approve']);
+	Route::post('transferOut/posting',['as'=>'transferOut.posting','uses'=>'Transfer\TransferOutController@posting']);
+	Route::post('transferOut/cancel',['as'=>'transferOut.cancel','uses'=>'Transfer\TransferOutController@cancel']);
+	Route::get('transferOut/article',['as'=>'transferOut.article','uses'=>'Transfer\TransferOutController@article','middleware' => ['permission:transferOut-index']]);
+	Route::get('transferOut/print',['as'=>'transferOut.print','uses'=>'Transfer\TransferOutController@print']);
+	Route::get('transferOut/article/tso',['as'=>'transferOut.article.tso','uses'=>'Transfer\TransferOutController@articleTso']);
+
+	Route::post('transferOut/import-excel',['as'=>'transferOut.import.excel','uses'=>'Transfer\TransferOutController@importExcel']);
+	Route::get('transferOut/export-excel',['as'=>'transferOut.export.excel','uses'=>'Transfer\TransferOutController@export']);
+
+	/* end new transfer in and out */
+
+	/*
+	old transfer in and out
 	Route::get('transferIn',['as'=>'transferIn.index','uses'=>'TransferInController@index','middleware' => ['permission:transferIn-index']]);
 	Route::get('transferIn/create',['as'=>'transferIn.create','uses'=>'TransferInController@create']);
 	Route::post('transferIn/store',['as'=>'transferIn.store','uses'=>'TransferInController@store']);
@@ -705,6 +748,7 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::post('transferOut/import-excel',['as'=>'transferOut.import.excel','uses'=>'TransferOutController@importExcel']);
 	Route::get('transferOut/export-excel',['as'=>'transferOut.export.excel','uses'=>'TransferOutController@export']);
+	*/
 
 	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);
 	Route::get('wosMixing/create',['as'=>'wosMixing.create','uses'=>'WosMixingController@create','middleware' => ['permission:wosMixing-create']]);
@@ -977,6 +1021,39 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('add-to-log', ['as'=>'add.to.log','uses'=>'LogActivityController@myTestAddToLog']);
 	Route::get('showLogLists', ['as'=>'show.log.lists','uses'=>'LogActivityController@showLogLists']);
 	Route::get('logActivity',['as'=>'log.activity','uses'=>'LogActivityController@index']);
+
+
+	Route::get('/test-memory', function() {
+		// Set memory limit
+		$memoryBefore = ini_get('memory_limit');
+		$memoryResult = ini_set('memory_limit', '512M');
+		$memoryAfter = ini_get('memory_limit');
+		
+		// Set time limit
+		$maxExecutionTimeBefore = ini_get('max_execution_time');
+		set_time_limit(300); // 5 minutes
+		$maxExecutionTimeAfter = ini_get('max_execution_time');
+		
+		$info = [
+			// Memory Information
+			'memory_limit_before' => $memoryBefore,
+			'memory_limit_after' => $memoryAfter,
+			'memory_set_success' => ($memoryAfter === '512M') ? 'Yes' : 'No',
+			'memory_ini_set_result' => $memoryResult,
+			
+			// Time Limit Information
+			'max_execution_time_before' => $maxExecutionTimeBefore,
+			'max_execution_time_after' => $maxExecutionTimeAfter,
+			'time_set_success' => ($maxExecutionTimeAfter == 300) ? 'Yes' : 'No',
+			
+			// Current Usage
+			'current_memory_usage' => round(memory_get_usage() / 1024 / 1024, 2) . ' MB',
+			'peak_memory_usage' => round(memory_get_peak_usage() / 1024 / 1024, 2) . ' MB',
+			'script_execution_time' => round(microtime(true) - LARAVEL_START, 2) . ' seconds'
+		];
+		
+		return $info;
+	});
 
 	Route::get('database-backup', function (Request $request) {
 		Artisan::call('database:backup');
