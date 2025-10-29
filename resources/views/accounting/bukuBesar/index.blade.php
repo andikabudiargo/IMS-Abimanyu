@@ -157,7 +157,9 @@
     let perkiraan1 = $("#perkiraan1").val();
     let perkiraan2 = $("#perkiraan2").val();
     let searchStatus = $("#searchStatus").val();
+    $(".loading-spinner-container").addClass("-show");
     showList(vcDate,period1,period2,dept,perkiraan1,perkiraan2,searchStatus);
+
   });
 
   const showList = (vcDate,period1,period2,dept,perkiraan1,perkiraan2,searchStatus) => {
@@ -180,6 +182,7 @@
           className: "text-right"
         },
       ],
+      type:"GET",
       dataSearch:  {
         vcDate:vcDate,
         period1:period1,
@@ -188,6 +191,9 @@
         perkiraan1:perkiraan1,
         perkiraan2:perkiraan2,
         searchStatus:searchStatus
+      },
+      initComplete: function() {
+        $(".loading-spinner-container").removeClass("-show");
       },
       orderColumn:[[ 1,'asc'],[ 7,'asc']],
       excelFileName:'buku_besar'
