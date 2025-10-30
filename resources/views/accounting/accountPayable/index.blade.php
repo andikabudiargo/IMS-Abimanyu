@@ -153,15 +153,20 @@
     let apPeriod1 = $("#apPeriod1").val();
     let apPeriod2 = $("#apPeriod2").val();
 
+    btnSummary.addClass('d-none');
+    btnDetail.addClass('d-none');
+
+    $(".loading-spinner-container").addClass("-show");
+
     if($type == 'detail'){
-      btnDetail.addClass('d-none');
-      btnSummary.removeClass('d-none');
+      // btnDetail.addClass('d-none');
+      // btnSummary.removeClass('d-none');
       showListDetail(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2);
     }
 
     if($type == 'summary'){
-      btnDetail.addClass('d-none');
-      btnSummary.removeClass('d-none');
+      // btnDetail.addClass('d-none');
+      // btnSummary.removeClass('d-none');
       showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2);  
     }
     
@@ -229,6 +234,7 @@
           btnDetail.removeClass('d-none');
           btnSummary.addClass('d-none');
         }
+        $(".loading-spinner-container").removeClass("-show");
       },
       orderColumn:[[ 34, 'desc' ]],
       excelFileName:'invoice_supplier'
@@ -269,6 +275,14 @@
         apDate:apDate,
         apPeriod1:apPeriod1,
         apPeriod2:apPeriod2
+      },
+      initComplete: function() {
+        let api = this.api();
+        if (api.data().length > 0) {
+          btnSummary.removeClass('d-none');
+          btnDetail.addClass('d-none');
+        }
+        $(".loading-spinner-container").removeClass("-show");
       },
       orderColumn:[[ 0, 'asc' ],[ 1, 'asc' ]],
       excelFileName:'invoice_supplier_det'
