@@ -255,6 +255,18 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose article';
                 break;
+            case 'trArticleThirdParty': 
+                $table='article';
+                $field ='third_party';
+                $field2 ='article_type';
+                $type = $type;
+                $order ='article_desc';
+                $value ='article_code';
+                $value2 ='article_alternative_code';
+                $name  ='article_desc';
+                $default='';
+                $defaulttxt='Choose article';
+                break;
             case 'wos_list': 
                 $table='wo_hdr';
                 $order ='wo_code';
@@ -701,6 +713,20 @@ class DependentController extends Controller
             ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = $table.uom)")
             )
             ->get();
+        }elseif($dependent =='trArticleThirdParty'){
+            $data= DB::table('article') 
+            ->leftJoin('uom','uom.code','=','article.uom')
+            ->whereIn('article.article_code', function($query) use ($code) {
+                $query->select('article_code')
+                ->from('article_supplier') 
+                ->where('supplier_code',$code);
+            })
+            ->orderBy($order)
+            ->select($table.'.*'
+            ,'uom.uom_group'
+            ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = $table.uom)")
+            )
+            ->get();
         }elseif($dependent =='tso_list'){
             $data= DB::table($table)
             ->where('pr_number','=',null)
@@ -955,6 +981,8 @@ class DependentController extends Controller
             }elseif($dependent =='tsoArticle'){
                 $output .="<option value='$row->article_code' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='trArticle'){
+                $output .="<option value='$row->article_code' data-uom-member='".$row->uom_member."' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
+            }elseif($dependent =='trArticleThirdParty'){
                 $output .="<option value='$row->article_code' data-uom-member='".$row->uom_member."' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='salesOrder'){
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';

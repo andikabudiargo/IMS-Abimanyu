@@ -18,6 +18,13 @@ use Excel;
 use App\Imports\TransferOutImport;
 use App\Exports\TransferOutExport;
 
+/*
+
+    20-10-2025
+    Penambahan location di tabel trabsfer out, di baris article
+
+*/
+
 class TransferOutController extends Controller
 {
     private $title;
@@ -104,6 +111,10 @@ class TransferOutController extends Controller
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
         $data['oEdit']=false;
+
+        $data['locations'] = DB::table('goods_location_master')
+        ->orderBy('location_name')
+        ->get();
 
         return view("transferOut.create",$data);
 

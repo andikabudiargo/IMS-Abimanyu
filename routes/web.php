@@ -689,24 +689,24 @@ Route::group( ['middleware' => ['auth']], function() {
 	// Route::post('transferIn/import-excel',['as'=>'transferIn.import.excel','uses'=>'Transfer\TransferInController@importExcel']);
 	// Route::get('transferIn/export-excel',['as'=>'transferIn.export.excel','uses'=>'Transfer\TransferInController@export']);
 
-	// Route::get('transferOut',['as'=>'transferOut.index','uses'=>'Transfer\TransferOutController@index','middleware' => ['permission:transferOut-index']]);
-	// Route::get('transferOut/create',['as'=>'transferOut.create','uses'=>'Transfer\TransferOutController@create']);
-	// Route::post('transferOut/store',['as'=>'transferOut.store','uses'=>'Transfer\TransferOutController@store']);
-	// Route::get('transferOut/list',['as'=>'transferOut.list','uses'=>'Transfer\TransferOutController@list']);
-	// Route::get('transferOut/list/detail',['as'=>'transferOut.list.detail','uses'=>'Transfer\TransferOutController@listDetail']);
-	// Route::get('transferOut/show',['as'=>'transferOut.show','uses'=>'Transfer\TransferOutController@show']);
-	// Route::get('transferOut/edit',['as'=>'transferOut.edit','uses'=>'Transfer\TransferOutController@edit','middleware' => ['permission:transferOut-edit']]);
-	// Route::post('transferOut/update',['as'=>'transferOut.update','uses'=>'Transfer\TransferOutController@update']);
-	// Route::post('transferOut/delete',['as'=>'transferOut.destroy','uses'=>'Transfer\TransferOutController@destroy']);
-	// Route::get('transferOut/approve',['as'=>'transferOut.approve','uses'=>'Transfer\TransferOutController@approve']);
-	// Route::post('transferOut/posting',['as'=>'transferOut.posting','uses'=>'Transfer\TransferOutController@posting']);
-	// Route::post('transferOut/cancel',['as'=>'transferOut.cancel','uses'=>'Transfer\TransferOutController@cancel']);
-	// Route::get('transferOut/article',['as'=>'transferOut.article','uses'=>'Transfer\TransferOutController@article','middleware' => ['permission:transferOut-index']]);
-	// Route::get('transferOut/print',['as'=>'transferOut.print','uses'=>'Transfer\TransferOutController@print']);
-	// Route::get('transferOut/article/tso',['as'=>'transferOut.article.tso','uses'=>'Transfer\TransferOutController@articleTso']);
+	Route::get('transferOut',['as'=>'transferOut.index','uses'=>'Transfer\TransferOutController@index','middleware' => ['permission:transferOut-index']]);
+	Route::get('transferOut/create',['as'=>'transferOut.create','uses'=>'Transfer\TransferOutController@create']);
+	Route::post('transferOut/store',['as'=>'transferOut.store','uses'=>'Transfer\TransferOutController@store']);
+	Route::get('transferOut/list',['as'=>'transferOut.list','uses'=>'Transfer\TransferOutController@list']);
+	Route::get('transferOut/list/detail',['as'=>'transferOut.list.detail','uses'=>'Transfer\TransferOutController@listDetail']);
+	Route::get('transferOut/show',['as'=>'transferOut.show','uses'=>'Transfer\TransferOutController@show']);
+	Route::get('transferOut/edit',['as'=>'transferOut.edit','uses'=>'Transfer\TransferOutController@edit','middleware' => ['permission:transferOut-edit']]);
+	Route::post('transferOut/update',['as'=>'transferOut.update','uses'=>'Transfer\TransferOutController@update']);
+	Route::post('transferOut/delete',['as'=>'transferOut.destroy','uses'=>'Transfer\TransferOutController@destroy']);
+	Route::get('transferOut/approve',['as'=>'transferOut.approve','uses'=>'Transfer\TransferOutController@approve']);
+	Route::post('transferOut/posting',['as'=>'transferOut.posting','uses'=>'Transfer\TransferOutController@posting']);
+	Route::post('transferOut/cancel',['as'=>'transferOut.cancel','uses'=>'Transfer\TransferOutController@cancel']);
+	Route::get('transferOut/article',['as'=>'transferOut.article','uses'=>'Transfer\TransferOutController@article','middleware' => ['permission:transferOut-index']]);
+	Route::get('transferOut/print',['as'=>'transferOut.print','uses'=>'Transfer\TransferOutController@print']);
+	Route::get('transferOut/article/tso',['as'=>'transferOut.article.tso','uses'=>'Transfer\TransferOutController@articleTso']);
 
-	// Route::post('transferOut/import-excel',['as'=>'transferOut.import.excel','uses'=>'Transfer\TransferOutController@importExcel']);
-	// Route::get('transferOut/export-excel',['as'=>'transferOut.export.excel','uses'=>'Transfer\TransferOutController@export']);
+	Route::post('transferOut/import-excel',['as'=>'transferOut.import.excel','uses'=>'Transfer\TransferOutController@importExcel']);
+	Route::get('transferOut/export-excel',['as'=>'transferOut.export.excel','uses'=>'Transfer\TransferOutController@export']);
 
 	/* end new transfer in and out */
 
@@ -730,24 +730,24 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('transferIn/import-excel',['as'=>'transferIn.import.excel','uses'=>'TransferInController@importExcel']);
 	Route::get('transferIn/export-excel',['as'=>'transferIn.export.excel','uses'=>'TransferInController@export']);
 
-	Route::get('transferOut',['as'=>'transferOut.index','uses'=>'TransferOutController@index','middleware' => ['permission:transferOut-index']]);
-	Route::get('transferOut/create',['as'=>'transferOut.create','uses'=>'TransferOutController@create']);
-	Route::post('transferOut/store',['as'=>'transferOut.store','uses'=>'TransferOutController@store']);
-	Route::get('transferOut/list',['as'=>'transferOut.list','uses'=>'TransferOutController@list']);
-	Route::get('transferOut/list/detail',['as'=>'transferOut.list.detail','uses'=>'TransferOutController@listDetail']);
-	Route::get('transferOut/show',['as'=>'transferOut.show','uses'=>'TransferOutController@show']);
-	Route::get('transferOut/edit',['as'=>'transferOut.edit','uses'=>'TransferOutController@edit','middleware' => ['permission:transferOut-edit']]);
-	Route::post('transferOut/update',['as'=>'transferOut.update','uses'=>'TransferOutController@update']);
-	Route::post('transferOut/delete',['as'=>'transferOut.destroy','uses'=>'TransferOutController@destroy']);
-	Route::get('transferOut/approve',['as'=>'transferOut.approve','uses'=>'TransferOutController@approve']);
-	Route::post('transferOut/posting',['as'=>'transferOut.posting','uses'=>'TransferOutController@posting']);
-	Route::post('transferOut/cancel',['as'=>'transferOut.cancel','uses'=>'TransferOutController@cancel']);
-	Route::get('transferOut/article',['as'=>'transferOut.article','uses'=>'TransferOutController@article','middleware' => ['permission:transferOut-index']]);
-	Route::get('transferOut/print',['as'=>'transferOut.print','uses'=>'TransferOutController@print']);
-	Route::get('transferOut/article/tso',['as'=>'transferOut.article.tso','uses'=>'TransferOutController@articleTso']);
+	// Route::get('transferOut',['as'=>'transferOut.index','uses'=>'TransferOutController@index','middleware' => ['permission:transferOut-index']]);
+	// Route::get('transferOut/create',['as'=>'transferOut.create','uses'=>'TransferOutController@create']);
+	// Route::post('transferOut/store',['as'=>'transferOut.store','uses'=>'TransferOutController@store']);
+	// Route::get('transferOut/list',['as'=>'transferOut.list','uses'=>'TransferOutController@list']);
+	// Route::get('transferOut/list/detail',['as'=>'transferOut.list.detail','uses'=>'TransferOutController@listDetail']);
+	// Route::get('transferOut/show',['as'=>'transferOut.show','uses'=>'TransferOutController@show']);
+	// Route::get('transferOut/edit',['as'=>'transferOut.edit','uses'=>'TransferOutController@edit','middleware' => ['permission:transferOut-edit']]);
+	// Route::post('transferOut/update',['as'=>'transferOut.update','uses'=>'TransferOutController@update']);
+	// Route::post('transferOut/delete',['as'=>'transferOut.destroy','uses'=>'TransferOutController@destroy']);
+	// Route::get('transferOut/approve',['as'=>'transferOut.approve','uses'=>'TransferOutController@approve']);
+	// Route::post('transferOut/posting',['as'=>'transferOut.posting','uses'=>'TransferOutController@posting']);
+	// Route::post('transferOut/cancel',['as'=>'transferOut.cancel','uses'=>'TransferOutController@cancel']);
+	// Route::get('transferOut/article',['as'=>'transferOut.article','uses'=>'TransferOutController@article','middleware' => ['permission:transferOut-index']]);
+	// Route::get('transferOut/print',['as'=>'transferOut.print','uses'=>'TransferOutController@print']);
+	// Route::get('transferOut/article/tso',['as'=>'transferOut.article.tso','uses'=>'TransferOutController@articleTso']);
 
-	Route::post('transferOut/import-excel',['as'=>'transferOut.import.excel','uses'=>'TransferOutController@importExcel']);
-	Route::get('transferOut/export-excel',['as'=>'transferOut.export.excel','uses'=>'TransferOutController@export']);
+	// Route::post('transferOut/import-excel',['as'=>'transferOut.import.excel','uses'=>'TransferOutController@importExcel']);
+	// Route::get('transferOut/export-excel',['as'=>'transferOut.export.excel','uses'=>'TransferOutController@export']);
 	
 
 	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);
