@@ -99,7 +99,7 @@
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
                                 <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" />
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
                                 </div>
                             </div>
                         </div>
@@ -218,11 +218,12 @@
         setTimeout(function () {
             $(".loading-spinner-container").addClass("-show");
         }, 500);
-        timerId= setInterval(() => checkVariable(), 1000);
+
+        timerId1= setInterval(() => checkVariable(), 1000);
 
         function checkVariable() {
-            if (dataArticle.length > 0) {
-                clearInterval(timerId);
+            if ( (dataArticle.length > 0) && (dataLocationTo)) {
+                clearInterval(timerId1);
                 let detail = {!!  $details !!};
                 for(let i=0;i<detail.length;i++){
                     article = detail[i].article_code;

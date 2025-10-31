@@ -359,8 +359,9 @@
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#locationTo').attr('id', 'locationTo'+ cloneCount);
         changeselect('trArticle','articleId'+ cloneCount,'');
+        $("#new_row"+ cloneCount).find('#locationTo').attr('id', 'locationTo'+ cloneCount);
+        changeselectLocationTo('locationTo'+ cloneCount,"")
         $('#remove_button').tooltip();
         $("#locationTo"+cloneCount).select2();
         splitArticle();

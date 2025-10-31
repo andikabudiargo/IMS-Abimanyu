@@ -140,7 +140,7 @@
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
                                 <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" />
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
                                 </div>
                             </div>
                         </div>
@@ -195,6 +195,19 @@
         objTsoBox.hide();
         // objNote.attr('disabled','disabled');
         locationTo.html("{!! $locationTo !!}");
+
+        setTimeout(function () {
+            $(".loading-spinner-container").addClass("-show");
+        }, 500);
+
+        timerId1 = setInterval(() => checkVariable(), 1000);
+
+        function checkVariable() {
+            if (locationTo.length > 0) {
+                clearInterval(timerId1);
+                $(".loading-spinner-container").removeClass("-show");
+            }
+        }
 
         $('#frmExcel').on('submit', function(event){
             $('#message').html('');
@@ -259,17 +272,6 @@
                 }
             })
         });
-
-        setTimeout(function () {
-            $(".loading-spinner-container").addClass("-show");
-        }, 500);
-        timerId= setInterval(() => checkVariable(), 1000);
-
-        function checkVariable() {
-            if (locationTo.length > 0) {
-                $(".loading-spinner-container").removeClass("-show");
-            }
-        }
 
     });
 
