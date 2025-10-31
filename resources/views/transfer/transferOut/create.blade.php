@@ -194,7 +194,8 @@
         isiArticle('trArticle');
         objTsoBox.hide();
         // objNote.attr('disabled','disabled');
-        locationTo.html("{!! $locationTo !!}");
+        // locationTo.html("{!! $locationTo !!}");
+        dataLocationTo = "{!! $locationTo !!}";
 
         setTimeout(function () {
             $(".loading-spinner-container").addClass("-show");
@@ -203,7 +204,7 @@
         timerId1 = setInterval(() => checkVariable(), 1000);
 
         function checkVariable() {
-            if (locationTo.length > 0) {
+            if (dataLocationTo) {
                 clearInterval(timerId1);
                 $(".loading-spinner-container").removeClass("-show");
             }

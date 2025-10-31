@@ -689,7 +689,8 @@ class TransferOutController extends Controller
                             'uom' => $val->uom,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s'),
-                            'location_to' => $val->locationTo
+                            'location_to' => $val->locationTo,
+                            'note' => $val->note
                         ]
                     );
                 }
@@ -1007,7 +1008,7 @@ class TransferOutController extends Controller
 
             $transferTo ? $query->Where('transfer_det.location_to',$transferTo) : '';
             $transferFrom ? $query->where('transfer_hdr.location_code',$transferFrom) : '';
-            
+
         })
         ->where('tr_type',$trType)
         ->select('transfer_det.*'
@@ -1053,6 +1054,7 @@ class TransferOutController extends Controller
         ->leftJoin('article','article.article_code','transfer_det.article_code')
         ->leftJoin('goods_location_master','goods_location_master.location_code','=','transfer_det.location_to')
         ->where('tr_number',$trNumber)
+        ->orderBy('transfer_det.id')
         ->get();
 
         // $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
