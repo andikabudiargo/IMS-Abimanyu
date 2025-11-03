@@ -107,11 +107,11 @@
       tableId:"detailedTable",
       route:"{{ route('asset.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,3,4,5,6,7,8],
+      arrColPrint:[1,3,4,5,6,7,8,9,10,11,12],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 3,4,7,8 ],
+          targets: [ 7,8,9,10,11,12],
           render: $.fn.dataTable.render.number(',', '.', 0, ''),
           className: "text-right"
         },        

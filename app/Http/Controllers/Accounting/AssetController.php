@@ -87,6 +87,10 @@ class AssetController extends Controller
         [
             ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false],
             ['data'=> 'asset_number', 'name'=> 'asset_number','title'=>'No Asset'],
+            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Ap Number'],
+            ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Invoice Number'],
+            ['data'=> 'tanggal_awal_penyusutan', 'name'=> 'tanggal_awal_penyusutan','title'=>'Tanggal Awal Penyusutan'],
+            ['data'=> 'coa_number', 'name'=> 'coa_number','title'=>'Akun Aktiva Tetap'],
             ['data'=> 'asset_desc', 'name'=> 'asset_desc','title'=>'Nama Asset'],
             ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'],
             ['data'=> 'buying_price', 'name'=> 'buying_price','title'=>'Harga Beli'],
@@ -754,6 +758,7 @@ class AssetController extends Controller
         ->where('assets.status','1')
         ->select(
             'assets.*'
+            ,DB::raw("to_char(created_at,'DD-MM-YYYY') as tanggal_awal_penyusutan")
             ,DB::raw("EXTRACT(YEAR FROM age(buying_date)) as umur")
             ,DB::raw("(SELECT nilai_buku FROM asset_detail z where z.asset_number = assets.asset_number and  date_part('year', tanggal_asset) = date_part('year', CURRENT_DATE)) as nilai_buku")
         )
