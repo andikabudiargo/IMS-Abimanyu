@@ -272,6 +272,15 @@
             @endcan
         
             @can('transferIn-index')
+            <li class="{{ \Request::is(['transferInV1','transferInV1/create','transferInV1/show','transferInV1/edit']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('transferInV1.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Transfer in V1</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('transferIn-index')
             <li class="{{ \Request::is(['transferIn','transferIn/create','transferIn/show','transferIn/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('transferIn.index') }}">
                 <i data-feather="circle"></i>

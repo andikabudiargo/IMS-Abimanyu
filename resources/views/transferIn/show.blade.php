@@ -82,8 +82,8 @@
                             </div>
                         </div>
                         <br>
-                        <a href="{{ route('transferIn.index') }}" class="btn btn-light">Back</a>
-                        <a href="{{ route('transferIn.print', ['id'=>Crypt::encryptString($header->id)]) }}" target="_blank" type="button" class="btn btn-primary">
+                        <a href="{{ route('transferInV1.index') }}" class="btn btn-light">Back</a>
+                        <a href="{{ route('transferInV1.print', ['id'=>Crypt::encryptString($header->id)]) }}" target="_blank" type="button" class="btn btn-primary">
                             <i data-feather="printer"></i>
                             <span>{{ __("Print") }}</span>
                         </a>

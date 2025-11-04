@@ -222,9 +222,9 @@
                 let trNumber = "";
                 if (oEdit){
                     trNumber = $('#trNumber').val();
-                    url ="{{ route('transferIn.update') }}";
+                    url ="{{ route('transferInV1.update') }}";
                 }else{
-                    url ="{{ route('transferIn.store') }}";
+                    url ="{{ route('transferInV1.store') }}";
                 }
                 
                 let trDate = $('#trDate').val();
@@ -258,7 +258,7 @@
                             $('#trNumber').val(data.trNumber);
                             $('#oEdit').val(data.oEdit);
                             if(oEdit==false){
-                                window.location.href = "{{ route('transferIn.create') }}";
+                                window.location.href = "{{ route('transferInV1.create') }}";
                             }
                         }
                     },
@@ -277,7 +277,7 @@
         $('#'+objButton).attr('disabled','disabled');
         $.ajax({
             type: "GET",
-            url: "{{ route('transferIn.approve') }}",
+            url: "{{ route('transferInV1.approve') }}",
             data: {
                 trNumber:trNumber
             },
