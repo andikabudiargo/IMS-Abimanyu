@@ -231,9 +231,9 @@
                 let trNumber = "";
                 if (oEdit){
                     trNumber = $('#trNumber').val();
-                    url ="{{ route('transferOut.update') }}";
+                    url ="{{ route('transferOutV1.update') }}";
                 }else{
-                    url ="{{ route('transferOut.store') }}";
+                    url ="{{ route('transferOutV1.store') }}";
                 }
                 
                 let trDate = $('#trDate').val();
@@ -260,7 +260,7 @@
                             $('#trNumber').val(data.trNumber);
                             $('#oEdit').val(data.oEdit);
                             if(oEdit==false){
-                                window.location.href = "{{ route('transferOut.create') }}";
+                                window.location.href = "{{ route('transferOutV1.create') }}";
                             }
                         }
                     },
@@ -279,7 +279,7 @@
         $('#'+objButton).attr('disabled','disabled');
         $.ajax({
             type: "GET",
-            url: "{{ route('transferOut.approve') }}",
+            url: "{{ route('transferOutV1.approve') }}",
             data: {
                 trNumber:trNumber
             },

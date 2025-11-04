@@ -731,26 +731,26 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('transferInV1/export-excel',['as'=>'transferInV1.export.excel','uses'=>'TransferInController@export']);
 
 
-	/*
-	Route::get('transferOut',['as'=>'transferOut.index','uses'=>'TransferOutController@index','middleware' => ['permission:transferOut-index']]);
-	Route::get('transferOut/create',['as'=>'transferOut.create','uses'=>'TransferOutController@create']);
-	Route::post('transferOut/store',['as'=>'transferOut.store','uses'=>'TransferOutController@store']);
-	Route::get('transferOut/list',['as'=>'transferOut.list','uses'=>'TransferOutController@list']);
-	Route::get('transferOut/list/detail',['as'=>'transferOut.list.detail','uses'=>'TransferOutController@listDetail']);
-	Route::get('transferOut/show',['as'=>'transferOut.show','uses'=>'TransferOutController@show']);
-	Route::get('transferOut/edit',['as'=>'transferOut.edit','uses'=>'TransferOutController@edit','middleware' => ['permission:transferOut-edit']]);
-	Route::post('transferOut/update',['as'=>'transferOut.update','uses'=>'TransferOutController@update']);
-	Route::post('transferOut/delete',['as'=>'transferOut.destroy','uses'=>'TransferOutController@destroy']);
-	Route::get('transferOut/approve',['as'=>'transferOut.approve','uses'=>'TransferOutController@approve']);
-	Route::post('transferOut/posting',['as'=>'transferOut.posting','uses'=>'TransferOutController@posting']);
-	Route::post('transferOut/cancel',['as'=>'transferOut.cancel','uses'=>'TransferOutController@cancel']);
-	Route::get('transferOut/article',['as'=>'transferOut.article','uses'=>'TransferOutController@article','middleware' => ['permission:transferOut-index']]);
-	Route::get('transferOut/print',['as'=>'transferOut.print','uses'=>'TransferOutController@print']);
-	Route::get('transferOut/article/tso',['as'=>'transferOut.article.tso','uses'=>'TransferOutController@articleTso']);
+	
+	Route::get('transferOutV1',['as'=>'transferOutV1.index','uses'=>'TransferOutController@index','middleware' => ['permission:transferOut-index']]);
+	Route::get('transferOutV1/create',['as'=>'transferOutV1.create','uses'=>'TransferOutController@create']);
+	Route::post('transferOutV1/store',['as'=>'transferOutV1.store','uses'=>'TransferOutController@store']);
+	Route::get('transferOutV1/list',['as'=>'transferOutV1.list','uses'=>'TransferOutController@list']);
+	Route::get('transferOutV1/list/detail',['as'=>'transferOutV1.list.detail','uses'=>'TransferOutController@listDetail']);
+	Route::get('transferOutV1/show',['as'=>'transferOutV1.show','uses'=>'TransferOutController@show']);
+	Route::get('transferOutV1/edit',['as'=>'transferOutV1.edit','uses'=>'TransferOutController@edit','middleware' => ['permission:transferOut-edit']]);
+	Route::post('transferOutV1/update',['as'=>'transferOutV1.update','uses'=>'TransferOutController@update']);
+	Route::post('transferOutV1/delete',['as'=>'transferOutV1.destroy','uses'=>'TransferOutController@destroy']);
+	Route::get('transferOutV1/approve',['as'=>'transferOutV1.approve','uses'=>'TransferOutController@approve']);
+	Route::post('transferOutV1/posting',['as'=>'transferOutV1.posting','uses'=>'TransferOutController@posting']);
+	Route::post('transferOutV1/cancel',['as'=>'transferOutV1.cancel','uses'=>'TransferOutController@cancel']);
+	Route::get('transferOutV1/article',['as'=>'transferOutV1.article','uses'=>'TransferOutController@article','middleware' => ['permission:transferOut-index']]);
+	Route::get('transferOutV1/print',['as'=>'transferOutV1.print','uses'=>'TransferOutController@print']);
+	Route::get('transferOutV1/article/tso',['as'=>'transferOutV1.article.tso','uses'=>'TransferOutController@articleTso']);
 
-	Route::post('transferOut/import-excel',['as'=>'transferOut.import.excel','uses'=>'TransferOutController@importExcel']);
-	Route::get('transferOut/export-excel',['as'=>'transferOut.export.excel','uses'=>'TransferOutController@export']);
-	*/
+	Route::post('transferOutV1/import-excel',['as'=>'transferOutV1.import.excel','uses'=>'TransferOutController@importExcel']);
+	Route::get('transferOutV1/export-excel',['as'=>'transferOutV1.export.excel','uses'=>'TransferOutController@export']);
+	
 
 	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);
 	Route::get('wosMixing/create',['as'=>'wosMixing.create','uses'=>'WosMixingController@create','middleware' => ['permission:wosMixing-create']]);

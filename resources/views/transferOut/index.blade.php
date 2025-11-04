@@ -38,7 +38,7 @@
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     @can('transferIn-create')
-                    <a href="{{ route('transferOut.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    <a href="{{ route('transferOutV1.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     @endcan
                 </div>
             </div>
@@ -148,7 +148,7 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('transferOut.list') }}",
+      route:"{{ route('transferOutV1.list') }}",
       kolom:{!! $kolom !!},
       arrColPrint:[1,2,3,4,5],
       columnDefs :[
@@ -174,7 +174,7 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('transferOut.list.detail') }}",
+      route:"{{ route('transferOutV1.list.detail') }}",
       kolom:{!! $kolomDetail !!},
       arrColPrint:[0,1,2,3,4,5,6,7,8,10,11],
       columnDefs :[

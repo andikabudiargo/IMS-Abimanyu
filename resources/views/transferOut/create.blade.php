@@ -91,7 +91,7 @@
                             </div>
                             <div class="form-row">
                                 <div class="col-lg-3 col-md-12">
-                                    <a href="{{ route('transferOut.export.excel') }}" class="btn btn-light"><i data-feather="download"></i> Downlod Template</a>
+                                    <a href="{{ route('transferOutV1.export.excel') }}" class="btn btn-light"><i data-feather="download"></i> Downlod Template</a>
                                 </div>
                             </div>
                         </form>
@@ -141,7 +141,7 @@
                     <hr>
                     <div class="form-row mt-75">
                         <div class="col-md-12">
-                            <a href="{{ route('transferOut.index') }}" class="btn btn-light">Back</a>
+                            <a href="{{ route('transferOutV1.index') }}" class="btn btn-light">Back</a>
                             <button class="btn btn-info" type="reset" id="cmdNew" name="cmdCancel" data-trType="TROUT">New</button>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" data-trType="TROUT">Save</button>
                         </div>
@@ -183,7 +183,7 @@
             $('#message').html('');
             event.preventDefault();
             $.ajax({
-                url:"{{ route('transferOut.import.excel') }}",
+                url:"{{ route('transferOutV1.import.excel') }}",
                 method:"POST",
                 data: new FormData(this),
                 dataType:"json",
@@ -263,7 +263,7 @@
         if (tsoCode){        
             $.ajax({
                 type: "GET",
-                url: "{{ route('transferOut.article.tso') }}",
+                url: "{{ route('transferOutV1.article.tso') }}",
                 data: {
                     tsoCode:tsoCode
                 },

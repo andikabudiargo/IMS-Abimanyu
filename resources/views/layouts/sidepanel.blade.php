@@ -288,7 +288,15 @@
               </a>
             </li>
             @endcan
-        
+            @can('transferOut-index')
+            <li class="{{ \Request::is(['transferOutV1','transferOutV1/create','transferOutV1/show','transferOutV1/edit']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('transferOutV1.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Transfer out V1</span>
+              </a>
+            </li>
+            @endcan
+
             @can('transferOut-index')
             <li class="{{ \Request::is(['transferOut','transferOut/create','transferOut/show','transferOut/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('transferOut.index') }}">

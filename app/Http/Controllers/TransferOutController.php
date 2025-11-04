@@ -798,7 +798,7 @@ class TransferOutController extends Controller
             
             if ( $data->status == '1' or $data->status == '2') {
                 if (Auth::user()->can('transferIn-approve')) {
-                $buttons .=         '<a href="'. route('transferOut.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('transferOutV1.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Approve") .'</span>
                                     </a>';
@@ -814,7 +814,7 @@ class TransferOutController extends Controller
                     data-confirm='Are You Sure want to post This number?' 
                     data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
                     data-modal-id='".$data->id."'
-                    data-url='". route('transferOut.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                    data-url='". route('transferOutV1.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
                     <i data-feather='check' class='feather-14-red'></i>
                     <span>". __('Posting') ."</span>
                     </a>";
@@ -824,7 +824,7 @@ class TransferOutController extends Controller
             
             if ( $data->status == '1' or $data->status == '2' ){
                 if (Auth::user()->can('transferIn-edit')) {
-                $buttons .=         '<a href="'. route('transferOut.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                $buttons .=         '<a href="'. route('transferOutV1.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
                                     </a>';
@@ -838,7 +838,7 @@ class TransferOutController extends Controller
                                             class='dropdown-item'
                                             data-toggle='modal'
                                             data-target='#reasonModalCancel'
-                                            data-href='". route("transferOut.cancel", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                            data-href='". route("transferOutV1.cancel", ["id"=>Crypt::encryptString($data->id)]) ."'>
                                             <i data-feather='corner-down-left' class='feather-14-red'></i>
                                             <span>". __('Cancel') ."</span>
                                         </a>";
@@ -859,7 +859,7 @@ class TransferOutController extends Controller
                 // }
             }
 
-            $buttons .= '<a href="'. route('transferOut.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            $buttons .= '<a href="'. route('transferOutV1.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                             <i data-feather="list"></i>
                             <span>'. __("Detail") .'</span>
                         </a>';
@@ -873,14 +873,14 @@ class TransferOutController extends Controller
                                         data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
                                         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
                                         data-modal-id='".$data->id."'
-                                        data-url='". route('transferOut.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                        data-url='". route('transferOutV1.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
                                         <span>". __('Delete') ."</span>
                                     </a>";
                 }
             }
             
-            $buttons .=     '<a href="'. route('transferOut.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+            $buttons .=     '<a href="'. route('transferOutV1.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
                                 <i data-feather="printer"></i>
                                 <span>'. __("Print") .'</span>
                             </a>';
