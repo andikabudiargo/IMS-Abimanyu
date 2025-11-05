@@ -24,6 +24,19 @@
                 <label for="searchName">Nama Asset</label>
                 <input type="text" class="form-control text-uppercase" id="searchName" name="searchName" placeholder=""  />
               </div>
+              <div class="col-md-3 form-group">
+                <label for="tanggalPenyusutan">Tgl. Awal Penyusutan</label>
+                <input type="text" id="tanggalPenyusutan" name="tanggalPenyusutan" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+              </div>
+              <div class="form-group col-md-3">
+                <label class="form-label" for="jenisAset">Jenis Aset</label>
+                <select class="select2 form-control" id="jenisAset" name="jenisAset" >
+                  <option value=""></option>
+                  @foreach($accounts as $val)
+                    <option value="{{ $val->account }}">{{ $val->description }}</option>
+                  @endforeach
+                </select>
+              </div>
             </div>
             <div class="form-row">
                 <div class="col-12"> 
@@ -83,6 +96,14 @@
     });
   });
 
+  const rangePickr = $('.flatpickr-range');
+  if (rangePickr.length) {
+    rangePickr.flatpickr({
+      dateFormat: "d-m-Y",
+      mode: 'range'
+    });
+  }
+
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
     let searchNoAsset = $("#searchNoAsset").val();
@@ -93,10 +114,12 @@
   $("#btnSearch").click(function(e){
     let searchNoAsset = $("#searchNoAsset").val();
     let searchName = $("#searchName").val();
-    showList(searchNoAsset,searchName);
+    let searchDate = $("#tanggalPenyusutan").val();
+    let searchJenisAset = $("#jenisAset").val();
+    showList(searchNoAsset,searchName,searchDate,searchJenisAset);
   });
 
-  const showList = (searchNoAsset,searchName) => {
+  const showList = (searchNoAsset,searchName,searchDate,searchJenisAset) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -120,6 +143,8 @@
       dataSearch:  {
         searchNoAsset:searchNoAsset,
         searchName:searchName,
+        searchDate:searchDate,
+        searchJenisAset:searchJenisAset
       },
       orderColumn:[[ 1, 'desc' ]],
       excelFileName:'assets'

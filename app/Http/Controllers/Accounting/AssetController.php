@@ -106,10 +106,18 @@ class AssetController extends Controller
     {
         $data['title'] = "List $this->title";
         
-        $data['coas'] = DB::table('accounts')
-        ->where ('status','=','1')
+        // $data['coas'] = DB::table('accounts')
+        // ->where ('status','=','1')
+        // ->orderBy('account')
+        // ->get();
+
+        $data['accounts'] = DB::table('accounts')
+        ->where('account','>=','1200.11')
+        ->where('account','<=','1200.18')
+        ->where('acc_header','!=','HEADER')
         ->orderBy('account')
         ->get();
+
 
         $data['kolom'] = $this->getTableColoumn();        
 
@@ -736,24 +744,29 @@ class AssetController extends Controller
         // $data['status'] = ['1'=>'DRAFT','2'=>'','3'=>'','4'=>'','5'=>'','6'=>''];
         $searchNoAsset = $request->searchNoAsset;
         $searchName = $request->searchName;
-               
-        // if ($apDate){
-        //     $date = explode("to",$apDate);
-        //     if(count($date)>1){
-        //         $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-        //         $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-        //     }else{
-        //         $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-        //         $toDate = $fromDate; 
-        //     }
-        // }
+        $searchDate = $request->searchDate;
+        $searchJenisAset = $request->searchJenisAset;
+
+        $fromDate = "";
+        $toDate = "";
+        
+        if ($searchDate){
+            $date = explode("to",$searchDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
 
         $data = DB::table('assets')
-        ->where(function ($query) use ($searchNoAsset,$searchName) {
+        ->where(function ($query) use ($searchNoAsset,$searchName,$searchDate,$fromDate,$toDate,$searchJenisAset) {
             $searchNoAsset ? $query->where('asset_number','ilike','%'.$searchNoAsset.'%') : '';
             $searchName ? $query->where('asset_desc','ilike','%'.$searchName.'%') : '';
-            // $apDate ? $query->whereBetween(DB::raw("to_date(ap_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            
+            $searchDate ? $query->whereBetween('tanggal_awal_penyusutan', [$fromDate, $toDate]) : '';
+            $searchJenisAset ? $query->where('akun_aset_tetap',$searchJenisAset) : '';
         })
         ->where('assets.status','1')
         ->select(
