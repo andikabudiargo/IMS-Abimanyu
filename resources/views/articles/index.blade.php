@@ -2,7 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-@include('partials.alert')
+{{-- @include('partials.alert') --}}
 <section id="article-index">
     <div class="row">
       <div class="col-12">
