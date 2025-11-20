@@ -453,10 +453,10 @@
             //bypasss untuk yang toto
             let supplierToto ='false';
             
-            if ($('#customer').data("customer-code") == 'STI00001CUST'){
-                supplierToto ='true';
-                flag = 0;
-            }
+            // if ($('#customer').data("customer-code") == 'STI00001CUST'){
+            //     supplierToto ='true';
+            //     flag = 0;
+            // }
             
             if (flag==0){
                 let bomNumber = "";
