@@ -210,7 +210,7 @@
                                     <table width="100%">
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="10%">Tanggal</td>
-                                            @if(count($costCenter)>70)
+                                            @if(strlen($costCenter)>70)
                                                 <td class="tanpa-padding font-14" width="30%">: {{ $header->voucher_date }}</td>
                                             @else
                                                 <td class="tanpa-padding font-14" width="40%">: {{ $header->voucher_date }}</td>
