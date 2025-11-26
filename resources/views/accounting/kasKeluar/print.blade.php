@@ -210,7 +210,11 @@
                                     <table width="100%">
                                         <tr class="tanpa-padding">
                                             <td class="tanpa-padding font-14" width="10%">Tanggal</td>
-                                            <td class="tanpa-padding font-14" width="40%">: {{ $header->voucher_date }}</td>
+                                            @if(count($costCenter)>70)
+                                                <td class="tanpa-padding font-14" width="30%">: {{ $header->voucher_date }}</td>
+                                            @else
+                                                <td class="tanpa-padding font-14" width="40%">: {{ $header->voucher_date }}</td>
+                                            @endif
                                             <td class="tanpa-padding font-14" width="10%" style="text-align:right">Departemen</td>
                                             <td rowspan="2" style="vertical-align:top;">: {{ $costCenter }}</td>
                                         </tr>
@@ -235,11 +239,11 @@
                             <thead>
                                 <tr>
                                     <th width="10%">No Account</th>
-                                    <th width="15%">Account Name</th>
-                                    <th width="15%">Referensi</th>
+                                    <th width="20%">Account Name</th>
+                                    <th width="11%">Referensi</th>
                                     <th width="">Keterangan</th>
-                                    <th width="13%">Debet</th>
-                                    <th width="13%">Kredit</th>
+                                    <th width="11%">Debet</th>
+                                    <th width="11%">Kredit</th>
                                 </tr>
                             </thead>
                             <tbody>
