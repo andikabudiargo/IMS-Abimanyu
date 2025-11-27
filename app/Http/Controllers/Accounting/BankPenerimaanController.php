@@ -1050,33 +1050,112 @@ class BankPenerimaanController extends Controller
 
         $vcNumber=$data['header']->voucher_number;
        
-        $data['details']=DB::table('kas_det')
-        ->leftJoin('accounts','accounts.account','kas_det.account')
-        ->select('kas_det.*','accounts.description as account_name')
-        ->where('voucher_number',$vcNumber)
-        ->orderBy('debit')
-        ->orderBy('id')
-        ->get();
+        // $data['details']=DB::table('kas_det')
+        // ->leftJoin('accounts','accounts.account','kas_det.account')
+        // ->select('kas_det.*','accounts.description as account_name')
+        // ->where('voucher_number',$vcNumber)
+        // ->orderBy('debit')
+        // ->orderBy('id')
+        // ->get();
 
-        $limits = 24;
-
-        $data['details']=DB::table('kas_det')
-        ->leftJoin('accounts','accounts.account','kas_det.account')
-        ->select('kas_det.*','accounts.description as account_name')
+        $jumlahBaris=DB::table('kas_det')
         ->where('voucher_number',$vcNumber)
-        ->orderBy('debit')
-        ->orderBy('id')
-        ->limit($limits)
-        ->get();
+        ->count();
 
-        $data['details2']=DB::table('kas_det')
-        ->leftJoin('accounts','accounts.account','kas_det.account')
-        ->select('kas_det.*','accounts.description as account_name')
-        ->where('voucher_number',$vcNumber)
-        ->orderBy('debit')
-        ->orderBy('id')
-        ->offset($limits)
-        ->get();
+        $data['jumlahBaris'] = $jumlahBaris;
+
+        $details=[];
+        $limits = $jumlahBaris;
+        // $jumlahData = 23;
+        $totalLimit = 23;
+        $page=[];
+        $offset = 0;
+        $limit = $totalLimit;
+
+        $totalPage = ceil($jumlahBaris / $totalLimit)*1;
+        $sisaBarisPage = $jumlahBaris % $totalLimit;
+
+        // if($sisaBarisPage>3){
+        //     $jumlahData = 24;
+        //     $totalLimit = 26;
+
+        //     $totalPage = ceil($jumlahBaris / $totalLimit)*1;
+        //     $sisaBarisPage = $jumlahBaris % $totalLimit;
+        // }
+
+        // dump($sisaBarisPage);
+        
+        for($i=0; $i<$jumlahBaris; $i++){
+            
+            // dump($limits);
+            if($limits>$totalLimit){
+
+                if( ($sisaBarisPage>3 && $totalPage >1) && ($page != $totalPage)){
+                    $limit = $totalLimit+2;    
+                }else{
+                    $limit = $totalLimit;
+                }
+                
+                $details[$i] = DB::table('kas_det')
+                ->leftJoin('accounts','accounts.account','kas_det.account')
+                ->select('kas_det.*','accounts.description as account_name')
+                ->where('voucher_number',$vcNumber)
+                ->orderBy('debit')
+                ->orderBy('id')
+                ->offset($offset)
+                ->limit($limit)
+                ->get();
+
+                // $jumlahData = $totalLimit;
+                $offset = $offset+$limit;
+                $page[$i] = $i+1;
+
+            }else{
+                
+                $details[$i] = DB::table('kas_det')
+                ->leftJoin('accounts','accounts.account','kas_det.account')
+                ->select('kas_det.*','accounts.description as account_name')
+                ->where('voucher_number',$vcNumber)
+                ->orderBy('debit')
+                ->orderBy('id')
+                ->offset($offset)
+                ->limit($limit)
+                ->get();
+                $page[$i] = $i+1; 
+                break;
+
+            }
+
+            $limits = $limits-$limit;
+            $sisaBarisPage = $limits % $totalLimit;
+            
+        }
+
+        $data['details'] = $details;
+        $data['totalPage'] = $totalPage;
+        $data['page'] = $page;
+
+        // dump($data['totalPage']);
+
+        // $limits = 24;
+
+        // $data['details']=DB::table('kas_det')
+        // ->leftJoin('accounts','accounts.account','kas_det.account')
+        // ->select('kas_det.*','accounts.description as account_name')
+        // ->where('voucher_number',$vcNumber)
+        // ->orderBy('debit')
+        // ->orderBy('id')
+        // ->limit($limits)
+        // ->get();
+
+        // $data['details2']=DB::table('kas_det')
+        // ->leftJoin('accounts','accounts.account','kas_det.account')
+        // ->select('kas_det.*','accounts.description as account_name')
+        // ->where('voucher_number',$vcNumber)
+        // ->orderBy('debit')
+        // ->orderBy('id')
+        // ->offset($limits)
+        // ->get();
 
         $data['total']=DB::table('kas_det')
         ->select(DB::raw("sum(credit) as total_credit"),DB::raw("sum(debit) as total_debit"))
