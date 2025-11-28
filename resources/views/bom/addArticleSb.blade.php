@@ -40,10 +40,23 @@
                     <label class="d-block d-md-none" for="sprayBooth">Spray booth</label>
                     <select class="select2 form-control" id="sprayBooth" name="sprayBooth[]" required>
                         <option value=""></option>
-                        <option value="sb1">Spray Booth 1</option>
-                        <option value="sb2">Spray Booth 2</option>
-                        <option value="sb3">Spray Booth 3</option>
-                        <option value="sb4">Spray Booth 4</option>
+                        <option value="sb1">Spraybooth 1</option>
+                        <option value="sb1a">Spraybooth 1 A</option>
+                        <option value="sb1b">Spraybooth 1 B</option>
+                        <option value="sb1c">Spraybooth 1 C</option>
+                        <option value="sb2">Spraybooth 2</option>
+                        <option value="sb2a">Spraybooth 2 A</option>
+                        <option value="sb2b">Spraybooth 2 B</option>
+                        <option value="sb2c">Spraybooth 2 C</option>
+                        <option value="sb3">Spraybooth 3</option>
+                        <option value="sb3a">Spraybooth 3 A</option>
+                        <option value="sb3b">Spraybooth 3 B</option>
+                        <option value="sb3c">Spraybooth 3 C</option>
+                        <option value="sb4">Spraybooth 4</option>
+                        <option value="sb4a">Spraybooth 4 A</option>
+                        <option value="sb4b">Spraybooth 4 B</option>
+                        <option value="sb4c">Spraybooth 4 C</option>
+                        <option value="sbtoto">Toto</option>
                     </select>
                 </div>
             </div>
