@@ -537,8 +537,16 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('boms/revision',['as'=>'bom.revision','uses'=>'BomController@revision','middleware' => ['permission:bom-revision']]);
 	Route::get('bom/export',['as'=>'bom.export','uses'=>'BomController@exportBom']);
 
+	Route::get('bom/bomList',['as'=>'bom.bomList','uses'=>'BomController@bomList']);
+	Route::get('bom/etSpayBooths',['as'=>'bom.getSpayBooths','uses'=>'BomController@getSpayBooths']);
+
 	Route::get('bom/report',['as'=>'bom.report.index','uses'=>'BomReportController@index','middleware' => ['permission:bom-index']]);
 	Route::post('bom/report/list',['as'=>'bom.report.list','uses'=>'BomReportController@list']);
+
+	Route::get('bomsUpload',['as'=>'boms.indexUpload','uses'=>'BomController@indexUpload','middleware' => ['permission:bom-create']]);
+	Route::post('bom/upload-excel',['as'=>'bom.upload.excel','uses'=>'BomController@uploadExcel']);
+	Route::get('bom/export-template',['as'=>'bom.export.template','uses'=>'BomController@exportTemplate']);
+	Route::get('boms/upload-excel-list',['as'=>'bom.upload.excel.list','uses'=>'BomController@listUploadExcel']);
 
 	Route::get('deliveryPlan/create',['as'=>'deliveryPlan.create','uses'=>'DeliveryPlanController@create']);
 	Route::get('deliveryPlan/generate',['as'=>'deliveryPlan.generate','uses'=>'DeliveryPlanController@generatePlan']);

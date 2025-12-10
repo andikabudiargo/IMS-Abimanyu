@@ -67,30 +67,6 @@
                                     <input type="text" id="model" name="model" value="{{ old('model',$header->model) }}" class="form-control" />
                                 </div>
                             </div>
-                            {{-- <div class="form-row">
-                                <div class="form-group col-md-2">
-                                    <label for="tag">Tact*</label>
-                                    <input type="text" id="tag" name="tag" value="{{ old('tag',$header->tag) }}" class="form-control numeral-mask-digit" maxlength="5" />
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="passRate">Pass Rate</label>
-                                    <input type="text" id="passRate" name="passRate" value="{{ old('passRate',$header->pass_rate) }}" class="form-control numeral-mask-digit" maxlength="5"/>
-                                </div>
-
-                                <div class="form-group col-md-2">
-                                    <label for="passThru">Pass trough</label>
-                                    <div class="input-group input-group-merge">
-                                        <input type="text" id="passThru" name="passThru" value="{{ old('passThru',$header->pass_thru) }}" class="form-control numeral-mask-digit" maxlength="5"/>
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="cycleTime">Cycle time buffing</label>
-                                    <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime',$header->cycle_time) }}" class="form-control numeral-mask-digit" maxlength="5"/>
-                                </div>
-                            </div> --}}
                             <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
@@ -226,7 +202,23 @@
 <script type="text/javascript">
     let currentDate = "{{ $currentDateValue }}";
     const approveBtn = document.querySelector('#cmdApprove'); 
+    let kondisiEdit = true;
+
+    function checkVariable(obj) {
+        if (allSelectsAreFilledjQuery(obj)) {
+            clearInterval(timerId);
+            $(".loading-spinner-container").removeClass("-show");
+        }
+    }
+
     $(document).ready(function(){           
+
+        setTimeout(function () {
+            $(".loading-spinner-container").addClass("-show");
+        }, 500);
+
+        timerId= setInterval(() => checkVariable("#article_row select[name='article_id[]']"), 1000);
+
         validateForm('frmAdd');
         mask_thousand_digit(numberOfDecimalDigit);
         let detail = {!!  $detail !!};
@@ -242,7 +234,8 @@
             factor = detail[i].factor_qty;
             pos = detail[i].pos;
             tone = detail[i].tone;
-            add_new_row_edit(article,qty,uom,uomCon,typeName,uomMember,uoms,factor,pos,tone);
+            brand = detail[i].brand;
+            add_new_row_edit(article,qty,uom,uomCon,typeName,uomMember,uoms,factor,pos,tone,brand);
         }
 
         for(let a=0;a<sprayBooths.length;a++){
@@ -252,10 +245,7 @@
             let passRate =  sprayBooths[a].pass_rate;
             let passThru =  sprayBooths[a].pass_thru;
             let cycleTime =  sprayBooths[a].cycle_time;
-            add_new_row_edit_sb(sprayBooth,tone,tack,passRate,passThru,cycleTime);
-            // let stripping =  sprayBooths[a].stripping;
-            // add_new_row_edit_sb(sprayBooth,tone,tack,passRate,passThru,cycleTime,stripping);
-            
+            add_new_row_edit_sb(sprayBooth,tone,tack,passRate,passThru,cycleTime);            
         }
 
         if ($('#customer').data("customer-code") == 'STI00001CUST'){

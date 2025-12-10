@@ -391,7 +391,8 @@
             @endcan
 
             @can('bom-index')
-            <li class="{{ \Request::segment(1) == 'boms' ? 'active' : '' }}" >
+            {{-- <li class="{{ \Request::segment(1) == 'boms' ? 'active' : '' }}" > --}}
+            <li class="{{ in_array(\Request::segment(1),['boms','bomsUpload']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('boms.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Bill Of Material</span>

@@ -127,49 +127,55 @@
 </div>
 <script type="text/javascript">
     let cloneCountSb=0;
+
     add_new_row_edit_sb = (sprayBooth,tone,tack,passRate,passThru,cycleTime,stripping) => {
         $("#article_row_sb").append($("#new_row_sb").clone().html());
-        cloneCountSb++;
-        console.log(sprayBooth);
-        $("#article_row_sb").find('#baru_sb').attr('id', 'new_row_sb'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#sprayBooth').attr('id', 'sprayBooth'+ cloneCountSb);
-        // $("#new_row_sb"+ cloneCountSb).find('#stripping').attr('id', 'stripping'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#tone').attr('id', 'tone'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#tack').attr('id', 'tack'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#passRate').attr('id', 'passRate'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#passThru').attr('id', 'passThru'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#cycleTime').attr('id', 'cycleTime'+ cloneCountSb);
-        $("#sprayBooth"+cloneCountSb).select2();
-        $("#tone"+cloneCountSb).select2();
-        // $("#stripping"+cloneCountSb).select2();
-        $("#sprayBooth"+ cloneCountSb).val(sprayBooth).trigger('change');
-        // $("#stripping"+ cloneCountSb).val(stripping).trigger('change');
-        $("#tone"+ cloneCountSb).val(tone).trigger('change');
-        $("#tack"+ cloneCountSb).val(tack);
-        $("#passRate"+ cloneCountSb).val(passRate);
-        $("#passThru"+ cloneCountSb).val(passThru);
-        $("#cycleTime"+ cloneCountSb).val(cycleTime);
+        ++cloneCountSb;
+        $("#article_row_sb").find('#baru_sb').attr('id', `new_row_sb${cloneCountSb}`);
+      
+        const newRowId = `new_row_sb${cloneCountSb}`;
+        const $newRow = $(`#${newRowId}`);
+
+        $newRow.attr('id', newRowId);
+
+        const elementUpdates = [
+            { oldId: 'sprayBooth', newId: `sprayBooth${cloneCountSb}`, value: sprayBooth },
+            { oldId: 'tone', newId: `tone${cloneCountSb}`, value: tone },
+            { oldId: 'tack', newId: `tack${cloneCountSb}`, value: tack },
+            { oldId: 'passRate', newId: `passRate${cloneCountSb}`, value: passRate },
+            { oldId: 'passThru', newId: `passThru${cloneCountSb}`, value: passThru },
+            { oldId: 'cycleTime', newId: `cycleTime${cloneCountSb}`, value: cycleTime },
+        ];
+
+        elementUpdates.forEach(({ oldId, newId, value }) => {
+            $newRow.find(`#${oldId}`).attr('id', newId);
+            $("#"+newId).val(value);
+        });
+
+        $(`#sprayBooth${cloneCountSb}`).select2().val(sprayBooth).trigger('change');
+        $(`#tone${cloneCountSb}`).select2().val(tone).trigger('change');
         
         $('#remove_button').tooltip();
         mask_thousand_digit(numberOfDecimalDigit);
+
     }
     
     add_new_row_sb = () => {
-        $("#article_row_sb").append($("#new_row_sb").clone().html());
-        cloneCountSb++;
-        $("#article_row_sb").find('#baru_sb').attr('id', 'new_row_sb'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#sprayBooth').attr('id', 'sprayBooth'+ cloneCountSb);
-        // $("#new_row_sb"+ cloneCountSb).find('#stripping').attr('id', 'stripping'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#tone').attr('id', 'tone'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#tack').attr('id', 'tack'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#passRate').attr('id', 'passRate'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#passThru').attr('id', 'passThru'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#qtyCon').attr('id', 'qtyCon'+ cloneCountSb);
-        $("#new_row_sb"+ cloneCountSb).find('#cycleTime').attr('id', 'cycleTime'+ cloneCountSb);
-        $("#sprayBooth"+cloneCountSb).select2();
-        $("#tone"+cloneCountSb).select2();
-        // $("#stripping"+cloneCountSb).select2();
+        const newRow = $("#new_row_sb").clone();
+        const newId = `new_row_sb${++cloneCountSb}`;
+        const fields = ['sprayBooth', 'tone', 'tack', 'passRate', 'passThru', 'qtyCon', 'cycleTime'];
+
+        fields.forEach(field => {
+            newRow.find(`#${field}`).attr('id', `${field}${cloneCountSb}`);
+        });
+        
+        $("#article_row_sb").append(newRow.html());        
+        $("#article_row_sb").find('#baru_sb').attr('id', newId);
+
+        $(`#sprayBooth${cloneCountSb}, #tone${cloneCountSb}`).select2();        
         $('#remove_button').tooltip();
+        
         mask_thousand_digit(numberOfDecimalDigit);
     };
+
 </script>

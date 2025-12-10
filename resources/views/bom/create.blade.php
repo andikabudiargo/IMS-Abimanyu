@@ -72,88 +72,19 @@
                                     <input type="text" id="model" name="model" class="form-control" />
                                 </div>
                             </div>
-
-                            {{-- <div class="form-row">
-                                <div class="form-group col-md-8">
-                                    <label class="form-label" for="articleCodeRm">Spray booth</label>
-                                    <select class="select2 form-control" id="articleCodeRm" name="articleCodeRm" required>
-                                        <option value=""></option>
-                                        @foreach($articlesRm as $val)
-                                            <option value="{{ $val->article_code }}" {{ $val->article_code == old("articleCodeRm") ? "selected" : ""}} >{{ $val->article_alternative_code }} - {{ $val->article_desc }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="tag">Tack*</label>
-                                    <input type="text" id="tag" name="tag" value="{{ old('tag') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="passRate">Pass Rate*</label>
-                                    <input type="text" id="passRate" name="passRate" value="{{ old('passRate') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="passThru">Pass trough*</label>
-                                    <div class="input-group input-group-merge">
-                                        <input type="text" id="passThru" name="passThru" value="{{ old('passThru') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="cycleTime">Cycle time buffing</label>
-                                    <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
-                                </div>
-                            </div> --}}
-
-                            {{-- <div class="form-row">
-                                <div class="form-group col-md-2">
-                                    <label class="form-label" for="sprayBooth">Spray booth</label>
-                                    <select class="select2 form-control" id="sprayBooth" name="sprayBooth" required>
-                                        <option value=""></option>
-                                        <option value="sp1">Spray Booth 1</option>
-                                        <option value="sp2">Spray Booth 2</option>
-                                        <option value="sp3">Spray Booth 3</option>
-                                        <option value="sp4">Spray Booth 4</option>
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label class="form-label" for="tone">Tone</label>
-                                    <select class="select2 form-control" id="tone" name="tone" required>
-                                        <option value=""></option>
-                                        <option value="t1">Tone 1</option>
-                                        <option value="t2">Tone 2</option>
-                                        <option value="t3">Tone 3</option>
-                                        <option value="t4">Tone 4</option>
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="tag">Tack*</label>
-                                    <input type="text" id="tag" name="tag" value="{{ old('tag') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="passRate">Pass Rate*</label>
-                                    <input type="text" id="passRate" name="passRate" value="{{ old('passRate') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="passThru">Pass trough*</label>
-                                    <div class="input-group input-group-merge">
-                                        <input type="text" id="passThru" name="passThru" value="{{ old('passThru') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="cycleTime">Cycle time buffing</label>
-                                    <input type="text" id="cycleTime" name="cycleTime" value="{{ old('cycleTime') }}" class="form-control numeral-mask-digit" maxlength="5" required/>
-                                </div>
-                            </div> --}}
-
                             <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note') }}</textarea>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="form-row">
+                                <div class="form-group col-md-12">
+                                    <button class="btn btn-success btn-prev" type="button" id="addNewList" name="addNewList" onclick="listItem()">
+                                        <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                                        <span class="align-middle d-sm-inline-block d-none">Copy detail from other BOM</span>
+                                    </button>
                                 </div>
                             </div>
                         </form>
@@ -198,11 +129,14 @@
                             </div>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-between align-items-end mt-75">
-                        <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
-                            <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
-                            <span class="align-middle d-sm-inline-block d-none">Add Article</span>
-                        </button>
+                    <hr>
+                    <div class="form-row mt-75">
+                        <div class="col-md-12">
+                            <button class="btn btn-primary btn-prev" type="button" id="addNewRow" onclick="add_new_row();">
+                                <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                                <span class="align-middle d-sm-inline-block d-none">Add Article</span>
+                            </button>
+                        </div>
                     </div>
                     <hr>
                     <div class="form-row">
@@ -255,6 +189,7 @@
 </style>
 @endsection
 @section('scripts')
+@include('bom.listBom')
 @include('bom.addArticle')
 @include('bom.addArticleSb')
 <script type="text/javascript">

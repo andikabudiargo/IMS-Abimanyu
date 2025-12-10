@@ -16,6 +16,15 @@ use AppHelpers;
 use Approval;
 use App\Exports\BomExport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\BomUpload;
+use App\Exports\BomTemplateExport;
+
+/*
+    CR:
+    untuk brand toto simpan data seperti biasa, seperti BOM yang lainnya
+    jadi di remark pada saat save data supplierToto jadi selalu false
+
+*/
 
 date_default_timezone_set('Asia/Bangkok');
 
@@ -24,11 +33,35 @@ class BomController extends Controller
     private $title;
     private $moduleCode;
     private $decimalPlaces;
+    private $tones;
+    private $sprayBooth;
+
+
     public function __construct()
     {
         $this->title = "Bill Of Material";
         $this->moduleCode = "BOM";
         $this->decimalPlaces = config('globalParam.decimal');
+        $this->tones = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
+        $this->sprayBooths = [
+            'sp1'=>'Spray Booth 1',
+            'sp1a'=>'Spray Booth 1 A',
+            'sp1b'=>'Spray Booth 1 B',
+            'sp1c'=>'Spray Booth 1 C',
+            'sp2'=>'Spray Booth 2',
+            'sp2a'=>'Spray Booth 2 A',
+            'sp2b'=>'Spray Booth 2 B',
+            'sp2c'=>'Spray Booth 2 C',
+            'sp3'=>'Spray Booth 3',
+            'sp3a'=>'Spray Booth 3 A',
+            'sp3b'=>'Spray Booth 3 B',
+            'sp3c'=>'Spray Booth 3 C',
+            'sp4'=>'Spray Booth 4',
+            'sp4a'=>'Spray Booth 4 A',
+            'sp4b'=>'Spray Booth 4 B',
+            'sp4c'=>'Spray Booth 4 C',
+            'sbtoto'=>'Toto'
+        ];
     }
 
     public function getTableColoumn(){
@@ -138,6 +171,13 @@ class BomController extends Controller
         //     ->from('bom_hdr')
         //     ->whereIn('status',['1','2','3']);
         // })
+        ->get();
+
+        $data['boms'] = DB::table('bom_hdr')
+        ->leftJoin('article','bom_hdr.article_code','article.article_code')
+        ->leftJoin('third_party','bom_hdr.customer','third_party.kode')
+        ->select('bom_hdr.*', 'third_party.nama as cust_name','article.article_desc','article.article_alternative_code')
+        ->whereIn('bom_hdr.status',['2','3'])
         ->get();
 
         $data['posts'] = DB::table('bom_pos')
@@ -338,6 +378,7 @@ class BomController extends Controller
         // ->where('bom_det.bom_code',$bomNumber)
         ->orderBy('bom_det.tone')
         ->orderBy('bom_det.pos')
+        ->orderBy('urutan')
         ->get();
 
         $data['sprayBooths'] = DB::table('bom_spray_booth')
@@ -417,10 +458,12 @@ class BomController extends Controller
         ->leftJoin('uom','uom.code','bom_det.uom')
         ->leftJoin('article_types','article_types.code','=','bom_det.article_type')
         ->leftJoin('article','article.article_code','=','bom_det.article_code')
+        ->leftJoin('third_party','third_party.kode','=','article.third_party')
         ->select('bom_det.*'
         ,'article.uom as original_uom'
         ,'uom.uom_group as uom_group'
         ,'article_types.name as type_name'
+        ,'third_party.nama as brand'
         ,DB::RAW("(select uom_conversion(bom_det.uom_con,article.uom) as factor_qty)")
         ,DB::RAW("(select 
                         string_agg(concat(unit_to,';',(uom_conversion(a.unit_to,article.uom))),',' order by unit_from) as uom_member 
@@ -430,6 +473,7 @@ class BomController extends Controller
         // ->orderBy('bom_det.id')
         ->orderBy('bom_det.tone')
         ->orderBy('bom_det.pos')
+        ->orderBy('urutan')
         ->get();
 
         $data['sprayBooth'] = DB::table('bom_spray_booth')
@@ -1265,4 +1309,366 @@ class BomController extends Controller
         $filename = 'data_bom';
         return Excel::download(new BomExport($searchBom,$articleCode,$status), $filename.'.xlsx');
     }
+
+    public function exportTemplate()
+    {
+		return Excel::download(new BomTemplateExport, 'bom_upload_template.xls');
+	}
+
+    public function uploadExcel(Request $request)
+    {
+
+        // validasi
+		$this->validate($request, [
+			'file' => 'required|mimes:xls,xlsx'
+		]);
+ 
+		// menangkap file excel
+		$file = $request->file('file');
+ 
+		// // membuat nama file unik
+		$namaFile = rand().$file->getClientOriginalName();
+
+        $data['filename']=$namaFile;
+        db::table('bom_upload_tmp')->delete();
+        db::table('bom_spray_booth_upload_tmp')->delete();
+        db::table('bom_hdr_upload_tmp')->delete();
+
+        Excel::import(new BomUpload($data), $file);
+
+        // $dataValidasi = DB::table('import_stock_take_tmp')
+        // ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
+        // ->select('import_stock_take_tmp.article_code'
+        // ,'import_stock_take_tmp.qty'
+        // ,DB::RAW("concat(
+        //     case when import_stock_take_tmp.qty::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty salah - ',qty) end,
+        //     case when article.article_code is null then concat('Urutan ',row_number() over(),': Article Code:',import_stock_take_tmp.article_code, ' tidak terdaftar') end
+        //     ) as notes")
+        // )
+        // ->where('file_name', $namaFile)
+        // ->get();
+
+        // $dataNotes=[];
+        // foreach ($dataValidasi as $val) {
+        //     if($val->notes){
+        //         $dataNotes[]= [$val->notes];
+        //     }
+        // } 
+
+        // $title ="Import $this->title";
+        // $pesan="";
+
+        // if (count($dataNotes) > 0 ){
+        //     $pesan .='Ada error pada data yang diupload, silahkan cek notes error!';
+        //     $status = 0;
+        //     $alert = "error";
+        //     $message = $dataNotes;
+        //     $data = "";
+
+        // }else{
+
+        //     // return redirect()->back()->with('success', 'Excel file imported successfully!');
+        //     $data = db::table('import_stock_take_tmp')
+        //     ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
+        //     ->select('article.article_code'
+        //     ,'article.uom'
+        //     ,'import_stock_take_tmp.qty'
+        //     ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = article.uom)"))
+        //     ->where('file_name', $namaFile)
+        //     ->get();    
+            
+        //     $status = 1;
+        //     $alert = "success";
+        //     $message  = "$title is successfully imported";
+
+        // }
+
+        $title = "Upload BOM from Excel";
+        $pesan = "";
+        $status = 1;
+        $alert = "success";
+        $message  = "$title is successfully imported";
+                  
+        $alert  ="success";
+        $message  = "$title is successfully imported";
+
+        return response()->json(array('status' => $status,'title' => $title, 'message' => $message,'alert' =>$alert,'dataDetail'=>$data,'pesan'=>$pesan));
+
+        // return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message,'dataDetail'=>$data]);
+    }
+
+    public function indexUpload(Request $request)
+    {
+        $data['title'] = "Import BOM from Excel";     
+        $data['kolom'] = $this->getTableColoumnUpload();               
+        return view("bom.uploadExcel",$data);
+    }
+
+    public function getTableColoumnUpload(){
+        $kolom=
+        [
+            // ['data'=>'bom_code','name'=>'bom_code','title'=>'BOM Code'],
+            ['data'=>'customer','name'=>'customer','title'=>'Customer'],
+            ['data'=>'article_code_fg','name'=>'article_code_fg','title'=>'Article FG'],
+            ['data'=>'article_fg_des','name'=>'article_fg_des','title'=>'Article FG Desc'],
+            ['data'=>'article_code_rm','name'=>'article_code_rm','title'=>'Article RM'],
+            ['data'=>'article_rm_des','name'=>'article_rm_des','title'=>'Article RM Desc'],
+            ['data'=>'part_no','name'=>'part_no','title'=>'Part No'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'errors','name'=>'errors','title'=>'Errors'],
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function listUploadExcel(Request $request)
+    {
+        $username =  Auth::user()->username;
+        $searchBom = strtolower($request->searchBom);
+
+        // $data= DB::table('bom_hdr_upload_tmp')
+        // ->select('bom_hdr_upload_tmp.*'
+        //     ,'rm.article_desc as article_rm_des'
+        //     ,'fg.article_desc as article_fg_des'
+        //     ,DB::RAW("concat(
+        //             (select concat('Article sudah terdaftar di BOM No: ', bom_code,'|') from bom_hdr where article_code = (select article_code from article where article_alternative_code = article_code_fg) and status = '3'),
+        //             case when (select count(*) from bom_hdr_upload_tmp bhut where bhut.article_code_fg = bom_hdr_upload_tmp.article_code_fg) > 1 then concat('Data FG lebih dari satu data header (',bom_hdr_upload_tmp.article_code_fg,'-',bom_hdr_upload_tmp.article_code_rm,')|') end,
+        //             case when (select count(*) from third_party where customer = bom_hdr_upload_tmp.customer) = 0 then concat('Kode customer:',bom_hdr_upload_tmp.customer, ' tidak terdaftar','|') end,
+        //             case when (select count(*) from bom_hdr_upload_tmp where article_code_fg not in (select article_code_fg from bom_spray_booth_upload_tmp)) > 0 then concat('Data Spray Booth kosong','|') end,
+        //             case when fg.article_desc is null then concat('Article Code FG:',bom_hdr_upload_tmp.article_code_fg, ' tidak terdaftar','|') end,
+        //             case when rm.article_desc is null then concat('Article Code RM:',bom_hdr_upload_tmp.article_code_rm, ' tidak terdaftar','|') end,
+
+        //             (select string_agg((case when qty::text ~ '^[0-9.]+$' = false then concat('Qty salah (',qty,')') end),'|') as oki from bom_upload_tmp
+        //             where article_code_fg = bom_hdr_upload_tmp.article_code_fg and (qty::text !~ '^[0-9.]+$')),
+
+        //             (select string_agg(concat('UOM Con tidak terdaftar di ',article_code_fg,' Uom Con: ',uom_con,'|'),'') as oki from bom_upload_tmp
+        //             where article_code_fg = bom_hdr_upload_tmp.article_code_fg 
+        //             and uom_con not in (select code from uom)),
+
+        //             (select string_agg(concat('UOM tidak terdaftar di ',article_code_fg,' Uom: ',uom,'|'),'') as oki from bom_upload_tmp
+        //             where article_code_fg = bom_hdr_upload_tmp.article_code_fg 
+        //             and uom not in (select code from uom)),
+
+        //             (select string_agg(concat('POS tidak terdaftar di ',article_code_fg,' Pos: ',pos,'|'),'') as oki from bom_upload_tmp
+        //             where article_code_fg = bom_hdr_upload_tmp.article_code_fg  
+        //             and pos not in (select pos_code from bom_pos)),
+
+        //             (select string_agg(concat('Tone tidak terdaftar di ',article_code_fg,' Tone: ',tone,'|'),'') as oki from bom_upload_tmp
+        //             where article_code_fg = bom_hdr_upload_tmp.article_code_fg
+        //             and tone not in ('t1','t2','t3','t4')),
+
+        //             (select string_agg(concat('Spray Booth tidak terdaftar di ',article_code_fg,' SB: ',spray_booth,'|'),'') as oki from bom_spray_booth_upload_tmp
+        //             where article_code_fg = bom_spray_booth_upload_tmp.article_code_fg
+        //             and spray_booth not in ('sb1','sb2','sb3','sb4')),
+
+        //             (select string_agg((case when tack::text ~ '^[0-9.]+$' = false then concat('Tack salah (',tack,')|') end),'') as oki from bom_spray_booth_upload_tmp bsbut
+        //             where bsbut.article_code_fg = bom_hdr_upload_tmp.article_code_fg and (tack::text !~ '^[0-9.]+$')),
+
+        //             (select string_agg((case when pass_rate::text ~ '^[0-9.]+$' = false then concat('Pass Rate salah (',pass_rate,')|') end),'') as oki from bom_spray_booth_upload_tmp bsbut
+        //             where bsbut.article_code_fg = bom_hdr_upload_tmp.article_code_fg and (pass_rate::text !~ '^[0-9.]+$')), 
+
+        //             (select string_agg((case when pass_thru::text ~ '^[0-9.]+$' = false then concat('Pass Thru salah (',pass_thru,')|') end),'') as oki from bom_spray_booth_upload_tmp bsbut
+        //             where bsbut.article_code_fg = bom_hdr_upload_tmp.article_code_fg and (pass_thru::text !~ '^[0-9.]+$')),
+
+        //             (select string_agg((case when cycle_time::text ~ '^[0-9.]+$' = false then concat('Cycle Time salah (',cycle_time,')|') end),'') as oki from bom_spray_booth_upload_tmp bsbut
+        //             where bsbut.article_code_fg = bom_hdr_upload_tmp.article_code_fg and (cycle_time::text !~ '^[0-9.]+$'))
+        //             ) as errors")
+        // )
+        // ->leftJoin('third_party','third_party.kode','bom_hdr_upload_tmp.customer')
+        // ->leftJoin('article as rm','rm.article_alternative_code','bom_hdr_upload_tmp.article_code_rm')
+        // ->leftJoin('article as fg','fg.article_alternative_code','bom_hdr_upload_tmp.article_code_fg')
+        // ->get(); 
+
+        $data = DB::table('bom_hdr_upload_tmp')
+        ->select(
+            'bom_hdr_upload_tmp.*',
+            'rm.article_desc as article_rm_des',
+            'fg.article_desc as article_fg_des',
+            DB::raw("CONCAT(
+                (select concat('Article sudah terdaftar di BOM No: ', bom_code,'|') from bom_hdr where article_code = (select article_code from article where article_alternative_code = article_code_fg) and status = '3'),
+                case when (select count(*) from bom_hdr_upload_tmp bhut where bhut.article_code_fg = bom_hdr_upload_tmp.article_code_fg) > 1 then concat('Data FG lebih dari satu data header (',bom_hdr_upload_tmp.article_code_fg,'-',bom_hdr_upload_tmp.article_code_rm,')|') end,
+                case when (select count(*) from third_party where customer = bom_hdr_upload_tmp.customer) = 0 then concat('Kode customer:',bom_hdr_upload_tmp.customer, ' tidak terdaftar','|') end,
+                case when (select count(*) from bom_hdr_upload_tmp where article_code_fg not in (select article_code_fg from bom_spray_booth_upload_tmp)) > 0 then concat('Data Spray Booth kosong','|') end,
+                case when fg.article_desc is null then concat('Article Code FG:',bom_hdr_upload_tmp.article_code_fg, ' tidak terdaftar','|') end,
+                case when rm.article_desc is null then concat('Article Code RM:',bom_hdr_upload_tmp.article_code_rm, ' tidak terdaftar','|') end,
+                COALESCE(qty_errors.errors, ''),
+                COALESCE(uom_errors.errors, ''),
+                COALESCE(uom_con_errors.errors, ''),
+                COALESCE(pos_errors.errors, ''),
+                COALESCE(tone_errors.errors, ''),
+                COALESCE(spray_booth_errors.errors, ''),
+                COALESCE(tack_errors.errors, ''),
+                COALESCE(pass_rate_errors.errors, ''),
+                COALESCE(pass_thru_errors.errors, ''),
+                COALESCE(cycle_time_errors.errors, '')
+                
+            ) as errors")
+        )
+        ->leftJoin('third_party', 'third_party.kode', 'bom_hdr_upload_tmp.customer')
+        ->leftJoin('article as rm', 'rm.article_alternative_code', 'bom_hdr_upload_tmp.article_code_rm')
+        ->leftJoin('article as fg', 'fg.article_alternative_code', 'bom_hdr_upload_tmp.article_code_fg')
+
+        ->leftJoin(DB::raw("(SELECT article_code_fg as qty_errors_fg,  
+                    STRING_AGG(CASE WHEN qty::text !~ '^[0-9.]+$' THEN CONCAT('Qty salah (', qty, ')') END, '|') as errors
+            FROM bom_upload_tmp 
+            GROUP BY article_code_fg) as qty_errors"), 
+            'qty_errors.qty_errors_fg', '=', 'bom_hdr_upload_tmp.article_code_fg')
+
+        ->leftJoin(DB::raw("(SELECT article_code_fg as uom_errors_fg,
+                    STRING_AGG(CASE WHEN uom NOT IN (SELECT code FROM uom) THEN CONCAT('UOM tidak terdaftar di ', article_code_fg, ' Uom: ', uom, '|') END, '') as errors
+            FROM bom_upload_tmp 
+            GROUP BY article_code_fg) as uom_errors"),
+            'uom_errors.uom_errors_fg', '=', 'bom_hdr_upload_tmp.article_code_fg')
+            
+        ->leftJoin(DB::raw("(SELECT article_code_fg as uom_con_errors_fg,
+                    STRING_AGG(CASE WHEN uom_con NOT IN (SELECT code FROM uom) THEN CONCAT('UOM Con tidak terdaftar di ', article_code_fg, ' Uom Con: ', uom_con, '|') END, '') as errors
+            FROM bom_upload_tmp 
+            GROUP BY article_code_fg) as uom_con_errors"),
+            'uom_con_errors.uom_con_errors_fg', '=', 'bom_hdr_upload_tmp.article_code_fg')
+
+        ->leftJoin(DB::raw("(SELECT article_code_fg as pos_errors_fg,
+                    STRING_AGG(CASE WHEN pos NOT IN (SELECT pos_code FROM bom_pos) THEN CONCAT('POS tidak terdaftar di ', article_code_fg, ' Pos: ', pos, '|') END, '') as errors
+            FROM bom_upload_tmp 
+            GROUP BY article_code_fg) as pos_errors"),
+            'pos_errors.pos_errors_fg', '=', 'bom_hdr_upload_tmp.article_code_fg')
+
+        ->leftJoin(DB::raw("(SELECT article_code_fg as tone_errors_fg,
+                    STRING_AGG(CASE WHEN tone NOT IN ('t1','t2','t3','t4') THEN CONCAT('Tone tidak terdaftar di ', bom_upload_tmp.article_code_fg, ' Tone: ', tone, '|') END, '') as errors
+            FROM bom_upload_tmp 
+            GROUP BY article_code_fg) as tone_errors"),
+            'tone_errors.tone_errors_fg', '=', 'bom_hdr_upload_tmp.article_code_fg')
+
+        ->leftJoin(DB::raw("(SELECT article_code_fg as spray_booth_errors_fg,
+                    STRING_AGG(CASE WHEN spray_booth NOT IN ('sb1','sb2','sb3','sb4') THEN CONCAT('Spray Booth tidak terdaftar di ', bom_spray_booth_upload_tmp.article_code_fg, ' Spray Booth: ', spray_booth, '|') END, '') as errors
+            FROM bom_spray_booth_upload_tmp 
+            GROUP BY article_code_fg) as spray_booth_errors"),
+            'spray_booth_errors.spray_booth_errors_fg', '=', 'bom_hdr_upload_tmp.article_code_fg')
+
+        ->leftJoin(DB::raw("(SELECT article_code_fg as tack_errors_fg,  
+                    STRING_AGG(CASE WHEN tack::text !~ '^[0-9.]+$' THEN CONCAT('Tack salah (', tack, ')|') END, '') as errors
+            FROM bom_spray_booth_upload_tmp 
+            GROUP BY article_code_fg) as tack_errors"), 
+            'tack_errors.tack_errors_fg', '=', 'bom_hdr_upload_tmp.article_code_fg')
+        
+        ->leftJoin(DB::raw("(SELECT article_code_fg as pass_rate_errors_fg,  
+                    STRING_AGG(CASE WHEN pass_rate::text !~ '^[0-9.]+$' THEN CONCAT('Pass Rate salah (', pass_rate, ')|') END, '') as errors
+            FROM bom_spray_booth_upload_tmp 
+            GROUP BY article_code_fg) as pass_rate_errors"), 
+            'pass_rate_errors.pass_rate_errors_fg', '=', 'bom_hdr_upload_tmp.article_code_fg')
+
+        ->leftJoin(DB::raw("(SELECT article_code_fg as pass_thru_errors_fg,  
+                    STRING_AGG(CASE WHEN pass_thru::text !~ '^[0-9.]+$' THEN CONCAT('Pass Thru salah (', pass_thru, ')|') END, '') as errors
+            FROM bom_spray_booth_upload_tmp 
+            GROUP BY article_code_fg) as pass_thru_errors"), 
+            'pass_thru_errors.pass_thru_errors_fg', '=', 'bom_hdr_upload_tmp.article_code_fg')
+        
+        ->leftJoin(DB::raw("(SELECT article_code_fg  as cycle_time_errors_fg,  
+                    STRING_AGG(CASE WHEN cycle_time::text !~ '^[0-9.]+$' THEN CONCAT('Cycle Time salah (', cycle_time, ')|') END, '') as errors
+            FROM bom_spray_booth_upload_tmp 
+            GROUP BY article_code_fg) as cycle_time_errors"), 
+            'cycle_time_errors.cycle_time_errors_fg', '=', 'bom_hdr_upload_tmp.article_code_fg')
+
+        ->get();
+
+        return Datatables::of($data)
+        ->addColumn('errors', function ($data) {
+            $listError = explode("|", $data->errors);
+            $listErrors="";
+            foreach ($listError as $value) {
+                if($value == "") continue;
+                $listErrors = $listErrors ."- " . $value . "<br>";
+            }
+            return $listErrors;
+        })
+        ->rawColumns(['errors'])
+        ->make(true);
+    }
+
+    public function bomList(Request $request)
+    {
+        //oki
+
+        try {
+            $bomCode = $request->bomCode;
+
+            // $data= DB::table('bom_det')
+            // ->where('bom_code',$bomCode)
+            // ->leftJoin('uom','uom.code','bom_det.uom')
+            // ->leftJoin('article_types','article_types.code','=','bom_det.article_type')
+            // ->leftJoin('article','article.article_code','=','bom_det.article_code')
+            // ->leftJoin('third_party','third_party.kode','=','article.third_party')
+            // ->select('bom_det.*'
+            // ,'article.uom as original_uom'
+            // ,'uom.uom_group as uom_group'
+            // ,'article_types.name as type_name'
+            // ,'third_party.nama as brand'
+            // ,DB::RAW("(select uom_conversion(bom_det.uom_con,article.uom) as factor_qty)")
+            // ,DB::RAW("(select 
+            //                 string_agg(concat(unit_to,';',(uom_conversion(a.unit_to,article.uom))),',' order by unit_from) as uom_member 
+            //                 from uom_con a where unit_from = article.uom)")
+            // ,DB::RAW("(select string_agg(code,',' order by code) as uoms from uom )")
+            // )
+            // // ->orderBy('bom_det.id')
+            // ->orderBy('bom_det.tone')
+            // ->orderBy('bom_det.pos')
+            // ->get();
+
+            $data = DB::table('bom_det')
+            ->select('bom_det.*'
+                ,'article.article_alternative_code'
+                ,'article.article_code as article_code_1'
+                ,'article.article_desc as article_desc'
+                ,'article.uom as original_uom'
+                ,'article_types.name as type_name'
+                ,'bom_pos.pos_name'
+                ,'uom.uom_group'
+                ,'third_party.nama'
+                ,DB::RAW("(select uom_conversion(bom_det.uom_con,article.uom) as factor)")
+                ,DB::RAW("(select 
+                            string_agg(concat(unit_to,';',(uom_conversion(a.unit_to,article.uom))),',' order by unit_from) as uom_member 
+                            from uom_con a where unit_from = article.uom)")
+                ,DB::RAW("(select string_agg(code,',' order by code) as uoms from uom )")
+            )
+            ->leftJoin('bom_pos','bom_det.pos','=','bom_pos.pos_code')
+            ->leftJoin('article','article.article_code','=','bom_det.article_code')
+            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->leftJoin('article_types','article_types.code','=','article.article_type')
+            ->leftJoin('third_party','third_party.kode','=','article.third_party')
+            ->leftJoin('uom','uom.code','bom_det.uom')
+            ->where('bom_code',$bomCode)
+            ->orderBy('bom_det.tone')
+            ->orderBy('bom_det.pos')
+            ->orderBy('urutan')
+            ->get();
+
+            return response()->json(array('data' => $data,'tones' => $this->tones));
+        
+        } catch (Exception $e) {
+
+            return response()->json(array('status' => 0, 'message' => 'Something went wrong.'));
+        }
+    }
+
+    public function getSpayBooths(Request $request)
+    {
+
+        try {
+            
+            $bomNumber = $request->bomNumber;
+            $data = DB::table('bom_spray_booth')
+            ->where('bom_code',$bomNumber)
+            ->select('bom_spray_booth.*')
+            ->orderBy('urutan')
+            ->get();
+
+            return response()->json(array('data' => $data, 'status' => 1, 'message' => 'Success.'));
+        
+        } catch (Exception $e) {
+
+            return response()->json(array('status' => 0, 'message' => 'Something went wrong.'));
+
+        }
+
+    }
+
+
 }

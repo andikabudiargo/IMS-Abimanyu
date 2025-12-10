@@ -9,7 +9,7 @@
         <div class="card">
             <div class="card-body pb-50">
                 <h6>Total BOM</h6>
-                <h2 class="font-weight-bolder mb-1">{{ $bomTotal }}</h2>
+                <h2 class="font-weight-bolder mb-1" onclick="showList()" style="cursor: pointer">{{ $bomTotal }}</h2>
             </div>
         </div>
     </div>
@@ -17,7 +17,7 @@
         <div class="card card-tiny-line-stats">
             <div class="card-body pb-50">
                 <h6>BOM Baru</h6>
-                <h2 class="font-weight-bolder mb-1">{{ $bomBaru }}</h2>
+                <h2 class="font-weight-bolder mb-1" onclick="showList('','','1','')" style="cursor: pointer">{{ $bomBaru }}</h2>
             </div>
         </div>
     </div>
@@ -25,7 +25,7 @@
       <div class="card card-tiny-line-stats">
           <div class="card-body pb-50">
               <h6>Status Validate</h6>
-              <h2 class="font-weight-bolder mb-1">{{ $bomValidate }}</h2>
+              <h2 class="font-weight-bolder mb-1" onclick="showList('','','2','')" style="cursor: pointer">{{ $bomValidate }}</h2>
           </div>
       </div>
     </div>
@@ -33,7 +33,7 @@
       <div class="card card-tiny-line-stats">
           <div class="card-body pb-50">
               <h6>Status Approved</h6>
-              <h2 class="font-weight-bolder mb-1">{{ $bomApprove }}</h2>
+              <h2 class="font-weight-bolder mb-1" onclick="showList('','','3','')" style="cursor: pointer">{{ $bomApprove }}</h2>
           </div>
       </div>
     </div>
@@ -84,10 +84,13 @@
               </div>
             </div>
             <div class="form-row">
-                <div class="col-12"> 
+                <div class="col-md-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     @can('bom-create')
                     <a href="{{ route('bom.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    @endcan
+                    @can('bom-create-upload')
+                    <a href="{{ route('boms.indexUpload') }}" class="btn btn-light"><i class="fa fa-plus"></i> Create Upload from Excel</a>
                     @endcan
                 </div>
             </div>
@@ -109,7 +112,7 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
-        <button type="button" class="btn btn-info" id ="cmdExport" name="cmdExport"><i class="fa fa-download"></i>Downlod Details to Excel</button>
+        <button type="button" class="btn btn-info d-none" id ="cmdExport" name="cmdExport"><i class="fa fa-download"></i> Downlod Details to Excel</button>
         <div class="row">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">
@@ -137,11 +140,8 @@
   let articleCode = $("#articleCode");
   let searchCust = $("#cust");
   let status = $("#status");
-  let btnExport = document.querySelector('#cmdExport');
+  let btnExport = $('#cmdExport');
 
-  document.addEventListener("DOMContentLoaded", function(event) {
-    btnExport.style.display = "none";
-  });
   
   $(document).ready(function(){    
 
@@ -149,16 +149,15 @@
 
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
-    btnExport.style.display = "block";
     showList(searchBom.val(),articleCode.val(),status.val(),searchCust.val());
   });
 
   $("#btnSearch").click(function(e){
-    btnExport.style.display = "block";
     showList(searchBom.val(),articleCode.val(),status.val(),searchCust.val());
   });
 
   const showList = (searchBom,articleCode,status,cust) => {
+    btnExport.addClass('d-none');
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -180,7 +179,13 @@
         cust:cust
       },
       orderColumn:[[ 1, 'desc' ]],
-      excelFileName:'bom'
+      excelFileName:'bom',
+      initComplete: function () {
+        let api = this.api();
+        if (api.data().length > 0) {
+          btnExport.removeClass('d-none');
+        }
+      }
     });
   }
 
@@ -196,12 +201,11 @@
     let artCode = articleCode.val();
     let statusKu = status.val();
     let url = "{{ route('bom.export', ['searchBom'=>':searchBom','articleCode'=>':artCode','status'=>':status']) }}";
-    // http://localhost:8000/bom/export?searchBom=%3AsearchBom&amp;articleCode=%3AartCode&amp;status=%3Astatus
+
     url = url.replace('%3AsearchBom', bom);
     url = url.replace('%3AartCode', artCode);
     url = url.replace('%3Astatus', statusKu);
     url = url.replace(/\amp;/g,'');
-    console.log(url);
     window.location.href = url;
   });
 

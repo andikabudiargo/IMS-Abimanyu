@@ -88,7 +88,7 @@
                 </div>
             </div>
             <div class="col-md-1 col-12" style="padding-right:1px">
-                <div class="form-group">
+                <div class="form-group" style="padding-left:5px">
                     <label for="brand" class="d-block d-md-none">Brand</label>
                     <span class="" id = "brand" name="brand[]" style="font-size:10px"></span>
                 </div>
@@ -110,7 +110,6 @@
 
     $(document).ready(function(){  
         let bomPos = {!! $posts !!};
-        // console.log(bomPos);
         validateFormToast("frmAdd");
         mask_thousand_digit(numberOfDecimalDigit);
 
@@ -121,7 +120,7 @@
     });
 
     let cloneCount=0;
-    add_new_row_edit = (article,qty,uom,uomCon,typeName,uomMember,uoms,factor,pos,tone) => {
+    add_new_row_edit = (article,qty,uom,uomCon,typeName,uomMember,uoms,factor,pos,tone,brand) => {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -130,13 +129,20 @@
         $("#new_row"+ cloneCount).find('#pos').attr('id', 'pos'+ cloneCount);
         $("#new_row"+ cloneCount).find('#aTone').attr('id', 'aTone'+ cloneCount);
         $("#new_row"+ cloneCount).find('#qtyBom').attr('id', 'qtyBom'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#brand').attr('id', 'brand'+ cloneCount);
+
+        $("#brand"+ cloneCount).text(brand);
         $("#qtyBom"+ cloneCount).val(qty);
+
         $("#new_row"+ cloneCount).find('#type').attr('id', 'type'+ cloneCount);
         $("#type"+ cloneCount).text(typeName);
+
         $("#article_id"+cloneCount).select2();
         $("#pos"+cloneCount).select2();
         $("#aTone"+cloneCount).select2();
+
         fillPos('pos'+ cloneCount);
+
         $("#new_row"+ cloneCount).find('#qtyCon').attr('id', 'qtyCon'+ cloneCount);
         $("#qtyCon"+ cloneCount).val(parseFloat(qty)*parseFloat(factor));
 
@@ -176,6 +182,7 @@
         $("#uom"+cloneCount).select2();
         $("#uomCon"+cloneCount).select2();
         $('#remove_button').tooltip();
+        // kondisiEdit = true;
         hitungTotal();
         mask_thousand_digit(numberOfDecimalDigit);
     }
@@ -199,6 +206,7 @@
         $("#aTone"+cloneCount).select2();
         $('#remove_button').tooltip();
         splitArticle('new');
+        // kondisiEdit = false;
         hitungTotal();
         mask_thousand_digit(numberOfDecimalDigit);
     };
@@ -289,7 +297,6 @@
     }
 
     fillPos = (obj) => {
-        // console.log(bomPosOption);
         $('#'+obj).append(bomPosOption);
     }
 
@@ -557,39 +564,149 @@
         $('#group').val(detail[5]);
         $('#group').attr('data-group', detail[3]);
 
-        if (detail[4] == 'STI00001CUST'){
-            $('#articleCodeRm').removeAttr('required');
-        }else{
+        // if (detail[4] == 'STI00001CUST'){
+        //     $('#articleCodeRm').removeAttr('required');
+        // }else{
             $('#articleCodeRm').attr('required','required');
-        }
+        // }
     })
 
     function hitungTotal(){
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objQty = $('#article_row input[name="qtyBom[]"]');
-        let objCon = $('#article_row input[name="qtyCon[]"]');
-        let objUom = $('#article_row select[name="uom[]"]');
-        let objUomCon = $('#article_row select[name="uomCon[]"]');
+        // if ( kondisiEdit == false ){
+            // console.log('kondisiEdit :'+kondisiEdit);
+            let objArticle = $('#article_row select[name="article_id[]"]');
+            let objQty = $('#article_row input[name="qtyBom[]"]');
+            let objCon = $('#article_row input[name="qtyCon[]"]');
+            let objUom = $('#article_row select[name="uom[]"]');
+            let objUomCon = $('#article_row select[name="uomCon[]"]');
+            
+            objQty.keyup(function() {
+                let indexnya= objQty.index(this);
+                if(objArticle.eq(indexnya).val()){
+                    let qtyFactor = objUomCon.eq(indexnya).find(":selected").data("factor") || 1;
+                    let qtyBom = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
+                    objCon.eq(indexnya).val(parseFloat(qtyBom)*parseFloat(qtyFactor));
+                    mask_thousand_digit(numberOfDecimalDigit);
+                }
+            });
+            
+            objUomCon.change(function(e){ 
+                let indexnya = objUomCon.index(this);
+                if(objArticle.eq(indexnya).val()){
+                    let qtyFactor = objUomCon.eq(indexnya).find(":selected").data("factor") || 1;
+                    let qtyBom = objQty.eq(indexnya).val()||0;
+                    objCon.eq(indexnya).val(parseFloat(qtyBom)*parseFloat(qtyFactor));
+                    mask_thousand_digit(numberOfDecimalDigit);
+                }
+            });
+
+            // kondisiEdit = false;
+        // }
+    }
+
+    addNewRowEdit = (article, qty, uom, uomCon, typeName, uomMember, uoms, factor, pos, tone, brand) => {
+
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+
+        $("#article_row").find('#baru').attr('id', `new_row${cloneCount}`);
+
+        const newRowId = `new_row${cloneCount}`;
+        const $newRow = $(`#${newRowId}`);
         
-        objQty.keyup(function() {
-            let indexnya= objQty.index(this);
-            if(objArticle.eq(indexnya).val()){
-                let qtyFactor = objUomCon.eq(indexnya).find(":selected").data("factor") || 1;
-                let qtyBom = objQty.eq(indexnya).val().replace(/,/gi, '') || 0; 
-                objCon.eq(indexnya).val(parseFloat(qtyBom)*parseFloat(qtyFactor));
-                mask_thousand_digit(numberOfDecimalDigit);
-            }
+        // Update IDs for the new row elements
+        $newRow.attr('id', newRowId);
+        
+        const elementUpdates = [
+            { oldId: 'article_id', newId: `article_id${cloneCount}` },
+            { oldId: 'pos', newId: `pos${cloneCount}` },
+            { oldId: 'aTone', newId: `aTone${cloneCount}` },
+            { oldId: 'qtyBom', newId: `qtyBom${cloneCount}` },
+            { oldId: 'brand', newId: `brand${cloneCount}` },
+            { oldId: 'type', newId: `type${cloneCount}` },
+            { oldId: 'qtyCon', newId: `qtyCon${cloneCount}` },
+            { oldId: 'uom', newId: `uom${cloneCount}` },
+            { oldId: 'uomCon', newId: `uomCon${cloneCount}` }
+        ];
+        
+        elementUpdates.forEach(({ oldId, newId }) => {
+            $newRow.find(`#${oldId}`).attr('id', newId);
         });
         
-        objUomCon.change(function(e){ 
-            let indexnya = objUomCon.index(this);
-            if(objArticle.eq(indexnya).val()){
-                let qtyFactor = objUomCon.eq(indexnya).find(":selected").data("factor") || 1;
-                let qtyBom = objQty.eq(indexnya).val()||0;
-                objCon.eq(indexnya).val(parseFloat(qtyBom)*parseFloat(qtyFactor));
-                mask_thousand_digit(numberOfDecimalDigit);
+        // Set values
+        changeselect('article_bom',`article_id${cloneCount}`,article);
+
+        $(`#brand${cloneCount}`).text(brand);
+        $(`#qtyBom${cloneCount}`).val(qty);
+        $(`#type${cloneCount}`).text(typeName);
+        $(`#qtyCon${cloneCount}`).val(parseFloat(qty) * parseFloat(factor));
+
+        
+        
+        // Initialize select2
+        [`#article_id${cloneCount}`, `#pos${cloneCount}`, `#aTone${cloneCount}`, 
+        `#uom${cloneCount}`, `#uomCon${cloneCount}`].forEach(selector => {
+            $(selector).select2();
+        });
+        
+        // Fill position dropdown
+        fillPos(`pos${cloneCount}`);
+        
+        // Create UOM options
+        const uomOptions = createUomOptions(uoms, uom);
+        const uomConOptions = createUomConOptions(uomMember, uomCon);
+        
+        $(`#uom${cloneCount}`).html(uomOptions).val(uom).trigger('change');
+        $(`#uomCon${cloneCount}`).html(uomConOptions).val(uomCon).trigger('change');
+        
+        // Set select values
+        $(`#pos${cloneCount}`).val(pos).trigger('change');
+        $(`#aTone${cloneCount}`).val(tone).trigger('change');
+        
+        // Initialize tooltip and calculations
+        $('#remove_button').tooltip();
+        // kondisiEdit = true;
+        hitungTotal();
+        mask_thousand_digit(numberOfDecimalDigit);
+    };
+
+    // Helper functions
+    function createUomOptions(uoms, defaultUom) {
+        if (uoms) {
+            return uoms.split(',').map(val => `<option>${val}</option>`).join('');
+        }
+        return defaultUom ? `<option>${defaultUom}</option>` : '';
+    }
+
+    function createUomConOptions(uomMember, defaultUomCon) {
+        if (uomMember) {
+            return uomMember.split(',').map(val => {
+                const [uomName, factor] = val.split(';');
+                return `<option data-factor="${factor}">${uomName}</option>`;
+            }).join('');
+        }
+        return defaultUomCon ? `<option>${defaultUomCon}</option>` : '';
+    }
+
+    function allSelectsAreFilledjQuery(obj) {
+        let allFilled = true;
+        let objSelect = $(obj);
+        
+        objSelect.each(function() {
+            if ($(this).val() === null || $(this).val() === '') {
+                allFilled = false;
+                return false; // Break the loop
             }
         });
+
+        return allFilled;
+    }
+
+    function removeAllChildDivs(objId) {
+        const parentElement = document.getElementById(objId);
+        if (parentElement) {
+            parentElement.innerHTML = ""; // This removes all child elements
+        }
     }
 
 </script>
