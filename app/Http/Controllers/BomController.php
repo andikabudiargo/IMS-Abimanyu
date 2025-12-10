@@ -1585,33 +1585,10 @@ class BomController extends Controller
 
     public function bomList(Request $request)
     {
-        //oki
 
         try {
             $bomCode = $request->bomCode;
-
-            // $data= DB::table('bom_det')
-            // ->where('bom_code',$bomCode)
-            // ->leftJoin('uom','uom.code','bom_det.uom')
-            // ->leftJoin('article_types','article_types.code','=','bom_det.article_type')
-            // ->leftJoin('article','article.article_code','=','bom_det.article_code')
-            // ->leftJoin('third_party','third_party.kode','=','article.third_party')
-            // ->select('bom_det.*'
-            // ,'article.uom as original_uom'
-            // ,'uom.uom_group as uom_group'
-            // ,'article_types.name as type_name'
-            // ,'third_party.nama as brand'
-            // ,DB::RAW("(select uom_conversion(bom_det.uom_con,article.uom) as factor_qty)")
-            // ,DB::RAW("(select 
-            //                 string_agg(concat(unit_to,';',(uom_conversion(a.unit_to,article.uom))),',' order by unit_from) as uom_member 
-            //                 from uom_con a where unit_from = article.uom)")
-            // ,DB::RAW("(select string_agg(code,',' order by code) as uoms from uom )")
-            // )
-            // // ->orderBy('bom_det.id')
-            // ->orderBy('bom_det.tone')
-            // ->orderBy('bom_det.pos')
-            // ->get();
-
+            
             $data = DB::table('bom_det')
             ->select('bom_det.*'
                 ,'article.article_alternative_code'
