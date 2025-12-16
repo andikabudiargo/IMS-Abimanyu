@@ -916,12 +916,18 @@ class BomController extends Controller
         $data['bomHdr']=DB::table('bom_hdr')
         ->leftJoin('third_party','third_party.kode','bom_hdr.customer')
         ->leftJoin('article','article.article_code','bom_hdr.article_code')
+        ->leftJoin('article as a','a.article_code','bom_hdr.article_code_rm')
         ->select(
-            'bom_hdr.*','third_party.*','article.*','bom_hdr.note as note_hdr'
+            'a.article_desc as article_desc_rm',
+            'bom_hdr.*'
+            ,'third_party.*'
+            ,'article.*'
+            ,'bom_hdr.note as note_hdr'
             ,'bom_hdr.created_at as tanggal_revisi'
         )
         ->where('bom_hdr.id',$id)
         ->first();
+
 
         // dd(  $data['bomHdr']);
 

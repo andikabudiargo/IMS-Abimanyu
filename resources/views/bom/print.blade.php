@@ -5,12 +5,12 @@
 <title>{{ $title }}</title>
 <style type="text/css">
 
-    @page { margin: 110px 10px 10px 10px; }
+    @page { margin: 140px 10px 10px 10px; }
     body { margin: 10px;border: 1px solid black; }
 
     header { 
         position: fixed; 
-        top: -93px; 
+        top: -113px; 
         left: 10px; 
         right: 10px; 
         height: 50px; 
@@ -116,7 +116,7 @@
     <header>
         <table width="100%" border="0">
             <tr>
-                <td width="6%" rowspan="4" class="no-wrap h-tengah">
+                <td width="6%" rowspan="5" class="no-wrap h-tengah">
                     <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" width="80" height="50" /> 
                 </td>
                 <td valign="middle" colspan="4" rowspan="2" class="header-padding h-tengah" ><h2>BILL OF MATERIALS</h2></td>
@@ -128,24 +128,27 @@
                 <td valign="" class="font-10 header-padding" >: 25 Nov 2021</td>
             </tr>
             <tr>
-                <td valign="" width="3%" class="font-10 header-padding">Part Name</td>
+                <td valign="" width="3%" class="font-10 header-padding">Part FG</td>
                 <td valign="" width="10%" class="font-9 header-padding">{{ $bomHdr->article_desc }}</td>
-                <td valign="" width="3%" class="font-10 header-padding">Model</td>
-                <td valign="" width="10%" class="font-10 header-padding">{{ $bomHdr->model }}</td>
+                <td valign="" width="3%" class="font-10 header-padding">Part RM</td>
+                <td valign="" width="10%" class="font-10 header-padding">{{ $bomHdr->article_desc_rm }}</td>
                 <td valign="" width="4%" class="font-10 header-padding">No Revisi</td>
                 <td valign="" width="5%" class="font-10 header-padding">1</td>
             </tr>
             <tr>
                 <td valign="" class="font-10 header-padding">Part No</td>
                 <td valign="" class="font-10 header-padding">{{ $bomHdr->part_no }}</td>
-                <td valign="" class="font-10 header-padding">Customer</td>
-                <td valign="" class="font-9 header-padding">{{ $bomHdr->nama }}</td>
-                <td valign="" class="font-10 header-padding">Halaman</td>
-                <td valign="" class="font-10 header-padding"><span class="pagenum"></span></td>
+                <td valign="" class="font-10 header-padding">Model</td>
+                <td valign="" class="font-9 header-padding">{{ $bomHdr->model }}</td>
+                <td valign="" rowspan = "2" class="font-10 header-padding">Halaman</td>
+                <td valign="" rowspan = "2" class="font-10 header-padding"><span class="pagenum"></span></td>
             </tr>        
+            <tr>
+                <td valign="" colspan="2" class="font-10 header-padding">Customer</td>
+                <td valign="" colspan="2" class="font-9 header-padding">{{ $bomHdr->nama }}</td>
+            </tr>
         </table>
     </header>
-    
     <main>
         <table width="100%">
             <thead style="background-color: lightgray;">
