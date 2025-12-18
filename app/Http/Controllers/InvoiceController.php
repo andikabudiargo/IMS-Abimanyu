@@ -1684,7 +1684,8 @@ class InvoiceController extends Controller
         ->select('article_code'
         ,db::raw('sum(qty) as qty'))
         ->groupBy([
-            'article_code'
+            'article_code',
+            'price'
         ])->get();
 
         // dd(count($jumlahData));
