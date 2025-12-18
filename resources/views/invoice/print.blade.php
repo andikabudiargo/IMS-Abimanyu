@@ -385,9 +385,9 @@
                 </thead>
                 <tbody>
                     @foreach ($details as $val )
-                        @if(count($details)>= 15 && count($details)<= 24)
+                        @if(count($details)>= 15 && count($details) <= 24)
                             {{-- <tr style="font-size: 11pt;height:23px"> --}}
-                            <tr style="font-size: 10pt;height:19.5px">
+                            <tr style="font-size: 10pt;height:18.5px">
                         @else
                             {{-- <tr style="font-size: 11pt;height:23px" class="isiTabel1"> --}}
                             <tr style="font-size: 11pt;height:21px">
