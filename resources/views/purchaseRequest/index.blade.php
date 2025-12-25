@@ -100,6 +100,43 @@
 @endsection
 @section('styles')
 <style>
+
+  .spinner {
+    display: none;
+    margin-left: 10px;
+    width: 20px;
+    height: 20px;
+    /* border: 3px solid #f3f3f3; */
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  .spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  
+  .spinner-overlay .spinner {
+    width: 50px;
+    height: 50px;
+    border-width: 1px;
+    margin-left: 0;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
 </style>
 @endsection
 @section('scripts')
@@ -116,6 +153,11 @@
   let rangePickr = document.querySelector('.flatpickr-range');
   let btnSummary = document.querySelector('#btnSummary');
   let btnDetail = document.querySelector('#btnDetail');
+
+  $(document).ready(function(){    
+    validateFormToast("modalReasonRevisionTso");
+    validateFormToast("modalReasonRevisionPr");
+  });
 
   document.addEventListener("DOMContentLoaded", function(event) {
     btnSummary.style.display = "none";
@@ -209,10 +251,14 @@
   }
 
   let href;
-  $(document).on('click', '#revisionReasonButton', function(event) {
+  $(document).on('click', '#revisionReasonButtonPr', function(event) {
       event.preventDefault();
       href = $(this).data('href');
-      $('#modalReasonRevision').attr("action", href);
+      $('#modalReasonRevisionPr').attr("action", href);
+  });
+
+  $('#revisionReasonButtonPr').on('show.bs.modal', function() {
+    $(this).find('form')[0].reset();
   });
 
   $(document).on('click', '#revisionReasonButtonTso', function(event) {
@@ -221,20 +267,69 @@
       $('#modalReasonRevisionTso').attr("action", href);
   });
 
+  $('#revisionReasonButtonTso').on('show.bs.modal', function() {
+    $(this).find('form')[0].reset();
+  });
+
+  $("#btnRevisionTso").click(function (e) {
+    e.preventDefault();
+
+    if (!$("#modalReasonRevisionTso")[0].checkValidity()){
+        $('.disabled-el').removeAttr('disabled');
+        $("#modalReasonRevisionTso").submit();
+    }else{
+        $('.disabled-el').removeAttr('disabled');
+        $('#spinner').css('display', 'inline-block');
+        $('#modalReasonRevisionTso').find('button').prop('disabled', true);
+        lockModal('#reasonModalRevisionTso');
+        setTimeout(function() {
+          $('#spinner').css('display', 'none');
+          unlockModal('#reasonModalRevisionTso');
+          $('#modalReasonRevisionTso').find('button').prop('disabled', false);
+        }, 50000);
+        $("#modalReasonRevisionTso").submit();
+    }
+  });
+
+  $("#btnRevisionPr").click(function (e) {
+    e.preventDefault();
+
+    if (!$("#modalReasonRevisionPr")[0].checkValidity()){
+        $('.disabled-el').removeAttr('disabled');
+        $("#modalReasonRevisionPr").submit();
+    }else{
+        $('.disabled-el').removeAttr('disabled');
+        $('#spinnerPr').css('display', 'inline-block');
+        $('#modalReasonRevisionPr').find('button').prop('disabled', true);
+        lockModal('#reasonModalRevisionPr');
+        setTimeout(function() {
+          $('#spinnerPr').css('display', 'none');
+          $('#modalReasonRevisionPr').find('button').prop('disabled', false);
+          unlockModal('#reasonModalRevisionPr');
+        }, 50000);
+        $("#modalReasonRevisionPr").submit();
+    }
+  });
+
   $(document).on('click', '#rejectReasonButton', function(event) {
       event.preventDefault();
       href = $(this).data('href');
       $('#modalReasonReject').attr("action", href);
   });
 
-  // $('#reasonModalRevisionTso').on('shown.bs.modal', function(e) {
-  //   if ($('#mdlStockDate').length) {
-  //     $('#mdlStockDate').flatpickr({
-  //       dateFormat: "d-m-Y",
-  //       // static : true 
-  //     });
-  //   } 
-  // });
+  function lockModal(modalId) {
+    const modal = $(modalId);
+    modal.data('bs.modal')._config.backdrop = 'static';
+    modal.data('bs.modal')._config.keyboard = false;
+    modal.find('.close, .btn-close').prop('disabled', true);
+  }
+
+  function unlockModal(modalId) {
+    const modal = $(modalId);
+    modal.data('bs.modal')._config.backdrop = true;
+    modal.data('bs.modal')._config.keyboard = true;
+    modal.find('.close, .btn-close').prop('disabled', false);
+  }
 
   $.ajaxSetup({
     headers: {

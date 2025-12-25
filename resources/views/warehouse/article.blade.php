@@ -246,13 +246,18 @@
       dataSearch:  {
         articleCode:artCode
       },
-      orderColumn:[[0,'asc'],[1,'asc']],
+      // orderColumn:[[0,'asc'],[1,'asc']],
+      orderColumn:[[10,'desc']],
       scrollY:300,
       excelFileName:'movement'+artDesc,
       lengthMenu: [
         [ -1, 10, 25, 50 ],
         [ 'all', '10', '25', '50']
       ],
+      initComplete: function(settings, json) {
+          var api = this.api();
+          $(api.settings()[0].nScrollBody).scrollTop(api.settings()[0].nScrollBody.scrollHeight);
+      }
     });
   }
 

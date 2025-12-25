@@ -291,9 +291,10 @@ class TransferInController extends Controller
     public function posting(Request $request)
     {
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        // $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
+
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        // $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
         $hdrQ = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->first();
         $trNumber = $hdrQ->tr_number; 
         $lastStatus = $hdrQ->status; 
@@ -302,7 +303,7 @@ class TransferInController extends Controller
         $siteCode = 'HO';
         $location ='WH';
         $status = '4';
-        $movementDate = date("d-m-Y");
+        // $movementDate = date("d-m-Y");
 
         if ($lastStatus!=4){
             if ($trNumber){
@@ -366,7 +367,14 @@ class TransferInController extends Controller
                     ]
                 );
     
+                /*
+                    CR dari abimnanyu
+                    perubahan, untuk movement date mengikuti tanggald dari tr_date bukan current date
+
+                */
+
                 if ($rowAffected > 0){
+
                     $movements = DB::table('transfer_det')
                     ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
                     ->leftJoin('article','article.article_code','transfer_det.article_code')
@@ -375,8 +383,8 @@ class TransferInController extends Controller
                     ->where('qty', '<>', 0)
                     ->select(
                         // DB::RAW("now()::timestamp::date as movement_date" )
-                        // 'tr_date as movement_date'
-                        DB::RAW("'$movementDate' as movement_date")
+                        'transfer_hdr.tr_date as movement_date'
+                        // DB::RAW("'$movementDate' as movement_date")
                         ,'transfer_det.article_code'
                         ,'article.article_desc'
                         ,DB::raw("0 as movement_min")
@@ -416,26 +424,34 @@ class TransferInController extends Controller
                     $message  = "$title $trNumber Successfully Posted";
                     \LogActivity::addToLog($title,"username: $username Status $message");
                     return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+
                 }else{
+
                     $title ="Posting $this->title";
                     $alert  ="warning";
                     $message  = "$title $trNumber Failed to Posting";
                     \LogActivity::addToLog($title,"username: $username Status $message");
                     return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+
                 }
+
             }else{
+                
                 $title ="Posting $this->title";
                 $alert  ="warning";
                 $message  = "$title $trNumber Failed to Posting";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+
             }
         }else{
+
             $title ="Posting $this->title";
             $alert  ="warning";
             $message  = "$title $trNumber Failed to Posting, already posted";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+            
         }
 
     }
@@ -454,7 +470,7 @@ class TransferInController extends Controller
         $rowAffected = 0;
         $location = 'WH';
         $todayDate = date('Y-m-d');
-        $movementDate = date("d-m-Y");
+        // $movementDate = date("d-m-Y");
 
         $data = DB::table('transfer_det')
         ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
@@ -516,8 +532,8 @@ class TransferInController extends Controller
             ->where('qty', '<>', 0)
             ->select(
                 // DB::RAW("now()::timestamp::date as movement_date" )
-                // 'transfer_hdr.tr_date as movement_date'
-                DB::RAW("'$movementDate' as movement_date")
+                'transfer_hdr.tr_date as movement_date'
+                // DB::RAW("'$movementDate' as movement_date")
                 ,'transfer_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_plus")

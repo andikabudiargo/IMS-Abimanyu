@@ -907,9 +907,12 @@ class PurchaseRequestController extends Controller
         )
         ->orderBy('id')
         ->get(); 
+
+        $bisaEdit = Auth::user()->can('purchaseRequest-edit');
+        $bisaDelete = Auth::user()->can('purchaseRequest-delete');
              
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data) use ($bisaEdit,$bisaDelete) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -917,7 +920,7 @@ class PurchaseRequestController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
             if ( $data->status_pr == '2' or $data->status_pr == '1') {
-                if (Auth::user()->can('purchaseRequest-edit')) {
+                if ($bisaEdit) {
                 $buttons .=     '<a href="'. route('purchaseRequest.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="check"></i>
                                     <span>'. __("Approve") .'</span>
@@ -937,9 +940,9 @@ class PurchaseRequestController extends Controller
                                     </a>";
             }
 
-            // if (Auth::user()->can('purchaseRequest-edit') and ( $data->status_pr == '2' or $data->status_pr == '1')) {
+            // if ($bisaEdit and ( $data->status_pr == '2' or $data->status_pr == '1')) {
             //yang bisa di edit hanya posis status masih new atau 1
-            if (Auth::user()->can('purchaseRequest-edit') and ( $data->status_pr == '1')) {
+            if ($bisaEdit and ( $data->status_pr == '1')) {
             $buttons .=         '<a href="'. route('purchaseRequest.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
@@ -971,10 +974,10 @@ class PurchaseRequestController extends Controller
                                     </a>";
                     }else{
                         $buttons .= "<a href='javascript:void(0);'
-                                        id='revisionReasonButton'
+                                        id='revisionReasonButtonPr'
                                         class='dropdown-item'
                                         data-toggle='modal'
-                                        data-target='#reasonModalRevision'
+                                        data-target='#reasonModalRevisionPr'
                                         data-href='". route("purchaseRequest.revision", ["id"=>Crypt::encryptString($data->id),"nR"=>$data->num_revision]) ."'>
                                         <i data-feather='corner-down-left'></i>
                                         <span>". __('Revision') ."</span>
@@ -995,7 +998,7 @@ class PurchaseRequestController extends Controller
                                     Detail
                                 </a>';
                 
-            if (Auth::user()->can('purchaseRequest-delete') && ($data->status == '1' || $data->status =='2')) {
+            if ($bisaDelete && ($data->status == '1' || $data->status =='2')) {
                 $buttons .=         "<a href='javascript:;'
                                         class='dropdown-item' 
                                         data-size='sm'
@@ -1309,6 +1312,10 @@ class PurchaseRequestController extends Controller
 
         /* RM Di masukan juga ke PR*/
 
+        /*
+            update 14-12-2025
+            Cara lama untuk ambil data last qty pakai function get_last_stock_qty (karena semua sudah pake function get_last_qty jadi isi dari function get last_qty di edit isinya)
+        */
         $data=DB::select("SELECT * from 
         (SELECT 
         article_code_det as article_code
@@ -1334,7 +1341,8 @@ class PurchaseRequestController extends Controller
         ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as factor_qty
         ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
         ,coalesce(article.safety_stock,0) as safety_stock 
-        ,get_last_qty(bom_det.article_code,'$stockDate','$siteCode','$location') as qty_stock
+        -- ,get_last_stock_qty(bom_det.article_code,'$stockDate','$siteCode','$location') as qty_stock
+        ,get_last_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
         ,article_alternative_code as alternative
         ,article_desc
         from production_detail_temp
@@ -1373,7 +1381,8 @@ class PurchaseRequestController extends Controller
         ,1 as factor_qty
         ,coalesce(article.min_package,1) as min_package
         ,coalesce(article.safety_stock,0) as safety_stock 
-        ,get_last_qty(bom_hdr.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
+        ,get_last_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
+        --,get_last_stock_qty(bom_hdr.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
         ,article_alternative_code as alternative
         ,article_desc
         from production_detail_temp
@@ -1388,112 +1397,198 @@ class PurchaseRequestController extends Controller
         group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
         having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0) oki
         order by alternative");
+        
+
+        /*
+            // Cara lama untuk ambil data last qty pakai function get_last_qty
+            $data=DB::select("SELECT * from 
+            (SELECT 
+            article_code_det as article_code
+            ,min_package 
+            ,safety_stock
+            ,qty_stock
+            ,sum(qty_order * qty_bom) as total
+            ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
+            ,uom_article as uom
+            ,(select uom_group from uom where uom.code = uom_article) as uom_group
+            ,(select third_party from article where article.article_code = article_code_det) as supp
+            ,alternative
+            ,article_desc
+            from(
+            select 
+            bom_det.article_code as article_code_det
+            ,production_detail_temp.qty as qty_order
+            ,production_detail_temp.uom as uom_order
+            ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_bom
+            ,bom_det.uom as uom_bom
+            ,article.uom as uom_article
+            ,bom_hdr.article_code 
+            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as factor_qty
+            ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
+            ,coalesce(article.safety_stock,0) as safety_stock 
+            ,get_last_qty(bom_det.article_code,'$stockDate','$siteCode','$location') as qty_stock
+            ,article_alternative_code as alternative
+            ,article_desc
+            from production_detail_temp
+            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+            --left join bom_det on bom_det.bom_code = bom_hdr.bom_code
+            left join (select bom_code,sum(qty) as qty,uom_con,uom,article_code from bom_det where bom_code in (select bom_code from bom_hdr where status = '3') group by bom_code,article_code,uom_con,uom) bom_det on bom_det.bom_code = bom_hdr.bom_code
+            left join article on article.article_code = bom_det.article_code
+            where production_detail_temp.code ='$randomCode'
+            and bom_hdr.status = '3'
+            order by article_alternative_code
+            ) a
+            group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
+            having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
+            union
+            SELECT 
+            article_code_det as article_code
+            ,min_package 
+            ,safety_stock
+            ,qty_stock
+            ,sum(qty_order * qty_bom) as total
+            ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
+            ,uom_article as uom
+            ,(select uom_group from uom where uom.code = uom_article) as uom_group
+            ,(select third_party from article where article.article_code = article_code_det) as supp
+            ,alternative
+            ,article_desc
+            from(
+            select 
+            bom_hdr.article_code_rm as article_code_det
+            ,production_detail_temp.qty as qty_order
+            ,production_detail_temp.uom as uom_order
+            ,1 as qty_bom
+            ,article.uom as uom_bom
+            ,article.uom as uom_article
+            ,bom_hdr.article_code_rm
+            ,1 as factor_qty
+            ,coalesce(article.min_package,1) as min_package
+            ,coalesce(article.safety_stock,0) as safety_stock 
+            ,get_last_qty(bom_hdr.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
+            ,article_alternative_code as alternative
+            ,article_desc
+            from production_detail_temp
+            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+            left join article on article.article_code = bom_hdr.article_code_rm
+            where production_detail_temp.code ='$randomCode'
+            and bom_hdr.status = '3'
+            and article_alternative_code is not null
+            and article.article_type = 'RMP'
+            order by article_alternative_code
+            ) a
+            group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
+            having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0) oki
+            order by alternative");
+        */
 
         /*cara1 tanpa gabung dengan RM
-        $data=DB::select("SELECT 
-        article_code_det as article_code
-        ,min_package 
-        ,safety_stock
-        ,qty_stock
-        ,sum(qty_order * qty_bom) as total
-        ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
-        ,uom_article as uom
-        ,(select uom_group from uom where uom.code = uom_article) as uom_group
-        ,(select third_party from article where article.article_code = article_code_det) as supp
-        ,alternative
-        ,article_desc
-        from(
-        select 
-        bom_det.article_code as article_code_det
-        ,production_detail_temp.qty as qty_order
-        ,production_detail_temp.uom as uom_order
-        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_bom
-        ,bom_det.uom as uom_bom
-        ,article.uom as uom_article
-        ,bom_hdr.article_code 
-        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as factor_qty
-        ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
-        ,coalesce(article.safety_stock,0) as safety_stock 
-        ,get_last_qty(bom_det.article_code,'$stockDate','$siteCode','$location') as qty_stock
-        ,article_alternative_code as alternative
-        ,article_desc
-        from production_detail_temp
-        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-        left join bom_det on  bom_det.bom_code = bom_hdr.bom_code
-        left join article on article.article_code = bom_det.article_code
-        where production_detail_temp.code ='$randomCode'
-        and bom_hdr.status = '3'
-        order by bom_det.article_code
-        ) a
-        group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
-        having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
-        order by alternative");
+            $data=DB::select("SELECT 
+            article_code_det as article_code
+            ,min_package 
+            ,safety_stock
+            ,qty_stock
+            ,sum(qty_order * qty_bom) as total
+            ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
+            ,uom_article as uom
+            ,(select uom_group from uom where uom.code = uom_article) as uom_group
+            ,(select third_party from article where article.article_code = article_code_det) as supp
+            ,alternative
+            ,article_desc
+            from(
+            select 
+            bom_det.article_code as article_code_det
+            ,production_detail_temp.qty as qty_order
+            ,production_detail_temp.uom as uom_order
+            ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = bom_det.uom),1) as qty_bom
+            ,bom_det.uom as uom_bom
+            ,article.uom as uom_article
+            ,bom_hdr.article_code 
+            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as factor_qty
+            ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
+            ,coalesce(article.safety_stock,0) as safety_stock 
+            ,get_last_qty(bom_det.article_code,'$stockDate','$siteCode','$location') as qty_stock
+            ,article_alternative_code as alternative
+            ,article_desc
+            from production_detail_temp
+            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+            left join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+            left join article on article.article_code = bom_det.article_code
+            where production_detail_temp.code ='$randomCode'
+            and bom_hdr.status = '3'
+            order by bom_det.article_code
+            ) a
+            group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
+            having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
+            order by alternative");
         */
 
         /* cara2
-        $data=DB::select("SELECT 
-        article_code_det as article_code
-        ,factor_qty
-        ,min_package 
-        ,safety_stock
-        ,qty_stock
-        ,sum(qty_order * qty_bom) as total
-        ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
-        ,uom_order as uom
-        from(
-        select 
-        bom_det.article_code as article_code_det
-        ,production_detail_temp.qty as qty_order
-        ,production_detail_temp.uom as uom_order
-        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = (select uom from article where article_code = bom_det.article_code)),1) as qty_bom
-        ,bom_det.uom as uom_bom
-        --,(select uom from article where article_code = bom_det.article_code) as uom_article
-        ,bom_hdr.article_code 
-        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as factor_qty
-        ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
-        ,coalesce((select safety_stock from article where article_code = bom_det.article_code),0) as safety_stock 
-        ,coalesce((select article_qty from article_stock where site_code = 'HO' and article_code = bom_det.article_code),0) as qty_stock
-        from production_detail_temp
-        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-        join bom_det on  bom_det.bom_code = bom_hdr.bom_code
-        where production_detail_temp.code ='$randomCode'
-        and bom_hdr.status = '3'
-        ) a
-        group by article_code_det,uom_order,min_package,safety_stock,qty_stock,factor_qty
-        order by article_code_det
-        ");
+            $data=DB::select("SELECT 
+            article_code_det as article_code
+            ,factor_qty
+            ,min_package 
+            ,safety_stock
+            ,qty_stock
+            ,sum(qty_order * qty_bom) as total
+            ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
+            ,uom_order as uom
+            from(
+            select 
+            bom_det.article_code as article_code_det
+            ,production_detail_temp.qty as qty_order
+            ,production_detail_temp.uom as uom_order
+            ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = (select uom from article where article_code = bom_det.article_code)),1) as qty_bom
+            ,bom_det.uom as uom_bom
+            --,(select uom from article where article_code = bom_det.article_code) as uom_article
+            ,bom_hdr.article_code 
+            ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = production_detail_temp.uom),1) as factor_qty
+            ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
+            ,coalesce((select safety_stock from article where article_code = bom_det.article_code),0) as safety_stock 
+            ,coalesce((select article_qty from article_stock where site_code = 'HO' and article_code = bom_det.article_code),0) as qty_stock
+            from production_detail_temp
+            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+            join bom_det on  bom_det.bom_code = bom_hdr.bom_code
+            where production_detail_temp.code ='$randomCode'
+            and bom_hdr.status = '3'
+            ) a
+            group by article_code_det,uom_order,min_package,safety_stock,qty_stock,factor_qty
+            order by article_code_det
+            ");
         */
 
-        // $data=DB::select("SELECT 
-        //     article.article_code
-        //     ,article_alternative_code
-        //     ,article_desc
-        //     ,article.uom
-        //     ,qty,qty_proses
-        //     ,qty_total
-        //     ,article.article_type
-        //     ,min_package
-        //     ,qty_total/min_package as total_baru
-        //     ,ceil(qty_total/min_package) as round
-        //     ,ceil(qty_total/min_package) * min_package  as grand_total
-        //     ,(select name from article_types where code = article.article_type) as kelompok 
-        //     from (
-        //     select article_code,sum(oki.qty) as qty
-        //         ,sum(mari.qty) as qty_proses
-        //         ,sum(oki.qty*mari.qty) as qty_total 
-        //         from (
-        //         select * from bom_det where bom_code in (
-        //         select bom_code from bom_hdr 
-        //             left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-        //             where bom_hdr.article_code in (select article_code from production_detail_temp))) oki
-        //             left join(
-        //                 select bom_code,qty from bom_hdr 
-        //                 left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
-        //                 where bom_hdr.article_code in (select article_code from production_detail_temp where code  = '$randomCode' )
-        //             ) mari
-        //             on oki.bom_code= mari.bom_code
-        //                 group by article_code) so
-        //         left join article on article.article_code = so.article_code");
+        /* Query lama 
+            $data=DB::select("SELECT 
+                article.article_code
+                ,article_alternative_code
+                ,article_desc
+                ,article.uom
+                ,qty,qty_proses
+                ,qty_total
+                ,article.article_type
+                ,min_package
+                ,qty_total/min_package as total_baru
+                ,ceil(qty_total/min_package) as round
+                ,ceil(qty_total/min_package) * min_package  as grand_total
+                ,(select name from article_types where code = article.article_type) as kelompok 
+                from (
+                select article_code,sum(oki.qty) as qty
+                    ,sum(mari.qty) as qty_proses
+                    ,sum(oki.qty*mari.qty) as qty_total 
+                    from (
+                    select * from bom_det where bom_code in (
+                    select bom_code from bom_hdr 
+                        left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
+                        where bom_hdr.article_code in (select article_code from production_detail_temp))) oki
+                        left join(
+                            select bom_code,qty from bom_hdr 
+                            left join production_detail_temp on bom_hdr.article_code = production_detail_temp.article_code
+                            where bom_hdr.article_code in (select article_code from production_detail_temp where code  = '$randomCode' )
+                        ) mari
+                        on oki.bom_code= mari.bom_code
+                            group by article_code) so
+                    left join article on article.article_code = so.article_code");
+        */
 
         if ($data){
             DB::table('production_detail_temp')
@@ -1813,96 +1908,100 @@ class PurchaseRequestController extends Controller
                 - Hapus dulu yang data di purchase_request_det yang tidak ada di daftar hitung ulang
             */
 
-            $sqlDetDelete = "DELETE from purchase_request_det where pr_number = '$prOrigin' and article_code not in (
-                select 
-                article_code
-                from 
-                (
-                select 
-                bom_code
-                ,oki.article_bom as article_code
-                ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
-                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
-                ,qty 
-                ,article.uom as uom
-                ,uom_con
-                ,nilai_konversi
-                ,qty_hasil_konversi as qty_bom
-                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
-                ,coalesce(article.min_package,1) as min_package
-                ,coalesce(article.safety_stock,0) as safety_stock
-                ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
-                from 
-                (
-                    select *,
-                    coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
-                    ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
-                    from (
-                    select bom_code
-                    ,bom_det.article_code as article_bom
-                    ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
-                    ,sum(qty) as qty
-                    ,bom_det.uom
+            /*    
+                $sqlDetDelete = "DELETE from purchase_request_det where pr_number = '$prOrigin' and article_code not in (
+                    select 
+                    article_code
+                    from 
+                    (
+                    select 
+                    bom_code
+                    ,oki.article_bom as article_code
+                    ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
+                    ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
+                    ,qty 
+                    ,article.uom as uom
                     ,uom_con
-                    from bom_det 
-                    where bom_code in 
-                    ( select bom_code
+                    ,nilai_konversi
+                    ,qty_hasil_konversi as qty_bom
+                    ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
+                    ,coalesce(article.min_package,1) as min_package
+                    ,coalesce(article.safety_stock,0) as safety_stock
+                    ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
+                    --,get_last_stock_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
+                    from 
+                    (
+                        select *,
+                        coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
+                        ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
+                        from (
+                        select bom_code
+                        ,bom_det.article_code as article_bom
+                        ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
+                        ,sum(qty) as qty
+                        ,bom_det.uom
+                        ,uom_con
+                        from bom_det 
+                        where bom_code in 
+                        ( select bom_code
+                        from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
+                        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+                        where bom_hdr.status = '3')
+                        group by bom_det.bom_code,bom_det.article_code,bom_det.uom_con,bom_det.uom) bom_det
+                        left join article on article.article_code = bom_det.article_bom
+                    ) as oki
+                    left join article on article.article_code = oki.article_bom
+                    order by alternative
+                    ) as mari 
+                    group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
+                    having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
+                    union
+                    select 
+                    article_code
+                    from 
+                    (
+                    select 
+                    bom_code
+                    ,oki.article_code_rm as article_code
+                    ,(select article_alternative_code from article where article_code = oki.article_code_rm) as alternative
+                    ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
+                    ,qty 
+                    ,article.uom as uom
+                    ,uom_con
+                    ,nilai_konversi
+                    ,qty_hasil_konversi as qty_bom
+                    ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
+                    ,coalesce(min_package,1) as min_package
+                    ,coalesce(safety_stock,0) as safety_stock
+                    --,get_last_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
+                    ,get_last_stock_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
+                    from 
+                    (
+                    select 
+                    article_alternative_code
+                    ,bom_code
+                    ,bom_hdr.article_code_rm as article_code_rm
+                    ,bom_hdr.article_code as article_code_fg
+                    ,1 as qty
+                    ,article.uom as uom
+                    ,article.uom as uom_con
+                    ,1 as nilai_konversi
+                    ,1 as qty_hasil_konversi
                     from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
                     left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-                    where bom_hdr.status = '3')
-                    group by bom_det.bom_code,bom_det.article_code,bom_det.uom_con,bom_det.uom) bom_det
-                    left join article on article.article_code = bom_det.article_bom
-                ) as oki
-                left join article on article.article_code = oki.article_bom
-                order by alternative
-                ) as mari 
-                group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
-                having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
-                union
-                select 
-                article_code
-                from 
-                (
-                select 
-                bom_code
-                ,oki.article_code_rm as article_code
-                ,(select article_alternative_code from article where article_code = oki.article_code_rm) as alternative
-                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
-                ,qty 
-                ,article.uom as uom
-                ,uom_con
-                ,nilai_konversi
-                ,qty_hasil_konversi as qty_bom
-                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
-                ,coalesce(min_package,1) as min_package
-                ,coalesce(safety_stock,0) as safety_stock
-                ,get_last_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
-                from 
-                (
-                select 
-                article_alternative_code
-                ,bom_code
-                ,bom_hdr.article_code_rm as article_code_rm
-                ,bom_hdr.article_code as article_code_fg
-                ,1 as qty
-                ,article.uom as uom
-                ,article.uom as uom_con
-                ,1 as nilai_konversi
-                ,1 as qty_hasil_konversi
-                from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
-                left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-                left join article on article.article_code = bom_hdr.article_code_rm
-                where bom_hdr.status = '3'
-                and article_alternative_code is not null
-                and article.article_type = 'RMP'
-                order by article_alternative_code
-                ) as oki
-                left join article on article.article_code = oki.article_code_rm
-                order by alternative
-                ) as mari 
-                group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
-                having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0)
-            ";
+                    left join article on article.article_code = bom_hdr.article_code_rm
+                    where bom_hdr.status = '3'
+                    and article_alternative_code is not null
+                    and article.article_type = 'RMP'
+                    order by article_alternative_code
+                    ) as oki
+                    left join article on article.article_code = oki.article_code_rm
+                    order by alternative
+                    ) as mari 
+                    group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
+                    having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0)
+                ";
+            */
 
             /*
                 - Dilengkapi dengan dengan RMP
@@ -1979,6 +2078,7 @@ class PurchaseRequestController extends Controller
                 ,coalesce(article.min_package,1) as min_package
                 ,coalesce(article.safety_stock,0) as safety_stock
                 ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
+                --,get_last_stock_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
                 from 
                 (
                     select *,
@@ -2033,6 +2133,7 @@ class PurchaseRequestController extends Controller
                 ,coalesce(min_package,1) as min_package
                 ,coalesce(safety_stock,0) as safety_stock
                 ,get_last_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
+                --,get_last_stock_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
                 from 
                 (
                 select 
@@ -2071,6 +2172,7 @@ class PurchaseRequestController extends Controller
             ";
     
             $rowAffected =  DB::select($sqlHdr);
+
             if ($rowAffected){
 
                 /*
@@ -2184,142 +2286,143 @@ class PurchaseRequestController extends Controller
         }
 
 
-        /*Dilengkapi dengan dengan RMP*/
-            // $sqlDet="INSERT into purchase_request_det
-            // (
-            //     pr_number,
-            //     article_code,
-            //     qty,
-            //     uom,
-            //     supp_code,
-            //     qty_hitung,
-            //     qty_stock,
-            //     created_by,
-            //     created_at
-            // )
-            // select 
-            //     '$prNumber' as pr_number
-            //     ,article_code
-            //     ,qty
-            //     ,uom
-            //     ,supp_code
-            //     ,qty_hitung
-            //     ,qty_stock
-            //     ,'$username'
-            //     ,now()
-            // from 
-            // (select 
-            //     alternative
-            //     ,'$prNumber' as pr_number
-            //     ,article_code
-            //     ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
-            //     ,mari.uom
-            //     ,(select third_party from article where article_code = mari.article_code) as supp_code
-            //     ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
-            //     ,qty_stock
-            //     ,'$username'
-            //     ,now()
-            // from 
-            // (
-            //     select 
-            //     bom_code
-            //     ,oki.article_bom as article_code
-            //     ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
-            //     ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
-            //     ,qty 
-            //     ,article.uom as uom
-            //     ,uom_con
-            //     ,nilai_konversi
-            //     ,qty_hasil_konversi as qty_bom
-            //     ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
-            //     ,coalesce(article.min_package,1) as min_package
-            //     ,coalesce(article.safety_stock,0) as safety_stock
-            //     ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
-            //     from 
-            //     (
-            //         select *,
-            //         coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
-            //         ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
-            //         from (
-            //         select bom_code
-            //         ,bom_det.article_code as article_bom
-            //         ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
-            //         ,sum(qty) as qty
-            //         ,bom_det.uom
-            //         ,uom_con
-            //         -- ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
-            //         -- ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
-            //         from bom_det 
-            //         where bom_code in 
-            //         ( select bom_code
-            //             from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
-            //             left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-            //             where bom_hdr.status = '3')
-            //         group by bom_det.bom_code,bom_det.article_code,bom_det.uom_con,bom_det.uom) bom_det
-            //         left join article on article.article_code = bom_det.article_bom
-            //     ) as oki
-            // left join article on article.article_code = oki.article_bom
-            // order by alternative
-            // ) as mari 
-            // group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
-            // having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
-            // union
-            // select 
-            // alternative
-            // ,'$prNumber' as pr_number
-            // ,article_code
-            // ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
-            // ,mari.uom
-            // ,(select third_party from article where article_code = mari.article_code) as supp_code
-            // ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
-            // ,qty_stock
-            // ,'$username'
-            // ,now()
-            // from 
-            // (
-            // select 
-            // bom_code
-            // ,oki.article_code_rm as article_code
-            // ,(select article_alternative_code from article where article_code = oki.article_code_rm) as alternative
-            // ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
-            // ,qty 
-            // ,article.uom as uom
-            // ,uom_con
-            // ,nilai_konversi
-            // ,qty_hasil_konversi as qty_bom
-            // ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
-            // ,coalesce(min_package,1) as min_package
-            // ,coalesce(safety_stock,0) as safety_stock
-            // ,get_last_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
-            // from 
-            // (
-            // select 
-            // article_alternative_code
-            // ,bom_code
-            // ,bom_hdr.article_code_rm as article_code_rm
-            // ,bom_hdr.article_code as article_code_fg
-            // ,1 as qty
-            // ,article.uom as uom
-            // ,article.uom as uom_con
-            // ,1 as nilai_konversi
-            // ,1 as qty_hasil_konversi
-            // from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
-            // left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
-            // left join article on article.article_code = bom_hdr.article_code_rm
-            // where bom_hdr.status = '3'
-            // and article_alternative_code is not null
-            // and article.article_type = 'RMP'
-            // order by article_alternative_code
-            // ) as oki
-            // left join article on article.article_code = oki.article_code_rm
-            // order by alternative
-            // ) as mari 
-            // group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
-            // having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0) ijo
-            // order by alternative
-            // ";
+        /*Dilengkapi dengan dengan RMP
+            $sqlDet="INSERT into purchase_request_det
+            (
+                pr_number,
+                article_code,
+                qty,
+                uom,
+                supp_code,
+                qty_hitung,
+                qty_stock,
+                created_by,
+                created_at
+            )
+            select 
+                '$prNumber' as pr_number
+                ,article_code
+                ,qty
+                ,uom
+                ,supp_code
+                ,qty_hitung
+                ,qty_stock
+                ,'$username'
+                ,now()
+            from 
+            (select 
+                alternative
+                ,'$prNumber' as pr_number
+                ,article_code
+                ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
+                ,mari.uom
+                ,(select third_party from article where article_code = mari.article_code) as supp_code
+                ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
+                ,qty_stock
+                ,'$username'
+                ,now()
+            from 
+            (
+                select 
+                bom_code
+                ,oki.article_bom as article_code
+                ,(select article_alternative_code from article where article_code = oki.article_bom) as alternative
+                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
+                ,qty 
+                ,article.uom as uom
+                ,uom_con
+                ,nilai_konversi
+                ,qty_hasil_konversi as qty_bom
+                ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
+                ,coalesce(article.min_package,1) as min_package
+                ,coalesce(article.safety_stock,0) as safety_stock
+                ,get_last_qty(oki.article_bom,'$stockDate','$siteCode','$location') as qty_stock
+                from 
+                (
+                    select *,
+                    coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
+                    ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
+                    from (
+                    select bom_code
+                    ,bom_det.article_code as article_bom
+                    ,(select article_code from bom_hdr where bom_code = bom_det.bom_code) as article_code_fg
+                    ,sum(qty) as qty
+                    ,bom_det.uom
+                    ,uom_con
+                    -- ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as nilai_konversi
+                    -- ,qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_hasil_konversi
+                    from bom_det 
+                    where bom_code in 
+                    ( select bom_code
+                        from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
+                        left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+                        where bom_hdr.status = '3')
+                    group by bom_det.bom_code,bom_det.article_code,bom_det.uom_con,bom_det.uom) bom_det
+                    left join article on article.article_code = bom_det.article_bom
+                ) as oki
+            left join article on article.article_code = oki.article_bom
+            order by alternative
+            ) as mari 
+            group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
+            having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
+            union
+            select 
+            alternative
+            ,'$prNumber' as pr_number
+            ,article_code
+            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty
+            ,mari.uom
+            ,(select third_party from article where article_code = mari.article_code) as supp_code
+            ,ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as qty_hitung
+            ,qty_stock
+            ,'$username'
+            ,now()
+            from 
+            (
+            select 
+            bom_code
+            ,oki.article_code_rm as article_code
+            ,(select article_alternative_code from article where article_code = oki.article_code_rm) as alternative
+            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) as qty_target
+            ,qty 
+            ,article.uom as uom
+            ,uom_con
+            ,nilai_konversi
+            ,qty_hasil_konversi as qty_bom
+            ,(select sum(qty_target) from target_order_det where tso_code = '$tsoCode' and target_order_det.article_code = oki.article_code_fg group by target_order_det.article_code) * qty_hasil_konversi  as qty_total_order
+            ,coalesce(min_package,1) as min_package
+            ,coalesce(safety_stock,0) as safety_stock
+            ,get_last_qty(oki.article_code_rm,'$stockDate','$siteCode','$location') as qty_stock
+            from 
+            (
+            select 
+            article_alternative_code
+            ,bom_code
+            ,bom_hdr.article_code_rm as article_code_rm
+            ,bom_hdr.article_code as article_code_fg
+            ,1 as qty
+            ,article.uom as uom
+            ,article.uom as uom_con
+            ,1 as nilai_konversi
+            ,1 as qty_hasil_konversi
+            from (select article_code,qty_target as qty from target_order_det where tso_code = '$tsoCode') as production_detail_temp
+            left join bom_hdr on bom_hdr.article_code=production_detail_temp.article_code
+            left join article on article.article_code = bom_hdr.article_code_rm
+            where bom_hdr.status = '3'
+            and article_alternative_code is not null
+            and article.article_type = 'RMP'
+            order by article_alternative_code
+            ) as oki
+            left join article on article.article_code = oki.article_code_rm
+            order by alternative
+            ) as mari 
+            group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
+            having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0) ijo
+            order by alternative
+            ";
+        */
 
-            /*tanpa RM
+        /*tanpa RM
             $sqlDet="INSERT into purchase_request_det
             (
                 pr_number,
@@ -2383,206 +2486,283 @@ class PurchaseRequestController extends Controller
             group by mari.article_code,alternative,mari.safety_stock,mari.qty_stock,mari.min_package,mari.uom
             having (ceil(((sum(qty_target * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
             order by alternative";
-            */
+        */
+
     }
-    /*
+    
+    /* 
+        //functon lama
+        public function revisionPoFromPr($poOrigin,$prNumber,$reason){
+            dibatalkan tanggl a6-11-2023
+            $username =  Auth::user()->username;
+            $reasonRequest = $reason;
+            $reason = "(Revision from PR : $prNumber, by $username, $reason)";
 
-    // public function revisionPoFromPr($poOrigin,$prNumber,$reason){
-        // dibatalkan tanggl a6-11-2023
-    //     $username =  Auth::user()->username;
-    //     $reasonRequest = $reason;
-    //     $reason = "(Revision from PR : $prNumber, by $username, $reason)";
+            $poHdr = DB::table('purchase_order_hdr')
+            ->where('po_number',$poOrigin)
+            ->first(); 
 
-    //     $poHdr = DB::table('purchase_order_hdr')
-    //     ->where('po_number',$poOrigin)
-    //     ->first(); 
+            $numRevision = $poHdr->num_revision ? $poHdr->num_revision+1 : 1 ;
+            $poNew = $poOrigin.'-R'.$numRevision;
+            $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
 
-    //     $numRevision = $poHdr->num_revision ? $poHdr->num_revision+1 : 1 ;
-    //     $poNew = $poOrigin.'-R'.$numRevision;
-    //     $checkNewPo=DB::table('purchase_order_hdr')->where('po_number',$poNew)->count();
+            if ($checkNewPo > 0){
+                $poNew = $poOrigin.'-R'.($numRevision+1);
+            } 
+                    
+            $sqlHdr = "INSERT into purchase_order_hdr 
+            (
+                po_number,
+                origin_po_number,
+                supplier_id,
+                po_date,
+                delivery_date,
+                currency,
+                authorized_by,
+                authorized_at,
+                validate_by,
+                discount,
+                kurs,
+                pkp,
+                ppn,
+                pph22,
+                termin,
+                order_type,
+                status,
+                num_revision,
+                revised_by,
+                revised_at,
+                note,
+                created_by,
+                updated_by,
+                created_at,
+                updated_at,
+                reason
+            )
+            select 
+                '$poNew',
+                '$poOrigin',
+                supplier_id,
+                po_date,
+                delivery_date,
+                currency,
+                authorized_by,
+                authorized_at,
+                validate_by,
+                discount,
+                kurs,
+                pkp,
+                ppn,
+                pph22,
+                termin,
+                order_type,
+                '7',
+                $numRevision,
+                '$username',
+                '".date('Y-m-d H:i:s')."',
+                note,
+                '$username',
+                '$username',
+                '".date('Y-m-d H:i:s')."',
+                '".date('Y-m-d H:i:s')."',
+                '$reasonRequest'
+            from purchase_order_hdr where po_number = '$poOrigin'";
 
-    //     if ($checkNewPo > 0){
-    //         $poNew = $poOrigin.'-R'.($numRevision+1);
-    //     } 
+            // CONCAT(note,', $reason'),
+
+            //Copy dulu detaail yang terakhir
+            $sqlDet="INSERT into purchase_order_det
+            (
+                po_number,
+                pr_number,
+                article_code,
+                qty,
+                uom,
+                old_price,
+                price,
+                ppn,
+                pph22,
+                created_by,
+                updated_by,
+                created_at,
+                updated_at
+            )
+            select '$poNew',
+                pr_number,
+                article_code,
+                qty,
+                uom,
+                old_price,
+                price,
+                ppn,
+                pph22,
+                '$username',
+                '$username',
+                '".date('Y-m-d H:i:s')."',
+                '".date('Y-m-d H:i:s')."'
+            from purchase_order_det where po_number = '$poOrigin'";
+
+            $rowAffected =  DB::select($sqlHdr);
+            if ($rowAffected){
+                DB::select($sqlDet);
+
+                // status:
+                // 1 = New
+                // 2 = Validated
+                // 3 = Authorized
+                // 4 = Received
+                // 5 = Canceled
+                // 6 = closed
+                // 7 = Revised
+
+                DB::table('purchase_order_hdr')
+                ->where('po_number',$poOrigin)
+                ->update(
+                    [
+                        'num_revision' => $numRevision,
+                        'status' => '1',
+                        // 'note'=> DB::raw("CONCAT(note,', $reason')"),
+                        'revised_by'=>Auth::user()->username,
+                        'revised_at'=> date('Y-m-d H:i:s'),
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
                 
-    //     $sqlHdr = "INSERT into purchase_order_hdr 
-    //     (
-    //         po_number,
-    //         origin_po_number,
-    //         supplier_id,
-    //         po_date,
-    //         delivery_date,
-    //         currency,
-    //         authorized_by,
-    //         authorized_at,
-    //         validate_by,
-    //         discount,
-    //         kurs,
-    //         pkp,
-    //         ppn,
-    //         pph22,
-    //         termin,
-    //         order_type,
-    //         status,
-    //         num_revision,
-    //         revised_by,
-    //         revised_at,
-    //         note,
-    //         created_by,
-    //         updated_by,
-    //         created_at,
-    //         updated_at,
-    //         reason
-    //     )
-    //     select 
-    //         '$poNew',
-    //         '$poOrigin',
-    //         supplier_id,
-    //         po_date,
-    //         delivery_date,
-    //         currency,
-    //         authorized_by,
-    //         authorized_at,
-    //         validate_by,
-    //         discount,
-    //         kurs,
-    //         pkp,
-    //         ppn,
-    //         pph22,
-    //         termin,
-    //         order_type,
-    //         '7',
-    //         $numRevision,
-    //         '$username',
-    //         '".date('Y-m-d H:i:s')."',
-    //         note,
-    //         '$username',
-    //         '$username',
-    //         '".date('Y-m-d H:i:s')."',
-    //         '".date('Y-m-d H:i:s')."',
-    //         '$reasonRequest'
-    //     from purchase_order_hdr where po_number = '$poOrigin'";
-
-    //     // CONCAT(note,', $reason'),
-
-    //     //Copy dulu detaail yang terakhir
-    //     $sqlDet="INSERT into purchase_order_det
-    //     (
-    //         po_number,
-    //         pr_number,
-    //         article_code,
-    //         qty,
-    //         uom,
-    //         old_price,
-    //         price,
-    //         ppn,
-    //         pph22,
-    //         created_by,
-    //         updated_by,
-    //         created_at,
-    //         updated_at
-    //     )
-    //     select '$poNew',
-    //         pr_number,
-    //         article_code,
-    //         qty,
-    //         uom,
-    //         old_price,
-    //         price,
-    //         ppn,
-    //         pph22,
-    //         '$username',
-    //         '$username',
-    //         '".date('Y-m-d H:i:s')."',
-    //         '".date('Y-m-d H:i:s')."'
-    //     from purchase_order_det where po_number = '$poOrigin'";
-
-    //     $rowAffected =  DB::select($sqlHdr);
-    //     if ($rowAffected){
-    //         DB::select($sqlDet);
-
-    //         // status:
-    //         // 1 = New
-    //         // 2 = Validated
-    //         // 3 = Authorized
-    //         // 4 = Received
-    //         // 5 = Canceled
-    //         // 6 = closed
-    //         // 7 = Revised
-
-    //         DB::table('purchase_order_hdr')
-    //         ->where('po_number',$poOrigin)
-    //         ->update(
-    //             [
-    //                 'num_revision' => $numRevision,
-    //                 'status' => '1',
-    //                 // 'note'=> DB::raw("CONCAT(note,', $reason')"),
-    //                 'revised_by'=>Auth::user()->username,
-    //                 'revised_at'=> date('Y-m-d H:i:s'),
-    //                 'updated_by' => Auth::user()->username,
-    //                 'updated_at' => date('Y-m-d H:i:s')
-    //             ]
-    //         );
-
-    //         /*
-    //             lalu update qty sesuai dengan yang sudah di update di PR 
-    //             Pada saat PR di revisi
-    //             Kalau PO lebih besar dari PR PO tidak berubah
-    //             Kalau PO lebih kecil dari PR PO akan berubah
+                    // lalu update qty sesuai dengan yang sudah di update di PR 
+                    // Pada saat PR di revisi
+                    // Kalau PO lebih besar dari PR PO tidak berubah
+                    // Kalau PO lebih kecil dari PR PO akan berubah
+                    
                 
-    //         */
 
-    //         DB::table('purchase_order_det')
-    //         ->where('po_number',$poOrigin)
-    //         ->update(
-    //         [
-    //             // 'qty' => DB::RAW("coalesce((select sum(qty) 
-    //             //                     from purchase_request_det a  
-    //             //                     where a.pr_number = purchase_order_det.pr_number 
-    //             //                     and a.article_code = purchase_order_det.article_code),0)
-    //             // "),
-    //             'qty' => DB::RAW("(case when purchase_order_det.qty < coalesce((select sum(qty) 
-    //                                 from purchase_request_det a  
-    //                                 where a.pr_number = purchase_order_det.pr_number 
-    //                                 and a.article_code = purchase_order_det.article_code),0)
-    //                                 then
-    //                                 coalesce((select sum(qty) 
-    //                                 from purchase_request_det a  
-    //                                 where a.pr_number = purchase_order_det.pr_number 
-    //                                 and a.article_code = purchase_order_det.article_code),0)
-    //                                 else
-    //                                 purchase_order_det.qty
-    //                                 end)
-    //             "),
-    //             'updated_by' => Auth::user()->username,
-    //             'updated_at' => date('Y-m-d H:i:s')
-    //         ]
-    //         );
+                DB::table('purchase_order_det')
+                ->where('po_number',$poOrigin)
+                ->update(
+                [
+                    // 'qty' => DB::RAW("coalesce((select sum(qty) 
+                    //                     from purchase_request_det a  
+                    //                     where a.pr_number = purchase_order_det.pr_number 
+                    //                     and a.article_code = purchase_order_det.article_code),0)
+                    // "),
+                    'qty' => DB::RAW("(case when purchase_order_det.qty < coalesce((select sum(qty) 
+                                        from purchase_request_det a  
+                                        where a.pr_number = purchase_order_det.pr_number 
+                                        and a.article_code = purchase_order_det.article_code),0)
+                                        then
+                                        coalesce((select sum(qty) 
+                                        from purchase_request_det a  
+                                        where a.pr_number = purchase_order_det.pr_number 
+                                        and a.article_code = purchase_order_det.article_code),0)
+                                        else
+                                        purchase_order_det.qty
+                                        end)
+                    "),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+                );
 
-    //         DB::table('approval_history')
-    //         ->where('module_number',$poOrigin)
-    //         ->update(
-    //             [
-    //                 'module_number' => $poNew,
-    //                 'status' => '0',
-    //                 'updated_by' => Auth::user()->username,
-    //                 'updated_at' => date('Y-m-d H:i:s')
-    //             ]
-    //         );
+                DB::table('approval_history')
+                ->where('module_number',$poOrigin)
+                ->update(
+                    [
+                        'module_number' => $poNew,
+                        'status' => '0',
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+                
+                $title ="Save $this->title";
+                $alert  ="success";
+                $message  = "$title Revision PO From PR, PO: $poOrigin to $poNew ,PR:$prNumber is successfully saved";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return "success";
+            }else{
+                $title ="Save $this->title";
+                $alert  ="warning";
+                $message  = "$title Revision PO From PR, PO: $poOrigin to $poNew ,PR:$prNumber is failed to save";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return "failed";
+            }
             
-    //         $title ="Save $this->title";
-    //         $alert  ="success";
-    //         $message  = "$title Revision PO From PR, PO: $poOrigin to $poNew ,PR:$prNumber is successfully saved";
-    //         \LogActivity::addToLog($title,"username: $username Status $message");
-    //         return "success";
-    //     }else{
-    //         $title ="Save $this->title";
-    //         $alert  ="warning";
-    //         $message  = "$title Revision PO From PR, PO: $poOrigin to $poNew ,PR:$prNumber is failed to save";
-    //         \LogActivity::addToLog($title,"username: $username Status $message");
-    //         return "failed";
-    //     }
-        
-    // }
+        }
+    */
+
+
+    /* 
+        // Function untuk menampilkan stock terakhir menggunakan postgresql
+
+        DROP FUNCTION get_last_qty(text, date, text, text);
+
+
+        CREATE OR REPLACE FUNCTION public.get_last_qty_old(articleccode text, movementdate date, sitecode text, location text)
+        RETURNS double precision
+        LANGUAGE plpgsql
+        AS $function$
+        DECLARE result float;
+        begin
+            select last_qty into result
+            from movement
+            where artikel_code=$1
+            and site_code = $3
+            and location_number = $4
+            and TO_DATE(movement_date,'dd-mm-yyyy') <= $2
+            order by movement_code desc
+            limit 1;
+            if result is null then 
+                result:=0;
+            END IF;
+            RETURN result;
+        end;
+        $function$
+        ;
+
+
+        CREATE OR REPLACE FUNCTION get_last_qty(
+            p_artikel_code VARCHAR,
+            p_movement_date VARCHAR,
+            p_site_code VARCHAR,
+            p_location_number VARCHAR
+        )
+        RETURNS NUMERIC AS $$
+        DECLARE
+            v_last_stock NUMERIC;
+        BEGIN
+            WITH ranked_data AS (
+                SELECT 
+                    SUM(-m.movement_min + m.movement_plus) OVER (
+                        ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), 
+                                m.movement_code
+                    ) as running_stock,
+                    ROW_NUMBER() OVER (
+                        ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy') DESC, 
+                                m.movement_code DESC
+                    ) as rn
+                FROM movement m
+                WHERE m.artikel_code = p_artikel_code
+                AND TO_DATE(m.movement_date,'dd-mm-yyyy') <= TO_DATE(p_movement_date,'yyyy-mm-dd')
+                AND m.site_code = p_site_code
+                AND m.location_number = p_location_number
+            )
+            SELECT running_stock INTO v_last_stock
+            FROM ranked_data
+            WHERE rn = 1;
+            
+            RETURN COALESCE(v_last_stock, 0);
+        END;
+        $$ LANGUAGE plpgsql;
+
+
+        CREATE INDEX idx_production_temp_code ON production_detail_temp(code);
+        CREATE INDEX idx_bom_hdr_status ON bom_hdr(status);
+        CREATE INDEX idx_bom_det_bom_code ON bom_det(bom_code);
+        CREATE INDEX idx_article_alternative ON article(article_alternative_code);
+        CREATE INDEX idx_uom_con_unit ON uom_con(unit_from, unit_to);
+
+
+    */
 
 }

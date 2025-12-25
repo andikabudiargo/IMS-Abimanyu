@@ -789,7 +789,7 @@ class DeliveryController extends Controller
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
         $dariNew = $request->dariNew;
-        $movementDate = date("d-m-Y");
+        // $movementDate = date("d-m-Y");
         
         if ($lastStatus != '4'){
             if ($dnNumber){
@@ -848,8 +848,8 @@ class DeliveryController extends Controller
                     ->where('delivery_hdr.status','4')
                     ->where('qty', '<>', 0)
                     ->select(
-                        DB::RAW("'$movementDate' as movement_date")
-                        // 'delivery_hdr.delivery_date as movement_date'
+                        'delivery_hdr.delivery_date as movement_date'
+                        // DB::RAW("'$movementDate' as movement_date")
                         ,'delivery_det.article_code'
                         ,'article.article_desc'
                         ,DB::raw("0 as movement_plus")
@@ -940,7 +940,7 @@ class DeliveryController extends Controller
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
         $dariNew = 'true';
-        $movementDate = date("d-m-Y");
+        // $movementDate = date("d-m-Y");
         
         if ($dnNumber){
             $data = DB::table('delivery_det')
@@ -998,8 +998,8 @@ class DeliveryController extends Controller
                 ->where('delivery_hdr.status','4')
                 ->where('qty', '<>', 0)
                 ->select(
-                    DB::RAW("'$movementDate' as movement_date")
-                    // 'delivery_hdr.delivery_date as movement_date'
+                    'delivery_hdr.delivery_date as movement_date'
+                    // DB::RAW("'$movementDate' as movement_date")
                     ,'delivery_det.article_code'
                     ,'article.article_desc'
                     ,DB::raw("0 as movement_plus")
@@ -1069,7 +1069,7 @@ class DeliveryController extends Controller
         
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
-        $movementDate = date("d-m-Y");
+        // $movementDate = date("d-m-Y");
                 
         if ($dnNumber){
 
@@ -1115,8 +1115,8 @@ class DeliveryController extends Controller
             // ->where('delivery_hdr.status','1')
             ->where('qty', '<>', 0)
             ->select(
-                // 'delivery_hdr.delivery_date as movement_date'
-                DB::RAW("'$movementDate' as movement_date" )
+                // DB::RAW("'$movementDate' as movement_date" )
+                'delivery_hdr.delivery_date as movement_date'
                 ,'delivery_det.article_code'
                 ,'article.article_desc'
                 ,DB::RAW("(uom_conversion(delivery_det.uom,article.uom)*delivery_det.qty) as movement_plus")
@@ -2425,7 +2425,7 @@ class DeliveryController extends Controller
             $moduleCode = $this->moduleCode;
             $todayDate = date('Y-m-d');
             $dariNew = 'true';
-            $movementDate = date("d-m-Y");
+            // $movementDate = date("d-m-Y");
 
             $dnDate = $val->delivery_date;
             $dnNote = $val->reason;
@@ -2492,8 +2492,8 @@ class DeliveryController extends Controller
                     ->where('delivery_hdr.status','4')
                     ->where('qty', '<>', 0)
                     ->select(
-                        DB::RAW("'$movementDate' as movement_date")
-                        // 'delivery_hdr.delivery_date as movement_date'
+                        'delivery_hdr.delivery_date as movement_date'
+                        // DB::RAW("'$movementDate' as movement_date")
                         ,'delivery_det.article_code'
                         ,'article.article_desc'
                         ,DB::raw("0 as movement_plus")

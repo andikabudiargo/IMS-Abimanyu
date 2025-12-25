@@ -230,7 +230,7 @@ class TransferOutController extends Controller
         $location ='WH';
         $status = '4';
         $todayDate = date('Y-m-d');
-        $movementDate = date("d-m-Y");
+        // $movementDate = date("d-m-Y");
 
         if ($lastStatus!=4){
             if ($trNumber){
@@ -284,6 +284,12 @@ class TransferOutController extends Controller
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
                 );
+
+                /*
+                    CR dari abimnanyu
+                    perubahan, untuk movement date mengikuti tanggald dari tr_date bukan current date
+
+                */
                 
                 if ($rowAffected > 0){
                     $movements = DB::table('transfer_det')
@@ -294,8 +300,8 @@ class TransferOutController extends Controller
                     ->where('qty', '<>', 0)
                     ->select(
                         // DB::RAW("now()::timestamp::date as movement_date" )
-                        // 'tr_date as movement_date'
-                        DB::RAW("'$movementDate' as movement_date")
+                        'transfer_hdr.tr_date as movement_date'
+                        // DB::RAW("'$movementDate' as movement_date")
                         ,'transfer_det.article_code'
                         ,'article.article_desc'
                         ,DB::raw("0 as movement_plus")
@@ -374,7 +380,7 @@ class TransferOutController extends Controller
         $rowAffected = 0;
         $location = 'WH';
         $todayDate = date('Y-m-d');
-        $movementDate = date("d-m-Y");
+        // $movementDate = date("d-m-Y");
 
         $data = DB::table('transfer_det')
         ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
@@ -436,8 +442,8 @@ class TransferOutController extends Controller
             ->where('qty', '<>', 0)
             ->select(
                 // DB::RAW("now()::timestamp::date as movement_date" )
-                // 'tr_date as movement_date'
-                DB::RAW("'$movementDate' as movement_date")
+                'transfer_hdr.tr_date as movement_date'
+                // DB::RAW("'$movementDate' as movement_date")
                 ,'transfer_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_min")

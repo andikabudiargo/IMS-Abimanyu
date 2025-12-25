@@ -62,7 +62,8 @@ class ArticleController extends Controller
             ['data'=>'balanceqty','name'=>'balanceqty','title'=>'QTY Total'],
             ['data'=>'last_qty','name'=>'last_qty','title'=>'Last QTY'],
             ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description'],
-            ['data'=>'created_at','name'=> 'created_at','title'=>'Created At']
+            ['data'=>'created_at','name'=> 'created_at','title'=>'Created At'],
+            ['data'=>'urutan','name'=> 'urutan','title'=>'Runnng Number', 'searchable'=>false, 'visible'=>false]
         ];
         return json_encode($kolom, true);
     }
@@ -766,7 +767,39 @@ class ArticleController extends Controller
         $articleCode = $request->articleCode;
         $location = 'WH';
         $siteCode = 'HO';
-        $sqlku=("SELECT movement_code
+
+        /* 
+            update 15/12/2025
+            query baru untuk movement  balance qty ambil dari perhitungan movement nya langsung
+
+        */
+        $sqlku = "SELECT 
+                m.movement_code,
+                m.artikel_code,
+                m.artikel_desc,
+                m.movement_plus - m.movement_min as qty,
+                m.movement_price,
+                m.movement_date,
+                m.movement_desc,
+                m.movement_type,
+                m.movement_min,
+                m.movement_plus,
+                m.movement_transnno,
+                SUM(-movement_min+movement_plus) OVER (ORDER BY TO_DATE(movement_date,'dd-mm-yyyy'), m.movement_code) as balanceqty,
+                ROW_NUMBER() OVER (ORDER BY TO_DATE(movement_date,'dd-mm-yyyy') DESC, m.movement_code DESC) as urutan,
+                SUM(-movement_min+movement_plus) OVER (ORDER BY TO_DATE(movement_date,'dd-mm-yyyy'), m.movement_code) as last_qty,
+                m.site_code,
+                m.location_number,
+                -- m.last_qty,
+                m.created_at
+            FROM movement m
+            WHERE m.artikel_code = '$articleCode'
+            and m.site_code = '$siteCode'
+            and m.location_number = '$location'
+            ORDER BY TO_DATE(movement_date,'dd-mm-yyyy'), m.movement_code";
+
+        /*
+            $sqlku=("SELECT movement_code
                     ,movement_date
                     ,artikel_code
                     ,artikel_desc
@@ -806,6 +839,9 @@ class ArticleController extends Controller
                 and location_number = '$location'
                 ) t
                 order by movement_code");
+        */
+
+
         $data = DB::select($sqlku);
         return Datatables::of($data)
         ->addColumn('qty', function ($data) {

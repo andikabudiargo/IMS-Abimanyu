@@ -588,8 +588,8 @@ class ReceivingController extends Controller
         $status = '4';
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
-        $movementDate = date("d-m-Y");
         $dariNew = $request->dariNew;
+        // $movementDate = date("d-m-Y");
 
         // $rowAffected = 0;
 
@@ -675,8 +675,8 @@ class ReceivingController extends Controller
                     ->where('receiving_hdr.status','4')
                     ->where('qty', '<>', 0)
                     ->select(
-                        DB::RAW("'$movementDate' as movement_date")
-                        // 'receiving_hdr.rec_date as movement_date'
+                        'receiving_hdr.rec_date as movement_date'
+                        // DB::RAW("'$movementDate' as movement_date")
                         ,'receiving_det.article_code'
                         ,'article.article_desc'
                         ,DB::raw("0 as movement_min")
@@ -820,7 +820,7 @@ class ReceivingController extends Controller
         $moduleCode = $this->moduleCode;
         $reason = "(Cancel by $username, Reason: $request->reason)";
         $todayDate = date('Y-m-d');
-        $movementDate = date("d-m-Y");
+        // $movementDate = date("d-m-Y");
 
         $data = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
@@ -898,7 +898,8 @@ class ReceivingController extends Controller
             ->where('receiving_hdr.status','5')
             ->where('qty', '<>', 0)
             ->select(
-                DB::RAW("'$movementDate' as movement_date")
+                'receiving_hdr.rec_date as movement_date'
+                // DB::RAW("'$movementDate' as movement_date")
                 ,'receiving_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_plus")
@@ -1204,7 +1205,7 @@ class ReceivingController extends Controller
         $location ='WH';
         $moduleCode = $this->moduleCode;
         $todayDate = date('Y-m-d');
-        $movementDate = date("d-m-Y");
+        // $movementDate = date("d-m-Y");
         
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
         //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
@@ -1255,8 +1256,8 @@ class ReceivingController extends Controller
             // ->where('receiving_hdr.status','4')
             ->where('qty', '<>', 0)
             ->select(
-                DB::RAW("'$movementDate' as movement_date")
-                // 'receiving_hdr.rec_date as movement_date'
+                'receiving_hdr.rec_date as movement_date'
+                // DB::RAW("'$movementDate' as movement_date")
                 ,'receiving_det.article_code'
                 ,'article.article_desc'
                 ,DB::RAW("(uom_conversion(receiving_det.uom_rec,article.uom)*receiving_det.qty) as movement_min")

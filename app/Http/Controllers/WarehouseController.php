@@ -96,7 +96,8 @@ class WarehouseController extends Controller
             ['data'=>'balanceqty','name'=>'balanceqty','title'=>'QTY Total'],
             ['data'=>'last_qty','name'=>'last_qty','title'=>'Last QTY'],
             ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description'],
-            ['data'=>'created_at','name'=> 'created_at','title'=>'Cerated At']
+            ['data'=>'created_at','name'=> 'created_at','title'=>'Created At'],
+            ['data'=>'urutan','name'=> 'urutan','title'=>'Runnng Number', 'searchable'=>false, 'visible'=>false]
         ];
         return json_encode($kolom, true);
     }
