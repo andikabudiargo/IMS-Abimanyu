@@ -115,7 +115,7 @@
           </button>
         </div>
         <div class="modal-body">
-          <form id="frmAdd" name="frmAdd" class="form form-vertical" autocomplete="off">
+          <form id="frmEdit" name="frmEdit" class="form form-vertical" autocomplete="off">
               <input type="hidden" id="permission_id" name="permission_id">
               <div class="row">
                 <div class="col-12">
@@ -386,9 +386,9 @@
         text: "Permission akan di delete dari database",
         icon: 'info',
         showCancelButton: true,
-        confirmButtonClass: "btn-danger",
-        confirmButtonText: "Hapus",
-        closeOnConfirm: false
+        // confirmButtonClass: "btn-danger",
+        // confirmButtonText: "Hapus",
+        // closeOnConfirm: false
       }).then((result) => {
         /* Read more about isConfirmed, isDenied below */
         if (result.isConfirmed) {
@@ -512,6 +512,37 @@
         Swal.fire('Warning ... ', pesan ,'warning');    
       }
     });
+
+    $("#cmdSaveEdit").click(function(e){
+      e.preventDefault();
+      let permission_id = $('#permission_id').val();
+      let editGroupName = $('#editGroupName').val();
+      let editDisplayName = $('#editDisplayName').val();
+      let editDescription = $('#editDescription').val();
+
+      $.ajax({
+        dataType: 'json',
+        type:'POST',
+        url: "{{ route('store.permission') }}",
+        data: { 
+                permission_id:permission_id,
+                name:editGroupName,
+                display_name:editDisplayName,
+                description:editDescription
+              },
+        success: function(data) {
+          if (data.status ==1){
+            bebersih();
+            showList(editGroupName);
+          }else{
+            Swal.fire('Warning ... ', data.message ,'warning');    
+          }
+        },error: function(data) {
+          Swal.fire('Error..',data.status,'error');
+        }
+      }); 
+    });
+
 
     $.ajaxSetup({
         headers: {

@@ -203,6 +203,7 @@
                     // } else {
                         if ((plu!=='') && (qty > 0)){
                             arrArticles.push({
+                                "urutan": i+1,
                                 "article_code":plu,
                                 "qty":parseFloat(qty),
                                 "uom":uom,
@@ -235,6 +236,8 @@
                 })
                 articles = Object.values(obj)
             }
+
+            articles.sort((a, b) => a.urutan - b.urutan);
 
             if (flag==0){
                 let trNumber = "";
@@ -473,6 +476,7 @@
                 clearInterval(timerId);
                 $(".loading-spinner-container").removeClass("-show");
                 $("#addNewRow").removeClass('d-none');
+                // add_new_row();
             }
         }
 

@@ -124,7 +124,7 @@
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" data-trType="TRIN">Update</button>
                                         @endif
                                     @else
-                                        @if( !$approveValidate && $statusTr =='NEW')
+                                        @if( !$approveValidate && ( $statusTr =='NEW' || $statusTr =='POSTED') )
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" data-trType="TRIN">Update</button>
                                         @endif
                                     @endif

@@ -58,6 +58,7 @@
                                         <th>No</th>
                                         <th>Article Code</th>
                                         <th class="text-right">Qty</th>
+                                        <th>UOM</th>
                                         <th>Location To</th>
                                         <th>Note</th>
                                     </tr>
@@ -65,11 +66,12 @@
                                 <tbody>
                                 @foreach( $details as $key =>$item )
                                     <tr>
-                                        <td ></td>
-                                        <td >{{ $item->article }}</td>
-                                        <td class="text-right">{{ number_format($item->qty,2) }} {{ $item->uom }}</td>
-                                        <td class="text-right">{{ $item->location_name }}</td>
-                                        <td class="text-right">{{ $item->note }}</td>
+                                        <td></td>
+                                        <td>{{ $item->article }}</td>
+                                        <td class="text-right">{{ number_format($item->qty,2) }}</td>
+                                        <td class="text-left">{{ $item->uom }}</td>
+                                        <td>{{ $item->location_name }}</td>
+                                        <td>{{ $item->note }}</td>
                                     </tr>
                                 @endforeach
                                 </tbody>

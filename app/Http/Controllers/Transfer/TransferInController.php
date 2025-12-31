@@ -472,6 +472,282 @@ class TransferInController extends Controller
 
     }
 
+    public function autoPosting($trNumberParam,$status)
+    {
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        $username =  Auth::user()->username;
+        $hdrQ = DB::table('transfer_hdr')->where('tr_number',$trNumberParam)->where('status',$status)->first();
+        $trNumber = $hdrQ->tr_number; 
+        $lastStatus = $hdrQ->status; 
+        $trType = $this->moduleCode;
+        $todayDate = date('Y-m-d');
+        $siteCode = 'HO';
+        $location ='WH';
+        $status = '4';
+
+        // if ($lastStatus!=4){
+            if ($trNumber){
+                $data = DB::table('transfer_det')
+                ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+                ->leftJoin('article','article.article_code','transfer_det.article_code')
+                ->where('transfer_det.tr_number',$trNumber)
+                // ->where('transfer_hdr.status','3')
+                ->select('transfer_det.*','article.article_type','article.uom as uom_article',
+                    DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
+                )
+                ->get();
+       
+                foreach($data as $val){
+                    //insert article code kalo belum ada di tabel item_stock
+                    DB::table('article_stock')
+                    ->updateOrInsert(
+                        [ 'site_code' =>$siteCode,
+                            'article_code' => $val->article_code,
+                            'location_number'=>$location
+                        ],
+                        [
+                            'dept_code'=>$val->article_type,
+                            'uom'=>$val->uom_article
+                        ]
+                    );
+    
+                    $qtyBefore = DB::table('article_stock')
+                    ->where('site_code',$siteCode)
+                    ->where('article_code',$val->article_code)
+                    ->where('location_number',$location)
+                    ->value(DB::raw('coalesce(article_qty,0)'));
+    
+                    $totalQty = (float) $qtyBefore + (float) $val->total_qty;
+    
+                    //update qty nya ditambahkan dengan qty baru
+                    DB::table('article_stock')
+                    ->where('site_code',$siteCode)
+                    ->where('article_code',$val->article_code)
+                    ->where('location_number',$location)
+                    ->update([
+                        // 'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+                        'article_qty' => $totalQty
+                    ]);
+    
+                    // $rowAffected = DB::table('article_stock')
+                    // ->where('site_code',$siteCode)
+                    // ->where('article_code',$val->article_code)
+                    // ->increment('article_qty', $val->total_qty);
+                }
+                        
+                
+                $rowAffected= DB::table('transfer_hdr')
+                ->where('tr_number',$trNumber)
+                ->update(
+                    [   
+                        'status' => $status,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+    
+                if ($rowAffected > 0){
+                    $movements = DB::table('transfer_det')
+                    ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+                    ->leftJoin('article','article.article_code','transfer_det.article_code')
+                    ->where('transfer_det.tr_number',$trNumber)
+                    ->where('transfer_hdr.status','4')
+                    ->where('qty', '<>', 0)
+                    ->select(
+                        // DB::RAW("now()::timestamp::date as movement_date" )
+                        'transfer_hdr.tr_date as movement_date'
+                        // DB::RAW("'$movementDate' as movement_date")
+                        ,'transfer_det.article_code'
+                        ,'article.article_desc'
+                        ,DB::raw("0 as movement_min")
+                        ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_plus")
+                        ,DB::raw(" 0 as movement_price ")
+                        ,'transfer_hdr.tr_number as movement_transnno'
+                        ,DB::raw("'$trType' as movement_type")
+                        ,'transfer_hdr.note as movement_desc'
+                    )
+                    ->get();
+                    
+                    $dataSetMovement = [];
+                    foreach ($movements as $val) {
+                        $dataSetMovement[] = [
+                            'movement_date' => $val->movement_date,
+                            'artikel_code' => $val->article_code,
+                            'artikel_desc' => $val->article_desc,
+                            'movement_min' => $val->movement_min,
+                            'movement_plus' => $val->movement_plus,
+                            'movement_price' => $val->movement_price,
+                            'movement_transnno' => $val->movement_transnno,
+                            'movement_type' => $val->movement_type,
+                            'movement_desc' => $val->movement_desc,
+                            'created_by' => Auth::user()->username,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'site_code' => $siteCode,
+                            'location_number' => $location,
+                            'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)")
+                        ];
+                    }
+    
+                    DB::table('movement')->insert($dataSetMovement);
+    
+                    DB::commit();
+                    $title ="Posting $this->title";
+                    $alert  ="success";
+                    $message  = "$title $trNumber Successfully Posted";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return "Success";
+                }else{
+                    $title ="Posting $this->title";
+                    $alert  ="warning";
+                    $message  = "$title $trNumber Failed to Posting";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return "Failed";
+                }
+            }else{
+                $title ="Posting $this->title";
+                $alert  ="warning";
+                $message  = "$title $trNumber Failed to Posting";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return "Failed";
+            }
+        // }else{
+        //     $title ="Posting $this->title";
+        //     $alert  ="warning";
+        //     $message  = "$title $trNumber Failed to Posting, already posted";
+        //     \LogActivity::addToLog($title,"username: $username Status $message");
+        //     return "Failed";
+        // }
+    }
+
+    public function unPosting($trNumberParam)
+    {
+        /*
+            
+            untuk membatalkan posting kalau status sudah posting tapi di edit
+
+        */
+        
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        $username =  Auth::user()->username;
+        // $trNumber = DB::table('transfer_hdr')->where('tr_number',$trNumberParam)->where('status','4')->value('tr_number');
+        $trNumber = $trNumberParam;
+        $trType = $this->moduleCode;
+        $siteCode = 'HO';
+        $status = '5';
+        $reason = "(Edit posting by $username, Reason: unposting karena status sudah posting dan di edit)";
+        $rowAffected = 0;
+        $location = 'WH';
+        $todayDate = date('Y-m-d');
+
+        $data = DB::table('transfer_det')
+        ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+        ->leftJoin('article','article.article_code','transfer_det.article_code')
+        ->where('transfer_det.tr_number',$trNumber)
+        // ->where('transfer_hdr.status','4')
+        ->select('transfer_det.*','article.article_type','article.uom as uom_article',
+            DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
+        )
+        ->get();
+
+        foreach($data as $val){
+            //insert article code kalo belum ada di tabel item_stock
+            DB::table('article_stock')
+            ->updateOrInsert(
+                [ 'site_code' =>$siteCode,
+                    'article_code' => $val->article_code,
+                    'location_number'=>$location
+                ],
+                [
+                    'dept_code'=>$val->article_type,
+                    'uom'=>$val->uom_article
+                ]
+            );
+
+            //update qty nya dikurang dengan qty baru
+            $rowAffected = DB::table('article_stock')
+            ->where('site_code',$siteCode)
+            ->where('article_code',$val->article_code)
+            ->where('location_number',$location)
+            ->update([
+                // 'article_qty' => DB::raw('coalesce(article_qty,0) '.$val->total_qty ? - $val->total_qty  : '')
+                'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+            ]);
+
+        }
+        
+        if ($rowAffected > 0){
+            DB::table('transfer_hdr')
+            ->where('tr_number',$trNumber)
+            ->update(
+                [   
+                    'status' => $status,
+                    'note' => DB::raw("CONCAT(note,';','$reason')") ,
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            $movements = DB::table('transfer_det')
+            ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+            ->leftJoin('article','article.article_code','transfer_det.article_code')
+            ->where('transfer_det.tr_number',$trNumber)
+            ->where('transfer_hdr.status','5')
+            ->where('qty', '<>', 0)
+            ->select(
+                // DB::RAW("now()::timestamp::date as movement_date" )
+                'transfer_hdr.tr_date as movement_date'
+                // DB::RAW("'$movementDate' as movement_date")
+                ,'transfer_det.article_code'
+                ,'article.article_desc'
+                ,DB::raw("0 as movement_plus")
+                ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_min")
+                ,DB::raw(" 0 as movement_price ")
+                ,'transfer_hdr.tr_number as movement_transnno'
+                ,DB::raw("'$trType' as movement_type")
+                ,DB::raw("'$reason' as movement_desc")
+            )
+            ->get();
+            
+            $dataSetMovement = [];
+            foreach ($movements as $val) {
+                $dataSetMovement[] = [
+                    'movement_date' => $val->movement_date,
+                    'artikel_code' => $val->article_code,
+                    'artikel_desc' => $val->article_desc,
+                    'movement_min' => $val->movement_min,
+                    'movement_plus' => $val->movement_plus,
+                    'movement_price' => $val->movement_price,
+                    'movement_transnno' => $val->movement_transnno,
+                    'movement_type' => $val->movement_type,
+                    'movement_desc' => $val->movement_desc,
+                    'created_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'site_code' => $siteCode,
+                    'location_number' => $location,
+                    'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
+                ];
+            }
+
+            DB::table('movement')->insert($dataSetMovement);
+
+            DB::commit();
+            $title ="Cancel $this->title";
+            // $alert  ="success";
+            $message  = "$title $trNumber Successfully Unposting";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return "success";
+
+        }else{
+
+            $title ="Cancel $this->title";
+            // $alert  ="warning";
+            $message  = "$title $trNumber Failed to Unposting";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return "failed";
+
+        }
+    }
+
     public function cancel(Request $request)
     {
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
@@ -722,14 +998,18 @@ class TransferInController extends Controller
         $trDate = $request->trDate;
         $trType = $this->moduleCode;
         $note = $request->note;
-        $status = '1';
-        $poLeadCode = $trType; 
 
+        $trHdr = DB::table('transfer_hdr')->where('tr_number',$trNumber)->first();
+
+        $lastStatus = $trHdr->status;
+
+        $status = $lastStatus == '4' ? $lastStatus : '1';
+        // $poLeadCode = $trType; 
         $locationCode = $request->locationCode;
-        $referenceNo = $request->referenceNo;
+        // $referenceNo = $request->referenceNo;
         $thirdParty = $request->thirdParty;
               
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED'];
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
 
         $messages = [
             'required' => 'The field is required.',
@@ -748,7 +1028,7 @@ class TransferInController extends Controller
         ]);
         
         $error_array = array();
-        $success_output = '';
+        // $success_output = '';
         // return $validation;
         if ($validation->fails()){
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
@@ -762,7 +1042,22 @@ class TransferInController extends Controller
         }else{
             DB::beginTransaction();
             try {
-                $rowAffected=DB::table('transfer_hdr')
+
+                /*
+                    
+                    CR walaupun sudah posting bisa  di edit lagi 
+                    jadi yang sebelumnya harus di unpost dulu supaya stock kembali lagi (nilai plus)
+
+                    lalu setelah edit selesai lakukan posting lagi
+
+                */
+
+                if( $lastStatus == '4'){
+                    $this->unPosting($trNumber);
+                    $note = $note.' ( Status Posting Edit by '.$username.')';
+                }
+
+                $rowAffected = DB::table('transfer_hdr')
                 ->where('tr_number',$trNumber)
                 ->update(
                     [
@@ -778,7 +1073,7 @@ class TransferInController extends Controller
                     ]
                 );
 
-                $dataset=[];
+                $dataSet=[];
                 foreach ($articles as $val) {
                     $dataSet[] = [
                         $trNumber.$val->article_code
@@ -786,41 +1081,56 @@ class TransferInController extends Controller
                     
                 }
 
-                //Delete kalo article tidak ada di tr $trNumber dan article nya $val->article_code
-                //berdasarkan 2 kondisi
-                DB::table('transfer_det')
-                    ->whereNotIn(DB::raw("CONCAT(tr_number,article_code)"),$dataSet)
-                    ->where('tr_number',$trNumber)
-                    ->delete();
-
-                foreach ($articles as $val) {
+                if ($rowAffected > 0){
+                    //Delete kalo article tidak ada di tr $trNumber dan article nya $val->article_code
+                    //berdasarkan 2 kondisi
                     DB::table('transfer_det')
-                    ->updateOrInsert(
-                        ['tr_number' => $trNumber,'article_code' => $val->article_code],
-                        [
-                            'tr_number' => $trNumber,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'uom' => $val->uom,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s'),
-                            'location_to' => $val->locationTo,
-                            'third_party' => $val->thirdParty,
-                            'note' => $val->note
-                        ]
-                    );
+                        ->whereNotIn(DB::raw("CONCAT(tr_number,article_code)"),$dataSet)
+                        ->where('tr_number',$trNumber)
+                        ->delete();
 
-                    DB::table('goods_location')
-                    ->updateOrInsert(
-                        ['article_code' => $val->article_code],
-                        [
-                            'location_code' => $locationCode,
-                            'article_code' => $val->article_code,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]
-                    );
+                    foreach ($articles as $val) {
+                        DB::table('transfer_det')
+                        ->updateOrInsert(
+                            ['tr_number' => $trNumber,'article_code' => $val->article_code],
+                            [
+                                'tr_number' => $trNumber,
+                                'article_code' => $val->article_code,
+                                'qty' => $val->qty,
+                                'uom' => $val->uom,
+                                'updated_by' => Auth::user()->username,
+                                'updated_at' => date('Y-m-d H:i:s'),
+                                'location_to' => $val->locationTo,
+                                'third_party' => $val->thirdParty,
+                                'note' => $val->note
+                            ]
+                        );
+
+                        DB::table('goods_location')
+                        ->updateOrInsert(
+                            ['article_code' => $val->article_code],
+                            [
+                                'location_code' => $locationCode,
+                                'article_code' => $val->article_code,
+                                'updated_by' => Auth::user()->username,
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ]
+                        );
+                    }
+
+                    /*
+                        
+                        30-12-2025
+                        CR untuk bisa auto postimng setelah edit dengan status terakhir POSTED
+
+                        "Pagi pak oki, untuk yang auto post transfer in, sampai di level approve saja pak agar qty nya terbaca di stock. Jadi yang dihilangkan postingnya saja, approve tetap ada."
+                    */
+
+                    if ($lastStatus == '4') {
+                        $this->autoPosting($trNumber,$status);
+                    }
                 }
+            
                                         
                 DB::commit();
 
@@ -875,6 +1185,19 @@ class TransferInController extends Controller
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
+
+                    /*
+                        
+                        30-12-2025
+                        CR untuk bisa auto posting setelah approve
+
+                        "Pagi pak oki, untuk yang auto post transfer in, sampai di level approve saja pak agar qty nya terbaca di stock. Jadi yang dihilangkan postingnya saja, approve tetap ada."
+
+                    */
+
+                    if ($statusTr == 3) {
+                        $this->autoPosting($trNumber,$statusTr);
+                    }
                 }
                 
                 DB::commit();
@@ -922,6 +1245,15 @@ class TransferInController extends Controller
    
     public function list(Request $request)
     {
+
+        /*
+            30-12-2025
+            CR, untuk posting dihilangkan, jadi approve langsung posting
+            Jadi setelah di approve, langsung di posting
+
+            Walaupun status sudah posting bisa di edit dengan role Accounting superuser
+
+        */
         $username = Auth::user()->username;
         $searchTr = strtolower($request->searchTr);
         $searchType = $request->searchType;
@@ -984,9 +1316,17 @@ class TransferInController extends Controller
         
         // dd($trDate ." > ". $lockDateToDate);
         // dd($trDate > $lockDateToDate);
+
+        //oki   belum selesais yang CR
+
+        $bisaEdit = Auth::user()->can('transferIn-edit');
+        $bisaDelete = Auth::user()->can('transferIn-delete');
+        $bisaApprove = Auth::user()->can('transferIn-approve');
+        $superUser = Auth::user()->can('transferIn-edit-superuser');
+        // $superUser = Auth::user()->role == 'superuser' ? true : false;
        
         return Datatables::of($data)
-        ->addColumn('action', function ($data) use($lockDateToDate) {
+        ->addColumn('action', function ($data) use($lockDateToDate,$bisaEdit,$bisaDelete,$bisaApprove,$superUser) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -994,7 +1334,7 @@ class TransferInController extends Controller
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
             if ( $data->status == '1' or $data->status == '2') {
-                if (Auth::user()->can('transferIn-approve')) {
+                if ($bisaApprove) {
                 $buttons .=         '<a href="'. route('transferIn.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Approve") .'</span>
@@ -1002,25 +1342,25 @@ class TransferInController extends Controller
                 }
             }
 
-            if ( $data->status == '3' ) {                
-                if (Auth::user()->can('transferIn-posting')) {
-                    $buttons .="<a href='javascript:;'
-                    class='dropdown-item' 
-                    data-size='sm'
-                    data-ajax-delete='true'
-                    data-confirm='Are You Sure want to post This number?' 
-                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-                    data-modal-id='".$data->id."'
-                    data-url='". route('transferIn.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                    <i data-feather='check' class='feather-14-red'></i>
-                    <span>". __('Posting') ."</span>
-                    </a>";
-                }
+            // if ( $data->status == '3' ) {                
+            //     if (Auth::user()->can('transferIn-posting')) {
+            //         $buttons .="<a href='javascript:;'
+            //         class='dropdown-item' 
+            //         data-size='sm'
+            //         data-ajax-delete='true'
+            //         data-confirm='Are You Sure want to post This number?' 
+            //         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+            //         data-modal-id='".$data->id."'
+            //         data-url='". route('transferIn.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
+            //         <i data-feather='check' class='feather-14-red'></i>
+            //         <span>". __('Posting') ."</span>
+            //         </a>";
+            //     }
                 
-            }
+            // }
             
-            if ( $data->status == '1' or $data->status == '2' ){
-                if (Auth::user()->can('transferIn-edit')) {
+            // if ( $data->status == '1' or $data->status == '2' ){
+                if ($bisaEdit or $superUser) {
                     $trDateDataTables = date('Y-m-d', strtotime($data->tr_date));
                     if($trDateDataTables>$lockDateToDate){
                         $buttons .=         '<a href="'. route('transferIn.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -1029,10 +1369,10 @@ class TransferInController extends Controller
                                             </a>';
                     }
                 }
-            }
+            // }
   
             if ( $data->status == '4' ){
-                if (Auth::user()->can('transferIn-delete')) {
+                if ($bisaDelete) {
                     $trDateDataTables = date('Y-m-d', strtotime($data->tr_date));
                     if($trDateDataTables>$lockDateToDate){
                         $buttons .=         "<a href='javascript:;'
@@ -1068,7 +1408,7 @@ class TransferInController extends Controller
                         </a>';
 
             if ( $data->status != '4' and $data->status != '5' ){
-                if (Auth::user()->can('transferIn-delete')) {
+                if ($bisaDelete) {
                     $trDateDataTables = date('Y-m-d', strtotime($data->tr_date));
                     if($trDateDataTables>$lockDateToDate){
                         $buttons .=         "<a href='javascript:;'
@@ -1204,6 +1544,7 @@ class TransferInController extends Controller
         ->leftJoin('goods_location_master','goods_location_master.location_code','=','transfer_det.location_to')
         ->leftJoin('article','article.article_code','transfer_det.article_code')
         ->where('tr_number',$trNumber)
+        ->orderBy('transfer_det.id')
         ->get();
 
         // $data['totals']=DB::select("SELECT *,(gross-discount)+ppn as netto from (
@@ -1250,6 +1591,7 @@ class TransferInController extends Controller
  
 		// menangkap file excel
 		$file = $request->file('file');
+        $thirdPartyExcel = $request->thirdPartyExcel;
  
 		// // membuat nama file unik
 		$namaFile = rand().$file->getClientOriginalName();
@@ -1261,7 +1603,8 @@ class TransferInController extends Controller
 
         $data['filename']=$namaFile;
         db::table('import_stock_take_tmp')->delete();
-        Excel::import(new TransferOutImport($data), $file);
+
+        Excel::import(new TransferInImport($data), $file);
 
         $dataValidasi = DB::table('import_stock_take_tmp')
         ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
@@ -1269,7 +1612,9 @@ class TransferInController extends Controller
         ,'import_stock_take_tmp.qty'
         ,DB::RAW("concat(
             case when import_stock_take_tmp.qty::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty salah - ',qty) end,
-            case when article.article_code is null then concat('Urutan ',row_number() over(),': Article Code:',import_stock_take_tmp.article_code, ' tidak terdaftar') end
+            case when article.article_code is null then concat('Urutan ',row_number() over(),': Article Code:',import_stock_take_tmp.article_code, ' tidak terdaftar') end,
+            case when (select article_code from article_supplier z where z.article_code = article.article_code and supplier_code = '$thirdPartyExcel') is null then concat('Urutan ',row_number() over(),': Article Code:',import_stock_take_tmp.article_code, ' tidak terdaftar di Supplier/customer') end,
+            case when (select location_code from goods_location_master a where a.location_code = import_stock_take_tmp.location_code) is null then concat('Urutan ',row_number() over(),': Location Code:',import_stock_take_tmp.location_code, ' tidak terdaftar') end
             ) as notes")
         )
         ->where('file_name', $namaFile)
@@ -1298,6 +1643,7 @@ class TransferInController extends Controller
             $data = db::table('import_stock_take_tmp')
             ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
             ->select('article.article_code'
+            ,'location_code'
             ,'article.uom'
             ,'import_stock_take_tmp.qty'
             ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = article.uom)"))
@@ -1318,9 +1664,10 @@ class TransferInController extends Controller
         // return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message,'dataDetail'=>$data]);
     }
 
-    public function export()
+    public function export(Request $request)
     {
-		return Excel::download(new TransferInExport, 'transfer_in_template.xls');
+        $thirdParty = $request->thirdParty;
+		return Excel::download(new TransferInExport($thirdParty), 'transfer_in_template.xls');
 	}
 
 }

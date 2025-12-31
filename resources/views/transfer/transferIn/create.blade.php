@@ -66,7 +66,19 @@
                                 </div>
                             </div>    
                         </form>
-                        <div class="d-none">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Article</h4>
+                </div>
+                
+                <div class="card-body" >
+                    <hr>
+                    {{-- <div class="d-none"> --}}
                             <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 <div class="form-row">
@@ -80,29 +92,16 @@
                                         </div>
                                     </div>
                                     <div class="col-lg-6 col-md-12">
-                                        <button type="button" class="btn btn-primary">
+                                        <button type="button" class="btn btn-info" id ="cmdDownload" name="cmdDownload"><i class="fa fa-download"></i> Download Template</button>
+                                        <button type="button" class="btn btn-primary" id="uploadExcel">
                                             <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
-                                            <span class="align-middle d-sm-inline-block d-none" id="uploadExcel">Upload Excel</span>
+                                            <span class="align-middle d-sm-inline-block d-none" >Upload Excel</span>
                                         </button>
                                     </div>
                                 </div>
-                                <div class="form-row">
-                                    <div class="col-lg-3 col-md-12">
-                                        <a href="{{ route('transferIn.export.excel') }}" class="btn btn-light"><i data-feather="download"></i> Downlod Template</a>
-                                    </div>
-                                </div>
                             </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">Article</h4>
-                </div>
-                <div class="card-body" >
+                    {{-- </div> --}}
+                    <hr style="margin-top: 0px;">
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             @include('transfer.transferIn.headerColumn')
@@ -180,12 +179,21 @@
         }
 
         $('#frmExcel').on('submit', function(event){
-            $('#message').html('');
             event.preventDefault();
+            
+            $('#message').html('');
+            let thirdPartyExcel = thirdParty.val();
+
+            let formData = new FormData(this);
+            
+            if (thirdPartyExcel) {
+                formData.append('thirdPartyExcel', thirdPartyExcel);
+            }
+
             $.ajax({
                 url:"{{ route('transferIn.import.excel') }}",
                 method:"POST",
-                data: new FormData(this),
+                data: formData,
                 dataType:"json",
                 contentType:false,
                 cache:false,
@@ -211,7 +219,7 @@
                             if (dataArticle.length > 0) {
                                 clearInterval(timerId);
                                 for(let i=0;i<data.dataDetail.length;i++){
-                                    add_new_row_edit(data.dataDetail[i].article_code,data.dataDetail[i].qty,data.dataDetail[i].uom,data.dataDetail[i].uom_member,'');
+                                    add_new_row_edit(data.dataDetail[i].article_code,data.dataDetail[i].qty,data.dataDetail[i].uom,data.dataDetail[i].uom_member,'',data.dataDetail[i].location_code);
                                     if (i==(data.dataDetail.length-1)){
                                             $("#uploadExcel").removeAttr('disabled');
                                             show_msg(data.title, data.message, data.alert);
@@ -219,6 +227,7 @@
                                             swal.close();
                                     }
                                 }
+                                thirdParty.attr('disabled','disabled');
                             }
                         }
 
@@ -228,6 +237,7 @@
                         for(let i = 0; i < data.message.length; i++) {
                             show_msg(data.title, data.message[i], data.alert);
                         }
+                        $("#uploadExcel").removeAttr('disabled');
                         swal.fire("warning",data.pesan,"warning");
                         $(".loading-spinner-container").removeClass("-show");
                     }
@@ -235,6 +245,7 @@
                 error: function(xhr, status, error) {
                     let err = JSON.parse(xhr.responseText);
                     // Swal.fire('Error..',err.errors.file[0],'error');
+                    $("#uploadExcel").removeAttr('disabled');
                     Swal.fire('Error..',err.message,'error');
                     $(".loading-spinner-container").removeClass("-show");
                 }
@@ -256,15 +267,39 @@
     });
     
     $("#uploadExcel").click(function(){
-        if (!$("#frmExcel")[0].checkValidity()){
-            $("#frmExcel").submit();
+        if(thirdParty.val()){
+            if (!$("#frmExcel")[0].checkValidity()){
+                $("#frmExcel").submit();
+            }else{
+                $(".loading-spinner-container").addClass("-show");
+                $("#uploadExcel").attr('disabled','disabled');
+                $('.disabled-el').removeAttr('disabled');
+                $("#frmExcel").submit();
+                // removeAllChildDivs("article_row");
+            }
         }else{
-            $(".loading-spinner-container").addClass("-show");
-            $("#uploadExcel").attr('disabled','disabled');
-            $('.disabled-el').removeAttr('disabled');
-            $("#frmExcel").submit();
+            Swal.fire("Warning","Pilih dulu supplier/customer","warning");
         }
     });
+
+    $("#cmdDownload").click(function(){
+        let thirdPartyExcel = thirdParty.val();
+        if(thirdPartyExcel){
+            let url = "{{ route('transferIn.export.excel', ['thirdParty'=>':thirdPartyExcel']) }}";
+            url = url.replace('%3AthirdPartyExcel', thirdPartyExcel);
+            url = url.replace(/\amp;/g,'');
+            window.location.href = url;
+        }else{
+            Swal.fire("Warning","Pilih dulu supplier/customer","warning");
+        }
+    });
+
+    function removeAllChildDivs(objId) {
+        const parentElement = document.getElementById(objId);
+        if (parentElement) {
+            parentElement.innerHTML = ""; // This removes all child elements
+        }
+    }
     
 </script>
 @endsection

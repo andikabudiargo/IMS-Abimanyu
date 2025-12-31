@@ -9,6 +9,6 @@ class ImportStake extends Model
     // public $timestamps = false;
     protected $table = 'import_stock_take_tmp';
     protected $fillable = [
-        'file_name','article_code','qty'
+        'file_name','article_code','location_code','qty'
     ];
 }

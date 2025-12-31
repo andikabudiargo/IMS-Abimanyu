@@ -142,6 +142,7 @@ class PermissionController extends Controller
 			$row_affected=DB::table('permissions')
 					->where('id',$permission_id)
 					->update([
+                        'group_name'=>$name,
 						'display_name'=>$display_name,
 						'description'=>$description,
 						'updated_at' => date('Y-m-d H:i:s')
@@ -188,7 +189,7 @@ class PermissionController extends Controller
      */
     public function update(Request $request, Permission $permission)
     {
-        //
+       
     }
 
     /**

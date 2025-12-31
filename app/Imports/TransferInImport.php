@@ -6,8 +6,27 @@ use App\Models\ImportStake;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithStartRow;
- 
-class TransferInImport implements ToModel, WithStartRow,WithHeadingRow
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+
+class TransferInImport implements WithMultipleSheets
+{
+    private $data;
+
+    public function __construct(array $data = [])
+    {
+        $this->data = $data; 
+    }
+
+    public function sheets(): array
+    {
+        return [
+            'article' => new ArticleSheetImport($this->data),
+        ];
+    }
+}
+
+// Create a separate class for the article sheet
+class ArticleSheetImport implements ToModel, WithStartRow, WithHeadingRow
 {
     private $data;
 
@@ -21,6 +40,7 @@ class TransferInImport implements ToModel, WithStartRow,WithHeadingRow
         return new ImportStake([
             'file_name'      => $this->data['filename'],
             'article_code'   => $row['article_code'],
+            'location_code'  => $row['location_code'],
             'qty'            => $row['qty'], 
         ]);
     }
