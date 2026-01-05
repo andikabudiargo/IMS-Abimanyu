@@ -1171,6 +1171,7 @@ class TransferOutController extends Controller
 
         $data['filename']=$namaFile;
         db::table('import_stock_take_tmp')->delete();
+
         Excel::import(new TransferOutImport($data), $file);
 
         $dataValidasi = DB::table('import_stock_take_tmp')
@@ -1179,7 +1180,8 @@ class TransferOutController extends Controller
         ,'import_stock_take_tmp.qty'
         ,DB::RAW("concat(
             case when import_stock_take_tmp.qty::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty salah - ',qty) end,
-            case when article.article_code is null then concat('Urutan ',row_number() over(),': Article Code:',import_stock_take_tmp.article_code, ' tidak terdaftar') end
+            case when article.article_code is null then concat('Urutan ',row_number() over(),': Article Code:',import_stock_take_tmp.article_code, ' tidak terdaftar') end,
+            case when (select location_code from goods_location_master a where a.location_code = import_stock_take_tmp.location_code) is null then concat('Urutan ',row_number() over(),': Location Code:',import_stock_take_tmp.location_code, ' tidak terdaftar') end
             ) as notes")
         )
         ->where('file_name', $namaFile)
@@ -1205,15 +1207,17 @@ class TransferOutController extends Controller
         }else{
 
             // return redirect()->back()->with('success', 'Excel file imported successfully!');
+
             $data = db::table('import_stock_take_tmp')
             ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
             ->select('article.article_code'
+            ,'location_code'
             ,'article.uom'
             ,'import_stock_take_tmp.qty'
             ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = article.uom)"))
             ->where('file_name', $namaFile)
-            ->get();    
-            
+            ->get();
+                        
             $status = 1;
             $alert = "success";
             $message  = "$title is successfully imported";

@@ -83,8 +83,8 @@
                                 </div>
                             </div>                            
                         </form>
-                        <div class="d-none">
-                            <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
+                        {{-- <div class="d-none"> --}}
+                            {{-- <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 <div class="form-row">
                                     <div class="col-lg-3 col-md-12">
@@ -108,8 +108,8 @@
                                         <a href="{{ route('transferOut.export.excel') }}" class="btn btn-light"><i data-feather="download"></i> Downlod Template</a>
                                     </div>
                                 </div>
-                            </form>
-                        </div>
+                            </form> --}}
+                        {{-- </div> --}}
                     </div>
                 </div>
             </div>
@@ -120,6 +120,31 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body" >
+                    <hr>
+                    {{-- <div class="d-none"> --}}
+                        <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="form-row">
+                                <div class="col-lg-3 col-md-12">
+                                    <div class="form-group">
+                                        <div>
+                                            <input type="file" class="custom-file-input" name="file" id="file" required/>
+                                            <label class="custom-file-label" for="file" id="fileLabel">Choose file</label>
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 col-md-12">
+                                    <a href="{{ route('transferOut.export.excel') }}" class="btn btn-light"><i class="fa fa-download"></i> Downlod Template</a>
+                                    <button type="button" class="btn btn-primary" id="uploadExcel">
+                                        <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                                        <span class="align-middle d-sm-inline-block d-none" >Upload Excel</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    {{-- </div> --}}
+                    <hr style="margin-top: 0px;">
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             @include('transfer.transferOut.headerColumn')
@@ -213,74 +238,129 @@
         $('#frmExcel').on('submit', function(event){
             $('#message').html('');
             event.preventDefault();
-            $.ajax({
-                url:"{{ route('transferOut.import.excel') }}",
-                method:"POST",
-                data: new FormData(this),
-                dataType:"json",
-                contentType:false,
-                cache:false,
-                processData:false,
-                beforeSend:function(){
-                    $('#uploadExcel').attr('disabled','disabled');
-                },
-                success:function(data){
-                    // console.log(data.dataDetail);
-                    // console.log(data.status);
-                    if(data.status == 1){
-                        Swal.fire({
-                            title: "Proses validasi...",
-                            icon: "warning",
-                            showConfirmButton: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            },
-                        })
+            if($('#file').val()){
+                $.ajax({
+                    url:"{{ route('transferOut.import.excel') }}",
+                    method:"POST",
+                    data: new FormData(this),
+                    dataType:"json",
+                    contentType:false,
+                    cache:false,
+                    processData:false,
+                    beforeSend:function(){
+                        $('#uploadExcel').attr('disabled','disabled');
+                    },
+                    success:function(data){
+                        if(data.status == 1){
+                            Swal.fire({
+                                title: "Proses validasi...",
+                                html: '0/0 Loaded',
+                                icon: "warning",
+                                showConfirmButton: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
 
-                        let timerId = setInterval(() => checkVariable(), 1000);
-                        function checkVariable() {
-                            if (dataArticle.length > 0) {
-                                clearInterval(timerId);
-                                for(let i=0;i<data.dataDetail.length;i++){
-                                    add_new_row_edit(data.dataDetail[i].article_code,data.dataDetail[i].qty,data.dataDetail[i].uom,data.dataDetail[i].uom_member,'');
-                                    if (i==(data.dataDetail.length-1)){
-                                            console.log("oki"+i)
-                                            $("#uploadExcel").removeAttr('disabled');
-                                            // swal.close();
-                                            show_msg(data.title, data.message, data.alert);
-                                            $(".loading-spinner-container").removeClass("-show");
-                                            swal.close();
+                                    if (data.dataDetail.length > 0){
+                                        let jumlahData = data.dataDetail.length;
+
+                                        const dataDetail = data.dataDetail.reverse();
+
+                                        Swal.getHtmlContainer().innerHTML = `<b> 0/${jumlahData} </b> Loaded`;
+        
+                                        let timerId = setInterval(() => checkVariable(), 1000);
+                                        function checkVariable() {
+                                            if (dataArticle.length > 0) {
+                                                clearInterval(timerId);
+                                                for (let i = jumlahData-1;i>=0;i--){
+                                                    
+                                                    setTimeout(() => {
+                                                        if (Swal.isVisible()) {
+                                                            
+                                                            if(dataDetail[i].article_code){
+                                                                add_new_row_edit(dataDetail[i].article_code,dataDetail[i].qty,dataDetail[i].uom,dataDetail[i].uom_member,'',dataDetail[i].location_code);
+                                                                Swal.getHtmlContainer().innerHTML = `<b> ${jumlahData-i}/${jumlahData} </b> Loaded`;
+                                                            }
+                                                            
+                                                            if (i === 0) {
+                                                                $("#uploadExcel").removeAttr('disabled');
+                                                                show_msg(data.title, data.message, data.alert);
+                                                                $(".loading-spinner-container").removeClass("-show");
+                                                                swal.close();
+                                                                clearFileInput('file');
+                                                            }
+                                                        }
+                                                        
+                                                    }, (jumlahData - i) * 1000); // Staggered delays
+
+                                                }
+                                            }
+                                        }
+                                    }else{
+                                        swal.fire("warning","Excel file is empty... !!","warning");
+                                        $("#uploadExcel").removeAttr('disabled');
+                                        $(".loading-spinner-container").removeClass("-show");
                                     }
-                                }
+
+
+                                    // let timerId = setInterval(() => checkVariable(), 1000);
+                                    // function checkVariable() {
+                                    //     if (dataArticle.length > 0) {
+                                    //         clearInterval(timerId);
+                                            // for(let i=0;i<data.dataDetail.length;i++){
+                                            //     setTimeout(() => {
+                                            //         if (Swal.isVisible()) {
+                                            //             add_new_row_edit(data.dataDetail[i].article_code,data.dataDetail[i].qty,data.dataDetail[i].uom,data.dataDetail[i].uom_member,'',data.dataDetail[i].location_code);
+                                            //             Swal.getHtmlContainer().innerHTML = 
+                                            //             'Harap tunggu sebentar...<br>' +
+                                            //             `<small>${i} detik tersisa</small>`;
+
+                                            //             if (i==(data.dataDetail.length-1)){
+                                            //                 $("#uploadExcel").removeAttr('disabled');
+                                            //                 show_msg(data.title, data.message, data.alert);
+                                            //                 $(".loading-spinner-container").removeClass("-show");
+                                            //                 swal.close();
+                                            //             }
+                                            //         }
+
+                                            //     }, (30 - i) * 1000); // Staggered delays
+                                            // }
+                                    //     }
+                                    // }
+                                },
+                            })
+                        }
+
+                        if(data.status == 0){
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
                             }
+                            $("#uploadExcel").removeAttr('disabled');
+                            swal.fire("warning",data.pesan,"warning");
+                            $(".loading-spinner-container").removeClass("-show");
                         }
-
-                    }
-
-                    if(data.status == 0){
-                        for(let i = 0; i < data.message.length; i++) {
-                            show_msg(data.title, data.message[i], data.alert);
-                        }
-                        swal.fire("warning",data.pesan,"warning");
+                    },
+                    error: function(xhr, status, error) {
+                        let err = JSON.parse(xhr.responseText);
+                        // Swal.fire('Error..',err.errors.file[0],'error');
+                        $("#uploadExcel").removeAttr('disabled');
+                        Swal.fire('Error..',err.message,'error');
                         $(".loading-spinner-container").removeClass("-show");
                     }
-                },
-                error: function(xhr, status, error) {
-                    let err = JSON.parse(xhr.responseText);
-                    // Swal.fire('Error..',err.errors.file[0],'error');
-                    Swal.fire('Error..',err.message,'error');
-                    $(".loading-spinner-container").removeClass("-show");
-                }
-            })
+                })
+            }else{
+                Swal.fire('Error..','File is empty !!','error');
+            }
         });
+
+        function clearFileInput(inputId) {
+            let input = $('#' + inputId);
+            input.wrap('<form>').closest('form').get(0).reset();
+            input.unwrap();
+            $('#fileLabel').text('Choose file');
+        }
 
     });
 
-
-    // thirdParty.change(function(e){
-    //     isiArticleByThirdParty('trArticleThirdParty',thirdParty.val());
-    // })
-    
     objToType.change(function(e){
         let toType=$(this).val();
         objTsoBox.hide();
@@ -318,6 +398,10 @@
             });
         }
     });
+
+    // thirdParty.change(function(e){
+    //     isiArticleByThirdParty('trArticleThirdParty',thirdParty.val());
+    // })
 
     // objNoteSelect.change(function(e){
     //     let optionVal = $(this).val(); 

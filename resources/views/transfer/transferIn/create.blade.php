@@ -92,7 +92,7 @@
                                         </div>
                                     </div>
                                     <div class="col-lg-6 col-md-12">
-                                        <button type="button" class="btn btn-info" id ="cmdDownload" name="cmdDownload"><i class="fa fa-download"></i> Download Template</button>
+                                        <button type="button" class="btn btn-light" id ="cmdDownload" name="cmdDownload"><i class="fa fa-download"></i> Download Template</button>
                                         <button type="button" class="btn btn-primary" id="uploadExcel">
                                             <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
                                             <span class="align-middle d-sm-inline-block d-none" >Upload Excel</span>
