@@ -185,7 +185,7 @@ class GeneralJournalController extends Controller
         ->select(DB::raw("right(voucher_number,4) as last_code"))
         ->value('last_code');
 
-        $getLastCode = $getLastCode ? $getLastCode : 1;
+        $getLastCode = $getLastCode ? $getLastCode : 0;
 
         //yang statusnya delete di skip
         // $getMissingCode = DB::SELECT("SELECT generate_series(0001, $getLastCode) as missing_code
