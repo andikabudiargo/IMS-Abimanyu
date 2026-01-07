@@ -247,6 +247,7 @@
         $('#accountPiutang').val("");
         $('#soNumber').empty();
         soNumber.attr('disabled','disabled');
+        soDate.removeAttr('disabled');
         soDate.val("");
         let coa = $(this).find(":selected").data("coa");
         if(coa){
@@ -602,9 +603,11 @@
         if (jumlahData > 0 ){
             // $('#soNumber').attr('disabled','dieabled');
             $('#customer').attr('disabled','dieabled');
+            $('#soDate').attr('disabled','dieabled');
         }else{
             // $('#soNumber').removeAttr('disabled');
             $('#customer').removeAttr('disabled');
+            $('#soDate').removeAttr('disabled');
         }
     }
 
@@ -634,7 +637,7 @@
             edit = 'false'
         }
         
-        console.log("Edit : "+edit);
+        // console.log("Edit : "+edit);
 
         if(jumlahCheck > 0 ){
             $.ajax({
