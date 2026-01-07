@@ -242,7 +242,8 @@ class AccountPayableController extends Controller
             $getLastNumber = DB::table('ap_invoice')
             ->where('ap_number','like',$basicCode.'%')
             ->where('status','<>','5')
-            ->orderBy('id','desc')
+            ->orderBy(db::raw('RIGHT(ap_number,4)'),'desc')
+            // ->orderBy('id','desc')
             ->first();
         }else{
             $getLastNumber = DB::table('ap_invoice')
