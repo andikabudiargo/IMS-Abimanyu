@@ -93,13 +93,13 @@
         <table width="100%" border="0" >
             <tbody>
                 <tr>
-                    <td width="45%" valign="top" >
+                    <td width="50%" valign="top" >
                         Number : {{ $trNumber }}<br>
                         Date   : {{ $trDate }}<br>
-                        Customer/Supplier : {{ $thirdParties[0]->nama }}
+                        Customer/Supplier : {{ $thirdPartie }}
                     </td>
-                    <td width="10%"></td>
-                    <td width="45%">
+                    {{-- <td width="10%"></td> --}}
+                    <td width="40%">
                         Rec. Status   : {{ $status }}<br>
                         Note   : {{ $keterangan }}<br>
                         Location From : {{ $locationFrom }}

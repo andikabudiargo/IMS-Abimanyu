@@ -1570,9 +1570,9 @@ class TransferInController extends Controller
         ->orderBy('approval_order','desc')
         ->value('users.name');
 
-        $data['thirdParties'] = DB::table('third_party')
-        ->orderBy('nama')
-        ->get();
+        $data['thirdPartie'] = DB::table('third_party')
+        ->where('kode',$trHdr->third_party)
+        ->value('nama');
         
         view()->share($data);
 
