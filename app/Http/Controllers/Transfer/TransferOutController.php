@@ -213,6 +213,7 @@ class TransferOutController extends Controller
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                             'updated_at' => date('Y-m-d H:i:s'),
+                            'location_code' => $locationCode,
                             'location_to' => $val->locationTo
                         ];
                     }
@@ -242,10 +243,31 @@ class TransferOutController extends Controller
 
     public function posting(Request $request)
     {
+
+        /*
+            13-1-2026
+            CR, pada saat posting apabila article nya adalah article FG maka qty FG akan berkurang dan
+            QTY RM atas FG itu berdasarkan BOM akan berkurang juga, jangan lupa masukan ke movement
+            "Hanya Barang FG yang ditransfer dari Gudang RM ke Gudang Under Produksi pak"
+    
+
+            location from :
+            1039	Gudang Raw Material
+
+            Location to :
+
+            1042	Produksi
+
+            approval 003 -> produksi
+
+        */
+
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        // $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
+        // $movementDate = date("d-m-Y");
+
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        // $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
         $hdrQ = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->first();
         $trNumber = $hdrQ->tr_number;
         $lastStatus = $hdrQ->status;    
@@ -254,21 +276,29 @@ class TransferOutController extends Controller
         $location ='WH';
         $status = '4';
         $todayDate = date('Y-m-d');
-        // $movementDate = date("d-m-Y");
+        $deptApproval = '003'; //produksi
+        $gudangAsal = '1039'; //Gudang Raw Material
 
         if ($lastStatus!=4){
             if ($trNumber){
+
                 $data = DB::table('transfer_det')
                 ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
                 ->leftJoin('article','article.article_code','transfer_det.article_code')
                 ->where('transfer_det.tr_number',$trNumber)
                 // ->where('transfer_hdr.status','3')
-                ->select('transfer_det.*','article.article_type','article.uom as uom_article',
+                ->select(
+                    'transfer_det.*'
+                    ,'article.article_type'
+                    ,'article.uom as uom_article',
                     DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
                 )
                 ->get();
 
+                $dataRmCodetoMovement=[];
+
                 foreach($data as $val){
+
                     //insert article code kalo belum ada di tabel item_stock
                     DB::table('article_stock')
                     ->updateOrInsert(
@@ -282,23 +312,101 @@ class TransferOutController extends Controller
                         ]
                     );
 
-                    //update qty nya ditambahkan dengan qty baru
+                    $qtyTransFerOut = $val->total_qty;
+
+                    //update qty nya dikurangi dengan qty baru
                     DB::table('article_stock')
                     ->where('site_code',$siteCode)
                     ->where('article_code',$val->article_code)
                     ->where('location_number',$location)
                     ->update([
-                        'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+                        'article_qty' => DB::raw('coalesce(article_qty,0) - '.$qtyTransFerOut)
                     ]);
+
+
+                    /*
+                        
+                        "Hanya Barang FG yang ditransfer dari Gudang RM ke Gudang Under Produksi pak"
+                        di tabel goods_location_master yang approval nya dept produksi yaitu 003
+
+                        location from :
+                        1039	Gudang Raw Material
+
+                        approval: 003 -> produksi
+
+                    */
+
+                    $apakahFg = DB::table('article')->where('article_code',$val->article_code)->value('article_type');
+                    $apakahDariGudangRm = $val->location_code ? $val->location_code : $hdrQ->location_code;
+                    $lokasiTujuan = $val->location_to;
+
+                    $lokasiTujuanProduksi = DB::table('goods_location_master')
+                    ->where('location_code',$lokasiTujuan)
+                    ->where('approval',$deptApproval)->count();
+
+                    // dump($apakahFg." - ".$apakahDariGudangRm." - ".$lokasiTujuanProduksi);
+                    // dump(($apakahFg=='FG') && ($apakahDariGudangRm ==$gudangAsal) && ($lokasiTujuanProduksi > 0));
+
+                    if (($apakahFg=='FG') && ($apakahDariGudangRm ==$gudangAsal) && ($lokasiTujuanProduksi > 0) ){ 
+                        
+                        // dump("kesini");
+
+                        $articleRmdiBom = DB::table("bom_hdr")
+                        ->select(
+                            'bom_hdr.article_code as article_code_fg'
+                            ,'article_code_rm'
+                            ,'article.article_type'
+                            ,'article.uom as uom_article'
+                        )
+                        ->leftJoin('article','article.article_code','bom_hdr.article_code_rm')
+                        ->where("bom_hdr.article_code",$val->article_code)
+                        ->first();
+
+                        // dump($articleRmdiBom);
+
+                        if( $articleRmdiBom ){
+
+                        // dump("kesini");
+
+                            //insert article code kalo belum ada di tabel item_stock
+                            DB::table('article_stock')
+                            ->updateOrInsert(
+                                [ 'site_code' =>$siteCode,
+                                    'article_code' => $articleRmdiBom->article_code_rm,
+                                    'location_number'=>$location
+                                ],
+                                [
+                                    'dept_code'=>$articleRmdiBom->article_type,
+                                    'uom'=>$articleRmdiBom->uom_article
+                                ]
+                            );
+
+                            DB::table('article_stock')
+                            ->where('site_code',$siteCode)
+                            ->where('article_code',$articleRmdiBom->article_code_rm)
+                            ->where('location_number',$location)
+                            ->update([
+                                'article_qty' => DB::raw('coalesce(article_qty,0) - '.$qtyTransFerOut)
+                            ]);
+
+                            $dataRmCodetoMovement[] = $articleRmdiBom->article_code_fg;
+                        }
+                    }
+
+                    // dump($dataRmCodetoMovement);
 
                     //update qty nya ditambahkan dengan qty baru
                     // $rowAffected = DB::table('article_stock')
                     // ->where('site_code',$siteCode)
                     // ->where('article_code',$val->article_code)
                     // ->decrement('article_qty', $val->total_qty);
+
                 }
-                        
-                
+
+                if( count($dataRmCodetoMovement) > 0 ){
+                    $dataRmCodetoMovement = "'".implode("','", $dataRmCodetoMovement)."'";
+                }       
+
                 $rowAffected = DB::table('transfer_hdr')
                 ->where('tr_number',$trNumber)
                 ->update(
@@ -308,7 +416,7 @@ class TransferOutController extends Controller
                         'updated_at' => date('Y-m-d H:i:s')
                     ]
                 );
-                
+                $rowAffected  = 1;
                 if ($rowAffected > 0){
 
                     /*
@@ -320,12 +428,12 @@ class TransferOutController extends Controller
                     ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
                     ->leftJoin('article','article.article_code','transfer_det.article_code')
                     ->where('transfer_det.tr_number',$trNumber)
-                    ->where('transfer_hdr.status','4')
+                    // ->where('transfer_hdr.status','4')
                     ->where('qty', '<>', 0)
                     ->select(
                         // DB::RAW("now()::timestamp::date as movement_date" )
-                        'transfer_hdr.tr_date as movement_date'
                         // DB::RAW("'$movementDate' as movement_date")
+                        'transfer_hdr.tr_date as movement_date'
                         ,'transfer_det.article_code'
                         ,'article.article_desc'
                         ,DB::raw("0 as movement_plus")
@@ -334,9 +442,8 @@ class TransferOutController extends Controller
                         ,'transfer_hdr.tr_number as movement_transnno'
                         ,DB::raw("'$trType' as movement_type")
                         ,'transfer_hdr.note as movement_desc'
-                    )
-                    ->get();
-                    
+                    )->get();
+
                     $dataSetMovement = [];
                     foreach ($movements as $val) {
                         $dataSetMovement[] = [
@@ -358,6 +465,78 @@ class TransferOutController extends Controller
                     }
 
                     DB::table('movement')->insert($dataSetMovement);
+
+                    //Proses kalau ada data yang dari RM ke Gudang Produksi
+
+                    // dump($dataRmCodetoMovement);
+
+                    if( $dataRmCodetoMovement ){
+
+                        $dataRmCodetoMovements = explode("','", trim($dataRmCodetoMovement, "'"));
+
+                        // dump($dataRmCodetoMovements);
+
+                        $movementRm2 = DB::table('transfer_det')
+                        ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+                        ->leftJoin('article','article.article_code','transfer_det.article_code')
+                        ->where('transfer_det.tr_number',$trNumber)
+                        ->where('transfer_hdr.status','4')
+                        ->where('qty', '<>', 0)
+                        ->whereIn('transfer_det.article_code',$dataRmCodetoMovements)
+                        ->select(
+                            'transfer_hdr.tr_date as movement_date'
+                            ,'transfer_det.article_code'
+                            ,'article.article_desc'
+                            ,DB::raw("0 as movement_plus")
+                            ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_min")
+                            ,DB::raw(" 0 as movement_price ")
+                            ,'transfer_hdr.tr_number as movement_transnno'
+                            ,DB::raw("'$trType' as movement_type")
+                            ,'transfer_hdr.note as movement_desc'
+                        )
+                        ->get();
+
+                        // dump("oki");
+                        // dump($movementRm2);
+
+                        $dataSetMovementRm = [];
+                        foreach ($movementRm2 as $movementRm) {
+                            
+                            $articleRmdiBom1 = DB::table("bom_hdr")
+                            ->leftJoin('article','article.article_code','bom_hdr.article_code_rm')
+                            ->leftJoin('article as a','a.article_code','bom_hdr.article_code')
+                            ->select(
+                                'article_code_rm'
+                                ,'article.article_desc as article_desc'
+                                ,'a.article_alternative_code as article_fg'
+                                ,'article.article_type'
+                                ,'article.uom as uom_article')
+                            ->where("bom_hdr.article_code",$movementRm->article_code)
+                            ->first();
+
+                            $dataSetMovementRm[] = [
+                                'movement_date' => $movementRm->movement_date,
+                                'artikel_code' => $articleRmdiBom1->article_code_rm,
+                                'artikel_desc' => $articleRmdiBom1->article_desc,
+                                'movement_min' => $movementRm->movement_min,
+                                'movement_plus' => $movementRm->movement_plus,
+                                'movement_price' => $movementRm->movement_price,
+                                'movement_transnno' => $movementRm->movement_transnno,
+                                'movement_type' => $movementRm->movement_type,
+                                'movement_desc' => $movementRm->movement_desc." (Automatic Posting dari FG ".$articleRmdiBom1->article_fg.")",
+                                'created_by' => Auth::user()->username,
+                                'created_at' => date('Y-m-d H:i:s'),
+                                'site_code' => $siteCode,
+                                'location_number' => $location,
+                                'last_qty' => DB::raw("get_last_qty('$articleRmdiBom1->article_code_rm','$todayDate','$siteCode','$location') - ($movementRm->movement_min+$movementRm->movement_plus)")
+                            ];
+                        }
+
+                        DB::table('movement')->insert($dataSetMovementRm);
+
+                        // dump($dataSetMovementRm);
+
+                    }
 
                     DB::commit();
                     $title ="Posting $this->title";
@@ -392,19 +571,42 @@ class TransferOutController extends Controller
 
     public function cancel(Request $request)
     {
+
+        /*
+            13-1-2026
+            CR, pada saat posting apabila article nya adalah article FG maka qty FG akan berkurang dan
+            QTY RM atas FG itu berdasarkan BOM akan berkurang juga, jangan lupa masukan ke movement
+            "Hanya Barang FG yang ditransfer dari Gudang RM ke Gudang Under Produksi pak"
+    
+
+            location from :
+            1039	Gudang Raw Material
+
+            Location to :
+
+            1042	Produksi
+
+            approval 003 -> produksi
+
+        */
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        // $authorizedBy = Auth::user()->username;
+        // $movementDate = date("d-m-Y");
+        // $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','4')->value('tr_number');
+
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','4')->value('tr_number');
+        $hdrQ = DB::table('transfer_hdr')->where('id',$id)->where('status','4')->first();
+        $trNumber = $hdrQ->tr_number;
         $trType = $this->moduleCode;
-        $siteCode = 'HO';
         $status = '5';
         $reason = "(Cancel by $username, Reason: $request->reason)";
-        $authorizedBy = Auth::user()->username;
         $rowAffected = 0;
+        $siteCode = 'HO';
         $location = 'WH';
         $todayDate = date('Y-m-d');
-        // $movementDate = date("d-m-Y");
+        $deptApproval = '003'; //produksi
+        $gudangAsal = '1039'; //Gudang Raw Material
 
         $data = DB::table('transfer_det')
         ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
@@ -415,6 +617,8 @@ class TransferOutController extends Controller
             DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
         )
         ->get();
+
+        $dataRmCodetoMovement=[];
 
         foreach($data as $val){
             //insert article code kalo belum ada di tabel item_stock
@@ -430,21 +634,80 @@ class TransferOutController extends Controller
                 ]
             );
 
+            $qtyTransFerOut = $val->total_qty;
+
             //update qty nya ditambahkan dengan qty baru
             $rowAffected = DB::table('article_stock')
             ->where('site_code',$siteCode)
             ->where('article_code',$val->article_code)
             ->where('location_number',$location)
             ->update([
-                'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+                'article_qty' => DB::raw('coalesce(article_qty,0) + '.$qtyTransFerOut)
             ]);
 
-            //update qty nya ditambahkan dengan qty baru
-            // $rowAffected = DB::table('article_stock')
-            // ->where('site_code',$siteCode)
-            // ->where('article_code',$val->article_code)
-            // ->increment('article_qty', $val->total_qty);
+            $apakahFg = DB::table('article')->where('article_code',$val->article_code)->value('article_type');
+            $apakahDariGudangRm = $val->location_code ? $val->location_code : $hdrQ->location_code;
+            $lokasiTujuan = $val->location_to;
+
+            $lokasiTujuanProduksi = DB::table('goods_location_master')
+            ->where('location_code',$lokasiTujuan)
+            ->where('approval',$deptApproval)->count();
+
+            // dump($apakahFg." - ".$apakahDariGudangRm." - ".$lokasiTujuanProduksi);
+            // dump(($apakahFg=='FG') && ($apakahDariGudangRm ==$gudangAsal) && ($lokasiTujuanProduksi > 0));
+
+
+            if (($apakahFg=='FG') && ($apakahDariGudangRm ==$gudangAsal) && ($lokasiTujuanProduksi > 0) ){ 
+                
+                // dump("kesini");
+
+                $articleRmdiBom = DB::table("bom_hdr")
+                ->select(
+                    'bom_hdr.article_code as article_code_fg'
+                    ,'article_code_rm'
+                    ,'article.article_type'
+                    ,'article.uom as uom_article'
+                )
+                ->leftJoin('article','article.article_code','bom_hdr.article_code_rm')
+                ->where("bom_hdr.article_code",$val->article_code)
+                ->first();
+
+                // dump($articleRmdiBom);
+
+                if( $articleRmdiBom ){
+
+                    //insert article code kalo belum ada di tabel item_stock
+                    DB::table('article_stock')
+                    ->updateOrInsert(
+                        [ 'site_code' =>$siteCode,
+                            'article_code' => $articleRmdiBom->article_code_rm,
+                            'location_number'=>$location
+                        ],
+                        [
+                            'dept_code'=>$articleRmdiBom->article_type,
+                            'uom'=>$articleRmdiBom->uom_article
+                        ]
+                    );
+
+                    DB::table('article_stock')
+                    ->where('site_code',$siteCode)
+                    ->where('article_code',$articleRmdiBom->article_code_rm)
+                    ->where('location_number',$location)
+                    ->update([
+                        'article_qty' => DB::raw('coalesce(article_qty,0) + '.$qtyTransFerOut)
+                    ]);
+
+                    $dataRmCodetoMovement[] = $articleRmdiBom->article_code_fg;
+                }
+            }
+
         }
+
+        if( count($dataRmCodetoMovement) > 0 ){
+            $dataRmCodetoMovement = "'".implode("','", $dataRmCodetoMovement)."'";
+        }
+
+        // dump($dataRmCodetoMovement);
         
         if ($rowAffected > 0){
             DB::table('transfer_hdr')
@@ -466,8 +729,8 @@ class TransferOutController extends Controller
             ->where('qty', '<>', 0)
             ->select(
                 // DB::RAW("now()::timestamp::date as movement_date" )
-                'transfer_hdr.tr_date as movement_date'
                 // DB::RAW("'$movementDate' as movement_date")
+                'transfer_hdr.tr_date as movement_date'
                 ,'transfer_det.article_code'
                 ,'article.article_desc'
                 ,DB::raw("0 as movement_min")
@@ -500,6 +763,76 @@ class TransferOutController extends Controller
             }
 
             DB::table('movement')->insert($dataSetMovement);
+            
+            // dump($dataRmCodetoMovement);
+            
+            //Proses kalau ada data yang dari RM ke Gudang Produksi
+            if( $dataRmCodetoMovement ){
+
+                $dataRmCodetoMovements = explode("','", trim($dataRmCodetoMovement, "'"));
+
+                // dump($dataRmCodetoMovements);
+
+                $movementRm2 = DB::table('transfer_det')
+                ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+                ->leftJoin('article','article.article_code','transfer_det.article_code')
+                ->where('transfer_det.tr_number',$trNumber)
+                ->where('transfer_hdr.status','5')
+                ->where('qty', '<>', 0)
+                ->whereIn('transfer_det.article_code',$dataRmCodetoMovements)
+                ->select(
+                    'transfer_hdr.tr_date as movement_date'
+                    ,'transfer_det.article_code'
+                    ,'article.article_desc'
+                    ,DB::raw("0 as movement_min")
+                    ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_plus")
+                    ,DB::raw(" 0 as movement_price ")
+                    ,'transfer_hdr.tr_number as movement_transnno'
+                    ,DB::raw("'$trType' as movement_type")
+                    ,'transfer_hdr.note as movement_desc'
+                )
+                ->get();
+
+                // dump($movementRm2);
+
+                $dataSetMovementRm = [];
+                foreach ($movementRm2 as $movementRm) {
+                    
+                    $articleRmdiBom1 = DB::table("bom_hdr")
+                    ->leftJoin('article','article.article_code','bom_hdr.article_code_rm')
+                    ->leftJoin('article as a','a.article_code','bom_hdr.article_code')
+                    ->select(
+                        'article_code_rm'
+                        ,'article.article_desc as article_desc'
+                        ,'a.article_alternative_code as article_fg'
+                        ,'article.article_type'
+                        ,'article.uom as uom_article')
+                    ->where("bom_hdr.article_code",$movementRm->article_code)
+                    ->first();
+
+                    $dataSetMovementRm[] = [
+                        'movement_date' => $val->movement_date,
+                        'artikel_code' => $articleRmdiBom1->article_code_rm,
+                        'artikel_desc' => $articleRmdiBom1->article_desc,
+                        'movement_min' => $movementRm->movement_min,
+                        'movement_plus' => $movementRm->movement_plus,
+                        'movement_price' => $movementRm->movement_price,
+                        'movement_transnno' => $movementRm->movement_transnno,
+                        'movement_type' => $movementRm->movement_type,
+                        'movement_desc' => $movementRm->movement_desc." (Automatic UnPosting dari FG ".$articleRmdiBom1->article_fg.")",
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'site_code' => $siteCode,
+                        'location_number' => $location,
+                        'last_qty' => DB::raw("get_last_qty('$movementRm->article_code','$todayDate','$siteCode','$location') + ($movementRm->movement_min+$movementRm->movement_plus)")
+                    ];
+                }
+
+                DB::table('movement')->insert($dataSetMovementRm);
+
+                // dump($dataSetMovementRm);
+
+            }
 
             DB::commit();
             $title ="Cancel $this->title";
@@ -1236,5 +1569,156 @@ class TransferOutController extends Controller
     {
 		return Excel::download(new TransferOutExport, 'transfer_out_template.xls');
 	}
+
+
+    // public function posting(Request $request)
+    // {
+    //     // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+    //     $username =  Auth::user()->username;
+    //     $id=Crypt::decryptString($request->id);
+    //     // $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
+    //     $hdrQ = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->first();
+    //     $trNumber = $hdrQ->tr_number;
+    //     $lastStatus = $hdrQ->status;    
+    //     $trType = $this->moduleCode;
+    //     $siteCode = 'HO';
+    //     $location ='WH';
+    //     $status = '4';
+    //     $todayDate = date('Y-m-d');
+    //     // $movementDate = date("d-m-Y");
+
+    //     if ($lastStatus!=4){
+    //         if ($trNumber){
+    //             $data = DB::table('transfer_det')
+    //             ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+    //             ->leftJoin('article','article.article_code','transfer_det.article_code')
+    //             ->where('transfer_det.tr_number',$trNumber)
+    //             // ->where('transfer_hdr.status','3')
+    //             ->select('transfer_det.*','article.article_type','article.uom as uom_article',
+    //                 DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
+    //             )
+    //             ->get();
+
+    //             foreach($data as $val){
+    //                 //insert article code kalo belum ada di tabel item_stock
+    //                 DB::table('article_stock')
+    //                 ->updateOrInsert(
+    //                     [ 'site_code' =>$siteCode,
+    //                         'article_code' => $val->article_code,
+    //                         'location_number'=>$location
+    //                     ],
+    //                     [
+    //                         'dept_code'=>$val->article_type,
+    //                         'uom'=>$val->uom_article
+    //                     ]
+    //                 );
+
+    //                 //update qty nya ditambahkan dengan qty baru
+    //                 DB::table('article_stock')
+    //                 ->where('site_code',$siteCode)
+    //                 ->where('article_code',$val->article_code)
+    //                 ->where('location_number',$location)
+    //                 ->update([
+    //                     'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+    //                 ]);
+
+    //                 //update qty nya ditambahkan dengan qty baru
+    //                 // $rowAffected = DB::table('article_stock')
+    //                 // ->where('site_code',$siteCode)
+    //                 // ->where('article_code',$val->article_code)
+    //                 // ->decrement('article_qty', $val->total_qty);
+    //             }
+                        
+                
+    //             $rowAffected = DB::table('transfer_hdr')
+    //             ->where('tr_number',$trNumber)
+    //             ->update(
+    //                 [   
+    //                     'status' => $status,
+    //                     'updated_by' => Auth::user()->username,
+    //                     'updated_at' => date('Y-m-d H:i:s')
+    //                 ]
+    //             );
+                
+    //             if ($rowAffected > 0){
+
+    //                 /*
+    //                     CR dari abimnanyu
+    //                     perubahan, untuk movement date mengikuti tanggald dari tr_date bukan current date
+    //                 */
+
+    //                 $movements = DB::table('transfer_det')
+    //                 ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
+    //                 ->leftJoin('article','article.article_code','transfer_det.article_code')
+    //                 ->where('transfer_det.tr_number',$trNumber)
+    //                 ->where('transfer_hdr.status','4')
+    //                 ->where('qty', '<>', 0)
+    //                 ->select(
+    //                     // DB::RAW("now()::timestamp::date as movement_date" )
+    //                     'transfer_hdr.tr_date as movement_date'
+    //                     // DB::RAW("'$movementDate' as movement_date")
+    //                     ,'transfer_det.article_code'
+    //                     ,'article.article_desc'
+    //                     ,DB::raw("0 as movement_plus")
+    //                     ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_min")
+    //                     ,DB::raw(" 0 as movement_price ")
+    //                     ,'transfer_hdr.tr_number as movement_transnno'
+    //                     ,DB::raw("'$trType' as movement_type")
+    //                     ,'transfer_hdr.note as movement_desc'
+    //                 )
+    //                 ->get();
+                    
+    //                 $dataSetMovement = [];
+    //                 foreach ($movements as $val) {
+    //                     $dataSetMovement[] = [
+    //                         'movement_date' => $val->movement_date,
+    //                         'artikel_code' => $val->article_code,
+    //                         'artikel_desc' => $val->article_desc,
+    //                         'movement_min' => $val->movement_min,
+    //                         'movement_plus' => $val->movement_plus,
+    //                         'movement_price' => $val->movement_price,
+    //                         'movement_transnno' => $val->movement_transnno,
+    //                         'movement_type' => $val->movement_type,
+    //                         'movement_desc' => $val->movement_desc,
+    //                         'created_by' => Auth::user()->username,
+    //                         'created_at' => date('Y-m-d H:i:s'),
+    //                         'site_code' => $siteCode,
+    //                         'location_number' => $location,
+    //                         'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
+    //                     ];
+    //                 }
+
+    //                 DB::table('movement')->insert($dataSetMovement);
+
+    //                 DB::commit();
+    //                 $title ="Posting $this->title";
+    //                 $alert  ="success";
+    //                 $message  = "$title $trNumber Successfully Posted";
+    //                 \LogActivity::addToLog($title,"username: $username Status $message");
+    //                 return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+    //                 // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+    //             }else{
+    //                 $title ="Posting $this->title";
+    //                 $alert  ="warning";
+    //                 $message  = "$title $trNumber Failed to Posting";
+    //                 \LogActivity::addToLog($title,"username: $username Status $message");
+    //                 return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+    //                 // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+    //             }
+    //         }else{
+    //             $title ="Posting $this->title";
+    //             $alert  ="warning";
+    //             $message  = "$title $trNumber Failed to Posting";
+    //             \LogActivity::addToLog($title,"username: $username Status $message");
+    //             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+    //         }
+    //     }else{
+    //         $title ="Posting $this->title";
+    //         $alert  ="warning";
+    //         $message  = "$title $trNumber Failed to Posting, Already posted";
+    //         \LogActivity::addToLog($title,"username: $username Status $message");
+    //         return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
+    //     }
+    // }
 }
 
