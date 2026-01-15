@@ -998,6 +998,7 @@ class TransferInController extends Controller
         $trDate = $request->trDate;
         $trType = $this->moduleCode;
         $note = $request->note;
+        $referenceNo = $request->referenceNo;
 
         $trHdr = DB::table('transfer_hdr')->where('tr_number',$trNumber)->first();
 
@@ -1061,7 +1062,8 @@ class TransferInController extends Controller
                 ->where('tr_number',$trNumber)
                 ->update(
                     [
-                        'ref_number' => '' ,
+                        'ref_number' => '',
+                        'reference_no' => $referenceNo,
                         'tr_date' => $trDate,
                         'tr_type' => $trType,
                         'status' => $status,
