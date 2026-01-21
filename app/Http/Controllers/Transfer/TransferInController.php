@@ -1361,8 +1361,12 @@ class TransferInController extends Controller
                 
             // }
             
-            // if ( $data->status == '1' or $data->status == '2' ){
-                if ($bisaEdit or $superUser) {
+            //oki - 21-1-2025
+            //Edit setelah posting di hold dulu karena ada bugs
+            
+            if ( $data->status == '1' or $data->status == '2' ){
+                // if ($bisaEdit or $superUser) {
+                if ($bisaEdit) {
                     $trDateDataTables = date('Y-m-d', strtotime($data->tr_date));
                     if($trDateDataTables>$lockDateToDate){
                         $buttons .=         '<a href="'. route('transferIn.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -1371,7 +1375,7 @@ class TransferInController extends Controller
                                             </a>';
                     }
                 }
-            // }
+            }
   
             if ( $data->status == '4' ){
                 if ($bisaDelete) {
