@@ -359,6 +359,7 @@ class TransferOutController extends Controller
                             ,'article.uom as uom_article'
                         )
                         ->leftJoin('article','article.article_code','bom_hdr.article_code_rm')
+                        ->whereIn('bom_hdr.status',['1','2','3'])
                         ->where("bom_hdr.article_code",$val->article_code)
                         ->first();
 
@@ -669,6 +670,7 @@ class TransferOutController extends Controller
                     ,'article.uom as uom_article'
                 )
                 ->leftJoin('article','article.article_code','bom_hdr.article_code_rm')
+                ->whereIn('bom_hdr.status',['1','2','3'])
                 ->where("bom_hdr.article_code",$val->article_code)
                 ->first();
 
