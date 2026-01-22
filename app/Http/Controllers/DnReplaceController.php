@@ -112,7 +112,7 @@ class DnReplaceController extends Controller
     {
         $data['title'] = $this->title;
         $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        ->where ('third_party_type','=','cust')
         ->orderBy('nama')
         ->get();
 
