@@ -893,12 +893,13 @@ class SalesOrderController extends Controller
         $nextLevel = $statusLevelApproval[0]->next_level;
         $statusSo = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
 
-        // $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID'];
-                
+        // $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
+        //                 1      2           3         4          5        6        7        8
         DB::beginTransaction();
         try {
                 $row_affected=DB::table('sales_order_hdr')
                 ->where('so_code',$soCode)
+                ->where('status','<>','8')
                 ->update(
                     [
                         'status' => $statusSo,

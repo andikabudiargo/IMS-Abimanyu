@@ -105,7 +105,8 @@ class HomeController extends Controller
                 select approval_order from approval_history where username = '$username' and module_code = 'BOM' and module_number = a.bom_code)),0) as berhak_approve
                 ,(select nama from third_party where kode = customer) as customer_name
             from bom_hdr a
-            where status not in ('3','4','5','6','7','8')
+            -- where status not in ('3','4','5','6','7','8')
+            where status in ('1','2')
             ) as Oki
         where current_level+1 = berhak_approve");
 
@@ -129,7 +130,8 @@ class HomeController extends Controller
                 and approval_order not in(
                 select approval_order from approval_history where username = '$username' and module_code = 'PR' and module_number = a.pr_number)),0) as berhak_approve1
             from purchase_request_hdr a
-            where status not in ('3','4','5','6','7','8','9')
+            -- where status not in ('3','4','5','6','7','8','9')
+            where status in ('1','2')
             ) as Oki
         where current_level+1 = berhak_approve");
 
@@ -147,11 +149,30 @@ class HomeController extends Controller
             coalesce((select approval_order from approval_level where username = '$username' and module_code = 'SO' limit 1),0) as berhak_approve,
             (select nama from third_party where kode = customer_id) as customer_name
             from sales_order_hdr 
-            where status <> '3'
+            -- where status <> '3'
+            where status in ('1','2')
             ) as Oki
-            where berhak_approve-1 = sudah_approve");
+        where berhak_approve-1 = sudah_approve");
+
+        // $data['listSoHome'] = DB::select("SELECT * from (
+        //     select id
+        //     ,so_code
+        //     ,so_date
+        //     ,po_number
+        //     ,'$username' as username
+        //     ,note
+        //     ,status
+        //     ,coalesce((select max(approval_order) from approval_history where module_code ='SO' and module_number =sales_order_hdr.so_code),0) as current_level
+        //     ,(select approval_number from approval_master where module_code = 'SO') as max_level
+        //     ,coalesce((select max(approval_order) from approval_history where module_code = 'SO' and module_number = so_code),0) as sudah_approve,
+        //     coalesce((select approval_order from approval_level where username = '$username' and module_code = 'SO' limit 1),0) as berhak_approve,
+        //     (select nama from third_party where kode = customer_id) as customer_name
+        //     from sales_order_hdr 
+        //     where status <> '3'
+        //     ) as Oki
+        // where berhak_approve-1 = sudah_approve");
             
-            $data['listTsoHome'] = DB::select("SELECT * from (
+        $data['listTsoHome'] = DB::select("SELECT * from (
             select 
                 id
                 ,tso_code
@@ -166,9 +187,30 @@ class HomeController extends Controller
                 ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'TSO' and approval_order not in(
                 select approval_order from approval_history where username = '$username' and module_code = 'TSO' and module_number = a.tso_code)),0) as berhak_approve
             from target_order_hdr a
-            where status not in ('3','4','5','6','7','8')
+            -- where status not in ('3','4','5','6','7','8')
+            where status in ('1','2')
             ) as Oki
         where current_level+1 = berhak_approve");
+
+        // $data['listTsoHome'] = DB::select("SELECT * from (
+        //     select 
+        //         id
+        //         ,tso_code
+        //         ,tso_date
+        //         ,tso_name
+        //         ,note
+        //         ,created_by
+        //         ,status
+        //         ,'$username' as username
+        //         ,coalesce((select max(approval_order) from approval_history where module_code ='TSO' and module_number =a.tso_code),0) as current_level
+        //         ,(select approval_number from approval_master where module_code = 'TSO') as max_level
+        //         ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'TSO' and approval_order not in(
+        //         select approval_order from approval_history where username = '$username' and module_code = 'TSO' and module_number = a.tso_code)),0) as berhak_approve
+        //     from target_order_hdr a
+        //     -- where status not in ('3','4','5','6','7','8')
+        //     where status in ('1','2')
+        //     ) as Oki
+        // where current_level+1 = berhak_approve");
 
         //bom yang status nya approved 2 minggu ke belakang
         $data['listBom']=DB::select("SELECT bom_code, customer
@@ -193,43 +235,6 @@ class HomeController extends Controller
                 select approval_order from approval_history where username = '$username' and module_code = 'DN' and module_number = a.delivery_number)),0) as berhak_approve
             from delivery_hdr a
             where status in ('10')
-            ) as Oki
-        where current_level+1 = berhak_approve");
-
-        $data['listSoHome'] = DB::select("SELECT * from (
-            select id
-            ,so_code
-            ,so_date
-            ,po_number
-            ,'$username' as username
-            ,note
-            ,status
-            ,coalesce((select max(approval_order) from approval_history where module_code ='SO' and module_number =sales_order_hdr.so_code),0) as current_level
-            ,(select approval_number from approval_master where module_code = 'SO') as max_level
-            ,coalesce((select max(approval_order) from approval_history where module_code = 'SO' and module_number = so_code),0) as sudah_approve,
-            coalesce((select approval_order from approval_level where username = '$username' and module_code = 'SO' limit 1),0) as berhak_approve,
-            (select nama from third_party where kode = customer_id) as customer_name
-            from sales_order_hdr 
-            where status <> '3'
-            ) as Oki
-        where berhak_approve-1 = sudah_approve");
-            
-        $data['listTsoHome'] = DB::select("SELECT * from (
-            select 
-                id
-                ,tso_code
-                ,tso_date
-                ,tso_name
-                ,note
-                ,created_by
-                ,status
-                ,'$username' as username
-                ,coalesce((select max(approval_order) from approval_history where module_code ='TSO' and module_number =a.tso_code),0) as current_level
-                ,(select approval_number from approval_master where module_code = 'TSO') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'TSO' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'TSO' and module_number = a.tso_code)),0) as berhak_approve
-            from target_order_hdr a
-            where status not in ('3','4','5','6','7','8')
             ) as Oki
         where current_level+1 = berhak_approve");
 
