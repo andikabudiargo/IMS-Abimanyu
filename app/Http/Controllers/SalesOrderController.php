@@ -731,7 +731,6 @@ class SalesOrderController extends Controller
             $dataSo = DB::table('sales_order_hdr')
             ->where('so_code',$orderNumber)
             ->get()->first();
-
             $status = $dataSo -> status;
         }
         
@@ -894,7 +893,14 @@ class SalesOrderController extends Controller
         $statusSo = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' :'2';
 
         // $statusSo = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PAID','REVISED'];
-        //                 1      2           3         4          5        6        7        8
+        //                 1      2           3         4          5        6         7        8
+
+        /*
+
+            4-2-2026 ; perbaikan untuk antisipasi revisi tapi ke approved
+
+        */
+            
         DB::beginTransaction();
         try {
                 $row_affected=DB::table('sales_order_hdr')
