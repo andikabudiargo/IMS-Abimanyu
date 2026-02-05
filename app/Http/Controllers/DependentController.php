@@ -721,6 +721,7 @@ class DependentController extends Controller
                 ->from('article_supplier') 
                 ->where('supplier_code',$code);
             })
+            ->where('article.status','1')
             ->orderBy($order)
             ->select($table.'.*'
             ,'uom.uom_group'
