@@ -223,7 +223,7 @@
     });
   }
 
-  const showListDetail = (searchPr,orderType,searchStatus,requestDate) => {
+  const showListDetail = (searchPr,orderType,searchStatus,requestDate,dept) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -243,7 +243,8 @@
         searchPr:searchPr,
         orderType:orderType,
         searchStatus:searchStatus,
-        requestDate:requestDate
+        requestDate:requestDate,
+        dept:dept
       },
       // orderColumn:[[ 2, 'asc' ]],
       excelFileName:'purchase_request'
