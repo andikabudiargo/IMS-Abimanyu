@@ -1145,12 +1145,13 @@ class WarehouseController extends Controller
         ,'article.id'
         ,'group_materials.name as group'
         ,'third_party.nama as cust'
-        ,'article_stock.article_qty as article_qty'
+        // ,'article_stock.article_qty as article_qty'
         ,'safety_stock'
         ,'min_package'
         ,'uom.uom_group'
         ,'location_number'
         ,DB::raw("last_rec_date(article.article_code) as last_rec_date")     
+        ,DB::raw("(select sum(movement_plus) - sum(movement_min) as total_qty from  movement where artikel_code = article.article_code group by artikel_code) as article_qty")
         // ,DB::raw("case when uom.uom_group = 'PIECE' then TO_CHAR(article_stock.article_qty,'999,999,999') else TO_CHAR(article_stock.article_qty,'999,999,999.99') end as article_qty"))
         )
         ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')

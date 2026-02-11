@@ -661,14 +661,16 @@ class ArticleController extends Controller
         ,'article.id'
         ,'group_materials.name as group'
         ,'third_party.nama as cust'
-        ,'article_stock.article_qty as article_qty'
+        // ,'article_stock.article_qty as article_qty'
         ,'safety_stock'
         ,'min_package'
-        ,'uom.uom_group')
+        ,'uom.uom_group'
+        ,DB::raw("(select sum(movement_plus) - sum(movement_min) as total_qty from  movement where artikel_code = article.article_code group by artikel_code) as article_qty")
+        )
         // ,DB::raw("case when uom.uom_group = 'PIECE' then TO_CHAR(article_stock.article_qty,'999,999,999') else TO_CHAR(article_stock.article_qty,'999,999,999.99') end as article_qty"))
         ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
         ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
-        ->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code')
+        // ->leftJoin('article_stock', 'article_stock.article_code', '=', 'article.article_code')
         ->leftJoin('uom','uom.code','article.uom')
         ->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
             $code ? $query->where('article_alternative_code','ilike','%'.$code.'%') :'';
