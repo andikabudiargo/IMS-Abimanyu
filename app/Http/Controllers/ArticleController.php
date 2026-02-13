@@ -680,9 +680,12 @@ class ArticleController extends Controller
             $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
             $type ? $query->where('article_alternative_code','ilike',$type.'%') :'';      
         })->orderBy('article_desc')->get();
+
+        $bisaEdit = Auth::user()->can('article-edit');
+        $bisaDelete = Auth::user()->can('article-delete');
        
         return Datatables::of($data)
-        ->addColumn('action', function ($data) {
+        ->addColumn('action', function ($data) use ($bisaEdit,$bisaDelete) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -693,8 +696,9 @@ class ArticleController extends Controller
             //                         <i data-feather="activity"></i>
             //                         Movement
             //                     </a>';
-            if (Auth::user()->can('article-edit')) {
-            $buttons .=         '<a href="'. route('article.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+
+            if ($bisaEdit) {
+                $buttons .=         '<a href="'. route('article.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
                                 </a>';
@@ -703,8 +707,8 @@ class ArticleController extends Controller
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
-            if (Auth::user()->can('article-delete')) {
-            $buttons .=         '<a href="javascript:;"
+            if ($bisaDelete) {
+                $buttons .=         '<a href="javascript:;"
                                     id="deleteButton"
                                     class="dropdown-item"
                                     data-toggle="modal"
@@ -732,12 +736,14 @@ class ArticleController extends Controller
             $artilceQty = floatval($data->article_qty) == intval($data->article_qty) ? number_format($data->article_qty) : number_format($data->article_qty,$this->decimalPlaces);
             return $data->article_qty < 0 ? "<div class='text-red'>$artilceQty</div>" : "<div class='text-hitam'>$artilceQty</div>";
         })
+
         ->addColumn('status', function ($data) {
             $badges=['badge-light-danger','badge-light-primary'];
             $statusCode = ['Freeze','Active'];
             return "<div class='badge badge-pill ".$badges[$data->status]."'>".$statusCode[$data->status]."</div>";
         })
-        ->rawColumns(['action','article_alternative_code','status','article_qty'])
+        
+        ->rawColumns(['action','status','article_qty'])
         ->make(true);
     }
 
