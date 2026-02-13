@@ -302,7 +302,7 @@
       arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [ 5,7,8,9 ] },
+        { className: 'text-right','targets': [ 5,6,9,10 ] },
       ],
       dataSearch:  {
         name:name,
