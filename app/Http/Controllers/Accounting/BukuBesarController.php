@@ -45,6 +45,8 @@ class BukuBesarController extends Controller
             ['data'=>'debit','name'=>'debit','title'=>'Debet'],
             ['data'=>'credit','name'=>'credit','title'=>'Kredit'],
             ['data'=>'statusku','name'=>'statusku','title'=>'Status'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approve By'],
             ['data'=>'approval_at','name'=>'approval_at','title'=>'Approve At']
             
@@ -236,6 +238,9 @@ class BukuBesarController extends Controller
             ,'kas_hdr.status as statusku'
             ,db::raw("(SELECT username FROM approval_history where module_number = kas_det.voucher_number order by approval_order desc limit 1) as approval_by")
             ,db::raw("(SELECT to_char(approval_date::date, 'DD-MM-YYYY') FROM approval_history where module_number = kas_det.voucher_number order by approval_order desc limit 1) as approval_at")
+            ,'kas_hdr.created_by as created_by'
+            ,'kas_hdr.created_at as created_at'
+            
         )
         ->orderBy(db::raw("replace(kas_det.account,'.','')::numeric"))
         ->get(); 
