@@ -332,8 +332,8 @@ class BomController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit $this->title";
-        $data['subtitle'] = "Edit $this->title";
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
 
         $data['headers'] = DB::table('bom_hdr')
         ->leftJoin('third_party','bom_hdr.customer','third_party.kode')

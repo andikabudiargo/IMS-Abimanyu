@@ -50,7 +50,7 @@
                                         <div class="form-row">
                                             <div class="form-group col-md-8">
                                                 <label class="form-label" for="articleCodeRm">Article Raw material*</label>
-                                                <input type="text" id="articleCodeRm" name="articleCodeRm" value="{{ old('articleCodeRm',$header->article_rm) }}" class="form-control" disabled />
+                                                <input type="text" id="articleCodeRm" name="articleCodeRm" value="{{ old('articleCodeRm',$header2->article_rm) }}" class="form-control" disabled />
                                             </div>
                                         </div>
                                         <div class="form-row">
