@@ -677,6 +677,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('warehouse/article',['as'=>'warehouse.article','uses'=>'WarehouseController@article','middleware' => ['permission:warehouse-index']]);
 	Route::get('warehouse/articles/list',['as'=>'warehouse.article.list','uses'=>'WarehouseController@listArticle']);
 
+
 	/* new transfer in and out */
 
 	Route::get('transferIn',['as'=>'transferIn.index','uses'=>'Transfer\TransferInController@index','middleware' => ['permission:transferIn-index']]);
@@ -693,6 +694,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('transferIn/cancel',['as'=>'transferIn.cancel','uses'=>'Transfer\TransferInController@cancel']);
 	Route::get('transferIn/article',['as'=>'transferIn.article','uses'=>'Transfer\TransferInController@article','middleware' => ['permission:transferIn-index']]);
 	Route::get('transferIn/print',['as'=>'transferIn.print','uses'=>'Transfer\TransferInController@print']);
+
+	Route::get('transferIn/lastStatus',['as'=>'transferIn.lastStatus','uses'=>'Transfer\TransferInController@lastStatus']);	
 
 	Route::post('transferIn/import-excel',['as'=>'transferIn.import.excel','uses'=>'Transfer\TransferInController@importExcel']);
 	Route::get('transferIn/export-excel',['as'=>'transferIn.export.excel','uses'=>'Transfer\TransferInController@export']);
@@ -719,7 +722,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	/* end new transfer in and out */
 
 	
-	// old transfer in and out
+	/* old transfer in and out */
 	Route::get('transferInV1',['as'=>'transferInV1.index','uses'=>'TransferInController@index','middleware' => ['permission:transferIn-index']]);
 	Route::get('transferInV1/create',['as'=>'transferInV1.create','uses'=>'TransferInController@create']);
 	Route::post('transferInV1/store',['as'=>'transferInV1.store','uses'=>'TransferInController@store']);
@@ -737,8 +740,6 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::post('transferInV1/import-excel',['as'=>'transferInV1.import.excel','uses'=>'TransferInController@importExcel']);
 	Route::get('transferInV1/export-excel',['as'=>'transferInV1.export.excel','uses'=>'TransferInController@export']);
-
-
 	
 	Route::get('transferOutV1',['as'=>'transferOutV1.index','uses'=>'TransferOutController@index','middleware' => ['permission:transferOut-index']]);
 	Route::get('transferOutV1/create',['as'=>'transferOutV1.create','uses'=>'TransferOutController@create']);
@@ -757,7 +758,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('transferOutV1/article/tso',['as'=>'transferOutV1.article.tso','uses'=>'TransferOutController@articleTso']);
 
 	Route::post('transferOutV1/import-excel',['as'=>'transferOutV1.import.excel','uses'=>'TransferOutController@importExcel']);
-	Route::get('transferOutV1/export-excel',['as'=>'transferOutV1.export.excel','uses'=>'TransferOutController@export']);
+	Route::get('transferOutV1/exp1ort-excel',['as'=>'transferOutV1.export.excel','uses'=>'TransferOutController@export']);
+
+	/* end old transfer in and out */
 	
 
 	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);
@@ -793,21 +796,21 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('deliveryInstruction/article/list',['as'=>'deliveryInstruction.article.list','uses'=>'DeliveryInstructionController@articleList']);
 	Route::get('deliveryInstruction/qty/po',['as'=>'deliveryInstruction.qty.po','uses'=>'DeliveryInstructionController@qtyPo']);
 
-	Route::get('kasPenerimaan',['as'=>'kasPenerimaan.index','uses'=>'Accounting\KasPenerimaanController@index']);
 	// Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create','middleware' => ['permission:kasPenerimaan-create']]);
+	// Route::get('kasPenerimaan/edit',['as'=>'kasPenerimaan.edit','uses'=>'Accounting\KasPenerimaanController@edit','middleware' => ['permission:kasPenerimaan-edit']]);
+	// Route::post('kasPenerimaan/clear',['as'=>'kasPenerimaan.clear','uses'=>'Accounting\KasPenerimaanController@clear']);
+	// Route::get('kasPenerimaan/code/create',['as'=>'kasPenerimaan.code.create','uses'=>'Accounting\KasPenerimaanController@articleCodeCreate']);
+	// Route::get('kasPenerimaan/revision',['as'=>'kasPenerimaan.revision','uses'=>'Accounting\KasPenerimaanController@revision','middleware' => ['permission:kasPenerimaan-revision']]);
+	// Route::get('kasPenerimaan/validate',['as'=>'kasPenerimaan.validate','uses'=>'Accounting\KasPenerimaanController@validasi']);
+	Route::get('kasPenerimaan',['as'=>'kasPenerimaan.index','uses'=>'Accounting\KasPenerimaanController@index']);
 	Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create']);
 	Route::post('kasPenerimaan/store',['as'=>'kasPenerimaan.store','uses'=>'Accounting\KasPenerimaanController@store']);
 	Route::get('kasPenerimaan/list',['as'=>'kasPenerimaan.list','uses'=>'Accounting\KasPenerimaanController@list']);
 	Route::get('kasPenerimaan/show',['as'=>'kasPenerimaan.show','uses'=>'Accounting\KasPenerimaanController@show']);
-	// Route::get('kasPenerimaan/edit',['as'=>'kasPenerimaan.edit','uses'=>'Accounting\KasPenerimaanController@edit','middleware' => ['permission:kasPenerimaan-edit']]);
 	Route::get('kasPenerimaan/edit',['as'=>'kasPenerimaan.edit','uses'=>'Accounting\KasPenerimaanController@edit']);
 	Route::post('kasPenerimaan/update',['as'=>'kasPenerimaan.update','uses'=>'Accounting\KasPenerimaanController@update']);
 	Route::post('kasPenerimaan/delete',['as'=>'kasPenerimaan.destroy','uses'=>'Accounting\KasPenerimaanController@destroy']);
-	// Route::post('kasPenerimaan/clear',['as'=>'kasPenerimaan.clear','uses'=>'Accounting\KasPenerimaanController@clear']);
-	// Route::get('kasPenerimaan/code/create',['as'=>'kasPenerimaan.code.create','uses'=>'Accounting\KasPenerimaanController@articleCodeCreate']);
 	Route::get('kasPenerimaan/print',['as'=>'kasPenerimaan.print','uses'=>'Accounting\KasPenerimaanController@print']);
-	// Route::get('kasPenerimaan/revision',['as'=>'kasPenerimaan.revision','uses'=>'Accounting\KasPenerimaanController@revision','middleware' => ['permission:kasPenerimaan-revision']]);
-	// Route::get('kasPenerimaan/validate',['as'=>'kasPenerimaan.validate','uses'=>'Accounting\KasPenerimaanController@validasi']);
 	Route::get('kasPenerimaan/approve',['as'=>'kasPenerimaan.approve','uses'=>'Accounting\KasPenerimaanController@approve']);
 	Route::get('kasPenerimaan/get/invoice/ammount',['as'=>'kasPenerimaan.get.invoice.amount','uses'=>'Accounting\KasPenerimaanController@getInvoiceAmount']);
 	Route::get('kasPenerimaan/notif/approve',['as'=>'kasPenerimaan.notif.approve','uses'=>'Accounting\KasPenerimaanController@approve']);
@@ -987,11 +990,11 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('conversion/list',['as'=>'conversion.list','uses'=>'Conversion\ConversionController@list']);
 	Route::post('conversion/list/detail',['as'=>'conversion.list.detail','uses'=>'Conversion\ConversionController@listDetail']);
 
+	// Route::post('conversion/get/qty/article',['as'=>'conversion.get.qty.article','uses'=>'Conversion\ConversionController@getQtyArticle']);
+	// Route::get('conversion/get/select/article',['as'=>'conversion.get.select.article','uses'=>'Conversion\ConversionController@getSelectArticle']);
 	Route::get('conversion/get/dn',['as'=>'conversion.get.dn','uses'=>'Conversion\ConversionController@getDn']);
 	Route::post('conversion/get/list/article',['as'=>'conversion.get.list.article','uses'=>'Conversion\ConversionController@getListArticle']);
 	Route::post('conversion/get/article',['as'=>'conversion.get.article','uses'=>'Conversion\ConversionController@getArticle']);
-	// Route::post('conversion/get/qty/article',['as'=>'conversion.get.qty.article','uses'=>'Conversion\ConversionController@getQtyArticle']);
-	// Route::get('conversion/get/select/article',['as'=>'conversion.get.select.article','uses'=>'Conversion\ConversionController@getSelectArticle']);
 	Route::post('conversion/update',['as'=>'conversion.update','uses'=>'Conversion\ConversionController@update']);
 
 	Route::get('conversionSetting',['as'=>'conversionSetting.index','uses'=>'Conversion\ConversionSettingController@index']);
@@ -1007,11 +1010,6 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('trialBalance',['as'=>'trialBalance.index','uses'=>'Accounting\TrialBalanceController@index']);
 	Route::get('trialBalance/print',['as'=>'trialBalance.print','uses'=>'Accounting\TrialBalanceController@print']);
 	Route::get('trialBalance/export-excel',['as'=>'trialBalance.export.excel','uses'=>'Accounting\TrialBalanceController@export']);
-		
-	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
-	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);
-	Route::get('stockTake/export',['as'=>'stockTake.export','uses'=>'StockTake\StockTakeController@export']);
-
 
 	Route::get('masterPpn',['as'=>'masterPpn.index','uses'=>'Accounting\MasterPpnController@index']);
 	Route::get('masterPpn/create',['as'=>'masterPpn.create','uses'=>'Accounting\MasterPpnController@create']);
@@ -1019,6 +1017,62 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('masterPpn/store',['as'=>'masterPpn.store','uses'=>'Accounting\MasterPpnController@store']);
 	Route::post('masterPpn/delete',['as'=>'masterPpn.destroy','uses'=>'Accounting\MasterPpnController@destroy']);
 	Route::get('masterPpn/list',['as'=>'masterPpn.list','uses'=>'Accounting\MasterPpnController@list']);
+		
+
+	/* Stock Take */
+
+	Route::get('stockTake/export',['as'=>'stockTake.export','uses'=>'StockTake\StockTakeController@export']);
+	
+	/*
+	Route::get('stockTake',['as'=>'stockTake.index','uses'=>'StockTake\StockTakeController@index']);
+	Route::get('stockTake/create',['as'=>'stockTake.create','uses'=>'StockTake\StockTakeController@create']);
+	Route::get('stockTake/edit',['as'=>'stockTake.edit','uses'=>'StockTake\StockTakeController@edit']);
+	Route::post('stockTake/store',['as'=>'stockTake.store','uses'=>'StockTake\StockTakeController@store']);
+	Route::post('stockTake/update',['as'=>'stockTake.update','uses'=>'StockTake\StockTakeController@update']);
+	Route::post('stockTake/delete',['as'=>'stockTake.destroy','uses'=>'StockTake\StockTakeController@destroy']);
+	Route::get('stockTake/show',['as'=>'stockTake.show','uses'=>'StockTake\StockTakeController@show']);
+	Route::post('stockTake/list',['as'=>'stockTake.list','uses'=>'StockTake\StockTakeController@list']);
+
+	Route::post('stockTake/import',['as'=>'stockTake.import','uses'=>'StockTake\StockTakeController@import']);
+
+	Route::get('stockTake/template/download',['as'=>'stockTake.template.download','uses'=>'StockTake\StockTakeController@downloadTemplate']);
+	Route::post('stockTake/start',['as'=>'stockTake.start','uses'=>'StockTake\StockTakeController@start']);
+	Route::post('stockTake/process',['as'=>'stockTake.process','uses'=>'StockTake\StockTakeController@process']);
+	Route::post('stockTake/upload',['as'=>'stockTake.upload','uses'=>'StockTake\StockTakeController@upload']);
+
+	Route::get('stockTake/count',['as'=>'stockTake.count','uses'=>'StockTake\StockTakeController@counting']);
+	Route::post('stockTake/save-quantity',['as'=>'stockTake.save-quantity','uses'=>'StockTake\StockTakeController@saveQuantity']);
+	Route::post('stockTake/mark-counted',['as'=>'stockTake.mark-counted','uses'=>'StockTake\StockTakeController@markCounted']);
+	Route::post('stockTake/save-quantity',['as'=>'stockTake.save-quantity','uses'=>'StockTake\StockTakeController@saveQuantity']);
+	Route::post('stockTake/verify',['as'=>'stockTake.verify','uses'=>'StockTake\StockTakeController@verify']);
+	Route::post('stockTake/process',['as'=>'stockTake.process','uses'=>'StockTake\StockTakeController@process']);
+
+	Route::post('stockTake/bulk-save-quantities',['as'=>'stockTake.bulk-save-quantities','uses'=>'StockTake\StockTakeController@bulkSaveQuantities']);
+
+	// Upload routes
+    Route::get('stockTake/{id}/upload', 'StockTake\StockTakeController@showUploadForm')->name('stockTake.upload-form');
+    Route::post('stockTake/{id}/upload-quantities', 'StockTake\StockTakeController@uploadQuantities')->name('stockTake.upload-quantities');
+    Route::get('stockTake/download-template-qty/{id?}', 'StockTake\StockTakeController@downloadTemplateQty')->name('stockTake.download-template-qty');
+    Route::get('stockTake/download-failure-log', 'StockTake\StockTakeController@downloadFailureLog')->name('stockTake.download-failure-log');
+	Route::post('stockTake/stock-take/debug-excel', 'StockTake\StockTakeController@debugExcel')->name('stockTake.debug-excel');
+	*/
+	
+	// // Stock Take specific actions
+    //     Route::post('/{id}/start', 'StockTakeController@start')->name('start');
+    //     Route::get('/{id}/count', 'StockTakeController@counting')->name('count');
+    //     Route::post('/save-quantity', 'StockTakeController@saveQuantity')->name('save-quantity');
+    //     Route::post('/mark-counted/{locationId}', 'StockTakeController@markCounted')->name('mark-counted');
+    //     Route::post('/verify/{locationId}', 'StockTakeController@verify')->name('verify');
+    //     Route::post('/{id}/process', 'StockTakeController@process')->name('process');
+        
+    //     // Upload & Template
+    //     Route::post('/upload', 'StockTakeController@upload')->name('upload');
+    //     Route::get('/template/download', 'StockTakeController@downloadTemplate')->name('template.download');
+        
+    //     // Report
+    //     Route::get('/{id}/report', 'StockTakeController@generateReport')->name('report');
+
+	/* End Stock Take */
 
 	Route::get('filesBackup',['as'=>'file.index','uses'=>'FilesController@index']);
 	Route::get('filesBackup/download',['as'=>'file.download','uses'=>'FilesController@download']);

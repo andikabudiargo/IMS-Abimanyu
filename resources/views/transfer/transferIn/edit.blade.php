@@ -7,7 +7,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: {{ $statusTr }}</h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $statusTr  ? $statusTr : 'Edit' }}</span></h4>
                     <input type="hidden" id='oEdit' value="{{ $oEdit }}">
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
@@ -125,6 +125,8 @@
                                         @endif
                                     @else
                                         @if( !$approveValidate && ( $statusTr =='NEW' || $statusTr =='POSTED') )
+                                            <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" data-trType="TRIN">Update</button>
+                                        @elseIf( !$approveValidate && $superUser )
                                             <button class="btn btn-primary" type="button" id="cmdUpdate" name="cmdUpdate" data-trType="TRIN">Update</button>
                                         @endif
                                     @endif

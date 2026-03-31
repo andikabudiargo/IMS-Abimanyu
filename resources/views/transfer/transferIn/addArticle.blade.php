@@ -173,124 +173,155 @@
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{ 
-            $('.disabled-el').removeAttr('disabled');
-            let objQty= $('#article_row input[name="qty[]"]');
-            let objUom= $('#article_row select[name="uom[]"]');
-            let objNote= $('#article_row input[name="note[]"]');
-            let objLocationTo = $('#article_row select[name="locationTo[]"]');
-            let arrArticles = [];
-            let articles;
-            let flag=0; 
-            let pesan="";
-
-            $("#article_row select[name='articleId[]']").map(function(i) {  
-                let $this=$(this);
-                if ($this.val()){
-                    let articleName=$this.select2('data')[0].text;
-                    let plu=$this.val();
-                    let qty=objQty.eq(i).val().replace(/,/gi,'')||0;
-                    let note=objNote.eq(i).val();
-                    let uom=objUom.eq(i).val();
-                    let locationTo = objLocationTo.eq(i).val();
-                    let athirdParty = $('#thirdParty').val();
-                
-                    // es6
-                    // let obj = articles.find(obj => obj.plu == plu);
-                    
-                    // if(obj) {
-                    //     pesan +="Article "+articleName+" entered more than once !! <br>"; 
-                    //     flag=1;
-                    // } else {
-                        if ((plu!=='') && (qty > 0)){
-                            arrArticles.push({
-                                "urutan": i+1,
-                                "article_code":plu,
-                                "qty":parseFloat(qty),
-                                "uom":uom,
-                                "note":note,
-                                "locationTo":locationTo,
-                                "thirdParty":athirdParty
-                            });
-                        }
-                    // } 
-                    if (qty == 0 ){
-                        pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
-                        flag=1;
+            if (oEdit) {
+                let trNumber = $('#trNumber').val();
+                fetch("{{ route('transferIn.lastStatus') }}?trNumber="+trNumber)
+                .then(response => {
+                    if (!response.status) {
+                        throw new Error('Network response was not ok');
                     }
-                
+                    return response.json(); // Parse JSON
+                })
+                .then(data => {
+                    if (data.status == '4') {
+                        Swal.fire({
+                            width: 1050,
+                            title: '<strong>Status Transfer In adalah <b>Posted</b>, apakah akan tetap di update?</strong>',
+                            icon: 'info',
+                            html: 'Karena status sudah posting maka akan di unpost terlebih dahulu<br>Dan Harus di posting ulang',
+                            showDenyButton: true,
+                            denyButtonText: 'Cancel',
+                            confirmButtonText: 'Update',
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                prosesSimpan(oEdit);
+                            } 
+                        })
+                    }else{
+                        prosesSimpan(oEdit);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }else{
+                prosesSimpan(oEdit);
+            }
+        }
+    }
+
+    function prosesSimpan(oEdit) {
+        $('.disabled-el').removeAttr('disabled');
+        let objQty= $('#article_row input[name="qty[]"]');
+        let objUom= $('#article_row select[name="uom[]"]');
+        let objNote= $('#article_row input[name="note[]"]');
+        let objLocationTo = $('#article_row select[name="locationTo[]"]');
+        let arrArticles = [];
+        let articles;
+        let flag=0; 
+        let pesan="";
+
+        $("#article_row select[name='articleId[]']").map(function(i) {  
+            let $this=$(this);
+            if ($this.val()){
+                let articleName=$this.select2('data')[0].text;
+                let plu=$this.val();
+                let qty=objQty.eq(i).val().replace(/,/gi,'')||0;
+                let note=objNote.eq(i).val();
+                let uom=objUom.eq(i).val();
+                let locationTo = objLocationTo.eq(i).val();
+                let athirdParty = $('#thirdParty').val();
+        
+                if ((plu!=='') && (qty > 0)){
+                    arrArticles.push({
+                        "urutan": i+1,
+                        "article_code":plu,
+                        "qty":parseFloat(qty),
+                        "uom":uom,
+                        "note":note,
+                        "locationTo":locationTo,
+                        "thirdParty":athirdParty
+                    });
+                }
+
+                if (qty == 0 ){
+                    pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
+                    flag=1;
+                }
+            
+            }
+        });
+
+        if (arrArticles.length == 0){
+            pesan +="Articles must be filled in completely <br>"; 
+            flag=1;
+        }else{
+            //summary data by article_code
+            let obj = {}
+            arrArticles.forEach((item)=>{
+                if(obj[item.article_code]){
+                    obj[item.article_code].qty = obj[item.article_code].qty + item.qty
+                }else{
+                    obj[item.article_code] = item
+                }
+            })
+            articles = Object.values(obj)
+        }
+
+        articles.sort((a, b) => a.urutan - b.urutan);
+
+        if (flag==0){
+            let trNumber = "";
+            if (oEdit){
+                trNumber = $('#trNumber').val();
+                url ="{{ route('transferIn.update') }}";
+            }else{
+                url ="{{ route('transferIn.store') }}";
+            }
+            
+            let trDate = $('#trDate').val();
+            let note = $('#note').val();
+            let locationCode = $('#locationCode').val();
+            let referenceNo = $('#noReference').val();
+            let thirdParty = $('#thirdParty').val();
+
+            $.ajax({
+                type: "post",
+                url: url,
+                data: {
+                    articles:JSON.stringify(articles),
+                    trNumber:trNumber,
+                    trDate:trDate,
+                    note:note,
+                    locationCode:locationCode,
+                    referenceNo:referenceNo,
+                    thirdParty:thirdParty
+                },
+                dataType: "json",
+                success: function(data) {
+                    if (data.status == 0 ){
+                        for(let i = 0; i < data.message.length; i++) {
+                            show_msg(data.title, data.message[i], data.alert);
+                        }
+                        $('#trNumber').attr('disabled','disabled');
+                    }else{
+                        show_msg(data.title, data.message, data.alert);
+                        $('#trNumber').attr('disabled','disabled');
+                        $('#trNumber').val(data.trNumber);
+                        $('#oEdit').val(data.oEdit);
+                        if(oEdit==false){
+                            window.location.href = "{{ route('transferIn.create') }}";
+                        }
+                        $('#statusText').text(data.statusTr);
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
                 }
             });
 
-            if (arrArticles.length == 0){
-                pesan +="Articles must be filled in completely <br>"; 
-                flag=1;
-            }else{
-                //summary data by article_code
-                let obj = {}
-                arrArticles.forEach((item)=>{
-                    if(obj[item.article_code]){
-                        obj[item.article_code].qty = obj[item.article_code].qty + item.qty
-                    }else{
-                        obj[item.article_code] = item
-                    }
-                })
-                articles = Object.values(obj)
-            }
-
-            articles.sort((a, b) => a.urutan - b.urutan);
-
-            if (flag==0){
-                let trNumber = "";
-                if (oEdit){
-                    trNumber = $('#trNumber').val();
-                    url ="{{ route('transferIn.update') }}";
-                }else{
-                    url ="{{ route('transferIn.store') }}";
-                }
-                
-                let trDate = $('#trDate').val();
-                let note = $('#note').val();
-                let locationCode = $('#locationCode').val();
-                let referenceNo = $('#noReference').val();
-                let thirdParty = $('#thirdParty').val();
-
-                $.ajax({
-                    type: "post",
-                    url: url,
-                    data: {
-                        articles:JSON.stringify(articles),
-                        trNumber:trNumber,
-                        trDate:trDate,
-                        note:note,
-                        locationCode:locationCode,
-                        referenceNo:referenceNo,
-                        thirdParty:thirdParty
-                    },
-                    dataType: "json",
-                    success: function(data) {
-                        if (data.status == 0 ){
-                            for(let i = 0; i < data.message.length; i++) {
-                                show_msg(data.title, data.message[i], data.alert);
-                            }
-                            $('#trNumber').attr('disabled','disabled');
-                        }else{
-                            show_msg(data.title, data.message, data.alert);
-                            $('#trNumber').attr('disabled','disabled');
-                            $('#trNumber').val(data.trNumber);
-                            $('#oEdit').val(data.oEdit);
-                            if(oEdit==false){
-                                window.location.href = "{{ route('transferIn.create') }}";
-                            }
-                        }
-                    },
-                    error: function(error) {
-                        console.log(error);
-                    }
-                });
-
-            }else{
-                Swal.fire('Warning..',pesan,'warning');
-            }
+        }else{
+            Swal.fire('Warning..',pesan,'warning');
         }
     }
 

@@ -982,6 +982,8 @@ class TransferInController extends Controller
 
         $data['lockDate'] = $this->lockDate;
 
+        $data['superUser'] = Auth::user()->can('transferIn-edit-superuser');
+
         return view("transfer.transferIn.edit",$data);
     }
 
@@ -999,17 +1001,15 @@ class TransferInController extends Controller
         $trType = $this->moduleCode;
         $note = $request->note;
         $referenceNo = $request->referenceNo;
-
-        $trHdr = DB::table('transfer_hdr')->where('tr_number',$trNumber)->first();
-
-        $lastStatus = $trHdr->status;
-
-        $status = $lastStatus == '4' ? $lastStatus : '1';
-        // $poLeadCode = $trType; 
         $locationCode = $request->locationCode;
-        // $referenceNo = $request->referenceNo;
         $thirdParty = $request->thirdParty;
-              
+        $statusTr = '';
+
+        // $trHdr = DB::table('transfer_hdr')->where('tr_number',$trNumber)->first();
+        // $lastStatus = $trHdr->status;
+        // $status = $lastStatus == '4' ? $lastStatus : '1';
+        // $poLeadCode = $trType; 
+        // $referenceNo = $request->referenceNo;
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
 
         $messages = [
@@ -1038,23 +1038,38 @@ class TransferInController extends Controller
            
             $title="Save $this->title";
             $alert ="error";
-            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert,'statusTr'=>$statusTr));
 
         }else{
             DB::beginTransaction();
+
+            /* 
+                Kalau statusnya sudah posting (4) dan di update maka harus di unposting dulu supaya qty nya balik lagi ke asal
+                dan statusnya di kembalikan jadi approved dan harus di posting kembali
+            */
+
             try {
 
-                /*
-                    
-                    CR walaupun sudah posting bisa  di edit lagi 
-                    jadi yang sebelumnya harus di unpost dulu supaya stock kembali lagi (nilai plus)
+                $lastStatus = DB::table('transfer_hdr')
+                ->where('tr_number',$trNumber)
+                ->lockForUpdate()
+                ->value('status');
 
-                    lalu setelah edit selesai lakukan posting lagi
+                if (!$lastStatus) {
+                    $title ="Save $this->title";
+                    $alert ="warning";
+                    $message  = "$title Transfer $trNumber header not found, failed to updated";
+                    \LogActivity::addToLog($title,"username: $username Status $message");
+                    return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber,'statusTr'=>$statusTr));
+                }
 
-                */
+                $status = $lastStatus;
 
                 if( $lastStatus == '4'){
-                    $this->unPosting($trNumber);
+                    $unPostingResult = $this->unPosting($trNumber);
+                    if ($unPostingResult === 'success') {
+                        $status = '3'; // Approved status
+                    }
                     $note = $note.' ( Status Posting Edit by '.$username.')';
                 }
 
@@ -1080,7 +1095,6 @@ class TransferInController extends Controller
                     $dataSet[] = [
                         $trNumber.$val->article_code
                     ];
-                    
                 }
 
                 if ($rowAffected > 0){
@@ -1124,23 +1138,24 @@ class TransferInController extends Controller
                         
                         30-12-2025
                         CR untuk bisa auto postimng setelah edit dengan status terakhir POSTED
-
                         "Pagi pak oki, untuk yang auto post transfer in, sampai di level approve saja pak agar qty nya terbaca di stock. Jadi yang dihilangkan postingnya saja, approve tetap ada."
                     */
 
-                    if ($lastStatus == '4') {
-                        $this->autoPosting($trNumber,$status);
-                    }
+                    // if ($lastStatus == '4') {
+                    //     $this->autoPosting($trNumber,$status);
+                    // }
                 }
-            
-                                        
+
+                $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
+                $statusTr = $statusTr[$status-1];
+        
                 DB::commit();
 
                 $title ="Save $this->title";
                 $alert  ="success";
                 $message  = "$title $trNumber is successfully updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber,'oEdit'=>true));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber,'oEdit'=>true,'statusTr'=>$statusTr));
 
             } catch (Exception $e) {
                 DB::rollBack();
@@ -1148,7 +1163,7 @@ class TransferInController extends Controller
                 $alert ="warning";
                 $message  = "$title $trNumber is failed to updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber,'statusTr'=>$statusTr));
             }
         }
 
@@ -1244,6 +1259,12 @@ class TransferInController extends Controller
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
     }
+
+    public function lastStatus(Request $request){
+        $trNumber = $request->trNumber;
+        $status = DB::table('transfer_hdr')->where('tr_number',$trNumber)->value('status');
+        return response()->json(array('status' => $status));
+    }
    
     public function list(Request $request)
     {
@@ -1254,6 +1275,9 @@ class TransferInController extends Controller
             Jadi setelah di approve, langsung di posting
 
             Walaupun status sudah posting bisa di edit dengan role Accounting superuser
+
+            31-1-2026
+            Transfer bisa di edit dengan role Accounting superuser denga syarat statusnya sudah posted
 
         */
         $username = Auth::user()->username;
@@ -1321,14 +1345,15 @@ class TransferInController extends Controller
 
         //oki   belum selesais yang CR
 
+        $bisaApprove = Auth::user()->can('transferIn-approve');
+        $bisaPosting  = Auth::user()->can('transferOut-posting');
         $bisaEdit = Auth::user()->can('transferIn-edit');
         $bisaDelete = Auth::user()->can('transferIn-delete');
-        $bisaApprove = Auth::user()->can('transferIn-approve');
         $superUser = Auth::user()->can('transferIn-edit-superuser');
         // $superUser = Auth::user()->role == 'superuser' ? true : false;
        
         return Datatables::of($data)
-        ->addColumn('action', function ($data) use($lockDateToDate,$bisaEdit,$bisaDelete,$bisaApprove,$superUser) {
+        ->addColumn('action', function ($data) use($lockDateToDate,$bisaEdit,$bisaDelete,$bisaApprove,$superUser,$bisaPosting) {
             $buttons = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
@@ -1344,28 +1369,24 @@ class TransferInController extends Controller
                 }
             }
 
-            // if ( $data->status == '3' ) {                
-            //     if (Auth::user()->can('transferIn-posting')) {
-            //         $buttons .="<a href='javascript:;'
-            //         class='dropdown-item' 
-            //         data-size='sm'
-            //         data-ajax-delete='true'
-            //         data-confirm='Are You Sure want to post This number?' 
-            //         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
-            //         data-modal-id='".$data->id."'
-            //         data-url='". route('transferIn.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
-            //         <i data-feather='check' class='feather-14-red'></i>
-            //         <span>". __('Posting') ."</span>
-            //         </a>";
-            //     }
-                
-            // }
+            if ( $data->status == '3' and $superUser ) {                
+                if ($bisaPosting) {
+                    $buttons .="<a href='javascript:;'
+                    class='dropdown-item' 
+                    data-size='sm'
+                    data-ajax-delete='true'
+                    data-confirm='Are You Sure want to post This number?' 
+                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                    data-modal-id='".$data->id."'
+                    data-url='". route('transferIn.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                    <i data-feather='check' class='feather-14-red'></i>
+                    <span>". __('Posting') ."</span>
+                    </a>";
+                }
+            }
             
-            //oki - 21-1-2025
-            //Edit setelah posting di hold dulu karena ada bugs
-            
-            if ( $data->status == '1' or $data->status == '2' ){
-                // if ($bisaEdit or $superUser) {
+            // if ( $data->status == '1' or $data->status == '2' ){
+            if ( ($data->status == '1' or $data->status == '2' ) or ( ($data->status == '4' or $data->status == '3') and $superUser) ) {
                 if ($bisaEdit) {
                     $trDateDataTables = date('Y-m-d', strtotime($data->tr_date));
                     if($trDateDataTables>$lockDateToDate){
