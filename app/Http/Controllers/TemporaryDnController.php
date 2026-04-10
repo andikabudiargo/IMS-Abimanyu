@@ -735,9 +735,9 @@ class TemporaryDnController extends Controller
         $cekSelisihQuery = DB::select("SELECT count(*) as jumlah from
         (select *, 
         (select coalesce((select qty from sales_order_det where so_code = b.so_number and article_code = a.article_code),0)) as qty_so,
-        coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = b.so_number) and article_code = a.article_code group by article_code),0) as qty_delivery,
+        coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = b.so_number not in ('5','7')) and article_code = a.article_code group by article_code),0) as qty_delivery,
         (select coalesce((select qty from sales_order_det where so_code = b.so_number and article_code = a.article_code),0)-
-        coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = b.so_number) and article_code = a.article_code group by article_code),0)) as qty_selisih
+        coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = b.so_number not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_selisih
         from temporary_dn_det a
         left join temporary_dn_hdr b on a.tdn_number = b.tdn_number
         where a.tdn_number = '$tDnNumber'
