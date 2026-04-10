@@ -30,8 +30,8 @@
                                     <input type="text" id="trDate" name="trDate" value="{{ old('trDate',$header->tr_date) }}" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="noReference">Reference No</label>
-                                    <input type="text" id="noReference" name="noReference" value="{{ old('noReference',$header->reference_no) }}" class="form-control"/>
+                                    <label for="noReference">Reference No*</label>
+                                    <input type="text" id="noReference" name="noReference" value="{{ old('noReference',$header->reference_no) }}" class="form-control" required/>
                                 </div>
                             </div>
                             <div class="form-row">

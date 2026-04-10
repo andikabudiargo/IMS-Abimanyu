@@ -30,8 +30,8 @@
                                     <input type="text" id="trDate" name="trDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="noReference">Reference No</label>
-                                    <input type="text" id="noReference" name="noReference" class="form-control"/>
+                                    <label for="noReference">Reference No*</label>
+                                    <input type="text" id="noReference" name="noReference" class="form-control" required/>
                                 </div>
                             </div>
                             <div class="form-row">
