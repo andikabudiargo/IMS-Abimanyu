@@ -92,19 +92,20 @@
                     <td width="45%" valign="top" >
                         Number : {{ $trNumber }}<br>
                         Date   : {{ $trDate }}<br>
+                        Location From  : {{ $locationFrom }}
                     </td>
                     <td width="10%"></td>
                     <td width="45%">
-                        Rec. Status   : {{ $status }}<br>
+                        Trans. Status   : {{ $status }}<br>
                         Note   : {{ $keterangan }} <br>
-                        Location From  : {{ $locationFrom }}
+                        Location To  : {{ $locationTo }}
                     </td>
                 </tr>
             </tbody>
         </table>
     </header>
 
-    <footer>
+    {{-- <footer>
         <table width="100%" border="0" >
             <tbody>
                 <tr>
@@ -120,7 +121,7 @@
                 </tr>
             </tbody>
         </table>
-    </footer>
+    </footer> --}}
     <!-- Wrap the content of your PDF inside a main tag -->
     <main>
         <table>
@@ -128,9 +129,10 @@
                 <tr>
                     <th width="5%">No</th>
                     <th width="10%">Article</th>
-                    <th width="35%">Description</th>
+                    {{-- <th width="35%">Description</th> --}}
+                    <th>Description</th>
                     <th width="10%">Qty</th>
-                    <th width="20%">Location To</th>
+                    {{-- <th width="20%">Location To</th> --}}
                     <th width="10%">Uom</th>
                 </tr>
             </thead>
@@ -141,8 +143,8 @@
                         <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
                         <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
                         <td class="border-bottom" align="right">{{ $val->qty*1 }}</td>
-                        <td class="border-bottom" align="left">{{ $val->location_name }}</td>
-                        <td class="border-bottom" align="right">{{ $val->uom }}</td>
+                        {{-- <td class="border-bottom" align="left">{{ $val->location_name }}</td> --}}
+                        <td class="border-bottom" align="left">{{ $val->uom }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -154,6 +156,22 @@
                     </tr>
                 @endforeach
             </tfoot> --}}
+        </table>
+        <br><br>
+        <table width="100%" border="0" >
+            <tbody>
+                <tr>
+                    <td width="25%" valign="top" >
+                        Created By :{{ $createdBy }} <br>    
+                    </td>
+                    <td width="25%">
+                        Approved By : {{ $approved }}
+                    </td>
+                    <td width="10%" class='text-right'>
+                        Page: <span class="pagenum"></span>
+                    </td>
+                </tr>
+            </tbody>
         </table>
     </main>
 </body>

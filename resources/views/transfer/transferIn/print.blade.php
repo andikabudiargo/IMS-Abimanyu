@@ -109,7 +109,7 @@
         </table>
     </header>
 
-    <footer>
+    {{-- <footer>
         <table width="100%" border="0" >
             <tbody>
                 <tr>
@@ -125,7 +125,7 @@
                 </tr>
             </tbody>
         </table>
-    </footer>
+    </footer> --}}
     <!-- Wrap the content of your PDF inside a main tag -->
     <main>
         <table>
@@ -159,6 +159,22 @@
                     </tr>
                 @endforeach
             </tfoot> --}}
+        </table>
+        <br><br>
+        <table width="100%" border="0" >
+            <tbody>
+                <tr>
+                    <td width="25%" valign="top" >
+                        Created By :{{ $createdBy }} <br>    
+                    </td>
+                    <td width="25%">
+                        Approved By : {{ $approved }}
+                    </td>
+                    <td width="10%" class='text-right'>
+                        Page: <span class="pagenum"></span>
+                    </td>
+                </tr>
+            </tbody>
         </table>
     </main>
 </body>
