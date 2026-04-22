@@ -98,7 +98,7 @@
                     <td width="45%">
                         Trans. Status   : {{ $status }}<br>
                         Note   : {{ $keterangan }} <br>
-                        Location To  : {{ $locationTo }}
+                        {{-- Location To  : {{ $locationTo }} --}}
                     </td>
                 </tr>
             </tbody>
