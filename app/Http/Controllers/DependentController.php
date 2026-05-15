@@ -385,6 +385,7 @@ class DependentController extends Controller
                     // ->where('customer',$code);
                 });
             })
+            ->where('article.status','1')
             // ->whereIn($table.'.article_code', function($query) use ($code) {
             //     $query->select('article_code')
             //     ->from('bom_hdr') 
