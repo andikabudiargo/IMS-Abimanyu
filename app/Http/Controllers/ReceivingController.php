@@ -75,22 +75,24 @@ class ReceivingController extends Controller
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
-            ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
-            ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
-            ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number'],
-            ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date'],
-            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'],
-            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'], //1
+            ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'], //2
+            ['data'=>'status','name'=>'status','title'=>'Status'], //3
+            ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'], //4
+            ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number'], //5
+            ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date'], //6
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'], //7
+            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'], //8
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'], //9
             // ['data'=>'prepared_by','name'=>'prepared_by','title'=>'Prepared By'],
             // ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created At', 'visible'=>false],
-            ['data'=>'tanggal_do','name'=>'tanggal_do','title'=>'Tanggal DO', 'visible'=>false]
+            ['data'=>'note','name'=>'note','title'=>'Note'], //10
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'], //11
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'], //12
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At', 'visible'=>false], //13
+            ['data'=>'tanggal_do','name'=>'tanggal_do','title'=>'Tanggal DO', 'visible'=>false], //14
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'], //15
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated At'] //16
                     
         ];
         return json_encode($kolom, true);
@@ -100,36 +102,38 @@ class ReceivingController extends Controller
         $kolom=
         [
             ['data'=>'nama_dept','name'=>'nama_dept','title'=>'Departemen'],
-            ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
-            ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
-            ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'],
-            ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number'],
-            ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date'],
-            ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
-            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'],
-            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
-            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
-            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
-            ['data'=>'qty','name'=>'qty','title'=>'qty'],
-            ['data'=>'qty_free','name'=>'qty_free','title'=>'qty Free'],
-            ['data'=>'uom_rec','name'=>'uom_rec','title'=>'uom'],
-            ['data'=>'price','name'=>'price','title'=>'Price'],
-            ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN'],
+            ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'], //1
+            ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'], //2
+            ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'], //3
+            ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number'], //4
+            ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date'], //5
+            ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'], //6
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'], //7
+            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'], //8
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'], //9
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'], //10
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'], //11
+            ['data'=>'qty','name'=>'qty','title'=>'qty'], //12
+            ['data'=>'qty_free','name'=>'qty_free','title'=>'qty Free'], //13
+            ['data'=>'uom_rec','name'=>'uom_rec','title'=>'uom'], //14
+            ['data'=>'price','name'=>'price','title'=>'Price'], //15
+            ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN'], //16
             // ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
-            ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN'],
-            ['data'=>'total_plus_ppn','name'=>'total_plus_ppn','title'=>'Total Plus PPN'],
+            ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN'], //17
+            ['data'=>'total_plus_ppn','name'=>'total_plus_ppn','title'=>'Total Plus PPN'], //18
             // ['data'=>'inv_number','name'=>'inv_number','title'=>'Invoice Number'],
             // ['data'=>'inv_date','name'=>'inv_date','title'=>'Invoice Date'],
             // ['data'=>'prepared_by','name'=>'prepared_by','title'=>'Prepared By'],
             // ['data'=>'authorized_by','name'=>'authorized_by','title'=>'Authorized By'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
-            ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'status','name'=>'status','title'=>'Status'], //19
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'], //20
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'], //21
+            ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan'], //22
+            ['data'=>'note','name'=>'note','title'=>'Note'], //23
             // ['data'=>'created_at','name'=>'created_at','title'=>'Created At', 'visible'=>false]
-            ['data'=>'tanggal_do','name'=>'tanggal_do','title'=>'Tanggal DO', 'visible'=>false]
+            ['data'=>'tanggal_do','name'=>'tanggal_do','title'=>'Tanggal DO', 'visible'=>false], //24
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'], //25
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated At'] //26
         ];
         return json_encode($kolom, true);
     }

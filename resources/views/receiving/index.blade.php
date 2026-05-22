@@ -173,7 +173,7 @@
       route:"{{ route('receiving.list') }}",
       kolom:{!! $kolom !!},
       type:'POST',
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,15,16],
       columnDefs :[
         { width: '5%', targets: 0 }
       ],
@@ -203,7 +203,7 @@
       route:"{{ route('receiving.list.detail') }}",
       kolom:{!! $kolomDetail !!},
       type:'POST',
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,25,26],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
