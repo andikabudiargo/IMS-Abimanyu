@@ -65,6 +65,16 @@ class Handler extends ExceptionHandler
 
     protected function unauthenticated($request, AuthenticationException $exception)
     {
+        // Jika request meminta JSON (seperti API), kembalikan pesan error kustom
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 401,
+                'message' => 'Token is invalid, expired, or not found.',
+                'error' => 'Unauthenticated.'
+            ], 401);
+        }
+
         return $request->expectsJson()
                 ? response()->json(['message' => 'Unauthenticated.'], 401)
                 : redirect()->guest(route('login'));
