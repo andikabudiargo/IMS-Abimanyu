@@ -26,10 +26,7 @@ php artisan route:clear
 php artisan config:clear
 php artisan view:clear
 
-php artisan migrate
-php artisan db:seed
-user: admin
-pssword: admin
+php artisan serve
 
 ```
 
@@ -38,8 +35,14 @@ pssword: admin
 - Activity log
 - Jwt
 
-clear chace untuk browser
-Route::get('/clear-cache', function() {
-    Artisan::call('cache:clear');
-    return "Cache is cleared";
-});
+PHP :
+
+PHP 7.4.19
+
+Laravel :
+
+Laravel Framework 7.30.4
+
+Database :
+
+Postgresql 13
