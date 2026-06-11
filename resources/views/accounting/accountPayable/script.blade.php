@@ -431,7 +431,7 @@
             $('#accountHutang').val(coa);
             kosongkanData();
             $.ajax({
-                url:"{{ route('ap.list.po') }}",
+                url:"{{ route('accountPayable.list.po') }}",
                 method:"GET",
                 data:{
                     value:value,

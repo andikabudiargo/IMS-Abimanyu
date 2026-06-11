@@ -399,7 +399,7 @@
         let apNumber = $('#apNumber').val();            
         $.ajax({
             type: "post",
-            url: "{{ route('ap.posting') }}",
+            url: "{{ route('accountPayable.posting') }}",
             data: {
                 apNumber:apNumber
             },
@@ -427,7 +427,7 @@
         let apNumber = $('#apNumber').val();
         $.ajax({
             type: "post",
-            url: "{{ route('aps.approve') }}",
+            url: "{{ route('accountPayable.approve') }}",
             data: {
                 apNumber:apNumber
             },
