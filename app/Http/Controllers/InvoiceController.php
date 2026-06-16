@@ -386,7 +386,7 @@ class InvoiceController extends Controller
         $data['options'] = [['name'=>'DRAFT','id'=>'1'],['name'=>'VALIDATED','id'=>'2'],['name'=>'APPROVED','id'=>'3'],['name'=>'POSTED','id'=>'4'],['name'=>'CANCELED','id'=>'5'],['name'=>'PAID','id'=>'6']];
 
 
-        return view("invoice.create",$data);
+        return view("invoice.createv2",$data);
     }
 
     public function store(Request $request)
@@ -419,6 +419,8 @@ class InvoiceController extends Controller
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
 
         $sendingDate = $request->sendingDate;
+        //tambahan kolom req siska & pak leo
+        $jatuhTempo = $request->jatuhTempo;
 
         $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
         $dppPembilang = $request->pembilangNumber;
@@ -512,6 +514,7 @@ class InvoiceController extends Controller
                     'account_piutang' =>$accountPiutang,
                     'account_penjualan' =>$accountPenjualan,
                     'sending_date' => $sendingDate,
+                    'jatuh_tempo'  => $jatuhTempo, //tambahan kolom req siska & pak leo
                     'dpp_lain_value' => $dppLainValue,
                     'dpp_lain_pembilang' => $dppPembilang,
                     'dpp_lain_penyebut' => $dppPenyebut,
@@ -834,6 +837,7 @@ class InvoiceController extends Controller
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
 
         $sendingDate = $request->sendingDate;
+        $jatuhTempo = $request->jatuhTempo;
 
         $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
         $dppPembilang = $request->pembilangNumber;
@@ -907,6 +911,7 @@ class InvoiceController extends Controller
                             'account_piutang' =>$accountPiutang,
                             'account_penjualan' =>$accountPenjualan,
                             'sending_date' => $sendingDate,
+                            'jatuh_tempo'  => $jatuhTempo,
                             'dpp_lain_value' => $dppLainValue,
                             'dpp_lain_pembilang' => $dppPembilang,
                             'dpp_lain_penyebut' => $dppPenyebut,
@@ -1463,8 +1468,10 @@ class InvoiceController extends Controller
             // ,db::raw("case when invoice_hdr.status = '6' then grand_total-(select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end as balance")
             // ,DB::raw("to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy') as jatuh_tempo")
             // ,DB::raw("to_date(to_char(to_date(invoice_hdr.invoice_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy'),'dd/mm/yyyy') as jatuh_tempo_2")
-            ,DB::raw("to_char(to_date(invoice_hdr.sending_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy') as jatuh_tempo")
-            ,DB::raw("to_date(to_char(to_date(invoice_hdr.sending_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy'),'dd/mm/yyyy') as jatuh_tempo_2")
+            // ,DB::raw("to_char(to_date(invoice_hdr.sending_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy') as jatuh_tempo")
+            // ,DB::raw("to_date(to_char(to_date(invoice_hdr.sending_date,'dd-mm-yyyy') + INTERVAL '1 day' *coalesce((select top_batas_1 from third_party where kode = invoice_hdr.customer_id),0), 'dd/mm/yyyy'),'dd/mm/yyyy') as jatuh_tempo_2")
+            ,DB::raw("to_char(invoice_hdr.jatuh_tempo, 'DD/MM/YYYY') as jatuh_tempo")
+            ,DB::raw("invoice_hdr.jatuh_tempo as jatuh_tempo_2")
             ,DB::raw("to_date(sending_date, 'DD-MM-YYYY') as sending_date_2")
             ,DB::raw("(select STRING_AGG ( distinct a.so_number,', ' ORDER BY a.so_number) as so_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as so_number_2")
         )
