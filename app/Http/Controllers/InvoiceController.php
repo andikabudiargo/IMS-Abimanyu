@@ -657,7 +657,7 @@ class InvoiceController extends Controller
         // $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
 
-        return view("invoice.show",$data);
+        return view("invoice.showv2",$data);
         
     }
 
@@ -803,7 +803,7 @@ class InvoiceController extends Controller
         $data['ppnPenyebut'] = $this->ppnPenyebut;
         $data['ppnPembilang'] = $this->ppnPembilang; 
 
-        return view("invoice.edit",$data);
+        return view("invoice.editv2",$data);
     }
 
     public function update(Request $request)
