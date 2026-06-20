@@ -191,7 +191,7 @@ class ReceivingController extends Controller
         $data['oEdit']=false;
         $data['lockDate'] = $this->lockDate;
 
-        return view("receiving.create",$data);
+        return view("receiving.createv2",$data);
     }
 
     public function store(Request $request)
@@ -206,7 +206,7 @@ class ReceivingController extends Controller
         $recDate = $request->recDate;
         $note = $request->note;
         $articles = json_decode($request->articles);
-        $recType = "NORMAL";
+        $recType = $request->recType;
         $statusRec ="New";
         $status = '1';
         $authorizedBy = "";
@@ -276,8 +276,18 @@ class ReceivingController extends Controller
                     $idKu = Crypt::encryptString($idKu);
 
                     $dataSet = [];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
+
+                    //TAMBAHAN UNTUK KONVERSI STOCK
+                        foreach ($articles as $val) {
+                        $qty     = (float) $val->qty;
+                        $qtyFree = (float) $val->qty_free;
+                        $factor  = (float) ($val->conv_factor ?? 1);
+                        if ($factor <= 0) { $factor = 1; }
+
+                        // qty dalam satuan stok (conv_to)
+                         $qtyConv = ($qty + $qtyFree) * $factor;
+                         
+                         $dataSet[] = [
                             'rec_number' => $recNumber,
                             'article_code' => $val->article_code,
                             'qty' => $val->qty,
@@ -285,6 +295,9 @@ class ReceivingController extends Controller
                             'qty_free' => $val->qty_free,
                             'uom_free' => $val->uom_free,
                             'price' => $val->price,
+                            'conv_to'      => $val->conv_to ?? $val->uom,
+                            'conv_factor'  => $val->conv_factor ?? 1,
+                            'qty_conv'     => $qtyConv, 
                             'created_by' => Auth::user()->username,
                             'updated_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -804,6 +817,201 @@ class ReceivingController extends Controller
             }
         }
     }
+
+    public function posting2(Request $request)
+{
+    $username   = Auth::user()->username;
+    $id         = Crypt::decryptString($request->id);
+
+    $recHdrq    = DB::table('receiving_hdr')->where('id', $id)->first();
+    $title      = "Posting $this->title";
+
+    if (!$recHdrq) {
+        return $this->postingResp($request, 0, $title, '-', 'warning', 'Data tidak ditemukan', $id);
+    }
+
+    $recNumber  = $recHdrq->rec_number;
+    $lastStatus = $recHdrq->status;
+
+    $siteCode   = 'HO';
+    $location   = '011';     // gudang UMUM
+    $status     = '4';       // POSTED
+    $moduleCode = $this->moduleCode;
+    $todayDate  = date('Y-m-d');
+
+    // sudah posting => tidak boleh posting lagi
+    if ($lastStatus == '4') {
+        return $this->postingResp($request, 0, $title, $recNumber, 'warning',
+            "$title $recNumber Failed to Posting (already posted)", $id);
+    }
+
+    // ekspresi qty stok: pakai qty_conv; kalau null/0 fallback ke (qty+qty_free)*conv_factor
+    $qtyBaseSql = "COALESCE(NULLIF(receiving_det.qty_conv,0),
+                   (receiving_det.qty + receiving_det.qty_free) * COALESCE(NULLIF(receiving_det.conv_factor,0),1))";
+    $stockUomSql = "COALESCE(NULLIF(receiving_det.conv_to,''), receiving_det.uom_rec)";
+
+    DB::beginTransaction();
+    try {
+        // ----- ambil detail receiving -----
+        $data = DB::table('receiving_det')
+            ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+            ->where('receiving_det.rec_number', $recNumber)
+            ->whereRaw("$qtyBaseSql <> 0")                 // hanya baris yang punya qty stok
+            ->select(
+                'receiving_det.*',
+                'article.article_type',
+                'article.uom as uom_article',
+                DB::raw("average_cost(receiving_det.article_code,'$siteCode','$location','$moduleCode') as average_cost"),
+                DB::raw("$qtyBaseSql as total_qty"),
+                DB::raw("$stockUomSql as stock_uom")
+            )
+            ->get();
+
+        if ($data->isEmpty()) {
+            DB::rollBack();
+            return $this->postingResp($request, 0, $title, $recNumber, 'warning',
+                "$title $recNumber Failed to Posting (tidak ada detail)", $id);
+        }
+
+        // ----- update saldo stock (warehouse_stock) + cost article -----
+        foreach ($data as $val) {
+            DB::table('warehouse_stock')->updateOrInsert(
+                ['site_code' => $siteCode, 'article_code' => $val->article_code, 'location_number' => $location],
+                ['dept_code' => $val->article_type, 'uom' => $val->stock_uom]
+            );
+
+            $rowAffected = DB::table('warehouse_stock')
+                ->where('site_code', $siteCode)
+                ->where('article_code', $val->article_code)
+                ->where('location_number', $location)
+                ->update(['article_qty' => DB::raw('coalesce(article_qty,0) + ' . (float) $val->total_qty)]);
+
+            if ($rowAffected > 0) {
+                DB::table('article')->where('article_code', $val->article_code)->update([
+                    'lastcost'   => $val->price,
+                    'avgcost'    => $val->average_cost,
+                    'updated_by' => $username,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
+        }
+
+        // ----- update status header -> POSTED -----
+        $rowAffected = DB::table('receiving_hdr')
+            ->where('rec_number', $recNumber)
+            ->update(['status' => $status, 'updated_by' => $username, 'updated_at' => date('Y-m-d H:i:s')]);
+
+        if ($rowAffected <= 0) {
+            DB::rollBack();
+            return $this->postingResp($request, 0, $title, $recNumber, 'warning',
+                "$title $recNumber Failed to Posting", $id);
+        }
+
+        // ----- catat mutasi ke warehouse_movement (qty stok sama dgn yg dipakai stok) -----
+        $movements = DB::table('receiving_det')
+            ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
+            ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+            ->where('receiving_det.rec_number', $recNumber)
+            ->where('receiving_hdr.status', '4')
+            ->whereRaw("$qtyBaseSql <> 0")                 // filter sama dengan update stok
+            ->select(
+                'receiving_hdr.rec_date as movement_date',
+                'receiving_det.article_code',
+                'article.article_desc',
+                DB::raw("0 as movement_min"),
+                DB::raw("$qtyBaseSql as movement_plus"),   // = total_qty
+                DB::raw("receiving_det.price as movement_price"),
+                'receiving_hdr.rec_number as movement_transnno',
+                DB::raw("'$moduleCode' as movement_type"),
+                'receiving_hdr.po_number as movement_desc',
+                DB::raw("$stockUomSql as movement_uom")
+            )
+            ->get();
+
+        $seq = (int) DB::table('warehouse_movement')->max('movement_code');
+
+        $dataSetMovement = [];
+        foreach ($movements as $val) {
+            $seq++;
+            $dataSetMovement[] = [
+                'movement_code'     => $seq,
+                'movement_date'     => $val->movement_date,
+                'artikel_code'      => $val->article_code,
+                'artikel_desc'      => $val->article_desc,
+                'movement_min'      => $val->movement_min,
+                'movement_plus'     => $val->movement_plus,
+                'movement_price'    => $val->movement_price,
+                'movement_transnno' => $val->movement_transnno,
+                'movement_type'     => $val->movement_type,
+                'movement_desc'     => $val->movement_desc,
+                'uom'               => $val->movement_uom,
+                'created_by'        => $username,
+                'created_at'        => date('Y-m-d H:i:s'),
+                'site_code'         => $siteCode,
+                'location_number'   => $location,
+                'last_qty'          => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min + $val->movement_plus)"),
+            ];
+        }
+
+        if (!empty($dataSetMovement)) {
+            DB::table('warehouse_movement')->insert($dataSetMovement);
+        }
+
+        // ----- jurnal kas (tidak diubah) -----
+        DB::statement("INSERT into kas_hdr (voucher_number,voucher_type,voucher_date,receive_from,amount,period,year,note,status,created_by,updated_by,created_at,updated_at,description)
+            select rec_number,'REC',do_date,supplier_id
+            ,(select sum((qty+qty_free)*price) from receiving_det where rec_number = receiving_hdr.rec_number)
+            ,substring(do_date,4,2)::integer,substring(do_date,7),note,'3'
+            ,created_by,updated_by,now(),now(),rec_number
+            from receiving_hdr
+            where status = '4'
+            and rec_number in (select rec_number from receiving_det
+                left join article on article.article_code = receiving_det.article_code
+                where article_type in ('RMP','CM1','CM2','RM'))
+            and rec_number = '$recNumber'
+            order by created_at");
+
+        DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at,cost_center)
+            select rec_number
+            ,case when article_type in ('RMP','RM') then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end
+            ,concat(rec_number,' ',article_desc),(qty+qty_free)*price
+            ,receiving_det.created_by,receiving_det.updated_by,now(),now(),'003'
+            from receiving_det
+            left join article on article.article_code = receiving_det.article_code
+            where article_type in ('RMP','CM1','CM2','RM')
+            and (qty+qty_free) > 0
+            and rec_number in (select rec_number from receiving_hdr where status = '4' and rec_number = '$recNumber')
+            order by receiving_det.created_at");
+
+        DB::commit();
+
+        $message = "$title $recNumber Successfully Posted";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return $this->postingResp($request, 1, $title, $recNumber, 'success', $message, $id, $status);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $message = "$title $recNumber error: " . $e->getMessage();
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return $this->postingResp($request, 0, $title, $recNumber, 'error', $message, $id, $lastStatus);
+    }
+}
+
+private function postingResp($request, $statusFlag, $title, $recNumber, $alert, $message, $id, $statusRec = null)
+{
+    if ($request->dariNew == 'true') {
+        return response()->json([
+            'statusRec' => $statusRec,
+            'title'     => $title,
+            'status'    => $statusFlag,
+            'message'   => $message,
+            'alert'     => $alert,
+            'recNumber' => $recNumber,
+            'idKu'      => Crypt::encryptString($id),
+        ]);
+    }
+    return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+}
 
     public function cancel(Request $request)
     {
@@ -1661,7 +1869,7 @@ class ReceivingController extends Controller
 
         $data['title'] =$recNumber;
 
-        return view('receiving.print',$data);
+        return view('receiving.print2',$data);
 
         // view()->share($data);
 
@@ -1690,6 +1898,35 @@ class ReceivingController extends Controller
         }
         return $output;
     }
+
+    public function listPo2(Request $request)
+{
+    $supp    = $request->value;
+    $recType = $request->recType;
+    $output  = "";
+
+    $data = DB::table("purchase_order_hdr")
+        ->where("supplier_id", $supp)
+        ->where("status", "3")
+        ->when($recType == 'NP', function ($q) {
+            $q->where('order_type', 'np');          // hanya PO non-purchase
+        })
+        // optional: kalau mau recPo cuma menampilkan yang non-np, aktifkan ini
+        ->when($recType == 'NORMAL', function ($q) {
+            $q->where('order_type', '<>', 'np');
+        })
+        ->orderBy("po_number")
+        ->select("po_number")
+        ->get();
+
+    if (count($data) > 0) {
+        $output .= '<option value="Choose PO">Choose PO</option>';
+        foreach ($data as $row) {
+            $output .= '<option value="'.$row->po_number.'">'.$row->po_number.'</option>';
+        }
+    }
+    return $output;
+}
 
     public function poDetail(Request $request)
     {
@@ -1732,6 +1969,101 @@ class ReceivingController extends Controller
 
         return response()->json($data);
     }
+
+    public function poDetail2(Request $request)
+{
+    $po = $request->value;
+    $supplier = DB::table('purchase_order_hdr')->where('po_number', $po)->value('supplier_id');
+
+    $data = DB::select("SELECT 
+            a.*,
+            a.article_code,
+            article.article_alternative_code,
+            article.article_desc,
+            (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_order,
+            COALESCE(v.unit_from, article.uom) as uom,   -- satuan terima (uom_from)
+            v.unit_to    as conv_to,                    -- satuan stok
+            v.unit_factor as conv_factor                 -- faktor; null kalau belum dimapping
+            from purchase_order_det a
+            left join article on article.article_code = a.article_code
+            left join uom_con_v2 v
+                on  v.article_code = a.article_code
+                and lower(v.supplier_code) = lower('$supplier')
+                and lower(v.unit_from)      = lower(article.uom)
+            left join 
+                (select po, article_code, sum(qty) as qty, max(price) as price from (
+                    select *, (select po_number from receiving_hdr where rec_number = a.rec_number) as po 
+                    from receiving_det a 
+                    where rec_number in (
+                        select rec_number from receiving_hdr where status not in ('5','7') and po_number = '$po'
+                    )
+                    and qty > 0
+                ) z
+                group by po, article_code) b
+            on a.po_number = b.po and a.article_code = b.article_code
+            where a.po_number = '$po'
+            order by a.id");
+
+    return response()->json($data);
+}
+
+// Daftar PR Non Purchase per supplier (referensi receiving NP)
+public function listPr(Request $request)
+{
+    $supp = $request->value;
+    $output = "";
+
+    $data = DB::table('purchase_request_hdr')
+        ->where('order_type', 'np')
+        ->where('supp_code', $supp)
+        ->whereNotIn('status', ['5'])        // sesuaikan status batal/void Anda
+        ->orderBy('pr_number')
+        ->select('pr_number')
+        ->get();
+
+    if (count($data) > 0) {
+        $output .= '<option value="Choose PR">Choose PR</option>';
+        foreach ($data as $row) {
+            $output .= '<option value="'.$row->pr_number.'">'.$row->pr_number.'</option>';
+        }
+    }
+    return $output;
+}
+
+// Detail PR untuk receiving NP (mirip poDetail2 tapi sumbernya purchase_request_det)
+public function prDetail(Request $request)
+{
+    $pr       = $request->value;
+    $supplier = DB::table('purchase_request_hdr')->where('pr_number', $pr)->value('supp_code');
+
+    $data = DB::select("SELECT
+            d.article_code,
+            article.article_alternative_code,
+            article.article_desc,
+            -- sisa = qty PR dikurangi yang sudah diterima
+            (COALESCE(d.qty,0) - COALESCE(r.qty,0)) as qty_order,
+            COALESCE(v.unit_from, article.uom) as uom,   -- satuan terima
+            v.unit_to     as conv_to,                    -- satuan stok
+            v.unit_factor as conv_factor,
+            0 as price,                                  -- NP umumnya tanpa harga (ganti bila perlu)
+            d.pr_number
+        from purchase_request_det d
+        left join article on article.article_code = d.article_code
+        left join uom_con_v2 v
+            on  v.article_code = d.article_code
+            and lower(v.supplier_code) = lower('$supplier')
+            and lower(v.unit_from)     = lower(article.uom)
+        left join (
+            select pr_number, article_code, sum(qty) as qty
+            from receiving_det
+            where rec_number in (select rec_number from receiving_hdr where status not in ('5','7'))
+            group by pr_number, article_code
+        ) r on r.pr_number = d.pr_number and r.article_code = d.article_code
+        where d.pr_number = '$pr'
+        order by d.id");
+
+    return response()->json($data);
+}
 
     public function listUom(Request $request)
     {
