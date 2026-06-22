@@ -202,14 +202,19 @@
 
   // load angka cards
   function loadStats() {
-      $.get("{{ route('article.request.stats') }}", function(res) {
-          $('#statTotal').text(res.total);
-          $('#statRequested').text(res.requested);
-          $('#statApproved').text(res.approved);
-          $('#statSubmitted').text(res.submitted);
-          feather.replace();
-      });
-  }
+    $.get("{{ route('article.request.stats') }}", {
+        name:  $("#searchName").val(),
+        group: $("#searchGroup").val(),
+        supp:  $("#searchSupplier").val(),
+        type:  $("#searchType").val(),
+    }, function(res) {
+        $('#statTotal').text(res.total);
+        $('#statRequested').text(res.requested);
+        $('#statApproved').text(res.approved);
+        $('#statSubmitted').text(res.submitted);
+        feather.replace();
+    });
+}
 
   $(document).ready(function(){
     $(document).on('click', '#deleteButton', function(event) {
@@ -217,8 +222,7 @@
         let href = $(this).data('href');
         $('#modalConfirmation').attr("action", href);        
     });
-
-    loadStats();
+    
     triggerSearch();
   });
 
@@ -248,13 +252,15 @@
   });
 
   function triggerSearch() {
-      let name   = $("#searchName").val();
-      let group  = $("#searchGroup").val();
-      let supp   = $("#searchSupplier").val();
-      let type   = $("#searchType").val();
-      let status = activeStatusFilter !== '' ? activeStatusFilter : ($("#searchStatus").val() || '');
-      showList(name, status, group, supp, type);
-  }
+    let name   = $("#searchName").val();
+    let group  = $("#searchGroup").val();
+    let supp   = $("#searchSupplier").val();
+    let type   = $("#searchType").val();
+    let status = activeStatusFilter !== '' ? activeStatusFilter : ($("#searchStatus").val() || '');
+
+    loadStats();   // ← refresh angka card sesuai filter form
+    showList(name, status, group, supp, type);
+}
 
   const showList = (name,status,group,supp,type) => {
     if ($('#detailedTable tr').length > 0){

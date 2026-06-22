@@ -1089,16 +1089,28 @@
             return view("articles.request",$data);
         }
 
-        public function getStatsRequest()
+        public function getStatsRequest(Request $request)
 {
     $username      = Auth::user()->username;
     $userSubmitter = Auth::user()->can('article-request-submit') ? "yes" : "no";
 
+    $name  = strtolower($request->name);
+    $group = strtolower($request->group);
+    $supp  = strtolower($request->supp);
+    $type  = strtolower($request->type);
+
     // base query dengan visibility yang sama seperti requestList
-    $base = DB::table('article_request')->where(function ($query1) use ($userSubmitter,$username) {
+    $base = DB::table('article_request')
+    ->where(function ($query1) use ($userSubmitter,$username) {
         if($userSubmitter === "no"){
             $query1->where(DB::RAW("(SELECT count(*) from user_dept where username = article_request.created_by and dept in (select dept from user_dept where username = '$username'))"),">",0);
         }
+    })
+    ->where(function ($query) use ($name,$group,$supp,$type) {
+        $name  ? $query->where('article_desc','ilike','%'.$name.'%') : '';
+        $group ? $query->where('group_of_material','ilike','%'.$group.'%') : '';
+        $supp  ? $query->where('third_party','ilike','%'.$supp.'%') : '';
+        $type  ? $query->where('article_type','ilike',$type.'%') : '';
     });
 
     return response()->json([
