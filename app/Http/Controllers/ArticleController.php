@@ -92,16 +92,29 @@
             return view("articles.index",$data);
         }
 
-        public function getStats()
+        public function getStats(Request $request)
 {
-    $total  = DB::table('article')->count();
-    $active = DB::table('article')->where('status','1')->count();
-    $freeze = DB::table('article')->where('status','0')->count();
+    $code  = strtolower($request->code);
+    $name  = strtolower($request->name);
+    $group = strtolower($request->group);
+    $cust  = strtolower($request->cust);
+    $supp  = strtolower($request->supp);
+    $type  = strtolower($request->type);
+
+    $base = DB::table('article')
+    ->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
+        $code  ? $query->where('article_alternative_code','ilike','%'.$code.'%') : '';
+        $name  ? $query->where('article_desc','ilike','%'.$name.'%') : '';
+        $group ? $query->where('group_of_material','ilike','%'.$group.'%') : '';
+        $cust  ? $query->where('third_party','ilike','%'.$cust.'%') : '';
+        $supp  ? $query->where('third_party','ilike','%'.$supp.'%') : '';
+        $type  ? $query->where('article_alternative_code','ilike',$type.'%') : '';
+    });
 
     return response()->json([
-        'total'  => $total,
-        'active' => $active,
-        'freeze' => $freeze,
+        'total'  => (clone $base)->count(),
+        'active' => (clone $base)->where('status','1')->count(),
+        'freeze' => (clone $base)->where('status','0')->count(),
     ]);
 }
 

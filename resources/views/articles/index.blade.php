@@ -247,13 +247,19 @@
 
   // ── load stat cards via AJAX ───────────────────────────────
   function loadStats() {
-      $.get("{{ route('article.stats') }}", function(res) {
-          $('#statTotal').text(res.total.toLocaleString('id-ID'));
-          $('#statActive').text(res.active.toLocaleString('id-ID'));
-          $('#statFreeze').text(res.freeze.toLocaleString('id-ID'));
-          feather.replace(); // re-render feather icons
-      });
-  }
+    $.get("{{ route('article.stats') }}", {
+        name:  $("#searchName").val(),
+        code:  $("#seachCode").val(),
+        group: $("#searchGroup").val(),
+        supp:  $("#searchSupplier").val(),
+        type:  $("#searchType").val(),
+    }, function(res) {
+        $('#statTotal').text(res.total.toLocaleString('id-ID'));
+        $('#statActive').text(res.active.toLocaleString('id-ID'));
+        $('#statFreeze').text(res.freeze.toLocaleString('id-ID'));
+        feather.replace();
+    });
+}
 
   // ── klik stat card ─────────────────────────────────────────
   $('.stat-card').on('click', function() {
@@ -285,6 +291,7 @@
       let group = $("#searchGroup").val();
       let supp  = $("#searchSupplier").val();
       let type  = $("#searchType").val();
+      loadStats();   // ← refresh angka card sesuai filter
       showList(name, code, group, supp, type, activeStatusFilter);
   }
 
