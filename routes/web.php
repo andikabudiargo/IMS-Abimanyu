@@ -541,7 +541,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('boms/upload-excel-list',['as'=>'bom.upload.excel.list','uses'=>'BomController@listUploadExcel']);
 
 	Route::post('boms/storev2',['as'=>'bom.storev2','uses'=>'BomController@storev2']);
-	Route::get('boms/show',['as'=>'bom.showv2','uses'=>'BomController@showv2']);
+	Route::get('boms/show/v2',['as'=>'bom.showv2','uses'=>'BomController@showv2']);
 
 	Route::get('deliveryPlan/create',['as'=>'deliveryPlan.create','uses'=>'DeliveryPlanController@create']);
 	Route::get('deliveryPlan/generate',['as'=>'deliveryPlan.generate','uses'=>'DeliveryPlanController@generatePlan']);
