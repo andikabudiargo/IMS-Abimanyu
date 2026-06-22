@@ -161,6 +161,18 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('uomCons/delete',['as'=>'uomCon.destroy','uses'=>'UomConController@destroy']);
 	Route::get('uomCons/get/factor',['as'=>'uomCon.get.factor','uses'=>'UomConController@getFactor']);
 
+	//Uom Con v2
+	Route::get('uomConsv2',['as'=>'uomConsv2.index','uses'=>'UomConControllerv2@index']);
+	Route::get('uomConsv2/create',['as'=>'uomConv2.create','uses'=>'UomConControllerv2@create']);
+	Route::post('article/uom',['as'=>'uomConv2.uom','uses'=>'UomConControllerv2@uom']);
+	Route::post('uomConsv2/store',['as'=>'uomConv2.store','uses'=>'UomConControllerv2@store']);
+	Route::get('uomConsv2/list',['as'=>'uomConv2.list','uses'=>'UomConControllerv2@list']);
+	Route::get('uomConsv2/show',['as'=>'uomConv2.show','uses'=>'UomConControllerv2@show']);
+	Route::get('uomConsv2/edit',['as'=>'uomConv2.edit','uses'=>'UomConControllerv2@edit','middleware' => ['permission:uomCon-edit']]);
+	Route::post('uomConv2/update/{id}', ['as' => 'uomConv2.update','uses' => 'UomConControllerv2@update']);
+	Route::post('uomConsv2/delete',['as'=>'uomConv2.destroy','uses'=>'UomConControllerv2@destroy']);
+	Route::get('uomConsv2/get/factor',['as'=>'uomConv2.get.factor','uses'=>'UomConControllerv2@getFactor']);
+
 	Route::get('jobPositions',['as'=>'jobPositions.index','uses'=>'JobPositionController@index','middleware' => ['permission:jobPosition-index']]);
 	Route::get('jobPositions/create',['as'=>'jobPosition.create','uses'=>'JobPositionController@create','middleware' => ['permission:jobPosition-create']]);
 	Route::post('jobPositions/store',['as'=>'jobPosition.store','uses'=>'JobPositionController@store']);
@@ -191,6 +203,12 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('articles/code/create',['as'=>'article.code.create','uses'=>'ArticleController@articleCodeCreate']);
 	Route::post('articles/get/supplier',['as'=>'get.supplier','uses'=>'ArticleController@getSupplier']);
 	Route::get('articles/movement',['as'=>'article.movement','uses'=>'ArticleController@movement']);
+
+
+	// MOVEMENT MULTI WAREHOUSE
+	Route::get('articles/movement2',['as'=>'article.movement2','uses'=>'ArticleController@movement2']);
+	Route::get('article/stats', ['as'=>'article.stats','uses'=>'ArticleController@getStats']);
+	Route::get('article/request/stats', ['as'=>'article.request.stats','uses'=>'ArticleController@getStatsRequest']);
 
 	Route::get('articles/request',['as'=>'article.request','uses'=>'ArticleController@requestIndex']);
 	Route::get('articles/request/list',['as'=>'article.request.list','uses'=>'ArticleController@requestList']);
@@ -271,6 +289,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('purchaseOrdersReport',['as'=>'purchaseOrders.report','uses'=>'PurchaseOrderController@report','middleware' => ['permission:purchaseOrder-index']]);
 	Route::get('purchaseOrdersReport/list',['as'=>'purchaseOrders.listReport','uses'=>'PurchaseOrderController@listReport','middleware' => ['permission:purchaseOrder-index']]);
 
+	//PO Handle Non Purchase
+	Route::get('purchaseOrders/createv2',['as'=>'purchaseOrder.createv2','uses'=>'PurchaseOrderController@create','middleware' => ['permission:purchaseOrder-create']]);
+
 	Route::get('targetSo',['as'=>'targetSo.index','uses'=>'TargetSoController@index','middleware' => ['permission:targetSo-index']]);
 	Route::get('targetSo/create',['as'=>'targetSo.create','uses'=>'TargetSoController@create','middleware' => ['permission:targetSo-create']]);
 	Route::post('targetSo/store',['as'=>'targetSo.store','uses'=>'TargetSoController@store']);
@@ -301,13 +322,21 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receivings/delete',['as'=>'receiving.destroy','uses'=>'ReceivingController@destroy']);
 	Route::get('receivings/code/create',['as'=>'receiving.code.create','uses'=>'ReceivingController@articleCodeCreate']);
 	Route::get('receivings/print',['as'=>'receiving.print','uses'=>'ReceivingController@print']);
-	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting']);
+	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting2']);
 	Route::post('receiving/approve',['as'=>'receiving.approve','uses'=>'ReceivingController@approve']);
 	Route::post('receiving/cancel',['as'=>'receiving.cancel','uses'=>'ReceivingController@cancel']);
 	Route::post('receiving/revision',['as'=>'receiving.revision','uses'=>'ReceivingController@revision']);
 	Route::get('receiving/notif/approve',['as'=>'receiving.notif.approve','uses'=>'ReceivingController@approve']);
 
 	Route::get('receiving/prosesUlangKas',['as'=>'receiving.prosesUlangKas','uses'=>'ReceivingController@prosesReInsertIntoKas']);
+
+	// Rec v2 (Handle Non Purchase, UoM Conversion & Gudang Transit)
+	Route::get('receivings/createv2',['as'=>'receiving.createv2','uses'=>'ReceivingController@create','middleware' => ['permission:receiving-create']]);
+	Route::get('receivings/list/pov2',['as'=>'receiving.list.pov2','uses'=>'ReceivingController@listPo2']);
+	Route::get('receivings/po/det2',['as'=>'receiving.po.det2','uses'=>'ReceivingController@poDetail2']);
+	Route::post('receiving/list/pr',  ['as'=>'receiving.list.pr','uses'=>'ReceivingController@listPr']);
+	Route::post('receiving/pr/det',['as'=>'receiving.pr.det','uses'=>'ReceivingController@prDetail']);
+	
 
 	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:delivery-index']]);
 	Route::get('delivery/create',['as'=>'delivery.create','uses'=>'DeliveryController@create','middleware' => ['permission:delivery-create']]);
@@ -372,6 +401,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('invoice/get/bukti-potong',['as'=>'invoice.get.bukti.potong','uses'=>'InvoiceController@getBuktiPotong']);
 
 	Route::get('invoice/posting/all',['as'=>'invoice.posting.all','uses'=>'InvoiceController@prosesAllPosting']);
+
+	//add jatuh tempo
+	Route::get('invoice/createv2',['as'=>'invoice.createv2','uses'=>'InvoiceController@create']);
 
 
 	//Account payable versi 2
@@ -461,6 +493,9 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('purchaseRequests',['as'=>'purchaseRequests.index','uses'=>'PurchaseRequestController@index','middleware' => ['permission:purchaseRequest-index']]);
 	Route::get('purchaseRequests/create',['as'=>'purchaseRequest.create','uses'=>'PurchaseRequestController@create','middleware' => ['permission:purchaseRequest-create']]);
+
+	// revisi PR handle non purchase
+	Route::get('purchaseRequests/createv2',['as'=>'purchaseRequest.createv2','uses'=>'PurchaseRequestController@createv2','middleware' => ['permission:purchaseRequest-create']]);
 	Route::post('purchaseRequests/store',['as'=>'purchaseRequest.store','uses'=>'PurchaseRequestController@store']);
 	Route::get('purchaseRequests/list',['as'=>'purchaseRequest.list','uses'=>'PurchaseRequestController@list']);
 	Route::get('purchaseRequests/list/detail',['as'=>'purchaseRequest.list.detail','uses'=>'PurchaseRequestController@listDetail']);
@@ -475,6 +510,10 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('purchaseRequests/revision',['as'=>'purchaseRequest.revision','uses'=>'PurchaseRequestController@revision']);
 	Route::get('purchaseRequests/warning',['as'=>'purchaseRequest.warning','uses'=>'PurchaseRequestController@warning']);
 	Route::post('purchaseRequests/reject',['as'=>'purchaseRequest.reject','uses'=>'PurchaseRequestController@reject']);
+
+
+	//Handle NP TSO
+	Route::get('purchaseRequests/article/tso2',['as'=>'purchaseRequest.article.tso2','uses'=>'PurchaseRequestController@articleTso2']);
 
 	Route::get('boms',['as'=>'boms.index','uses'=>'BomController@index','middleware' => ['permission:bom-index']]);
 	Route::get('boms/create',['as'=>'bom.create','uses'=>'BomController@create','middleware' => ['permission:bom-create']]);
@@ -500,6 +539,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('bom/upload-excel',['as'=>'bom.upload.excel','uses'=>'BomController@uploadExcel']);
 	Route::get('bom/export-template',['as'=>'bom.export.template','uses'=>'BomController@exportTemplate']);
 	Route::get('boms/upload-excel-list',['as'=>'bom.upload.excel.list','uses'=>'BomController@listUploadExcel']);
+
+	Route::post('boms/storev2',['as'=>'bom.storev2','uses'=>'BomController@storev2']);
+	Route::get('boms/show',['as'=>'bom.showv2','uses'=>'BomController@showv2']);
 
 	Route::get('deliveryPlan/create',['as'=>'deliveryPlan.create','uses'=>'DeliveryPlanController@create']);
 	Route::get('deliveryPlan/generate',['as'=>'deliveryPlan.generate','uses'=>'DeliveryPlanController@generatePlan']);
@@ -629,6 +671,11 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('warehouse/article',['as'=>'warehouse.article','uses'=>'WarehouseController@article','middleware' => ['permission:warehouse-index']]);
 	Route::get('warehouse/articles/list',['as'=>'warehouse.article.list','uses'=>'WarehouseController@listArticle']);
 
+	// stock v2
+	Route::get('warehouse/articlev2',['as'=>'warehouse.articlev2','uses'=>'WarehouseControllerv2@article','middleware' => ['permission:warehouse-index']]);
+	Route::get('warehouse/articles/listv2',['as'=>'warehouse.article.listv2','uses'=>'WarehouseControllerv2@listArticle']);
+	Route::get('warehouse/article/summary', ['as' => 'warehouse.article.summary', 'uses'=>'WarehouseControllerv2@summary']);
+
 
 	/* new transfer in and out */
 
@@ -671,7 +718,19 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('transferOut/import-excel',['as'=>'transferOut.import.excel','uses'=>'Transfer\TransferOutController@importExcel']);
 	Route::get('transferOut/export-excel',['as'=>'transferOut.export.excel','uses'=>'Transfer\TransferOutController@export']);
 
+	
+	
+
 	/* end new transfer in and out */
+
+	//Transfer Stock simplifikasi Transfer In & Out
+
+	Route::get('transferStock',['as'=>'transferStock.index','uses'=>'TransferStockController@index','middleware' => ['permission:transferOut-index']]);
+	Route::get('transferStock/create',['as'=>'transferStock.create','uses'=>'TransferStockController@create']);
+	Route::post('transferStock/store',['as'=>'transferStock.store','uses'=>'TransferStockController@store']);
+	Route::get('transferStock/list',['as'=>'transferStock.list','uses'=>'TransferStockController@list']);
+	Route::get('transferStock/list/detail',['as'=>'transferStock.list.detail','uses'=>'TransferStockController@listDetail']);
+	Route::post('transferStock/posting',['as'=>'transferStock.posting','uses'=>'TransferStockController@posting']);
 	
 
 	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);

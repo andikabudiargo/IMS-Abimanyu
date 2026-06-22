@@ -28,8 +28,8 @@
                             </div>
                         </div>
                         <div class="form-row">       
-                            <div class="form-group col-md-12 d-done">
-                                <label class="form-label" for="group">Group of material</label>
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="group">Group of Material</label>
                                 <select class="select2 form-control" id="group" name="group" disabled>
                                     <option value="">All</option>
                                     @foreach($groups as $val)

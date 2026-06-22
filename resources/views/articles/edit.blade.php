@@ -35,8 +35,8 @@
                             </div>    
                         </div>
                         <div class="form-row">       
-                            <div class="form-group col-md-12 d-none">
-                                <label class="form-label" for="group">Group of material</label>
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="group">Group of Material</label>
                                 <select class="select2 form-control" id="group" name="group">
                                     <option value=""></option>
                                     @foreach($groups as $val)
@@ -86,7 +86,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-6 d-none">
                                 <label for="price">Price</label>
                                 <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price',$article->costprice) }}"  maxlength="18"/>
                             </div>

@@ -27,8 +27,8 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-12 d-none">
-                                <label class="form-label" for="group">Group of material</label>
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="group">Group of Material</label>
                                 <select class="select2 form-control" id="group" name="group">
                                     <option value=""></option>
                                     @foreach($groups as $val)
@@ -220,23 +220,29 @@
     });
 
     $('#articleType').on('change', function() {
-        let type = $(this).val();
-        let obj = "cust";
-        $.ajax({
-            url:"{{route('get.supplier')}}",
-            method:"POST",
-            data:{
-                type:type,
-                dependent:obj
-            },
-            success:function(result){
-                type === 'FG' ? $('#custLable').text("Customer*"):$('#custLable').text("Supplier/Supplier*");
-                // type != 'FG' && type != 'RM' ? $('#custLable').text("Supplier*"):type === 'RM'?$('#custLable').text("Customer/Supplier*"):"";
-                $('#'+obj).html(result);
-                // $('#'+obj).val('').trigger('change');
-            }
-        })
+    let type = $(this).val();
+    let obj = "cust";
+
+    if (!type) {
+        // belum dipilih -> kembali ke default
+        $('#custLable').text("Customer/Supplier*");
+        $('#'+obj).html('<option value=""></option>').trigger('change.select2');
+        return;
+    }
+
+    $.ajax({
+        url:"{{route('get.supplier')}}",
+        method:"POST",
+        data:{
+            type:type,
+            dependent:obj
+        },
+        success:function(result){
+            $('#custLable').text(type === 'FG' ? "Customer*" : "Supplier*");
+            $('#'+obj).html(result).trigger('change.select2');
+        }
     })
+})
 
     $.ajaxSetup({
         headers: {
