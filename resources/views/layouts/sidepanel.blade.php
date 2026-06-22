@@ -68,7 +68,7 @@
             @endcan
             @can('uomCon-index')
             <li class="{{ \Request::segment(1) == 'uomCons'  ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('uomCons.index') }}">
+              <a class="d-flex align-items-center" href="{{ route('uomConsv2.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">UOM Conversion</span>
               </a>
