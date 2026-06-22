@@ -327,7 +327,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receivings/delete',['as'=>'receiving.destroy','uses'=>'ReceivingController@destroy']);
 	Route::get('receivings/code/create',['as'=>'receiving.code.create','uses'=>'ReceivingController@articleCodeCreate']);
 	Route::get('receivings/print',['as'=>'receiving.print','uses'=>'ReceivingController@print']);
-	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting2']);
+	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting']);
 	Route::post('receiving/approve',['as'=>'receiving.approve','uses'=>'ReceivingController@approve']);
 	Route::post('receiving/cancel',['as'=>'receiving.cancel','uses'=>'ReceivingController@cancel']);
 	Route::post('receiving/revision',['as'=>'receiving.revision','uses'=>'ReceivingController@revision']);
