@@ -191,7 +191,7 @@ class ReceivingController extends Controller
         $data['oEdit']=false;
         $data['lockDate'] = $this->lockDate;
 
-        return view("receiving.createv2",$data);
+        return view("receiving.create",$data);
     }
 
     public function store(Request $request)
@@ -908,50 +908,54 @@ class ReceivingController extends Controller
         }
 
         // ----- catat mutasi ke warehouse_movement (qty stok sama dgn yg dipakai stok) -----
-        $movements = DB::table('receiving_det')
-            ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
-            ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
-            ->where('receiving_det.rec_number', $recNumber)
-            ->where('receiving_hdr.status', '4')
-            ->whereRaw("$qtyBaseSql <> 0")                 // filter sama dengan update stok
-            ->select(
-                'receiving_hdr.rec_date as movement_date',
-                'receiving_det.article_code',
-                'article.article_desc',
-                DB::raw("0 as movement_min"),
-                DB::raw("$qtyBaseSql as movement_plus"),   // = total_qty
-                DB::raw("receiving_det.price as movement_price"),
-                'receiving_hdr.rec_number as movement_transnno',
-                DB::raw("'$moduleCode' as movement_type"),
-                'receiving_hdr.po_number as movement_desc',
-                DB::raw("$stockUomSql as movement_uom")
-            )
-            ->get();
+       $movements = DB::table('receiving_det')
+    ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
+    ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+    ->where('receiving_det.rec_number', $recNumber)
+    ->where('receiving_hdr.status', '4')
+    ->whereRaw("$qtyBaseSql <> 0")                 // filter sama dengan update stok
+    ->select(
+        'receiving_hdr.rec_date as movement_date',
+        'receiving_det.article_code',
+        'article.article_desc',
+        DB::raw("0 as movement_min"),
+        DB::raw("$qtyBaseSql as movement_plus"),   // = total_qty
+        DB::raw("receiving_det.price as movement_price"),
+        'receiving_hdr.rec_number as movement_transnno',
+        DB::raw("'$moduleCode' as movement_type"),
+        'receiving_hdr.po_number as movement_desc',
+        DB::raw("$stockUomSql as movement_uom"),
+        'receiving_hdr.supplier_id as movement_from_code'   // <-- tambahan: kode supplier
+    )
+    ->get();
 
         $seq = (int) DB::table('warehouse_movement')->max('movement_code');
 
-        $dataSetMovement = [];
-        foreach ($movements as $val) {
-            $seq++;
-            $dataSetMovement[] = [
-                'movement_code'     => $seq,
-                'movement_date'     => $val->movement_date,
-                'artikel_code'      => $val->article_code,
-                'artikel_desc'      => $val->article_desc,
-                'movement_min'      => $val->movement_min,
-                'movement_plus'     => $val->movement_plus,
-                'movement_price'    => $val->movement_price,
-                'movement_transnno' => $val->movement_transnno,
-                'movement_type'     => $val->movement_type,
-                'movement_desc'     => $val->movement_desc,
-                'uom'               => $val->movement_uom,
-                'created_by'        => $username,
-                'created_at'        => date('Y-m-d H:i:s'),
-                'site_code'         => $siteCode,
-                'location_number'   => $location,
-                'last_qty'          => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min + $val->movement_plus)"),
-            ];
-        }
+$dataSetMovement = [];
+foreach ($movements as $val) {
+    $seq++;
+    $dataSetMovement[] = [
+        'movement_code'     => $seq,
+        'movement_date'     => $val->movement_date,
+        'artikel_code'      => $val->article_code,
+        'artikel_desc'      => $val->article_desc,
+        'movement_min'      => $val->movement_min,
+        'movement_plus'     => $val->movement_plus,
+        'movement_price'    => $val->movement_price,
+        'movement_transnno' => $val->movement_transnno,
+        'movement_type'     => $val->movement_type,
+        'movement_desc'     => $val->movement_desc,
+        'uom'               => $val->movement_uom,
+        'created_by'        => $username,
+        'created_at'        => date('Y-m-d H:i:s'),
+        'site_code'         => $siteCode,
+        'location_number'   => $location,
+        'last_qty'          => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min + $val->movement_plus)"),
+        'movement_from'     => $val->movement_from_code,   // kode supplier (relasi ke third_party.kode)
+        'movement_to'       => $location,                  // kode gudang tujuan ('011')
+        'partner_type'      => 'SUPP',                     // transaksi masuk dari supplier
+    ];
+}
 
         if (!empty($dataSetMovement)) {
             DB::table('warehouse_movement')->insert($dataSetMovement);
@@ -2010,17 +2014,19 @@ private function postingResp($request, $statusFlag, $title, $recNumber, $alert, 
 // Daftar PR Non Purchase per supplier (referensi receiving NP)
 public function listPr(Request $request)
 {
-    $supp = $request->value;
+    $supp = trim($request->value);
     $output = "";
-
-    $data = DB::table('purchase_request_hdr')
-        ->where('order_type', 'np')
-        ->where('supp_code', $supp)
-        ->whereNotIn('status', ['5'])        // sesuaikan status batal/void Anda
-        ->orderBy('pr_number')
-        ->select('pr_number')
+ 
+    $data = DB::table('purchase_request_hdr as h')
+        ->join('purchase_request_det as d', 'd.pr_number', '=', 'h.pr_number')
+        ->whereRaw('LOWER(TRIM(h.purchase_type)) = ?', ['np'])
+        ->whereRaw('LOWER(TRIM(d.supp_code)) = ?', [strtolower($supp)])
+        ->whereNotIn('h.status', ['5'])
+        ->orderBy('h.pr_number')
+        ->select('h.pr_number')
+        ->distinct()
         ->get();
-
+ 
     if (count($data) > 0) {
         $output .= '<option value="Choose PR">Choose PR</option>';
         foreach ($data as $row) {
@@ -2034,34 +2040,34 @@ public function listPr(Request $request)
 public function prDetail(Request $request)
 {
     $pr       = $request->value;
-    $supplier = DB::table('purchase_request_hdr')->where('pr_number', $pr)->value('supp_code');
-
+    $supplier = trim($request->supp); // dikirim dari frontend
+ 
     $data = DB::select("SELECT
             d.article_code,
             article.article_alternative_code,
             article.article_desc,
-            -- sisa = qty PR dikurangi yang sudah diterima
             (COALESCE(d.qty,0) - COALESCE(r.qty,0)) as qty_order,
-            COALESCE(v.unit_from, article.uom) as uom,   -- satuan terima
-            v.unit_to     as conv_to,                    -- satuan stok
+            COALESCE(v.unit_from, article.uom) as uom,
+            v.unit_to     as conv_to,
             v.unit_factor as conv_factor,
-            0 as price,                                  -- NP umumnya tanpa harga (ganti bila perlu)
+            0 as price,
             d.pr_number
         from purchase_request_det d
         left join article on article.article_code = d.article_code
         left join uom_con_v2 v
             on  v.article_code = d.article_code
-            and lower(v.supplier_code) = lower('$supplier')
+            and lower(trim(v.supplier_code)) = lower(trim('$supplier'))
             and lower(v.unit_from)     = lower(article.uom)
         left join (
-            select pr_number, article_code, sum(qty) as qty
-            from receiving_det
-            where rec_number in (select rec_number from receiving_hdr where status not in ('5','7'))
-            group by pr_number, article_code
+            select r.pr_number, r.article_code, sum(r.qty) as qty
+            from receiving_det r
+            where r.rec_number in (select rec_number from receiving_hdr where status not in ('5','7'))
+            group by r.pr_number, r.article_code
         ) r on r.pr_number = d.pr_number and r.article_code = d.article_code
         where d.pr_number = '$pr'
+        and lower(trim(d.supp_code)) = lower(trim('$supplier'))
         order by d.id");
-
+ 
     return response()->json($data);
 }
 
