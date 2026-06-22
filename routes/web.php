@@ -13,6 +13,11 @@
 
 use Illuminate\Http\Request;
 
+Route::get('/monitoring', function () {
+    return redirect()->away(
+        'https://docs.google.com/spreadsheets/d/1a7-TJ50WaKe3XMsCwvI4yOCqo68rmebjfOs46HBot8s/edit?usp=sharing'
+    );
+});
 // Route::auth();
 Auth::routes();
 Route::group( ['middleware' => ['auth']], function() {
