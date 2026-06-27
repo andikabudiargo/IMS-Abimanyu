@@ -135,10 +135,7 @@
                         <tr>
                             <td class="font-10 header-padding no-wrap">@if($loop->first) Part RM @endif</td>
                             <td colspan="5" class="font-9 header-padding">
-                                {{ $rmDesc }}
-                                @if(!empty($rmAlt))
-                                    <br><span class="font-8">Code: {{ $rmAlt }}</span>
-                                @endif
+                                {{ $rmAlt }} - {{ $rmDesc }}
                             </td>
                         </tr>
                     @endforeach
