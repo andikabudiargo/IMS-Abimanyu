@@ -14,6 +14,7 @@ class DependentController extends Controller
 
     public function dependentFetch(Request $request)
     {
+        $skipDefaultQuery = false;
         $code= $request->value;
         $type= $request->type;
         $nilai= $request->nilai;
@@ -84,6 +85,7 @@ class DependentController extends Controller
                 break;
             case 'article_bom': 
                 $table='article';
+                $field='';          //TAMBAH
                 $order ='article_desc';
                 $name  ='article_desc';
                 $default='';
@@ -119,6 +121,19 @@ class DependentController extends Controller
                 $field2 ='article_type';
                 $type = $type;
                 $order ='article_desc';
+                $value ='article_code';
+                $value2 ='article_alternative_code';
+                $name  ='article_desc';
+                $default='';
+                $defaulttxt='Choose article';
+                break;
+            // handle non purchase
+            case 'article_pr_np': 
+                $table='article';
+                $field ='third_party';
+                $field2 ='article_type';
+                $type = $type;
+                $order ='article_alternative_code';
                 $value ='article_code';
                 $value2 ='article_alternative_code';
                 $name  ='article_desc';
@@ -255,6 +270,15 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose article';
                 break;
+            case 'trArticleLocation':     //untuk stock transfer
+                $table     = 'article';
+                $order     = 'article_desc';
+                $value     = 'article_code';
+                $value2    = 'article_alternative_code';
+                $name      = 'article_desc';
+                $default   = '';
+                $defaulttxt= 'Choose article';
+                break;
             case 'trArticleThirdParty': 
                 $table='article';
                 $field ='third_party';
@@ -356,20 +380,95 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose Article';
                 break;
+
+            //tambahan untuk uom con v2
+            case 'supplier':
+
+                $data = DB::table('article_supplier')
+                    ->join('third_party', 'third_party.kode', '=', 'article_supplier.supplier_code')
+                    ->where('article_supplier.article_code', $code)
+                    ->where('third_party.third_party_type', 'supp')
+                    ->select(
+                        'third_party.kode as code',
+                        'third_party.nama as name'
+                    )
+                    ->orderBy('third_party.nama')
+                    ->distinct()
+                    ->get();
+
+        // fallback jika article_supplier kosong
+            if ($data->isEmpty()) {
+                 $data = DB::table('third_party')
+                    ->where('third_party_type', 'supp')
+                    ->select(
+                        'kode as code',
+                        'nama as name'
+                    )
+                ->orderBy('nama')
+                ->get();
+            }
+
+            $value = 'code';
+            $name = 'name';
+            $default = '';
+            $defaulttxt = 'Choose Supplier';
+
+            $skipDefaultQuery = true;
+            break;
+
             break;
                 default:
                     $table='';
         }
 
         if($dependent =='article_id'){
-            /*
+    /*
+        cari finish goods yang sudah memilki BOM baru bisa di bikin SO
+        revisi tanggal 9/6/2024
+        Ada masalah kalau 1 article FG dimiliki oleh lebih dari 1 Customer
+        Revisi:
+        1. Cari article tersebut apakah milik customer yang diinput di tabel article_supplier
+        2. Cek apakah sudah jadi BOM dan sudah berstatus 3 di BOM nya
+        
+        revisi tanggal 25/6/2026
+        Kalau article kolom marketing = 1, tidak harus punya BOM
+    */
+    $data= DB::table($table) 
+    ->leftJoin('warehouse_stock','warehouse_stock.article_code','=',$table.'.article_code')
+    ->leftJoin('group_materials','group_materials.code','=',$table.'.group_of_material')
+    ->leftJoin('uom','uom.code','=',$table.'.uom')
+    ->whereIn('article.article_code', function($query) use ($code){
+        $query->select('article_supplier.article_code')
+        ->from('article_supplier')
+        ->where('article_supplier.supplier_code', $code)
+        ->where(function($query) {
+            $query->whereIn('article_supplier.article_code', function($query) {
+                $query->select('article_code')
+                ->from('bom_hdr') 
+                ->where('status','3');
+            })
+            ->orWhereIn('article_supplier.article_code', function($query) {
+                $query->select('article_code')
+                ->from('article')
+                ->where('marketing', '1');
+            });
+        });
+    })
+    ->where('article.status','1')
+    ->where($field2,$type)
+    ->orderBy($order)
+    ->select($table.'.*', 'warehouse_stock.article_qty as qty','article.uom as uom1','group_materials.name as group','uom.uom_group')
+    ->get();
+
+        /* if($dependent =='article_id'){
+            
                 cari finish goods yang sudah memilki BOM baru bisa di bikin SO
                 revisi tanggal 9/6/2024
                 Ada masalah kalau 1 article FG dimiliki oleh lebih dari 1 Customer
                 Revisi:
                 1. Cari article tersebut apakah milik customer yang diinput di tabel article_supplier
                 2. Cek apakah sudah jadi BOM dan sudah berstatus 3 di BOM nya
-            */
+            
             $data= DB::table($table) 
             ->leftJoin('article_stock','article_stock.article_code','=',$table.'.article_code')
             ->leftJoin('group_materials','group_materials.code','=',$table.'.group_of_material')
@@ -396,13 +495,14 @@ class DependentController extends Controller
             ->where($field2,$type)
             ->orderBy($order)
             ->select($table.'.*', 'article_stock.article_qty as qty','article.uom as uom1','group_materials.name as group','uom.uom_group')
-            ->get();          
+            ->get();    
+            */      
         }elseif($dependent =='article_bom'){
             $data= DB::table($table) 
             ->leftJoin('article_types','article_types.code','=',$table.'.article_type')
             ->leftJoin('third_party','third_party.kode','article.third_party')
             ->leftJoin('uom','uom.code','=',$table.'.uom')
-            ->whereNotIn('article_type',['FG','RM'])
+            ->whereNotIn('article_type',['FG','RM', 'GA', 'PT'])
             ->orderBy($order)
             ->select($table.'.*'
             ,'article_types.name as type_name'
@@ -413,6 +513,7 @@ class DependentController extends Controller
                         from uom_con a where unit_from = $table.uom)")
             )
             ->get();
+            
         }elseif($dependent =='searchFromPr'){
             $data= DB::table($table) 
             ->leftJoin('article','article.article_code','=',$table.'.article_code')
@@ -490,6 +591,7 @@ class DependentController extends Controller
             /*  Pertmintaan bu lupi untuk yang FG juga bisa dibikinin PR */
             $data= DB::table($table)
             ->leftJoin('uom','uom.code','=',$table.'.uom')
+            ->where($table.'.status', '!=', 0)
             // ->whereNotIn('article_type',['FG'])
             ->orderBy($order)
             ->get();
@@ -497,12 +599,22 @@ class DependentController extends Controller
             $data= DB::table($table)
             ->leftJoin('uom','uom.code','=',$table.'.uom')
             ->whereIn('article_type',['FG'])
+            ->where($table.'.status', '!=', 0)
             ->orderBy($order)
             ->get();
         }elseif($dependent =='article_pr_rm'){
             $data= DB::table($table)
             ->leftJoin('uom','uom.code','=',$table.'.uom')
             ->whereIn('article_type',['RM','RMP','RMNP'])
+             ->where($table.'.status', '!=', 0)
+            ->orderBy($order)
+            ->get();
+        // handle non purchase
+        }elseif($dependent =='article_pr_np'){
+            $data= DB::table($table)
+            ->leftJoin('uom','uom.code','=',$table.'.uom')
+            ->whereIn('article_type',['RMNP','CM3'])
+             ->where($table.'.status', '!=', 0)
             ->orderBy($order)
             ->get();
         }elseif($dependent =='article_wos'){
@@ -622,11 +734,11 @@ class DependentController extends Controller
                 )  as sisa_qty 
                 from purchase_request_det
                 where pr_number in 
-                (select pr_number from purchase_request_hdr where order_type in ('std', 'tso', 'rm') and status in ('3','7')) 
+                (select pr_number from purchase_request_hdr where order_type in ('std', 'tso', 'rm', 'np') and status in ('3','7')) 
                 and purchase_request_det.article_code in (select article_code from article_supplier where supplier_code = '$code')"
             );
 
-            $data=db::select("SELECT distinct on (pr_number) pr_number from $dbRequestName where sisa_qty > 0 order by pr_number");
+            $data=db::select("SELECT distinct on (t.pr_number) t.pr_number, (select order_type from purchase_request_hdr h where h.pr_number = t.pr_number) as order_type from $dbRequestName t where t.sisa_qty > 0 order by t.pr_number");
 
         }elseif($dependent =='pRequest_sub'){
             $data= DB::table($table) 
@@ -714,7 +826,27 @@ class DependentController extends Controller
             ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = $table.uom)")
             )
             ->get();
-        }elseif($dependent =='trArticleThirdParty'){
+       }elseif($dependent == 'trArticleLocation'){
+            $reserved = "(select coalesce(sum(d.qty * coalesce(uom_conversion(d.uom, article.uom),1)),0)
+            from transfer_stock_det d
+            join transfer_stock_hdr h on h.tr_number = d.tr_number
+            where d.article_code = article.article_code
+            and h.location_from = '".$code."'
+            and h.status in ('1','2','3'))";   // belum posted/canceled
+
+            $data = DB::table('article')
+                ->join('warehouse_stock','warehouse_stock.article_code','=','article.article_code')
+                ->where('warehouse_stock.location_number', $code)
+                ->where('article.status','1')
+                ->whereRaw("warehouse_stock.article_qty - $reserved > 0")
+                ->select(
+                    'article.*',
+            DB::raw("warehouse_stock.article_qty - $reserved as stock"),  // available
+            DB::raw("(select unit_to from uom_con_v2 where uom_con_v2.article_code = article.article_code order by unit_to limit 1) as uom_v2"),
+            DB::raw("(select string_agg(unit_to, ',') from uom_con_v2 where uom_con_v2.article_code = article.article_code) as uom_member")
+            )
+        ->get();
+       }elseif($dependent =='trArticleThirdParty'){
             $data= DB::table('article') 
             ->leftJoin('uom','uom.code','=','article.uom')
             ->whereIn('article.article_code', function($query) use ($code) {
@@ -729,12 +861,24 @@ class DependentController extends Controller
             ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = $table.uom)")
             )
             ->get();
+       // }elseif($dependent =='tso_list'){
+         //   $data= DB::table($table)
+           // ->where('pr_number','=',null)
+            // ->where('status','=','3')
+            // ->orderBy($order)
+            // ->get();
         }elseif($dependent =='tso_list'){
+            $purchaseType = $request->purchaseType; // kirim dari frontend
             $data= DB::table($table)
-            ->where('pr_number','=',null)
-            ->where('status','=','3')
-            ->orderBy($order)
-            ->get();
+                ->where('status','=','3')
+                ->whereNotIn('tso_code', function($query) use ($purchaseType) {
+            $query->select('tso_code')
+                ->from('purchase_request_hdr')
+                ->where('order_type','tso')
+                ->where('purchase_type',$purchaseType);
+                })
+                ->orderBy($order)
+                ->get();
         }elseif($dependent =='wos_list'){
             //untuk wos minimal sudah di approved sekali statusnya udah validated
             // wos bisa dipanggil di wos mixing walaupun baru di level 1
@@ -936,10 +1080,23 @@ class DependentController extends Controller
             ,'article.costprice')
             ->get();
         }else{
-            $data= DB::table($table) 
-            ->where($field,$code)
-            ->orderBy($order)
+
+            //$data= DB::table($table) 
+            //->where($field,$code)
+            //->orderBy($order)
+            //->get();
+
+            // perubahan skip query
+            if (!$skipDefaultQuery) {
+                $data = DB::table($table)
+                ->when(isset($field) && $field != '', function ($q) use ($field, $code) {
+                return $q->where($field, $code);
+            })
+                ->when(isset($order) && $order != '', function ($q) use ($order) {
+                return $q->orderBy($order);
+            })
             ->get();
+}
         }
         
         $output='';
@@ -953,6 +1110,9 @@ class DependentController extends Controller
             }elseif($dependent =='article_pr_sub'){
                 $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_pr_rm'){
+                $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+            //handle non purchase
+             }elseif($dependent =='article_pr_np'){
                 $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_wos'){
                 $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'|'.$row->article_rm.'|'.$row->qty_rm.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
@@ -984,6 +1144,14 @@ class DependentController extends Controller
                 $output .="<option value='$row->article_code' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='trArticle'){
                 $output .="<option value='$row->article_code' data-uom-member='".$row->uom_member."' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
+            }elseif($dependent =='trArticleLocation'){
+    $uomTo = $row->uom_v2 ?: $row->uom;
+    $output .="<option value='$row->article_code'"
+       ." data-stock='".$row->stock."'"
+       ." data-uom-member='".$row->uom_member."'"
+       ." data-uom='".$uomTo."'"
+       ." data-article-type='".$row->article_type."'>"  // ← TAMBAH INI
+       ."$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='trArticleThirdParty'){
                 $output .="<option value='$row->article_code' data-uom-member='".$row->uom_member."' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='salesOrder'){
@@ -992,7 +1160,7 @@ class DependentController extends Controller
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }elseif($dependent =='pRequest'){
                 // if(($row->qty-$row->qty_po) > 0){
-                    $output .="<option value='$row->pr_number'>$row->pr_number</option>";
+                     $output .="<option value='$row->pr_number' data-potype='$row->order_type'>$row->pr_number</option>";
                 // }
             }elseif($dependent =='listArtilcleAp'){
                 $output .="<option value='$row->article_code' data-uom ='$row->uom' data-cost-price ='$row->costprice' >$row->article_alternative_code - $row->article_desc</option>";
@@ -1006,6 +1174,8 @@ class DependentController extends Controller
                 $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
             }elseif($dependent =='list_inv'){
                 $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
+            }elseif($dependent =='supplier'){
+                $output .="<option value='$row->code'>$row->code | $row->name</option>";
             }else{
                 $output .='<option value="'.$row->$value.'">'.$row->$name.'</option>';
             }
