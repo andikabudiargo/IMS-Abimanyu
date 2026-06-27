@@ -56,6 +56,9 @@
                         <option value="sb4a">Spraybooth 4 A</option>
                         <option value="sb4b">Spraybooth 4 B</option>
                         <option value="sb4c">Spraybooth 4 C</option>
+                        <option value="sb5c">Spraybooth 5 A</option>
+                        <option value="sb5c">Spraybooth 5 B</option>
+                        <option value="sb5c">Spraybooth 5 C</option>
                         <option value="sbtoto">Toto</option>
                     </select>
                 </div>

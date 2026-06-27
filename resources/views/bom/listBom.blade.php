@@ -257,7 +257,8 @@
                 let tone = $this.data('tone-code');
                 let brand = $this.data('brand');
                 // add_new_row_edit(article,qty,uom,uomCon,typeName,uomMember,uoms,factor,pos,tone,brand);
-                addNewRowEdit(article, qty, uom, uomCon, typeName, uomMember, uoms, factor, pos, tone, brand);
+                //addNewRowEdit(article, qty, uom, uomCon, typeName, uomMember, uoms, factor, pos, tone, brand);
+                 add_new_row_edit(article, qty, uom, uomCon, typeName, uomMember, uoms, factor, pos, tone, brand);
             }).promise().done(function() {
                 $(".loading-spinner-container").removeClass("-show");
             });

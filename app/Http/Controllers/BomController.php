@@ -60,6 +60,10 @@ class BomController extends Controller
             'sp4a'=>'Spray Booth 4 A',
             'sp4b'=>'Spray Booth 4 B',
             'sp4c'=>'Spray Booth 4 C',
+             'sp5'=>'Spray Booth 5',
+            'sp5a'=>'Spray Booth 5 A',
+            'sp5b'=>'Spray Booth 5 B',
+            'sp5c'=>'Spray Booth 5 C',
             'sbtoto'=>'Toto'
         ];
     }
@@ -186,7 +190,7 @@ class BomController extends Controller
 
         $data['oEdit']=false;
 
-        return view("bom.create",$data);
+        return view("bom.createv2",$data);
     }
 
     public function store(Request $request)
@@ -328,6 +332,187 @@ class BomController extends Controller
         }
     }
 
+    public function storev2(Request $request)
+{
+    $username =  Auth::user()->username;
+    $articles = json_decode($request->articles);
+    $sprayBooth = json_decode($request->sprayBooths);
+    $articleCode = $request->articleCode;
+    $articleCodeRm = json_decode($request->articleCodeRm); // <-- array of RM article codes
+    $customer = $request->customer;
+    $group = $request->group;
+    $uom = $request->uom;
+    $tag = $request->tag;
+    $passRate = $request->passRate;
+    $passThru = $request->passThru;
+    $cycleTime = $request->cycleTime;
+    $note = $request->note;
+    $partNo = $request->partNo;
+    $model = $request->model;
+    $supplierToto = $request->supplierToto;
+
+    $status = '1';
+    $print_seq = 0;
+
+    $messages = [
+        'required' => 'The field is required.',
+        'unique' => 'The code has already been taken',
+    ];
+
+    Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+        $query = DB::table($parameters[0]);
+        $column = $query->getGrammar()->wrap($parameters[1]);
+        return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+    });
+
+    $validation = Validator::make($request->all(), $messages = [
+        'articleCode' => 'required|unique:bom_hdr,article_code',
+        'customer'    => 'required',
+    ]);
+
+    $error_array = array();
+    $success_output = '';
+
+    if ($validation->fails()) {
+        foreach ($validation->messages()->getMessages() as $field_name => $messages) {
+            $error_array[] = $messages;
+        }
+    }
+
+    // Validasi manual untuk raw material (karena formatnya JSON array, bukan field biasa)
+    if (empty($articleCodeRm) || !is_array($articleCodeRm)) {
+        $error_array[] = ['articleCodeRm' => ['Article Raw material must be filled in']];
+    }
+
+    if (!empty($error_array)) {
+        $title = "Save BOM";
+        $alert = "error";
+        return response()->json(array('status' => 0, 'title' => $title, 'message' => $error_array, 'alert' => $alert));
+    } else {
+        $bomNumber = $this->getLastCode('BOM');
+        DB::beginTransaction();
+        try {
+            $id = DB::table('bom_hdr')->insertGetId([
+                'bom_code' => $bomNumber,
+                'customer' => $customer,
+                'article_code' => $articleCode,
+                'article_code_rm' => null, // sudah pindah ke tabel bom_rm, dibiarkan null
+                'uom' => $uom,
+                'group_of_material' => $group,
+                'status' => $status,
+                'note' => $note,
+                'part_no' => $partNo,
+                'model' => $model,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+                'origin_bom_code' => $bomNumber
+            ]);
+
+            if ($supplierToto == 'false') {
+                $dataSet = [];
+                foreach ($articles as $val) {
+                    $dataSet[] = [
+                        'bom_code' => $bomNumber,
+                        'article_code' => $val->article_code,
+                        'qty' => $val->qty,
+                        'uom' => $val->uom,
+                        'uom_con' => $val->uom_con,
+                        'article_type' => $val->type,
+                        'customer_code' => $val->customer_code,
+                        'status' => '1',
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'urutan' => $val->urutan,
+                        'pos' => $val->pos,
+                        'tone' => $val->tone
+                    ];
+                }
+                DB::table('bom_det')->insert($dataSet);
+            }
+
+            // ====================== INSERT RAW MATERIAL (MULTI) ======================
+if (!empty($articleCodeRm)) {
+    $dataSetRm = [];
+    $urutanRm = 1;
+
+    foreach ($articleCodeRm as $rm) {
+
+        $article = DB::table('article as a')
+            ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
+            ->select(
+                'a.article_code',
+                'a.article_alternative_code',
+                'a.article_desc',
+                'a.uom',
+                'a.third_party',
+                'tp.nama as supplier_name'
+            )
+            ->where('a.article_code', $rm->article_code)
+            ->first();
+
+        if ($article) {
+            $dataSetRm[] = [
+                'bom_code' => $bomNumber,
+                'article_code' => $article->article_code,
+                'article_alternative_code' => $article->article_alternative_code,
+                'article_desc' => $article->article_desc,
+                'supplier_code' => $article->third_party,
+                'supplier_name' => $article->supplier_name,
+                'qty' => 1,
+                'uom' => $article->uom,
+                'urutan' => $urutanRm++,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+    }
+
+    if (!empty($dataSetRm)) {
+        DB::table('bom_rm')->insert($dataSetRm);
+    }
+}
+            // ====================== END RAW MATERIAL ======================
+
+            if ($supplierToto == 'false') {
+                DB::table('bom_spray_booth')->where('bom_code', $bomNumber)->delete();
+                $dataSetSb = [];
+                foreach ($sprayBooth as $val) {
+                    $dataSetSb[] = [
+                        'bom_code' => $bomNumber,
+                        'spray_booth' => $val->spray_booth,
+                        'tone' => $val->tone,
+                        'tack' => $val->tack,
+                        'pass_rate' => $val->pass_rate,
+                        'pass_thru' => $val->pass_thru,
+                        'urutan' => $val->urutan,
+                        'cycle_time' => $val->cycle_time,
+                        'created_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                    ];
+                }
+
+                DB::table('bom_spray_booth')->insert($dataSetSb);
+            }
+
+            DB::commit();
+            $title = 'Save BOM';
+            $alert = "success";
+            $message = "$title $bomNumber is successfully saved";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return response()->json(array('status' => 1, 'title' => $title, 'message' => $message, 'alert' => $alert, 'bomNumber' => $bomNumber, 'oEdit' => true));
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title = 'Save BOM';
+            $alert = "warning";
+            $message = "$title $bomNumber is failed to save";
+            \LogActivity::addToLog($title, "username: $username Status $message" . " | Error: " . $e->getMessage());
+            return response()->json(array('status' => 1, 'title' => $title, 'message' => $message, 'alert' => $alert, 'bomNumber' => $bomNumber));
+        }
+    }
+}
+
     public function show(Request $request)
     {
         $username =  Auth::user()->username;
@@ -426,12 +611,224 @@ class BomController extends Controller
         
     }
 
+    public function showv2(Request $request)
+{
+    $username =  Auth::user()->username;
+    $id=Crypt::decryptString($request->id);
+    $data['title'] = "Detail $this->title";
+    $data['subtitle'] = "Detail $this->title";
+
+    $data['headers'] = DB::table('bom_hdr')
+    ->leftJoin('third_party','bom_hdr.customer','third_party.kode')
+    ->leftJoin('group_materials','group_materials.code','=','bom_hdr.group_of_material')
+    ->where('origin_bom_code', function($query) use ($id){
+        $query->select('bom_code')->from('bom_hdr')->where('id',$id);
+    })
+    ->select('bom_hdr.*'
+    ,'third_party.nama as cust_name'
+    ,'group_materials.name as group'
+    ,DB::raw("(select concat(kode,' - ',nama) from third_party where kode = bom_hdr.customer) as cust_name")
+    ,DB::raw('(select sum(qty) from bom_det where bom_code = bom_hdr.bom_code) as sum_qty') 
+    ,DB::raw('(select count(*) from bom_det where bom_code = bom_hdr.bom_code) as sum_row')
+    ,DB::raw("(select 
+                concat(article.article_alternative_code,'-',article.article_desc)
+            from article where article_code = bom_hdr.article_code limit 1) as article")
+    // article_rm DIHAPUS dari sini -> sekarang multi RM, diambil terpisah dari tabel bom_rm di bawah
+    )
+    ->orderBy('id')
+    ->get();    
+
+    $bomNumber =  $data['headers'][0]->bom_code;
+
+    $data['details'] = DB::table('bom_det')
+    ->whereIn('bom_det.bom_code', function($query) use ($bomNumber){
+        $query->select('bom_code')->from('bom_hdr')->where('origin_bom_code',$bomNumber);
+    })
+    ->leftJoin('bom_pos','bom_pos.pos_code','bom_det.pos')
+    ->leftJoin('article','article.article_code','=','bom_det.article_code')
+    ->leftJoin('uom','uom.code','bom_det.uom')
+    ->leftJoin('article_types','article_types.code','=','bom_det.article_type')
+    ->select('bom_det.*'
+    ,'bom_pos.pos_name'
+    ,'article.uom as original_uom'
+    ,'uom.uom_group as uom_group'
+    ,'article_types.name as type_name'
+    ,DB::RAW("(select uom_conversion(bom_det.uom_con,article.uom) as factor_qty)")
+    ,DB::raw("concat(article.article_alternative_code,'-',article.article_desc) as article")
+    )
+    ->orderBy('bom_det.tone')
+    ->orderBy('bom_det.pos')
+    ->orderBy('urutan')
+    ->get();
+
+    $data['sprayBooths'] = DB::table('bom_spray_booth')
+    ->whereIn('bom_spray_booth.bom_code', function($query) use ($bomNumber){
+        $query->select('bom_code')->from('bom_hdr')->where('origin_bom_code',$bomNumber);
+    })
+    ->select('bom_spray_booth.*')
+    ->orderBy('bom_spray_booth.id')
+    ->get();
+
+    // ====================== RAW MATERIAL (MULTI) ======================
+    $data['rawMaterials'] = DB::table('bom_rm')
+    ->whereIn('bom_rm.bom_code', function($query) use ($bomNumber){
+        $query->select('bom_code')->from('bom_hdr')->where('origin_bom_code',$bomNumber);
+    })
+    ->select('bom_rm.*')
+    ->orderBy('bom_rm.bom_code')
+    ->orderBy('bom_rm.urutan')
+    ->get();
+
+    // FALLBACK: kalau bom_rm kosong (BOM lama), ambil dari bom_hdr.article_code_rm
+    if ($data['rawMaterials']->isEmpty()) {
+        $data['rawMaterials'] = DB::table('bom_hdr')
+        ->whereIn('bom_hdr.bom_code', function($query) use ($bomNumber){
+            $query->select('bom_code')->from('bom_hdr')->where('origin_bom_code',$bomNumber);
+        })
+        ->whereNotNull('bom_hdr.article_code_rm')
+        ->leftJoin('article', 'article.article_code', '=', 'bom_hdr.article_code_rm')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
+        ->select(
+            'bom_hdr.bom_code',
+            'bom_hdr.article_code_rm as article_code',
+            'article.article_alternative_code',
+            'article.article_desc',
+            'article.third_party as supplier_code',
+            'third_party.nama as supplier_name',
+            DB::raw('1 as qty'),
+            'article.uom',
+            DB::raw('1 as urutan')
+        )
+        ->orderBy('bom_hdr.bom_code')
+        ->get();
+    }
+    // ====================== END RAW MATERIAL ======================
+
+    $data['articleHeader']= DB::table('article')
+    ->leftJoin('third_party','article.third_party','third_party.kode')
+    ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+    ->where('article.third_party',$data['headers'][0]->customer)
+    ->select('article.*', 'third_party.nama as cust_name','group_materials.name as group')
+    ->get();   
+
+    $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$bomNumber,$username);
+    $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$bomNumber,$username);
+
+    $statusPr = ['NEW','VALIDATE','APPROVED','RECEIVED','DELETED','CLOSED','REVISED','DECLINE'];
+    $data['statusBom'] = $statusPr[$data['headers'][0]->status-1];
+
+    $data['arrSprayBooth'] = ['sb1'=>'Spraybooth 1','sb1a'=>'Spraybooth 1 A','sb1b'=>'Spraybooth 1 B','sb1c'=>'Spraybooth 1 C','sb2'=>'Spraybooth 2','sb2a'=>'Spraybooth 2 A','sb2b'=>'Spraybooth 2 B','sb2c'=>'Spraybooth 2 C','sb3'=>'Spraybooth 3','sb3a'=>'Spraybooth 3 A','sb3b'=>'Spraybooth 3 B','sb3c'=>'Spraybooth 3 C','sb4'=>'Spraybooth 4','sb4a'=>'Spraybooth 4 A','sb4b'=>'Spraybooth 4 B','sb4c'=>'Spraybooth 4 C','sbtoto'=>'Toto'];
+
+    $data['arrTone'] = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
+
+    $data['posts'] = DB::table('bom_pos')
+    ->orderBy('pos_name')
+    ->get();
+
+    return view("bom.showv2",$data);
+    
+}
+
     public function edit(Request $request)
     {
         return $this->showEdit($request->id);
     }
 
     public function showEdit($key)
+{
+    $username = Auth::user()->username;
+    $id = Crypt::decryptString($key);
+    $data['title'] = "Edit $this->title";
+    $data['subtitle'] = "Edit $this->title";
+
+    $data['header'] = DB::table('bom_hdr')
+        ->leftJoin('third_party', 'bom_hdr.customer', 'third_party.kode')
+        ->leftJoin('group_materials', 'group_materials.code', '=', 'bom_hdr.group_of_material')
+        ->select(
+            'bom_hdr.*',
+            'third_party.nama as cust_name',
+            'group_materials.name as group',
+            DB::raw("(select concat(article.article_alternative_code,'-',article.article_desc)
+                      from article where article_code = bom_hdr.article_code limit 1) as article")
+            // article_rm dihapus dari sini, sudah pindah ke bom_rm
+        )
+        ->where('bom_hdr.id', $id)
+        ->get()->first();
+
+    $bomNumber = $data['header']->bom_code;
+
+    $data['detail'] = DB::table('bom_det')
+        ->where('bom_code', $bomNumber)
+        ->leftJoin('uom', 'uom.code', 'bom_det.uom')
+        ->leftJoin('article_types', 'article_types.code', '=', 'bom_det.article_type')
+        ->leftJoin('article', 'article.article_code', '=', 'bom_det.article_code')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
+        ->select(
+            'bom_det.*',
+            'article.uom as original_uom',
+            'uom.uom_group as uom_group',
+            'article_types.name as type_name',
+            'third_party.nama as brand',
+            DB::raw("(select uom_conversion(bom_det.uom_con, article.uom) as factor_qty)"),
+            DB::raw("(select string_agg(concat(unit_to,';',(uom_conversion(a.unit_to,article.uom))),',' order by unit_from) as uom_member
+                      from uom_con a where unit_from = article.uom)"),
+            DB::raw("(select string_agg(code,',' order by code) as uoms from uom)")
+        )
+        ->orderBy('bom_det.tone')
+        ->orderBy('bom_det.pos')
+        ->orderBy('urutan')
+        ->get();
+
+    $data['sprayBooth'] = DB::table('bom_spray_booth')
+        ->where('bom_code', $bomNumber)
+        ->select('bom_spray_booth.*')
+        ->orderBy('urutan')
+        ->get();
+
+    // ====================== RAW MATERIAL (MULTI) dari tabel bom_rm ======================
+    $data['headerRmList'] = DB::table('bom_rm')
+    ->leftJoin('article', 'article.article_code', '=', 'bom_rm.article_code')
+    ->select(
+        'bom_rm.article_code',
+        'bom_rm.urutan',
+        'article.article_alternative_code',
+        'article.article_desc',
+        'article.uom as uom_rm'
+    )
+    ->where('bom_rm.bom_code', $bomNumber)
+    ->orderBy('bom_rm.urutan')
+    ->get();
+    // ====================== END RAW MATERIAL ======================
+
+    $data['articles'] = DB::table('article')
+        ->leftJoin('article_types', 'article_types.code', '=', 'article.article_type')
+        ->leftJoin('uom', 'uom.code', 'article.uom')
+        ->whereNotIn('article_type', ['FG'])
+        ->orderBy('article_desc')
+        ->select('article.*', 'uom.uom_group as uom_group', 'article_types.name as type_name')
+        ->get();
+
+    $data['articlesRm'] = DB::table('article')
+        ->whereIn('article_type', ['RM', 'RMP', 'RMNP'])
+        ->get();
+
+    $data['posts'] = DB::table('bom_pos')
+        ->orderBy('pos_name')
+        ->get();
+
+    $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode, $bomNumber, $username);
+    $data['approveValidate'] = Approval::approveValidate($this->moduleCode, $bomNumber, $username);
+
+    $statusPr = ['NEW', 'VALIDATE', 'APPROVED', 'RECEIVED', 'DELETED', 'CLOSED', 'REVISED', 'DECLINE'];
+    $data['statusBom'] = $statusPr[$data['header']->status - 1];
+
+    $data['currentDateValue'] = date('Y-m-d');
+    $data['oEdit'] = true;   // ← TAMBAHKAN INI
+
+    return view("bom.editv2", $data);
+}
+
+    public function showEditOld($key)
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($key);
@@ -520,6 +917,171 @@ class BomController extends Controller
     }
 
     public function update(Request $request)
+{
+    $username      = Auth::user()->username;
+    $bomNumber     = $request->bomNumber;
+    $articles      = json_decode($request->articles);
+    $sprayBooth    = json_decode($request->sprayBooths);
+    $articleCode   = $request->articleCode;
+    $articleCodeRm = json_decode($request->articleCodeRm); // <-- array of RM (multi)
+    $customer      = $request->customer;
+    $group         = $request->group;
+    $uom           = $request->uom;
+    $note          = $request->note;
+    $partNo        = $request->partNo;
+    $model         = $request->model;
+    $supplierToto  = $request->supplierToto;
+
+    $validation = Validator::make($request->all(), [
+        'customer' => 'required',
+    ], [
+        'required' => 'The field is required.',
+    ]);
+
+    $error_array = [];
+
+    if ($validation->fails()) {
+        foreach ($validation->messages()->getMessages() as $field_name => $messages) {
+            $error_array[] = $messages;
+        }
+    }
+
+    // Validasi manual RM: wajib minimal 1 item
+    if (empty($articleCodeRm) || !is_array($articleCodeRm)) {
+        $error_array[] = ['articleCodeRm' => ['Article Raw material must be filled in']];
+    }
+
+    if (!empty($error_array)) {
+        return response()->json([
+            'status'  => 0,
+            'title'   => 'Update BOM',
+            'message' => $error_array,
+            'alert'   => 'error'
+        ]);
+    }
+
+    DB::beginTransaction();
+    try {
+        // Update header — article_code_rm di bom_hdr dikosongkan (sudah pindah ke bom_rm)
+        DB::table('bom_hdr')
+            ->where('bom_code', $bomNumber)
+            ->update([
+                'article_code_rm'   => null,
+                'group_of_material' => $group,
+                'status'            => '1',
+                'note'              => $note,
+                'part_no'           => $partNo,
+                'model'             => $model,
+                'updated_by'        => $username,
+                'updated_at'        => date('Y-m-d H:i:s'),
+            ]);
+
+        if ($supplierToto == 'false') {
+            // Update bom_det
+            DB::table('bom_det')->where('bom_code', $bomNumber)->delete();
+            foreach ($articles as $val) {
+                DB::table('bom_det')->insert([
+                    'bom_code'      => $bomNumber,
+                    'article_code'  => $val->article_code,
+                    'qty'           => $val->qty,
+                    'uom'           => $val->uom,
+                    'uom_con'       => $val->uom_con,
+                    'article_type'  => $val->type,
+                    'customer_code' => $val->customer_code,
+                    'created_by'    => $username,
+                    'created_at'    => date('Y-m-d H:i:s'),
+                    'urutan'        => $val->urutan,
+                    'pos'           => $val->pos,
+                    'tone'          => $val->tone,
+                ]);
+            }
+
+            // Update bom_spray_booth
+            DB::table('bom_spray_booth')->where('bom_code', $bomNumber)->delete();
+            $dataSetSb = [];
+            foreach ($sprayBooth as $val) {
+                $dataSetSb[] = [
+                    'bom_code'   => $bomNumber,
+                    'spray_booth'=> $val->spray_booth,
+                    'tone'       => $val->tone,
+                    'tack'       => $val->tack,
+                    'pass_rate'  => $val->pass_rate,
+                    'pass_thru'  => $val->pass_thru,
+                    'cycle_time' => $val->cycle_time,
+                    'urutan'     => $val->urutan,
+                    'created_by' => $username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ];
+            }
+            DB::table('bom_spray_booth')->insert($dataSetSb);
+        }
+
+        // ====================== UPDATE RAW MATERIAL (MULTI) ======================
+        DB::table('bom_rm')->where('bom_code', $bomNumber)->delete();
+        if (!empty($articleCodeRm)) {
+            $dataSetRm = [];
+            $urutanRm  = 1;
+          foreach ($articleCodeRm as $rm) {
+    // Ambil UOM, supplier dari artikel + join third_party
+    $article = DB::table('article')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
+        ->select(
+            'article.uom',
+            'article.article_alternative_code',
+            'article.article_desc',
+            'article.third_party as supplier_code',
+            'third_party.nama as supplier_name'
+        )
+        ->where('article.article_code', $rm->article_code)
+        ->first();
+
+    $dataSetRm[] = [
+        'bom_code'                 => $bomNumber,
+        'article_code'             => $rm->article_code,
+        'article_alternative_code' => $rm->article_alternative_code
+                                      ?? ($article->article_alternative_code ?? null),
+        'article_desc'             => $rm->article_desc
+                                      ?? ($article->article_desc ?? null),
+        'supplier_code'            => $article->supplier_code ?? null,
+        'supplier_name'            => $article->supplier_name ?? null,
+        'qty'                      => 1,
+        'uom'                      => $article->uom ?? null,
+        'urutan'                   => $urutanRm++,
+        'created_at'               => date('Y-m-d H:i:s'),
+        'updated_at'               => date('Y-m-d H:i:s'),
+    ];
+}
+            DB::table('bom_rm')->insert($dataSetRm);
+        }
+        // ====================== END RAW MATERIAL ======================
+
+        DB::commit();
+        $title   = "Update $this->title";
+        $message = "$title $bomNumber is successfully updated";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return response()->json([
+            'status'    => 1,
+            'message'   => $message,
+            'alert'     => 'success',
+            'bomNumber' => $bomNumber,
+            'oEdit'     => true
+        ]);
+
+    } catch (Exception $e) {
+        DB::rollBack();
+        $title   = "Update $this->title";
+        $message = "$title $bomNumber is failed to updated | " . $e->getMessage();
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return response()->json([
+            'status'    => 0,
+            'message'   => $message,
+            'alert'     => 'warning',
+            'bomNumber' => $bomNumber
+        ]);
+    }
+}
+
+    public function updateOld(Request $request)
     {
         $username =  Auth::user()->username;
         $bomNumber = $request -> bomNumber;
@@ -848,7 +1410,7 @@ class BomController extends Controller
                                     <i data-feather="printer"></i>
                                     Print
                                 </a>';
-            $buttons .=         '<a href="'. route('bom.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+            $buttons .=         '<a href="'. route('bom.showv2', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
                                     Detail
                                 </a>';
@@ -898,7 +1460,7 @@ class BomController extends Controller
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];
             // $statusBo = ['NEW','VALIDATED','APPROVED','RECEIVED','DELETED','CLOSED','REVISED','DECLINE'];
             return '<span style="display: none;">'.$data->bom_code.'</span>
-                    <a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('bom.show', ['id'=>Crypt::encryptString($data->id)]) .'" >
+                    <a class="badge d-block '.$badges[$data->status - 1].'" href="'. route('bom.showv2', ['id'=>Crypt::encryptString($data->id)]) .'" >
                     <span>'.$data->bom_code.'</span>
                     </a>';
         })
@@ -913,6 +1475,255 @@ class BomController extends Controller
     }
 
     public function print(Request $request)
+    {
+        $id=Crypt::decryptString($request->id);
+        
+       $data['bomHdr'] = DB::table('bom_hdr')
+    ->leftJoin('third_party', 'third_party.kode', 'bom_hdr.customer')
+    ->leftJoin('article', 'article.article_code', 'bom_hdr.article_code')
+    ->select(
+        'article.article_alternative_code as article_code_fg_alt',
+        'bom_hdr.*',
+        'third_party.*',
+        'article.*',
+        'bom_hdr.note as note_hdr',
+        'bom_hdr.created_at as tanggal_revisi'
+    )
+    ->where('bom_hdr.id', $id)
+    ->first();
+
+
+        // dd(  $data['bomHdr']);
+
+        $bomNumber=$data['bomHdr']->bom_code;
+
+        
+
+        $data['title'] = "$bomNumber";
+       
+        $data['details']=DB::table('bom_det')
+        ->leftJoin('article','article.article_code','bom_det.article_code')
+        ->leftJoin('third_party','third_party.kode','article.third_party')
+        ->select('bom_det.*'
+        ,'article.article_alternative_code'
+        ,'article.article_desc'
+        ,'third_party.nama')
+        ->where('bom_code',$bomNumber)
+        ->orderBy('bom_det.id')
+        ->get();
+
+        $username="";
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$bomNumber,$username);
+        
+        $data['keterangan']=$data['bomHdr'] -> note;
+        $data['bomNumber'] =$bomNumber;
+        
+        $data['status'] ='1';
+        $data['no'] =0;
+
+        // ====================== RAW MATERIAL (MULTI) dari bom_rm, fallback ke bom_hdr ======================
+$rawMaterials = DB::table('bom_rm')
+    ->leftJoin('article', 'article.article_code', '=', 'bom_rm.article_code')
+    ->select(
+        'bom_rm.article_code',
+        'article.article_desc as article_desc_rm',
+        'article.article_alternative_code as article_code_rm_alt',
+        'bom_rm.urutan'
+    )
+    ->where('bom_rm.bom_code', $bomNumber)
+    ->orderBy('bom_rm.urutan')
+    ->get();
+
+// Fallback: kalau bom_rm kosong (BOM lama), ambil dari bom_hdr.article_code_rm
+if ($rawMaterials->isEmpty() && !empty($data['bomHdr']->article_code_rm)) {
+    $rawMaterials = DB::table('article')
+        ->where('article.article_code', $data['bomHdr']->article_code_rm)
+        ->select(
+            'article.article_code',
+            'article.article_desc as article_desc_rm',
+            'article.article_alternative_code as article_code_rm_alt',
+            DB::raw('1 as urutan')
+        )
+        ->get();
+}
+
+$data['rawMaterials'] = $rawMaterials;
+
+// Untuk header print: gabungkan desc semua RM jadi satu string (dipisah koma)
+$data['bomHdr']->article_desc_rm = $rawMaterials->pluck('article_desc_rm')->filter()->implode(', ');
+$data['bomHdr']->article_code_rm_alt = $rawMaterials->pluck('article_code_rm_alt')->filter()->implode(', ');
+// ====================== END RAW MATERIAL ======================
+
+        $judulTone=DB::table('bom_det')
+        ->select('tone')
+        ->where('bom_code',$bomNumber)
+        ->distinct('tone')
+        ->orderBy('tone','asc')
+        ->get();
+
+        $arrTone = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
+        $barisAll="";
+        $barisSub="";
+        $barisJudul="";
+        $jumlahBaris=0;
+
+        foreach($judulTone as $val){
+            $tone = $val->tone ? $val->tone : '';
+            
+            // if($val->tone != null){
+                // $barisTone = "<tr><td colspan='6' align='center' style='background-color:#51b3f0'>".strtoupper($arrTone[$tone])."</td> </tr>";
+                $judulGroup=DB::table('bom_det')
+                ->leftJoin('bom_pos','bom_pos.pos_code','bom_det.pos')
+                ->select('pos_code','pos_name')
+                ->where('bom_code',$bomNumber)
+                ->where(function ($query) use ($tone) {
+                    $tone ? $query->where('bom_det.tone',$tone) : '';
+                })
+                //->where('tone',$tone)
+                ->distinct('pos_code','pos_name','bom_pos.urutan')
+                ->orderBy('bom_pos.urutan','asc')
+                ->get();
+
+                if($val->tone != null){
+                    $barisTone = "<tr><td colspan='6' align='center' style='background-color:#51b3f0'>".strtoupper($arrTone[$tone])."</td> </tr>";
+                    $jumlahBaris++;
+                }else{
+                    $barisTone = ""; 
+                }
+            // }else{
+            //     $barisTone = "";
+            //     $judulGroup=DB::table('bom_det')
+            //     ->leftJoin('bom_pos','bom_pos.pos_code','bom_det.pos')
+            //     ->select('pos_code','pos_name')
+            //     ->where('bom_code',$bomNumber)
+            //     // ->where('tone','')
+            //     ->distinct('pos_code','pos_name')
+            //     ->orderBy('pos_name','desc')
+            //     ->get();
+            // }
+            
+            foreach($judulGroup as $val){
+                $groupPos = $val->pos_code ? $val->pos_code : '';
+                if($val->pos_code != null){
+                    $barisJudul = "<tr><td colspan='6' align='center' style='background-color:yellow'>".strtoupper($val->pos_name)."</td> </tr>";
+                    $isiJudul=DB::table('bom_det')
+                    ->leftJoin('article','article.article_code','bom_det.article_code')
+                    ->leftJoin('third_party','third_party.kode','article.third_party')
+                    ->select('bom_det.*'
+                    ,'article.article_alternative_code'
+                    ,'article.article_desc'
+                    ,'third_party.nama'
+                    ,'bom_det.id as idku')
+                    ->where('bom_code',$bomNumber)
+                    ->where('bom_det.pos',$groupPos)
+                    ->where(function ($query) use ($tone) {
+                        $tone ? $query->where('bom_det.tone',$tone) : '';
+                    })
+                    // ->where('bom_det.tone',$tone)
+                    ->orderBy('bom_det.id')
+                    ->get();
+                    $jumlahBaris++;
+                }else{
+                    $barisJudul = "";
+                    $isiJudul=DB::table('bom_det')
+                    ->leftJoin('article','article.article_code','bom_det.article_code')
+                    ->leftJoin('third_party','third_party.kode','article.third_party')
+                    ->select('bom_det.*'
+                    ,'article.article_alternative_code'
+                    ,'article.article_desc'
+                    ,'third_party.nama'
+                    ,'bom_det.id as idku')
+                    ->where('bom_code',$bomNumber)
+                    ->where(function ($query) use ($tone) {
+                        $tone ? $query->where('tone',$tone) : '';
+                    })
+                    // ->where('bom_det.pos',$groupPos)
+                    ->orderBy('bom_det.id')
+                    ->get();
+                }
+                $barisIsiJudul='';
+                foreach($isiJudul as $key=>$item){
+                    $no = $key+1;
+                    $barisIsiJudul .= "<tr >
+                        <td class='detail-padding' align='center' scope='row' style='padding-left:3px;padding-right:3px'>$no</td>
+                        <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_desc</td>
+                        <td class='detail-padding font-9' align='left' style='padding-left:3px;padding-right:3px'>$item->nama</td>
+                        <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>$item->qty</td>
+                        <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->uom</td>
+                        <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_alternative_code</td>
+                    </tr>";              
+                    $jumlahBaris++;  
+                }
+
+                $barisSub .=$barisJudul.$barisIsiJudul;
+            };
+
+            $barisAll.= $barisTone.$barisSub;
+            $barisSub="";
+            $barisTone="";
+        };
+
+        
+        // $barisAll="";
+        // foreach($judulGroup as $val){
+        //     $groupPos = $val->pos_code ? $val->pos_code : '';
+        //     if($val->pos_code != null){
+        //         $barisJudul = "<tr><td colspan='6' align='center' style='background-color:yellow'>".strtoupper($val->pos_name)."</td> </tr>";
+        //         $isiJudul=DB::table('bom_det')
+        //         ->leftJoin('article','article.article_code','bom_det.article_code')
+        //         ->leftJoin('third_party','third_party.kode','article.third_party')
+        //         ->select('bom_det.*'
+        //         ,'article.article_alternative_code'
+        //         ,'article.article_desc'
+        //         ,'third_party.nama')
+        //         ->where('bom_code',$bomNumber)
+        //         ->where('bom_det.pos',$groupPos)
+        //         ->orderBy('bom_det.id')
+        //         ->get();
+        //     }else{
+        //         $barisJudul = "";
+        //         $isiJudul=DB::table('bom_det')
+        //         ->leftJoin('article','article.article_code','bom_det.article_code')
+        //         ->leftJoin('third_party','third_party.kode','article.third_party')
+        //         ->select('bom_det.*'
+        //         ,'article.article_alternative_code'
+        //         ,'article.article_desc'
+        //         ,'third_party.nama')
+        //         ->where('bom_code',$bomNumber)
+        //         // ->where('bom_det.pos',$groupPos)
+        //         ->orderBy('bom_det.id')
+        //         ->get();
+        //     }
+        //     $barisIsiJudul='';
+        //     foreach($isiJudul as $key=>$item){
+        //         $no = $key+1;
+        //         $barisIsiJudul .= "<tr >
+        //             <td class='detail-padding' align='center' scope='row' style='padding-left:3px;padding-right:3px'>$no</td>
+        //             <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_desc</td>
+        //             <td class='detail-padding font-10' align='left' style='padding-left:3px;padding-right:3px'>$item->nama</td>
+        //             <td class='detail-padding' align='right' style='padding-left:3px;padding-right:3px'>$item->qty</td>
+        //             <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->uom</td>
+        //             <td class='detail-padding' align='left' style='padding-left:3px;padding-right:3px'>$item->article_alternative_code</td>
+        //         </tr>";
+        //     }
+
+        //     $barisAll = $barisAll.$barisJudul.$barisIsiJudul;
+        // };
+        
+        $data['jumlahBaris'] = $jumlahBaris;
+
+        $data['barisDetail']=$barisAll;
+
+        // dd($barisAll);
+
+        view()->share($data);
+
+        $pdf = PDF::loadView('bom.print')->setPaper([0, 0, 595.28, 841.89], 'portrait');
+        return $pdf->stream("PO_$bomNumber.pdf");
+
+    }
+
+    public function printOld(Request $request)
     {
         $id=Crypt::decryptString($request->id);
         
@@ -1129,6 +1940,215 @@ class BomController extends Controller
 
     public function revision(Request $request)
     {
+          $username = Auth::user()->username;
+    $id = Crypt::decryptString($request->id);
+    $bomOrigin = DB::table('bom_hdr')->where('id', $id)->value('bom_code');
+    
+    $reasonRequest = $request->reason;
+    $numRevision = $request->nR ? $request->nR + 1 : 1;
+
+    // ====================== FIX: cari nomor revisi yang benar-benar belum ada ======================
+    $bomNew = $bomOrigin . '-R' . $numRevision;
+    
+    while (DB::table('bom_hdr')->where('bom_code', $bomNew)->exists()) {
+        $numRevision++;
+        $bomNew = $bomOrigin . '-R' . $numRevision;
+    }
+                
+        $sqlHdr = "INSERT into bom_hdr 
+        (
+            bom_code,
+            customer,
+            article_code,
+            uom,
+            group_of_material,
+            status,
+            note,
+            tag,
+            pass_rate,
+            pass_thru,
+            cycle_time,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            origin_bom_code,
+            num_revision,
+            authorized_by,
+            revised_by,
+            revised_at,
+            part_no,
+            model,
+            revision_reason
+        )
+        select 
+            '$bomNew',
+            customer,
+            article_code,
+            uom,
+            group_of_material,
+            '7',
+            note,
+            tag,
+            pass_rate,
+            pass_thru,
+            cycle_time,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."',
+            '$bomOrigin',
+            $numRevision,
+            authorized_by,
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            part_no,
+            model,
+            '$reasonRequest'
+        from bom_hdr where bom_code = '$bomOrigin'";
+
+        $sqlDet="INSERT into bom_det
+        (
+            bom_code,
+            article_code,
+            qty,
+            uom,
+            cost_price,
+            article_type,
+            customer_code,
+            status,
+            note,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            uom_con,
+            urutan,
+            pos,
+            tone
+        )
+        select 
+            '$bomNew',
+            article_code,
+            qty,
+            uom,
+            cost_price,
+            article_type,
+            customer_code,
+            status,
+            note,
+            '$username',
+            '$username',
+            '".date('Y-m-d H:i:s')."',
+            '".date('Y-m-d H:i:s')."',
+            uom_con,
+            urutan,
+            pos,
+            tone
+        from bom_det where bom_code = '$bomOrigin' order by id";
+
+        $sqlAprayBooth="INSERT into bom_spray_booth
+        (
+            bom_code,
+            spray_booth,
+            tone,
+            tack,
+            pass_rate,
+            pass_thru,
+            urutan,
+            cycle_time,
+            created_by,
+            created_at
+        )
+        select 
+            '$bomNew',
+            spray_booth,
+            tone,
+            tack,
+            pass_rate,
+            pass_thru,
+            urutan,
+            cycle_time,
+            '$username',
+            '".date('Y-m-d H:i:s')."'
+        from bom_spray_booth where bom_code = '$bomOrigin' order by id";
+
+        $sqlRm = "INSERT into bom_rm
+(
+    bom_code,
+    article_code,
+    article_alternative_code,
+    article_desc,
+    supplier_code,
+    supplier_name,
+    qty,
+    uom,
+    urutan,
+    created_at,
+    updated_at
+)
+select 
+    '$bomNew',
+    article_code,
+    article_alternative_code,
+    article_desc,
+    supplier_code,
+    supplier_name,
+    qty,
+    uom,
+    urutan,
+    '".date('Y-m-d H:i:s')."',
+    '".date('Y-m-d H:i:s')."'
+from bom_rm where bom_code = '$bomOrigin' order by urutan";
+
+        $rowAffected =  DB::select($sqlHdr);
+        if ($rowAffected){
+            DB::select($sqlDet);
+            DB::select($sqlAprayBooth);
+            DB::select($sqlRm);
+
+            DB::table('bom_hdr')
+            ->where('bom_code',$bomOrigin)
+            ->update(
+                [
+                    'num_revision' => $numRevision,
+                    'status' => '1',
+                    'revised_by'=>Auth::user()->username,
+                    'revised_at'=> date('Y-m-d H:i:s'),
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+
+            DB::table('approval_history')
+            ->where('module_number',$bomOrigin)
+            ->update(
+                [
+                    'module_number' => $bomNew,
+                    'status' => '0',
+                    'updated_by' => Auth::user()->username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
+            );
+            
+            $title ="Save $this->title";
+            $alert  ="success";
+            $message  = "$title Revision PO: $bomOrigin to $bomNew is successfully saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            // return $this->showEdit(Crypt::encryptString($id));
+            return redirect()->route('bom.edit', ['id'=>Crypt::encryptString($id)]);
+        }else{
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title Revision PO: $bomOrigin to $bomNew is failed to save";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
+        }
+        
+    }
+
+    public function revisionOld(Request $request)
+    {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
         $bomOrigin=DB::table('bom_hdr')->where('id',$id)->value('bom_code');
@@ -1295,14 +2315,14 @@ class BomController extends Controller
             
             $title ="Save $this->title";
             $alert  ="success";
-            $message  = "$title Revision PO: $bomOrigin to $bomNew is successfully saved";
+            $message  = "$title Revision BOM: $bomOrigin to $bomNew is successfully saved";
             \LogActivity::addToLog($title,"username: $username Status $message");
             // return $this->showEdit(Crypt::encryptString($id));
             return redirect()->route('bom.edit', ['id'=>Crypt::encryptString($id)]);
         }else{
             $title ="Save $this->title";
             $alert  ="warning";
-            $message  = "$title Revision PO: $bomOrigin to $bomNew is failed to save";
+            $message  = "$title Revision BOM: $bomOrigin to $bomNew is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
             return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
         }
