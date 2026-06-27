@@ -382,7 +382,7 @@
             
             $data['article'] = DB::table('article')
             ->where('id',$id)
-            ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable'])->first();
+            ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing'])->first();
             
 
             $data['images'] = DB::table('images')
@@ -431,7 +431,7 @@
             
             $data['article'] = DB::table('article')
             ->where('id',$id)
-            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','brand', 'third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable'])->first();
+            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','brand', 'third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing'])->first();
 
             // $data['images'] = DB::table('images')
             // ->where('key',$data['article']->article_code)
@@ -492,6 +492,7 @@
             $variant = $request->variant;
             $brand = $request->brand;
             $orderable = $request->orderableCheck == 'on' ? '1' : '0';
+            $marketing = $request->marketingCheck == 'on' ? '1' : '0'; // tambahkan ini
 
             // status : 1= aktif, 0= freeze        
             $messages = [
@@ -527,7 +528,8 @@
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s'),
                             'brand' => $brand,
-                            'orderable' =>$orderable
+                            'orderable' =>$orderable,
+                            'marketing' =>$marketing
                         ]
                     );
                     
@@ -907,90 +909,103 @@
             ->make(true);
         }
 
-        public function movement2(Request $request){
-        $articleCode = $request->articleCode;
-        $location    = $request->location;     // kosong = global
-        $siteCode    = 'HO';
-        $fromDate    = $request->fromDate;     // 'dd-mm-yyyy'
-        $toDate      = $request->toDate;       // 'dd-mm-yyyy'
-        $inout       = $request->inout;        // '', 'in', 'out'
+       public function movement2(Request $request)
+{
+    $articleCode = $request->articleCode;
+    $location    = $request->location;     // kosong = global
+    $siteCode    = 'HO';
+    $fromDate    = $request->fromDate;     // 'dd-mm-yyyy'
+    $toDate      = $request->toDate;       // 'dd-mm-yyyy'
+    $inout       = $request->inout;        // '', 'in', 'out'
 
-        if ($location) {
-            $whereLoc    = "and m.location_number = '".$location."'";
-            $locationCol = "b.location_number";
-        } else {
-            $whereLoc    = ""; // global: tampilkan semua type, termasuk TRF
-            $locationCol = "'ALL'";
-        }
+    $isGlobal = empty($location);
 
-        $dateFilter = ($fromDate && $toDate)
-            ? "and TO_DATE(b.movement_date,'dd-mm-yyyy')
-                between TO_DATE('$fromDate','dd-mm-yyyy') and TO_DATE('$toDate','dd-mm-yyyy')"
-            : "";
+    if (!$isGlobal) {
+        $whereLoc    = "and m.location_number = '" . $location . "'";
+        $locationCol = "b.location_number";
+    } else {
+        $whereLoc    = "";              // global: tampilkan semua type, termasuk TRF
+        $locationCol = "'ALL'";
+    }
 
-        $inoutFilter = '';
-        if ($inout === 'in')  $inoutFilter = "and b.movement_plus > 0";
-        if ($inout === 'out') $inoutFilter = "and b.movement_min  > 0";
+    $dateFilter = ($fromDate && $toDate)
+        ? "and TO_DATE(b.movement_date,'dd-mm-yyyy')
+            between TO_DATE('$fromDate','dd-mm-yyyy') and TO_DATE('$toDate','dd-mm-yyyy')"
+        : "";
 
-        $sqlku = "
-            WITH base AS (
-        SELECT m.*,
-            SUM(m.movement_plus - m.movement_min) OVER (
-                ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
-            ) as balanceqty_calc,
-            SUM(m.movement_plus - m.movement_min) OVER (
-                ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
-            ) - (m.movement_plus - m.movement_min) as last_qty_calc
-        FROM warehouse_movement m
-        WHERE m.artikel_code = '$articleCode'
-        and m.site_code = '$siteCode'
-        $whereLoc
-    )
-            SELECT
-                b.movement_code,
-                b.artikel_code,
-                b.artikel_desc,
-                b.movement_plus - b.movement_min as qty,
-                b.movement_price,
-                b.movement_date,
-                b.movement_desc,
-                b.movement_type,
-                b.movement_min,
-                b.movement_plus,
-                b.movement_transnno,
-                $locationCol as location_number,
-                case when b.movement_type = 'TRF'
-                    then 'Internal'
-                    when b.partner_type = 'SUPP'
+    $inoutFilter = '';
+    if ($inout === 'in')  $inoutFilter = "and b.movement_plus > 0";
+    if ($inout === 'out') $inoutFilter = "and b.movement_min  > 0";
+
+    $sqlku = "
+        WITH base AS (
+            SELECT m.*,
+                SUM(m.movement_plus - m.movement_min) OVER (
+                    ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
+                ) as balanceqty_calc,
+                SUM(m.movement_plus - m.movement_min) OVER (
+                    ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
+                ) - (m.movement_plus - m.movement_min) as last_qty_calc
+            FROM warehouse_movement m
+            WHERE m.artikel_code = '$articleCode'
+            and m.site_code = '$siteCode'
+            $whereLoc
+        )
+        SELECT
+            b.movement_code,
+            b.artikel_code,
+            b.artikel_desc,
+            b.movement_plus - b.movement_min as qty,
+            b.movement_price,
+            b.movement_date,
+            b.movement_desc,
+            b.movement_type,
+            b.movement_min,
+            b.movement_plus,
+            b.movement_transnno,
+            b.partner_type,
+            $locationCol as location_number,
+
+            -- mv_from: gudang asal (TRF/transfer & lokasi lain), atau supplier
+            case
+                when b.movement_type = 'TRF'
+                    then (select location_name from stock_location_master where location_code = b.movement_from)
+                when b.partner_type = 'SUPP'
                     then (select nama from third_party where kode = b.movement_from)
-                    else (select location_name from stock_location_master where location_code = b.movement_from)
-                end as mv_from,
-                case when b.movement_type = 'TRF'
-                    then 'Internal'
-                    when b.partner_type = 'CUST'
+                else (select location_name from stock_location_master where location_code = b.movement_from)
+            end as mv_from,
+
+            -- mv_to: gudang tujuan (TRF/transfer & lokasi lain), atau customer
+            case
+                when b.movement_type = 'TRF'
+                    then (select location_name from stock_location_master where location_code = b.movement_to)
+                when b.partner_type = 'CUST'
                     then (select nama from third_party where kode = b.movement_to)
-                    else (select location_name from stock_location_master where location_code = b.movement_to)
-                end as mv_to,
-                b.balanceqty_calc as balanceqty,
-                b.last_qty_calc   as last_qty,
-                ROW_NUMBER() OVER (
-                    ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy') DESC, b.movement_code DESC
-                ) as urutan,
-                b.site_code,
-                b.created_at
-            FROM base b
-            WHERE 1=1
-            $dateFilter
-            $inoutFilter
-            ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy'), b.movement_code";
+                else (select location_name from stock_location_master where location_code = b.movement_to)
+            end as mv_to,
 
-        $data = DB::select($sqlku);
+            b.balanceqty_calc as balanceqty,
+            b.last_qty_calc   as last_qty,
+            ROW_NUMBER() OVER (
+                ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy') DESC, b.movement_code DESC
+            ) as urutan,
+            b.site_code,
+            b.created_at
+        FROM base b
+        WHERE 1=1
+        $dateFilter
+        $inoutFilter
+        ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy'), b.movement_code";
 
-        return Datatables::of($data)
+    $data = DB::select($sqlku);
+
+    return Datatables::of($data)
         ->addColumn('qty', function ($data) {
-            $decimal = (fmod($data->qty,1) !== 0.00) ? $this->decimalPlaces : 0;
-            $qty = number_format($data->qty,$decimal);
-            return $data->qty < 0 ? "<div class='text-red'>$qty</div>" : "<div class='text-hijau'>$qty</div>";
+            $decimal = (fmod($data->qty, 1) !== 0.00) ? $this->decimalPlaces : 0;
+            $qty = number_format($data->qty, $decimal);
+            return $data->qty < 0
+                ? "<div class='text-red'>$qty</div>"
+                : "<div class='text-hijau'>$qty</div>";
         })
         ->addColumn('movement_transnno', function ($data) {
             $ref = $data->movement_transnno;
@@ -998,32 +1013,61 @@
 
             $url = null;
             switch ($data->movement_type) {
-                case 'REC':   // receiving
+                case 'RECEIVING':
                     $id = DB::table('receiving_hdr')->where('rec_number', $ref)->value('id');
                     if ($id) $url = route('receiving.show', ['id' => Crypt::encryptString($id)]);
                     break;
 
-                case 'TRF': // transfer antar gudang
+                case 'TRANSFER':
                     $id = DB::table('transfer_hdr')->where('tr_number', $ref)->value('id');
-                    if ($id) $url = route('warehouse.show', ['id' => Crypt::encryptString($id)]);
+                    if ($id) $url = route('stockTransfer.show', ['id' => Crypt::encryptString($id)]);
                     break;
 
-                case 'DEL':   // delivery
+                case 'DELIVERY':
                     $id = DB::table('delivery_hdr')->where('del_number', $ref)->value('id');
                     if ($id) $url = route('delivery.show', ['id' => Crypt::encryptString($id)]);
+                    break;
+
+                case 'RETURN':
+                    $id = DB::table('dn_return_hdr')->where('return_number', $ref)->value('id');
+                    if ($id) $url = route('dnReturn.show', ['id' => Crypt::encryptString($id)]);
+                    break;
+
+                case 'REPLACEMENT':
+                    $id = DB::table('dn_replace_hdr')->where('replace_number', $ref)->value('id');
+                    if ($id) $url = route('dnReplace.show', ['id' => Crypt::encryptString($id)]);
+                    break;
+
+                case 'ADJUSTMENT':
+                    $id = DB::table('stock_adjustment_hdr')->where('adj_code', $ref)->value('id');
+                    if ($id) $url = route('stockAdjustment.show', ['id' => Crypt::encryptString($id)]);
+                    break;
+
+                 case 'DN UMUM':
+                    $id = DB::table('dn_general_hdr')->where('adj_code', $ref)->value('id');
+                    if ($id) $url = route('dnGeneral.show', ['id' => Crypt::encryptString($id)]);
                     break;
             }
 
             return $url
-                ? '<a href="'.$url.'" target="_blank" class="text-primary">'.$ref.'</a>'
+                ? '<a href="' . $url . '" target="_blank" class="text-primary">' . $ref . '</a>'
                 : $ref;
         })
         ->addColumn('balanceqty', function ($data) {
-            $decimal = (fmod($data->balanceqty,1) !== 0.00) ? $this->decimalPlaces : 0;
-            $balanceQty = number_format($data->balanceqty,$decimal);
-            return $data->balanceqty < 0 ? "<div class='text-red'>$balanceQty</div>" : "<div class='text-hitam'>$balanceQty</div>";
+            $decimal = (fmod($data->balanceqty, 1) !== 0.00) ? $this->decimalPlaces : 0;
+            $balanceQty = number_format($data->balanceqty, $decimal);
+            return $data->balanceqty < 0
+                ? "<div class='text-red'>$balanceQty</div>"
+                : "<div class='text-hitam'>$balanceQty</div>";
         })
-        ->addColumn('inout', function ($data) {
+        ->addColumn('inout', function ($data) use ($isGlobal) {
+            // Saat GLOBAL: transaksi transfer (TRF) tampilkan label TRANSFER, bukan IN/OUT
+            if ($isGlobal && $data->movement_type === 'TRF') {
+                return "<span class='badge badge-pill badge-light-info'>
+                            <i data-feather='repeat' class='font-small-3'></i> TRANSFER
+                        </span>";
+            }
+
             if ($data->movement_plus > 0) {
                 return "<span class='badge badge-pill badge-light-success'>
                             <i data-feather='arrow-down-circle' class='font-small-3'></i> IN
@@ -1033,11 +1077,12 @@
                             <i data-feather='arrow-up-circle' class='font-small-3'></i> OUT
                         </span>";
             }
+
             return "<span class='badge badge-pill badge-light-secondary'>-</span>";
         })
-        ->rawColumns(['qty','balanceqty','movement_transnno','inout'])
+        ->rawColumns(['qty', 'balanceqty', 'movement_transnno', 'inout'])
         ->make(true);
-    }
+}
 
         /*request article*/
 
@@ -1174,6 +1219,7 @@
             $pesan = '';
             $brand = $request->brand;
             $orderable = $request->orderableCheck == 'on' ? '1' : '0';
+            $marketing = $request->marketingCheck == 'on' ? '1' : '0'; // tambahkan ini
 
             $colorCode = $request->colorCode;
             $variant = $request->variant;
@@ -1220,7 +1266,8 @@
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s'),
                         'brand' => $brand,
-                        'orderable' =>$orderable
+                        'orderable' =>$orderable,
+                        'marketing' => $marketing,
                     ]); 
 
                     foreach($cust as $val){
@@ -1296,60 +1343,48 @@
         }
 
         public function requestEdit(Request $request)
-        {
-            $id=Crypt::decryptString($request->id);
-            $data['title'] = "Edit Request $this->title";
-            $data['subtitle'] = "Edit Request $this->title";
+{
+    $id=Crypt::decryptString($request->id);
+    $data['title'] = "Edit Request $this->title";
+    $data['subtitle'] = "Edit Request $this->title";
 
-            $username =  Auth::user()->username;
-            
-            $data['article'] = DB::table('article_request')
-            ->where('id',$id)
-            ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','status_approve'])->first();
+    $username =  Auth::user()->username;
+    
+    $data['article'] = DB::table('article_request')
+    ->where('id',$id)
+    ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing','status_approve'])->first();
 
-            $data['bisaApprove'] = DB::table('article_request')
-            ->select('article_request.*'
-            ,DB::RAW("(SELECT count(*) from user_dept where username = created_by and dept in (select dept from user_dept where username = '$username')) as bisa_approve"))
-            ->where('id',$id)
-            ->value('bisa_approve');
+    $data['bisaApprove'] = DB::table('article_request')
+    ->select('article_request.*'
+    ,DB::RAW("(SELECT count(*) from user_dept where username = created_by and dept in (select dept from user_dept where username = '$username')) as bisa_approve"))
+    ->where('id',$id)
+    ->value('bisa_approve');
 
-            // $data['images'] = DB::table('images')
-            // ->where('key',$data['article']->article_code)
-            // ->get();
+    $data['types'] = DB::table('article_types')
+    ->where ('status','=',1)
+    ->orderBy('name')
+    ->get();
 
-            $data['types'] = DB::table('article_types')
-            ->where ('status','=',1)
-            ->orderBy('name')
-            ->get();
+    $code = $data['article']->article_type;
+    $data['custs'] = DB::table('third_party')->where(function ($query) use ($code) {
+    })->get();
 
-            $code = $data['article']->article_type;
-            $data['custs'] = DB::table('third_party')->where(function ($query) use ($code) {
-                // $code == 'FG' ? $query->where('third_party_type','cust') : '';
-                // $code != 'FG' ? $query->where('third_party_type','supp') : '';
-            })->get();
+    $data['groups'] = DB::table('group_materials')
+    ->where ('status','=',1)
+    ->orderBy('name')
+    ->get();
 
-            $data['groups'] = DB::table('group_materials')
-            ->where ('status','=',1)
-            ->orderBy('name')
-            ->get();
+    $data['uoms'] = DB::table('uom')
+    ->orderBy('name')
+    ->get();
 
-            $data['uoms'] = DB::table('uom')
-            ->orderBy('name')
-            ->get();
+    $data['suppliers']= DB::table('article_supplier_request') 
+    ->where('article_code',$data['article']->article_code)
+    ->orderBy('id')
+    ->pluck('supplier_code')->toArray();
 
-            // $data['articles']= DB::table('article') 
-            // ->orderBy('article_desc')
-            // ->distinct('article_desc')
-            // ->pluck('article_desc');
-
-            $data['suppliers']= DB::table('article_supplier_request') 
-            ->where('article_code',$data['article']->article_code)
-            ->orderBy('id')
-            ->pluck('supplier_code')->toArray();
-
-            return view('articles.requestEdit',$data);
-            
-        }
+    return view('articles.requestEdit',$data);
+}
 
         public function requestUpdate(Request $request)
         {
@@ -1375,6 +1410,7 @@
             $brand = $request->brand;
 
             $orderable = $request->orderableCheck == 'on' ? '1' : '0';
+            $marketing = $request->marketingCheck == 'on' ? '1' : '0';
             $statusApprove = '1';
 
             // status : 1= aktif, 0= freeze        
@@ -1412,7 +1448,8 @@
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s'),
                             'brand' => $brand,
-                            'orderable' =>$orderable
+                            'orderable' =>$orderable,
+                            'marketing' => $marketing
                         ]
                     );
                     
@@ -1551,7 +1588,7 @@
             
             $data['article'] = DB::table('article_request')
             ->where('id',$id)
-            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable'])->first();
+            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing'])->first();
 
             // $data['images'] = DB::table('images')
             // ->where('key',$data['article']->article_code)
@@ -1746,6 +1783,7 @@
             $variant = $request->variant;
             $status = $request->status == 'on' ? '1' : '0';
             $orderable = $request->orderableCheck == 'on' ? '1' : '0';
+            $marketing = $request->marketingCheck == 'on' ? '1' : '0';
 
             $messages = [
                 'required' => 'The field is required.',
@@ -1792,7 +1830,8 @@
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s'),
                         'brand' => $brand,
-                        'orderable' =>$orderable
+                        'orderable' =>$orderable,
+                        'marketing' =>$marketing
                     ]); 
 
                     foreach($cust as $val){

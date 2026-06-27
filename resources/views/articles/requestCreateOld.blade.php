@@ -10,7 +10,7 @@
                     <form id="frmAdd" name="frmAdd" action="{{ route('article.request.store') }}" method="post"  autocomplete="off" enctype="multipart/form-data" >
                         @csrf
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-8">
                                 <label class="form-label" for="articleType">Article Type*</label>
                                 <select class="select2 form-control" id="articleType" name="articleType" autofocus required>
                                     <option value=""></option>
@@ -19,16 +19,10 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="form-group col-md-3" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
+                            <div class="form-group col-md-4" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="orderableCheck" name="orderableCheck"  checked/>
                                     <label class="custom-control-label" for="orderableCheck">Orderable</label>
-                                </div>
-                            </div>
-                            <div class="form-group col-md-3" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="marketingCheck" name="marketingCheck"/>
-                                    <label class="custom-control-label" for="marketingCheck">Marketing</label>
                                 </div>
                             </div>
                         </div>

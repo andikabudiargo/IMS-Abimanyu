@@ -7,10 +7,16 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <form id="frmAdd" name="frmAdd" action="{{ route('article.request.store') }}" method="post"  autocomplete="off" enctype="multipart/form-data" >
+                    <form id="frmAdd" name="frmAdd" action="{{ route('article.store') }}" method="post"  autocomplete="off" enctype="multipart/form-data" >
                         @csrf
+                        <div class="form-row d-none">
+                            <div class="form-group col-md-12">
+                                <label for="kode">Article Code</label>
+                                <input type="text" id="kode" name="kode" class="form-control disabled-el"  value="{{ old('kode') }}" disabled />
+                            </div>
+                        </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-8">
                                 <label class="form-label" for="articleType">Article Type*</label>
                                 <select class="select2 form-control" id="articleType" name="articleType" autofocus required>
                                     <option value=""></option>
@@ -19,22 +25,16 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="form-group col-md-3" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
+                            <div class="form-group col-md-4" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="orderableCheck" name="orderableCheck"  checked/>
                                     <label class="custom-control-label" for="orderableCheck">Orderable</label>
                                 </div>
                             </div>
-                            <div class="form-group col-md-3" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
-                                <div class="custom-control custom-checkbox">
-                                    <input type="checkbox" class="custom-control-input" id="marketingCheck" name="marketingCheck"/>
-                                    <label class="custom-control-label" for="marketingCheck">Marketing</label>
-                                </div>
-                            </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-12">
-                                <label class="form-label" for="group">Group of Material</label>
+                                <label class="form-label" for="group">Group of material</label>
                                 <select class="select2 form-control" id="group" name="group">
                                     <option value=""></option>
                                     @foreach($groups as $val)
@@ -60,6 +60,8 @@
                         <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label class="form-label" for="cust" id="custLable">Customer/Supplier*</label>
+                                {{-- <select class="select2 form-control select2-hidden-accessible" id="cust" name="cust[]" autofocus required multiple>
+                                </select> --}}
                                 <select class="select2 form-control select2-hidden-accessible" id="cust" name="cust[]" autofocus required>
                                 </select>
                             </div>
@@ -136,7 +138,6 @@
                     </div> --}}
                     <div class="form-row">
                         <div class="col-12">
-                            <a href="{{ route('article.request') }}" class="btn btn-outline-secondary">Back</a>
                             <button class="btn btn-success" type="reset" id="cmdNew" name="cmdNew">New</button>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                         </div>
@@ -149,6 +150,7 @@
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
+{{-- <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/vendors/css/file-uploaders/dropzone.min.css') }}"> --}}
 <style>
     textarea {
         resize: none;
@@ -158,7 +160,6 @@
 @section('scripts')
 <script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 {{-- <script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script> --}}
-{{-- <link rel="stylesheet" type="text/css" href="{{ asset('app-assets/vendors/css/file-uploaders/dropzone.min.css') }}"> --}}
 <script type="text/javascript">
 
     $(document).ready(function(){    
@@ -226,29 +227,23 @@
     });
 
     $('#articleType').on('change', function() {
-    let type = $(this).val();
-    let obj = "cust";
-
-    if (!type) {
-        // belum dipilih -> kembali ke default
-        $('#custLable').text("Customer/Supplier*");
-        $('#'+obj).html('<option value=""></option>').trigger('change.select2');
-        return;
-    }
-
-    $.ajax({
-        url:"{{route('get.supplier')}}",
-        method:"POST",
-        data:{
-            type:type,
-            dependent:obj
-        },
-        success:function(result){
-            $('#custLable').text(type === 'FG' ? "Customer*" : "Supplier*");
-            $('#'+obj).html(result).trigger('change.select2');
-        }
+        let type = $(this).val();
+        let obj = "cust";
+        $.ajax({
+            url:"{{route('get.supplier')}}",
+            method:"POST",
+            data:{
+                type:type,
+                dependent:obj
+            },
+            success:function(result){
+                type === 'FG' ? $('#custLable').text("Customer*"):"";
+                type != 'FG' && type != 'RM' ? $('#custLable').text("Supplier*"):type === 'RM'?$('#custLable').text("Customer/Supplier*"):"";
+                $('#'+obj).html(result);
+                $('#'+obj).val('').trigger('change');
+            }
+        })
     })
-})
 
     $.ajaxSetup({
         headers: {

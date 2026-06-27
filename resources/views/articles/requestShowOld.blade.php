@@ -20,19 +20,12 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="form-group col-md-2" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
-    <div class="custom-control custom-checkbox">
-        <input type="checkbox" class="custom-control-input" id="orderableCheck" name="orderableCheck" {{ old("orderableCheck",$article->orderable) ? "checked" : ""}} disabled/>
-        <label class="custom-control-label" for="orderableCheck">Orderable</label>
-    </div>
-</div>
-<div class="form-group col-md-2" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
-    <div class="custom-control custom-checkbox">
-        <input type="checkbox" class="custom-control-input" id="marketingCheck" name="marketingCheck" {{ old("marketingCheck",$article->marketing) ? "checked" : ""}} disabled/>
-        <label class="custom-control-label" for="marketingCheck">Marketing</label>
-    </div>
-</div>
-                            
+                            <div class="form-group col-md-4" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="orderableCheck" name="orderableCheck"  {{ old("group",$article->orderable) ? "checked" : ""}} />
+                                    <label class="custom-control-label" for="orderableCheck">Orderable</label>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-row">       
                             <div class="form-group col-md-12">

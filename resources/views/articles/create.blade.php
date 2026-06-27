@@ -31,6 +31,7 @@
                                     <label class="custom-control-label" for="orderableCheck">Orderable</label>
                                 </div>
                             </div>
+                            
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-12">
