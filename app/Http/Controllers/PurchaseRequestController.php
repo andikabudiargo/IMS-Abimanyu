@@ -147,7 +147,46 @@ class PurchaseRequestController extends Controller
         return view("purchaseRequest.create",$data);
     }
 
-    public function store(Request $request)
+    public function createv2(Request $request)
+    {
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
+        $username =  Auth::user()->username;
+        
+       // Semua unit_from per article_code dari uom_con_v2
+        $data['uomConByArticle'] = DB::table('uom_con_v2')
+            ->select('article_code', 'unit_from')
+            ->orderBy('article_code')->orderBy('unit_from')
+            ->get()
+            ->groupBy('article_code')
+            ->map(fn($rows) => $rows->pluck('unit_from')->unique()->values());
+
+        $data['suppliers'] = DB::table('third_party')
+            ->select('kode', 'nama')
+            ->where('third_party_type', 'supp')
+            ->orderBy('nama')
+            ->get();
+
+        $data['stockByArticle'] = DB::table('warehouse_stock')
+            ->select('article_code', DB::raw('SUM(article_qty) as article_qty'))
+            ->groupBy('article_code')
+            ->pluck('article_qty', 'article_code');
+
+            $data['depts'] = DB::table('depts')
+        ->whereIn('depts.code', function($query) use ($username) {
+            $query->select('dept')
+            ->from('user_dept') 
+            ->where('username',$username);
+        })
+        ->orderBy('name')
+        ->get();
+
+        $data['currentDate'] = date('d-m-Y');
+        
+        return view("purchaseRequest.createv2",$data);
+    }
+
+    public function storeOld(Request $request)
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
@@ -157,6 +196,7 @@ class PurchaseRequestController extends Controller
         $dept = $request->dept;
         $note = $request->note;
         $tsoCode = $request->tsoCode;
+        // $suppCode = $request->suppCode;   // <-- tambah untuk non purchase
         $status = '1';
         $print_seq = 0;
         
@@ -172,6 +212,9 @@ class PurchaseRequestController extends Controller
                 break;
             case 'rm':
                 $prLeadCode = 'PRRM';
+                break;
+            case 'np':
+                $prLeadCode = 'PRNP';
             break;
             default:
             $prLeadCode = 'PR';
@@ -227,7 +270,8 @@ class PurchaseRequestController extends Controller
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                     'stock_date' => $stockDate,
-                    'tso_code' => $tsoCode
+                    'tso_code' => $tsoCode,
+                    //'supp_code' => $orderType == 'np' ? $suppCode : '',   // <-- tambahan untuk non purchase
                 ]);
 
                 $dataSet = [];
@@ -276,10 +320,160 @@ class PurchaseRequestController extends Controller
                 $alert  ="warning";
                 $message  = "$title $prNumber is failed to saved";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+                return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
             }
         }
     }
+
+    public function store(Request $request)
+{
+    $username =  Auth::user()->username;
+    $articles = json_decode($request -> articles);
+    $orderDate = $request->orderDate;
+    $stockDate = $request->stockDate ? date('Y-m-d', strtotime($request->stockDate)) : '';
+    $orderType = $request->poType;
+    $purchaseType = $request->purchaseType;
+    $dept = $request->dept;
+    $note = $request->note;
+    $tsoCode = $request->tsoCode;
+    $status = '1';
+    $print_seq = 0;
+    
+    switch ($orderType) {
+        case 'std':
+            $prLeadCode = 'PR';
+            break;
+        case 'sub':
+            $prLeadCode = 'PRSUB';
+            break;
+        case 'tso':
+            $prLeadCode = 'PRTSO';
+            break;
+        case 'rm':
+            $prLeadCode = 'PRRM';
+            break;
+        case 'np':
+            $prLeadCode = 'PRNP';
+        break;
+        default:
+        $prLeadCode = 'PR';
+    }
+    
+    $messages = [
+        'required' => 'The field is required.',
+        'unique' => 'The code has already been taken', 
+    ];
+    
+    Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
+        $query = DB::table($parameters[0]);
+        $column = $query->getGrammar()->wrap($parameters[1]);
+        return !$query->whereRaw("lower({$column}) = lower(?)", [$value])->count();
+    });
+
+    $validation = Validator::make($request->all(),$messages = [
+        'orderDate'  => 'required',
+        'dept'  => 'required',
+    ]);
+    
+    $error_array = array();
+    $success_output = '';
+
+    if ($validation->fails()){
+        foreach ($validation->messages()->getMessages() as $field_name => $messages){
+            $error_array[] = $messages;
+        }
+
+        $alert ="warning";
+        return response()->json(array('status' => 0, 'message' => $error_array,'alert' =>$alert));
+
+    }else{
+
+        // Validasi: 1 TSO hanya boleh dipakai sekali per purchaseType
+        // DIPINDAH ke sini, supaya selalu dicek saat field lain sudah valid
+        if ($orderType == 'tso') {
+            $exists = DB::table('purchase_request_hdr')
+                ->where('tso_code', $tsoCode)
+                ->where('purchase_type', $purchaseType)
+                ->exists();
+
+            if ($exists) {
+                $alert = "warning";
+                $message = "Target SO $tsoCode sudah memiliki PR dengan Purchase Type yang sama";
+                return response()->json(array('status' => 0, 'message' => $message, 'alert' => $alert));
+            }
+        }
+
+        $hasilUpdate = AppHelpers::resetCode($prLeadCode);
+        $prNumber = $this->getLastCode($prLeadCode);
+        DB::beginTransaction();
+        try {
+            DB::table('purchase_request_hdr')->insert([
+                'pr_number' => $prNumber,
+                'origin_pr_number' => $prNumber,
+                'dept' => $dept,
+                'date' => $orderDate,
+                'order_type' => $orderType,
+                'status' => $status,
+                'note' =>  $note,
+                'authorized_by' => '',
+                'prepared_by' =>  '',
+                'print_seq' => $print_seq,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+                'stock_date' => $stockDate,
+                'tso_code' => $tsoCode,
+                'purchase_type' => $orderType == 'tso' ? $purchaseType : null,
+            ]);
+
+            $dataSet = [];
+            foreach ($articles as $val) {
+                $dataSet[] = [
+                    'pr_number' => $prNumber,
+                    'article_code' => $val->article_code,
+                    'qty' => $val->qty,
+                    'uom' => $val->uom,
+                    'supp_code' => $val->supp,
+                    'note' => $val->note,
+                    'created_by' => Auth::user()->username,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'qty_hitung' =>$val->qty_hitung,
+                    'qty_stock' => $val->qty_stock,
+                ];
+            }
+
+            DB::table('purchase_request_det')->insert($dataSet);
+
+            if($orderType == 'tso'){
+                DB::table('target_order_hdr')
+                ->where('tso_code',$tsoCode)
+                ->update(
+                    [
+                        'pr_number' => $prNumber,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+            }
+
+            DB::commit();
+            $title ="Save $this->title";
+            $alert  ="success";
+            $message  = "$title $prNumber is successfully saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            $title ="Save $this->title";
+            $alert  ="warning";
+            $message  = "$title $prNumber is failed to saved";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert,'prNumber'=>$prNumber));
+        }
+    }
+}
 
     public function show(Request $request)
     {
@@ -379,6 +573,242 @@ class PurchaseRequestController extends Controller
     }
 
     public function edit(Request $request)
+{   
+    $username  = Auth::user()->username;
+    $id        = Crypt::decryptString($request->id);
+    $data['title']    = "Edit $this->title";
+    $data['subtitle'] = "Edit $this->title";
+
+    $header = DB::table('purchase_request_hdr')
+        ->where('id', $id)
+        ->first();
+
+    $data['header'] = $header;
+
+    $dept        = $header->dept;
+    $prNumber    = $header->pr_number;
+    $orderType   = $header->order_type;
+    $stockDate   = $header->stock_date
+        ? date('Y-m-d', strtotime($header->stock_date))
+        : date('Y-m-d');
+
+    $data['details'] = json_encode(
+    DB::table('purchase_request_det')
+        ->leftJoin('article', 'article.article_code', '=', 'purchase_request_det.article_code')
+        ->leftJoin('uom', 'uom.code', '=', 'purchase_request_det.uom')
+        ->leftJoin('uom as uom_art', 'uom_art.code', '=', 'article.uom') // ✅ join uom dari article
+        ->where('purchase_request_det.pr_number', $prNumber)
+        ->select(
+            'purchase_request_det.*',
+            'article_alternative_code',
+            'article_desc',
+            'third_party',
+            // ✅ Fallback uom: pakai uom det, kalau kosong pakai uom article
+            DB::raw("COALESCE(NULLIF(purchase_request_det.uom, ''), article.uom) as uom"),
+            // ✅ Fallback uom_group juga
+            DB::raw("COALESCE(uom.uom_group, uom_art.uom_group) as uom_group"),
+            'purchase_request_det.qty_hitung',
+            DB::raw("coalesce(get_last_qty_new(
+                purchase_request_det.article_code,
+                '$stockDate',
+                'HO',
+                NULL
+            ), 0) as qty_stock")
+        )
+        ->orderBy('article.article_alternative_code')
+        ->get()
+);
+
+    $data['depts'] = DB::table('depts')
+        ->whereIn('code', function ($query) use ($username) {
+            $query->select('dept')
+                ->from('user_dept')
+                ->where('username', $username);
+        })
+        ->orderBy('name')
+        ->get();
+
+    $data['suppliers'] = DB::table('third_party')
+        ->where('third_party_type', 'supp')
+        ->orderBy('nama')
+        ->get();
+
+    // ✅ uomConByArticle: key = "article_code|supp_code", value = array unit_from
+$data['uomConByArticle'] = DB::table('uom_con_v2')
+    ->select('article_code', 'supplier_code', 'unit_from')
+    ->orderBy('article_code')
+    ->orderBy('supplier_code')
+    ->orderBy('unit_from')
+    ->get()
+    ->groupBy(fn($row) => $row->article_code . '|' . $row->supplier_code)
+    ->map(fn($rows) => $rows->pluck('unit_from')->unique()->values());
+
+    $data['stockByArticle'] = DB::table('warehouse_stock')
+        ->select('article_code', DB::raw('sum(article_qty) as qty'))
+        ->groupBy('article_code')
+        ->pluck('qty', 'article_code');
+
+    $moduleCode   = $this->moduleCode;
+    $moduleNumber = $prNumber;
+
+    $data['approvalHistory'] = DB::select("
+        SELECT DISTINCT ON (a.approval_order)
+            a.approval_order,
+            (SELECT name FROM users WHERE username = a.username) AS name,
+            (SELECT STRING_AGG(
+                (SELECT name FROM users WHERE username = p.username), ',' ORDER BY module_code
+            ) FROM approval_level p
+            WHERE module_code = a.module_code
+              AND approval_order = a.approval_order
+              AND username IN (SELECT username FROM user_dept WHERE dept = '$dept')
+            ) AS petugas,
+            (SELECT approval_number FROM approval_master WHERE module_code = a.module_code) AS max_approval,
+            CASE WHEN module_number IS NOT NULL THEN true ELSE false END AS status,
+            b.status AS statusApprove
+        FROM approval_level a
+        LEFT JOIN (
+            SELECT * FROM approval_history WHERE module_number = '$moduleNumber'
+        ) b ON b.module_code = a.module_code
+           AND b.approval_order = a.approval_order
+           AND b.username = a.username
+        WHERE a.approval_order <= (
+            SELECT approval_number FROM approval_master WHERE module_code = '$moduleCode'
+        )
+        AND a.module_code = '$moduleCode'
+        ORDER BY a.approval_order, module_number
+    ");
+
+    $data['approveValidate'] = DB::select("
+        SELECT username = '$username' AS validate,
+               current_level + 1 AS next_level, *
+        FROM (
+            SELECT username, approval_order,
+                (SELECT max(approval_number) FROM approval_master WHERE module_code = a.module_code) AS max_level,
+                COALESCE((
+                    SELECT max(approval_order) FROM approval_history
+                    WHERE module_code = a.module_code AND module_number = '$moduleNumber'
+                ), '0') AS current_level
+            FROM approval_level a
+            WHERE module_code = '$moduleCode' AND username = '$username'
+        ) b
+        WHERE approval_order = current_level + 1
+          AND username IN (
+              SELECT username FROM user_dept WHERE dept = '$dept' AND username = '$username'
+          )
+    ");
+
+    $statusList      = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
+    $data['statusPr'] = $statusList[$header->status - 1];
+
+    return view("purchaseRequest.edit", $data);
+}
+
+public function update(Request $request)
+{
+    $username  = Auth::user()->username;
+    $articles  = json_decode($request->articles);
+    $prNumber  = $request->prNumber;
+    $orderDate = $request->orderDate;
+    $dept      = $request->dept;
+    $note      = $request->note;
+    $suppCode  = $request->suppCode;
+    $purchaseType = $request->purchaseType;
+
+    $validation = Validator::make($request->all(), [
+        'orderDate' => 'required',
+        'dept'      => 'required',
+    ], [
+        'required' => 'The field is required.',
+    ]);
+
+    if ($validation->fails()) {
+        return response()->json([
+            'status'  => 0,
+            'title'   => "Save $this->title",
+            'message' => array_values($validation->messages()->getMessages()),
+            'alert'   => 'error'
+        ]);
+    }
+
+    DB::beginTransaction();
+    try {
+        // ✅ Update header
+        DB::table('purchase_request_hdr')
+            ->where('pr_number', $prNumber)
+            ->update([
+                'dept'          => $dept,
+                'date'          => $orderDate,
+                'status'        => '1',
+                'note'          => $note,
+                'purchase_type' => $purchaseType,
+                'authorized_by' => '',
+                'prepared_by'   => '',
+                'print_seq'     => 0,
+                'updated_by'    => $username,
+                'updated_at'    => date('Y-m-d H:i:s'),
+            ]);
+
+        // ✅ Delete article yang dihapus
+        $keepKeys = collect($articles)
+            ->map(fn($val) => $prNumber . $val->article_code)
+            ->toArray();
+
+        DB::table('purchase_request_det')
+            ->where('pr_number', $prNumber)
+            ->whereNotIn(DB::raw("CONCAT(pr_number, article_code)"), $keepKeys)
+            ->delete();
+
+        // ✅ Upsert detail
+        foreach ($articles as $val) {
+            DB::table('purchase_request_det')
+                ->updateOrInsert(
+                    [
+                        'pr_number'    => $prNumber,
+                        'article_code' => $val->article_code,
+                    ],
+                    [
+                        'qty'          => $val->qty,
+                        'uom'          => $val->uom,
+                        'supp_code'    => $val->supp,
+                        'note'         => $val->note,
+                        'qty_hitung'   => $val->qty_hitung  ?? $val->qty,
+                        'qty_stock'    => $val->qty_stock   ?? 0,
+                        'updated_by'   => $username,
+                        'updated_at'   => date('Y-m-d H:i:s'),
+                    ]
+                );
+        }
+
+        DB::commit();
+
+        $message = "Save $this->title $prNumber successfully updated";
+        \LogActivity::addToLog("Save $this->title", "username: $username | $message");
+
+        return response()->json([
+            'status'   => 1,
+            'title'    => "Save $this->title",
+            'message'  => $message,
+            'alert'    => 'success',
+            'prNumber' => $prNumber,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        $message = "Save $this->title $prNumber failed to update: " . $e->getMessage();
+        \LogActivity::addToLog("Save $this->title", "username: $username | $message");
+
+        return response()->json([
+            'status'   => 0,
+            'title'    => "Save $this->title",
+            'message'  => $message,
+            'alert'    => 'warning',
+            'prNumber' => $prNumber,
+        ]);
+    }
+}
+
+    public function editOld(Request $request)
     {   
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
@@ -464,7 +894,7 @@ class PurchaseRequestController extends Controller
         
     }
 
-    public function update(Request $request)
+    public function updateOld(Request $request)
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
@@ -1030,6 +1460,9 @@ class PurchaseRequestController extends Controller
                 case 'rm':
                     return "<div class='badge badge-info'>Raw Material</div>";
                     break;
+                case 'np':
+                    return "<div class='badge badge-warning'>Non Purchase</div>";
+                    break;
                 case 'tso':
                     $alertTso = "badge-danger";
                     if($data->status_tso == 3){
@@ -1055,6 +1488,122 @@ class PurchaseRequestController extends Controller
     }
 
     public function listDetail(Request $request)
+{
+    $username     = Auth::user()->username;
+    $searchPr     = strtolower($request->searchPr);
+    $orderType    = strtolower($request->orderType);
+    $searchStatus = $request->searchStatus;
+    $requestDate  = $request->requestDate;
+    $dept         = $request->dept;
+    $fromDate     = "";
+    $toDate       = "";
+
+    $deptPurcashing = DB::table('user_dept')
+        ->where('username', $username)
+        ->where('dept', '008')
+        ->count();
+
+    if ($requestDate) {
+        $date = explode("to", $requestDate);
+        if (count($date) > 1) {
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = implode("/", array_reverse(explode("-", trim($date[1]))));
+        } else {
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = $fromDate;
+        }
+    }
+
+    // ✅ JANGAN ->get() — biarkan query builder, DataTables yang paginate
+    $query = DB::table('purchase_request_det')
+        ->leftJoin('purchase_request_hdr', 'purchase_request_hdr.pr_number', '=', 'purchase_request_det.pr_number')
+        ->leftJoin('article', 'article.article_code', '=', 'purchase_request_det.article_code')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'purchase_request_det.supp_code')
+        ->leftJoin('uom', 'uom.code', '=', 'purchase_request_det.uom')
+        ->leftJoin('depts', 'purchase_request_hdr.dept', '=', 'depts.code')
+        ->where(function ($q) use ($orderType, $searchPr, $searchStatus, $requestDate, $fromDate, $toDate, $dept) {
+            if ($orderType)    $q->where('order_type', $orderType);
+            if ($dept)         $q->where('purchase_request_hdr.dept', $dept);
+            if ($searchPr)     $q->where('purchase_request_det.pr_number', 'ilike', '%'.$searchPr.'%');
+            if ($searchStatus) $q->where('purchase_request_hdr.status', $searchStatus);
+            if ($requestDate)  $q->whereBetween(DB::raw("to_date(purchase_request_hdr.date,'DD-MM-YYYY')"), [$fromDate, $toDate]);
+        })
+        ->where('purchase_request_hdr.status', '!=', '8')
+        ->whereIn('purchase_request_hdr.dept', function ($q) use ($username, $deptPurcashing) {
+            if ($deptPurcashing > 0) {
+                $q->select('code')->from('depts');
+            } else {
+                $q->select('dept')->from('user_dept')->where('username', $username);
+            }
+        })
+        ->select(
+            'purchase_request_det.id',
+            'purchase_request_det.pr_number',
+            'purchase_request_det.po_number',
+            'purchase_request_det.article_code',
+            'purchase_request_det.uom',
+            'purchase_request_det.supp_code',
+            'purchase_request_det.note',
+            'purchase_request_det.created_by',
+            'purchase_request_det.created_at',
+            'purchase_request_det.updated_by',
+            'purchase_request_det.updated_at',
+            'article_alternative_code',
+            'article.article_desc',
+            'purchase_request_hdr.status as statusku',
+            'purchase_request_hdr.order_type',
+            'purchase_request_hdr.date',
+            'purchase_request_hdr.note as noteku',
+            'third_party.nama as supp_name',
+            'uom.uom_group',
+            'depts.name as dept_name',
+            DB::raw("
+                CASE 
+                    WHEN uom.uom_group = 'PIECE' 
+                        THEN TO_CHAR(purchase_request_det.qty::numeric, '999,999,999')
+                    ELSE TO_CHAR(purchase_request_det.qty::numeric, '999,999,999.999')
+                END as qtyku
+            "),
+            DB::raw("(
+                SELECT 
+                    CASE 
+                        WHEN u2.uom_group = 'PIECE' 
+                            THEN TO_CHAR(pod.qty::numeric, '999,999,999')
+                        ELSE TO_CHAR(pod.qty::numeric, '999,999,999.999')
+                    END
+                FROM purchase_order_det pod
+                LEFT JOIN uom u2 ON u2.code = pod.uom
+                WHERE pod.po_number    = purchase_request_det.po_number
+                  AND pod.pr_number    = purchase_request_det.pr_number
+                  AND pod.article_code = purchase_request_det.article_code
+                LIMIT 1
+            ) as qty_po")
+        )
+        ->orderBy('purchase_request_det.id');
+
+    $statusList = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO','REVISED','REJECTED'];
+    $badgeList  = ['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary','badge-danger'];
+
+    return Datatables::of($query)   // ✅ query builder, bukan ->get()
+        ->addColumn('status', function ($row) use ($statusList, $badgeList) {
+            $idx = (int) $row->statusku - 1;
+            if ($idx < 0 || $idx >= count($statusList)) $idx = 0;
+            return "<div class='badge {$badgeList[$idx]}'>{$statusList[$idx]}</div>";
+        })
+        ->addColumn('order_type', function ($row) {
+            switch ($row->order_type) {
+                case 'std': return "<div class='badge badge-primary'>Standar</div>";
+                case 'sub': return "<div class='badge badge-info'>Subcontract</div>";
+                case 'np':  return "<div class='badge badge-warning'>Non Purchase</div>";
+                case 'tso': return "<div class='badge badge-danger'>TSO</div>";
+                default:    return "<div class='badge badge-secondary'>-</div>";
+            }
+        })
+        ->rawColumns(['order_type', 'status'])
+        ->make(true);
+}
+
+    public function listDetailOld(Request $request)
     {
         $username =  Auth::user()->username;
         $searchPr = strtolower($request->searchPr);
@@ -1143,8 +1692,12 @@ class PurchaseRequestController extends Controller
         ->addColumn('order_type', function ($data) {
             if ($data->order_type == 'std'){
                 return "<div class='badge badge-primary'>Standar</div>";
-            }else{
+            }else if ($data->order_type == 'sub'){
                 return "<div class='badge badge-info'>Subcontract</div>";
+            }else if ($data->order_type == 'np'){
+                return "<div class='badge badge-warning'>Non Purchase</div>";
+            }else if ($data->order_type == 'tso'){
+                return "<div class='badge badge-danger'>TSO</div>";
             }
         })
         ->rawColumns(['order_type','status'])
@@ -1596,6 +2149,240 @@ class PurchaseRequestController extends Controller
         
         return response()->json($data);                        
     }
+
+    public function articleTso2(Request $request)
+{
+    $tsoCode = $request->tsoCode;
+    $stockDate = $request->stockDate ? date('Y-m-d', strtotime($request->stockDate)) : '';
+    $purchaseType = $request->purchaseType;
+    $siteCode = 'HO';
+    $confirmExclude = $request->confirmExclude == '1'; // ✅ flag dari frontend
+
+    $articles = DB::table('target_order_det')
+        ->where('tso_code', $tsoCode)
+        ->get();
+
+    $dataSet = [];
+    $randomCode = rand();
+    foreach ($articles as $val) {
+        $dataSet[] = [
+            'code' => $randomCode,
+            'article_code' => $val->article_code,
+            'qty' => $val->qty_target
+        ];
+    }
+
+    DB::table('production_detail_temp')->insert($dataSet);
+
+    if ($purchaseType === 'np') {
+        $fgFilter = "article.article_type = 'CM3'";
+        $rmFilter = "article.article_type = 'RMNP'";
+    } else {
+        $fgFilter = "article.article_type not in ('CM3') and article.article_type is not null";
+        $rmFilter = "article.article_type = 'RMP'";
+    }
+
+    // ============================================================
+    // ✅ CEK BOM: FG yang tidak punya BOM full approve (status='3')
+    // ============================================================
+  $unapprovedFg = DB::select("
+    SELECT DISTINCT 
+        pdt.article_code AS fg_code,
+        a.article_alternative_code AS alternative,
+        a.article_desc AS article_desc
+    FROM production_detail_temp pdt
+    LEFT JOIN article a ON a.article_code = pdt.article_code
+    WHERE pdt.code = '$randomCode'
+    AND NOT EXISTS (
+        SELECT 1 FROM bom_hdr
+        WHERE bom_hdr.article_code = pdt.article_code
+        AND bom_hdr.status = '3'
+    )
+");
+
+if (!empty($unapprovedFg) && !$confirmExclude) {
+    DB::table('production_detail_temp')->where('code', $randomCode)->delete();
+    return response()->json([
+        'status'        => 'bom_not_approved',
+        'unapproved_fg' => $unapprovedFg,   // ✅ kirim object lengkap, bukan pluck
+        'data'          => []
+    ]);
+}
+
+if (!empty($unapprovedFg) && $confirmExclude) {
+    $excludeCodes = collect($unapprovedFg)->pluck('fg_code')->toArray();
+    DB::table('production_detail_temp')
+        ->where('code', $randomCode)
+        ->whereIn('article_code', $excludeCodes)
+        ->delete();
+}
+    // ============================================================
+
+    // ============================================================
+    // CEK: artikel komponen yang tidak ada di tabel article
+    // ============================================================
+  $missingArticles = DB::select("
+    SELECT DISTINCT 
+        bom_det.article_code AS missing_code,
+        NULL AS alternative,
+        NULL AS article_desc
+    FROM production_detail_temp
+    LEFT JOIN (
+        SELECT DISTINCT ON (article_code) bom_code, article_code, status
+        FROM bom_hdr WHERE status = '3'
+        ORDER BY article_code, bom_code DESC
+    ) bom_hdr ON bom_hdr.article_code = production_detail_temp.article_code
+    LEFT JOIN (
+        SELECT bom_code, article_code
+        FROM bom_det
+        WHERE bom_code IN (SELECT bom_code FROM bom_hdr WHERE status = '3')
+        GROUP BY bom_code, article_code
+    ) bom_det ON bom_det.bom_code = bom_hdr.bom_code
+    LEFT JOIN article ON article.article_code = bom_det.article_code
+    WHERE production_detail_temp.code = '$randomCode'
+    AND bom_hdr.status = '3'
+    AND bom_det.article_code IS NOT NULL
+    AND article.article_code IS NULL
+
+    UNION
+
+    SELECT DISTINCT 
+        bom_rm.article_code AS missing_code,
+        bom_rm.article_alternative_code AS alternative,
+        bom_rm.article_desc AS article_desc
+    FROM production_detail_temp
+    LEFT JOIN (
+        SELECT DISTINCT ON (article_code) bom_code, article_code, status
+        FROM bom_hdr WHERE status = '3'
+        ORDER BY article_code, bom_code DESC
+    ) bom_hdr ON bom_hdr.article_code = production_detail_temp.article_code
+    LEFT JOIN bom_rm ON bom_rm.bom_code = bom_hdr.bom_code
+    LEFT JOIN article ON article.article_code = bom_rm.article_code
+    WHERE production_detail_temp.code = '$randomCode'
+    AND bom_hdr.status = '3'
+    AND bom_rm.article_code IS NOT NULL
+    AND article.article_code IS NULL
+");
+
+if (!empty($missingArticles)) {
+    DB::table('production_detail_temp')->where('code', $randomCode)->delete();
+    return response()->json([
+        'status'           => 'missing_article',
+        'missing_articles' => $missingArticles,   // ✅ kirim object lengkap
+        'data'             => []
+    ]);
+}
+    // ============================================================
+
+    $data = DB::select("SELECT * from 
+    (SELECT 
+        article_code_det as article_code
+        ,min_package 
+        ,safety_stock
+        ,qty_stock
+        ,sum(qty_order * qty_bom) as total
+        ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
+        ,uom_article as uom
+        ,(select uom_group from uom where uom.code = uom_article) as uom_group
+        ,(select third_party from article where article.article_code = article_code_det) as supp
+        ,alternative
+        ,article_desc
+        from(
+        select DISTINCT
+        bom_det.article_code as article_code_det
+        ,production_detail_temp.qty as qty_order
+        ,production_detail_temp.uom as uom_order
+        ,bom_det.qty * coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as qty_bom
+        ,bom_det.uom as uom_bom
+        ,article.uom as uom_article
+        ,bom_hdr.article_code
+        ,coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = article.uom),1) as factor_qty
+        ,coalesce((select coalesce(min_package,1) from article where article_code = bom_det.article_code),1) as min_package 
+        ,coalesce(article.safety_stock,0) as safety_stock 
+        ,coalesce(get_last_qty_new(bom_det.article_code,'$stockDate','$siteCode',NULL), 0) as qty_stock
+        ,article_alternative_code as alternative
+        ,article_desc
+        from production_detail_temp
+        left join (
+            select distinct on (article_code) bom_code, article_code, status
+            from bom_hdr 
+            where status = '3'
+            order by article_code, bom_code desc
+        ) bom_hdr on bom_hdr.article_code = production_detail_temp.article_code
+        left join (
+            select bom_code, sum(qty) as qty, uom_con, uom, article_code 
+            from bom_det 
+            where bom_code in (select bom_code from bom_hdr where status = '3') 
+            group by bom_code, article_code, uom_con, uom
+        ) bom_det on bom_det.bom_code = bom_hdr.bom_code
+        left join article on article.article_code = bom_det.article_code
+        where production_detail_temp.code = '$randomCode'
+        and bom_hdr.status = '3'
+        and $fgFilter
+        ) a
+        group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
+        having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0
+
+        union
+
+        SELECT 
+        article_code_det as article_code
+        ,min_package 
+        ,safety_stock
+        ,qty_stock
+        ,sum(qty_order * qty_bom) as total
+        ,ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package as grand_total
+        ,uom_article as uom
+        ,(select uom_group from uom where uom.code = uom_article) as uom_group
+        ,(select third_party from article where article.article_code = article_code_det) as supp
+        ,alternative
+        ,article_desc
+        from(
+        select DISTINCT
+        bom_rm.article_code as article_code_det
+        ,production_detail_temp.qty as qty_order
+        ,production_detail_temp.uom as uom_order
+        ,bom_rm.qty as qty_bom
+        ,bom_rm.uom as uom_bom
+        ,article.uom as uom_article
+        ,bom_hdr.article_code
+        ,1 as factor_qty
+        ,coalesce(article.min_package,1) as min_package
+        ,coalesce(article.safety_stock,0) as safety_stock 
+        ,coalesce(get_last_qty_new(bom_rm.article_code,'$stockDate','$siteCode','009'), 0) as qty_stock
+        ,bom_rm.article_alternative_code as alternative
+        ,bom_rm.article_desc
+        from production_detail_temp
+        left join (
+            select distinct on (article_code) bom_code, article_code, status
+            from bom_hdr 
+            where status = '3'
+            order by article_code, bom_code desc
+        ) bom_hdr on bom_hdr.article_code = production_detail_temp.article_code
+        left join bom_rm on bom_rm.bom_code = bom_hdr.bom_code
+        left join article on article.article_code = bom_rm.article_code
+        where production_detail_temp.code = '$randomCode'
+        and bom_hdr.status = '3'
+        and bom_rm.article_alternative_code is not null
+        and $rmFilter
+        ) a
+        group by article_code_det,alternative,article_desc,uom_article,min_package,safety_stock,qty_stock
+        having (ceil(((sum(qty_order * qty_bom)-qty_stock)+safety_stock)/min_package) * min_package) > 0) oki
+        order by alternative");
+
+    if ($data !== null) {
+        DB::table('production_detail_temp')->where('code', $randomCode)->delete();
+    }
+
+    // ✅ Sertakan info FG yang dikecualikan (untuk ditampilkan di frontend)
+    return response()->json([
+        'status'        => 'ok',
+        'excluded_fg'   => (!empty($unapprovedFg) && $confirmExclude)
+                            ? collect($unapprovedFg)->pluck('fg_code')->toArray()
+                            : [],
+        'data'          => $data
+    ]);
+}
 
     public function revision(Request $request)
     {

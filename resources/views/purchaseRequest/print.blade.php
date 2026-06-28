@@ -70,7 +70,7 @@
             <td width="30%" >
                 <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
             </td>
-            <td valign="top" style="text-align:center"><h2>PO REQUEST</h2></td>
+            <td valign="top" style="text-align:center"><h2>PURCHASE REQUEST</h2></td>
             <td width="30%" ></td>
         </tr>
     </table>
@@ -129,11 +129,11 @@
             <td align="center" width="20%">Disetujui</td>
         </tr>
         <tr>
-            <td align="center" height="25">{{ $approval1 ? 'Approval 1':'' }}</td>
-            <td align="center">{{ $approval2 ? 'Approval 2':'' }}</td>
-            <td align="center">{{ $approval3 ? 'Approval 3':'' }}</td>
-            <td align="center">{{ $approval4 ? 'Approval 4':'' }}</td>
-            <td align="center">{{ $approval5 ? 'Approval 5':'' }}</td>
+            <td align="center" height="25">{{ $approval1 ? 'Approved 1':'' }}</td>
+            <td align="center">{{ $approval2 ? 'Approved 2':'' }}</td>
+            <td align="center">{{ $approval3 ? 'Approved 3':'' }}</td>
+            <td align="center">{{ $approval4 ? 'Approved 4':'' }}</td>
+            <td align="center">{{ $approval5 ? 'Approved 5':'' }}</td>
         </tr>
         <tr>
             <td align="center"  style="border-bottom: 1px solid black;">{{ $approval1 ? $approval1->name:'' }}</td>

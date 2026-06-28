@@ -16,15 +16,15 @@
       <div class="card-body">
         <form class="needs-validation" novalidate>
             <div class="form-row">
-              <div class="form-group col-md-3"> 
+              <div class="form-group col-md-4"> 
                 <label for="searchPr">Request Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPr" name="searchPr" placeholder=""  />
               </div>
-              <div class="col-md-3 form-group">
+              <div class="col-md-4 form-group">
                 <label for="requestDate">Date</label>
                 <input type="text" id="requestDate" name="requestDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-2">
+              <div class="form-group col-md-4">
                 <label class="form-label" for="orderType">PO Type*</label>
                 <select class="select2 form-control" id="orderType" name="orderType">
                       <option value="">All</option>
@@ -32,9 +32,12 @@
                       {{-- <option value="sub">Subcontracting</option> --}}
                       <option value="tso">Target SO</option>
                       <option value="rm">Raw Material</option>
+                      <option value="np">Non Purchase</option>
                 </select>
               </div>
-              <div class="form-group col-md-2"> 
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-4"> 
                 <label class="form-label" for="searchStatus">Request Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
@@ -43,7 +46,7 @@
                     @endforeach
                 </select>
               </div>
-              <div class="form-group col-md-2"> 
+              <div class="form-group col-md-4"> 
                 <label class="form-label" for="dept">Departemen</label>
                 <select class="select2 form-control" id="dept" name="dept">
                     <option value="">All</option>
@@ -57,7 +60,7 @@
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     @can('purchaseRequest-create')
-                    <a href="{{ route('purchaseRequest.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    <a href="{{ route('purchaseRequest.createv2') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                     @endcan
                 </div>
             </div>

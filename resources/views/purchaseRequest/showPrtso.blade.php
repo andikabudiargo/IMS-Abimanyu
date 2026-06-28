@@ -79,7 +79,7 @@
                                                 </select>
                                             </div>
                                         </div>
-                                        @if($header2->order_type == 'tso')
+                                        {{--@if($header2->order_type == 'tso')
                                         <div class="form-row" id="tsoBox">
                                             <div class="form-group col-md-2">
                                                 <label for="stockDate">Stock Date</label>
@@ -90,7 +90,38 @@
                                                 <input type="text" id="tsoCode" name="tsoCode" class="form-control disabled-el" value="{{ $header2->tso_code }}" disabled/>
                                             </div>
                                         </div>
-                                        @endif
+                                        @endif--}}
+                                        @if($header2->order_type == 'tso')
+<div class="form-row" id="tsoBox">
+    <div class="form-group col-md-2">
+        <label for="stockDate">Stock Date</label>
+        <input type="text" id="stockDate" name="stockDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ date_format(date_create($header2->stock_date),'d-m-Y') }}" disabled/>
+    </div>
+
+    {{-- ✅ Purchase Type --}}
+    <div class="form-group col-md-2">
+        <label class="form-label" for="purchaseType">Purchase Type</label>
+        <input type="text" class="form-control disabled-el"
+            value="{{ ($header2->purchase_type ?? '') == 'np' ? 'Non Purchase' : 'Purchase' }}" disabled/>
+    </div>
+
+    <div class="form-group col-md-4">
+        <label for="tsoCode">Target SO Number</label>
+        <input type="text" id="tsoCode" name="tsoCode" class="form-control disabled-el" value="{{ $header2->tso_code }}" disabled/>
+    </div>
+</div>
+
+{{-- ✅ Supplier hanya muncul kalau Non Purchase --}}
+@if(($header2->purchase_type ?? '') == 'np')
+<div class="form-row" id="suppBox">
+    <div class="form-group col-md-8">
+        <label class="form-label" for="suppCode">Supplier</label>
+        <input type="text" class="form-control disabled-el"
+            value="{{ $header2->supp_name ?? ($header2->supp_code ?? '-') }}" disabled/>
+    </div>
+</div>
+@endif
+@endif
                                         <div class="form-row">
                                             <div class="form-group col-md-7">
                                                 <label class="form-label" for="note">Notes</label>
