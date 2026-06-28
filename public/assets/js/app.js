@@ -664,7 +664,7 @@
         return jumlah;
     }
 
-    let changeSelect = (opt) => {
+    let changeSelectOld = (opt) => {
         opt = $.extend({
             dependent:"",
             value:"",
@@ -684,6 +684,30 @@
             }
         })
     }
+
+
+// tambah parameter extra untuk mengirim parameter tambahan selain dependent, misalnya untuk filter berdasarkan supplier di non purchase
+    let changeSelect = (opt) => {
+    opt = $.extend({
+        dependent:"",
+        value:"",
+        obj:"",
+        url:"",
+        extra:{}              // <-- tambahan: object bebas untuk parameter tambahan
+    }, opt);
+
+    $.ajax({
+        url:opt.url,
+        method:"POST",
+        data: $.extend({
+            dependent:opt.dependent
+        }, opt.extra),         // <-- merge dependent + extra params
+        success:function(result){
+            $('#'+opt.obj).html(result);
+            $('#'+opt.obj).val(opt.value).trigger('change');
+        }
+    })
+}
 
     function reloadPage(){
         window.location.reload();
