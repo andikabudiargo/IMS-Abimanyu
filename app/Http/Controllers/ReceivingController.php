@@ -818,7 +818,8 @@ class ReceivingController extends Controller
         }
     }
 
-    public function posting2(Request $request)
+       
+public function posting2(Request $request)
 {
     $username   = Auth::user()->username;
     $id         = Crypt::decryptString($request->id);
@@ -839,17 +840,17 @@ class ReceivingController extends Controller
     $todayDate  = date('Y-m-d');
  
     // mapping article_type -> location
-   $locationMap = function (string $articleType): string {
-    if ($articleType === 'CM1') {
-        return '012'; // gudang CHEMICAL
-    } elseif (in_array($articleType, ['CM2', 'CM3'])) {
-        return '013'; // gudang CONSUMABLE
-    } elseif (in_array($articleType, ['RMP', 'RMNP'])) {
-        return '014'; // gudang RAW MATERIAL
-    } else {
-        return '011'; // gudang UMUM
-    }
-};
+    $locationMap = function ($articleType) {
+        if ($articleType === 'CM1') {
+            return '012'; // gudang CHEMICAL
+        } elseif (in_array($articleType, ['CM2', 'CM3'])) {
+            return '013'; // gudang CONSUMABLE
+        } elseif (in_array($articleType, ['RMP', 'RMNP'])) {
+            return '014'; // gudang RAW MATERIAL
+        } else {
+            return '011'; // gudang UMUM
+        }
+    };
  
     // sudah posting => tidak boleh posting lagi
     if ($lastStatus == '4') {
@@ -858,17 +859,34 @@ class ReceivingController extends Controller
     }
  
     // ekspresi qty stok: pakai qty_conv; kalau null/0 fallback ke (qty+qty_free)*conv_factor
-    $qtyBaseSql = "COALESCE(NULLIF(receiving_det.qty_conv,0),
+    $qtyBaseSql  = "COALESCE(NULLIF(receiving_det.qty_conv,0),
                    (receiving_det.qty + receiving_det.qty_free) * COALESCE(NULLIF(receiving_det.conv_factor,0),1))";
     $stockUomSql = "COALESCE(NULLIF(receiving_det.conv_to,''), receiving_det.uom_rec)";
  
     DB::beginTransaction();
     try {
-        // ----- ambil detail receiving -----
+        // ----- cek receiving benar-benar punya detail (termasuk jasa) -----
+        $adaDetail = DB::table('receiving_det')
+            ->where('rec_number', $recNumber)
+            ->whereRaw("$qtyBaseSql <> 0")
+            ->exists();
+ 
+        if (!$adaDetail) {
+            DB::rollBack();
+            return $this->postingResp($request, 0, $title, $recNumber, 'warning',
+                "$title $recNumber Failed to Posting (tidak ada detail)", $id);
+        }
+ 
+        // ----- ambil detail untuk stock (skip jasa 'JS') -----
+        // bisa kosong kalau semua item jasa; posting tetap lanjut (status -> POSTED)
         $data = DB::table('receiving_det')
             ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
             ->where('receiving_det.rec_number', $recNumber)
             ->whereRaw("$qtyBaseSql <> 0")
+            ->where(function ($q) {
+                $q->whereNull('article.group_of_material')
+                  ->orWhere('article.group_of_material', '<>', 'JS');
+            })
             ->select(
                 'receiving_det.*',
                 'article.article_type',
@@ -877,12 +895,6 @@ class ReceivingController extends Controller
                 DB::raw("$stockUomSql as stock_uom")
             )
             ->get();
- 
-        if ($data->isEmpty()) {
-            DB::rollBack();
-            return $this->postingResp($request, 0, $title, $recNumber, 'warning',
-                "$title $recNumber Failed to Posting (tidak ada detail)", $id);
-        }
  
         // ----- update saldo stock (warehouse_stock) + cost article -----
         foreach ($data as $val) {
@@ -930,13 +942,17 @@ class ReceivingController extends Controller
                 "$title $recNumber Failed to Posting", $id);
         }
  
-        // ----- catat mutasi ke warehouse_movement -----
+        // ----- catat mutasi ke warehouse_movement (skip jasa 'JS') -----
         $movements = DB::table('receiving_det')
             ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
             ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
             ->where('receiving_det.rec_number', $recNumber)
             ->where('receiving_hdr.status', '4')
             ->whereRaw("$qtyBaseSql <> 0")
+            ->where(function ($q) {
+                $q->whereNull('article.group_of_material')
+                  ->orWhere('article.group_of_material', '<>', 'JS');
+            })
             ->select(
                 'receiving_hdr.rec_date as movement_date',
                 'receiving_det.article_code',
@@ -951,7 +967,7 @@ class ReceivingController extends Controller
             )
             ->get();
  
-        $seq            = (int) DB::table('warehouse_movement')->max('movement_code');
+        $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
         $dataSetMovement = [];
  
         foreach ($movements as $val) {
@@ -985,7 +1001,7 @@ class ReceivingController extends Controller
             DB::table('warehouse_movement')->insert($dataSetMovement);
         }
  
-        // ----- jurnal kas (tidak diubah) -----
+        // ----- jurnal kas (tidak diubah, jasa tetap masuk jurnal) -----
         DB::statement("INSERT into kas_hdr (voucher_number,voucher_type,voucher_date,receive_from,amount,period,year,note,status,created_by,updated_by,created_at,updated_at,description)
             select rec_number,'REC',do_date,supplier_id
             ,(select sum((qty+qty_free)*price) from receiving_det where rec_number = receiving_hdr.rec_number)
@@ -1048,7 +1064,7 @@ public function cancel(Request $request)
     $id         = Crypt::decryptString($request->id);
     $title      = "Cancel $this->title";
  
-    $recHdrq    = DB::table('receiving_hdr')->where('id', $id)->where('status', '4')->first();
+    $recHdrq = DB::table('receiving_hdr')->where('id', $id)->where('status', '4')->first();
  
     if (!$recHdrq) {
         return redirect()->back()->with([
@@ -1058,40 +1074,76 @@ public function cancel(Request $request)
         ]);
     }
  
-    $recNumber  = $recHdrq->rec_number;
+    $recNumber = $recHdrq->rec_number;
+ 
+    // ----- validasi AP: tidak boleh cancel kalau sudah ada AP aktif -----
+    $apNumber = DB::table('ap_invoice_detail')
+        ->leftJoin('ap_invoice', 'ap_invoice.ap_number', '=', 'ap_invoice_detail.ap_number')
+        ->where('ap_invoice_detail.rec_number', $recNumber)
+        ->whereIn('ap_invoice.status', ['2', '3', '4', '6'])
+        ->value('ap_invoice_detail.ap_number');
+ 
+    if ($apNumber) {
+        return redirect()->back()->with([
+            'title'   => $title,
+            'alert'   => 'warning',
+            'message' => "$title $recNumber Failed — AP Invoice $apNumber masih aktif. Cancel AP Invoice terlebih dahulu sebelum melakukan Cancel Receiving.",
+        ]);
+    }
+ 
     $siteCode   = 'HO';
     $status     = '5'; // CANCELED
     $moduleCode = $this->moduleCode;
     $reason     = "(Cancel by $username, Reason: $request->reason)";
     $todayDate  = date('Y-m-d');
  
-    // mapping article_type -> location (sama persis dengan posting2)
-  $locationMap = function (string $articleType): string {
-    if ($articleType === 'CM1') {
-        return '012'; // gudang CHEMICAL
-    } elseif (in_array($articleType, ['CM2', 'CM3'])) {
-        return '013'; // gudang CONSUMABLE
-    } elseif (in_array($articleType, ['RMP', 'RMNP'])) {
-        return '014'; // gudang RAW MATERIAL
-    } else {
-        return '011'; // gudang UMUM
-    }
-};
+    // mapping article_type -> location
+    $locationMap = function ($articleType) {
+        if ($articleType === 'CM1') {
+            return '012'; // gudang CHEMICAL
+        } elseif (in_array($articleType, ['CM2', 'CM3'])) {
+            return '013'; // gudang CONSUMABLE
+        } elseif (in_array($articleType, ['RMP', 'RMNP'])) {
+            return '014'; // gudang RAW MATERIAL
+        } else {
+            return '011'; // gudang UMUM
+        }
+    };
  
-    // qty konversi (sama persis dengan posting2)
+    // qty konversi
     $qtyBaseSql  = "COALESCE(NULLIF(receiving_det.qty_conv,0),
                     (receiving_det.qty + receiving_det.qty_free) * COALESCE(NULLIF(receiving_det.conv_factor,0),1))";
     $stockUomSql = "COALESCE(NULLIF(receiving_det.conv_to,''), receiving_det.uom_rec)";
  
     DB::beginTransaction();
     try {
-        // ----- ambil detail receiving -----
+        // ----- cek receiving benar-benar punya detail (termasuk jasa) -----
+        $adaDetail = DB::table('receiving_det')
+            ->where('rec_number', $recNumber)
+            ->whereRaw("$qtyBaseSql <> 0")
+            ->exists();
+ 
+        if (!$adaDetail) {
+            DB::rollBack();
+            return redirect()->back()->with([
+                'title'   => $title,
+                'alert'   => 'warning',
+                'message' => "$title $recNumber Failed (tidak ada detail)",
+            ]);
+        }
+ 
+        // ----- ambil detail untuk stock (skip jasa 'JS') -----
+        // bisa kosong kalau semua item jasa; cancel tetap lanjut (status -> CANCELED)
         $data = DB::table('receiving_det')
             ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
             ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
             ->where('receiving_det.rec_number', $recNumber)
             ->where('receiving_hdr.status', '4')
             ->whereRaw("$qtyBaseSql <> 0")
+            ->where(function ($q) {
+                $q->whereNull('article.group_of_material')
+                  ->orWhere('article.group_of_material', '<>', 'JS');
+            })
             ->select(
                 'receiving_det.*',
                 'article.article_type',
@@ -1101,24 +1153,13 @@ public function cancel(Request $request)
             )
             ->get();
  
-        if ($data->isEmpty()) {
-            DB::rollBack();
-            return redirect()->back()->with([
-                'title'   => $title,
-                'alert'   => 'warning',
-                'message' => "$title $recNumber Failed (tidak ada detail)",
-            ]);
-        }
- 
         // ----- kurangi saldo stock (warehouse_stock) + update cost article -----
-        $rowAffected = 0;
         foreach ($data as $val) {
             $location    = $locationMap($val->article_type);
             $averageCost = DB::selectOne("SELECT average_cost(?, ?, ?, ?) as avg", [
                 $val->article_code, $siteCode, $location, $moduleCode
             ])->avg;
  
-            // pastikan baris ada dulu (jaga-jaga)
             DB::table('warehouse_stock')->updateOrInsert(
                 [
                     'site_code'       => $siteCode,
@@ -1131,7 +1172,7 @@ public function cancel(Request $request)
                 ]
             );
  
-            $rowAffected += DB::table('warehouse_stock')
+            DB::table('warehouse_stock')
                 ->where('site_code', $siteCode)
                 ->where('article_code', $val->article_code)
                 ->where('location_number', $location)
@@ -1161,23 +1202,26 @@ public function cancel(Request $request)
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
  
-        // ----- catat mutasi pembatalan ke warehouse_movement -----
+        // ----- catat mutasi pembatalan ke warehouse_movement (skip jasa 'JS') -----
         $movements = DB::table('receiving_det')
             ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
             ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
             ->where('receiving_det.rec_number', $recNumber)
             ->where('receiving_hdr.status', '5')
             ->whereRaw("$qtyBaseSql <> 0")
+            ->where(function ($q) {
+                $q->whereNull('article.group_of_material')
+                  ->orWhere('article.group_of_material', '<>', 'JS');
+            })
             ->select(
                 'receiving_hdr.rec_date as movement_date',
                 'receiving_det.article_code',
                 'article.article_desc',
                 'article.article_type',
-                DB::raw("$qtyBaseSql as movement_min"),  // cancel: qty masuk jadi pengurangan
+                DB::raw("$qtyBaseSql as movement_min"),
                 DB::raw("0 as movement_plus"),
                 DB::raw("receiving_det.price as movement_price"),
                 'receiving_hdr.rec_number as movement_transnno',
-                DB::raw("'$moduleCode' as movement_type"),
                 'receiving_hdr.note as movement_desc',
                 DB::raw("$stockUomSql as movement_uom"),
                 'receiving_hdr.supplier_id as movement_from_code'
@@ -1577,6 +1621,7 @@ public function revision(Request $request)
     }
 }
  
+ 
 public function unPosting($recNumber)
 {
     $username   = Auth::user()->username;
@@ -1606,12 +1651,17 @@ public function unPosting($recNumber)
         return 'false';
     }
  
-    // ----- ambil detail receiving -----
+    // ----- ambil detail untuk stock (skip jasa 'JS') -----
+    // bisa kosong kalau semua item jasa; unposting tetap lanjut
     $data = DB::table('receiving_det')
         ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
         ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
         ->where('receiving_det.rec_number', $recNumber)
         ->whereRaw("$qtyBaseSql <> 0")
+        ->where(function ($q) {
+            $q->whereNull('article.group_of_material')
+              ->orWhere('article.group_of_material', '<>', 'JS');
+        })
         ->select(
             'receiving_det.*',
             'article.article_type',
@@ -1646,12 +1696,16 @@ public function unPosting($recNumber)
             ]);
     }
  
-    // ----- catat mutasi unposting ke warehouse_movement -----
+    // ----- catat mutasi unposting ke warehouse_movement (skip jasa 'JS') -----
     $movements = DB::table('receiving_det')
         ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
         ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
         ->where('receiving_det.rec_number', $recNumber)
         ->whereRaw("$qtyBaseSql <> 0")
+        ->where(function ($q) {
+            $q->whereNull('article.group_of_material')
+              ->orWhere('article.group_of_material', '<>', 'JS');
+        })
         ->select(
             'receiving_hdr.rec_date as movement_date',
             'receiving_det.article_code',
@@ -1661,7 +1715,6 @@ public function unPosting($recNumber)
             DB::raw("0 as movement_plus"),
             DB::raw("receiving_det.price as movement_price"),
             'receiving_hdr.rec_number as movement_transnno',
-            DB::raw("'$moduleCode' as movement_type"),
             'receiving_hdr.po_number as movement_desc',
             DB::raw("$stockUomSql as movement_uom"),
             'receiving_hdr.supplier_id as movement_from_code'
