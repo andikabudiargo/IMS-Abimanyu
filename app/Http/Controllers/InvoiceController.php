@@ -1407,6 +1407,156 @@ class InvoiceController extends Controller
     }
 
     public function list(Request $request)
+{
+    $searchInv      = strtolower($request->searchInv);
+    $searchSo       = strtolower($request->searchSo);
+    $searchCustomer = $request->searchCustomer;
+    $searchStatus   = $request->searchStatus;
+    $invDate        = $request->recDate;
+    $searchPeriod1  = $request->searchPeriod1;
+    $searchPeriod2  = $request->searchPeriod2;
+    $fromDate       = "";
+    $toDate         = "";
+
+    if ($invDate) {
+        $date = explode("to", $invDate);
+        if (count($date) > 1) {
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = implode("/", array_reverse(explode("-", trim($date[1]))));
+        } else {
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = $fromDate;
+        }
+    }
+
+    // ✅ Query builder, JANGAN ->get() — biarkan DataTables yang paginate
+    $query = DB::table('invoice_hdr')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'invoice_hdr.customer_id')
+        ->where(function ($q) use ($searchInv, $searchSo, $searchCustomer, $searchStatus, $invDate, $fromDate, $toDate, $searchPeriod1, $searchPeriod2) {
+            if ($searchInv)      $q->where('invoice_number', 'ilike', '%'.$searchInv.'%');
+            if ($searchSo)       $q->where('so_number', 'ilike', '%'.$searchSo.'%');
+            if ($searchCustomer) $q->where('customer_id', 'ilike', '%'.$searchCustomer.'%');
+            if ($searchStatus)   $q->where('invoice_hdr.status', '=', $searchStatus);
+            if ($invDate)        $q->whereBetween(DB::raw("to_date(invoice_date,'DD-MM-YYYY')"), [$fromDate, $toDate]);
+            if ($searchPeriod1)  $q->whereBetween(DB::raw("invoice_hdr.period::integer"), [$searchPeriod1, $searchPeriod2]);
+        })
+        ->select(
+            'invoice_hdr.*',
+            DB::raw("case when invoice_hdr.status <> '5' then dpp else 0 end as dpp"),
+            DB::raw("case when invoice_hdr.status <> '5' then total_ppn else 0 end as total_ppn"),
+            DB::raw("case when invoice_hdr.status <> '5' then total_pph else 0 end as total_pph"),
+            DB::raw("case when invoice_hdr.status <> '5' then grand_total else 0 end as grand_total"),
+            DB::raw("to_char(to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as invoice_date"),
+            DB::raw("to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY') as invoice_date_2"),
+            'third_party.nama as customer_name',
+            DB::raw("(select (select name from users where username = z.username) from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_by"),
+            DB::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_at"),
+            DB::raw("(select STRING_AGG(distinct (select po_number from sales_order_hdr where so_code = so_number),',') from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number"),
+            DB::raw("(select STRING_AGG(distinct a.dn_number, ', ' ORDER BY a.dn_number) from invoice_det a where invoice_number = invoice_hdr.invoice_number) as dn_number"),
+            DB::raw("case when invoice_hdr.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number)) else '' end as voucher_date"),
+            DB::raw("case when invoice_hdr.status = '6' then (select to_date(voucher_date, 'DD-MM-YYYY') from kas_hdr where voucher_number = (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number)) else null end as voucher_date_2"),
+            DB::raw("case when invoice_hdr.status = '6' then (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number) else '' end as voucher_number"),
+            DB::raw("case when invoice_hdr.status = '6' then (select credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number) else 0 end as voucher_amount"),
+            DB::raw("case when invoice_hdr.status <> '5' then grand_total - coalesce((select credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number and (select status from kas_hdr where voucher_number = kas_det.voucher_number) = '3'),0) else 0 end as balance"),
+            DB::raw("to_char(COALESCE(invoice_hdr.jatuh_tempo, to_date(invoice_hdr.sending_date, 'DD-MM-YYYY') + INTERVAL '1 day' * COALESCE((SELECT top_batas_1 FROM third_party WHERE kode = invoice_hdr.customer_id), 0)), 'DD/MM/YYYY') as jatuh_tempo"),
+           // ✅ Baru — fallback sama
+DB::raw("
+    COALESCE(
+        invoice_hdr.jatuh_tempo::date,
+        (to_date(invoice_hdr.sending_date, 'DD-MM-YYYY') 
+         + INTERVAL '1 day' * COALESCE((SELECT top_batas_1 FROM third_party WHERE kode = invoice_hdr.customer_id), 0))::date
+    ) as jatuh_tempo_2
+"),
+            DB::raw("to_date(sending_date, 'DD-MM-YYYY') as sending_date_2"),
+            DB::raw("(select STRING_AGG(distinct a.so_number, ', ' ORDER BY a.so_number) from invoice_det a where invoice_number = invoice_hdr.invoice_number) as so_number_2")
+        )
+        ->orderBy('invoice_hdr.id');
+
+    $lockDateToDate = date('Y-m-d', strtotime($this->lockDate));
+    $bisaEdit       = Auth::user()->can('receiving-edit');
+    $bisaDelete     = Auth::user()->can('ap-delete');
+
+    return Datatables::of($query)
+        ->addColumn('action', function ($data) use ($lockDateToDate, $bisaEdit, $bisaDelete) {
+            $invDate = $data->invoice_date_2 ? date('Y-m-d', strtotime($data->invoice_date_2)) : null;
+            $editable = $invDate && $invDate >= $lockDateToDate;
+
+            $buttons  = '<div class="d-inline-flex">
+                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                                <i data-feather="menu"></i>
+                            </a>';
+            $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
+
+            // Approve (status DRAFT/VALIDATE)
+            if (($data->status == '1' || $data->status == '2') && $bisaEdit) {
+                $buttons .= '<a href="'.route('invoice.edit', ['id'=>Crypt::encryptString($data->id)]).'" class="dropdown-item">
+                                <i data-feather="check"></i> Approve
+                            </a>';
+            }
+
+            // Edit (selama bukan CANCELED & belum lock date)
+            if ($data->status != '5' && $editable && $bisaEdit) {
+                $buttons .= '<a href="'.route('invoice.edit', ['id'=>Crypt::encryptString($data->id)]).'" class="dropdown-item">
+                                <i data-feather="file-text"></i> Edit
+                            </a>';
+            }
+
+            // Detail
+            $buttons .= '<a href="'.route('invoice.show', ['id'=>Crypt::encryptString($data->id)]).'" class="dropdown-item">
+                            <i data-feather="list"></i> Detail
+                        </a>';
+
+            // Print
+            $buttons .= '<a href="'.route('invoice.print', ['id'=>Crypt::encryptString($data->id)]).'" target="_blank" class="dropdown-item">
+                            <i data-feather="printer"></i> Print
+                        </a>';
+
+            // Delete (hanya DRAFT, belum lock)
+            if ($data->status == '1' && $editable && $bisaDelete) {
+                $buttons .= "<a href='javascript:;'
+                                id='deleteButton'
+                                class='dropdown-item'
+                                data-toggle='modal'
+                                data-target='#smallModal'
+                                data-href='".route('invoice.destroy', ['id'=>Crypt::encryptString($data->id)])."'>
+                                <i data-feather='trash-2' class='feather-14-red'></i> Delete
+                            </a>";
+            }
+
+            // Cancel (status VALIDATE/APPROVED, belum lock)
+            if (($data->status == '2' || $data->status == '3') && $editable) {
+                $buttons .= "<a href='javascript:void(0);'
+                                id='cancelReasonButton'
+                                class='dropdown-item'
+                                data-toggle='modal'
+                                data-target='#reasonModalCancel'
+                                data-href='".route('invoice.destroy', ['id'=>Crypt::encryptString($data->id)])."'>
+                                <i data-feather='x-square' class='feather-14-red'></i>
+                                <span>".__('Cancel')."</span>
+                            </a>";
+            }
+
+            $buttons .= '</div></div>';
+            return $buttons;
+        })
+        ->addColumn('invoice_number', function ($data) {
+            return '<a href="'.route('invoice.print', ['id'=>Crypt::encryptString($data->id)]).'" target="_blank" class="dropdown-item" style="padding:0px">'.$data->invoice_number.'</a>';
+        })
+        ->addColumn('status', function ($data) {
+            $badges    = ['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];
+            $statusInv = ['DRAFT','VALIDATE','APPROVED','POSTED','CANCELED','PAID'];
+
+            // ✅ Guard index supaya tidak undefined / negatif
+            $idx = (int) $data->status - 1;
+            if ($idx < 0 || $idx >= count($statusInv)) $idx = 0;
+
+            return "<div class='badge {$badges[$idx]}'>{$statusInv[$idx]}</div>";
+        })
+        ->rawColumns(['action', 'status', 'invoice_number'])
+        ->make(true);
+}
+
+    public function listOld(Request $request)
     {
        
         $searchInv = strtolower($request->searchInv);
