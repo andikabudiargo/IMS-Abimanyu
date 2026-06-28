@@ -1429,6 +1429,21 @@ public function cancel(Request $request)
         }
     }
 
+     
+public function revision(Request $request)
+{
+    /*
+
+            26/3/2025
+        Update/revisi program kalau pada saat revisi ternyata di PO nya article nya dihapus dan ada article baru
+        maka article yang tadinya tidak ada di PO akan di insert ke receiving tapi kalau tidak ada di PO akan di hapus di receiving
+    */
+ 
+    /*
+        14/5/2025
+        Pada saat revisi harga / price mengikuti harga terbaru dari PO nya
+    */
+
         $username  = Auth::user()->username;
     $id        = Crypt::decryptString($request->id);
     $receiving = DB::table('receiving_hdr')->where('id', $id)->first();
