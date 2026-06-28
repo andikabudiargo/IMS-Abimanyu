@@ -1638,6 +1638,57 @@ class PurchaseOrderController extends Controller
         
         $data= DB::table('purchase_request_det') 
             ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
+            ->leftJoin('warehouse_stock','warehouse_stock.article_code','=','purchase_request_det.article_code')
+            ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+            ->leftJoin('article_supplier','article_supplier.article_code','=','purchase_request_det.article_code')
+            ->leftJoin('uom','uom.code','=','purchase_request_det.uom')            
+            ->where('article_supplier.supplier_code',$suppCode)
+            // ->whereIn('article_supplier.supplier_code', function($query) use ($suppCode){
+            //     $query->select('kode')->from('third_pary')->where('third_party_type','supp')->where('kode',$suppCode);
+            // })
+            ->where('pr_number','=',$prNumber)
+            ->orderBy('article.article_desc')
+            ->distinct('article.article_desc')
+            ->select(DB::raw("concat(article.article_alternative_code,' - ',article.article_desc) as article_description")
+            ,'article.article_code as artikel_code'
+            ,'article.article_desc','article.costprice'
+            ,'warehouse_stock.article_qty as qty_stock'
+            ,'purchase_request_det.uom as uom1'
+            ,'group_materials.name as group'
+            ,'uom.uom_group'
+            // ,'purchase_request_det.qty'
+            ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = purchase_request_det.article_code and updated_at is not null and po_number not like '%-R%' order by updated_at desc limit 1) as last_price")
+            ,DB::raw("(select coalesce(sum(qty),0) from purchase_order_det 
+                where article_code = purchase_request_det.article_code 
+                and pr_number = purchase_request_det.pr_number
+                and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
+                ) as qty_po")
+            //qty yang dikeluarkan adalah qty sisa dari PR dikurangi qty yang sudah di order
+            ,DB::raw("purchase_request_det.qty - (select coalesce(sum(qty),0) from purchase_order_det 
+                where article_code = purchase_request_det.article_code 
+                and pr_number = purchase_request_det.pr_number
+                and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
+                ) as qty")
+            )
+            ->get();
+
+        return response()->json(array('data' => $data));
+
+    }
+
+    public function listArticleByPrOld(Request $request)
+    {
+        $prNumber = $request->prNumber;
+        $suppCode = $request->suppCode;
+        /* 
+            Permintaan dari bu ifah tidak usah di filter by supplier
+            11 04 2022 permintaan batal dari bu Yorin, jadi tetap di filter
+            ->where($field,$code)
+            ->where('po_number','=',null)
+        */
+        
+        $data= DB::table('purchase_request_det') 
+            ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
             ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det.article_code')
             ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
             ->leftJoin('article_supplier','article_supplier.article_code','=','purchase_request_det.article_code')
