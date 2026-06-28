@@ -94,7 +94,7 @@
                 
                 <div class="form-row">
                   <div class="col-12"> 
-                      <a href="{{ route('stockTake.export') }}" class="btn btn-info"><i class="fa fa-download"></i> Downlod  All Stock</a>
+                      <a href="#" class="btn btn-info"><i class="fa fa-download"></i> Downlod  All Stock</a>
                   </div>
               </div>
             </form>

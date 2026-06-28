@@ -283,7 +283,7 @@
             <li class="{{ \Request::is(['warehouse/articlev2']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('warehouse.articlev2') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Stock</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Stock v2</span>
               </a>
             </li> 
             @endcan
@@ -298,7 +298,6 @@
               </a>
             </li>
             @endcan
-             --}}
 
             @can('transferIn-index')
             <li class="{{ \Request::is(['transferIn','transferIn/create','transferIn/show','transferIn/edit']) ? 'active' : '' }}">
@@ -308,7 +307,7 @@
               </a>
             </li>
             @endcan
-           
+            --}}
 
             {{--
             @can('transferOut-index')
@@ -329,12 +328,8 @@
               </a>
             </li>
              @endcan
-              <li class="{{ \Request::is(['stockAdjustment','stockAdjustment/create','stockAdjustment/show','stockAdjustment/edit']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('stockAdjustment.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Stock Adjustment</span>
-              </a>
-            </li>
+           
+
              <li class="{{ \Request::is(['transferStock','transferStock/create','transferStock/show','transferStock/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('transferStock.index') }}">
                 <i data-feather="circle"></i>
@@ -371,15 +366,6 @@
               <a class="d-flex align-items-center" href="{{ route('delivery.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Delivery Note">Delivery Note</span>
-              </a>
-            </li>
-            @endcan
-
-             @can('delivery-index')
-            <li class="{{ \Request::segment(1) == 'delivery' ? 'active' : '' }} " >
-              <a class="d-flex align-items-center" href="{{ route('dnGeneral.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Delivery Note">DN General</span>
               </a>
             </li>
             @endcan
