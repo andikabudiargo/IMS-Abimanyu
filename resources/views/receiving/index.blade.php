@@ -16,19 +16,21 @@
       <div class="card-body">
         <form class="needs-validation" novalidate>
             <div class="form-row">
-              <div class="form-group col-md-3"> 
+              <div class="form-group col-md-4"> 
                 <label for="searchRec">Rec Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchRec" name="searchRec" placeholder=""  />
               </div>
-              <div class="form-group col-md-3"> 
+              <div class="form-group col-md-4"> 
                 <label for="searchPo">PO Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
               </div>
-              <div class="form-group col-md-3"> 
+              <div class="form-group col-md-4"> 
                 <label for="searchInv">Invoice Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchInv" name="searchInv" placeholder=""  />
               </div>
-              <div class="form-group col-md-3"> 
+            </div>
+             <div class="form-row">
+            <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchSupplier">Supplier</label>
                 <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
                     <option value="">All</option>
@@ -45,7 +47,7 @@
                 <label for="doDate">DO Date</label>
                 <input type="text" id="doDate" name="doDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-2"> 
+              <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchStatus">Rec Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
