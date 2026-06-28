@@ -327,7 +327,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receivings/delete',['as'=>'receiving.destroy','uses'=>'ReceivingController@destroy']);
 	Route::get('receivings/code/create',['as'=>'receiving.code.create','uses'=>'ReceivingController@articleCodeCreate']);
 	Route::get('receivings/print',['as'=>'receiving.print','uses'=>'ReceivingController@print']);
-	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting']);
+	Route::post('receivings/posting',['as'=>'receiving.posting','uses'=>'ReceivingController@posting2']);
 	Route::post('receiving/approve',['as'=>'receiving.approve','uses'=>'ReceivingController@approve']);
 	Route::post('receiving/cancel',['as'=>'receiving.cancel','uses'=>'ReceivingController@cancel']);
 	Route::post('receiving/revision',['as'=>'receiving.revision','uses'=>'ReceivingController@revision']);
@@ -362,6 +362,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('delivery/revision',['as'=>'delivery.revision','uses'=>'DeliveryController@revision']);
 	Route::get('delivery/notif/approve',['as'=>'delivery.notif.approve','uses'=>'DeliveryController@approve']);
 	Route::post('delivery/preStore',['as'=>'delivery.preStore','uses'=>'DeliveryController@preStore']);
+
+	Route::post('delivery/check-fg-stock', ['as'=>'delivery.checkFGStock','uses'=>'DeliveryController@checkFgStock']);
 
 	Route::get('delivery/postingAllData',['as'=>'delivery.postingAllData','uses'=>'DeliveryController@postingAllData']);	
 
@@ -732,11 +734,36 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('transferStock',['as'=>'transferStock.index','uses'=>'TransferStockController@index','middleware' => ['permission:transferOut-index']]);
 	Route::get('transferStock/create',['as'=>'transferStock.create','uses'=>'TransferStockController@create']);
+	Route::get('transferStock/show',['as'=>'transferStock.show','uses'=>'TransferStockController@show']);
 	Route::post('transferStock/store',['as'=>'transferStock.store','uses'=>'TransferStockController@store']);
+	Route::post('transferStock/approve',['as'=>'transferStock.approve','uses'=>'TransferStockController@approve']);
+	Route::put('transferStock/update',['as'=>'transferStock.update','uses'=>'TransferStockController@update']);
 	Route::get('transferStock/list',['as'=>'transferStock.list','uses'=>'TransferStockController@list']);
 	Route::get('transferStock/list/detail',['as'=>'transferStock.list.detail','uses'=>'TransferStockController@listDetail']);
+	Route::get('transferStock/edit',['as'=>'transferStock.edit','uses'=>'TransferStockController@edit','middleware' => ['permission:transferStock-edit']]);
 	Route::post('transferStock/posting',['as'=>'transferStock.posting','uses'=>'TransferStockController@posting']);
-	
+	Route::get('transferStock/print',['as'=>'transferStock.print','uses'=>'TransferStockController@print']);
+	Route::post('transferStock/delete',['as'=>'transferStock.destroy','uses'=>'TransferStockController@destroy']);
+	// ── FG Target ──────────────────────────────────────────────────────────────
+Route::get('transferStock/check-location-type',['as'=>'transferStock.checkLocationType','uses'=>'TransferStockController@checkLocationType']);
+Route::get('transferStock/fg-by-rm',['as'=>'transferStock.fgByRm','uses'=>'TransferStockController@fgByRm']);
+// ───────────────────────────────────────────────────────────────────────────
+
+
+Route::get('stockAdjustment',['as'=>'stockAdjustment.index','uses'=>'StockAdjustmentController@index','middleware' => ['permission:transferOut-index']]);
+Route::get('stockAdjustment/list',['as'=>'stockAdjustment.list','uses'=>'StockAdjustmentController@list']);
+Route::get('stockAdjustment/list/detail',['as'=>'stockAdjustment.list.detail','uses'=>'StockAdjustmentController@listDetail']);
+Route::get('stockAdjustment/create',['as'=>'stockAdjustment.create','uses'=>'StockAdjustmentController@create']);
+Route::post('stockAdjustment/store',['as'=>'stockAdjustment.store','uses'=>'StockAdjustmentController@store']);
+Route::get('stockAdjustment/export/excel',['as'=>'stockAdjustment.export.excel','uses'=>'StockAdjustmentController@export']);
+Route::get('stockAdjustment/stockBefore',['as'=>'stockAdjustment.stockBefore','uses'=>'StockAdjustmentController@stockBefore']);
+Route::post('stockAdjustment/update',['as'=>'stockAdjustment.update','uses'=>'StockAdjustmentController@update']);
+Route::post('stockAdjustment/import/excel',['as'=>'stockAdjustment.import.excel','uses'=>'StockAdjustmentController@import']);
+Route::get('stockAdjustment/edit',['as'=>'stockAdjustment.edit','uses'=>'StockAdjustmentController@edit','middleware' => ['permission:transferOut-edit']]);
+Route::get('stockAdjustment/show',['as'=>'stockAdjustment.show','uses'=>'StockAdjustmentController@show']);
+Route::post('stockAdjustment/delete',['as'=>'stockAdjustment.destroy','uses'=>'StockAdjustmentController@destroy']);
+Route::get('stockAdjustment/print',['as'=>'stockAdjustment.print','uses'=>'StockAdjustmentController@print']);
+Route::post('stockAdjustment/posting',['as'=>'stockAdjustment.posting','uses'=>'StockAdjustmentController@posting']);
 
 	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);
 	Route::get('wosMixing/create',['as'=>'wosMixing.create','uses'=>'WosMixingController@create','middleware' => ['permission:wosMixing-create']]);
@@ -877,6 +904,18 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('temporaryDn/update/so/update',['as'=>'suratJalanSementara.updateSo.update','uses'=>'TemporaryDnController@updateSoUpdate']);
 	Route::post('temporaryDn/createDn',['as'=>'suratJalanSementara.createDn','uses'=>'TemporaryDnController@createDn']);
 
+	Route::get('dnGeneral',['as'=>'dnGeneral.index','uses'=>'DnGeneralController@index']);
+	Route::get('dnGeneral/create',['as'=>'dnGeneral.create','uses'=>'DnGeneralController@create']);
+	Route::post('dnGeneral/store',['as'=>'dnGeneral.store','uses'=>'DnGeneralController@store']);
+	Route::get('dnGeneral/articles/by-type',['as'=>'dnGeneral.articlesByType','uses'=>'DnGeneralController@articlesByType']);
+	Route::get('dnGeneral/list',['as'=>'dnGeneral.list','uses'=>'DnGeneralController@list']);
+	Route::get('dnGeneral/list/detail',['as'=>'dnGeneral.list.detail','uses'=>'DnGeneralController@listDetail']);
+	Route::get('dnGeneral/show',['as'=>'dnGeneral.show','uses'=>'DnGeneralController@show']);
+	Route::get('dnGeneral/edit',['as'=>'dnGeneral.edit','uses'=>'DnGeneralController@edit']);
+	Route::post('dnGeneral/update',['as'=>'dnGeneral.update','uses'=>'DnGeneralController@update']);
+	Route::post('dnGeneral/delete',['as'=>'dnGeneral.destroy','uses'=>'DnGeneralController@destroy']);
+	Route::get('dnGeneral/print',['as'=>'dnGeneral.print','uses'=>'DnGeneralController@print']);
+
 	Route::get('dnReturn',['as'=>'dnReturn.index','uses'=>'DnReturnController@index']);
 	Route::get('dnReturn/create',['as'=>'dnReturn.create','uses'=>'DnReturnController@create']);
 	Route::post('dnReturn/store',['as'=>'dnReturn.store','uses'=>'DnReturnController@store']);
@@ -889,6 +928,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('dnReturn/close',['as'=>'dnReturn.close','uses'=>'DnReturnController@closed']);
 	Route::get('dnReturn/print',['as'=>'dnReturn.print','uses'=>'DnReturnController@print']);
 	Route::post('dnReturn/get/article',['as'=>'dnReturn.get.article','uses'=>'DnReturnController@getArticle']);
+	Route::get('dnReturn/list/so',       ['as'=>'dnReturn.list.so',      'uses'=>'DnReturnController@listSo']);
+Route::get('dnReturn/article/by-so', ['as'=>'dnReturn.article.bySo', 'uses'=>'DnReturnController@articleBySo']);
+Route::post('dnReturn/posting',      ['as'=>'dnReturn.posting',      'uses'=>'DnReturnController@posting']);
 
 	Route::get('dnReplace',['as'=>'dnReplace.index','uses'=>'DnReplaceController@index']);
 	Route::get('dnReplace/create',['as'=>'dnReplace.create','uses'=>'DnReplaceController@create']);
