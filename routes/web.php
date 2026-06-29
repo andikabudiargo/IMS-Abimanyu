@@ -764,6 +764,7 @@ Route::get('stockAdjustment/show',['as'=>'stockAdjustment.show','uses'=>'StockAd
 Route::post('stockAdjustment/delete',['as'=>'stockAdjustment.destroy','uses'=>'StockAdjustmentController@destroy']);
 Route::get('stockAdjustment/print',['as'=>'stockAdjustment.print','uses'=>'StockAdjustmentController@print']);
 Route::post('stockAdjustment/posting',['as'=>'stockAdjustment.posting','uses'=>'StockAdjustmentController@posting']);
+Route::post('stockAdjustment/cancel',['as'=>'stockAdjustment.cancel','uses'=>'StockAdjustmentController@cancel']);
 
 	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);
 	Route::get('wosMixing/create',['as'=>'wosMixing.create','uses'=>'WosMixingController@create','middleware' => ['permission:wosMixing-create']]);
