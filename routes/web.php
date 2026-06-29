@@ -318,7 +318,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('receivings/list/po',['as'=>'receiving.list.po','uses'=>'ReceivingController@listPo']);
 	Route::get('receivings/list/uom',['as'=>'receiving.list.uom','uses'=>'ReceivingController@listUom']);
 	Route::get('receivings/po/det',['as'=>'receiving.po.det','uses'=>'ReceivingController@poDetail']);
-	Route::post('receivings/store',['as'=>'receiving.store','uses'=>'ReceivingController@store']);
+	Route::post('receivings/store',['as'=>'receiving.store','uses'=>'ReceivingController@store2']);
 	Route::post('receivings/list',['as'=>'receiving.list','uses'=>'ReceivingController@list']);
 	Route::post('receivings/list/detail',['as'=>'receiving.list.detail','uses'=>'ReceivingController@listDetail']);
 	Route::get('receivings/show',['as'=>'receiving.show','uses'=>'ReceivingController@show']);
