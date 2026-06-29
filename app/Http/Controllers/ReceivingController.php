@@ -842,11 +842,11 @@ public function posting2(Request $request)
     // mapping article_type -> location
     $locationMap = function ($articleType) {
         if ($articleType === 'CM1') {
-            return '012'; // gudang CHEMICAL
+            return '005'; // gudang CHEMICAL
         } elseif (in_array($articleType, ['CM2', 'CM3'])) {
-            return '013'; // gudang CONSUMABLE
+            return '006'; // gudang CONSUMABLE
         } elseif (in_array($articleType, ['RMP', 'RMNP'])) {
-            return '014'; // gudang RAW MATERIAL
+            return '009'; // gudang RAW MATERIAL
         } else {
             return '011'; // gudang UMUM
         }
