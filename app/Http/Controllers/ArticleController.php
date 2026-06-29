@@ -1021,7 +1021,7 @@
                 case 'TRANSFER':
                 case 'SUPPLY':
                     $id = DB::table('transfer_stock_hdr')->where('tr_number', $ref)->value('id');
-                    if ($id) $url = route('stockTransfer.show', ['id' => Crypt::encryptString($id)]);
+                    if ($id) $url = route('transferStock.show', ['id' => Crypt::encryptString($id)]);
                     break;
 
                 case 'DELIVERY':
