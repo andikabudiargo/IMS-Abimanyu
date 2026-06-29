@@ -722,7 +722,7 @@
         let dariNew = 'true';     
         $.ajax({
             type: "post",
-            url: "{{ route('receiving.posting2') }}",
+            url: "{{ route('receiving.posting') }}",
             data: {
                 recNumber:recNumber,
                 id:idRec,
