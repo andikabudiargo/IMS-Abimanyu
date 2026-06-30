@@ -677,7 +677,7 @@
 
         }
 
-        ublic function list(Request $request)
+        public function list(Request $request)
 {
     $code = strtolower($request->code);
     $name = strtolower($request->name);
