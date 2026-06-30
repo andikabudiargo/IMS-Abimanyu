@@ -65,55 +65,70 @@
                                         </div>
 
                                         {{-- Raw Material (tepat di bawah Article FG, sama seperti create/edit) --}}
-                                        @php
-                                            $uomFgShow = strtoupper(trim($header2->uom ?? ''));
-                                            $rmForTab  = collect($rawMaterials)->where('bom_code', $header2->bom_code)->values();
-                                            $firstRm   = $rmForTab->first();
-                                        @endphp
+@php
+    $uomFgShow = strtoupper(trim($header2->uom ?? ''));
+    $rmForTab  = collect($rawMaterials)->where('bom_code', $header2->bom_code)->values();
+    $firstRm   = $rmForTab->first();
+@endphp
 
-                                        @if($uomFgShow === 'SET')
-                                            {{-- MODE MULTI (uom == SET): baris per RM + UOM, disabled --}}
-                                            @if($rmForTab->isEmpty())
-                                                <p class="text-muted mb-0">No raw material data</p>
-                                            @else
-                                                @foreach($rmForTab as $rmItem)
-                                                    <div class="form-row">
-                                                        <div class="form-group col-md-5">
-                                                            @if($loop->first)
-                                                                <label class="form-label">Article Raw Material</label>
-                                                            @endif
-                                                            <input type="text" class="form-control"
-                                                                   value="{{ $rmItem->article_alternative_code }} - {{ $rmItem->article_desc }}"
-                                                                   disabled />
-                                                        </div>
-                                                        <div class="form-group col-md-1">
-                                                            @if($loop->first)
-                                                                <label>UOM</label>
-                                                            @endif
-                                                            <input type="text" class="form-control"
-                                                                   value="{{ $rmItem->uom ?? '' }}"
-                                                                   disabled />
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            @endif
-                                        @else
-                                            {{-- MODE TUNGGAL: satu field + UOM di sebelahnya --}}
-                                            <div class="form-row">
-                                                <div class="form-group col-md-5">
-                                                    <label class="form-label">Article Raw Material</label>
-                                                    <input type="text" class="form-control"
-                                                           value="{{ $firstRm ? $firstRm->article_alternative_code . ' - ' . $firstRm->article_desc : '-' }}"
-                                                           disabled />
-                                                </div>
-                                                <div class="form-group col-md-1">
-                                                    <label>UOM</label>
-                                                    <input type="text" class="form-control"
-                                                           value="{{ $firstRm->uom ?? '' }}"
-                                                           disabled />
-                                                </div>
-                                            </div>
-                                        @endif
+@if($uomFgShow === 'SET')
+    {{-- MODE MULTI (uom == SET): baris per RM + UOM + QTY, disabled --}}
+    @if($rmForTab->isEmpty())
+        <p class="text-muted mb-0">No raw material data</p>
+    @else
+        @foreach($rmForTab as $rmItem)
+            <div class="form-row">
+                <div class="form-group col-md-4">
+                    @if($loop->first)
+                        <label class="form-label">Article Raw Material</label>
+                    @endif
+                    <input type="text" class="form-control"
+                           value="{{ $rmItem->article_alternative_code }} - {{ $rmItem->article_desc }}"
+                           disabled />
+                </div>
+                <div class="form-group col-md-1">
+                    @if($loop->first)
+                        <label>Qty</label>
+                    @endif
+                    <input type="text" class="form-control text-right"
+                           value="{{ number_format($rmItem->qty ?? 1, $decimalPlaces) }}"
+                           disabled />
+                </div>
+                <div class="form-group col-md-1">
+                    @if($loop->first)
+                        <label>UOM</label>
+                    @endif
+                    <input type="text" class="form-control"
+                           value="{{ $rmItem->uom ?? '' }}"
+                           disabled />
+                </div>
+                
+            </div>
+        @endforeach
+    @endif
+@else
+    {{-- MODE TUNGGAL: satu field + UOM + Qty di sebelahnya --}}
+    <div class="form-row">
+        <div class="form-group col-md-4">
+            <label class="form-label">Article Raw Material</label>
+            <input type="text" class="form-control"
+                   value="{{ $firstRm ? $firstRm->article_alternative_code . ' - ' . $firstRm->article_desc : '-' }}"
+                   disabled />
+        </div>
+         <div class="form-group col-md-1">
+            <label>Qty</label>
+            <input type="text" class="form-control text-right"
+                   value="{{ number_format($firstRm->qty ?? 1, $decimalPlaces) }}"
+                   disabled />
+        </div>
+        <div class="form-group col-md-1">
+            <label>UOM</label>
+            <input type="text" class="form-control"
+                   value="{{ $firstRm->uom ?? '' }}"
+                   disabled />
+        </div>
+    </div>
+@endif
 
                                         {{-- Customer --}}
                                         <div class="form-row">

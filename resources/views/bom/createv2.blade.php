@@ -48,7 +48,7 @@
 
 {{-- MODE TUNGGAL (uom != SET) --}}
 <div class="form-row" id="rmSingleWrapper">
-    <div class="form-group col-md-5">
+    <div class="form-group col-md-4">
         <label class="form-label" for="articleCodeRm">Article Raw Material*</label>
         <select class="select2 form-control" id="articleCodeRm" name="articleCodeRm" form="frmAdd" required>
             <option value=""></option>
@@ -62,6 +62,10 @@
         </select>
     </div>
     <div class="form-group col-md-1">
+        <label for="qtyRm">Qty</label>
+        <input type="number" id="qtyRm" name="qtyRm" class="form-control" value="1" min="1" step="any" disabled />
+    </div>
+     <div class="form-group col-md-1">
         <label for="uomRm">UOM</label>
         <input type="text" id="uomRm" name="uomRm" class="form-control disabled-el" disabled />
     </div>
@@ -85,7 +89,7 @@
 <div id="new_row_rm" class="d-none">
     <div id="baru_rm" class="tanda-baris-rm">
         <div class="form-row d-flex align-items-center mb-50">
-            <div class="col-md-5 col-5">
+            <div class="col-md-4 col-4">
                 <div class="form-group mb-0">
                     <select class="form-control" id="articleCodeRmMulti" name="articleCodeRmMulti[]">
                         <option value=""></option>
@@ -98,7 +102,13 @@
                     </select>
                 </div>
             </div>
-            <div class="col-md-1 col-1">
+           
+            <div class="col-md-2 col-2">
+                <div class="form-group mb-0">
+                    <input type="number" class="form-control qtyRmMulti" name="qtyRmMulti[]" placeholder="Qty" value="1" min="1" step="any" />
+                </div>
+            </div>
+             <div class="col-md-1 col-1">
                 <div class="form-group mb-0">
                     <input type="text" class="form-control disabled-el uomRmMulti" disabled placeholder="UOM" />
                 </div>
@@ -266,7 +276,7 @@ $('#articleCodeRm').on('change', function () {
     $('#uomRm').val(detail[3] || '');
 });
 
-add_new_row_rm = (article, uom) => {
+add_new_row_rm = (article, uom, qty) => {
     if (isAddingRmRow) return;
     isAddingRmRow = true;
 
@@ -280,6 +290,9 @@ add_new_row_rm = (article, uom) => {
 
     let $uomInput = $newRow.find('.uomRmMulti');
     $uomInput.attr('id', 'uomRmMulti' + cloneCountRm);
+
+    let $qtyInput = $newRow.find('.qtyRmMulti');
+    $qtyInput.attr('id', 'qtyRmMulti' + cloneCountRm);
 
     $("#rm_row").append($newRow);
 
@@ -298,6 +311,7 @@ add_new_row_rm = (article, uom) => {
     if (article) {
         $select.val(article).trigger('change');
         if (uom) $uomInput.val(uom);
+        if (qty) $qtyInput.val(qty);
     }
 
     setTimeout(() => { isAddingRmRow = false; }, 300);
@@ -361,15 +375,18 @@ function getArticleCodeRmList() {
     let list = [];
 
     if (isSetMode) {
-        $('#rm_row select[name="articleCodeRmMulti[]"]').each(function () {
-            let val = $(this).val();
+        $('#rm_row .tanda-baris-rm').each(function () {
+            let $select = $(this).find('select[name="articleCodeRmMulti[]"]');
+            let val = $select.val();
             if (val) {
-                let detailStr = $(this).find(":selected").data("detail");
+                let detailStr = $select.find(":selected").data("detail");
                 let detail = detailStr ? detailStr.split("|") : [];
+                let qty = $(this).find('.qtyRmMulti').val();
                 list.push({
                     article_code: val,
                     article_alternative_code: detail[1] || '',
-                    article_desc: detail[2] || ''
+                    article_desc: detail[2] || '',
+                    qty: qty ? parseFloat(qty) : 1
                 });
             }
         });
@@ -382,7 +399,8 @@ function getArticleCodeRmList() {
             list.push({
                 article_code: val,
                 article_alternative_code: detail[1] || '',
-                article_desc: detail[2] || ''
+                article_desc: detail[2] || '',
+                qty: 1
             });
         }
     }
