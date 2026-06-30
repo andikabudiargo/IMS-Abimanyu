@@ -32,10 +32,39 @@ class TransferOutController extends Controller
 {
     private $title;
     private $moduleCode;
+    private $lockDate;
+    private $lockDateIndex;
+   // public function __construct()
+    //{
+      //  $this->title = "Transfer Out";
+        //$this->moduleCode = "TROUT";
+    //}
+
     public function __construct()
     {
         $this->title = "Transfer Out";
-        $this->moduleCode = "TROUT";
+        $this->moduleCode = "TROUT"; // pastikan sama dengan code_key di application_lock & approval_master
+
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        $todayDate = date('d-m-Y');
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01';
+        $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
+
+        if ($todayDate < $lockDateAt){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months", strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        } else {
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
+        }
+
+        $this->lockDate = $lockDateAt;
+
+        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01';
+        $this->lockDateIndex = date('d-m-Y', strtotime($lockDateHereIndex));
     }
 
     public function getTableColoumn()
@@ -106,6 +135,7 @@ class TransferOutController extends Controller
 
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
+        $data['lockDate'] = $this->lockDateIndex;
 
         $data['locations'] = DB::table('goods_location_master')
         ->orderBy('location_name')
@@ -116,7 +146,50 @@ class TransferOutController extends Controller
         return view("transfer/transferOut.index",$data);
     }
 
-    public function create(Request $request)
+    public function indexOld(Request $request)
+    {
+        $data['title'] = "$this->title";
+        $data['subtitle'] = "$this->title";
+
+        $data['kolom'] = $this->getTableColoumn();
+        $data['kolomDetail'] = $this->getTableColoumnDetail();
+
+        $data['locations'] = DB::table('goods_location_master')
+        ->orderBy('location_name')
+        ->get();
+        
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+    
+        return view("transfer/transferOut.index",$data);
+    }
+
+      public function create(Request $request)
+    {
+        $data['title'] = "Create $this->title";
+        $data['subtitle'] = "Create $this->title";
+        $data['oEdit']=false;
+        $data['lockDate'] = $this->lockDate;
+
+        $data['locations'] = DB::table('goods_location_master')
+        ->orderBy('location_name')
+        ->get();
+
+        $locationTo = "<option value=''>None</option>";
+        foreach ($data['locations'] as $key => $val) {
+            $locationTo .= "<option value='$val->location_code'>$val->location_name</option>";
+        }
+
+        $data['locationTo'] = $locationTo;
+
+        $data['thirdParties'] = DB::table('third_party')
+        ->orderBy('nama')
+        ->get();
+
+        return view("transfer/transferOut.create",$data);
+
+    }
+
+    public function createOld(Request $request)
     {
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
@@ -898,6 +971,54 @@ class TransferOutController extends Controller
         $username =  Auth::user()->username;
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
+        $data['lockDate'] = $this->lockDate;
+
+        $data['header'] = DB::table('transfer_hdr')
+        ->where('id',$id)
+        ->where('tr_type',$this->moduleCode)
+        ->get()->first();
+        
+        $trNumber = $data['header']->tr_number;
+        
+        $data['details'] = DB::table('transfer_det')
+        ->where('tr_number',$trNumber)
+        ->select('transfer_det.*',DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = transfer_det.uom)"))
+        ->orderBy('id')
+        ->get();
+
+        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$trNumber,$username);
+        $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$trNumber,$username);
+        
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'','5'=>'CANCELED'];
+        $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
+        $data['statusTr'] = $statusTr[$data['header']->status-1];
+
+        $data['locations'] = DB::table('goods_location_master')
+        ->orderBy('location_name')
+        ->get();
+
+        $locationTo = "<option value=''>None</option>";
+        foreach ($data['locations'] as $key => $val) {
+            $locationTo .= "<option value='$val->location_code'>$val->location_name</option>";
+        }
+
+        $data['locationTo'] = $locationTo;
+
+        $data['thirdParties'] = DB::table('third_party')
+        ->orderBy('nama')
+        ->get();
+
+        $data['oEdit']=true;
+
+        return view("transfer/transferOut.edit",$data);
+    }
+
+    public function showEditOld($key)
+    {
+        $id=Crypt::decryptString($key);
+        $username =  Auth::user()->username;
+        $data['title'] = "Edit $this->title";
+        $data['subtitle'] = "Edit $this->title";
 
         $data['header'] = DB::table('transfer_hdr')
         ->where('id',$id)
@@ -1133,8 +1254,167 @@ class TransferOutController extends Controller
             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
     }
+   public function list(Request $request)
+{
+    $searchTr = strtolower($request->searchTr);
+    $searchType = $request->searchType;
+    $searchStatus = $request->searchStatus;
+    $trDate = $request->trDate;
+    $trType = $this->moduleCode;
+    $transferFrom = $request->transferFrom;
+    $transferTo = $request->transferTo;
+    $lockDateToDate = date('Y-m-d', strtotime($this->lockDate));
+
+    $fromDate ="";
+    $toDate = "";
+    if ($trDate){
+        $date = explode("to",$trDate);
+        if(count($date)>1){
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }else{
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = $fromDate; 
+        }
+    }
+
+    $data = DB::table('transfer_hdr')
+    ->leftJoin('goods_location_master','goods_location_master.location_code','=','transfer_hdr.location_code')
+    ->where(function ($query) use ($searchTr,$searchStatus,$trDate,$fromDate,$toDate,$searchType,$transferFrom,$transferTo) {
+        $searchType ? $query->where('tr_type',$searchType) : '';
+        $searchTr ? $query->where('tr_number','ilike','%'.$searchTr.'%') : '';
+        $searchStatus ? $query->where('status',$searchStatus) : '';
+        $trDate ? $query->whereBetween(DB::raw("to_date(tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+
+        if($transferTo){
+            $query->whereIn("tr_number", function($query1) use ($transferTo) {
+                $query1->select("tr_number")
+                ->from('transfer_det')
+                ->where('location_to',$transferTo);
+            });
+        }
+
+        $transferFrom ? $query->where('transfer_hdr.location_code',$transferFrom) : '';
+    })
+    ->select('transfer_hdr.*','goods_location_master.location_name'
+    ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = transfer_hdr.tr_number) as approval_by")
+    )
+    ->where('tr_type',$trType)
+    ->orderBy('transfer_hdr.id')
+    ->get(); 
    
-    public function list(Request $request)
+    return Datatables::of($data)
+    ->addColumn('action', function ($data) use($lockDateToDate) {
+        $buttons = '<div class="d-inline-flex">
+                        <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                            <i data-feather="menu"></i>
+                        </a>';
+        $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+
+        if ( $data->status == '1' or $data->status == '2') {
+    if (Auth::user()->can('transferIn-approve')) {
+        $trDateDataTables = date('Y-m-d', strtotime($data->tr_date));
+        if($trDateDataTables > $lockDateToDate){
+            $buttons .=         '<a href="'. route('transferOut.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                    <i data-feather="file-text"></i>
+                                    <span>'. __("Approve") .'</span>
+                                </a>';
+        }
+    }
+}
+
+if ( $data->status == '3' ) {                
+    if (Auth::user()->can('transferIn-posting')) {
+        $trDateDataTables = date('Y-m-d', strtotime($data->tr_date));
+        if($trDateDataTables > $lockDateToDate){
+            $buttons .="<a href='javascript:;'
+            class='dropdown-item' 
+            data-size='sm'
+            data-ajax-delete='true'
+            data-confirm='Are You Sure want to post This number?' 
+            data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+            data-modal-id='".$data->id."'
+            data-url='". route('transferOut.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
+            <i data-feather='check' class='feather-14-red'></i>
+            <span>". __('Posting') ."</span>
+            </a>";
+        }
+    }
+}
+        
+        if ( $data->status == '1' or $data->status == '2' ){
+            if (Auth::user()->can('transferIn-edit')) {
+                $trDateDataTables = date('Y-m-d', strtotime($data->tr_date));
+                if($trDateDataTables > $lockDateToDate){
+                    $buttons .=         '<a href="'. route('transferOut.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                            <i data-feather="file-text"></i>
+                                            <span>'. __("Edit") .'</span>
+                                        </a>';
+                }
+            }
+        }
+
+        if ( $data->status == '4' ){
+            if (Auth::user()->can('transferIn-delete')) {
+                $trDateDataTables = date('Y-m-d', strtotime($data->tr_date));
+                if($trDateDataTables > $lockDateToDate){
+                    $buttons .=         "<a href='javascript:;'
+                                            id='cancelReasonButton'
+                                            class='dropdown-item'
+                                            data-toggle='modal'
+                                            data-target='#reasonModalCancel'
+                                            data-href='". route("transferOut.cancel", ["id"=>Crypt::encryptString($data->id)]) ."'>
+                                            <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                            <span>". __('Cancel') ."</span>
+                                        </a>";
+                }
+            }
+        }
+
+        $buttons .= '<a href="'. route('transferOut.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                        <i data-feather="list"></i>
+                        <span>'. __("Detail") .'</span>
+                    </a>';
+
+        if ( $data->status != '4' and $data->status != '5' ){
+            if (Auth::user()->can('transferIn-delete')) {
+                $trDateDataTables = date('Y-m-d', strtotime($data->tr_date));
+                if($trDateDataTables > $lockDateToDate){
+                    $buttons .=         "<a href='javascript:;'
+                                        class='dropdown-item' 
+                                        data-size='sm'
+                                        data-ajax-delete='true'
+                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                                        data-modal-id='".$data->id."'
+                                        data-url='". route('transferOut.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
+                                        <span>". __('Delete') ."</span>
+                                    </a>";
+                }
+            }
+        }
+        
+        $buttons .=     '<a href="'. route('transferOut.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                            <i data-feather="printer"></i>
+                            <span>'. __("Print") .'</span>
+                        </a>';
+
+        $buttons .=     '</div>
+                    </div>';
+
+        return $buttons;
+    })
+    ->addColumn('status', function ($data) {
+        $badges=['badge-primary','badge-info','badge-warning','badge-success','badge-danger','badge-dark','badge-secondary','badge-danger'];            
+        $statusTr = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
+        return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTr[$data->status - 1]."</div>";
+    })
+    ->rawColumns(['action','status','tr_number'])
+    ->make(true);
+}
+
+    public function listOld(Request $request)
     {
         $searchTr = strtolower($request->searchTr);
         $searchType = $request->searchType;
@@ -1143,6 +1423,7 @@ class TransferOutController extends Controller
         $trType = $this->moduleCode;
         $transferFrom = $request->transferFrom;
         $transferTo = $request->transferTo;
+        $lockDateToDate = date('Y-m-d', strtotime($this->lockDate));
 
         $fromDate ="";
         $toDate = "";
@@ -1301,6 +1582,7 @@ class TransferOutController extends Controller
         ->rawColumns(['action','status','tr_number'])
         ->make(true);
     }
+
 
     public function listDetail(Request $request)
     {

@@ -150,6 +150,7 @@
     if (trDate.length) {
         trDate.flatpickr({
             dateFormat: "d-m-Y",
+            minDate: "{{ $lockDate ?? '' }}" //baru
         });
     }
   

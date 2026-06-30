@@ -16,16 +16,50 @@
     use App\Exports\SafetyStockExport;
 
     class ArticleController extends Controller
+{
+    private $title;
+    private $decimalPlaces;
+    private $moduleCode;
+    private $lockDate;
+    private $lockDateIndex;
+
+    public function __construct()
     {
-        private $title;
-        private $decimalPlaces;
-        private $moduleCode;
-        public function __construct()
-        {
-            $this->title = "Article";
-            $this->decimalPlaces = config('globalParam.decimal');
-            $this->moduleCode = "ART";
+        $this->title = "Article";
+        $this->decimalPlaces = config('globalParam.decimal');
+        $this->moduleCode = "ART"; // pastikan sama dengan code_key di application_lock & approval_master
+
+        $lockDate1 = DB::table('application_lock')
+        ->where('code_key',$this->moduleCode)
+        ->where('status','1')
+        ->value('lock_date');
+
+        $todayDate = date('d-m-Y');
+        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01';
+        $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
+
+        if ($todayDate < $lockDateAt){
+            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months", strtotime($lockDateHere)));
+            $lockDateAt = $firstDatePrevMonth;
+        } else {
+            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
         }
+
+        $this->lockDate = $lockDateAt;
+
+        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01';
+        $this->lockDateIndex = date('d-m-Y', strtotime($lockDateHereIndex));
+    }
+
+    private function isModuleLocked()
+{
+    $lockDate1 = DB::table('application_lock')
+    ->where('code_key',$this->moduleCode)
+    ->where('status','1')
+    ->value('lock_date');
+
+    return $lockDate1 ? true : false;
+}
 
         public function getTableColoumn(){
             $kolom=    
@@ -709,19 +743,19 @@
 ->when($statusFilter !== '' && $statusFilter !== null, function($query) use ($statusFilter) {
         $query->where('article.status', $statusFilter);
     });
-
     $bisaEdit = Auth::user()->can('article-edit');
     $bisaDelete = Auth::user()->can('article-delete');
-   
+    $isLocked = $this->isModuleLocked();
+
     return Datatables::of($data)
-    ->addColumn('action', function ($data) use ($bisaEdit,$bisaDelete) {
+    ->addColumn('action', function ($data) use ($bisaEdit,$bisaDelete,$isLocked) {
         $buttons = '<div class="d-inline-flex">
                         <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                             <i data-feather="menu"></i>
                         </a>';
         $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
-        if ($bisaEdit) {
+        if ($bisaEdit && !$isLocked) {
             $buttons .=         '<a href="'. route('article.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                 <i data-feather="file-text"></i>
                                 Edit
@@ -731,7 +765,7 @@
                                 <i data-feather="list"></i>
                                 Detail
                             </a>';
-        if ($bisaDelete) {
+        if ($bisaDelete && !$isLocked) {
             $buttons .=         '<a href="javascript:;"
                                 id="deleteButton"
                                 class="dropdown-item"
@@ -1771,6 +1805,14 @@
 
         public function requestSubmit(Request $request)
         {
+
+          if ($this->isModuleLocked()) {
+        $title = "Submit $this->title";
+        $alert = "warning";
+        $message = "$this->title module is currently locked. Submit is not allowed.";
+        \LogActivity::addToLog($title,"username: ".Auth::user()->username." Status $message");
+        return redirect()->back()->with(['status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert]);
+    }
             $username =  Auth::user()->username;
             $articleCodeRequest = $request->artCode;
             $type = $request->articleType;
