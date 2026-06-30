@@ -717,7 +717,7 @@
     ->when($statusFilter !== '' && $statusFilter !== null, function($query) use ($statusFilter) {
         $query->where('article.status', $statusFilter);
     })
-    ->orderBy('article.created_at', 'desc'); // <-- tambahan: terbaru diupdate di paling atas
+    ->orderBy('article.updated_at', 'desc'); // <-- tambahan: terbaru diupdate di paling atas
 
     $bisaEdit = Auth::user()->can('article-edit');
     $bisaDelete = Auth::user()->can('article-delete');
@@ -730,7 +730,7 @@
                         </a>';
         $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
-        if ($bisaEdit && !$isLocked) {
+        if ($bisaEdit) {
             $buttons .=         '<a href="'. route('article.edit',  ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                 <i data-feather="file-text"></i>
                                 Edit
@@ -740,7 +740,7 @@
                                 <i data-feather="list"></i>
                                 Detail
                             </a>';
-        if ($bisaDelete && !$isLocked) {
+        if ($bisaDelete) {
             $buttons .=         '<a href="javascript:;"
                                 id="deleteButton"
                                 class="dropdown-item"
@@ -1692,7 +1692,7 @@
                 $supp ? $query->where('third_party','ilike','%'.$supp.'%') :'';
                 $type ? $query->where('article_type','ilike',$type.'%') :'';      
                 $status ? $query->where('article_request.status_approve',$status) :''; 
-            })->orderBy('created_at')->get();
+            })->orderBy('article_request.created_at','desc');
         
             return Datatables::of($data)
             ->addColumn('action', function ($data) {
