@@ -24,49 +24,15 @@
     private $lockDateIndex;
 
     public function __construct()
-    {
-        $this->title = "Article";
-        $this->decimalPlaces = config('globalParam.decimal');
-        $this->moduleCode = "ART"; // pastikan sama dengan code_key di application_lock & approval_master
-
-        $lockDate1 = DB::table('application_lock')
-        ->where('code_key',$this->moduleCode)
-        ->where('status','1')
-        ->value('lock_date');
-
-        $todayDate = date('d-m-Y');
-        $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01';
-        $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
-
-        if ($todayDate < $lockDateAt){
-            $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months", strtotime($lockDateHere)));
-            $lockDateAt = $firstDatePrevMonth;
-        } else {
-            $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
-        }
-
-        $this->lockDate = $lockDateAt;
-
-        $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01';
-        $this->lockDateIndex = date('d-m-Y', strtotime($lockDateHereIndex));
-    }
+{
+    $this->title = "Article";
+    $this->decimalPlaces = config('globalParam.decimal');
+    $this->moduleCode = "ART";
+}
 
     private function isModuleLocked()
 {
-    $lockDate1 = DB::table('application_lock')
-        ->where('code_key', $this->moduleCode)
-        ->where('status', '1')
-        ->value('lock_date');
-
-    if (!$lockDate1) {
-        return false;
-    }
-
-    $todayDate = date('Y-m-d');
-    $lockDateAt = date('Y-m-d', strtotime("+1 day", strtotime($lockDate1)));
-
-    // Locked hanya jika hari ini masih berada DI DALAM periode lock
-    return $todayDate < $lockDateAt;
+    return false;
 }
 
         public function getTableColoumn(){
@@ -711,7 +677,7 @@
 
         }
 
-        public function list(Request $request)
+        ublic function list(Request $request)
 {
     $code = strtolower($request->code);
     $name = strtolower($request->name);
@@ -719,44 +685,45 @@
     $cust = strtolower($request->cust);
     $supp = strtolower($request->supp);
     $type = strtolower($request->type);
-    $statusFilter = $request->statusFilter; // '' | '0' | '1'
+    $statusFilter = $request->statusFilter;
 
-   $data = DB::table('article')
-->select(
-    'article.*',
-    'article.article_code as art_code',
-    'article_alternative_code as code',
-    'article_desc as desc',
-    'brand',
-    'article.uom',
-    'quality',
-    'note',
-    'article.id',
-    'group_materials.name as group',
-    'third_party.nama as cust',
-    'safety_stock',
-    'min_package',
-)
-->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
-->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
-->leftJoin('uom', 'uom.code', '=', 'article.uom')
-->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
-    $code  ? $query->where('article_alternative_code','ilike','%'.$code.'%') : '';
-    $name  ? $query->where('article_desc','ilike','%'.$name.'%') : '';
-    $group ? $query->where('group_of_material','ilike','%'.$group.'%') : '';
-    $cust  ? $query->where('third_party','ilike','%'.$cust.'%') : '';
-    $supp  ? $query->where('third_party','ilike','%'.$supp.'%') : '';
-    $type  ? $query->where('article_alternative_code','ilike',$type.'%') : '';
-})
-->when($statusFilter !== '' && $statusFilter !== null, function($query) use ($statusFilter) {
+    $data = DB::table('article')
+    ->select(
+        'article.*',
+        'article.article_code as art_code',
+        'article_alternative_code as code',
+        'article_desc as desc',
+        'brand',
+        'article.uom',
+        'quality',
+        'note',
+        'article.id',
+        'group_materials.name as group',
+        'third_party.nama as cust',
+        'safety_stock',
+        'min_package',
+    )
+    ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
+    ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
+    ->leftJoin('uom', 'uom.code', '=', 'article.uom')
+    ->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
+        $code  ? $query->where('article_alternative_code','ilike','%'.$code.'%') : '';
+        $name  ? $query->where('article_desc','ilike','%'.$name.'%') : '';
+        $group ? $query->where('group_of_material','ilike','%'.$group.'%') : '';
+        $cust  ? $query->where('third_party','ilike','%'.$cust.'%') : '';
+        $supp  ? $query->where('third_party','ilike','%'.$supp.'%') : '';
+        $type  ? $query->where('article_alternative_code','ilike',$type.'%') : '';
+    })
+    ->when($statusFilter !== '' && $statusFilter !== null, function($query) use ($statusFilter) {
         $query->where('article.status', $statusFilter);
-    });
+    })
+    ->orderBy('article.created_at', 'desc'); // <-- tambahan: terbaru diupdate di paling atas
+
     $bisaEdit = Auth::user()->can('article-edit');
     $bisaDelete = Auth::user()->can('article-delete');
-    $isLocked = $this->isModuleLocked();
 
     return Datatables::of($data)
-    ->addColumn('action', function ($data) use ($bisaEdit,$bisaDelete,$isLocked) {
+    ->addColumn('action', function ($data) use ($bisaEdit,$bisaDelete) {
         $buttons = '<div class="d-inline-flex">
                         <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                             <i data-feather="menu"></i>
@@ -1814,13 +1781,6 @@
         public function requestSubmit(Request $request)
         {
 
-          if ($this->isModuleLocked()) {
-        $title = "Submit $this->title";
-        $alert = "warning";
-        $message = "$this->title module is currently locked. Submit is not allowed.";
-        \LogActivity::addToLog($title,"username: ".Auth::user()->username." Status $message");
-        return redirect()->back()->with(['status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert]);
-    }
             $username =  Auth::user()->username;
             $articleCodeRequest = $request->artCode;
             $type = $request->articleType;
