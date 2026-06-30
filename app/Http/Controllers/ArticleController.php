@@ -54,11 +54,19 @@
     private function isModuleLocked()
 {
     $lockDate1 = DB::table('application_lock')
-    ->where('code_key',$this->moduleCode)
-    ->where('status','1')
-    ->value('lock_date');
+        ->where('code_key', $this->moduleCode)
+        ->where('status', '1')
+        ->value('lock_date');
 
-    return $lockDate1 ? true : false;
+    if (!$lockDate1) {
+        return false;
+    }
+
+    $todayDate = date('Y-m-d');
+    $lockDateAt = date('Y-m-d', strtotime("+1 day", strtotime($lockDate1)));
+
+    // Locked hanya jika hari ini masih berada DI DALAM periode lock
+    return $todayDate < $lockDateAt;
 }
 
         public function getTableColoumn(){
