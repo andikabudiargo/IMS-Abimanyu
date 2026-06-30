@@ -785,19 +785,19 @@ if (!empty($articleCodeRm)) {
         ->orderBy('urutan')
         ->get();
 
-    // ====================== RAW MATERIAL (MULTI) dari tabel bom_rm ======================
-    $data['headerRmList'] = DB::table('bom_rm')
-    ->leftJoin('article', 'article.article_code', '=', 'bom_rm.article_code')
-    ->select(
-        'bom_rm.article_code',
-        'bom_rm.urutan',
-        'article.article_alternative_code',
-        'article.article_desc',
-        'article.uom as uom_rm'
-    )
-    ->where('bom_rm.bom_code', $bomNumber)
-    ->orderBy('bom_rm.urutan')
-    ->get();
+   $data['headerRmList'] = DB::table('bom_rm')
+->leftJoin('article', 'article.article_code', '=', 'bom_rm.article_code')
+->select(
+    'bom_rm.article_code',
+    'bom_rm.qty',
+    'bom_rm.urutan',
+    'article.article_alternative_code',
+    'article.article_desc',
+    'article.uom as uom_rm'
+)
+->where('bom_rm.bom_code', $bomNumber)
+->orderBy('bom_rm.urutan')
+->get();
     // ====================== END RAW MATERIAL ======================
 
     $data['articles'] = DB::table('article')

@@ -50,30 +50,37 @@
 
                             {{-- ====================== RAW MATERIAL ====================== --}}
 
-                            {{-- MODE TUNGGAL (uom != SET) --}}
-                            <div class="form-row" id="rmSingleWrapper">
-                                <div class="form-group col-md-5">
-                                    <label class="form-label" for="articleCodeRm">Article Raw Material*</label>
-                                    <select class="select2 form-control" id="articleCodeRm" name="articleCodeRm"
-                                            form="frmAdd" required>
-                                        <option value=""></option>
-                                        {{-- Ambil RM pertama dari bom_rm (single mode) --}}
-                                        @php $defaultRm = $headerRmList->first()->article_code ?? null; @endphp
-                                        @foreach($articlesRm as $val)
-                                            <option value="{{ $val->article_code }}"
-                                                    data-detail="{{ $val->article_code }}|{{ $val->article_alternative_code }}|{{ $val->article_desc }}|{{ $val->uom }}"
-                                                    {{ $val->article_code == old('articleCodeRm', $defaultRm) ? 'selected' : '' }}>
-                                                {{ $val->article_alternative_code }} - {{ $val->article_desc }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-1">
-                                    <label for="uomRm">UOM</label>
-                                    <input type="text" id="uomRm" name="uomRm"
-                                           class="form-control disabled-el" disabled />
-                                </div>
-                            </div>
+                           {{-- MODE TUNGGAL (uom != SET) --}}
+<div class="form-row" id="rmSingleWrapper">
+    <div class="form-group col-md-4">
+        <label class="form-label" for="articleCodeRm">Article Raw Material*</label>
+        <select class="select2 form-control" id="articleCodeRm" name="articleCodeRm"
+                form="frmAdd" required>
+            <option value=""></option>
+            @php $defaultRm = $headerRmList->first()->article_code ?? null; @endphp
+            @foreach($articlesRm as $val)
+                <option value="{{ $val->article_code }}"
+                        data-detail="{{ $val->article_code }}|{{ $val->article_alternative_code }}|{{ $val->article_desc }}|{{ $val->uom }}"
+                        {{ $val->article_code == old('articleCodeRm', $defaultRm) ? 'selected' : '' }}>
+                    {{ $val->article_alternative_code }} - {{ $val->article_desc }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+     <div class="form-group col-md-1">
+        <label for="qtyRm">Qty</label>
+        @php $defaultQtyRm = $headerRmList->first()->qty ?? 1; @endphp
+        <input type="number" id="qtyRm" name="qtyRm"
+               class="form-control" value="{{ old('qtyRm', $defaultQtyRm) }}"
+               min="1" step="any" />
+    </div>
+    <div class="form-group col-md-1">
+        <label for="uomRm">UOM</label>
+        <input type="text" id="uomRm" name="uomRm"
+               class="form-control disabled-el" disabled />
+    </div>
+   
+</div>
 
                             {{-- MODE MULTI (uom == SET) --}}
                             <div class="form-row d-none mb-1" id="rmMultiWrapper">
@@ -90,39 +97,45 @@
                                 </div>
                             </div>
 
-                            {{-- Template baris RM multi mode --}}
-                            <div id="new_row_rm" class="d-none">
-                                <div id="baru_rm" class="tanda-baris-rm">
-                                    <div class="form-row d-flex align-items-center mb-50">
-                                        <div class="col-md-5 col-5">
-                                            <div class="form-group mb-0">
-                                                <select class="form-control" id="articleCodeRmMulti"
-                                                        name="articleCodeRmMulti[]">
-                                                    <option value=""></option>
-                                                    @foreach($articlesRm as $val)
-                                                        <option value="{{ $val->article_code }}"
-                                                                data-detail="{{ $val->article_code }}|{{ $val->article_alternative_code }}|{{ $val->article_desc }}|{{ $val->uom }}">
-                                                            {{ $val->article_alternative_code }} - {{ $val->article_desc }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-1 col-1">
-                                            <div class="form-group mb-0">
-                                                <input type="text" class="form-control disabled-el uomRmMulti"
-                                                       disabled placeholder="UOM" />
-                                            </div>
-                                        </div>
-                                        <div class="col-md-1 col-1 text-center">
-                                            <a onmouseover="this.style.cursor='pointer'"
-                                               onclick="removeRmRow(this);">
-                                                <i data-feather="trash-2" class="remove_button feather-24"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                          {{-- Template baris RM multi mode --}}
+<div id="new_row_rm" class="d-none">
+    <div id="baru_rm" class="tanda-baris-rm">
+        <div class="form-row d-flex align-items-center mb-50">
+            <div class="col-md-4 col-4">
+                <div class="form-group mb-0">
+                    <select class="form-control" id="articleCodeRmMulti"
+                            name="articleCodeRmMulti[]">
+                        <option value=""></option>
+                        @foreach($articlesRm as $val)
+                            <option value="{{ $val->article_code }}"
+                                    data-detail="{{ $val->article_code }}|{{ $val->article_alternative_code }}|{{ $val->article_desc }}|{{ $val->uom }}">
+                                {{ $val->article_alternative_code }} - {{ $val->article_desc }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-1 col-1">
+                <div class="form-group mb-0">
+                    <input type="number" class="form-control qtyRmMulti"
+                           name="qtyRmMulti[]" placeholder="Qty" value="1" min="1" step="any" />
+                </div>
+            </div>
+            <div class="col-md-1 col-1">
+                <div class="form-group mb-0">
+                    <input type="text" class="form-control disabled-el uomRmMulti"
+                           disabled placeholder="UOM" />
+                </div>
+            </div>
+            <div class="col-md-1 col-1 text-center">
+                <a onmouseover="this.style.cursor='pointer'"
+                   onclick="removeRmRow(this);">
+                    <i data-feather="trash-2" class="remove_button feather-24"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
                             {{-- Customer & Group --}}
                             <div class="form-row mt-1">
@@ -378,21 +391,20 @@
 if (uomFg === 'SET') {
     _switchToMultiMode();
 
-    @if(isset($headerRmList) && count($headerRmList) > 0)
-        let existingRmList = {!! json_encode($headerRmList) !!};
-        console.log('RM List loaded:', existingRmList);
+  @if(isset($headerRmList) && count($headerRmList) > 0)
+    let existingRmList = {!! json_encode($headerRmList) !!};
+    console.log('RM List loaded:', existingRmList);
 
-        // Chain: baris berikutnya HANYA dibuat setelah baris sebelumnya selesai
-        (function loadRmSequential(i) {
-            if (i >= existingRmList.length) return;
-            let rm = existingRmList[i];
-            add_new_row_rm(rm.article_code, rm.uom_rm ?? null, function () {
-                loadRmSequential(i + 1); // dipanggil oleh callback, bukan setTimeout
-            });
-        })(0);
-    @else
-        add_new_row_rm();
-    @endif
+    (function loadRmSequential(i) {
+        if (i >= existingRmList.length) return;
+        let rm = existingRmList[i];
+        add_new_row_rm(rm.article_code, rm.uom_rm ?? null, rm.qty ?? 1, function () {
+            loadRmSequential(i + 1);
+        });
+    })(0);
+@else
+    add_new_row_rm();
+@endif
 } else {
     _switchToSingleMode();
     setTimeout(() => $('#articleCodeRm').trigger('change'), 100);
@@ -406,9 +418,9 @@ if (uomFg === 'SET') {
 
     // ====================== RAW MATERIAL MULTI (SET) LOGIC ======================
 
-    add_new_row_rm = (article, uom, done) => {
+    add_new_row_rm = (article, uom, qty, done) => {
     cloneCountRm++;
-    let thisCount = cloneCountRm; // ← capture, hindari bug closure
+    let thisCount = cloneCountRm;
 
     let $newRow = $($("#new_row_rm").html());
     $newRow.attr('id', 'new_row_rm' + thisCount);
@@ -419,6 +431,9 @@ if (uomFg === 'SET') {
 
     let $uomInput = $newRow.find('.uomRmMulti');
     $uomInput.attr('id', 'uomRmMulti' + thisCount);
+
+    let $qtyInput = $newRow.find('.qtyRmMulti');
+    $qtyInput.attr('id', 'qtyRmMulti' + thisCount);
 
     $("#rm_row").append($newRow);
 
@@ -432,18 +447,16 @@ if (uomFg === 'SET') {
 
     if (article) {
         let $option = $select.find('option[value="' + article + '"]');
-        console.log('Cari RM:', article, '| option ketemu?', $option.length); // ← diagnostik
-
         if (!$option.length) {
-            // Option tidak ada di dropdown (kefilter article_type) → buat manual
             $select.append(new Option(article, article, true, true));
         }
         $select.val(article).trigger('change');
         if (uom) $uomInput.val(uom);
+        if (qty) $qtyInput.val(qty);
     }
 
     feather.replace();
-    if (typeof done === 'function') setTimeout(done, 50); // lanjut baris berikutnya
+    if (typeof done === 'function') setTimeout(done, 50);
 };
 
     removeRmRow = (el) => {
@@ -480,17 +493,18 @@ function getArticleCodeRmList() {
     let list = [];
 
     if (isSetMode) {
-        // Iterasi per baris, tidak bergantung pada name attribute
         $('#rm_row .tanda-baris-rm').each(function () {
             let $select = $(this).find('select');
             let val = $select.val();
             if (val) {
                 let detailStr = $select.find('option[value="' + val + '"]').data('detail');
                 let detail    = detailStr ? detailStr.split('|') : [];
+                let qty       = $(this).find('.qtyRmMulti').val();
                 list.push({
                     article_code:             val,
                     article_alternative_code: detail[1] || '',
-                    article_desc:             detail[2] || ''
+                    article_desc:             detail[2] || '',
+                    qty:                      qty ? parseFloat(qty) : 1
                 });
             }
         });
@@ -500,15 +514,17 @@ function getArticleCodeRmList() {
         if (val) {
             let detailStr = $this.find(':selected').data('detail');
             let detail    = detailStr ? detailStr.split('|') : [];
+            let qty       = $('#qtyRm').val();
             list.push({
                 article_code:             val,
                 article_alternative_code: detail[1] || '',
-                article_desc:             detail[2] || ''
+                article_desc:             detail[2] || '',
+                qty:                      qty ? parseFloat(qty) : 1
             });
         }
     }
 
-    console.log('getArticleCodeRmList result:', list); // debug, boleh dihapus setelah OK
+    console.log('getArticleCodeRmList result:', list);
     return list;
 }
 
