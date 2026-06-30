@@ -11,7 +11,7 @@
                         @csrf
                         <div class="form-row">
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="articleType">Article Type*</label>
+                                <label class="form-label" for="articleType" data-toggle="tooltip" data-placement="top" title="Pilih jenis/tipe artikel material">Article Type*</label>
                                 <select class="select2 form-control" id="articleType" name="articleType" autofocus required>
                                     <option value=""></option>
                                     @foreach($types as $val)
@@ -22,19 +22,19 @@
                             <div class="form-group col-md-3" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="orderableCheck" name="orderableCheck"  checked/>
-                                    <label class="custom-control-label" for="orderableCheck">Orderable</label>
+                                    <label class="custom-control-label" for="orderableCheck" data-toggle="tooltip" data-placement="top" title="Centang jika material ini bisa dipesan/diorder">Orderable</label>
                                 </div>
                             </div>
                             <div class="form-group col-md-3" style="padding-right: 0rem;display: flex;justify-content:flex-start;align-self:flex-end;align-items: center;">
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="marketingCheck" name="marketingCheck"/>
-                                    <label class="custom-control-label" for="marketingCheck">Marketing</label>
+                                    <label class="custom-control-label" for="marketingCheck" data-toggle="tooltip" data-placement="top" title="Centang jika material ini ingin dibuatkan Sales Order tanpa BoM">Marketing</label>
                                 </div>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-12">
-                                <label class="form-label" for="group">Group of Material</label>
+                                <label class="form-label" for="group" data-toggle="tooltip" data-placement="top" title="Kelompok/kategori material">Group of Material</label>
                                 <select class="select2 form-control" id="group" name="group">
                                     <option value=""></option>
                                     @foreach($groups as $val)
@@ -46,20 +46,20 @@
                         <div class="form-row">
                             <div class="col-6">
                                 <div class="form-group">
-                                    <label for="colorCode">Color Code</label>
+                                    <label for="colorCode" data-toggle="tooltip" data-placement="top" title="Kode warna material (maksimal 10 karakter)">Color Code</label>
                                     <input type="text" id="colorCode" name="colorCode" class="form-control text-uppercase" value="{{ old('colorCode') }}" maxlength="10"/>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="form-group">
-                                    <label for="variant">Variant</label>
+                                    <label for="variant" data-toggle="tooltip" data-placement="top" title="Varian dari material (maksimal 10 karakter)">Variant</label>
                                     <input type="text" id="variant" name="variant" class="form-control text-uppercase" value="{{ old('variant') }}" maxlength="10"/>
                                 </div>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-12">
-                                <label class="form-label" for="cust" id="custLable">Customer/Supplier*</label>
+                                <label class="form-label" for="cust" id="custLable" data-toggle="tooltip" data-placement="top" title="Pilih customer atau supplier yang terkait dengan artikel ini">Customer/Supplier*</label>
                                 <select class="select2 form-control select2-hidden-accessible" id="cust" name="cust[]" autofocus required>
                                 </select>
                             </div>
@@ -67,7 +67,7 @@
                         <div class="form-row">
                             <div class="col-md-12">
                                 <div class="form-group">
-                                    <label for="nama">Description*</label>
+                                    <label for="nama" data-toggle="tooltip" data-placement="top" title="Nama/deskripsi lengkap dari material (maksimal 200 karakter)">Description*</label>
                                     <input type="text" id="nama" name="nama" class="form-control text-uppercase" value="{{ old('nama') }}" maxlength="200" required/>
                                 </div>
                             </div>
@@ -75,18 +75,18 @@
                         <div class="form-row">
                             <div class="col-md-12">
                                 <div class="form-group">
-                                    <label for="brand">Brand</label>
+                                    <label for="brand" data-toggle="tooltip" data-placement="top" title="Merek/brand dari material (maksimal 100 karakter)">Brand</label>
                                     <input type="text" id="brand" name="brand" class="form-control text-uppercase" value="{{ old('brand') }}" maxlength="100"/>
                                 </div>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-6 d-none">
-                                <label for="price">Price</label>
+                                <label for="price" data-toggle="tooltip" data-placement="top" title="Harga material">Price</label>
                                 <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price') }}" maxlength="18"/>
                             </div>
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="uom">Smallest Unit*</label>
+                                <label class="form-label" for="uom" data-toggle="tooltip" data-placement="top" title="Satuan unit terkecil yang digunakan untuk material ini">Smallest Unit*</label>
                                 <select class="select2 form-control" id="uom" name="uom" required>
                                     <option value=""></option>
                                     @foreach($uoms as $val)
@@ -98,20 +98,20 @@
                         <div class="form-row">
                             <div class="col-6">
                                 <div class="form-group">
-                                    <label for="safetyStock">Safety Stock</label>
+                                    <label for="safetyStock" data-toggle="tooltip" data-placement="top" title="Jumlah minimum stok yang harus selalu tersedia di gudang">Safety Stock</label>
                                     <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask-digit" value="{{ old('safetyStock',0) }}" maxlength="10"/>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="form-group">
-                                    <label for="minimumPackage">Minimum package*</label>
+                                    <label for="minimumPackage" data-toggle="tooltip" data-placement="top" title="Jumlah minimum pembelian/pengemasan per transaksi">Minimum package*</label>
                                     <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask-digit" value="{{ old('minimumPackage',1) }}" maxlength="10" required/>
                                 </div>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-12">
-                                <label class="form-label" for="note">Notes</label>
+                                <label class="form-label" for="note" data-toggle="tooltip" data-placement="top" title="Catatan tambahan terkait material ini (maksimal 100 karakter)">Notes</label>
                                 <textarea type="text" id="note" name="note" class="form-control" rows="3" maxlength="100">{{ old('note') }}</textarea>
                             </div>
                         </div>
@@ -153,6 +153,10 @@
     textarea {
         resize: none;
     }
+    label[data-toggle="tooltip"] {
+        cursor: help;
+        border-bottom: 1px dashed #999;
+    }
 </style>
 @endsection
 @section('scripts')
@@ -165,6 +169,7 @@
         validateFormToast("frmAdd");
         mask_thousand();
         mask_thousand_digit(2);
+        $('[data-toggle="tooltip"]').tooltip();
     });
 
     // let availableTags ="{{-- $articles --}}";
