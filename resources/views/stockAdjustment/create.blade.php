@@ -242,58 +242,73 @@
                 contentType: false,
                 cache: false,
                 processData: false,
-                success: function (data) {
-                    if (data.status == 1 && data.dataDetail.length > 0) {
-                        let total = data.dataDetail.length;
-                        Swal.fire({
-                            title: "Importing...",
-                            html: `<b>0/${total}</b> Loaded`,
-                            icon: "info",
-                            showConfirmButton: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                                let timerId = setInterval(() => {
-                                    if (dataArticle.length > 0) {
-                                        clearInterval(timerId);
-                                        const rows = data.dataDetail.reverse();
-                                        for (let i = rows.length - 1; i >= 0; i--) {
-                                            setTimeout(() => {
-                                                if (Swal.isVisible()) {
-                                                    add_new_row_edit(
-                                                        rows[i].article_code,
-                                                        rows[i].qty_adjustment,
-                                                        rows[i].uom,
-                                                        rows[i].uom_member,
-                                                        rows[i].notes,
-                                                        rows[i].stock_before
-                                                    );
-                                                    Swal.getHtmlContainer().innerHTML =
-                                                        `<b>${rows.length - i}/${total}</b> Loaded`;
-                                                    if (i === 0) {
-                                                        $('#uploadExcel').removeAttr('disabled');
-                                                        show_msg(data.title, data.message, data.alert);
-                                                        $(".loading-spinner-container").removeClass("-show");
-                                                        Swal.close();
-                                                        clearFileInput('file');
-                                                    }
-                                                }
-                                            }, (rows.length - i) * 800);
-                                        }
-                                    }
-                                }, 500);
-                            }
-                        });
-                    } else if (data.status == 0) {
-                        data.message.forEach(m => show_msg(data.title, m, data.alert));
-                        Swal.fire('Warning', data.pesan, 'warning');
-                        $('#uploadExcel').removeAttr('disabled');
-                        $(".loading-spinner-container").removeClass("-show");
-                    } else {
-                        Swal.fire('Warning', 'Excel file is empty!', 'warning');
-                        $('#uploadExcel').removeAttr('disabled');
-                        $(".loading-spinner-container").removeClass("-show");
-                    }
-                },
+              success: function (data) {
+    if (data.status == 1 && data.dataDetail.length > 0) {
+        const rows  = data.dataDetail;
+        const total = rows.length;
+        const BATCH_SIZE = 20; // jumlah baris per "napas" — aman untuk browser
+        let idx = 0;
+
+        function startImport() {
+            if (dataArticle === null) {           // artikel belum selesai load
+                setTimeout(startImport, 300);
+                return;
+            }
+            Swal.fire({
+                title: "Importing...",
+                html: `<b>0/${total}</b> Loaded`,
+                icon: "info",
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    processBatch();
+                }
+            });
+        }
+
+        function processBatch() {
+            const end = Math.min(idx + BATCH_SIZE, total);
+            for (; idx < end; idx++) {
+                add_new_row_edit(
+                    rows[idx].article_code,
+                    rows[idx].qty_adjustment,
+                    rows[idx].uom,
+                    rows[idx].uom_member,
+                    rows[idx].notes,
+                    rows[idx].stock_before,
+                    null,
+                    { skipFetch: true, skipFeather: true }   // <-- kunci performa
+                );
+            }
+            if (Swal.isVisible()) {
+                Swal.getHtmlContainer().innerHTML = `<b>${idx}/${total}</b> Loaded`;
+            }
+            if (idx < total) {
+                setTimeout(processBatch, 0);   // beri jeda ke browser, tidak nge-block
+            } else {
+                feather.replace();             // sekali saja di akhir
+                $('#uploadExcel').removeAttr('disabled');
+                show_msg(data.title, data.message, data.alert);
+                $(".loading-spinner-container").removeClass("-show");
+                Swal.close();
+                clearFileInput('file');
+            }
+        }
+
+        startImport();
+
+    } else if (data.status == 0) {
+        data.message.forEach(m => show_msg(data.title, m, data.alert));
+        Swal.fire('Warning', data.pesan, 'warning');
+        $('#uploadExcel').removeAttr('disabled');
+        $(".loading-spinner-container").removeClass("-show");
+    } else {
+        Swal.fire('Warning', 'Excel file is empty!', 'warning');
+        $('#uploadExcel').removeAttr('disabled');
+        $(".loading-spinner-container").removeClass("-show");
+    }
+},
                 error: function (xhr) {
                     let err = JSON.parse(xhr.responseText);
                     Swal.fire('Error..', err.message, 'error');

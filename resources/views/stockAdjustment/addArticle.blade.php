@@ -243,26 +243,21 @@ function add_new_row() {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ADD ROW — programmatic (import / edit)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function add_new_row_edit(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeVal, direction) {
-    // Sinkronkan direction toggle ke arah dari data (hanya baris pertama)
+function add_new_row_edit(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeVal, direction, opts) {
     if (direction && cloneCount === 0) {
         let $radio = $('input[name="direction"][value="' + direction + '"]');
         $radio.prop('checked', true);
         $radio.closest('label').addClass('active').siblings('label').removeClass('active');
         applyDirectionClass();
     }
-    _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeVal);
+    _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeVal, opts);
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   CORE ADD ROW (private)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeVal) {
+function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeVal, opts) {
+    opts = opts || {};
     cloneCount++;
     let n = cloneCount;
 
-    // Clone inner HTML dari template, wrap dengan div sementara,
-    // ambil .tanda-baris dari dalamnya, lalu append ke article_row
     let $template = $($('#new_row').clone().html());
     let $row = $template.filter('.tanda-baris').length
                 ? $template.filter('.tanda-baris')
@@ -272,20 +267,16 @@ function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeV
     _wireIds($row, n);
     $('#article_row').append($row);
 
-    // ── Populate article select ──────────────────────────────────────
-    // Inject HTML options, init select2, lalu set value
     let $sel = $('#articleId' + n);
     $sel.html('<option value=""></option>' + dataArticle);
     $sel.select2({ width: '100%', placeholder: 'Pilih artikel...' });
 
     if (articleCode) {
         $sel.val(articleCode).trigger('change');
-        // UOM override dari parameter (import/edit)
         let uomOpts = _buildUomOptions(uomMember, uom);
         $('#uom' + n).html(uomOpts).val(uom).trigger('change');
     }
 
-    // ── Bind article change event ────────────────────────────────────
     $sel.on('change', function () {
         let artCode   = $(this).val();
         let locCode   = $('#location').val();
@@ -297,14 +288,13 @@ function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeV
         setTimeout(() => { $('#qtyAdj' + n).focus().select(); }, 10);
     });
 
-    // ── Stock before & qty ───────────────────────────────────────────
     let sbRaw = parseFloat(stockBeforeVal) || 0;
     $('#stockBefore' + n).val(humanizeNumber(sbRaw)).data('raw', sbRaw);
     if (qtyAdjValue) $('#qtyAdj' + n).val(Math.abs(parseFloat(qtyAdjValue) || 0));
     if (notes)       $('#notesRow' + n).val(notes);
 
-    // Fetch fresh stock jika sudah ada article & location
-    if (articleCode && $('#location').val()) {
+    // ── HANYA fetch ulang kalau stockBeforeVal TIDAK di-supply (mode manual) ──
+    if (articleCode && $('#location').val() && !opts.skipFetch) {
         fetchStockBefore(articleCode, $('#location').val(), n);
     } else {
         recomputeRow(n);
@@ -312,7 +302,9 @@ function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeV
 
     bindQtyEvents(n);
     hitungGrandTotal();
-    feather.replace();
+
+    // ── feather.replace() TIDAK dipanggil per baris saat import ──
+    if (!opts.skipFeather) feather.replace();
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
