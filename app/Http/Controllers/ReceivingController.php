@@ -1097,14 +1097,14 @@ public function cancel(Request $request)
     $reason     = "(Cancel by $username, Reason: $request->reason)";
     $todayDate  = date('Y-m-d');
  
-    // mapping article_type -> location
+     // mapping article_type -> location
     $locationMap = function ($articleType) {
         if ($articleType === 'CM1') {
-            return '012'; // gudang CHEMICAL
+            return '005'; // gudang CHEMICAL
         } elseif (in_array($articleType, ['CM2', 'CM3'])) {
-            return '013'; // gudang CONSUMABLE
+            return '006'; // gudang CONSUMABLE
         } elseif (in_array($articleType, ['RMP', 'RMNP'])) {
-            return '014'; // gudang RAW MATERIAL
+            return '009'; // gudang RAW MATERIAL
         } else {
             return '011'; // gudang UMUM
         }
@@ -1632,11 +1632,11 @@ public function unPosting($recNumber)
     // mapping article_type -> location
     $locationMap = function ($articleType) {
         if ($articleType === 'CM1') {
-            return '012'; // gudang CHEMICAL
+            return '005'; // gudang CHEMICAL
         } elseif (in_array($articleType, ['CM2', 'CM3'])) {
-            return '013'; // gudang CONSUMABLE
+            return '006'; // gudang CONSUMABLE
         } elseif (in_array($articleType, ['RMP', 'RMNP'])) {
-            return '014'; // gudang RAW MATERIAL
+            return '009'; // gudang RAW MATERIAL
         } else {
             return '011'; // gudang UMUM
         }
