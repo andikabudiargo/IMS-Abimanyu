@@ -2164,7 +2164,7 @@ private function punyaArAktif($dnNumber)
     }
 
 
-    ublic function listOld(Request $request)
+    public function listOld(Request $request)
     {
         $searchDn = strtolower($request->searchDn);
         $searchSo = strtolower($request->searchSo);
