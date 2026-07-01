@@ -30,7 +30,7 @@
                                         <option value="std">Standard</option>
                                         {{-- <option value="sub">Subcontracting</option> --}}
                                         <option value="tso">Target SO</option>
-                                        <option value="rm">Raw Material</option>
+                                        {{--<option value="rm">Raw Material</option> --}}
                                     </select>
                                 </div>
                                 

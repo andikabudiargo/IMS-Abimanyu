@@ -25,7 +25,7 @@
                                     <input type="text" id="returnNumber" name="returnNumber" class="form-control disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="returnDate">Delivery Date*</label>
+                                    <label for="returnDate">Return Date*</label>
                                     <input type="text" id="returnDate" name="returnDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
                             </div>
@@ -41,11 +41,17 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+    <div class="form-group col-md-2">
+        <label class="form-label" for="soNumber">SO Number*</label>
+        <select class="select2 form-control" id="soNumber" name="soNumber" required>
+            <option value=""></option>
+        </select>
+    </div>
+      <div class="form-group col-md-3">
                                     <label for="dnNumber">Customer DN Number</label>
                                     <input type="text" id="dnNumber" name="dnNumber" class="form-control disabled-el" />
                                 </div>
-                            </div>
+</div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="note">Notes</label>
@@ -113,36 +119,40 @@
             let flag=0; 
             let pesan="";
 
-            $("#article_row select[name='articleCode[]']").map(function(i) {  
-                let $this=$(this);
-                if ($this.val()){
-                    let articleCode=$this.val();
-                    let articleName=$this.select2('data')[0].text;
-                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                    let uom=objUom.eq(i).text();
+           $("#article_row select[name='articleCode[]']").map(function(i) {
+    let $this = $(this);
+    if ($this.val()){
+        let articleCode = $this.val();
+        let articleName = $this.find(':selected').text();          // ← ganti di sini
+        let qtyDelivered = parseFloat($this.find(':selected').data('qty-delivered')) || 0;
+        let qty = objQty.eq(i).val().replace(/,/gi, '') || 0;
+        let uom = objUom.eq(i).text();
 
-                    let obj = $.grep(articles, function(obj){
-                        return obj.article_code === articleCode;
-                    })[0];
-                    
-                    if(obj) {
-                        pesan +="Article "+articleName+" entered more than once !! <br>"; 
-                        flag=1;
-                    } else {
-                        if ((articleCode!=='') && (qty> 0)){
-                            articles.push({
-                                "article_code":articleCode,
-                                "qty":qty,
-                                "uom":uom
-                            });
-                        }
-                    } 
-                    if ( qty == 0 ){
-                        pesan +=`QTY of items ${articleName} cannot be 0 <br>`; 
-                        flag=1;
-                    }
-                }
-            });            
+        let obj = $.grep(articles, function(obj){
+            return obj.article_code === articleCode;
+        })[0];
+
+        if(obj) {
+            pesan += "Article "+articleName+" entered more than once !! <br>";
+            flag=1;
+        } else {
+            if ((articleCode!=='') && (qty> 0)){
+                articles.push({ "article_code":articleCode, "qty":qty, "uom":uom });
+            }
+        }
+
+        if ( qty == 0 ){
+            pesan += `QTY of items ${articleName} cannot be 0 <br>`;
+            flag=1;
+        }
+
+        // ── batas qty retur ≤ qty terkirim ──
+        if (parseFloat(qty) > qtyDelivered){
+            pesan += "Qty retur "+articleName+" ("+qty+") melebihi qty terkirim ("+qtyDelivered+") <br>";
+            flag=1;
+        }
+    }
+});       
 
             if (articles.length == 0){
                 pesan +="Articles must be filled in completely <br>"; 
@@ -154,6 +164,7 @@
                 let customerId = $('#cust').val();
                 let dnNumber = $('#dnNumber').val();
                 let note = $('#note').val();
+                let soNumber = $('#soNumber').val();
 
                 $.ajax({
                     type: "POST",
@@ -163,6 +174,7 @@
                         returnDate:returnDate,
                         customerId:customerId,
                         note:note,
+                        soNumber:soNumber,
                         dnNumber:dnNumber
                     },
                     dataType: "json",

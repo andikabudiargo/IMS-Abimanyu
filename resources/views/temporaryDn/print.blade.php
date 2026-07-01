@@ -202,9 +202,12 @@
 {{-- <body class="{{ (count($details)) < 5 ? "A4A5" : "A4" }}"> --}}
 <body class="{{ (count($details)) < 5 ? "letter2" : "letter" }}">    
 {{-- <body class="A4"> --}}
-    <div class="row hide-print" style="margin-left:20px;margin-top:20px">
+   <div class="row hide-print" style="margin-left:20px;margin-top:20px">
         <div class="col-md-12">
-            <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
+            <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint"
+                    data-tdn="{{ $tDnHdr->tdn_number }}"
+                    data-posting-url="{{ route('suratJalanSementara.posting') }}"
+                    data-token="{{ csrf_token() }}">Print</button>
         </div>
     </div>
     <div class="sheet padding-5mm">
@@ -365,18 +368,59 @@
             </tfoot>
         </table>
     </div>
-    <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
+   <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
     <script>
-        $("#cmdPrint").click(function(){ 
+        // Fungsi cetak dokumen (dipisah supaya bisa dipanggil setelah posting sukses)
+        function doPrint() {
             window.print();
             window.onafterprint = function () {
                 window.close();
-            }
-            window.onfocus = function () { 
-                setTimeout(function () { 
-                    window.close(); 
-                }, 200); 
-            }
+            };
+            window.onfocus = function () {
+                setTimeout(function () {
+                    window.close();
+                }, 200);
+            };
+        }
+
+        $("#cmdPrint").click(function () {
+            var $btn        = $(this);
+            var tDnNumber   = $btn.data('tdn');
+            var postingUrl  = $btn.data('posting-url');
+            var token       = $btn.data('token');
+
+            // Cegah double-click selama request berjalan
+            $btn.prop('disabled', true);
+
+            $.ajax({
+                type: "post",
+                url: postingUrl,
+                data: {
+                    _token: token,
+                    tDnNumber: tDnNumber
+                },
+                dataType: "json",
+                success: function (data) {
+                    if (data.status == 1) {
+                        // Posting sukses (atau sudah pernah diposting - cetak ulang).
+                        // Stok sudah dipotong sekali di server; guard mencegah dobel.
+                        doPrint();
+                    } else {
+                        // Posting gagal (mis. stok kurang). Jangan cetak, tampilkan pesan.
+                        var msg = data.message;
+                        if (Array.isArray(msg)) {
+                            msg = msg.join("\n");
+                        }
+                        alert(msg || "Posting gagal.");
+                        $btn.prop('disabled', false);
+                    }
+                },
+                error: function (error) {
+                    console.log(error);
+                    alert("Terjadi kesalahan saat posting. Silakan coba lagi.");
+                    $btn.prop('disabled', false);
+                }
+            });
         });
     </script>
 </body>

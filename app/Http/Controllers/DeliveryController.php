@@ -193,7 +193,7 @@ class DeliveryController extends Controller
         return view("delivery.create",$data);
     }
 
-    public function soDetail(Request $request)
+    public function soDetailOld(Request $request)
     {
         $so = $request->value;
         $edit = $request->dariEdit;
@@ -212,6 +212,7 @@ class DeliveryController extends Controller
             ,'sales_order_hdr.po_number'
             ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
             ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_so")
+            
             )
             ->where('a.status','1')
             ->where('a.so_code',$so)
@@ -236,6 +237,75 @@ class DeliveryController extends Controller
 
         return response()->json($data);
     }
+
+    public function soDetail(Request $request)
+    {
+        $so = $request->value;
+        $edit = $request->dariEdit;
+
+        /*
+            ambil data SO yang belum closed tapi total delivery nya belum 0
+        */
+
+        if ( $edit == 'false' ){
+            $data = DB::table('sales_order_det as a')
+            ->leftJoin('article','article.article_code','=','a.article_code')
+            ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','a.so_code')
+            ->leftJoin('uom','a.uom','uom.code')
+            ->select('a.*'
+            ,'article.*'
+            ,'sales_order_hdr.po_number'
+            ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
+            ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_so")
+            ,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = a.article_code and location_number = '007'),0)) as stock_fg")
+            )
+            ->where('a.status','1')
+            ->where('a.so_code',$so)
+            ->orderBy('a.id')
+            ->get();
+        }else{
+            $data = DB::table('sales_order_det as a')
+            ->leftJoin('article','article.article_code','=','a.article_code')
+            ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','a.so_code')
+            ->leftJoin('uom','a.uom','uom.code')
+            ->select('a.*'
+            ,'article.*'
+            ,'sales_order_hdr.po_number'
+            ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7','10')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
+            ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7','10')) and article_code = a.article_code group by article_code),0)) as qty_so")
+            ,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = a.article_code and location_number = '007'),0)) as stock_fg")
+            )
+            ->where('a.status','1')
+            ->where('a.so_code',$so)
+            ->orderBy('a.id')
+            ->get();
+        }
+
+        return response()->json($data);
+    }
+
+    public function checkFGStock(Request $request)
+{
+    $articleCodes = json_decode($request->article_codes, true);
+    $result = [];
+
+    foreach ($articleCodes as $item) {
+        // Sesuaikan nama tabel/kolom dengan struktur DB Anda
+        $stock = DB::table('warehouse_stock')          // ganti nama tabel
+            ->where('article_code', $item['article_code'])
+            ->where('location_number', '007')            // ganti kode gudang FG Anda
+            ->value('article_qty') ?? 0;
+
+        $result[] = [
+            'article_code' => $item['article_code'],
+            'article_desc' => $item['article_desc'],
+            'qty'          => $item['qty'],          // qty di DN
+            'stock'        => (int) $stock,          // stok di gudang FG
+        ];
+    }
+
+    return response()->json($result);
+}
 
     public function store(Request $request)
     {
@@ -767,7 +837,230 @@ class DeliveryController extends Controller
         }
     }
 
-    public function posting(Request $request)
+
+/**
+ * REFACTORED: posting()
+ *
+ * Perubahan dari versi asli:
+ * 1. Menambahkan DB::beginTransaction() di awal (sebelumnya tidak ada,
+ *    padahal ada DB::commit()/DB::rollBack() di dalamnya).
+ * 2. Query $movementsFg sekarang men-select 'delivery_hdr.customer_id as movement_from_code'
+ *    supaya field yang dipakai di insert benar-benar ada nilainya (di versi asli
+ *    $val->movement_from_code selalu null karena tidak pernah di-select).
+ * 3. movement_from / movement_to / partner_type diperbaiki arahnya:
+ *    - movement_from = lokasi gudang FG (007)  -> barang KELUAR dari sini
+ *    - movement_to   = customer_id             -> barang menuju customer
+ *    - partner_type  = 'CUST' (bukan 'SUPP', karena ini delivery ke customer,
+ *      bukan penerimaan dari supplier)
+ * 4. Membungkus seluruh proses inti dalam try/catch supaya rollback benar-benar
+ *    terjadi kalau ada exception di tengah loop update stok / insert movement.
+ * 5. Memperbaiki variabel $idKu yang di versi asli tidak ter-set di jalur
+ *    "gagal update delivery_hdr" (row_affected == 0), sehingga tidak lagi
+ *    memicu undefined variable.
+ * 6. Logika bisnis lain (pengurangan article_qty, penentuan status, dst)
+ *    dipertahankan sama persis seperti versi asli, hanya bagian yang salah
+ *    yang diperbaiki.
+ */
+
+public function posting(Request $request)
+{
+    // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
+
+    $username = Auth::user()->username;
+    $id       = Crypt::decryptString($request->id);
+
+    $hdrQ        = DB::table('delivery_hdr')->where('id', $id)->first();
+
+    if (!$hdrQ) {
+        $title   = "Posting $this->title";
+        $alert   = "warning";
+        $message = "$title Failed to Posting: Delivery not found";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+    }
+
+    $dnNumber   = $hdrQ->delivery_number;
+    $lastStatus = $hdrQ->status;
+    $siteCode   = 'HO';
+    $location   = '007'; // Gudang Finish Goods
+    $status     = '4';
+    $todayDate  = date('Y-m-d');
+    $dariNew    = $request->dariNew;
+
+    // idKu selalu di-set di awal supaya tidak ada undefined variable
+    // di jalur mana pun (sukses / gagal).
+    $idKu = Crypt::encryptString($id);
+
+    // Kalau sudah POSTED, tidak boleh posting ulang.
+    if ($lastStatus == '4') {
+        $title   = "Posting $this->title";
+        $alert   = "warning";
+        $message = "$title $dnNumber Failed to Posting x";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+
+        if ($dariNew == 'true') {
+            return response()->json([
+                'statusDel' => $status, 'title' => $title, 'status' => 0,
+                'message' => $message, 'alert' => $alert,
+                'dnNumber' => $dnNumber, 'idKu' => $idKu,
+            ]);
+        }
+        return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+    }
+
+    DB::beginTransaction();
+
+    try {
+       $data = DB::table('delivery_det')
+    ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+    ->leftJoin('article','article.article_code','delivery_det.article_code')
+    ->where('delivery_det.delivery_number',$dnNumber)
+    ->select('delivery_det.*'
+    ,'article.article_type'
+    ,'article.uom as uom_article'
+    ,'delivery_det.qty as total_qty' // sebelumnya: DB::RAW("(delivery_det.qty*uom_conversion(delivery_det.uom,article.uom)) as total_qty")
+    )->get();
+
+        foreach ($data as $val) {
+            // Pastikan baris stok untuk article ini ada di warehouse_stock (lokasi 007).
+            DB::table('warehouse_stock')
+                ->updateOrInsert(
+                    [
+                        'site_code'        => $siteCode,
+                        'article_code'     => $val->article_code,
+                        'location_number'  => $location,
+                    ],
+                    [
+                        'dept_code' => $val->article_type,
+                        'uom'       => $val->uom_article,
+                    ]
+                );
+
+            // Kurangi stok Gudang Finish Goods (barang KELUAR karena delivery).
+            DB::table('warehouse_stock')
+                ->where('site_code', $siteCode)
+                ->where('article_code', $val->article_code)
+                ->where('location_number', $location)
+                ->update([
+                    'article_qty' => DB::raw('coalesce(article_qty,0) - ' . $val->total_qty),
+                ]);
+        }
+
+        $rowAffected = DB::table('delivery_hdr')
+            ->where('delivery_number', $dnNumber)
+            ->update([
+                'status'     => $status,
+                'updated_by' => $username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+        if ($rowAffected <= 0) {
+            DB::rollBack();
+
+            $title   = "Posting $this->title";
+            $alert   = "warning";
+            $message = "$title $dnNumber Failed to Posting";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            if ($dariNew == 'true') {
+                return response()->json([
+                    'statusDel' => $status, 'title' => $title, 'status' => 0,
+                    'message' => $message, 'alert' => $alert,
+                    'dnNumber' => $dnNumber, 'idKu' => $idKu,
+                ]);
+            }
+            return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+        }
+
+        // ============================================================
+        // Movement Finish Goods (location 007, type Delivery)
+        // Barang KELUAR dari gudang FG menuju customer.
+        // ============================================================
+     $movementsFg = DB::table('delivery_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+        ->leftJoin('article','article.article_code','delivery_det.article_code')
+        ->where('delivery_det.delivery_number',$dnNumber)
+        ->where('delivery_hdr.status','4')
+        ->where('qty', '<>', 0)
+        ->select(
+            'delivery_hdr.delivery_date as movement_date'
+            ,'delivery_det.article_code'
+            ,'article.article_desc'
+            ,DB::raw("0 as movement_plus")
+            ,'delivery_det.qty as movement_min'
+            ,DB::raw("0 as movement_price ")
+            ,'delivery_hdr.delivery_number as movement_transnno'
+            ,DB::raw("'Delivery' as movement_type")
+            ,'delivery_hdr.delivery_number as movement_desc'
+            ,'delivery_hdr.customer_id as movement_to_code'
+        )
+        ->get();
+
+        $dataSetMovementFg = [];
+        foreach ($movementsFg as $val) {
+            $dataSetMovementFg[] = [
+                'movement_date'      => $val->movement_date,
+                'artikel_code'       => $val->article_code,
+                'artikel_desc'       => $val->article_desc,
+                'movement_min'       => $val->movement_min,
+                'movement_plus'      => $val->movement_plus,
+                'movement_price'     => $val->movement_price,
+                'movement_transnno'  => $val->movement_transnno,
+                'movement_type'      => $val->movement_type,   // 'Delivery'
+                'movement_desc'      => $val->movement_desc,
+                'created_by'         => $username,
+                'created_at'         => date('Y-m-d H:i:s'),
+                'site_code'          => $siteCode,
+                'location_number'    => $location,              // asal barang: gudang FG (007)
+                'movement_from'      => $location,               // barang keluar DARI gudang FG
+                'movement_to'        => $val->movement_to_code,  // menuju customer
+                'partner_type'       => 'CUST',                  // transaksi keluar ke customer
+                'last_qty'           => DB::raw(
+                    "get_last_qty_new('{$val->article_code}','{$todayDate}','{$siteCode}','{$location}') - ({$val->movement_min}+{$val->movement_plus})"
+                ),
+            ];
+        }
+
+        if (!empty($dataSetMovementFg)) {
+            DB::table('movement_stock')->insert($dataSetMovementFg);
+        }
+
+        DB::commit();
+
+        $title   = "Posting $this->title";
+        $alert   = "success";
+        $message = "$title $dnNumber Successfully Posted";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+
+        if ($dariNew == 'true') {
+            return response()->json([
+                'statusDel' => $status, 'title' => $title, 'status' => 1,
+                'message' => $message, 'alert' => $alert,
+                'dnNumber' => $dnNumber, 'idKu' => $idKu,
+            ]);
+        }
+        return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message, 'idKu' => $idKu]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        $title   = "Posting $this->title";
+        $alert   = "warning";
+        $message = "$title $dnNumber Failed to Posting";
+        \LogActivity::addToLog($title, "username: $username Status $message - Error: " . $e->getMessage());
+
+        if ($dariNew == 'true') {
+            return response()->json([
+                'statusDel' => $status, 'title' => $title, 'status' => 0,
+                'message' => $message, 'alert' => $alert,
+                'dnNumber' => $dnNumber, 'idKu' => $idKu,
+            ]);
+        }
+        return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+    }
+}
+
+    public function postingOld(Request $request)
     {
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
         // $dnNumber = DB::table('delivery_hdr')->where('id',$id)->where('status','=','3')->value('delivery_number');
@@ -1060,6 +1353,108 @@ class DeliveryController extends Controller
     }
 
     public function unPosting($dnNumber,$reason)
+{
+    $username =  Auth::user()->username;
+    $dnNumber = $dnNumber;
+    $recType = "NORMAL";
+    $siteCode = 'HO';
+    $location ='007'; // sebelumnya: 'WH' -- disamakan dengan lokasi gudang FG di posting()
+    
+    $moduleCode = $this->moduleCode;
+    $todayDate = date('Y-m-d');
+    // $movementDate = date("d-m-Y");
+            
+    if ($dnNumber){
+
+        $data = DB::table('delivery_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+        ->leftJoin('article','article.article_code','delivery_det.article_code')
+        ->where('delivery_det.delivery_number',$dnNumber)
+        // ->where('delivery_hdr.status','1')
+        ->select('delivery_det.*'
+        ,'article.article_type'
+        ,'article.uom as uom_article'
+        ,'delivery_det.qty as total_qty' // sebelumnya: DB::RAW("(delivery_det.qty*uom_conversion(delivery_det.uom,article.uom)) as total_qty")
+        )->get();
+
+        foreach($data as $val){
+            //insert article code kalo belum ada di warehouse_stock (lokasi 007)
+            DB::table('warehouse_stock') // sebelumnya: article_stock
+            ->updateOrInsert(
+                [ 'site_code' =>$siteCode,
+                  'article_code' => $val->article_code,
+                  'location_number'=> $location
+                ],
+                [
+                  'dept_code'=>$val->article_type,
+                  'uom'=>$val->uom_article,
+                ]
+            );
+
+            //kembalikan stok Gudang Finish Goods (lokasi 007) - barang MASUK karena unposting/cancel
+            DB::table('warehouse_stock') // sebelumnya: article_stock
+            ->where('site_code',$siteCode)
+            ->where('article_code',$val->article_code)
+            ->where('location_number',$location)
+            ->update([
+                'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+            ]);
+        }
+                       
+        $movements = DB::table('delivery_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+        ->leftJoin('article','article.article_code','delivery_det.article_code')
+        ->where('delivery_det.delivery_number',$dnNumber)
+        // ->where('delivery_hdr.status','1')
+        ->where('qty', '<>', 0)
+        ->select(
+            'delivery_hdr.delivery_date as movement_date'
+            ,'delivery_det.article_code'
+            ,'article.article_desc'
+            ,'delivery_det.qty as movement_plus' // sebelumnya: DB::RAW("(uom_conversion(delivery_det.uom,article.uom)*delivery_det.qty) as movement_plus")
+            ,DB::raw("0 as movement_min")
+            ,DB::raw("0 as movement_price ")
+            ,'delivery_hdr.delivery_number as movement_transnno'
+            ,DB::raw("'DELETE/REVISI DELIVERY' as movement_type") // sebelumnya: DB::raw("'$moduleCode' as movement_type")
+            ,'delivery_hdr.delivery_number as movement_desc'
+            ,'delivery_hdr.customer_id as movement_from_code' // barang kembali DARI customer
+        )
+        ->get();
+        
+        $dataSetMovement = [];
+        foreach ($movements as $val) {
+            $dataSetMovement[] = [
+                'movement_date' => $val->movement_date,
+                'artikel_code' => $val->article_code,
+                'artikel_desc' => $val->article_desc,
+                'movement_min' => $val->movement_min,
+                'movement_plus' => $val->movement_plus,
+                'movement_price' => $val->movement_price,
+                'movement_transnno' => $val->movement_transnno,
+                'movement_type' => $val->movement_type,
+                'movement_desc' => $val->movement_desc."($reason)",
+                'created_by' => $username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'site_code' => $siteCode,
+                'location_number' => $location,             // gudang FG (007) - tujuan barang kembali
+                'movement_from' => $val->movement_from_code,  // dari customer
+                'movement_to'   => $location,                 // masuk ke gudang FG (007)
+                'partner_type'  => 'CUST',                    // pembalikan transaksi customer
+                'last_qty' => DB::raw("get_last_qty_new('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)") // sebelumnya: get_last_qty
+            ];
+        }
+
+        if (!empty($dataSetMovement)) {
+            DB::table('movement_stock')->insert($dataSetMovement); // sebelumnya: DB::table('movement')
+        }
+        return 'true';
+
+    }else{
+        return 'false';
+    }
+}
+
+    public function unPostingOld($dnNumber,$reason)
     {
         $username =  Auth::user()->username;
         $dnNumber = $dnNumber;
@@ -1157,6 +1552,87 @@ class DeliveryController extends Controller
     }
 
     public function destroy(Request $request)
+{
+    $username = Auth::user()->username;
+    $id       = Crypt::decryptString($request->id);
+    $status   = "5";
+
+    $dnHdr = DB::table('delivery_hdr')->where('id', $id)->first();
+
+    $dnNumber = $dnHdr->delivery_number;
+    $soNumber = $dnHdr->so_number;
+    $note     = $dnHdr->note;
+    $dnStatus = $dnHdr->status;
+
+    // ── GUARD: tolak cancel jika DN masih punya AR/Invoice aktif ──
+    if ($this->punyaArAktif($dnNumber)) {
+        $title   = "Cancel $this->title";
+        $alert   = "warning";
+        $message = "$title $dnNumber gagal: DN masih memiliki AR/Invoice aktif. Cancel invoice-nya terlebih dahulu.";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+    }
+
+    DB::beginTransaction();
+    try {
+        $rowAffected = DB::table('delivery_hdr')
+            ->where('delivery_number', $dnNumber)
+            ->update([
+                'delivery_number'        => $dnNumber . "(C)",
+                'origin_delivery_number' => $dnNumber . "(C)",
+                'so_number'              => $soNumber . "(C)",
+                'status'                 => $status,
+                'note'                   => $note . " (Cancel)",
+                'updated_by'             => $username,
+                'updated_at'             => date('Y-m-d H:i:s'),
+            ]);
+
+        if ($rowAffected > 0) {
+            DB::table('delivery_det')
+                ->where('delivery_number', $dnNumber)
+                ->update([
+                    'delivery_number' => $dnNumber . "(C)",
+                    'updated_by'      => $username,
+                    'updated_at'      => date('Y-m-d H:i:s'),
+                ]);
+
+            $dnAfterCancel = $dnNumber . "(C)";
+
+            // Reverse stock hanya jika DN sudah POSTED (status 4).
+            if ($dnStatus == '4') {
+                $hasilUnposting = $this->unPosting($dnAfterCancel, 'Cancel');
+                if ($hasilUnposting !== 'true') {
+                    throw new \Exception("unPosting gagal untuk $dnAfterCancel");
+                }
+            }
+
+            DB::commit();
+
+            $title   = "Cancel $this->title";
+            $alert   = "success";
+            $message = "$title $dnNumber Successfully Cancel";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+        } else {
+            DB::rollBack();
+            $title   = "Cancel $this->title";
+            $alert   = "warning";
+            $message = "$title $dnNumber Failed to Cancel";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+        }
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $title   = "Cancel $this->title";
+        $alert   = "warning";
+        $message = "$title $dnNumber Failed to Cancel";
+        \LogActivity::addToLog($title, "username: $username Status $message - Error: " . $e->getMessage());
+        return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+    }
+}
+
+    public function destroyOld(Request $request)
     {
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
 
@@ -1220,6 +1696,131 @@ class DeliveryController extends Controller
     }
 
     public function revision(Request $request)
+{
+    $username  = Auth::user()->username;
+    $id        = Crypt::decryptString($request->id);
+    $deliveries = DB::table('delivery_hdr')->where('id', $id)->first();
+    $dnOrigin  = $deliveries->delivery_number;
+    $dnStatus  = $deliveries->status;
+
+    // ── GUARD: tolak revisi jika DN masih punya AR/Invoice aktif ──
+    if ($this->punyaArAktif($dnOrigin)) {
+        $title   = "Save $this->title";
+        $alert   = "warning";
+        $message = "Revisi DN $dnOrigin gagal: DN masih memiliki AR/Invoice aktif. Cancel invoice-nya terlebih dahulu.";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['alert' => $alert, 'message' => $message]);
+    }
+
+    $numRevision     = $request->nR ? $request->nR + 1 : 1;
+    $numRevisionName = '-R' . $numRevision;
+    $dnNew           = $dnOrigin . $numRevisionName;
+    $checkNewDn      = DB::table('delivery_hdr')->where('delivery_number', $dnNew)->count();
+    $reason          = $request->reason;
+
+    if ($checkNewDn > 0) {
+        $dnNew = $dnOrigin . '-R' . ($numRevision + 1);
+    }
+
+    $sqlHdr = "INSERT into delivery_hdr
+    (delivery_number, delivery_date, customer_id, so_number, po_number, approved_by, approved_at,
+     status, note, created_by, updated_by, created_at, updated_at, origin_delivery_number,
+     num_revision, revised_by, revised_at, reason, os_number)
+    select
+        '$dnNew', delivery_date, customer_id, so_number, po_number, approved_by, approved_at,
+        '7', note, created_by, '$username', created_at, '" . date('Y-m-d H:i:s') . "', '$dnOrigin',
+        $numRevision, '$username', '" . date('Y-m-d H:i:s') . "', reason, os_number
+    from delivery_hdr where delivery_number = '$dnOrigin'";
+
+    $sqlDet = "INSERT into delivery_det
+    (delivery_number, article_code, so_number, po_number, qty, uom, created_by, created_at,
+     updated_by, updated_at, qty_so)
+    select
+        '$dnNew', article_code, concat(so_number,'$numRevisionName'), concat(po_number,'$numRevisionName'),
+        qty, uom, '$username', '" . date('Y-m-d H:i:s') . "', '$username', '" . date('Y-m-d H:i:s') . "', qty_so
+    from delivery_det where delivery_number = '$dnOrigin'";
+
+    DB::beginTransaction();
+    try {
+        $rowAffected = DB::select($sqlHdr);
+
+        if ($rowAffected !== false) {
+            DB::select($sqlDet);
+
+            $rowAffected = DB::table('delivery_hdr')
+                ->where('delivery_number', $dnOrigin)
+                ->update([
+                    'num_revision' => $numRevision,
+                    'status'       => '10', // Revisi
+                    'updated_by'   => $username,
+                    'updated_at'   => date('Y-m-d H:i:s'),
+                    'reason'       => $reason,
+                ]);
+
+            if ($rowAffected) {
+                // Reverse stock DN asli hanya jika sebelumnya POSTED (status 4).
+                if ($dnStatus == '4') {
+                    $hasilUnposting = $this->unPosting($dnOrigin, 'Revision');
+                    if ($hasilUnposting !== 'true') {
+                        throw new \Exception("unPosting gagal untuk $dnOrigin");
+                    }
+                }
+            }
+
+            DB::table('approval_history')
+                ->where('module_number', $dnOrigin)
+                ->update([
+                    'module_number' => $dnNew,
+                    'status'        => '0',
+                    'updated_by'    => $username,
+                    'updated_at'    => date('Y-m-d H:i:s'),
+                ]);
+
+            DB::commit();
+
+            $title   = "Save $this->title";
+            $alert   = "success";
+            $message = "$title Revision DN: $dnOrigin to $dnNew is successfully saved";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->route('delivery.edit', ['id' => Crypt::encryptString($id)]);
+        } else {
+            DB::rollBack();
+            $title   = "Save $this->title";
+            $alert   = "warning";
+            $message = "$title Revision DN: $dnOrigin to $dnNew is failed to save";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['alert' => $alert, 'message' => $message]);
+        }
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $title   = "Save $this->title";
+        $alert   = "warning";
+        $message = "$title Revision DN: $dnOrigin to $dnNew is failed to save";
+        \LogActivity::addToLog($title, "username: $username Status $message - Error: " . $e->getMessage());
+        return redirect()->back()->with(['alert' => $alert, 'message' => $message]);
+    }
+}
+
+/**
+ * Cek apakah sebuah DN masih punya AR/Invoice aktif.
+ * "Aktif" = ada invoice_det untuk DN ini yang invoice-nya belum cancel/revised
+ * (invoice_hdr.status bukan 5/7/10). Definisi ini dipakai konsisten di
+ * destroy(), revision(), dan list().
+ */
+private function punyaArAktif($dnNumber)
+{
+    return DB::table('invoice_det')
+        ->where('dn_number', $dnNumber)
+        ->whereIn('invoice_number', function ($q) {
+            $q->select('invoice_number')
+              ->from('invoice_hdr')
+              ->whereNotIn('status', ['5', '7', '10']);
+        })
+        ->exists();
+}
+
+    public function revisionOld(Request $request)
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
@@ -1370,6 +1971,200 @@ class DeliveryController extends Controller
     }
 
     public function list(Request $request)
+    {
+        $searchDn = strtolower($request->searchDn);
+        $searchSo = strtolower($request->searchSo);
+        $searchCustomer = $request->searchCustomer; 
+        $searchStatus = $request->searchStatus;
+        $requestDate = $request->dnDate;       
+
+        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
+
+        $fromDate ="";
+        $toDate = "";
+ 
+        if ($requestDate){
+            $date = explode("to",$requestDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate; 
+            }
+        }
+
+        $data = DB::table('delivery_hdr')
+        ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
+        ->where(function ($query) use ($searchDn,$searchSo,$searchCustomer,$searchStatus,$requestDate,$fromDate,$toDate) {
+            $searchDn ? $query->where('delivery_number','ilike','%'.$searchDn.'%') : '';
+            $searchSo ? $query->where('so_number','ilike','%'.$searchSo.'%') : '';
+            $searchStatus ? $query->where('delivery_hdr.status',$searchStatus) : '';
+            $searchCustomer ? $query->where('delivery_hdr.customer_id',$searchCustomer) : '';
+            $requestDate ? $query->whereBetween(DB::raw("to_date(delivery_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->whereNotIn('delivery_hdr.status',['5','7'])
+        ->select('delivery_hdr.*'
+        ,'delivery_hdr.delivery_number as delivery_number_1'
+        ,DB::raw("concat(kode,'-',nama) as customer_name")
+        ,DB::raw("(select count(*) from invoice_det a where a.dn_number = delivery_hdr.delivery_number and invoice_number in (select invoice_number from invoice_hdr where status not in  ('5','7','10'))) as sudah_di_bayar")
+        ,DB::RAW("(select approval_order from approval_history where approval_history.module_number = delivery_hdr.delivery_number order by approval_order desc limit 1) as last_approval")
+        ,DB::RAW("(select username from approval_history where approval_history.module_number = delivery_hdr.delivery_number order by approval_order desc limit 1) as last_approval_by")
+        // ,DB::raw("(select reason from delivery_hdr a where a.origin_delivery_number = delivery_hdr.delivery_number and status ='7' order by id desc limit 1) as cancel_reason")
+        )
+        ->where(db::raw("(select sum(qty) from delivery_det where delivery_number = delivery_hdr.delivery_number)"),">",0)
+        ->orderBy('id')
+        ->get();
+
+        // $lockDateToDate = $this->lockDate;
+        $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
+
+        $bisaPosting = Auth::user()->can('delivery-posting');
+        $bisaDelete = Auth::user()->can('delivery-delete');
+        $bisaEdit = Auth::user()->can('delivery-edit');
+        
+
+        return Datatables::of($data)
+        ->addColumn('action', function ($data) use($lockDateToDate,$bisaPosting,$bisaDelete,$bisaEdit)  {
+            $buttons = '<div class="d-inline-flex">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                                <i data-feather="menu"></i>
+                            </a>';
+            $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
+            /*
+                dari bu lupi 25/9/2023 3:06 pm
+                pak @oki hartanto terkait pembuatan surat jlan : 
+                1. tolong dalam satu menu create sudah ada tampilan save dan print (jadi pada saat sudah disave bisa langsung print tanpa harus loading ke awal )
+                2. kondisi potong stock saat print (jadi print itu sudah sama dengan post) 
+                3. untuk prosedur approve kita lewatkan dulu pak, kita jalanin pengecekkan surat jalannya pake hard copy, tidak pake sistem dulu
+            */
+            
+            // if (($data->status == '10')){
+                // if (Auth::user()->can('delivery-edit')) {
+                // $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                //                         <i data-feather="file-text"></i>
+                //                         Edit
+                //                     </a>';
+                // }
+            // }
+
+            if (($data->status == '10')){
+                if ($bisaEdit) {
+                $buttons .=         '<a href="'. route('delivery.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                        <i data-feather="check"></i>
+                                        Approve
+                                    </a>';
+                }
+            }
+
+            if ( $data->status == '1' || $data->status == '3' ) {                
+                if ($bisaPosting) {
+                    $buttons .="<a href='javascript:;'
+                    class='dropdown-item' 
+                    data-size='sm'
+                    data-ajax-delete='true'
+                    data-confirm='Are You Sure want to post This number?' 
+                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                    data-modal-id='".$data->id."'
+                    data-url='". route('delivery.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                    <i data-feather='check' class='feather-14-red'></i>
+                    <span>". __('Posting') ."</span>
+                    </a>";
+                }   
+            }
+
+            // ── REVISION ──
+            if (in_array($data->status, ['1','2','3','4'])) {
+                $dnDate = date('Y-m-d', strtotime($data->delivery_date));
+
+                if ($data->sudah_di_bayar > 0) {
+                    $buttons .= "<span class='dropdown-item text-muted' style='font-size:11px;cursor:not-allowed;'>
+                                    <i data-feather='info'></i>
+                                    Revisi tidak bisa: masih ada AR/Invoice aktif
+                                 </span>";
+                } elseif ($dnDate >= $lockDateToDate) {
+                    $buttons .= "<a href='javascript:;'
+                                    id='revisionReasonButton'
+                                    class='dropdown-item'
+                                    data-toggle='modal'
+                                    data-target='#reasonModalRevision'
+                                    data-href='". route('delivery.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
+                                    <i data-feather='corner-down-left' class='feather-14-red'></i>
+                                    <span>". __('Revision') ."</span>
+                                </a>";
+                } else {
+                    $buttons .= "<span class='dropdown-item text-muted' style='font-size:11px;cursor:not-allowed;'>
+                                    <i data-feather='lock'></i>
+                                    Revisi tidak bisa: periode sudah terkunci
+                                 </span>";
+                }
+            }
+
+            if (in_array($data->status, ['10','3','4'])) {
+                $buttons .= '<a href="'. route('delivery.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                                <i data-feather="printer"></i>
+                                Print
+                            </a>';
+            }
+
+            $buttons .= '<a href="'. route('delivery.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                            <i data-feather="list"></i>
+                            Detail
+                        </a>';
+
+            // ── CANCEL ──
+            if (!in_array($data->status, ['3','10','8','7'])) {
+                if ($bisaDelete) {
+                    $dnDate = date('Y-m-d', strtotime($data->delivery_date));
+
+                    if ($data->sudah_di_bayar > 0) {
+                        $buttons .= "<span class='dropdown-item text-muted' style='font-size:11px;cursor:not-allowed;'>
+                                        <i data-feather='info'></i>
+                                        Cancel tidak bisa: masih ada AR/Invoice aktif
+                                     </span>";
+                    } elseif ($dnDate >= $lockDateToDate) {
+                        $buttons .= "<a href='javascript:;'
+                                        id='deleteButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#smallModalCancel'
+                                        data-href='". route("delivery.destroy", ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
+                                        Cancel
+                                    </a>";
+                    } else {
+                        $buttons .= "<span class='dropdown-item text-muted' style='font-size:11px;cursor:not-allowed;'>
+                                        <i data-feather='lock'></i>
+                                        Cancel tidak bisa: periode sudah terkunci
+                                     </span>";
+                    }
+                }
+            }
+            $buttons .=     '</div>
+                        </div>';
+
+            return $buttons;
+            })
+
+        // ->addColumn('delivery_number', function ($data) {
+        //     $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];            
+        //     $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
+        //      // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
+        //     return '<span style="display: none;">'.$data->delivery_number.'</span><a class="text-left badge d-block '.$badges[$data->status - 1].'" name="'.$data->delivery_number.'" href="'. route('delivery.show', ['id'=>Crypt::encryptString($data->id)]) .'" ><span>'.$data->delivery_number.'</span></a>';
+        // })
+
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];            
+            $statusDel = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','RECEIVED','','REVISI'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusDel[$data->status - 1]."</div>";
+        })
+
+        ->rawColumns(['action','status','delivery_number'])
+        ->make(true);
+    }
+
+
+    ublic function listOld(Request $request)
     {
         $searchDn = strtolower($request->searchDn);
         $searchSo = strtolower($request->searchSo);

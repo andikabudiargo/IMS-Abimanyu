@@ -2,19 +2,12 @@
     #article_row .form-group {
         margin-bottom: 0.5rem;
     }
-    .stock-cell {
-        background-color: #f8f8f8;
-    }
-    .stock-warning {
-        border-color: #ea5455 !important;
-        color: #ea5455 !important;
-    }
 </style>
-{{-- table row untuk di clone--}}
+{{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
-            <div class="col-md-6 col-12">
+            <div class="col-md-8 col-12">
                 <div class="form-group">
                     <label for="articleCode" class="d-block d-md-none">Article Code</label>
                     <select class="form-control article-count" id="articleCode" name="articleCode[]">
@@ -22,21 +15,15 @@
                 </div>
             </div>
             <div class="col-md-2 col-12">
-                <div class="form-group div-span-ku">
-                    <label for="stockFg" class="d-block d-md-none">Stock FG</label>
-                    <span class="form-control text-right stock-cell" id="stockFg" name="stockFg[]">0</span>
-                </div>
-            </div>
-            <div class="col-md-2 col-12">
                 <div class="form-group">
                     <label for="qtyOrder" class="d-block d-md-none">QTY</label>
-                    <input type="text" class="form-control numeral-mask text-right qty-count" id="qtyOrder" name="qtyOrder[]" maxlength="9"/>
+                    <input type="text" class="form-control numeral-mask text-right" id = "qtyOrder" name="qtyOrder[]" maxlength="9"/>
                 </div>
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group div-span-ku">
                     <label for="uom" class="d-block d-md-none">Uom</label>
-                    <span class="form-control" id="uom" name="uom[]"></span>
+                    <span class="form-control" id ="uom" name="uom[]"></span>
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -51,79 +38,45 @@
         <hr class="d-block d-md-none" />
     </div>
 </div>
-{{-- \.table row --}}
+
+<style>
+    /* .div-span-ku{
+        display: inline-block;
+        overflow: hidden;
+        white-space: nowrap;
+    } */
+</style>
+{{-- \.table row --}} 
 
 <script type="text/javascript">
-    let deliveryDate = $('#deliveryDate');
+    let returnDate = $('#returnDate');
     let cloneCount=0;
     let dataArticle="";
     let objCustomer = $('#cust');
-    // menyimpan stock per article_code yang berelasi dengan customer terpilih
-    let stockMap = {};
 
-    if (deliveryDate.length) {
-        deliveryDate.flatpickr({
+    if (returnDate.length) {
+        returnDate.flatpickr({
             dateFormat: "d-m-Y",
         });
     }
-
-    // saat article dipilih: isi UOM + tampilkan stock FG dari stockMap
+   
     $(document).on('change', '.article-count', function(e){
         let objArticle = $('#article_row select[name="articleCode[]"]');
-        let objUom= $('#article_row span[name="uom[]"]');
-        let objStock = $('#article_row span[name="stockFg[]"]');
+        let objUom= $('#article_row span[name="uom[]"]'); 
         let $this=$(this);
         if ($this.val()){
             let objIndex = objArticle.index(this);
-            let selected = objArticle.eq(objIndex).find(":selected");
-            let uom = selected.data("uom");
-            let stock = parseFloat(selected.data("stock")) || 0;
-
+            let uom = objArticle.eq(objIndex).find(":selected").data("uom");
             objUom.eq(objIndex).text(uom);
-            objStock.eq(objIndex).text(numberFormat(stock));
-            objStock.eq(objIndex).data('stock', stock);
-
             disabledEnabledSelect2();
-            // re-validasi qty baris ini kalau sudah ada isinya
-            validateRowQty(objIndex);
         }
     });
-
-    // validasi qty saat user mengetik
-    $(document).on('keyup change', '.qty-count', function(){
-        let objQty = $('#article_row input[name="qtyOrder[]"]');
-        let idx = objQty.index(this);
-        validateRowQty(idx);
-    });
-
-    // format angka ribuan sederhana
-    function numberFormat(num){
-        return (parseFloat(num) || 0).toLocaleString('en-US');
-    }
-
-    // cek qty baris ke-idx tidak melebihi stock
-    function validateRowQty(idx){
-        let objQty = $('#article_row input[name="qtyOrder[]"]');
-        let objStock = $('#article_row span[name="stockFg[]"]');
-
-        let qty = parseFloat((objQty.eq(idx).val() || '0').replace(/,/gi, '')) || 0;
-        let stock = parseFloat(objStock.eq(idx).data('stock')) || 0;
-
-        if (qty > stock){
-            objQty.eq(idx).addClass('stock-warning');
-            return false;
-        } else {
-            objQty.eq(idx).removeClass('stock-warning');
-            return true;
-        }
-    }
 
     add_new_row = () => {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#articleCode').attr('id', 'articleCode'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#stockFg').attr('id', 'stockFg'+ cloneCount);
         $("#new_row"+ cloneCount).find('#qtyOrder').attr('id', 'qtyOrder'+ cloneCount);
         $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
         $('#articleCode'+cloneCount).html(dataArticle);
@@ -138,13 +91,13 @@
     $('#cust').on('change', function() {
         let custCode = $(this).val()
         $.ajax({
-            url:"{{ route('suratJalanSementara.get.article') }}",
+            url:"{{ route('dnReturn.get.article') }}",
             method:"POST",
             data:{
                 custCode:custCode,
             },
             success:function(result){
-                dataArticle = result
+                dataArticle =result
             }
         })
     });
@@ -155,7 +108,7 @@
             objCustomer.attr('disabled','disabled');
         }else{
             objCustomer.removeAttr('disabled');
-        }
+        }        
     }
 
     add_new_row_edit = (articleCode,qty,uom) => {
@@ -163,15 +116,14 @@
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
         $("#new_row"+ cloneCount).find('#articleCode').attr('id', 'articleCode'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#stockFg').attr('id', 'stockFg'+ cloneCount);
         $("#new_row"+ cloneCount).find('#qtyOrder').attr('id', 'qtyOrder'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-        changeselectEdit('articleCode','articleCode'+ cloneCount,articleCode)
+        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);   
+        changeselectEdit('articleCode','articleCode'+ cloneCount,articleCode) 
         $('#qtyOrder'+ cloneCount).val(qty);
         $('#uom'+ cloneCount).text(uom);
         $('#articleCode'+ cloneCount).attr('disabled','disabled');
         $("#articleCode"+cloneCount).select2();
-        $('#remove_button').tooltip();
+        $('#remove_button').tooltip();        
         tombolPanah('qtyOrder');
         mask_thousand();
         recordCount();
@@ -185,9 +137,10 @@
         $('#'+obj).val(article).trigger('change');
         $('#'+obj).removeAttr('disabled');
     }
-
+    
     recordCount = () =>{
         let records = $('.article-count').length-1;
         $('#records').text(records);
     }
+
 </script>

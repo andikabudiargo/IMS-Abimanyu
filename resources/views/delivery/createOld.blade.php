@@ -199,246 +199,126 @@
         reloadPage();
     });
 
-   // ============================================================
-// FUNGSI BARU: Cek stok Finish Goods
-// ============================================================
-checkFGStock = (articleCodes, callback) => {
-    $.ajax({
-        type: "post",
-        url: "{{ route('delivery.checkFGStock') }}",
-        data: {
-            article_codes: JSON.stringify(articleCodes)
-        },
-        dataType: "json",
-        success: function(data) {
-            callback(null, data);
-        },
-        error: function(error) {
-            callback(error, null);
-        }
-    });
-}
+    checkBeforeSave = () => {
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{ 
+            $("#cmdSave").attr('disabled','disabled');
+            $('.disabled-el').removeAttr('disabled');
+            let objQtySo= $('#article_row input[name="qtySo[]"]');
+            let objQty= $('#article_row input[name="qtyInv[]"]');
+            let objUom= $('#article_row span[name="uom[]"]'); 
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
 
-// ============================================================
-// FUNGSI BARU: Build tabel tampilan stok FG
-// ============================================================
-buildStockTable = (stockData) => {
-    let rows = '';
-    stockData.forEach(item => {
-        let rowClass = item.stock <= 0 ? 'table-danger' : (item.stock < item.qty ? 'table-warning' : '');
-        let stockLabel = item.stock <= 0 
-            ? `<span class="badge badge-danger">OUT OF STOCK</span>` 
-            : (item.stock < item.qty 
-                ? `<span class="badge badge-warning">${item.stock}</span>` 
-                : `<span class="badge badge-success">${item.stock}</span>`);
-        rows += `
-            <tr class="${rowClass}">
-                <td>${item.article_code}</td>
-                <td>${item.article_desc}</td>
-                <td class="text-right">${item.qty}</td>
-                <td class="text-right">${stockLabel}</td>
-                <td class="text-center">
-                    ${item.stock <= 0 
-                        ? '<i class="feather icon-x-circle text-danger"></i> Tidak Bisa Dikirim' 
-                        : (item.stock < item.qty 
-                            ? '<i class="feather icon-alert-triangle text-warning"></i> Stok Kurang' 
-                            : '<i class="feather icon-check-circle text-success"></i> OK')}
-                </td>
-            </tr>`;
-    });
+            $("#article_row input[name='articleId[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let articleCode = $this.data("code");
+                    let articleDesc = $this.data("desc");
+                    let articleUom = $this.data("uom");
+                    let articleSoCode = $this.data("so-code");
+                    let poNumber = $this.data("po-number");
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let qtySo=objQtySo.eq(i).val().replace(/,/gi, '') || 0;
+                    
+                    if ((articleCode!=='') && (qty> 0)){
+                        articles.push({
+                            "article_code":articleCode,
+                            // "qty":qty,
+                            // "uom":articleUom,
+                            // "so_number":articleSoCode,
+                            // "po_number":poNumber,
+                            // "qty_so":qtySo
+                        });
+                    }
 
-    return `
-        <div class="text-left">
-            <table class="table table-bordered table-sm mt-1" style="font-size:13px">
-                <thead class="thead-dark">
-                    <tr>
-                        <th>Article Code</th>
-                        <th>Description</th>
-                        <th class="text-right">QTY DN</th>
-                        <th class="text-right">Stok FG</th>
-                        <th class="text-center">Status</th>
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
-        </div>`;
-}
-
-// ============================================================
-// MODIFIKASI checkBeforeSave — tambah pengecekan stok FG
-// ============================================================
-checkBeforeSave = () => {
-    if (!$("#frmAdd")[0].checkValidity()) {
-        $("#frmAdd").submit();
-        return;
-    }
-
-    $("#cmdSave").attr('disabled', 'disabled');
-    $('.disabled-el').removeAttr('disabled');
-
-    let objQtySo = $('#article_row input[name="qtySo[]"]');
-    let objQty   = $('#article_row input[name="qtyInv[]"]');
-    let objStock = $('#article_row input[name="qtyStock[]"]');
-
-    let articles     = [];
-    let articleCodes = [];   // untuk cek stok FG
-    let flag  = 0;
-    let pesan = "";
-
-    $("#article_row input[name='articleId[]']").map(function(i) {
-        let $this = $(this);
-        if ($this.val()) {
-            let articleCode = $this.data("code");
-            let articleDesc = $this.data("desc");
-            let articleUom  = $this.data("uom");
-            let articleSoCode = $this.data("so-code");
-            let poNumber    = $this.data("po-number");
-            let qty   = objQty.eq(i).val().replace(/,/gi, '') || 0;
-            let qtySo = objQtySo.eq(i).val().replace(/,/gi, '') || 0;
-
-            let stock = objStock.eq(i).val().replace(/,/gi, '') || 0;
-
-if (parseFloat(qty) > parseFloat(qtySo)){
-    pesan += "Items " + articleDesc + " - Qty Delivery (" + qty + ") melebihi Qty SO (" + qtySo + ")<br>";
-    flag = 1;
-}
-
-if (parseFloat(qty) > parseFloat(stock)){
-    pesan += "Items " + articleDesc + " - Qty Delivery (" + qty + ") melebihi Stock Finish Goods (" + stock + ")<br>";
-    flag = 1;
-}
-
-            if ((articleCode !== '') && (qty > 0)) {
-                articles.push({ "article_code": articleCode });
-                articleCodes.push({ 
-                    "article_code": articleCode, 
-                    "article_desc": articleDesc,
-                    "qty": parseInt(qty) 
-                });
-            }
-
-        }
-    });
-
-    if (articles.length === 0) {
-        pesan += "Articles must be filled in completely <br>";
-        flag = 1;
-    }
-
-    if (flag === 1) {
-        $('#cmdSave').removeAttr('disabled');
-        $('#cmdPrint').hide();
-        Swal.fire('Warning..', pesan, 'warning');
-        return;
-    }
-
-    // ── STEP 1: Cek Stok Finish Goods dulu ──────────────────
-    checkFGStock(articleCodes, function(err, stockResult) {
-        if (err) {
-            console.log(err);
-            $('#cmdSave').removeAttr('disabled');
-            Swal.fire('Error', 'Gagal mengecek stok Finish Goods', 'error');
-            return;
-        }
-
-        let hasZeroStock  = stockResult.some(item => item.stock <= 0);
-        let hasLowStock   = stockResult.some(item => item.stock > 0 && item.stock < item.qty);
-        let stockTable    = buildStockTable(stockResult);
-
-        if (hasZeroStock) {
-            // ── Ada stok 0 → TOLAK, tidak bisa lanjut ──────
-            $('#cmdSave').removeAttr('disabled');
-            Swal.fire({
-                width: 900,
-                title: '<strong class="text-danger">⛔ Stok Finish Goods Tidak Cukup!</strong>',
-                icon: 'error',
-                html: `<p>Terdapat artikel dengan stok <b>0</b> di Gudang Finish Goods. 
-                        Delivery tidak dapat disimpan.</p>${stockTable}`,
-                confirmButtonText: 'Tutup',
-                confirmButtonColor: '#d33'
-            });
-            return;
-        }
-
-        if (hasLowStock) {
-            // ── Stok ada tapi kurang dari qty DN → Warning, bisa lanjut ──
-            Swal.fire({
-                width: 900,
-                title: '<strong class="text-warning">⚠️ Perhatian: Stok Finish Goods Kurang</strong>',
-                icon: 'warning',
-                html: `<p>Stok tersedia namun <b>lebih sedikit</b> dari QTY Delivery. 
-                        Pastikan sudah benar sebelum menyimpan.</p>${stockTable}`,
-                showDenyButton: true,
-                denyButtonText: 'Batal',
-                confirmButtonText: 'Lanjutkan Save',
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    runPreStore(articles);
-                } else {
-                    $('#cmdSave').removeAttr('disabled');
+                    if (parseInt(qty) > parseInt(qtySo)){
+                        pesan +="Items "+ articleDesc +"-"+qty+"-"+qtySo+" QTY Delivery is higher than QTY SO<br>"; 
+                        flag=1;
+                    }
+                    
                 }
             });
-            return;
-        }
 
-        // ── Semua stok aman → lanjut ke preStore ────────────
-        Swal.fire({
-            width: 900,
-            title: '<strong class="text-success">✅ Stok Finish Goods Tersedia</strong>',
-            icon: 'success',
-            html: stockTable,
-            showDenyButton: false,
-            confirmButtonText: 'Lanjutkan Save',
-            timer: 3000,
-            timerProgressBar: true,
-        }).then((result) => {
-            if (result.isConfirmed || result.dismiss === Swal.DismissReason.timer) {
-                runPreStore(articles);
-            } else {
-                $('#cmdSave').removeAttr('disabled');
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
             }
-        });
-    });
-}
 
-// ── STEP 2: Panggil preStore (duplikat SO check) ─────────────
-runPreStore = (articles) => {
-    $.ajax({
-        type: "post",
-        url: "{{ route('delivery.preStore') }}",
-        data: { articles: JSON.stringify(articles) },
-        dataType: "json",
-        success: function(data) {
-            if (data.status == 0) {
-                for (let i = 0; i < data.message.length; i++) {
-                    show_msg(data.title, data.message[i], data.alert);
-                }
-                $('#dnNumber').attr('disabled', 'disabled');
-                $('#cmdSave').removeAttr('disabled');
-            } else {
-                Swal.fire({
-                    width: 1050,
-                    title: '<strong>Terdapat Article serupa yang belum dikirim di SO Berikut:</strong>',
-                    icon: 'info',
-                    html: data.table,
-                    showDenyButton: true,
-                    denyButtonText: 'Batal',
-                    confirmButtonText: 'Lanjutkan Save',
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        saveData();
-                    } else if (result.isDenied) {
-                        $('#cmdSave').removeAttr('disabled');
+            if (flag==0){
+
+                // let dnDate = $('#dnDate').val();
+                // let customer = $('#customer').val();
+                // let soNumber = $('#soNumber').val();
+                // let poNumber = $('#soNumber').find(":selected").data("po-number");
+                // let note = $('#note').val();
+                // let osNumber = $('#osNumber').val();
+
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('delivery.preStore') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        // dnDate:dnDate,
+                        // customer:customer,
+                        // soNumber:soNumber,
+                        // poNumber:poNumber,
+                        // note:note,
+                        // osNumber:osNumber
+
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            $('#dnNumber').attr('disabled','disabled');
+                            $('#cmdSave').removeAttr('disabled');
+                        }else{
+
+                            Swal.fire({
+                                width: 1050,
+                                title: '<strong>Terdapat Article serupa yang belum dikirim di SO Berikut:</strong>',
+                                icon: 'info',
+                                html: data.table,
+                                showDenyButton: true,
+                                denyButtonText: 'Batal',
+                                confirmButtonText: 'Lanjutkan Save',
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    saveData();
+                                    // Swal.fire('Saved!', '', 'success')
+                                } else if (result.isDenied) {
+                                    $('#cmdSave').removeAttr('disabled');
+                                    // Swal.fire('Changes are not saved', '', 'info')
+                                }
+                            })
+                            
+                            // show_msg(data.title, data.message, data.alert);
+                            // $('#dnNumber').val(data.dnNumber);
+                            // $('#statusText').val('NEW');
+                            // $('#idDn').val(data.id);
+                            // $('#dnNumber').attr('disabled','disabled');
+                            // // $('#cmdSave').attr('disabled','disabled');
+                            // $('#cmdSave').hide();
+                            // $('#cmdPrint').show();
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
                     }
                 });
+
+            }else{
+                $('#cmdSave').removeAttr('disabled');
+                $('#cmdPrint').hide();
+                Swal.fire('Warning..',pesan,'warning');
             }
-        },
-        error: function(error) {
-            console.log(error);
-            $('#cmdSave').removeAttr('disabled');
         }
-    });
-}
+    }
 
     saveData = () => {
         if (!$("#frmAdd")[0].checkValidity()){

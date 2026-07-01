@@ -40,26 +40,24 @@
         <table class="table-bordered" id="listData" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
-                   <td class="isian disabled" style="width: 40%">
-    <input type="text" class="form-control-plaintext text-hitam" id="articleId" name="articleId[]" data-code="" data-uom="" data-price="" data-po-number="" disabled>
-</td>
-<td class="isian disabled" style="width: 5%">
-    <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id="qtySo" name="qtySo[]" disabled>
-</td>
-<td class="isian disabled" style="width: 5%">
-    <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" name="qtyStock[]" disabled>
-</td>
-<td class="isian" style="width: 5%">
-    <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id="qtyInv" name="qtyInv[]" maxlength="9">
-</td>
-<td class="isian" style="width: 5%">
-    <input type="text" class="form-control-plaintext" id="uom" name="uom[]" disabled>
-</td>
-<td class="isian text-center" style="width: 5%">
-    <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
-        <i data-feather="trash-2" class="remove_button feather-24"></i>
-    </a>
-</td>
+                    <td class="isian disabled" style="width: 40%">
+                        <input type="text" class="form-control-plaintext text-hitam" id = "articleId" name="articleId[]" data-code="" data-uom=""  data-price="" data-po-number="" disabled>
+                    </td>
+                    <td class="isian disabled" style="width: 5%">
+                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qtySo" name="qtySo[]" disabled>
+                    </td>
+                    <td class="isian" style="width: 5%">
+                        <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id = "qtyInv" name="qtyInv[]" maxlength="9">
+                    </td>
+                    <td class="isian" style="width: 5%">
+                        <input type="text" class="form-control-plaintext" id = "uom" name="uom[]" disabled>
+                    </td>
+                    <td class="isian text-center" style="width: 5%">
+                        <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal()">
+                            <i data-feather="trash-2" class="remove_button feather-24">
+                            </i>
+                        </a>
+                    </td>
                 </tr>
             </tbody>
         </table>
@@ -68,14 +66,6 @@
 {{-- \.table row --}} 
 
 <script type="text/javascript">
-
-    const ToastQty = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 2500,
-    timerProgressBar: true,
-});
 
     $('#customer').change(function(){
         let value= $(this).val();
@@ -149,8 +139,7 @@
                             priceService=result[i].price_service;
                             soCode=result[i].so_code;
                             poNumber=result[i].po_number;
-                            stockFg = result[i].stock_fg;
-                            add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,poNumber,stockFg);
+                            add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceService,soCode,poNumber);
                         }
                     }
 
@@ -165,31 +154,30 @@
     }
 
     let cloneCount=1;
-    function add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceJasa,soCode,poNumber,stockFg) {
-    $("#article_row").append($("#new_row").clone().html());
-    cloneCount++;
-    $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-    $("#new_row"+ cloneCount).find('#qtySo').attr('id', 'qtySo'+ cloneCount);
-    $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-    $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
-    $('#articleId'+ cloneCount).attr('data-code', article);
-    $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
-    $('#articleId'+ cloneCount).attr('data-uom', uom);
-    $('#articleId'+ cloneCount).attr('data-price', price);
-    $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
-    $('#articleId'+ cloneCount).attr('data-so-code', soCode);
-    $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
-    $('#articleId'+ cloneCount).attr('data-so-qty', qtySo);
-    $('#articleId'+ cloneCount).val(articleCode+'-'+articleDesc);
-    $('#uom'+ cloneCount).val(uom);
-    $('#qtySo'+ cloneCount).val(qtySo);
-    $("#new_row"+ cloneCount).find('input[name="qtyStock[]"]').val(stockFg);   // ← set stok FG
-    tombolPanah('qtyInv');
-    mask_thousand();
-    mask_thousand_digit(2);
-    hitungTotal();
-    cekQty();
-}
+    function add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceJasa,soCode,poNumber) {
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qtySo').attr('id', 'qtySo'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
+        $('#articleId'+ cloneCount).attr('data-code', article);
+        $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
+        $('#articleId'+ cloneCount).attr('data-uom', uom);
+        $('#articleId'+ cloneCount).attr('data-price', price);
+        $('#articleId'+ cloneCount).attr('data-price-service', priceJasa);
+        $('#articleId'+ cloneCount).attr('data-so-code', soCode);
+        $('#articleId'+ cloneCount).attr('data-po-number', poNumber);
+        $('#articleId'+ cloneCount).attr('data-so-qty', qtySo);
+        $('#articleId'+ cloneCount).val(articleCode+'-'+articleDesc);
+        $('#uom'+ cloneCount).val(uom);
+        $('#qtySo'+ cloneCount).val(qtySo);
+        tombolPanah('qtyInv');
+        mask_thousand();
+        mask_thousand_digit(2);
+        hitungTotal();
+        cekQty();
+    }
 
     let cloneCountEdit=0;
     function add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo) {
@@ -278,31 +266,20 @@
     }
 
     function cekQty(){
-    let objQtySo  = $('#article_row input[name="qtySo[]"]');
-    let objStock  = $('#article_row input[name="qtyStock[]"]');
-    let objQtyDel = $('#article_row input[name="qtyInv[]"]');
+        let objQtySo= $('#article_row input[name="qtySo[]"]');
+        let objQtyDel= $('#article_row input[name="qtyInv[]"]');
 
-    objQtyDel.off('keyup.cekqty').on('keyup.cekqty', function() {
-        let indexnya = objQtyDel.index(this);
-        let qtyDel = parseFloat(objQtyDel.eq(indexnya).val().replace(/,/gi, '') || 0);
-        let qtySo  = parseFloat(objQtySo.eq(indexnya).val().replace(/,/gi, '') || 0);
-        let stock  = parseFloat(objStock.eq(indexnya).val().replace(/,/gi, '') || 0);
-
-        let lebihSo    = qtyDel > qtySo;
-        let lebihStock = qtyDel > stock;
-
-        if (lebihSo || lebihStock){
-            objQtyDel.eq(indexnya).css("background-color","rgba(255,0,0,0.5)");
-            if (lebihStock){
-                ToastQty.fire({icon:'error', title:'Qty melebihi Stock FG'});
-            } else {
-                ToastQty.fire({icon:'warning', title:'Qty melebihi Qty SO ('+humanizeNumber(qtySo)+')'});
+        objQtyDel.keyup(function() {
+            let indexnya= objQtyDel.index(this);
+            let qtyDel = parseFloat(objQtyDel.eq(indexnya).val().replace(/,/gi, '') || 0);
+            let qtySo = parseFloat(objQtySo.eq(indexnya).val().replace(/,/gi, '') || 0); 
+            if ( qtyDel > qtySo ){
+                objQtyDel.eq(indexnya).delay(3000).css("background-color","rgba(255,0,0, 0.5)");
+            }else{
+                objQtyDel.eq(indexnya).delay(3000).css("background-color","");
             }
-        } else {
-            objQtyDel.eq(indexnya).css("background-color","");
-        }
-        hitungGrandTotal();
-    });
-}
+            hitungGrandTotal();
+        });    
+    }
 
 </script>

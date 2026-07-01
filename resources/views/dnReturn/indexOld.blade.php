@@ -2,7 +2,7 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-<section id="purchase-index">
+<section id="article-index">
   <div class="card">
     <div class="card-header">  
       <h4 class="card-title">Filter</h4>
@@ -17,38 +17,39 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchTso">TSO Code</label>
-                <input type="text" class="form-control text-uppercase" id="searchTso" name="searchTso" placeholder=""  />
+                <label for="searchDn">Temporary DN Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchDn" name="searchDn" placeholder=""  />
               </div>
               <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchCustomer">Customer</label>
                 <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
-                  <option value="">All</option>
-                    @foreach($customer  as $val)
-                        <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
+                    <option value="">All</option>
+                    @foreach($customers as $val)
+                      <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
                     @endforeach
                 </select>
               </div>
               <div class="col-md-3 form-group">
-                <label for="tsoDate">Date</label>
-                <input type="text" id="tsoDate" name="tsoDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+                <label for="returnDate">Date</label>
+                <input type="text" id="returnDate" name="returnDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-3"> 
-                <label class="form-label" for="searchStatus">Order Status</label>
+              <div class="form-group col-md-2"> 
+                <label class="form-label" for="searchStatus">Request Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
                     @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
+                        <option value="{{ $index }}">{{ $val }}</option>
                     @endforeach
                 </select>
               </div>
+              
             </div>
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('targetSo-create')
-                    <a href="{{ route('targetSo.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    @endcan
+                    {{-- @can('purchaseRequest-create') --}}
+                    <a href="{{ route('dnReturn.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    {{-- @endcan --}}
                 </div>
             </div>
         </form>
@@ -56,7 +57,7 @@
     </div>
   </div>
 </section>
-<section id="table-purchase">
+<section id="table-article">
   <div class="card">
     <div class="card-header">
       <h4 class="card-title"> @yield('title') List</h4>
@@ -85,6 +86,7 @@
     </div>
   </div>
 </section>
+@include('partials.modals')
 @include('partials.delete-modal')
 @endsection
 @section('styles')
@@ -93,11 +95,10 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-
-  let searchTso = document.querySelector("#searchTso");
-  let searchCustomer = document.querySelector("#searchCustomer"); 
+  let searchDn = document.querySelector("#searchDn");
   let searchStatus = document.querySelector("#searchStatus");
-  let tsoDate = document.querySelector("#tsoDate");
+  let returnDate = document.querySelector("#returnDate");
+  let searchCustomer = document.querySelector("#searchCustomer");
   let search = document.querySelector('#btnSearch');
   let refresh = document.querySelector('a[data-action="reload"]');
   let rangePickr = document.querySelector('.flatpickr-range');
@@ -108,7 +109,7 @@
     btnSummary.style.display = "none";
     btnDetail.style.display = "none";
   });
-
+  
   initDatePicker(rangePickr,{
     minDate: "01/01/2010",
     maxDate: "31/12/2030",
@@ -116,39 +117,32 @@
     mode: "range"
   });
 
-  // if (rangePickr.length) {
-  //   rangePickr.flatpickr({
-  //     dateFormat: "d-m-Y",
-  //     mode: 'range'
-  //   });
-  // }
-
   //refresh di cards
   refresh.addEventListener("click",function(){
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchTso.value,searchCustomer.value,searchStatus.value,tsoDate.value);
+    showList(searchDn.value,searchStatus.value,returnDate.value,searchCustomer.value);
   })
 
-  search.addEventListener("click", function(){ 
+  search.addEventListener("click", function(){
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchTso.value,searchCustomer.value,searchStatus.value,tsoDate.value);
+    showList(searchDn.value,searchStatus.value,returnDate.value,searchCustomer.value);
   });
 
   btnSummary.addEventListener("click", function(){
     btnSummary.style.display = "none";
     btnDetail.style.display = "block";
-    showList(searchTso.value,searchCustomer.value,searchStatus.value,tsoDate.value);
+    showList(searchDn.value,searchStatus.value,returnDate.value,searchCustomer.value);
   });
   
   btnDetail.addEventListener("click", function(){
     btnSummary.style.display = "block";
     btnDetail.style.display = "none";
-    showListDetail(searchTso.value,searchCustomer.value,searchStatus.value,tsoDate.value);
+    showListDetail(searchDn.value,searchStatus.value,returnDate.value,searchCustomer.value);
   });
 
-  const showList = (searchTso,searchCustomer,searchStatus,tsoDate) => {
+  const showList = (searchDn,searchStatus,returnDate,searchCustomer) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -157,24 +151,24 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('targetSo.list') }}",
+      route:"{{ route("dnReturn.list") }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6],
+      arrColPrint:[1,2,3,4,5,6,7,8,9],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
       dataSearch:  {
-        searchTso:searchTso,
-        searchCustomer:searchCustomer,
+        searchDn:searchDn,
         searchStatus:searchStatus,
-        tsoDate:tsoDate
+        returnDate:returnDate,
+        searchCustomer:searchCustomer
       },
       orderColumn:[[ 1, 'desc' ]],
-      excelFileName:'target_sales_order'
+      excelFileName:'DN_return'
     });
   }
 
-  const showListDetail = (searchTso,searchCustomer,searchStatus,tsoDate) => {
+  const showListDetail = (searchDn,searchStatus,returnDate,searchCustomer) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -183,36 +177,39 @@
     }
     showDataTables({
       tableId:"detailedTable",
-      route:"{{ route('targetSo.list.detail') }}",
+      route:"{{ route('dnReturn.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [ 6,7,8] },
+        { className: 'text-right','targets': [5] },
       ],
       dataSearch:  {
-        searchTso:searchTso,
-        searchCustomer:searchCustomer,
+        searchDn:searchDn,
         searchStatus:searchStatus,
-        tsoDate:tsoDate
+        returnDate:returnDate,
+        searchCustomer:searchCustomer
       },
-      orderColumn:[[ 2, 'asc' ]],
-      excelFileName:'target_sales_order'
+      // orderColumn:[[ 2, 'asc' ]],
+      excelFileName:'DN_Return_detail'
     });
   }
 
-  let href;
-  $(document).on('click', '#revisionReasonButton', function(event) {
-      event.preventDefault();
-      href = $(this).data('href');
-      $('#modalReasonRevision').attr("action", href);
-  });
- 
+  // let href;
+  // $(document).on('click', '#revisionReasonButton', function(event) {
+  //     event.preventDefault();
+  //     href = $(this).data('href');
+  //     $('#modalReasonRevision').attr("action", href);
+  // });
+
   $.ajaxSetup({
     headers: {
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
     }
   });
+
+
+  
     
 </script>
 @endsection

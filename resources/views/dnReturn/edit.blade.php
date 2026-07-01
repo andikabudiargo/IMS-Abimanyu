@@ -25,13 +25,13 @@
                                     <label for="returnNumber">DN Return Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="returnNumber" name="returnNumber" class="form-control disabled-el" value="{{ $header->return_number }}" disabled />
                                 </div>
-                                <div class="form-group col-md-2">
-                                    <label for="returnDate">Delivery Date*</label>
+                                <div class="form-group col-md-3">
+                                    <label for="returnDate">Return Date*</label>
                                     <input type="text" id="returnDate" name="returnDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->return_date }}" required/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="cust">Customer*</label>
                                     <select class="select2 form-control" id="cust" name="cust" required>
                                         <option value="">Choose Customer</option>
@@ -46,9 +46,13 @@
                                     <label for="dnNumber">Customer DN Number</label>
                                     <input type="text" id="dnNumber" name="dnNumber" class="form-control disabled-el" value="{{ $header->dn_number }}" />
                                 </div>
+                                <div class="form-group col-md-3">
+                                                <label for="soNumber">SO Number</label>
+                                                <input type="text" id="soNumber" name="soNumber" class="form-control disabled-el" value="{{ $header->so_number }}" disabled />
+                                            </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>

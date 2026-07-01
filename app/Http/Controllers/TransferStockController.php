@@ -118,17 +118,20 @@ public function getTableColoumnDetail()
     public function create(Request $request)
 {
     $user       = Auth::user();
-    $userDepts  = DB::table('user_dept')->where('username', $user->username)->pluck('dept')->toArray(); // <— SESUAIKAN
-    $privileged = $user->hasAnyRole(['superuser','accounting','finance']);
+    $userDepts  = DB::table('user_dept')->where('username', $user->username)->pluck('dept')->toArray();
+    $privileged = $user->hasAnyRole(['Superuser','accounting','finance']);
 
     $data['title']    = "Create $this->title";
     $data['subtitle'] = "Create $this->title";
     $data['oEdit']    = false;
 
-    // Location From: hanya gudang milik dept user (privileged -> semua)
+    // Location From: gudang milik dept user + gudang umum (011), privileged -> semua
     $data['locationsFrom'] = DB::table('stock_location_master')
         ->when(!$privileged, function ($q) use ($userDepts) {
-            $q->whereIn('dept_code', $userDepts);   // <— SESUAIKAN kolom dept
+            $q->where(function ($sub) use ($userDepts) {
+                $sub->whereIn('dept_code', $userDepts)
+                    ->orWhere('location_code', '011');   // gudang umum selalu muncul
+            });
         })
         ->orderBy('location_name')
         ->get();
@@ -292,7 +295,7 @@ public function posting(Request $request)
     if ($hdrQ->status == '5') {
         return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => "$title gagal: sudah dicancel"]);
     }
-    if (!($user->hasAnyRole(['superuser', 'accounting']) || $user->can('transferOut-posting'))) {
+    if (!($user->hasAnyRole(['Superuser', 'accounting']) || $user->can('transferOut-posting'))) {
         return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Anda tidak berwenang posting']);
     }
 
@@ -639,7 +642,7 @@ public function cancel(Request $request)
         ]);
     }
 
-    if (!($user->hasAnyRole(['superuser', 'accounting']) || $user->can('transferOut-posting'))) {
+    if (!($user->hasAnyRole(['Superuser', 'accounting']) || $user->can('transferOut-posting'))) {
         return redirect()->back()->with([
             'title'   => $title,
             'alert'   => 'warning',
@@ -950,7 +953,7 @@ private function tambahStockTanpaAvg(string $siteCode, string $articleCode, stri
     $username = Auth::user()->username;
     $user     = Auth::user();
     $userDepts  = DB::table('user_dept')->where('username', $username)->pluck('dept')->toArray();
-    $privileged = $user->hasAnyRole(['superuser','accounting','finance']);
+    $privileged = $user->hasAnyRole(['Superuser','accounting','finance']);
 
     $data['title']    = "Edit $this->title";
     $data['subtitle'] = "Edit $this->title";
@@ -979,6 +982,7 @@ private function tambahStockTanpaAvg(string $siteCode, string $articleCode, stri
     $data['locationsFrom'] = DB::table('stock_location_master')
         ->when(!$privileged, function ($q) use ($userDepts) {
             $q->whereIn('dept_code', $userDepts);
+             ->orWhere('location_code', '011');   // gudang umum selalu muncul
         })
         ->orderBy('location_name')
         ->get();
@@ -1236,8 +1240,8 @@ public function update(Request $request)
     $username = $user->username;
 
     $userDepts = DB::table('user_dept')->where('username', $username)->pluck('dept')->toArray(); // <— SESUAIKAN
-    $privileged = $user->hasAnyRole(['superuser','accounting','finance']);   // untuk LIHAT semua data
-    $isSuperAcc = $user->hasAnyRole(['superuser','accounting']);             // untuk hak edit/delete/approve
+    $privileged = $user->hasAnyRole(['Superuser','accounting','finance']);   // untuk LIHAT semua data
+    $isSuperAcc = $user->hasAnyRole(['Superuser','accounting']);             // untuk hak edit/delete/approve
 
     $searchTr      = strtolower($request->searchTr);
     $searchStatus  = $request->searchStatus;
@@ -1398,7 +1402,7 @@ public function update(Request $request)
 {
     $user     = Auth::user();
     $userDepts = DB::table('user_dept')->where('username',$user->username)->pluck('dept')->toArray(); // <— SESUAIKAN
-    $privileged = $user->hasAnyRole(['superuser','accounting','finance']);                                  // <— SESUAIKAN
+    $privileged = $user->hasAnyRole(['Superuser','accounting','finance']);                                  // <— SESUAIKAN
 
     $searchTr     = strtolower($request->searchTr);
     $searchStatus = $request->searchStatus;

@@ -1056,6 +1056,11 @@
                     if ($id) $url = route('stockAdjustment.show', ['id' => Crypt::encryptString($id)]);
                     break;
 
+                case 'DN SEMENTARA':
+                    $id = DB::table('temporary_dn_hdr')->where('tdn_number', $ref)->value('id');
+                    if ($id) $url = route('temporaryDn.show', ['id' => Crypt::encryptString($id)]);
+                    break;
+
                  case 'DN UMUM':
                     $id = DB::table('dn_general_hdr')->where('adj_code', $ref)->value('id');
                     if ($id) $url = route('dnGeneral.show', ['id' => Crypt::encryptString($id)]);
