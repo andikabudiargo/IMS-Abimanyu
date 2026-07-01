@@ -270,16 +270,16 @@
         function processBatch() {
             const end = Math.min(idx + BATCH_SIZE, total);
             for (; idx < end; idx++) {
-                add_new_row_edit(
-                    rows[idx].article_code,
-                    rows[idx].qty_adjustment,
-                    rows[idx].uom,
-                    rows[idx].uom_member,
-                    rows[idx].notes,
-                    rows[idx].stock_before,
-                    null,
-                    { skipFetch: true, skipFeather: true }   // <-- kunci performa
-                );
+               add_new_row_edit(
+    rows[idx].article_code,
+    rows[idx].qty_adjustment,
+    rows[idx].uom,
+    rows[idx].uom_member,
+    rows[idx].notes,
+    rows[idx].stock_before,
+    null,
+    { skipFetch: true, skipFeather: true, lazySelect: true }   // ← tambah lazySelect
+);
             }
             if (Swal.isVisible()) {
                 Swal.getHtmlContainer().innerHTML = `<b>${idx}/${total}</b> Loaded`;

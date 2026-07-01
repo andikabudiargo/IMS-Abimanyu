@@ -126,6 +126,7 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const currentDate = "{{ $currentDateValue }}";
 let   dataArticle = null;   // null = belum selesai load; "" / [] = kosong
+let articleMeta  = {};   // code -> {label, uom, uomMember}
 let   cloneCount  = 0;
 
 $(function () {
@@ -167,12 +168,28 @@ function isiArticle(dependent) {
         method: "POST",
         data:   { dependent: dependent },
         success: function (result) {
-            dataArticle = result;   // HTML string of <option> tags
+            dataArticle = result;
+            _buildArticleMeta(result);
         },
         error: function () {
-            dataArticle = '';       // mark as done even on error
+            dataArticle = '';
             console.error('Gagal load daftar artikel');
         }
+    });
+}
+
+// bangun map code->label sekali saja (bukan per-baris)
+function _buildArticleMeta(html) {
+    articleMeta = {};
+    $('<select>').html(html).find('option').each(function () {
+        let $o  = $(this);
+        let val = $o.val();
+        if (!val) return;
+        articleMeta[val] = {
+            label:     $o.text(),
+            uom:       $o.data('uom'),
+            uomMember: $o.data('uom-member')
+        };
     });
 }
 
@@ -268,13 +285,26 @@ function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeV
     $('#article_row').append($row);
 
     let $sel = $('#articleId' + n);
-    $sel.html('<option value=""></option>' + dataArticle);
-    $sel.select2({ width: '100%', placeholder: 'Pilih artikel...' });
 
-    if (articleCode) {
-        $sel.val(articleCode).trigger('change');
-        let uomOpts = _buildUomOptions(uomMember, uom);
-        $('#uom' + n).html(uomOpts).val(uom).trigger('change');
+    if (opts.lazySelect && articleCode) {
+        // ── Mode import: render minimal, JANGAN init select2 dulu ──
+        let meta = articleMeta[articleCode] || {};
+        $sel.html(
+            '<option value="' + articleCode + '" selected>' +
+            (meta.label || articleCode) + '</option>'
+        );
+        let uomOpts = _buildUomOptions(uomMember || meta.uomMember, uom || meta.uom);
+        $('#uom' + n).html(uomOpts).val(uom || meta.uom);
+        _bindLazySelect2($sel, n);
+    } else {
+        // ── Mode manual: select2 penuh seperti biasa ──
+        $sel.html('<option value=""></option>' + dataArticle);
+        $sel.select2({ width: '100%', placeholder: 'Pilih artikel...' });
+        if (articleCode) {
+            $sel.val(articleCode).trigger('change');
+            let uomOpts = _buildUomOptions(uomMember, uom);
+            $('#uom' + n).html(uomOpts).val(uom).trigger('change');
+        }
     }
 
     $sel.on('change', function () {
@@ -293,7 +323,6 @@ function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeV
     if (qtyAdjValue) $('#qtyAdj' + n).val(Math.abs(parseFloat(qtyAdjValue) || 0));
     if (notes)       $('#notesRow' + n).val(notes);
 
-    // ── HANYA fetch ulang kalau stockBeforeVal TIDAK di-supply (mode manual) ──
     if (articleCode && $('#location').val() && !opts.skipFetch) {
         fetchStockBefore(articleCode, $('#location').val(), n);
     } else {
@@ -303,8 +332,19 @@ function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeV
     bindQtyEvents(n);
     hitungGrandTotal();
 
-    // ── feather.replace() TIDAK dipanggil per baris saat import ──
     if (!opts.skipFeather) feather.replace();
+}
+
+// ── Upgrade select jadi select2 penuh HANYA saat baris disentuh user ──
+function _bindLazySelect2($sel, n) {
+    $sel.on('mousedown.lazyInit focus.lazyInit', function () {
+        if ($(this).hasClass('select2-hidden-accessible')) return; // sudah di-upgrade
+        let current = $(this).val();
+        $(this).off('.lazyInit');
+        $(this).html('<option value=""></option>' + dataArticle);
+        $(this).val(current);
+        $(this).select2({ width: '100%', placeholder: 'Pilih artikel...' });
+    });
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
