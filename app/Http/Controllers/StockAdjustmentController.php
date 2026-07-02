@@ -593,147 +593,77 @@ class StockAdjustmentController extends Controller
 //  POSTING — hanya superuser / accounting (backdate-safe)
 // =========================================================================
 
+// =========================================================================
+//  POSTING — hanya superuser / accounting (backdate-safe)
+// =========================================================================
+
 public function posting(Request $request)
 {
-    $username   = Auth::user()->username;
-    $id         = Crypt::decryptString($request->id);
-    $title      = "Posting $this->title";
-    $siteCode   = 'HO';
+    $username = Auth::user()->username;
+    $id       = Crypt::decryptString($request->id);
+    $title    = "Posting $this->title";
+    $siteCode = 'HO';
 
-    if (!Auth::user()->hasAnyRole(['Superuser','accounting'])) {
-        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Anda tidak berwenang melakukan posting.']);
+    if (!Auth::user()->hasAnyRole(['Superuser', 'accounting'])) {
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning',
+            'message' => 'Anda tidak berwenang melakukan posting.']);
     }
 
     $hdr = DB::table('stock_adjustment_hdr')->where('id', $id)->first();
     if (!$hdr) {
-        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Data tidak ditemukan.']);
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning',
+            'message' => 'Data tidak ditemukan.']);
     }
     if ($hdr->status === '4') {
-        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Data sudah diposting.']);
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning',
+            'message' => 'Data sudah diposting.']);
     }
     if ($hdr->status === '5') {
-        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Data sudah CANCELED.']);
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning',
+            'message' => 'Data sudah CANCELED.']);
     }
 
-    $adjCode   = $hdr->adj_code;
-    $location  = $hdr->location_code;
-    $adjDate   = $hdr->adj_date;
+    $adjCode = $hdr->adj_code;
+    $location = $hdr->location_code;
+    $adjDate = $hdr->adj_date;
 
     $adjDateYmd = $this->toYmd($adjDate);
     if (!$adjDateYmd) {
-        return redirect()->back()->with(['title'=>$title,'alert'=>'warning',
-            'message'=>"Format tanggal adjustment tidak valid: $adjDate"]);
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning',
+            'message' => "Format tanggal adjustment tidak valid: $adjDate"]);
     }
 
     $details = $this->getPostingDetails($adjCode, $siteCode, $location);
     if ($details->isEmpty()) {
-        return redirect()->back()->with(['title'=>$title,'alert'=>'warning',
-            'message'=>"$title $adjCode gagal: tidak ada detail artikel."]);
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning',
+            'message' => "$title $adjCode gagal: tidak ada detail artikel."]);
     }
 
     // ── VALIDASI BACKDATE per artikel, sesuai direction masing-masing ──
     $directionMap = [];
-    foreach ($details as $d) { $directionMap[$d->article_code] = $d->direction; }
+    foreach ($details as $d) {
+        $directionMap[$d->article_code] = $d->direction;
+    }
 
     $errors = $this->validateBackdateStock($details, $siteCode, $location, $adjDateYmd, $adjDate, $directionMap);
     if (!empty($errors)) {
-        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>implode(' ', $errors)]);
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning',
+            'message' => implode(' ', $errors)]);
     }
 
     DB::beginTransaction();
     try {
-        $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
+        $movementSeq = (int) DB::table('warehouse_movement')->max('movement_code');
         $dataSetMovement = [];
 
         foreach ($details as $val) {
-            $qty       = (float) $val->qty_adjustment;
-            $avgCost   = (float) $val->avg_cost;
-            $direction = $val->direction;              // ← per artikel
-
-            DB::table('warehouse_stock')->updateOrInsert(
-                ['site_code' => $siteCode, 'article_code' => $val->article_code, 'location_number' => $location],
-                ['dept_code' => $val->article_type, 'uom' => $val->article_uom]
+            $movementSeq++;
+            $dataSetMovement[] = $this->applyAdjustmentToStock(
+                $val, $siteCode, $location, $adjDate, $adjDateYmd, $adjCode, $hdr, $username, $movementSeq
             );
-
-            $current = DB::table('warehouse_stock')
-                ->where('site_code', $siteCode)
-                ->where('article_code', $val->article_code)
-                ->where('location_number', $location)
-                ->selectRaw('coalesce(article_qty,0) as qty_now, coalesce(avg_price,0) as avg_now')
-                ->first();
-
-            $qtyNow = (float) $current->qty_now;
-            $avgNow = (float) $current->avg_now;
-            if ($avgCost <= 0) $avgCost = $avgNow;
-
-            if ($direction === '+') {
-                $qtyBaru = $qtyNow + $qty;
-                $avgBaru = $qtyBaru > 0
-                    ? (($qtyNow * $avgNow) + ($qty * $avgCost)) / $qtyBaru
-                    : $avgNow;
-
-                DB::table('warehouse_stock')
-                    ->where('site_code', $siteCode)
-                    ->where('article_code', $val->article_code)
-                    ->where('location_number', $location)
-                    ->update([
-                        'article_qty' => DB::raw("coalesce(article_qty,0) + $qty"),
-                        'avg_price'   => $avgBaru,
-                    ]);
-
-                $movMin  = 0;
-                $movPlus = $qty;
-
-            } else {
-                DB::table('warehouse_stock')
-                    ->where('site_code', $siteCode)
-                    ->where('article_code', $val->article_code)
-                    ->where('location_number', $location)
-                    ->update(['article_qty' => DB::raw("coalesce(article_qty,0) - $qty")]);
-
-                $movMin  = $qty;
-                $movPlus = 0;
-            }
-
-            if ($avgCost > 0) {
-                DB::table('article')->where('article_code', $val->article_code)->update([
-                    'lastcost'   => $avgCost,
-                    'avgcost'    => $avgCost,
-                    'updated_by' => $username,
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-            }
-
-            $seq++;
-            $dataSetMovement[] = [
-                'movement_code'     => $seq,
-                'movement_date'     => $adjDate,
-                'artikel_code'      => $val->article_code,
-                'artikel_desc'      => $val->article_desc ?? '',
-                'movement_min'      => $movMin,
-                'movement_plus'     => $movPlus,
-                'movement_price'    => $avgCost,
-                'movement_transnno' => $adjCode,
-                'movement_type'     => 'ADJUSTMENT',
-                'movement_desc'     => trim("{$hdr->adj_type} ({$hdr->description})"),
-                'partner_type'      => 'ADJ',
-                'uom'               => $val->uom,
-                'created_by'        => $username,
-                'created_at'        => date('Y-m-d H:i:s'),
-                'site_code'         => $siteCode,
-                'location_number'   => $location,
-                'movement_from'     => $direction === '-' ? $location : '-',
-                'movement_to'       => $direction === '+' ? $location : '-',
-                'last_qty'          => DB::raw(
-                    "get_last_qty_new('{$val->article_code}','$adjDateYmd','$siteCode','$location')"
-                    . ($direction === '+' ? " + $qty" : " - $qty")
-                ),
-            ];
         }
 
-        if (!empty($dataSetMovement)) {
-            DB::table('warehouse_movement')->insert($dataSetMovement);
-        }
+        DB::table('warehouse_movement')->insert($dataSetMovement);
 
         DB::table('stock_adjustment_hdr')->where('id', $id)->update([
             'status'        => '4',
@@ -747,14 +677,126 @@ public function posting(Request $request)
 
         $message = "$title $adjCode berhasil diposting.";
         \LogActivity::addToLog($title, "username: $username | $message");
-        return redirect()->back()->with(['title'=>$title,'alert'=>'success','message'=>$message]);
+        return redirect()->back()->with(['title' => $title, 'alert' => 'success', 'message' => $message]);
 
     } catch (\Exception $e) {
         DB::rollBack();
         $message = "$title $adjCode gagal: " . $e->getMessage();
         \LogActivity::addToLog($title, "username: $username | $message");
-        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>$message]);
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => $message]);
     }
+}
+
+/**
+ * Terapkan satu baris detail adjustment ke warehouse_stock, article (cost),
+ * dan siapkan baris warehouse_movement-nya.
+ *
+ * qty acuan (qtyNow) dihitung dari saldo HISTORIS pada adjDate (get_last_qty_new),
+ * bukan dari article_qty current — supaya weighted-average cost dihitung dari
+ * posisi stok yang benar secara kronologis. Sedangkan mutasi article_qty tetap
+ * dijalankan sebagai delta (+/- qty) terhadap saldo current, karena delta itu
+ * berlaku sama di titik manapun ia disisipkan secara kronologis.
+ *
+ * @return array baris siap-insert untuk warehouse_movement
+ */
+private function applyAdjustmentToStock(
+    object $val,
+    string $siteCode,
+    string $location,
+    string $adjDate,
+    string $adjDateYmd,
+    string $adjCode,
+    object $hdr,
+    string $username,
+    int $movementSeq
+): array {
+    $qty       = (float) $val->qty_adjustment;
+    $avgCost   = (float) $val->avg_cost;
+    $direction = $val->direction;
+
+    // pastikan baris warehouse_stock ada
+    DB::table('warehouse_stock')->updateOrInsert(
+        ['site_code' => $siteCode, 'article_code' => $val->article_code, 'location_number' => $location],
+        ['dept_code' => $val->article_type, 'uom' => $val->article_uom]
+    );
+
+    // saldo & avg cost acuan: qty dari histori pada adjDate, avg cost dari current
+    $qtyAtAdjDate = (float) DB::selectOne(
+        "SELECT get_last_qty_new(?, ?, ?, ?) as qty",
+        [$val->article_code, $adjDateYmd, $siteCode, $location]
+    )->qty;
+
+    $avgNow = (float) DB::table('warehouse_stock')
+        ->where('site_code', $siteCode)
+        ->where('article_code', $val->article_code)
+        ->where('location_number', $location)
+        ->value('avg_price') ?? 0;
+
+    if ($avgCost <= 0) {
+        $avgCost = $avgNow;
+    }
+
+    if ($direction === '+') {
+        $qtyBaru = $qtyAtAdjDate + $qty;
+        $avgBaru = $qtyBaru > 0
+            ? (($qtyAtAdjDate * $avgNow) + ($qty * $avgCost)) / $qtyBaru
+            : $avgNow;
+
+        DB::table('warehouse_stock')
+            ->where('site_code', $siteCode)
+            ->where('article_code', $val->article_code)
+            ->where('location_number', $location)
+            ->update([
+                'article_qty' => DB::raw("coalesce(article_qty,0) + $qty"),
+                'avg_price'   => $avgBaru,
+            ]);
+
+        $movMin  = 0;
+        $movPlus = $qty;
+    } else {
+        DB::table('warehouse_stock')
+            ->where('site_code', $siteCode)
+            ->where('article_code', $val->article_code)
+            ->where('location_number', $location)
+            ->update(['article_qty' => DB::raw("coalesce(article_qty,0) - $qty")]);
+
+        $movMin  = $qty;
+        $movPlus = 0;
+    }
+
+    if ($avgCost > 0) {
+        DB::table('article')->where('article_code', $val->article_code)->update([
+            'lastcost'   => $avgCost,
+            'avgcost'    => $avgCost,
+            'updated_by' => $username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    return [
+        'movement_code'     => $movementSeq,
+        'movement_date'     => $adjDate,
+        'artikel_code'      => $val->article_code,
+        'artikel_desc'      => $val->article_desc ?? '',
+        'movement_min'      => $movMin,
+        'movement_plus'     => $movPlus,
+        'movement_price'    => $avgCost,
+        'movement_transnno' => $adjCode,
+        'movement_type'     => 'ADJUSTMENT',
+        'movement_desc'     => trim("{$hdr->adj_type} ({$hdr->description})"),
+        'partner_type'      => 'ADJ',
+        'uom'               => $val->uom,
+        'created_by'        => $username,
+        'created_at'        => date('Y-m-d H:i:s'),
+        'site_code'         => $siteCode,
+        'location_number'   => $location,
+        'movement_from'     => $direction === '-' ? $location : '-',
+        'movement_to'       => $direction === '+' ? $location : '-',
+        'last_qty'          => DB::raw(
+            "get_last_qty_new('{$val->article_code}','$adjDateYmd','$siteCode','$location')"
+            . ($direction === '+' ? " + $qty" : " - $qty")
+        ),
+    ];
 }
 
 // =========================================================================
@@ -1056,14 +1098,22 @@ private function summarizeDirection(array $articles): string
     // =========================================================================
 
     public function stockBefore(Request $request)
-    {
-        $stock = (float) DB::table('warehouse_stock')
-            ->where('article_code',    $request->article_code)
-            ->where('location_number', $request->location_code)
-            ->value('article_qty') ?? 0;
+{
+    $adjDate    = $request->adjDate;              // wajib dikirim dari frontend
+    $siteCode   = 'HO';
+    $adjDateYmd = $this->toYmd($adjDate);
 
-        return response()->json(['stock' => $stock]);
+    if (!$adjDateYmd) {
+        return response()->json(['stock' => 0]);
     }
+
+    $stock = (float) DB::selectOne(
+        "SELECT get_last_qty_new(?, ?, ?, ?) as qty",
+        [$request->article_code, $adjDateYmd, $siteCode, $request->location_code]
+    )->qty;
+
+    return response()->json(['stock' => $stock]);
+}
 
     // =========================================================================
     //  AUTO-CODE

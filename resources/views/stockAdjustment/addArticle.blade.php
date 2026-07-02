@@ -127,7 +127,19 @@ let   cloneCount  = 0;
 
 $(function () {
     const dp = $('#adjDate');
-    if (dp.length) dp.flatpickr({ dateFormat: 'd-m-Y' });
+    if (dp.length) {
+        dp.flatpickr({
+            dateFormat: 'd-m-Y',
+            onChange: function () {
+                // tanggal adjustment berubah → stock before semua baris harus dihitung ulang
+                if (typeof refreshStockOnRows === 'function') refreshStockOnRows();
+            }
+        });
+    }
+    // fallback kalau value adjDate berubah tanpa lewat flatpickr (mis. old('adjDate') / set via JS lain)
+    $('#adjDate').on('change', function () {
+        if (typeof refreshStockOnRows === 'function') refreshStockOnRows();
+    });
 });
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -165,13 +177,27 @@ function _buildArticleMeta(html) {
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    STOCK BEFORE FETCH
+   Selalu ikutkan adjDate — stock before dihitung dari saldo
+   HISTORIS pada tanggal adjustment (bukan saldo current),
+   supaya konsisten dengan validasi backdate di server.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function fetchStockBefore(articleCode, locationCode, rowId) {
+    let adjDate = $('#adjDate').val();
+
     if (!articleCode || !locationCode) { setStockBefore(rowId, 0); return; }
+
+    if (!adjDate) {
+        setStockBefore(rowId, 0);
+        Swal.fire({ toast:true, position:'top-end', icon:'warning',
+            title:'Isi Adjustment Date terlebih dahulu agar Stock Before akurat.',
+            timer:2000, showConfirmButton:false });
+        return;
+    }
+
     $.ajax({
         url:    "{{ route('stockAdjustment.stockBefore') }}",
         method: "GET",
-        data:   { article_code: articleCode, location_code: locationCode },
+        data:   { article_code: articleCode, location_code: locationCode, adjDate: adjDate },
         success: function (data) { setStockBefore(rowId, data.stock ?? 0); },
         error:   function ()     { setStockBefore(rowId, 0); }
     });
@@ -230,6 +256,11 @@ function bindQtyEvents(n) {
    ADD ROW — manual (tunggu dataArticle siap)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function add_new_row() {
+    if (!$('#adjDate').val()) {
+        Swal.fire({ toast:true, position:'top-end', icon:'warning',
+            title:'Isi Adjustment Date terlebih dahulu.', timer:1500, showConfirmButton:false });
+        return;
+    }
     if (dataArticle === null) {
         Swal.fire({ toast:true, position:'top-end', icon:'info',
             title:'Memuat daftar artikel...', timer:1200, showConfirmButton:false });
@@ -348,7 +379,7 @@ function _buildUomOptions(uomMember, uomBase) {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   LOCATION CHANGE → refresh semua stock before
+   LOCATION / DATE CHANGE → refresh semua stock before
    (balance yang sudah diisi manual TIDAK ditimpa, hanya yang autofilled)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function refreshStockOnRows() {
