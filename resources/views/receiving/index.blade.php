@@ -31,6 +31,7 @@
                <div class="form-group col-md-3">
                 <label class="form-label" for="recType">Receive Type</label>
                                     <select class="select2 form-control" id="recType" name="recType" required>
+                                       <option value="">All</option>
                                         <option value="NORMAL">Purchase Order</option>
                                         <option value="NP">Non Purchase</option>
                                         <option value="JASA">Jasa</option>
