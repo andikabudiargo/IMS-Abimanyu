@@ -297,10 +297,9 @@ checkBeforeSave = () => {
                 flag = 1;
             }
 
-            if (parseFloat(qty) > parseFloat(stock)){
-                pesan += "Items " + articleDesc + " - Qty Delivery (" + qty + ") melebihi Stock Finish Goods (" + stock + ")<br>";
-                flag = 1;
-            }
+            // Validasi "qty melebihi Stock Finish Goods" DIHAPUS sesuai permintaan —
+            // overstock sekarang tidak lagi memblokir Save. Info stok tetap ditampilkan
+            // sebagai peringatan non-blocking lewat checkFGStock (Swal warning di bawah).
 
             if ((articleCode !== '') && (qty > 0)) {
                 articles.push({ "article_code": articleCode });
@@ -335,31 +334,19 @@ checkBeforeSave = () => {
             return;
         }
 
-        let hasZeroStock  = stockResult.some(item => item.stock <= 0);
-        let hasLowStock   = stockResult.some(item => item.stock > 0 && item.stock < item.qty);
-        let stockTable    = buildStockTable(stockResult);
+        // FIX: dulu hasZeroStock hard-block (Swal cuma tombol "Tutup", langsung return
+        // tanpa opsi lanjut). Sekarang digabung sama hasLowStock jadi satu peringatan
+        // non-blocking — stok 0 ataupun kurang tetap dikasih pilihan "Lanjutkan Save".
+        let hasInsufficientStock = stockResult.some(item => item.stock < item.qty);
+        let stockTable = buildStockTable(stockResult);
 
-        if (hasZeroStock) {
-            $('#cmdSave').removeAttr('disabled');
+        if (hasInsufficientStock) {
             Swal.fire({
                 width: 900,
-                title: '<strong class="text-danger">⛔ Stok Finish Goods Tidak Cukup!</strong>',
-                icon: 'error',
-                html: `<p>Terdapat artikel dengan stok <b>0</b> di Gudang Finish Goods. 
-                        Delivery tidak dapat disimpan.</p>${stockTable}`,
-                confirmButtonText: 'Tutup',
-                confirmButtonColor: '#d33'
-            });
-            return;
-        }
-
-        if (hasLowStock) {
-            Swal.fire({
-                width: 900,
-                title: '<strong class="text-warning">⚠️ Perhatian: Stok Finish Goods Kurang</strong>',
+                title: '<strong class="text-warning">⚠️ Perhatian: Stok Finish Goods Tidak Mencukupi</strong>',
                 icon: 'warning',
-                html: `<p>Stok tersedia namun <b>lebih sedikit</b> dari QTY Delivery. 
-                        Pastikan sudah benar sebelum menyimpan.</p>${stockTable}`,
+                html: `<p>Terdapat artikel dengan stok <b>kurang atau kosong</b> di Gudang Finish Goods. 
+                        Anda tetap bisa melanjutkan Save.</p>${stockTable}`,
                 showDenyButton: true,
                 denyButtonText: 'Batal',
                 confirmButtonText: 'Lanjutkan Save',
