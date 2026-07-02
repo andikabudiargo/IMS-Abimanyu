@@ -758,8 +758,7 @@ Route::get('stockAdjustment/create',['as'=>'stockAdjustment.create','uses'=>'Sto
 Route::post('stockAdjustment/store',['as'=>'stockAdjustment.store','uses'=>'StockAdjustmentController@store']);
 Route::get('stockAdjustment/export/excel',['as'=>'stockAdjustment.export.excel','uses'=>'StockAdjustmentController@export']);
 Route::get('stockAdjustment/stockBefore',['as'=>'stockAdjustment.stockBefore','uses'=>'StockAdjustmentController@stockBefore']);
-Route::post('stock-adjustment/stock-before-bulk', [\App\Http\Controllers\StockAdjustmentController::class, 'stockBeforeBulk'])
-       ->name('stockAdjustment.stockBeforeBulk');
+Route::post('stock-adjustment/stock-before-bulk', ['as' => 'stockAdjustment.stockBeforeBulk', 'uses' => 'StockAdjustmentController@stockBeforeBulk']);
 Route::post('stockAdjustment/update',['as'=>'stockAdjustment.update','uses'=>'StockAdjustmentController@update']);
 Route::post('stockAdjustment/import/excel',['as'=>'stockAdjustment.import.excel','uses'=>'StockAdjustmentController@import']);
 Route::get('stockAdjustment/edit',['as'=>'stockAdjustment.edit','uses'=>'StockAdjustmentController@edit','middleware' => ['permission:transferOut-edit']]);

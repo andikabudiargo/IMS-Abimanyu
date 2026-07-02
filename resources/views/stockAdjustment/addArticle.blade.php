@@ -579,7 +579,7 @@ function _fetchStockBeforeBulk(rowMeta) {
         }
         $.ajax({
             url: "{{ route('stockAdjustment.stockBeforeBulk') }}",
-            method: "GET",
+            method: "POST",
             data: {
                 adjDate: adjDate,
                 location_code: locCode,
