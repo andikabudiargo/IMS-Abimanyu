@@ -40,12 +40,12 @@
                                            data-article-code="{{ old('articleCode', $header->article_code) }}"
                                            class="form-control" disabled />
                                 </div>
-                                <div class="form-group col-md-1">
-                                    <label for="uomHdr">UOM</label>
-                                    <input type="text" id="uomHdr" name="uomHdr"
-                                           value="{{ old('uomHdr', $header->uom) }}"
-                                           class="form-control" disabled />
-                                </div>
+                               <div class="form-group col-md-1">
+    <label for="uomHdr">UOM</label>
+    <input type="text" id="uomHdr" name="uomHdr"
+           value="{{ old('uomHdr', $header->article_uom) }}"
+           class="form-control" disabled />
+</div>
                             </div>
 
                             {{-- ====================== RAW MATERIAL ====================== --}}

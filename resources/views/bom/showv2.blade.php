@@ -57,16 +57,16 @@
                                                 <input type="text" class="form-control"
                                                        value="{{ $header2->article }}" disabled />
                                             </div>
-                                            <div class="form-group col-md-1">
-                                                <label>UOM</label>
-                                                <input type="text" class="form-control"
-                                                       value="{{ $header2->uom }}" disabled />
-                                            </div>
+                                           <div class="form-group col-md-1">
+    <label>UOM</label>
+    <input type="text" class="form-control"
+           value="{{ $header2->article_uom }}" disabled />
+</div>
                                         </div>
 
                                         {{-- Raw Material (tepat di bawah Article FG, sama seperti create/edit) --}}
 @php
-    $uomFgShow = strtoupper(trim($header2->uom ?? ''));
+    $uomFgShow = strtoupper(trim($header2->article_uom ?? ''));
     $rmForTab  = collect($rawMaterials)->where('bom_code', $header2->bom_code)->values();
     $firstRm   = $rmForTab->first();
 @endphp

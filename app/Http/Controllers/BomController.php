@@ -619,24 +619,26 @@ if (!empty($articleCodeRm)) {
     $data['subtitle'] = "Detail $this->title";
 
     $data['headers'] = DB::table('bom_hdr')
-    ->leftJoin('third_party','bom_hdr.customer','third_party.kode')
-    ->leftJoin('group_materials','group_materials.code','=','bom_hdr.group_of_material')
-    ->where('origin_bom_code', function($query) use ($id){
-        $query->select('bom_code')->from('bom_hdr')->where('id',$id);
-    })
-    ->select('bom_hdr.*'
-    ,'third_party.nama as cust_name'
-    ,'group_materials.name as group'
-    ,DB::raw("(select concat(kode,' - ',nama) from third_party where kode = bom_hdr.customer) as cust_name")
-    ,DB::raw('(select sum(qty) from bom_det where bom_code = bom_hdr.bom_code) as sum_qty') 
-    ,DB::raw('(select count(*) from bom_det where bom_code = bom_hdr.bom_code) as sum_row')
-    ,DB::raw("(select 
-                concat(article.article_alternative_code,'-',article.article_desc)
-            from article where article_code = bom_hdr.article_code limit 1) as article")
-    // article_rm DIHAPUS dari sini -> sekarang multi RM, diambil terpisah dari tabel bom_rm di bawah
-    )
-    ->orderBy('id')
-    ->get();    
+->leftJoin('third_party','bom_hdr.customer','third_party.kode')
+->leftJoin('group_materials','group_materials.code','=','bom_hdr.group_of_material')
+->where('origin_bom_code', function($query) use ($id){
+    $query->select('bom_code')->from('bom_hdr')->where('id',$id);
+})
+->select('bom_hdr.*'
+,'third_party.nama as cust_name'
+,'group_materials.name as group'
+,DB::raw("(select concat(kode,' - ',nama) from third_party where kode = bom_hdr.customer) as cust_name")
+,DB::raw('(select sum(qty) from bom_det where bom_code = bom_hdr.bom_code) as sum_qty') 
+,DB::raw('(select count(*) from bom_det where bom_code = bom_hdr.bom_code) as sum_row')
+,DB::raw("(select 
+            concat(article.article_alternative_code,'-',article.article_desc)
+        from article where article_code = bom_hdr.article_code limit 1) as article")
+// ==== TAMBAHAN: ambil UOM dari relasi article ====
+,DB::raw("(select article.uom from article
+            where article.article_code = bom_hdr.article_code limit 1) as article_uom")
+)
+->orderBy('id')
+->get();
 
     $bomNumber =  $data['headers'][0]->bom_code;
 
@@ -741,19 +743,22 @@ if (!empty($articleCodeRm)) {
     $data['title'] = "Edit $this->title";
     $data['subtitle'] = "Edit $this->title";
 
-    $data['header'] = DB::table('bom_hdr')
-        ->leftJoin('third_party', 'bom_hdr.customer', 'third_party.kode')
-        ->leftJoin('group_materials', 'group_materials.code', '=', 'bom_hdr.group_of_material')
-        ->select(
-            'bom_hdr.*',
-            'third_party.nama as cust_name',
-            'group_materials.name as group',
-            DB::raw("(select concat(article.article_alternative_code,'-',article.article_desc)
-                      from article where article_code = bom_hdr.article_code limit 1) as article")
-            // article_rm dihapus dari sini, sudah pindah ke bom_rm
-        )
-        ->where('bom_hdr.id', $id)
-        ->get()->first();
+   $data['header'] = DB::table('bom_hdr')
+    ->leftJoin('third_party', 'bom_hdr.customer', 'third_party.kode')
+    ->leftJoin('group_materials', 'group_materials.code', '=', 'bom_hdr.group_of_material')
+    ->select(
+        'bom_hdr.*',
+        'third_party.nama as cust_name',
+        'group_materials.name as group',
+        DB::raw("(select concat(article.article_alternative_code,'-',article.article_desc)
+                  from article where article_code = bom_hdr.article_code limit 1) as article"),
+        // ==== TAMBAHAN: ambil UOM dari relasi article, bukan dari bom_hdr.uom ====
+        DB::raw("(select article.uom from article
+                  where article.article_code = bom_hdr.article_code limit 1) as article_uom")
+        // article_rm dihapus dari sini, sudah pindah ke bom_rm
+    )
+    ->where('bom_hdr.id', $id)
+    ->get()->first();
 
     $bomNumber = $data['header']->bom_code;
 
