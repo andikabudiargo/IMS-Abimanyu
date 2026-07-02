@@ -33,7 +33,7 @@
                 </div>
             </div>
             {{-- Sisipkan sebelum col trash button --}}
-<div class="col-md-2 col-12 fg-target-wrapper" style="display:none;">
+<div class="col-md-3 col-12 fg-target-wrapper" style="display:none;">
     <div class="form-group margin-nol">
         <label class="d-block d-md-none">FG Target</label>
         <select class="form-control form-control" id="fgTarget" name="fg_target[]">
@@ -41,7 +41,7 @@
         </select>
     </div>
 </div>
-            <div class="col-md-3 col-12">
+            <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
                     <label for="note" class="d-block d-md-none">Note</label>
                     <input type="text" class="form-control tombol-panah"
