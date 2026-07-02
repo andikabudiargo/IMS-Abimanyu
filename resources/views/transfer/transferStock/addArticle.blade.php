@@ -166,6 +166,22 @@
     let dataArticle = "";
     let dataLocationTo = "";
     let isLocationToBooth = false; // ← flag booth
+    let isLocationFromRM  = false;  // ← Location From bertipe rm
+
+/** True hanya kalau From=rm DAN To=booth */
+function shouldShowFgTarget() {
+    return isLocationFromRM && isLocationToBooth;
+}
+
+/** Toggle header kolom FG Target sesuai kondisi gabungan */
+function toggleFgTargetHeader() {
+    shouldShowFgTarget() ? $('#headerFgTarget').show() : $('#headerFgTarget').hide();
+}
+    // ── batas ketat qty hanya berlaku untuk gudang Consumable ──
+const CONSUMABLE_LOCATION = '006';
+function isStrictStockLocation() {
+    return (typeof locationFrom !== 'undefined' && locationFrom.val() === CONSUMABLE_LOCATION);
+}
 
     if (trDate.length) {
         trDate.flatpickr({ dateFormat: "d-m-Y" });
@@ -190,6 +206,35 @@
         reloadPage();
     });
 
+
+    /**
+ * Cek location type untuk Location From, set flag isLocationFromRM,
+ * lalu refresh header + semua row.
+ */
+function checkAndSetFromRmFlag(locCode) {
+    if (!locCode) {
+        isLocationFromRM = false;
+        toggleFgTargetHeader();
+        refreshAllFgTarget();
+        return;
+    }
+    $.ajax({
+        url: "{{ route('transferStock.checkLocationType') }}",
+        method: "GET",
+        data: { location_code: locCode },
+        dataType: "json",
+        success: function(res) {
+            isLocationFromRM = (res.location_type === 'rm');
+            toggleFgTargetHeader();
+            refreshAllFgTarget();
+        },
+        error: function() {
+            isLocationFromRM = false;
+            toggleFgTargetHeader();
+            refreshAllFgTarget();
+        }
+    });
+}
     // ============================================================
     // FG TARGET HELPERS
     // ============================================================
@@ -201,7 +246,7 @@
     function checkAndSetBoothFlag(locCode) {
     if (!locCode) {
         isLocationToBooth = false;
-        $('#headerFgTarget').hide();
+        toggleFgTargetHeader();
         refreshAllFgTarget();
         return;
     }
@@ -212,13 +257,12 @@
         dataType: "json",
         success: function(res) {
             isLocationToBooth = (res.location_type === 'booth');
-            // toggle header kolom FG Target
-            isLocationToBooth ? $('#headerFgTarget').show() : $('#headerFgTarget').hide();
+            toggleFgTargetHeader();
             refreshAllFgTarget();
         },
         error: function() {
             isLocationToBooth = false;
-            $('#headerFgTarget').hide();
+            toggleFgTargetHeader();
             refreshAllFgTarget();
         }
     });
@@ -256,9 +300,9 @@
     console.log('isLocationToBooth:', isLocationToBooth);
     console.log('shouldShow:', isLocationToBooth && !!articleCode && ['RMP','RMNP'].includes(articleType));
 
-        const shouldShow = isLocationToBooth &&
-                           !!articleCode &&
-                           ['RMP', 'RMNP'].includes(articleType);
+       const shouldShow = shouldShowFgTarget() &&
+                   !!articleCode &&
+                   ['RMP', 'RMNP'].includes(articleType);
 
         if (shouldShow) {
             $wrapper.show();
@@ -347,11 +391,21 @@
                     let fgTarget = $row.find('select[name="fg_target[]"]').val() || null;
                     // ────────────────────────────────────────────────
 
+                   // let stock = parseFloat(objQty.eq(i).attr('data-stock'));
+                    //if (!isNaN(stock) && parseFloat(qty) > stock) {
+                      //  pesan += "Qty " + articleName + " (" + qty + ") melebihi stock tersedia (" + stock + ") <br>";
+                        //flag = 1;
+                    //}
+
                     let stock = parseFloat(objQty.eq(i).attr('data-stock'));
-                    if (!isNaN(stock) && parseFloat(qty) > stock) {
-                        pesan += "Qty " + articleName + " (" + qty + ") melebihi stock tersedia (" + stock + ") <br>";
-                        flag = 1;
-                    }
+if (!isNaN(stock) && parseFloat(qty) > stock) {
+    if (isStrictStockLocation()) {
+        // gudang Consumable (006): tetap ketat, blok save
+        pesan += "Qty " + articleName + " (" + qty + ") melebihi stock tersedia (" + stock + ") <br>";
+        flag = 1;
+    }
+    // gudang lain: dibiarkan lolos (over-stock diperbolehkan), tidak menaikkan flag
+}
 
                     // Validasi: jika booth & artikel RMP/RMNP, fg_target wajib diisi
                     let articleType = ($this.find(":selected").data("article-type") || '').toUpperCase();
@@ -488,19 +542,38 @@
         $("#note" + cloneCount).val(note);
 
         let selStock = $("#articleId" + cloneCount).find(":selected").data("stock");
-        if (selStock !== undefined && selStock !== null && selStock !== '') {
-            $("#qty" + cloneCount).attr('data-stock', selStock);
-            if (parseFloat(qty) > parseFloat(selStock)) qty = selStock;
-        }
-        $("#qty" + cloneCount).val(qty);
+if (selStock !== undefined && selStock !== null && selStock !== '') {
+    $("#qty" + cloneCount).attr('data-stock', selStock);
+    // hanya clamp otomatis kalau gudang Consumable (006)
+    if (isStrictStockLocation() && parseFloat(qty) > parseFloat(selStock)) {
+        qty = selStock;
+    }
+}
+$("#qty" + cloneCount).val(qty);
 
-        $("#new_row" + cloneCount).find('#stock').attr('id', 'stock' + cloneCount);
-        if (selStock !== undefined && selStock !== null && selStock !== '') {
-            $("#stock" + cloneCount).val(formatStock(selStock));
-            if (parseFloat(qty) > parseFloat(selStock)) {
-                $("#qty" + cloneCount).addClass('qty-over-stock');
-            }
-        }
+$("#new_row" + cloneCount).find('#stock').attr('id', 'stock' + cloneCount);
+if (selStock !== undefined && selStock !== null && selStock !== '') {
+    $("#stock" + cloneCount).val(formatStock(selStock));
+    // tetap tandai visual kalau over stock, di gudang manapun (informasi, bukan blokir)
+    if (parseFloat(qty) > parseFloat(selStock)) {
+        $("#qty" + cloneCount).addClass('qty-over-stock');
+    }
+}
+
+       // let selStock = $("#articleId" + cloneCount).find(":selected").data("stock");
+        //if (selStock !== undefined && selStock !== null && selStock !== '') {
+          //  $("#qty" + cloneCount).attr('data-stock', selStock);
+           // if (parseFloat(qty) > parseFloat(selStock)) qty = selStock;
+        //}
+        //$("#qty" + cloneCount).val(qty);
+
+        //$("#new_row" + cloneCount).find('#stock').attr('id', 'stock' + cloneCount);
+        //if (selStock !== undefined && selStock !== null && selStock !== '') {
+          //  $("#stock" + cloneCount).val(formatStock(selStock));
+            //if (parseFloat(qty) > parseFloat(selStock)) {
+              //  $("#qty" + cloneCount).addClass('qty-over-stock');
+            //}
+        //}
 
         let uomOption = "";
         if (uomMember) {
@@ -616,18 +689,37 @@
     // ============================================================
 
     $(document).on('input', '#article_row input[name="qty[]"]', function() {
-        let stock = parseFloat($(this).attr('data-stock'));
-        let raw   = ($(this).val() || '0').toString().replace(/,/g, '');
-        let val   = parseFloat(raw) || 0;
-        if (!isNaN(stock) && val > stock) {
-            $(this).addClass('qty-over-stock')
-                   .attr('title', 'Qty melebihi stock tersedia (' + formatStock(stock) + ')');
+    let stock = parseFloat($(this).attr('data-stock'));
+    let raw   = ($(this).val() || '0').toString().replace(/,/g, '');
+    let val   = parseFloat(raw) || 0;
+
+    if (!isNaN(stock) && val > stock) {
+        $(this).addClass('qty-over-stock')
+               .attr('title', 'Qty melebihi stock tersedia (' + formatStock(stock) + ')');
+
+        if (isStrictStockLocation()) {
             show_msg('Warning', 'Qty transfer melebihi stock tersedia (' + stock + ') di gudang ini.', 'warning');
-        } else {
-            $(this).removeClass('qty-over-stock').removeAttr('title');
         }
-        hitungGrandTotal();
-    });
+        // gudang selain Consumable: silent, cukup border merah sebagai penanda, tanpa toast berulang
+    } else {
+        $(this).removeClass('qty-over-stock').removeAttr('title');
+    }
+    hitungGrandTotal();
+});
+
+   // $(document).on('input', '#article_row input[name="qty[]"]', function() {
+     //   let stock = parseFloat($(this).attr('data-stock'));
+       // let raw   = ($(this).val() || '0').toString().replace(/,/g, '');
+        //let val   = parseFloat(raw) || 0;
+        //if (!isNaN(stock) && val > stock) {
+          //  $(this).addClass('qty-over-stock')
+            //       .attr('title', 'Qty melebihi stock tersedia (' + formatStock(stock) + ')');
+            //show_msg('Warning', 'Qty transfer melebihi stock tersedia (' + stock + ') di gudang ini.', 'warning');
+        //} else {
+          //  $(this).removeClass('qty-over-stock').removeAttr('title');
+        //}
+        //hitungGrandTotal();
+    //});
 
     // ============================================================
     // HITUNG TOTAL

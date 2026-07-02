@@ -826,7 +826,7 @@ class DependentController extends Controller
             ,DB::RAW("(select string_agg(unit_to,',' order by unit_from) as uom_member from uom_con where unit_from = $table.uom)")
             )
             ->get();
-       }elseif($dependent == 'trArticleLocation'){
+       /*}elseif($dependent == 'trArticleLocation'){
             $reserved = "(select coalesce(sum(d.qty * coalesce(uom_conversion(d.uom, article.uom),1)),0)
             from transfer_stock_det d
             join transfer_stock_hdr h on h.tr_number = d.tr_number
@@ -845,6 +845,34 @@ class DependentController extends Controller
             DB::raw("(select unit_to from uom_con_v2 where uom_con_v2.article_code = article.article_code order by unit_to limit 1) as uom_v2"),
             DB::raw("(select string_agg(unit_to, ',') from uom_con_v2 where uom_con_v2.article_code = article.article_code) as uom_member")
             )
+        ->get(); */
+       }elseif($dependent == 'trArticleLocation'){
+    $reserved = "(select coalesce(sum(d.qty * coalesce(uom_conversion(d.uom, article.uom),1)),0)
+    from transfer_stock_det d
+    join transfer_stock_hdr h on h.tr_number = d.tr_number
+    where d.article_code = article.article_code
+    and h.location_from = '".$code."'
+    and h.status in ('1','2','3'))";   // belum posted/canceled
+
+    $query = DB::table('article')
+        ->leftJoin('warehouse_stock', function($join) use ($code) {
+            $join->on('warehouse_stock.article_code', '=', 'article.article_code')
+                 ->where('warehouse_stock.location_number', '=', $code);
+        })
+        ->where('article.status','1')
+        ->whereNotIn('article.article_type', ['GA','PT']);
+
+    // hanya gudang Consumable (006) yang dibatasi ketat sesuai stock available
+    if ($code === '006') {
+        $query->whereRaw("coalesce(warehouse_stock.article_qty,0) - $reserved > 0");
+    }
+
+    $data = $query->select(
+            'article.*',
+            DB::raw("coalesce(warehouse_stock.article_qty,0) - $reserved as stock"),
+            DB::raw("(select unit_to from uom_con_v2 where uom_con_v2.article_code = article.article_code order by unit_to limit 1) as uom_v2"),
+            DB::raw("(select string_agg(unit_to, ',') from uom_con_v2 where uom_con_v2.article_code = article.article_code) as uom_member")
+        )
         ->get();
        }elseif($dependent =='trArticleThirdParty'){
             $data= DB::table('article') 

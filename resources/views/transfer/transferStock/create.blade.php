@@ -234,15 +234,14 @@ locationTo.on('change', function() {
 
     resetArticleRows();
 
-    // bangun ulang opsi Location To tanpa gudang yang dipilih di From
     locationTo.html(locationToOptions);
     if (loc) {
-        //locationTo.find('option[value="' + loc + '"]').remove(); // hilangkan gudang asal dari To
         locationTo.find('option[value="' + loc + '"]').prop('disabled', true);
     }
 
-    // reset pilihan To & status enable, lalu refresh select2
     locationTo.val('').prop('disabled', !loc).trigger('change');
+
+    checkAndSetFromRmFlag(loc);   // ← tambahan: cek tipe Location From
 
     if (loc) {
         isiArticleByLocation('trArticleLocation', loc);
