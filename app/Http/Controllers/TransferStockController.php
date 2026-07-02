@@ -979,13 +979,15 @@ private function tambahStockTanpaAvg(string $siteCode, string $articleCode, stri
         ->orderBy('transfer_stock_det.id')
         ->get();
 
-    $data['locationsFrom'] = DB::table('stock_location_master')
-        ->when(!$privileged, function ($q) use ($userDepts) {
-            $q->whereIn('dept_code', $userDepts);
-             ->orWhere('location_code', '011');   // gudang umum selalu muncul
-        })
-        ->orderBy('location_name')
-        ->get();
+   $data['locationsFrom'] = DB::table('stock_location_master')
+    ->when(!$privileged, function ($q) use ($userDepts) {
+        $q->where(function ($sub) use ($userDepts) {
+            $sub->whereIn('dept_code', $userDepts)
+                ->orWhere('location_code', '011');
+        });
+    })
+    ->orderBy('location_name')
+    ->get();
 
     $data['locationsTo'] = DB::table('stock_location_master')
         ->orderBy('location_name')
