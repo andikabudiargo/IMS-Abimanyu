@@ -188,8 +188,10 @@ if ($locToType === 'booth') {
 } else {
     $trType = 'TRANSFER';
 }
+// ---- Validasi stok ----
+    // Hanya gudang Consumable (006) yang divalidasi ketat, gudang lain boleh over-stock
+    $strictStockLocation = '006';
 
-    // ---- Validasi stok ----
     $overStock = [];
     foreach ($articles as $val) {
         $onhand = DB::table('warehouse_stock')
@@ -211,7 +213,7 @@ if ($locToType === 'booth') {
             [$val->qty, $val->uom, $val->article_code]
         )->q;
 
-        if ($qtyBase > $available) {
+        if ($locationCode === $strictStockLocation && $qtyBase > $available) {
             $overStock[] = "Qty {$val->article_code} ($qtyBase) melebihi stok available ($available) di gudang $locationCode";
         }
     }
@@ -334,6 +336,11 @@ public function posting(Request $request)
 
         // ===== VALIDASI STOK: pastikan available cukup di gudang asal =====
         // available = onhand - reserved (transfer lain status 1/2/3 dari gudang asal, kecuali transfer ini)
+      // ===== VALIDASI STOK: pastikan available cukup di gudang asal =====
+        // available = onhand - reserved (transfer lain status 1/2/3 dari gudang asal, kecuali transfer ini)
+        // Hanya gudang Consumable (006) yang divalidasi ketat, gudang lain boleh over-stock
+        $strictStockLocation = '006';
+
         $overStock = [];
         foreach ($data as $val) {
             $qtyBase = (float) $val->total_qty;
@@ -354,7 +361,7 @@ public function posting(Request $request)
 
             $available = $onhand - $reserved;
 
-            if ($qtyBase > $available) {
+            if ($locationFrom === $strictStockLocation && $qtyBase > $available) {
                 $overStock[] = "Qty {$val->article_alternative_code} ({$qtyBase}) melebihi stok available ({$available}) di gudang asal";
             }
         }
