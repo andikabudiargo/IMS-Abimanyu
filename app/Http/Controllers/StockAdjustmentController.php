@@ -1122,7 +1122,7 @@ private function summarizeDirection(array $articles): string
     //  walau jumlah baris besar.
     // =========================================================================
 
-    pupublic function stockBeforeBulk(Request $request)
+    public function stockBeforeBulk(Request $request)
 {
     $adjDate      = $request->adjDate;
     $siteCode     = 'HO';
