@@ -166,6 +166,197 @@ class DnReplaceController extends Controller
     }
 
     public function store(Request $request)
+{
+    $username     = Auth::user()->username;
+    $articles     = json_decode($request->articles);
+    $replaceDate  = $request->replaceDate;
+    $returnNumber = $request->returnNumber;
+    $customer     = $request->customer;
+    $note         = $request->note;
+    $status       = '1';           // langsung CLOSED setelah save+posting
+    $leadCode     = $this->moduleCode;
+
+    // parameter posting
+    $siteCode     = 'HO';
+    $locationFG   = '007';
+    $todayDate    = date('Y-m-d');
+    $movementDate = date('d-m-Y');
+
+    $customMessages = [
+        'required' => 'The field is required.',
+        'unique'   => 'The code has already been taken',
+    ];
+
+    $validation = Validator::make($request->all(), [
+        'returnNumber' => 'required',
+        'replaceDate'  => 'required',
+    ], $customMessages);
+
+    if ($validation->fails()) {
+        $error_array = [];
+        foreach ($validation->messages()->getMessages() as $field_name => $messages) {
+            $error_array[] = $messages;
+        }
+        return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => $error_array, 'alert' => 'error']);
+    }
+
+    $hasilUpdate   = AppHelpers::resetCode($leadCode);
+    $replaceNumber = $this->getLastCode($leadCode);
+
+    DB::beginTransaction();
+    try {
+        // ===== 1. INSERT HEADER =====
+        $idKu = DB::table('dn_replace_hdr')->insertGetId([
+            'replace_number'        => $replaceNumber,
+            'return_number'         => $returnNumber,
+            'replace_date'          => $replaceDate,
+            'customer_id'           => $customer,
+            'status'                => $status,
+            'note'                  => $note,
+            'origin_replace_number' => $replaceNumber,
+            'created_by'            => $username,
+            'updated_by'            => $username,
+            'created_at'            => date('Y-m-d H:i:s'),
+            'updated_at'            => date('Y-m-d H:i:s'),
+        ]);
+
+        $idKuEnc = Crypt::encryptString($idKu);
+
+        // ===== 2. INSERT DETAIL =====
+        $dataSet = [];
+        foreach ($articles as $val) {
+            $dataSet[] = [
+                'replace_number' => $replaceNumber,
+                'return_number'  => $returnNumber,
+                'article_code'   => $val->article_code,
+                'qty_return'     => $val->qty_return,
+                'qty'            => $val->qty,
+                'uom'            => $val->uom,
+                'created_by'     => $username,
+                'updated_by'     => $username,
+                'created_at'     => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s'),
+            ];
+        }
+        DB::table('dn_replace_det')->insert($dataSet);
+
+        // ===== 3. POSTING: kurangi stock FG (007) + movement =====
+        $detailPosting = DB::table('dn_replace_det')
+            ->leftJoin('article', 'article.article_code', '=', 'dn_replace_det.article_code')
+            ->where('dn_replace_det.replace_number', $replaceNumber)
+            ->where('dn_replace_det.qty', '<>', 0)
+            ->select(
+                'dn_replace_det.*',
+                'article.article_type',
+                'article.article_desc',
+                'article.uom as uom_article',
+            )
+            ->get();
+
+        $seq = (int) DB::table('warehouse_movement')->max('movement_code');
+        $dataSetMovement = [];
+
+        foreach ($detailPosting as $val) {
+            $qtyKeluar = (float) $val->qty;
+
+            // Kurangi stock warehouse FG location 007
+            DB::table('warehouse_stock')
+                ->where('article_code', $val->article_code)
+                ->where('location_number', $locationFG)
+                ->decrement('article_qty', $qtyKeluar);
+
+            // Ambil avg_price untuk movement_price
+            $stockFG = DB::table('warehouse_stock')
+                ->where('article_code', $val->article_code)
+                ->where('location_number', $locationFG)
+                ->value('avg_price');
+
+            $seq++;
+            $dataSetMovement[] = [
+                'movement_code'     => $seq,
+                'movement_date'     => $movementDate,
+                'artikel_code'      => $val->article_code,
+                'artikel_desc'      => $val->article_desc ?? '',
+                'movement_min'      => $qtyKeluar,   // keluar dari FG
+                'movement_plus'     => 0,
+                'movement_price'    => $stockFG ?? 0,
+                'movement_transnno' => $replaceNumber,
+                'movement_type'     => $this->moduleCode,
+                'movement_desc'     => $note ?? $replaceNumber,
+                'created_by'        => $username,
+                'created_at'        => date('Y-m-d H:i:s'),
+                'site_code'         => $siteCode,
+                'location_number'   => $locationFG,
+                'last_qty'          => DB::raw("get_last_qty('{$val->article_code}','$todayDate','$siteCode','$locationFG') - $qtyKeluar"),
+                'movement_from'     => $locationFG,  // dari gudang FG 007
+                'movement_to'       => $customer,    // ke customer
+                'partner_type'      => 'CUST',
+            ];
+        }
+
+        if (!empty($dataSetMovement)) {
+            DB::table('warehouse_movement')->insert($dataSetMovement);
+        }
+
+        // ===== 4. CEK SISA RETURN =====
+        $sisaReturn = DB::select("
+            SELECT sum(qty) - sum(qty_replace) as sisa_return 
+            FROM (
+                SELECT *, 
+                (SELECT sum(qty) FROM dn_replace_det 
+                 WHERE return_number = dn_return_det.return_number 
+                 AND article_code = dn_return_det.article_code) as qty_replace
+                FROM dn_return_det 
+                WHERE return_number = '$returnNumber'
+            ) as oki
+        ");
+
+        // Update status DN Return: CLOSED (3) jika sisa 0, tetap OPEN (1) jika masih ada sisa
+        DB::table('dn_return_hdr')
+            ->where('return_number', $returnNumber)
+            ->update([
+                'status'     => ($sisaReturn[0]->sisa_return == 0) ? '3' : '1',
+                'updated_by' => $username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+        DB::commit();
+
+        $title   = "Save $this->title";
+        $alert   = "success";
+        $message = "$title $replaceNumber successfully saved & posted";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+
+        return response()->json([
+            'statusReplace' => 'CLOSED',
+            'title'         => $title,
+            'status'        => 1,
+            'message'       => $message,
+            'alert'         => $alert,
+            'replaceNumber' => $replaceNumber,
+            'idKu'          => $idKuEnc,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $title   = "Save $this->title";
+        $alert   = "warning";
+        $message = "$title $replaceNumber failed: " . $e->getMessage();
+        \LogActivity::addToLog($title, "username: $username Status $message");
+
+        return response()->json([
+            'statusReplace' => 'FAILED',
+            'title'         => $title,
+            'status'        => 0,
+            'message'       => $message,
+            'alert'         => $alert,
+            'replaceNumber' => $replaceNumber,
+            'idKu'          => '',
+        ]);
+    }
+}
+
+    public function storeTidakPosting(Request $request)
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request->articles);
@@ -290,8 +481,8 @@ class DnReplaceController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        $data['title'] = "Edit $this->title";
-        $data['subtitle'] = "Edit $this->title";
+        $data['title'] = "Detail $this->title";
+        $data['subtitle'] = "Detail $this->title";
 
         $data['header'] = DB::table('dn_replace_hdr')
         ->leftJoin('dn_return_hdr','dn_return_hdr.return_number','dn_replace_hdr.return_number')
@@ -420,7 +611,7 @@ class DnReplaceController extends Controller
 
         $dataCust= DB::table("dn_return_hdr") 
         ->where("customer_id",$custId)
-        // ->where("status","1")
+        ->where("status","1")
         ->orderBy("return_number")
         ->select('return_number','dn_number')
         ->get();          
@@ -448,6 +639,219 @@ class DnReplaceController extends Controller
     }
 
     public function update(Request $request)
+{
+    $username     = Auth::user()->username;
+    $replaceNumber = $request->replaceNumber;
+    $replaceDate  = $request->replaceDate;
+    $returnNumber = $request->returnNumber;
+    $customer     = $request->customer;
+    $note         = $request->note;
+    $articles     = json_decode($request->articles);
+    $status       = '1';
+
+    $siteCode     = 'HO';
+    $locationFG   = '007';
+    $todayDate    = date('Y-m-d');
+    $movementDate = date('d-m-Y');
+
+    $customMessages = [
+        'required' => 'The field is required.',
+        'unique'   => 'The code has already been taken',
+    ];
+
+    $validation = Validator::make($request->all(), [
+        'replaceDate'   => 'required',
+        'replaceNumber' => 'required',
+    ], $customMessages);
+
+    if ($validation->fails()) {
+        $error_array = [];
+        foreach ($validation->messages()->getMessages() as $field_name => $messages) {
+            $error_array[] = $messages;
+        }
+        return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => $error_array, 'alert' => 'error']);
+    }
+
+    DB::beginTransaction();
+    try {
+        // ===== 1. AMBIL DETAIL LAMA =====
+        $detailLama = DB::table('dn_replace_det')
+            ->leftJoin('article', 'article.article_code', '=', 'dn_replace_det.article_code')
+            ->where('dn_replace_det.replace_number', $replaceNumber)
+            ->where('dn_replace_det.qty', '<>', 0)
+            ->select('dn_replace_det.*', 'article.article_desc')
+            ->get();
+
+        // ===== 2. KEMBALIKAN STOCK LAMA =====
+        foreach ($detailLama as $val) {
+            DB::table('warehouse_stock')
+                ->where('article_code', $val->article_code)
+                ->where('location_number', $locationFG)
+                ->increment('article_qty', (float) $val->qty);
+        }
+
+        // ===== 3. HAPUS MOVEMENT LAMA =====
+        DB::table('warehouse_movement')
+            ->where('movement_transnno', $replaceNumber)
+            ->where('movement_type', $this->moduleCode)
+            ->delete();
+
+        // ===== 4. UPDATE HEADER =====
+        DB::table('dn_replace_hdr')
+            ->where('replace_number', $replaceNumber)
+            ->update([
+                'return_number' => $returnNumber,
+                'replace_date'  => $replaceDate,
+                'customer_id'   => $customer,
+                'status'        => $status,
+                'note'          => $note,
+                'updated_by'    => $username,
+                'updated_at'    => date('Y-m-d H:i:s'),
+            ]);
+
+        // ===== 5. UPDATE DETAIL (delete not exist + upsert) =====
+        $dataSet = [];
+        foreach ($articles as $val) {
+            $dataSet[] = [$replaceNumber . $val->article_code];
+        }
+
+        DB::table('dn_replace_det')
+            ->whereNotIn(DB::raw("CONCAT(replace_number,article_code)"), $dataSet)
+            ->where('replace_number', $replaceNumber)
+            ->delete();
+
+        foreach ($articles as $val) {
+            DB::table('dn_replace_det')
+                ->updateOrInsert(
+                    ['replace_number' => $replaceNumber, 'article_code' => $val->article_code],
+                    [
+                        'replace_number' => $replaceNumber,
+                        'return_number'  => $returnNumber,
+                        'article_code'   => $val->article_code,
+                        'qty_return'     => $val->qty_return,
+                        'qty'            => $val->qty,
+                        'uom'            => $val->uom,
+                        'updated_by'     => $username,
+                        'updated_at'     => date('Y-m-d H:i:s'),
+                    ]
+                );
+        }
+
+        // ===== 6. POSTING ULANG: kurangi stock FG (007) + movement baru =====
+        $detailBaru = DB::table('dn_replace_det')
+            ->leftJoin('article', 'article.article_code', '=', 'dn_replace_det.article_code')
+            ->where('dn_replace_det.replace_number', $replaceNumber)
+            ->where('dn_replace_det.qty', '<>', 0)
+            ->select(
+                'dn_replace_det.*',
+                'article.article_type',
+                'article.article_desc',
+                'article.uom as uom_article',
+            )
+            ->get();
+
+        $seq = (int) DB::table('warehouse_movement')->max('movement_code');
+        $dataSetMovement = [];
+
+        foreach ($detailBaru as $val) {
+            $qtyKeluar = (float) $val->qty;
+
+            // Kurangi stock warehouse FG location 007
+            DB::table('warehouse_stock')
+                ->where('article_code', $val->article_code)
+                ->where('location_number', $locationFG)
+                ->decrement('article_qty', $qtyKeluar);
+
+            // Ambil avg_price untuk movement_price
+            $stockFG = DB::table('warehouse_stock')
+                ->where('article_code', $val->article_code)
+                ->where('location_number', $locationFG)
+                ->value('avg_price');
+
+            $seq++;
+            $dataSetMovement[] = [
+                'movement_code'     => $seq,
+                'movement_date'     => $movementDate,
+                'artikel_code'      => $val->article_code,
+                'artikel_desc'      => $val->article_desc ?? '',
+                'movement_min'      => $qtyKeluar,
+                'movement_plus'     => 0,
+                'movement_price'    => $stockFG ?? 0,
+                'movement_transnno' => $replaceNumber,
+                'movement_type'     => $this->moduleCode,
+                'movement_desc'     => $note ?? $replaceNumber,
+                'created_by'        => $username,
+                'created_at'        => date('Y-m-d H:i:s'),
+                'site_code'         => $siteCode,
+                'location_number'   => $locationFG,
+                'last_qty'          => DB::raw("get_last_qty('{$val->article_code}','$todayDate','$siteCode','$locationFG') - $qtyKeluar"),
+                'movement_from'     => $locationFG,
+                'movement_to'       => $customer,
+                'partner_type'      => 'CUST',
+            ];
+        }
+
+        if (!empty($dataSetMovement)) {
+            DB::table('warehouse_movement')->insert($dataSetMovement);
+        }
+
+        // ===== 7. CEK SISA RETURN =====
+        $sisaReturn = DB::select("
+            SELECT sum(qty) - sum(qty_replace) as sisa_return 
+            FROM (
+                SELECT *, 
+                (SELECT sum(qty) FROM dn_replace_det 
+                 WHERE return_number = dn_return_det.return_number 
+                 AND article_code = dn_return_det.article_code) as qty_replace
+                FROM dn_return_det 
+                WHERE return_number = '$returnNumber'
+            ) as oki
+        ");
+
+        DB::table('dn_return_hdr')
+            ->where('return_number', $returnNumber)
+            ->update([
+                'status'     => ($sisaReturn[0]->sisa_return == 0) ? '3' : '1',
+                'updated_by' => $username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+        DB::commit();
+
+        $title   = "Update $this->title";
+        $alert   = "success";
+        $message = "$title $replaceNumber is successfully updated";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+
+        return response()->json([
+            'statusReplace' => 'UPDATED',
+            'status'        => 1,
+            'title'         => $title,
+            'message'       => $message,
+            'alert'         => $alert,
+            'replaceNumber' => $replaceNumber,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        $title   = "Update $this->title";
+        $alert   = "warning";
+        $message = "$title $replaceNumber is failed to update: " . $e->getMessage();
+        \LogActivity::addToLog($title, "username: $username Status $message");
+
+        return response()->json([
+            'statusReplace' => 'FAILED',
+            'status'        => 0,
+            'title'         => $title,
+            'message'       => $message,
+            'alert'         => $alert,
+            'replaceNumber' => $replaceNumber,
+        ]);
+    }
+}
+
+    public function updateOld(Request $request)
     {
         $username =  Auth::user()->username;
         $replaceNumber = $request->replaceNumber;
@@ -579,6 +983,136 @@ class DnReplaceController extends Controller
     }
 
     public function posting(Request $request)
+{
+    $username    = Auth::user()->username;
+    $id          = Crypt::decryptString($request->id);
+    $replaceNumber = DB::table('dn_replace_hdr')->where('id', $id)->value('replace_number');
+    $siteCode    = 'HO';
+    $locationFG  = '007';          // TAMBAHAN: lokasi warehouse FG
+    $status      = '4';
+    $moduleCode  = $this->moduleCode;
+    $todayDate   = date('Y-m-d');
+    $movementDate = date("d-m-Y");
+    $dariNew     = $request->dariNew;
+
+    if ($replaceNumber) {
+        $data = DB::table('dn_replace_det')
+            ->leftJoin('dn_replace_hdr', 'dn_replace_hdr.replace_number', 'dn_replace_det.replace_number')
+            ->leftJoin('article', 'article.article_code', 'dn_replace_det.article_code')
+            ->where('dn_replace_det.replace_number', $replaceNumber)
+            ->select(
+                'dn_replace_det.*',
+                'article.article_type',
+                'article.article_desc',
+                'article.uom as uom_article',
+                DB::RAW("average_cost(dn_replace_det.article_code,'$siteCode','$locationFG','$moduleCode') as average_cost"),
+                DB::RAW("dn_replace_det.qty as total_qty")   // qty langsung, tanpa uom_conversion karena tidak ada kolom price/uom_rec di replace
+            )
+            ->get();
+
+        DB::beginTransaction();
+        try {
+            foreach ($data as $val) {
+
+                // =============================================
+                // TAMBAHAN: Kurangi stock dari warehouse_stocks
+                // location_number = '007' (Finish Goods)
+                // =============================================
+                DB::table('warehouse_stock')
+                    ->where('article_code', $val->article_code)
+                    ->where('location_number', $locationFG)
+                    ->decrement('article_qty', $val->total_qty);
+
+            }
+
+            // Update status header menjadi CLOSED (2)
+            $rowAffected = DB::table('dn_replace_hdr')
+                ->where('replace_number', $replaceNumber)
+                ->update([
+                    'status'     => '2',            // CLOSED setelah posting
+                    'updated_by' => $username,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            if ($rowAffected > 0) {
+
+                // =============================================
+                // TAMBAHAN: Insert movement KELUAR dari loc 007
+                // =============================================
+                $dataSetMovement = [];
+                foreach ($data as $val) {
+                    $dataSetMovement[] = [
+                        'movement_date'     => $movementDate,
+                        'artikel_code'      => $val->article_code,
+                        'artikel_desc'      => $val->article_desc,
+                        'movement_min'      => $val->total_qty,   // keluar
+                        'movement_plus'     => 0,
+                        'movement_price'    => 0,
+                        'movement_transnno' => $replaceNumber,
+                        'movement_type'     => $moduleCode,
+                        'movement_desc'     => $replaceNumber,
+                        'created_by'        => $username,
+                        'created_at'        => date('Y-m-d H:i:s'),
+                        'site_code'         => $siteCode,
+                        'location_number'   => $locationFG,       // dari loc 007
+                        'last_qty'          => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$locationFG') - $val->total_qty")
+                    ];
+                }
+
+                DB::table('warehouse_movement')->insert($dataSetMovement);
+
+                $idKu = Crypt::encryptString($id);
+                DB::commit();
+
+                $title   = "Posting $this->title";
+                $alert   = "success";
+                $message = "$title $replaceNumber Successfully Posted";
+                \LogActivity::addToLog($title, "username: $username Status $message");
+
+                if ($dariNew == 'true') {
+                    return response()->json(['statusReplace' => $status, 'title' => $title, 'status' => 1, 'message' => $message, 'alert' => $alert, 'replaceNumber' => $replaceNumber, 'idKu' => $idKu]);
+                } else {
+                    return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+                }
+
+            } else {
+                DB::rollBack();
+                $title   = "Posting $this->title";
+                $alert   = "warning";
+                $message = "$title $replaceNumber Failed to Posting";
+                \LogActivity::addToLog($title, "username: $username Status $message");
+
+                if ($dariNew == 'true') {
+                    return response()->json(['statusReplace' => $status, 'title' => $title, 'status' => 0, 'message' => $message, 'alert' => $alert, 'replaceNumber' => $replaceNumber, 'idKu' => '']);
+                } else {
+                    return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+                }
+            }
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $title   = "Posting $this->title";
+            $alert   = "warning";
+            $message = "$title $replaceNumber Failed: " . $e->getMessage();
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            if ($dariNew == 'true') {
+                return response()->json(['statusReplace' => $status, 'title' => $title, 'status' => 0, 'message' => $message, 'alert' => $alert, 'replaceNumber' => $replaceNumber, 'idKu' => '']);
+            } else {
+                return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+            }
+        }
+
+    } else {
+        $title   = "Posting $this->title";
+        $alert   = "warning";
+        $message = "$title Failed to Posting — Replace Number not found";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+    }
+}
+
+    public function postingOld(Request $request)
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
@@ -1370,6 +1904,31 @@ class DnReplaceController extends Controller
     }
 
     public function listReturn(Request $request)
+{
+    $cust = $request->value;      
+    $output = "";
+
+    $data = DB::table("dn_return_hdr") 
+        ->where("customer_id", $cust)
+        ->where("status", "1")
+        ->orderBy("return_number")
+        ->select('return_number', 'dn_number')
+        ->get();          
+
+    if (count($data) > 0) {
+        $output .= '<option value="">Choose DN Return</option>';            
+        foreach ($data as $row) {
+            $dnLabel = $row->dn_number ? ' (' . $row->dn_number . ')' : '';
+            $output .= '<option value="' . $row->return_number . '" data-dn="' . $row->dn_number . '">'
+                        . $row->return_number . $dnLabel .
+                       '</option>';            
+        }
+    }
+
+    return $output;
+}
+
+    public function listReturnOld(Request $request)
     {
         $cust= $request->value;      
         $output="";
@@ -1391,6 +1950,39 @@ class DnReplaceController extends Controller
     }
 
     public function returnDetail(Request $request)
+{
+    $returnNumber = $request->value;
+    $data = DB::select("SELECT 
+    a.*,
+    a.article_code,
+    article_alternative_code,
+    article_desc,
+    (COALESCE(a.qty,0)) as tot_qty_return,
+    (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_return,
+    a.uom,
+    COALESCE(ws.qty_stock, 0) as qty_stock
+    from dn_return_det a
+    left join article on article.article_code = a.article_code
+    left join (
+        select sum(qty) as qty, return_number, article_code 
+        from dn_replace_det 
+        where return_number = '$returnNumber' 
+        group by return_number, article_code
+    ) as b on a.article_code = b.article_code
+    -- TAMBAHAN: join ke warehouse_stocks untuk ambil qty stock FG location 007
+    left join (
+        select article_code, sum(article_qty) as qty_stock
+        from warehouse_stock
+        where location_number = '007'
+        group by article_code
+    ) as ws on ws.article_code = a.article_code
+    where a.return_number = '$returnNumber'
+    order by a.id");
+
+    return response()->json($data);
+}
+
+    public function returnDetailOld(Request $request)
     {
         $returnNumber = $request->value;
         $data = DB::select("SELECT 

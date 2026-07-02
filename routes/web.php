@@ -766,6 +766,21 @@ Route::get('stockAdjustment/print',['as'=>'stockAdjustment.print','uses'=>'Stock
 Route::post('stockAdjustment/posting',['as'=>'stockAdjustment.posting','uses'=>'StockAdjustmentController@posting']);
 Route::post('stockAdjustment/cancel',['as'=>'stockAdjustment.cancel','uses'=>'StockAdjustmentController@cancel']);
 
+Route::get('stockReconciliation',['as'=>'stockReconciliation.index','uses'=>'StockReconciliationController@index','middleware' => ['permission:transferOut-index']]);
+Route::get('stockReconciliation/list',['as'=>'stockReconciliation.list','uses'=>'StockReconciliationController@list']);
+Route::get('stockReconciliation/list/detail',['as'=>'stockReconciliation.list.detail','uses'=>'StockReconciliationController@listDetail']);
+Route::get('stockReconciliation/create',['as'=>'stockReconciliation.create','uses'=>'StockReconciliationController@create']);
+Route::post('stockReconciliation/store',['as'=>'stockReconciliation.store','uses'=>'StockReconciliationController@store']);
+Route::get('stockReconciliation/export/excel',['as'=>'stockReconciliation.export.excel','uses'=>'StockReconciliationController@export']);
+Route::post('stockReconciliation/update',['as'=>'stockReconciliation.update','uses'=>'StockReconciliationController@update']);
+Route::post('stockReconciliation/import/excel',['as'=>'stockReconciliation.import.excel','uses'=>'StockReconciliationController@import']);
+Route::get('stockReconciliation/edit',['as'=>'stockReconciliation.edit','uses'=>'StockReconciliationController@edit','middleware' => ['permission:transferOut-edit']]);
+Route::get('stockReconciliation/show',['as'=>'stockReconciliation.show','uses'=>'StockReconciliationController@show']);
+Route::post('stockReconciliation/delete',['as'=>'stockReconciliation.destroy','uses'=>'StockReconciliationController@destroy']);
+Route::get('stockReconciliation/print',['as'=>'stockReconciliation.print','uses'=>'StockReconciliationController@print']);
+Route::post('stockReconciliation/posting',['as'=>'stockReconciliation.posting','uses'=>'StockReconciliationController@posting']);
+Route::post('stockReconciliation/cancel',['as'=>'stockReconciliation.cancel','uses'=>'StockReconciliationController@cancel']);
+
 	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);
 	Route::get('wosMixing/create',['as'=>'wosMixing.create','uses'=>'WosMixingController@create','middleware' => ['permission:wosMixing-create']]);
 	Route::post('wosMixing/store',['as'=>'wosMixing.store','uses'=>'WosMixingController@store']);
@@ -904,6 +919,7 @@ Route::post('stockAdjustment/cancel',['as'=>'stockAdjustment.cancel','uses'=>'St
 	Route::get('temporaryDn/update/so',['as'=>'suratJalanSementara.updateSo','uses'=>'TemporaryDnController@updateSo']);
 	Route::post('temporaryDn/update/so/update',['as'=>'suratJalanSementara.updateSo.update','uses'=>'TemporaryDnController@updateSoUpdate']);
 	Route::post('temporaryDn/createDn',['as'=>'suratJalanSementara.createDn','uses'=>'TemporaryDnController@createDn']);
+	Route::post('temporaryDn/posting', ['as' => 'suratJalanSementara.posting', 'uses' => 'TemporaryDnController@posting']);
 
 	Route::get('dnGeneral',['as'=>'dnGeneral.index','uses'=>'DnGeneralController@index']);
 	Route::get('dnGeneral/create',['as'=>'dnGeneral.create','uses'=>'DnGeneralController@create']);
