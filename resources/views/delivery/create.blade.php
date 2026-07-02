@@ -500,12 +500,11 @@ runPreStore = (articles) => {
                             show_msg(data.title, data.message, data.alert);
                             $('#dnNumber').val(data.dnNumber);
                             $('#statusText').val('NEW');
-                            // FIX: response store() balikin field 'idKu' (id ter-encrypt),
-                            // bukan 'id'. Sebelumnya di sini pakai data.id yang undefined,
-                            // jadi jQuery .val(undefined) gak nge-set apa-apa dan #idDn
-                            // tetap kosong -> tombol Print gagal manggil posting() -> hilang
-                            // tanpa pesan sama sekali.
-                            $('#idDn').val(data.idKu);
+                            // FIX (dikoreksi lagi): sudah dicek langsung ke DeliveryController::store(),
+                            // response-nya balikin field 'id' (bukan 'idKu' -- itu cuma dipakai di
+                            // posting()). Sempat salah diganti ke data.idKu, akibatnya #idDn selalu
+                            // kosong meski Save sukses, dan tombol Print nolak jalan minta Save ulang.
+                            $('#idDn').val(data.id);
                             $('#dnNumber').attr('disabled','disabled');
                             $('#cmdSave').hide();
                             $('#cmdPrint').show();
