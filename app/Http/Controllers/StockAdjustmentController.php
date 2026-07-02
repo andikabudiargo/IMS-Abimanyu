@@ -593,10 +593,6 @@ class StockAdjustmentController extends Controller
 //  POSTING — hanya superuser / accounting (backdate-safe)
 // =========================================================================
 
-// =========================================================================
-//  POSTING — hanya superuser / accounting (backdate-safe)
-// =========================================================================
-
 public function posting(Request $request)
 {
     $username = Auth::user()->username;
@@ -1094,7 +1090,7 @@ private function summarizeDirection(array $articles): string
 
 
     // =========================================================================
-    //  STOCK BEFORE  (AJAX)
+    //  STOCK BEFORE  (AJAX) — dipakai untuk 1 baris (add manual / lihat 1 artikel)
     // =========================================================================
 
     public function stockBefore(Request $request)
@@ -1114,6 +1110,56 @@ private function summarizeDirection(array $articles): string
 
     return response()->json(['stock' => $stock]);
 }
+
+    // =========================================================================
+    //  STOCK BEFORE — BULK (AJAX, dipakai import Excel)
+    //
+    //  Kenapa perlu endpoint terpisah dari stockBefore() di atas: import bisa
+    //  berisi ratusan/ribuan artikel sekaligus. Kalau tiap baris manggil
+    //  stockBefore() satu-satu, itu jadi ratusan/ribuan HTTP request (berat).
+    //  Endpoint ini menerima BANYAK article_code sekaligus dan mengembalikan
+    //  semuanya dalam SATU query database (pakai unnest), jadi tetap ringan
+    //  walau jumlah baris besar.
+    // =========================================================================
+
+    public function stockBeforeBulk(Request $request)
+    {
+        $adjDate      = $request->adjDate;
+        $siteCode     = 'HO';
+        $locationCode = $request->location_code;
+        $articleCodes = $request->article_codes; // array of string
+
+        $adjDateYmd = $this->toYmd($adjDate);
+
+        if (!$adjDateYmd || !$locationCode || empty($articleCodes) || !is_array($articleCodes)) {
+            return response()->json(['stocks' => (object) []]);
+        }
+
+        // unik-kan & buang yang kosong
+        $articleCodes = array_values(array_unique(array_filter($articleCodes, fn($c) => trim((string) $c) !== '')));
+
+        if (empty($articleCodes)) {
+            return response()->json(['stocks' => (object) []]);
+        }
+
+        // bangun literal array Postgres: {"CODE1","CODE2",...}
+        $pgArray = '{' . implode(',', array_map(function ($c) {
+            return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $c) . '"';
+        }, $articleCodes)) . '}';
+
+        $rows = DB::select("
+            SELECT ac.article_code,
+                   get_last_qty_new(ac.article_code, ?, ?, ?) as qty
+            FROM unnest(?::text[]) as ac(article_code)
+        ", [$adjDateYmd, $siteCode, $locationCode, $pgArray]);
+
+        $stocks = [];
+        foreach ($rows as $r) {
+            $stocks[$r->article_code] = (float) $r->qty;
+        }
+
+        return response()->json(['stocks' => $stocks]);
+    }
 
     // =========================================================================
     //  AUTO-CODE
@@ -1146,15 +1192,35 @@ private function summarizeDirection(array $articles): string
 
     public function importExcel(Request $request)
     {
-        $this->validate($request, ['file' => 'required|mimes:xls,xlsx']);
+        $this->validate($request, [
+            'file' => 'required|mimes:xls,xlsx|max:5120', // maks 5 MB
+        ]);
 
         $file         = $request->file('file');
         $namaFile     = Auth::user()->username . '_' . time();
         $locationCode = $request->location_code ?? '';
         $title        = "Import $this->title";
 
+        // batas jumlah baris yang aman untuk dirender di frontend
+        $maxRows = 2000;
+
         DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->delete();
-        Excel::import(new StockAdjustmentImport($namaFile), $file);
+
+        try {
+            Excel::import(new StockAdjustmentImport($namaFile), $file);
+        } catch (\Exception $e) {
+            DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->delete();
+            return response()->json(['status'=>0,'title'=>$title,
+                'message'=>['Gagal membaca file: '.$e->getMessage()],'alert'=>'error']);
+        }
+
+        $rowCount = DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->count();
+        if ($rowCount > $maxRows) {
+            DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->delete();
+            return response()->json(['status'=>0,'title'=>$title,
+                'message'=>["File berisi $rowCount baris, melebihi batas maksimal $maxRows baris per import. Silakan pecah file menjadi beberapa bagian."],
+                'alert'=>'error']);
+        }
 
         $dataValidasi = DB::table('import_adjustment_tmp')
             ->leftJoin('article','article.article_alternative_code','=','import_adjustment_tmp.article_code')
@@ -1175,6 +1241,10 @@ private function summarizeDirection(array $articles): string
                 'pesan'=>'Ada error pada data yang diupload!','dataDetail'=>[]]);
         }
 
+        // NOTE: stock_before di sini SENGAJA 0 — nilai stok historis yang
+        // sebenarnya diambil belakangan oleh frontend lewat stockBeforeBulk(),
+        // supaya query di sini tetap ringan (tidak perlu panggil
+        // get_last_qty_new() untuk tiap baris di titik ini).
         $data = DB::table('import_adjustment_tmp')
             ->leftJoin('article','article.article_alternative_code','=','import_adjustment_tmp.article_code')
             ->select('article.article_code',

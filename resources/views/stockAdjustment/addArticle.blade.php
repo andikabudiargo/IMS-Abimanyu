@@ -463,12 +463,21 @@ function _buildImportRowHtml(n, articleCode, balanceValue, uom, uomMember, notes
 /**
  * Import baris hasil Excel ke DOM secara batch supaya browser tidak berat.
  * rows: array of { article_code, qty_adjustment (=saldo akhir), uom, uom_member, notes, stock_before }
+ *
+ * PENTING: `stock_before` yang dikirim controller saat ini SELALU 0
+ * (lihat catatan di importExcel() backend). Nilai stok historis yang
+ * benar — termasuk untuk tanggal BACKDATE — baru diambil SETELAH semua
+ * baris ter-render, lewat _fetchStockBeforeBulk() di bawah, yang
+ * memanggil satu endpoint (stockBeforeBulk) untuk SEMUA artikel
+ * sekaligus dalam satu/segelintir query. Ini supaya tetap ringan
+ * (bukan 1 request per baris) tapi datanya tetap benar.
  */
 function importRowsFast(rows) {
     const total = rows.length;
     const BATCH_SIZE = 150; // insert HTML jauh lebih murah dari append per-row, jadi batch bisa besar
     let idx = 0;
     const $container = document.getElementById('article_row');
+    const rowMeta = []; // { n, articleCode } — dipakai nanti untuk bulk stock-before fetch
 
     function processBatch() {
         const end = Math.min(idx + BATCH_SIZE, total);
@@ -483,12 +492,13 @@ function importRowsFast(rows) {
                 n, r.article_code, r.qty_adjustment, r.uom, r.uom_member, r.notes, r.stock_before
             );
             rawList.push({ n, sbRaw: parseFloat(r.stock_before) || 0 });
+            rowMeta.push({ n, articleCode: r.article_code });
         }
 
         // satu kali insert untuk seluruh batch → jauh lebih ringan dari N kali append
         $container.insertAdjacentHTML('beforeend', htmlChunk);
 
-        // set data-raw stockBefore + hitung adjustment + lazy-init select2 per baris di batch ini
+        // set data-raw stockBefore (masih placeholder) + lazy-init select2 per baris di batch ini
         rawList.forEach(function (d) {
             $('#stockBefore' + d.n).data('raw', d.sbRaw);
             _bindLazySelect2($('#articleId' + d.n), d.n);
@@ -496,7 +506,7 @@ function importRowsFast(rows) {
         });
 
         if (Swal.isVisible()) {
-            Swal.getHtmlContainer().innerHTML = `<b>${idx}/${total}</b> Loaded`;
+            Swal.getHtmlContainer().innerHTML = `<b>${idx}/${total}</b> baris dimuat`;
         }
 
         if (idx < total) {
@@ -505,10 +515,8 @@ function importRowsFast(rows) {
         } else {
             feather.replace();
             hitungGrandTotal();
-            $('#uploadExcel').removeAttr('disabled');
-            $(".loading-spinner-container").removeClass("-show");
-            Swal.close();
-            if (typeof clearFileInput === 'function') clearFileInput('file');
+            // semua baris sudah tampil, lanjut ambil stock before HISTORIS yang benar
+            _fetchStockBeforeBulk(rowMeta);
         }
     }
 
@@ -519,7 +527,7 @@ function importRowsFast(rows) {
         }
         Swal.fire({
             title: "Importing...",
-            html: `<b>0/${total}</b> Loaded`,
+            html: `<b>0/${total}</b> baris dimuat`,
             icon: "info",
             showConfirmButton: false,
             allowOutsideClick: false,
@@ -531,6 +539,88 @@ function importRowsFast(rows) {
     }
 
     startWhenReady();
+}
+
+/**
+ * Ambil stock before HISTORIS (sesuai adjDate, termasuk backdate) untuk
+ * seluruh baris hasil import, lewat endpoint bulk (1 query untuk banyak
+ * artikel), dipecah per CHUNK_CODES kode supaya payload request tidak
+ * terlalu besar untuk import yang sangat banyak baris.
+ */
+function _fetchStockBeforeBulk(rowMeta) {
+    const adjDate  = $('#adjDate').val();
+    const locCode  = $('#location').val();
+    const CHUNK_CODES = 500; // jumlah article_code unik per request
+
+    if (!adjDate || !locCode || rowMeta.length === 0) {
+        _finishImport();
+        return;
+    }
+
+    // kumpulkan article_code unik
+    const uniqueCodes = [...new Set(rowMeta.map(m => m.articleCode).filter(Boolean))];
+    const chunks = [];
+    for (let i = 0; i < uniqueCodes.length; i += CHUNK_CODES) {
+        chunks.push(uniqueCodes.slice(i, i + CHUNK_CODES));
+    }
+
+    let done = 0;
+    const stockMap = {};
+
+    if (Swal.isVisible()) {
+        Swal.getHtmlContainer().innerHTML = `Memuat stock before (0/${chunks.length} batch)...`;
+    }
+
+    function runChunk(ci) {
+        if (ci >= chunks.length) {
+            _applyStockBeforeResults(rowMeta, stockMap);
+            _finishImport();
+            return;
+        }
+        $.ajax({
+            url: "{{ route('stockAdjustment.stockBeforeBulk') }}",
+            method: "GET",
+            data: {
+                adjDate: adjDate,
+                location_code: locCode,
+                article_codes: chunks[ci]
+            },
+            traditional: true, // supaya array article_codes[] ter-serialize dengan benar
+            success: function (data) {
+                Object.assign(stockMap, data.stocks || {});
+            },
+            error: function () {
+                // kalau satu chunk gagal, baris terkait tetap pakai 0 — tidak menghentikan proses
+                console.error('Gagal memuat stock before untuk batch', ci);
+            },
+            complete: function () {
+                done++;
+                if (Swal.isVisible()) {
+                    Swal.getHtmlContainer().innerHTML = `Memuat stock before (${done}/${chunks.length} batch)...`;
+                }
+                runChunk(ci + 1);
+            }
+        });
+    }
+
+    runChunk(0);
+}
+
+function _applyStockBeforeResults(rowMeta, stockMap) {
+    rowMeta.forEach(function (m) {
+        if (!Object.prototype.hasOwnProperty.call(stockMap, m.articleCode)) return;
+        let stock = parseFloat(stockMap[m.articleCode]) || 0;
+        $('#stockBefore' + m.n).val(humanizeNumber(stock)).data('raw', stock);
+        // balance TIDAK disentuh — itu nilai saldo akhir dari Excel, harus tetap
+        recomputeRow(m.n);
+    });
+}
+
+function _finishImport() {
+    $('#uploadExcel').removeAttr('disabled');
+    $(".loading-spinner-container").removeClass("-show");
+    Swal.close();
+    if (typeof clearFileInput === 'function') clearFileInput('file');
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
