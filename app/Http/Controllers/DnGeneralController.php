@@ -259,6 +259,7 @@ public function store(Request $request)
 
             $dataSet     = [];
             $movementSet = [];
+             $seq         = (int) DB::table('warehouse_movement')->max('movement_code');
 
             foreach ($articles as $val) {
                 $manual = $isManual($val->article_code);
@@ -349,7 +350,10 @@ if ($dnType === 'rm') {
     );
 }
 
+
+$seq++;
 $movementSet[] = [
+      'movement_code'     => $seq,
     'movement_date'     => $deliveryDate,
     'artikel_code'      => $val->article_code,
     'artikel_desc'      => $articleInfo->article_desc,
@@ -620,6 +624,7 @@ $movementSet[] = [
 
         $dataSet     = [];
         $movementSet = [];
+         $seq         = (int) DB::table('warehouse_movement')->max('movement_code');
 
         foreach ($articles as $val) {
             $manual = $isManual($val->article_code);
@@ -686,7 +691,9 @@ $movementSet[] = [
                 ->where('location_number', $location)
                 ->value('article_qty') ?? 0;
 
+              $seq++;
             $movementSet[] = [
+                'movement_code'     => $seq,
                 'movement_date'     => $deliveryDate,
                 'artikel_code'      => $val->article_code,
                 'artikel_desc'      => $articleInfo->article_desc,
@@ -805,6 +812,7 @@ $movementSet[] = [
             ->get();
 
         $reverseMovements = [];
+         $seq              = (int) DB::table('warehouse_movement')->max('movement_code');
 
         foreach ($details as $det) {
             $loc = $det->location_number ?? $location;
@@ -825,7 +833,9 @@ $movementSet[] = [
                 ->where('location_number', $loc)
                 ->value('article_qty') ?? 0;
 
+                  $seq++;
             $reverseMovements[] = [
+                 'movement_code'     => $seq,
                 'movement_date'     => date('d-m-Y'),
                 'artikel_code'      => $det->article_code,
                 'artikel_desc'      => $det->article_desc,
