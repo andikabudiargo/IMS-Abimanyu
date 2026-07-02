@@ -1122,44 +1122,53 @@ private function summarizeDirection(array $articles): string
     //  walau jumlah baris besar.
     // =========================================================================
 
-    public function stockBeforeBulk(Request $request)
-    {
-        $adjDate      = $request->adjDate;
-        $siteCode     = 'HO';
-        $locationCode = $request->location_code;
-        $articleCodes = $request->article_codes; // array of string
+    pupublic function stockBeforeBulk(Request $request)
+{
+    $adjDate      = $request->adjDate;
+    $siteCode     = 'HO';
+    $locationCode = $request->location_code;
+    $articleCodes = $request->article_codes; // array of string
 
-        $adjDateYmd = $this->toYmd($adjDate);
+    $adjDateYmd = $this->toYmd($adjDate);
 
-        if (!$adjDateYmd || !$locationCode || empty($articleCodes) || !is_array($articleCodes)) {
-            return response()->json(['stocks' => (object) []]);
-        }
-
-        // unik-kan & buang yang kosong
-        $articleCodes = array_values(array_unique(array_filter($articleCodes, fn($c) => trim((string) $c) !== '')));
-
-        if (empty($articleCodes)) {
-            return response()->json(['stocks' => (object) []]);
-        }
-
-        // bangun literal array Postgres: {"CODE1","CODE2",...}
-        $pgArray = '{' . implode(',', array_map(function ($c) {
-            return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $c) . '"';
-        }, $articleCodes)) . '}';
-
-        $rows = DB::select("
-            SELECT ac.article_code,
-                   get_last_qty_new(ac.article_code, ?, ?, ?) as qty
-            FROM unnest(?::text[]) as ac(article_code)
-        ", [$adjDateYmd, $siteCode, $locationCode, $pgArray]);
-
-        $stocks = [];
-        foreach ($rows as $r) {
-            $stocks[$r->article_code] = (float) $r->qty;
-        }
-
-        return response()->json(['stocks' => $stocks]);
+    if (!$adjDateYmd || !$locationCode || empty($articleCodes) || !is_array($articleCodes)) {
+        return response()->json(['stocks' => (object) []]);
     }
+
+    // unik-kan & buang yang kosong
+    $articleCodes = array_values(array_unique(array_filter(
+        $articleCodes,
+        fn($c) => trim((string) $c) !== ''
+    )));
+
+    if (empty($articleCodes)) {
+        return response()->json(['stocks' => (object) []]);
+    }
+
+    // placeholder ?,?,? sejumlah artikel
+    $placeholders = implode(',', array_fill(0, count($articleCodes), '?'));
+
+    // bindings: dulukan yg dipakai per-baris fungsi (adjDate, site, loc) via subselect,
+    // lalu daftar article_code untuk klausa IN
+    $sql = "
+        SELECT ac as article_code,
+               get_last_qty_new(ac, ?, ?, ?) as qty
+        FROM (
+            SELECT unnest(ARRAY[$placeholders]) as ac
+        ) t
+    ";
+
+    $bindings = array_merge([$adjDateYmd, $siteCode, $locationCode], $articleCodes);
+
+    $rows = DB::select($sql, $bindings);
+
+    $stocks = [];
+    foreach ($rows as $r) {
+        $stocks[$r->article_code] = (float) $r->qty;
+    }
+
+    return response()->json(['stocks' => $stocks]);
+}
 
     // =========================================================================
     //  AUTO-CODE
