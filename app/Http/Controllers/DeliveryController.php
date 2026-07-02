@@ -1022,7 +1022,7 @@ public function posting(Request $request)
         }
 
         if (!empty($dataSetMovementFg)) {
-            DB::table('movement_stock')->insert($dataSetMovementFg);
+            DB::table('warehouse_movement')->insert($dataSetMovementFg);
         }
 
         DB::commit();
@@ -1445,7 +1445,7 @@ public function posting(Request $request)
         }
 
         if (!empty($dataSetMovement)) {
-            DB::table('movement_stock')->insert($dataSetMovement); // sebelumnya: DB::table('movement')
+            DB::table('warehouse_movement')->insert($dataSetMovement); // sebelumnya: DB::table('movement')
         }
         return 'true';
 
