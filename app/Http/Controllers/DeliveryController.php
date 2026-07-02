@@ -1423,10 +1423,15 @@ public function posting(Request $request)
             ,'delivery_hdr.customer_id as movement_from_code' // barang kembali DARI customer
         )
         ->get();
+
+           $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
+               
         
         $dataSetMovement = [];
         foreach ($movements as $val) {
+             $seq++;
             $dataSetMovement[] = [
+                 'movement_code'    => $seq,
                 'movement_date' => $val->movement_date,
                 'artikel_code' => $val->article_code,
                 'artikel_desc' => $val->article_desc,
