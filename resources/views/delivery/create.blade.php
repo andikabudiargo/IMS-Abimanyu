@@ -529,25 +529,15 @@ runPreStore = (articles) => {
         checkBeforeSave();
     });
 
-    $("#cmdPrint").click(function(){
-        /* Posting langsung print */
-
-        // GUARD: pastikan #idDn sudah kebentuk (hasil dari Save yang sukses) sebelum
-        // manggil delivery.posting. Kalau kosong, jangan lanjut request ke server
-        // (yang tadinya bakal gagal di Crypt::decryptString('') dan bikin tombol
-        // hilang tanpa pesan).
-        let idDn = $('#idDn').val();
-        if (!idDn) {
-            Swal.fire('Error', 'ID dokumen belum ada. Silakan Save terlebih dahulu sebelum Print.', 'error');
-            return;
-        }
-
+     $("#cmdPrint").click(function(){
+        /* Posting langdung print*/
         $("#cmdPrint").attr('disabled','disabled');
-        $("#cmdSave").attr('disabled','disabled');
-
+        $('#cmdPrint').hide();
+        $('#cmdSave').hide();
         let objQty= $('input[name="qtyInv[]"]');
         let objUom= $('select[name="uom[]"]');       
-        let dnNumber = $('#dnNumber').val();
+        let dnNumber = $('#dnNumber').val();   
+        let idDn = $('#idDn').val();
         let dariNew = 'true';     
         $.ajax({
             type: "post",
@@ -560,19 +550,18 @@ runPreStore = (articles) => {
             dataType: "json",
             success: function(data) {
                 if (data.status == 0 ){
+                    let message="";
                     for(let i = 0; i < data.message.length; i++) {
                         show_msg(data.title, data.message[i], data.alert);
                     }
                     $('#dnNumber').attr('disabled','disabled');
-                    // FIX: dulu cmdPrint tetap hidden kalau posting gagal (status 0),
-                    // padahal cmdPrint sudah di-hide/disable di awal klik. Sekarang
-                    // dikembalikan supaya user bisa coba Print lagi.
-                    $('#cmdSave').removeAttr('disabled').show();
-                    $('#cmdPrint').removeAttr('disabled').show();
+                    $('#cmdSave').show();
+                    $('#cmdPrint').hide();
 
                 }else{
                     show_msg(data.title, data.message, data.alert);
                     $('#cmdSave').hide();
+                    // $('#deleteButton').hide();
                     $('#statusText').text('POSTED');
                     $('#cmdPrint').hide();
                     $('#dnNumber').attr('disabled','disabled');
@@ -590,12 +579,6 @@ runPreStore = (articles) => {
             },
             error: function(error) {
                 console.log(error);
-                // FIX: dulu di sini cuma console.log tanpa mengembalikan tombol/kasih
-                // pesan, jadi kalau request gagal (mis. id invalid, expired, error
-                // server), tombol Save & Print SAMA-SAMA hilang tanpa penjelasan.
-                $("#cmdPrint").removeAttr('disabled').show();
-                $("#cmdSave").removeAttr('disabled');
-                Swal.fire('Error', 'Gagal melakukan posting/print, silakan coba lagi.', 'error');
             }
         });
     });
