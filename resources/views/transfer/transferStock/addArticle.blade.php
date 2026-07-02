@@ -283,74 +283,70 @@ function checkAndSetFromRmFlag(locCode) {
      * @param {number} rowNum - cloneCount row
      */
     function evaluateFgTargetForRow(rowNum) {
-        const $select   = $("#articleId" + rowNum);
-        const $fgSelect = $("#fgTarget"  + rowNum);
-        const $wrapper  = $fgSelect.closest('.fg-target-wrapper');
+    const $select   = $("#articleId" + rowNum);
+    const $fgSelect = $("#fgTarget"  + rowNum);
+    const $wrapper  = $fgSelect.closest('.fg-target-wrapper');
 
-        if (!$fgSelect.length) return;
+    if (!$fgSelect.length) return;
 
-        const articleCode = $select.val();
-        const articleType = ($select.find(":selected").data("article-type") || '').toUpperCase();
-        // data-article-type wajib ada di <option> dari server (RMP / RMNP / FG / dll)
+    const articleCode = $select.val();
+    const articleType = ($select.find(":selected").data("article-type") || '').toUpperCase();
 
-        // ← TAMBAH INI SEMENTARA UNTUK DEBUG
-    console.log('rowNum:', rowNum);
-    console.log('articleCode:', articleCode);
-    console.log('articleType:', articleType);
-    console.log('isLocationToBooth:', isLocationToBooth);
-    console.log('shouldShow:', isLocationToBooth && !!articleCode && ['RMP','RMNP'].includes(articleType));
+    const shouldShow = shouldShowFgTarget() &&
+                       !!articleCode &&
+                       ['RMP', 'RMNP'].includes(articleType);
 
-       const shouldShow = shouldShowFgTarget() &&
-                   !!articleCode &&
-                   ['RMP', 'RMNP'].includes(articleType);
-
-        if (shouldShow) {
-            $wrapper.show();
-            // Load FG dari BOM hanya jika belum ada pilihan (hindari reload berulang)
-            if ($fgSelect.find('option').length <= 1) {
-                loadFgByRm(articleCode, $fgSelect);
-            }
-        } else {
-            $wrapper.hide();
+    if (shouldShow) {
+        $wrapper.show();
+        // reload kalau artikelnya beda dari yang terakhir di-load, bukan cuma "sudah ada isi atau belum"
+        const loadedFor = $fgSelect.data('loaded-for');
+        if (loadedFor !== articleCode) {
             $fgSelect.val('');
+            loadFgByRm(articleCode, $fgSelect);
         }
+    } else {
+        $wrapper.hide();
+        $fgSelect.val('').removeData('loaded-for');
     }
+}
 
     /**
      * Fetch FG list dari BOM berdasarkan article_code RM,
      * populate ke $selectEl.
      */
     function loadFgByRm(articleCode, $selectEl) {
-        $selectEl.prop('disabled', true)
-                 .html('<option value="">Memuat...</option>');
+    $selectEl.prop('disabled', true)
+             .html('<option value="">Memuat...</option>');
 
-        $.ajax({
-            url: "{{ route('transferStock.fgByRm') }}",
-            method: "GET",
-            data: { article_code: articleCode },
-            dataType: "json",
-            success: function(data) {
-                $selectEl.html('<option value="">— Pilih FG —</option>');
-                if (data.length > 0) {
-                   $.each(data, function(i, fg) {
-    $selectEl.append(
-        $('<option>', {
-            value: fg.fg_code,
-            text:  fg.fg_alt_code + ' — ' + fg.fg_name  // ← pakai fg_alt_code
-        })
-    );
-});
-                } else {
-                    $selectEl.append('<option value="" disabled>Tidak ada FG di BOM</option>');
-                }
-                $selectEl.prop('disabled', false);
-            },
-            error: function() {
-                $selectEl.html('<option value="">— Pilih FG —</option>')
-                         .prop('disabled', false);
+    $.ajax({
+        url: "{{ route('transferStock.fgByRm') }}",
+        method: "GET",
+        data: { article_code: articleCode },
+        dataType: "json",
+        success: function(data) {
+            $selectEl.html('<option value="">— Pilih FG —</option>');
+            if (data.length > 0) {
+                $.each(data, function(i, fg) {
+                    $selectEl.append(
+                        $('<option>', {
+                            value: fg.fg_code,
+                            text:  fg.fg_alt_code + ' — ' + fg.fg_name
+                        })
+                    );
+                });
+            } else {
+                $selectEl.append('<option value="" disabled>Tidak ada FG di BOM</option>');
             }
-        });
-    }
+            $selectEl.prop('disabled', false)
+                     .data('loaded-for', articleCode);   // ← tandai sudah termuat untuk artikel ini
+        },
+        error: function() {
+            $selectEl.html('<option value="">— Pilih FG —</option>')
+                     .prop('disabled', false)
+                     .removeData('loaded-for');          // ← gagal load, biar dicoba lagi nanti
+        }
+    });
+}
 
     // ============================================================
     // SIMPAN DATA
