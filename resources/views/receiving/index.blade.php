@@ -16,18 +16,26 @@
       <div class="card-body">
         <form class="needs-validation" novalidate>
             <div class="form-row">
-              <div class="form-group col-md-4"> 
+              <div class="form-group col-md-3"> 
                 <label for="searchRec">Rec Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchRec" name="searchRec" placeholder=""  />
               </div>
-              <div class="form-group col-md-4"> 
+              <div class="form-group col-md-3"> 
                 <label for="searchPo">PO Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
               </div>
-              <div class="form-group col-md-4"> 
+              <div class="form-group col-md-3"> 
                 <label for="searchInv">Invoice Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchInv" name="searchInv" placeholder=""  />
               </div>
+               <div class="form-group col-md-3">
+                <label class="form-label" for="recType">Receive Type</label>
+                                    <select class="select2 form-control" id="recType" name="recType" required>
+                                        <option value="NORMAL">Purchase Order</option>
+                                        <option value="NP">Non Purchase</option>
+                                        <option value="JASA">Jasa</option>
+                                    </select>
+                                </div>
             </div>
              <div class="form-row">
             <div class="form-group col-md-3"> 
