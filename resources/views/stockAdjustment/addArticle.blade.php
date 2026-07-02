@@ -2,7 +2,8 @@
 
 {{-- ══════════════════════════════════════════════════════
      TEMPLATE ROW  (hidden, cloned by JS)
-     Direction ditentukan di header — qty selalu positif
+     User isi SALDO AKHIR (balance) — sistem hitung selisih
+     dan arahnya (+/-) otomatis dibanding stock before
 ══════════════════════════════════════════════════════════ --}}
 <div id="new_row" class="d-none">
     <div id="baru" class="tanda-baris mb-50">
@@ -35,13 +36,13 @@
                 </div>
             </div>
 
-            {{-- Qty Adjustment (always positive) --}}
+            {{-- New Balance (yang diisi user = saldo akhir seharusnya) --}}
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label class="d-block d-md-none">Qty Adj</label>
+                    <label class="d-block d-md-none">Saldo Akhir</label>
                     <input type="text"
-                        class="form-control text-right tombol-panah adj-qty-input"
-                        id="qtyAdj" name="qtyAdj[]"
+                        class="form-control text-right tombol-panah balance-input"
+                        id="balanceQty" name="balanceQty[]"
                         placeholder="0"
                         maxlength="12"
                         data-type-el-kiri="select"
@@ -51,13 +52,13 @@
                 </div>
             </div>
 
-            {{-- Stock After (readonly) --}}
+            {{-- Adjustment (readonly, computed: balance - stockBefore) --}}
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
-                    <label class="d-block d-md-none">Stock After</label>
+                    <label class="d-block d-md-none">Adjustment</label>
                     <input type="text"
-                        class="form-control text-right bg-light"
-                        id="stockAfter" name="stockAfter[]"
+                        class="form-control text-right bg-light adj-qty-output"
+                        id="adjQty" name="adjQty[]"
                         value="0" readonly tabindex="-1" />
                 </div>
             </div>
@@ -65,12 +66,11 @@
             {{-- Notes --}}
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
-                    <label class="d-block d-md-none">Notes</label>
                     <input type="text" class="form-control tombol-panah"
                         id="notesRow" name="notesRow[]"
                         maxlength="150"
                         data-type-el-kiri="input"
-                        data-nama-el-kiri="qtyAdj" />
+                        data-nama-el-kiri="balanceQty" />
                 </div>
             </div>
 
@@ -97,16 +97,12 @@
 
     label.titik-dua::after { content:":"; position:absolute; right:1px; }
 
-    /* qty input colour based on active direction */
-    body.dir-plus  .adj-qty-input:not([value=""]):not([value="0"]) { border-color:#28c76f; color:#28c76f; }
-    body.dir-minus .adj-qty-input:not([value=""]):not([value="0"]) { border-color:#ea5455; color:#ea5455; }
+    /* adjustment output colour based on computed sign */
+    .adj-qty-output.adj-positive { border-color:#28c76f !important; color:#28c76f !important; background:#f0fdf6 !important; }
+    .adj-qty-output.adj-negative { border-color:#ea5455 !important; color:#ea5455 !important; background:#fff5f5 !important; }
 
-    /* direction toggle solid active state */
-    #directionToggle .btn-outline-success.active { background:#28c76f !important; color:#fff !important; border-color:#28c76f !important; }
-    #directionToggle .btn-outline-danger.active  { background:#ea5455 !important; color:#fff !important; border-color:#ea5455 !important; }
-
-    /* stock-after goes red when negative */
-    .stock-after-negative { border-color:#ea5455 !important; background:#fff5f5 !important; color:#ea5455 !important; }
+    /* balance-input highlight kalau beda dari stock before */
+    .balance-input.balance-changed { border-color:#ff9f43; }
 
     @media screen and (min-width:1200px) and (max-width:1600px) {
         .lebar-list-item     { width:100%; }
@@ -130,37 +126,12 @@ let articleMeta  = {};   // code -> {label, uom, uomMember}
 let   cloneCount  = 0;
 
 $(function () {
-    // Flatpickr
     const dp = $('#adjDate');
     if (dp.length) dp.flatpickr({ dateFormat: 'd-m-Y' });
-
-    // Direction toggle
-    $('input[name="direction"]').on('change', function () {
-        applyDirectionClass();
-        recomputeAllRows();
-    });
-    applyDirectionClass();
 });
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   DIRECTION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function getDirection() {
-    return $('input[name="direction"]:checked').val() || '+';
-}
-function applyDirectionClass() {
-    let dir = getDirection();
-    $('body').toggleClass('dir-plus',  dir === '+')
-             .toggleClass('dir-minus', dir === '-');
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ARTICLE LOADER
-   ─ Menggunakan key yang sama dengan transferOut ('trArticle')
-     agar dynamic.dependent mengembalikan option HTML yang
-     sudah berisi data-uom, data-uom-member, dsb.
-   ─ Sesuaikan key jika di DynamicDependentController
-     sudah ada entry khusus untuk adjustment.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function isiArticle(dependent) {
     $.ajax({
@@ -178,7 +149,6 @@ function isiArticle(dependent) {
     });
 }
 
-// bangun map code->label sekali saja (bukan per-baris)
 function _buildArticleMeta(html) {
     articleMeta = {};
     $('<select>').html(html).find('option').each(function () {
@@ -207,22 +177,34 @@ function fetchStockBefore(articleCode, locationCode, rowId) {
     });
 }
 function setStockBefore(rowId, stock) {
-    $('#stockBefore' + rowId).val(humanizeNumber(stock)).data('raw', stock);
+    let $sb = $('#stockBefore' + rowId);
+    $sb.val(humanizeNumber(stock)).data('raw', stock);
+
+    // Prefill saldo akhir = stock saat ini kalau user belum isi apa-apa
+    // supaya default adjustment = 0, tinggal diedit kalau memang beda.
+    let $bal = $('#balanceQty' + rowId);
+    if ($bal.val() === '' || $bal.data('autofilled')) {
+        $bal.val(humanizeNumber(stock)).data('autofilled', true);
+    }
     recomputeRow(rowId);
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ROW RECALC
+   ROW RECALC — inti dari perubahan: balance -> selisih otomatis
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function recomputeRow(rowId) {
-    let dir         = getDirection();
     let stockBefore = parseFloat($('#stockBefore' + rowId).data('raw')) || 0;
-    let qty         = Math.abs(parseFloat(String($('#qtyAdj' + rowId).val()).replace(/,/g,'')) || 0);
-    let stockAfter  = dir === '+' ? stockBefore + qty : stockBefore - qty;
+    let balance     = parseFloat(String($('#balanceQty' + rowId).val()).replace(/,/g,'')) || 0;
+    let diff        = balance - stockBefore; // + berarti nambah stok, - berarti kurangi
 
-    let saEl = $('#stockAfter' + rowId);
-    saEl.val(humanizeNumber(stockAfter));
-    saEl.toggleClass('stock-after-negative', stockAfter < 0);
+    let $adj = $('#adjQty' + rowId);
+    let sign = diff > 0 ? '+' : (diff < 0 ? '' : ''); // humanizeNumber biasanya sudah handle minus
+    $adj.val(sign + humanizeNumber(diff));
+    $adj.removeClass('adj-positive adj-negative');
+    if (diff > 0) $adj.addClass('adj-positive');
+    if (diff < 0) $adj.addClass('adj-negative');
+
+    $('#balanceQty' + rowId).toggleClass('balance-changed', diff !== 0);
 }
 function recomputeAllRows() {
     $('#article_row .tanda-baris').each(function () {
@@ -231,13 +213,14 @@ function recomputeAllRows() {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   QTY EVENTS
+   BALANCE INPUT EVENTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function bindQtyEvents(n) {
-    $('#qtyAdj' + n).on('input keyup', function () {
-        // strip minus — direction dari toggle header
+    $('#balanceQty' + n).on('input keyup', function () {
+        // saldo akhir tidak boleh minus
         let v = $(this).val().replace(/-/g, '');
         if ($(this).val() !== v) $(this).val(v);
+        $(this).data('autofilled', false); // user sudah edit manual
         recomputeRow(n);
         hitungGrandTotal();
     });
@@ -248,7 +231,6 @@ function bindQtyEvents(n) {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function add_new_row() {
     if (dataArticle === null) {
-        // Artikel belum selesai di-load — tunggu lalu retry
         Swal.fire({ toast:true, position:'top-end', icon:'info',
             title:'Memuat daftar artikel...', timer:1200, showConfirmButton:false });
         setTimeout(add_new_row, 1200);
@@ -259,18 +241,13 @@ function add_new_row() {
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ADD ROW — programmatic (import / edit)
+   balanceValue = saldo akhir yang seharusnya untuk artikel ini
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function add_new_row_edit(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeVal, direction, opts) {
-    if (direction && cloneCount === 0) {
-        let $radio = $('input[name="direction"][value="' + direction + '"]');
-        $radio.prop('checked', true);
-        $radio.closest('label').addClass('active').siblings('label').removeClass('active');
-        applyDirectionClass();
-    }
-    _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeVal, opts);
+function add_new_row_edit(articleCode, balanceValue, uom, uomMember, notes, stockBeforeVal, opts) {
+    _doAddRow(articleCode, balanceValue, uom, uomMember, notes, stockBeforeVal, opts);
 }
 
-function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeVal, opts) {
+function _doAddRow(articleCode, balanceValue, uom, uomMember, notes, stockBeforeVal, opts) {
     opts = opts || {};
     cloneCount++;
     let n = cloneCount;
@@ -287,7 +264,6 @@ function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeV
     let $sel = $('#articleId' + n);
 
     if (opts.lazySelect && articleCode) {
-        // ── Mode import: render minimal, JANGAN init select2 dulu ──
         let meta = articleMeta[articleCode] || {};
         $sel.html(
             '<option value="' + articleCode + '" selected>' +
@@ -297,7 +273,6 @@ function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeV
         $('#uom' + n).html(uomOpts).val(uom || meta.uom);
         _bindLazySelect2($sel, n);
     } else {
-        // ── Mode manual: select2 penuh seperti biasa ──
         $sel.html('<option value=""></option>' + dataArticle);
         $sel.select2({ width: '100%', placeholder: 'Pilih artikel...' });
         if (articleCode) {
@@ -308,20 +283,24 @@ function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeV
     }
 
     $sel.on('change', function () {
-        let artCode   = $(this).val();
-        let locCode   = $('#location').val();
+        let artCode = $(this).val();
+        let locCode = $('#location').val();
         let $opt      = $(this).find(':selected');
         let uomMember = $opt.data('uom-member');
         let uomBase   = $opt.data('uom');
         $('#uom' + n).html(_buildUomOptions(uomMember, uomBase)).val(uomBase).trigger('change');
+        $('#balanceQty' + n).val('').data('autofilled', false);
         fetchStockBefore(artCode, locCode, n);
-        setTimeout(() => { $('#qtyAdj' + n).focus().select(); }, 10);
+        setTimeout(() => { $('#balanceQty' + n).focus().select(); }, 10);
     });
 
     let sbRaw = parseFloat(stockBeforeVal) || 0;
     $('#stockBefore' + n).val(humanizeNumber(sbRaw)).data('raw', sbRaw);
-    if (qtyAdjValue) $('#qtyAdj' + n).val(Math.abs(parseFloat(qtyAdjValue) || 0));
-    if (notes)       $('#notesRow' + n).val(notes);
+
+    if (balanceValue !== null && balanceValue !== undefined && balanceValue !== '') {
+        $('#balanceQty' + n).val(Math.max(0, parseFloat(balanceValue) || 0)).data('autofilled', false);
+    }
+    if (notes) $('#notesRow' + n).val(notes);
 
     if (articleCode && $('#location').val() && !opts.skipFetch) {
         fetchStockBefore(articleCode, $('#location').val(), n);
@@ -335,10 +314,9 @@ function _doAddRow(articleCode, qtyAdjValue, uom, uomMember, notes, stockBeforeV
     if (!opts.skipFeather) feather.replace();
 }
 
-// ── Upgrade select jadi select2 penuh HANYA saat baris disentuh user ──
 function _bindLazySelect2($sel, n) {
     $sel.on('mousedown.lazyInit focus.lazyInit', function () {
-        if ($(this).hasClass('select2-hidden-accessible')) return; // sudah di-upgrade
+        if ($(this).hasClass('select2-hidden-accessible')) return;
         let current = $(this).val();
         $(this).off('.lazyInit');
         $(this).html('<option value=""></option>' + dataArticle);
@@ -348,14 +326,14 @@ function _bindLazySelect2($sel, n) {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   WIRE IDs (replace generic template IDs with indexed ones)
+   WIRE IDs
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function _wireIds(row, n) {
     row.find('#articleId').attr('id',   'articleId'   + n);
     row.find('#uom').attr('id',         'uom'         + n);
     row.find('#stockBefore').attr('id', 'stockBefore' + n);
-    row.find('#qtyAdj').attr('id',      'qtyAdj'      + n);
-    row.find('#stockAfter').attr('id',  'stockAfter'  + n);
+    row.find('#balanceQty').attr('id',  'balanceQty'  + n);
+    row.find('#adjQty').attr('id',      'adjQty'      + n);
     row.find('#notesRow').attr('id',    'notesRow'    + n);
 }
 
@@ -371,6 +349,7 @@ function _buildUomOptions(uomMember, uomBase) {
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    LOCATION CHANGE → refresh semua stock before
+   (balance yang sudah diisi manual TIDAK ditimpa, hanya yang autofilled)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function refreshStockOnRows() {
     let locCode = $('#location').val();
@@ -392,7 +371,6 @@ function hitungGrandTotal() {
    SAVE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 simpanData = (oEdit) => {
-    // ── Validasi manual field select2 (tidak ter-detect checkValidity) ──
     let manualErrors = [];
     if (!$('#adjDate').val())    manualErrors.push('Adjustment Date harus diisi.');
     if (!$('#adjType').val())    manualErrors.push('Adjustment Type harus dipilih.');
@@ -403,37 +381,52 @@ simpanData = (oEdit) => {
         return;
     }
 
-    let dir      = getDirection();
     let articles = [];
     let errors   = [];
+    let skipped  = 0;
 
     $('#article_row .tanda-baris').each(function () {
-        let rowId    = $(this).attr('id').replace('new_row', '');
-        let artCode  = $('#articleId' + rowId).val();
+        let rowId   = $(this).attr('id').replace('new_row', '');
+        let artCode = $('#articleId' + rowId).val();
         if (!artCode) return;
 
-        let artLabel   = $('#articleId' + rowId).find(':selected').text();
-        let uom        = $('#uom'         + rowId).val();
-        let sbRaw      = parseFloat($('#stockBefore' + rowId).data('raw')) || 0;
-        let qty        = Math.abs(parseFloat(String($('#qtyAdj' + rowId).val()).replace(/,/g,'')) || 0);
-        let stockAfter = dir === '+' ? sbRaw + qty : sbRaw - qty;
-        let notes      = $('#notesRow' + rowId).val();
+        let artLabel = $('#articleId' + rowId).find(':selected').text();
+        let uom      = $('#uom' + rowId).val();
+        let sbRaw    = parseFloat($('#stockBefore' + rowId).data('raw')) || 0;
+        let balance  = parseFloat(String($('#balanceQty' + rowId).val()).replace(/,/g,'')) || 0;
+        let notes    = $('#notesRow' + rowId).val();
 
-        if (qty === 0) {
-            errors.push(`Qty Adjustment untuk <b>${artLabel}</b> tidak boleh 0.`);
-            return;
-        }
-        if (stockAfter < 0) {
-            errors.push(`Stock after untuk <b>${artLabel}</b> akan negatif (${stockAfter}). Kurangi qty.`);
+        if (balance < 0) {
+            errors.push(`Saldo akhir untuk <b>${artLabel}</b> tidak boleh negatif.`);
             return;
         }
 
-        articles.push({ article_code: artCode, uom, direction: dir,
-                        stock_before: sbRaw, qty_adjustment: qty,
-                        stock_after: stockAfter, notes });
+        let diff = balance - sbRaw;
+        if (diff === 0) {
+            // tidak ada perubahan untuk artikel ini — lewati, bukan error
+            skipped++;
+            return;
+        }
+
+        let direction = diff > 0 ? '+' : '-';
+        let qty       = Math.abs(diff);
+
+        articles.push({
+            article_code:   artCode,
+            uom,
+            direction,
+            stock_before:   sbRaw,
+            qty_adjustment: qty,
+            stock_after:    balance,
+            notes
+        });
     });
 
-    if (articles.length === 0) errors.push('Artikel harus diisi.');
+    if (articles.length === 0) {
+        errors.push(skipped > 0
+            ? 'Tidak ada artikel yang saldonya berubah. Ubah saldo akhir minimal 1 artikel.'
+            : 'Artikel harus diisi.');
+    }
     if (errors.length > 0) {
         Swal.fire({ title:'Validation Error', html: errors.join('<br>'), icon:'warning' });
         return;
@@ -450,7 +443,6 @@ simpanData = (oEdit) => {
             adjType:     $('#adjType').val(),
             periode:     $('#periode').val(),
             location:    $('#location').val(),
-            direction:   dir,
             description: $('#description').val(),
             articles:    JSON.stringify(articles),
         },

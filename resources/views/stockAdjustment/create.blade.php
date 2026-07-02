@@ -76,7 +76,7 @@
                                     <textarea id="note" name="note" class="form-control" rows="1"></textarea>
                                 </div>--}}
                             </div>
-                            <div class="form-row">
+                            {{--<div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label class="form-label d-block">Direction *</label>
                                     <div class="btn-group btn-group-toggle" id="directionToggle" data-toggle="buttons">
@@ -93,7 +93,7 @@
                                         Direction berlaku untuk semua artikel dalam transaksi ini.
                                     </small>
                                 </div>
-                            </div>
+                            </div>--}}
                         </form>
                     </div>
                 </div>

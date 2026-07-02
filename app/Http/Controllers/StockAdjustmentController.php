@@ -315,94 +315,93 @@ class StockAdjustmentController extends Controller
     // =========================================================================
 
     public function store(Request $request)
-    {
-        $username    = Auth::user()->username;
-        $articles    = json_decode($request->articles);
-        $adjDate     = $request->adjDate;
-        $adjType     = $request->adjType;
-        $location    = $request->location;
-        $description = $request->description;
-        $note        = $request->note;
-        $periode     = $request->periode;
-        $direction   = $request->direction ?? '+';
-        $status      = '1';
-        $title       = "Save $this->title";
+{
+    $username    = Auth::user()->username;
+    $articles    = json_decode($request->articles);
+    $adjDate     = $request->adjDate;
+    $adjType     = $request->adjType;
+    $location    = $request->location;
+    $description = $request->description;
+    $note        = $request->note;
+    $periode     = $request->periode;
+    $status      = '1';
+    $title       = "Save $this->title";
 
-        $errors = [];
-        if (!$adjDate)        $errors[] = "Adjustment Date harus diisi.";
-        if (!$adjType)        $errors[] = "Adjustment Type harus dipilih.";
-        if (!$location)       $errors[] = "Location harus dipilih.";
-        if (!$periode)        $errors[] = "Periode harus dipilih.";
-        if (empty($articles)) $errors[] = "Artikel harus diisi.";
+    $errors = [];
+    if (!$adjDate)        $errors[] = "Adjustment Date harus diisi.";
+    if (!$adjType)        $errors[] = "Adjustment Type harus dipilih.";
+    if (!$location)       $errors[] = "Location harus dipilih.";
+    if (!$periode)        $errors[] = "Periode harus dipilih.";
+    if (empty($articles)) $errors[] = "Artikel harus diisi.";
 
-        if ($errors) {
-            return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
-        }
-
-        $itemErrors = [];
-        foreach ($articles as $val) {
-            if ((float)$val->qty_adjustment == 0)
-                $itemErrors[] = "Qty Adjustment untuk artikel {$val->article_code} tidak boleh 0.";
-            if ((float)$val->stock_after < 0)
-                $itemErrors[] = "Stock after untuk artikel {$val->article_code} tidak boleh negatif.";
-        }
-        if ($itemErrors) {
-            return response()->json(['status'=>0,'title'=>$title,'message'=>$itemErrors,'alert'=>'error']);
-        }
-
-        AppHelpers::resetCode($this->moduleCode);
-        $adjCode = $this->getLastCode($this->moduleCode);
-
-        DB::beginTransaction();
-        try {
-            DB::table('stock_adjustment_hdr')->insert([
-                'adj_code'      => $adjCode,
-                'adj_date'      => $adjDate,
-                'adj_type'      => $adjType,
-                'location_code' => $location,
-                'description'   => $description,
-                'note'          => $note,
-                'periode'       => $periode,
-                'direction'     => $direction,
-                'status'        => $status,
-                'created_by'    => $username,
-                'updated_by'    => $username,
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
-            ]);
-
-            $dataSet = [];
-            foreach ($articles as $val) {
-                $dataSet[] = [
-                    'adj_code'       => $adjCode,
-                    'article_code'   => $val->article_code,
-                    'uom'            => $val->uom,
-                    'direction'      => $direction,
-                    'stock_before'   => $val->stock_before,
-                    'qty_adjustment' => $val->qty_adjustment,
-                    'stock_after'    => $val->stock_after,
-                    'notes'          => $val->notes ?? null,
-                    'created_by'     => $username,
-                    'updated_by'     => $username,
-                    'created_at'     => date('Y-m-d H:i:s'),
-                    'updated_at'     => date('Y-m-d H:i:s'),
-                ];
-            }
-            DB::table('stock_adjustment_det')->insert($dataSet);
-
-            DB::commit();
-            $message = "$title $adjCode berhasil disimpan.";
-            \LogActivity::addToLog($title, "username: $username | $message");
-
-            return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','adjCode'=>$adjCode,'oEdit'=>true]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $message = "$title gagal disimpan: " . $e->getMessage();
-            \LogActivity::addToLog($title, "username: $username | $message");
-            return response()->json(['status'=>0,'title'=>$title,'message'=>[$message],'alert'=>'error']);
-        }
+    if ($errors) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
     }
+
+    $itemErrors = [];
+    foreach ($articles as $val) {
+        if ((float)$val->qty_adjustment == 0)
+            $itemErrors[] = "Qty Adjustment untuk artikel {$val->article_code} tidak boleh 0.";
+        if ((float)$val->stock_after < 0)
+            $itemErrors[] = "Stock after untuk artikel {$val->article_code} tidak boleh negatif.";
+    }
+    if ($itemErrors) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>$itemErrors,'alert'=>'error']);
+    }
+
+    AppHelpers::resetCode($this->moduleCode);
+    $adjCode = $this->getLastCode($this->moduleCode);
+
+    DB::beginTransaction();
+    try {
+        DB::table('stock_adjustment_hdr')->insert([
+            'adj_code'      => $adjCode,
+            'adj_date'      => $adjDate,
+            'adj_type'      => $adjType,
+            'location_code' => $location,
+            'description'   => $description,
+            'note'          => $note,
+            'periode'       => $periode,
+            'direction'     => $this->summarizeDirection($articles), // ringkasan saja
+            'status'        => $status,
+            'created_by'    => $username,
+            'updated_by'    => $username,
+            'created_at'    => date('Y-m-d H:i:s'),
+            'updated_at'    => date('Y-m-d H:i:s'),
+        ]);
+
+        $dataSet = [];
+        foreach ($articles as $val) {
+            $dataSet[] = [
+                'adj_code'       => $adjCode,
+                'article_code'   => $val->article_code,
+                'uom'            => $val->uom,
+                'direction'      => $val->direction,   // per-artikel, dari hasil hitung frontend
+                'stock_before'   => $val->stock_before,
+                'qty_adjustment' => $val->qty_adjustment,
+                'stock_after'    => $val->stock_after,
+                'notes'          => $val->notes ?? null,
+                'created_by'     => $username,
+                'updated_by'     => $username,
+                'created_at'     => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s'),
+            ];
+        }
+        DB::table('stock_adjustment_det')->insert($dataSet);
+
+        DB::commit();
+        $message = "$title $adjCode berhasil disimpan.";
+        \LogActivity::addToLog($title, "username: $username | $message");
+
+        return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','adjCode'=>$adjCode,'oEdit'=>true]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $message = "$title gagal disimpan: " . $e->getMessage();
+        \LogActivity::addToLog($title, "username: $username | $message");
+        return response()->json(['status'=>0,'title'=>$title,'message'=>[$message],'alert'=>'error']);
+    }
+}
 
     // =========================================================================
     //  SHOW (DETAIL)
@@ -498,99 +497,97 @@ class StockAdjustmentController extends Controller
     // =========================================================================
 
     public function update(Request $request)
-    {
-        $username    = Auth::user()->username;
-        $articles    = json_decode($request->articles);
-        $adjCode     = $request->adjCode;
-        $adjDate     = $request->adjDate;
-        $adjType     = $request->adjType;
-        $location    = $request->location;
-        $description = $request->description;
-        $note        = $request->note;
-        $periode     = $request->periode;
-        $direction   = $request->direction ?? '+';
-        $title       = "Update $this->title";
+{
+    $username    = Auth::user()->username;
+    $articles    = json_decode($request->articles);
+    $adjCode     = $request->adjCode;
+    $adjDate     = $request->adjDate;
+    $adjType     = $request->adjType;
+    $location    = $request->location;
+    $description = $request->description;
+    $note        = $request->note;
+    $periode     = $request->periode;
+    $title       = "Update $this->title";
 
-        // Cek status — tidak boleh update kalau sudah POSTED/CANCELED
-        $currentStatus = DB::table('stock_adjustment_hdr')
-            ->where('adj_code', $adjCode)->value('status');
+    $currentStatus = DB::table('stock_adjustment_hdr')
+        ->where('adj_code', $adjCode)->value('status');
 
-        if (in_array($currentStatus, ['4','5'])) {
-            return response()->json(['status'=>0,'title'=>$title,
-                'message'=>['Data sudah '.($currentStatus==='4'?'POSTED':'CANCELED').', tidak bisa diubah.'],
-                'alert'=>'error']);
-        }
-
-        $errors = [];
-        if (!$adjDate)        $errors[] = "Adjustment Date harus diisi.";
-        if (!$adjType)        $errors[] = "Adjustment Type harus dipilih.";
-        if (!$location)       $errors[] = "Location harus dipilih.";
-        if (!$periode)        $errors[] = "Periode harus dipilih.";
-        if (empty($articles)) $errors[] = "Artikel harus diisi.";
-        if ($errors) {
-            return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
-        }
-
-        $itemErrors = [];
-        foreach ($articles as $val) {
-            if ((float)$val->qty_adjustment == 0)
-                $itemErrors[] = "Qty Adjustment untuk artikel {$val->article_code} tidak boleh 0.";
-            if ((float)$val->stock_after < 0)
-                $itemErrors[] = "Stock after untuk artikel {$val->article_code} tidak boleh negatif.";
-        }
-        if ($itemErrors) {
-            return response()->json(['status'=>0,'title'=>$title,'message'=>$itemErrors,'alert'=>'error']);
-        }
-
-        DB::beginTransaction();
-        try {
-            DB::table('stock_adjustment_hdr')->where('adj_code', $adjCode)->update([
-                'adj_date'      => $adjDate,
-                'adj_type'      => $adjType,
-                'location_code' => $location,
-                'description'   => $description,
-                'note'          => $note,
-                'periode'       => $periode,
-                'direction'     => $direction,
-                'status'        => '1',
-                'updated_by'    => $username,
-                'updated_at'    => date('Y-m-d H:i:s'),
-            ]);
-
-            $keepCodes = array_map(fn($v) => $adjCode . $v->article_code, $articles);
-            DB::table('stock_adjustment_det')
-                ->where('adj_code', $adjCode)
-                ->whereNotIn(DB::raw("CONCAT(adj_code, article_code)"), $keepCodes)
-                ->delete();
-
-            foreach ($articles as $val) {
-                DB::table('stock_adjustment_det')->updateOrInsert(
-                    ['adj_code'=>$adjCode, 'article_code'=>$val->article_code],
-                    [
-                        'uom'            => $val->uom,
-                        'direction'      => $direction,
-                        'stock_before'   => $val->stock_before,
-                        'qty_adjustment' => $val->qty_adjustment,
-                        'stock_after'    => $val->stock_after,
-                        'notes'          => $val->notes ?? null,
-                        'updated_by'     => $username,
-                        'updated_at'     => date('Y-m-d H:i:s'),
-                    ]
-                );
-            }
-
-            DB::commit();
-            $message = "$title $adjCode berhasil diperbarui.";
-            \LogActivity::addToLog($title, "username: $username | $message");
-            return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','adjCode'=>$adjCode,'oEdit'=>true]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $message = "$title gagal: " . $e->getMessage();
-            \LogActivity::addToLog($title, "username: $username | $message");
-            return response()->json(['status'=>0,'title'=>$title,'message'=>[$message],'alert'=>'error']);
-        }
+    if (in_array($currentStatus, ['4','5'])) {
+        return response()->json(['status'=>0,'title'=>$title,
+            'message'=>['Data sudah '.($currentStatus==='4'?'POSTED':'CANCELED').', tidak bisa diubah.'],
+            'alert'=>'error']);
     }
+
+    $errors = [];
+    if (!$adjDate)        $errors[] = "Adjustment Date harus diisi.";
+    if (!$adjType)        $errors[] = "Adjustment Type harus dipilih.";
+    if (!$location)       $errors[] = "Location harus dipilih.";
+    if (!$periode)        $errors[] = "Periode harus dipilih.";
+    if (empty($articles)) $errors[] = "Artikel harus diisi.";
+    if ($errors) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
+    }
+
+    $itemErrors = [];
+    foreach ($articles as $val) {
+        if ((float)$val->qty_adjustment == 0)
+            $itemErrors[] = "Qty Adjustment untuk artikel {$val->article_code} tidak boleh 0.";
+        if ((float)$val->stock_after < 0)
+            $itemErrors[] = "Stock after untuk artikel {$val->article_code} tidak boleh negatif.";
+    }
+    if ($itemErrors) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>$itemErrors,'alert'=>'error']);
+    }
+
+    DB::beginTransaction();
+    try {
+        DB::table('stock_adjustment_hdr')->where('adj_code', $adjCode)->update([
+            'adj_date'      => $adjDate,
+            'adj_type'      => $adjType,
+            'location_code' => $location,
+            'description'   => $description,
+            'note'          => $note,
+            'periode'       => $periode,
+            'direction'     => $this->summarizeDirection($articles),
+            'status'        => '1',
+            'updated_by'    => $username,
+            'updated_at'    => date('Y-m-d H:i:s'),
+        ]);
+
+        $keepCodes = array_map(fn($v) => $adjCode . $v->article_code, $articles);
+        DB::table('stock_adjustment_det')
+            ->where('adj_code', $adjCode)
+            ->whereNotIn(DB::raw("CONCAT(adj_code, article_code)"), $keepCodes)
+            ->delete();
+
+        foreach ($articles as $val) {
+            DB::table('stock_adjustment_det')->updateOrInsert(
+                ['adj_code'=>$adjCode, 'article_code'=>$val->article_code],
+                [
+                    'uom'            => $val->uom,
+                    'direction'      => $val->direction,
+                    'stock_before'   => $val->stock_before,
+                    'qty_adjustment' => $val->qty_adjustment,
+                    'stock_after'    => $val->stock_after,
+                    'notes'          => $val->notes ?? null,
+                    'updated_by'     => $username,
+                    'updated_at'     => date('Y-m-d H:i:s'),
+                ]
+            );
+        }
+
+        DB::commit();
+        $message = "$title $adjCode berhasil diperbarui.";
+        \LogActivity::addToLog($title, "username: $username | $message");
+        return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','adjCode'=>$adjCode,'oEdit'=>true]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $message = "$title gagal: " . $e->getMessage();
+        \LogActivity::addToLog($title, "username: $username | $message");
+        return response()->json(['status'=>0,'title'=>$title,'message'=>[$message],'alert'=>'error']);
+    }
+}
 
 // =========================================================================
 //  POSTING — hanya superuser / accounting (backdate-safe)
@@ -603,18 +600,11 @@ public function posting(Request $request)
     $title      = "Posting $this->title";
     $siteCode   = 'HO';
 
-    // ── Hak akses ─────────────────────────────────────────────────────────
     if (!Auth::user()->hasAnyRole(['Superuser','accounting'])) {
-        return redirect()->back()->with([
-            'title'   => $title,
-            'alert'   => 'warning',
-            'message' => 'Anda tidak berwenang melakukan posting.',
-        ]);
+        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Anda tidak berwenang melakukan posting.']);
     }
 
-    // ── Load header ───────────────────────────────────────────────────────
     $hdr = DB::table('stock_adjustment_hdr')->where('id', $id)->first();
-
     if (!$hdr) {
         return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Data tidak ditemukan.']);
     }
@@ -626,32 +616,28 @@ public function posting(Request $request)
     }
 
     $adjCode   = $hdr->adj_code;
-    $direction = $hdr->direction;          // '+' atau '-'
     $location  = $hdr->location_code;
-    $adjDate   = $hdr->adj_date;           // DD-MM-YYYY
+    $adjDate   = $hdr->adj_date;
 
-    // tanggal adjustment dalam format Y-m-d untuk fungsi get_last_qty_new
     $adjDateYmd = $this->toYmd($adjDate);
     if (!$adjDateYmd) {
         return redirect()->back()->with(['title'=>$title,'alert'=>'warning',
             'message'=>"Format tanggal adjustment tidak valid: $adjDate"]);
     }
 
-    // ── Load detail ───────────────────────────────────────────────────────
     $details = $this->getPostingDetails($adjCode, $siteCode, $location);
-
     if ($details->isEmpty()) {
         return redirect()->back()->with(['title'=>$title,'alert'=>'warning',
             'message'=>"$title $adjCode gagal: tidak ada detail artikel."]);
     }
 
-    // ── VALIDASI BACKDATE: cek saldo historis sebelum mengubah apapun ─────
-    // Hanya relevan untuk arah pengurangan stok ('-')
-    if ($direction === '-') {
-        $errors = $this->validateBackdateStock($details, $siteCode, $location, $adjDateYmd, $adjDate, '-');
-        if (!empty($errors)) {
-            return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>implode(' ', $errors)]);
-        }
+    // ── VALIDASI BACKDATE per artikel, sesuai direction masing-masing ──
+    $directionMap = [];
+    foreach ($details as $d) { $directionMap[$d->article_code] = $d->direction; }
+
+    $errors = $this->validateBackdateStock($details, $siteCode, $location, $adjDateYmd, $adjDate, $directionMap);
+    if (!empty($errors)) {
+        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>implode(' ', $errors)]);
     }
 
     DB::beginTransaction();
@@ -660,16 +646,15 @@ public function posting(Request $request)
         $dataSetMovement = [];
 
         foreach ($details as $val) {
-            $qty     = (float) $val->qty_adjustment;     // selalu positif
-            $avgCost = (float) $val->avg_cost;
+            $qty       = (float) $val->qty_adjustment;
+            $avgCost   = (float) $val->avg_cost;
+            $direction = $val->direction;              // ← per artikel
 
-            // ── 1. Pastikan baris warehouse_stock ada ─────────────────
             DB::table('warehouse_stock')->updateOrInsert(
                 ['site_code' => $siteCode, 'article_code' => $val->article_code, 'location_number' => $location],
                 ['dept_code' => $val->article_type, 'uom' => $val->article_uom]
             );
 
-            // ── 2. Ambil saldo realtime saat ini ──────────────────────
             $current = DB::table('warehouse_stock')
                 ->where('site_code', $siteCode)
                 ->where('article_code', $val->article_code)
@@ -681,7 +666,6 @@ public function posting(Request $request)
             $avgNow = (float) $current->avg_now;
             if ($avgCost <= 0) $avgCost = $avgNow;
 
-            // ── 3. Update warehouse_stock ─────────────────────────────
             if ($direction === '+') {
                 $qtyBaru = $qtyNow + $qty;
                 $avgBaru = $qtyBaru > 0
@@ -705,15 +689,12 @@ public function posting(Request $request)
                     ->where('site_code', $siteCode)
                     ->where('article_code', $val->article_code)
                     ->where('location_number', $location)
-                    ->update([
-                        'article_qty' => DB::raw("coalesce(article_qty,0) - $qty"),
-                    ]);
+                    ->update(['article_qty' => DB::raw("coalesce(article_qty,0) - $qty")]);
 
                 $movMin  = $qty;
                 $movPlus = 0;
             }
 
-            // ── 4. Update lastcost / avgcost di master artikel ────────
             if ($avgCost > 0) {
                 DB::table('article')->where('article_code', $val->article_code)->update([
                     'lastcost'   => $avgCost,
@@ -723,9 +704,6 @@ public function posting(Request $request)
                 ]);
             }
 
-            // ── 5. Warehouse movement entry ───────────────────────────
-            // PENTING: last_qty dihitung pada tanggal ADJUSTMENT ($adjDateYmd),
-            // bukan hari ini, supaya konsisten dengan movement_date saat backdate.
             $seq++;
             $dataSetMovement[] = [
                 'movement_code'     => $seq,
@@ -753,12 +731,10 @@ public function posting(Request $request)
             ];
         }
 
-        // ── 6. Insert warehouse_movement ──────────────────────────────
         if (!empty($dataSetMovement)) {
             DB::table('warehouse_movement')->insert($dataSetMovement);
         }
 
-        // ── 7. Update status header → POSTED ─────────────────────────
         DB::table('stock_adjustment_hdr')->where('id', $id)->update([
             'status'        => '4',
             'authorized_by' => $username,
@@ -792,28 +768,16 @@ public function cancel(Request $request)
     $title     = "Cancel $this->title";
     $siteCode  = 'HO';
 
-    // ── Hak akses ─────────────────────────────────────────────────────────
     if (!Auth::user()->hasAnyRole(['Superuser','accounting'])) {
-        return redirect()->back()->with([
-            'title'   => $title,
-            'alert'   => 'warning',
-            'message' => 'Anda tidak berwenang melakukan cancel.',
-        ]);
+        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Anda tidak berwenang melakukan cancel.']);
     }
 
-    // ── Validasi reason ───────────────────────────────────────────────────
     $reason = trim($request->reason ?? '');
     if (!$reason) {
-        return redirect()->back()->with([
-            'title'   => $title,
-            'alert'   => 'warning',
-            'message' => 'Cancel reason harus diisi.',
-        ]);
+        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Cancel reason harus diisi.']);
     }
 
-    // ── Load header ───────────────────────────────────────────────────────
     $hdr = DB::table('stock_adjustment_hdr')->where('id', $id)->first();
-
     if (!$hdr) {
         return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Data tidak ditemukan.']);
     }
@@ -823,9 +787,8 @@ public function cancel(Request $request)
     }
 
     $adjCode    = $hdr->adj_code;
-    $direction  = $hdr->direction;         // '+' atau '-'
     $location   = $hdr->location_code;
-    $adjDate    = $hdr->adj_date;          // DD-MM-YYYY
+    $adjDate    = $hdr->adj_date;
     $noteAsal   = $hdr->note ?? '';
     $cancelNote = "(Cancel by $username, Reason: $reason)";
 
@@ -835,22 +798,20 @@ public function cancel(Request $request)
             'message'=>"Format tanggal adjustment tidak valid: $adjDate"]);
     }
 
-    // ── Load detail ───────────────────────────────────────────────────────
     $details = $this->getPostingDetails($adjCode, $siteCode, $location);
-
     if ($details->isEmpty()) {
         return redirect()->back()->with(['title'=>$title,'alert'=>'warning',
             'message'=>"$title $adjCode gagal: tidak ada detail artikel."]);
     }
 
-    // ── VALIDASI BACKDATE saat cancel ─────────────────────────────────────
-    // Cancel membalik arah: adjustment (+) menjadi pengurangan saat cancel.
-    // Jadi yang berisiko minus adalah cancel dari adjustment arah '+'.
-    if ($direction === '+') {
-        $errors = $this->validateBackdateStock($details, $siteCode, $location, $adjDateYmd, $adjDate, '-');
-        if (!empty($errors)) {
-            return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>implode(' ', $errors)]);
-        }
+    // ── validasi backdate: cancel membalik arah tiap artikel ──
+    $directionMap = [];
+    foreach ($details as $d) {
+        $directionMap[$d->article_code] = $d->direction === '+' ? '-' : '+';
+    }
+    $errors = $this->validateBackdateStock($details, $siteCode, $location, $adjDateYmd, $adjDate, $directionMap);
+    if (!empty($errors)) {
+        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>implode(' ', $errors)]);
     }
 
     DB::beginTransaction();
@@ -859,16 +820,15 @@ public function cancel(Request $request)
         $dataSetMovement = [];
 
         foreach ($details as $val) {
-            $qty     = (float) $val->qty_adjustment;
-            $avgCost = (float) $val->avg_cost;
+            $qty       = (float) $val->qty_adjustment;
+            $avgCost   = (float) $val->avg_cost;
+            $direction = $val->direction; // arah adjustment ASLI
 
-            // ── Pastikan baris warehouse_stock ada ────────────────────────
             DB::table('warehouse_stock')->updateOrInsert(
                 ['site_code' => $siteCode, 'article_code' => $val->article_code, 'location_number' => $location],
                 ['dept_code' => $val->article_type, 'uom' => $val->article_uom]
             );
 
-            // ── Balikkan stok: asal (+) → cancel (-), asal (-) → cancel (+) ─
             if ($direction === '+') {
                 DB::table('warehouse_stock')
                     ->where('site_code', $siteCode)
@@ -879,7 +839,6 @@ public function cancel(Request $request)
                 $movMin  = $qty;
                 $movPlus = 0;
                 $sign    = " - $qty";
-
             } else {
                 DB::table('warehouse_stock')
                     ->where('site_code', $siteCode)
@@ -892,7 +851,6 @@ public function cancel(Request $request)
                 $sign    = " + $qty";
             }
 
-            // ── Movement pembatalan ───────────────────────────────────────
             $seq++;
             $dataSetMovement[] = [
                 'movement_code'     => $seq,
@@ -923,7 +881,6 @@ public function cancel(Request $request)
             DB::table('warehouse_movement')->insert($dataSetMovement);
         }
 
-        // ── Update status header → CANCELED ──────────────────────────────
         DB::table('stock_adjustment_hdr')->where('id', $id)->update([
             'status'     => '5',
             'note'       => trim($noteAsal . '; ' . $cancelNote, '; '),
@@ -996,7 +953,7 @@ private function getPostingDetails(string $adjCode, string $siteCode, string $lo
  * @param  $effDir      arah efektif terhadap stok: '-' (mengurangi)
  * @return array        daftar pesan error (kosong kalau lolos)
  */
-private function validateBackdateStock($details, string $siteCode, string $location, string $adjDateYmd, string $adjDateRaw, string $effDir): array
+private function validateBackdateStock($details, string $siteCode, string $location, string $adjDateYmd, string $adjDateRaw, array $directionMap): array
 {
     $errors = [];
 
@@ -1004,10 +961,11 @@ private function validateBackdateStock($details, string $siteCode, string $locat
         $qty = (float) $val->qty_adjustment;
         if ($qty <= 0) continue;
 
-        // delta efektif terhadap stok
-        $delta = ($effDir === '-') ? -$qty : $qty;
+        $effDir = $directionMap[$val->article_code] ?? '+';
+        if ($effDir !== '-') continue; // hanya penambahan → tidak berisiko minus
 
-        // ── 1. Saldo historis pada tanggal adjustment ─────────────────
+        $delta = -$qty;
+
         $saldoHistoris = (float) DB::selectOne(
             "SELECT get_last_qty_new(?, ?, ?, ?) as qty",
             [$val->article_code, $adjDateYmd, $siteCode, $location]
@@ -1016,13 +974,10 @@ private function validateBackdateStock($details, string $siteCode, string $locat
         if (($saldoHistoris + $delta) < 0) {
             $errors[] = "Stok artikel {$val->article_code} pada $adjDateRaw hanya $saldoHistoris, "
                       . "tidak cukup untuk dikurangi $qty.";
-            continue; // tidak perlu cek forward kalau titik awal saja sudah minus
+            continue;
         }
 
-        // ── 2. Forward-looking: cek saldo minimum di tanggal setelahnya ─
-        // Ambil saldo minimum running dari movement yang sudah ada SETELAH
-        // tanggal adjustment, lalu tambahkan delta sisipan backdate ini.
-       $minBal = DB::selectOne("
+        $minBal = DB::selectOne("
             WITH future_mov AS (
                 SELECT TO_DATE(movement_date,'dd-mm-yyyy') as tgl,
                        movement_code,
@@ -1041,8 +996,8 @@ private function validateBackdateStock($details, string $siteCode, string $locat
             SELECT COALESCE(MIN(bal), ?::numeric + ?::numeric) as min_bal FROM running
         ", [
             $val->article_code, $siteCode, $location, $adjDateYmd,
-            $saldoHistoris, $delta,   // saldo awal + sisipan backdate
-            $saldoHistoris, $delta,   // fallback kalau tidak ada movement setelahnya
+            $saldoHistoris, $delta,
+            $saldoHistoris, $delta,
         ]);
 
         if ($minBal && (float) $minBal->min_bal < 0) {
@@ -1053,6 +1008,12 @@ private function validateBackdateStock($details, string $siteCode, string $locat
     }
 
     return $errors;
+}
+
+private function summarizeDirection(array $articles): string
+{
+    $dirs = array_unique(array_map(fn($a) => $a->direction ?? '+', $articles));
+    return count($dirs) === 1 ? $dirs[0] : 'MIXED';
 }
     // =========================================================================
     //  DESTROY
