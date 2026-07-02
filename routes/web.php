@@ -744,6 +744,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('transferStock/posting',['as'=>'transferStock.posting','uses'=>'TransferStockController@posting']);
 	Route::get('transferStock/print',['as'=>'transferStock.print','uses'=>'TransferStockController@print']);
 	Route::post('transferStock/delete',['as'=>'transferStock.destroy','uses'=>'TransferStockController@destroy']);
+	Route::post('transferStock/cancel',['as'=>'transferStock.cancel','uses'=>'TransferStockController@cancel']);
 	// ── FG Target ──────────────────────────────────────────────────────────────
 Route::get('transferStock/check-location-type',['as'=>'transferStock.checkLocationType','uses'=>'TransferStockController@checkLocationType']);
 Route::get('transferStock/fg-by-rm',['as'=>'transferStock.fgByRm','uses'=>'TransferStockController@fgByRm']);
