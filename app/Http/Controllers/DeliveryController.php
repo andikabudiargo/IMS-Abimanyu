@@ -1001,7 +1001,7 @@ public function posting(Request $request)
         foreach ($movementsFg as $val) {
              $seq++;
             $dataSetMovementFg[] = [
-                'movevement_code'    => $seq,
+                'movement_code'    => $seq,
                 'movement_date'      => $val->movement_date,
                 'artikel_code'       => $val->article_code,
                 'artikel_desc'       => $val->article_desc,
