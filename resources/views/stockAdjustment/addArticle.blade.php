@@ -140,6 +140,18 @@ $(function () {
     $('#adjDate').on('change', function () {
         if (typeof refreshStockOnRows === 'function') refreshStockOnRows();
     });
+
+    /* ── EVENT DELEGATION — dipasang SEKALI untuk semua baris,
+          termasuk baris hasil import massal.
+          Ini menggantikan bindQtyEvents(n) yang lama (1 listener per baris). ── */
+    $('#article_row').on('input keyup', '.balance-input', function () {
+        let n = $(this).attr('id').replace('balanceQty', '');
+        let v = $(this).val().replace(/-/g, '');
+        if ($(this).val() !== v) $(this).val(v);
+        $(this).data('autofilled', false); // user sudah edit manual
+        recomputeRow(n);
+        hitungGrandTotal();
+    });
 });
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -239,20 +251,6 @@ function recomputeAllRows() {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   BALANCE INPUT EVENTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function bindQtyEvents(n) {
-    $('#balanceQty' + n).on('input keyup', function () {
-        // saldo akhir tidak boleh minus
-        let v = $(this).val().replace(/-/g, '');
-        if ($(this).val() !== v) $(this).val(v);
-        $(this).data('autofilled', false); // user sudah edit manual
-        recomputeRow(n);
-        hitungGrandTotal();
-    });
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ADD ROW — manual (tunggu dataArticle siap)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function add_new_row() {
@@ -271,7 +269,7 @@ function add_new_row() {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ADD ROW — programmatic (import / edit)
+   ADD ROW — programmatic (edit satuan / non-bulk)
    balanceValue = saldo akhir yang seharusnya untuk artikel ini
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function add_new_row_edit(articleCode, balanceValue, uom, uomMember, notes, stockBeforeVal, opts) {
@@ -339,7 +337,6 @@ function _doAddRow(articleCode, balanceValue, uom, uomMember, notes, stockBefore
         recomputeRow(n);
     }
 
-    bindQtyEvents(n);
     hitungGrandTotal();
 
     if (!opts.skipFeather) feather.replace();
@@ -378,6 +375,15 @@ function _buildUomOptions(uomMember, uomBase) {
     return opts;
 }
 
+function _escapeAttr(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    LOCATION / DATE CHANGE → refresh semua stock before
    (balance yang sudah diisi manual TIDAK ditimpa, hanya yang autofilled)
@@ -396,6 +402,135 @@ function refreshStockOnRows() {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function hitungGrandTotal() {
     $('#totalRow').val($('#article_row .tanda-baris').length);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   FAST PATH — khusus IMPORT EXCEL (bulk insert DOM)
+   Jauh lebih ringan dibanding _doAddRow karena:
+     - HTML dibangun sebagai string per BATCH, lalu di-insert
+       sekali per batch (bukan .append() satu-satu)
+     - Tidak ada select2 penuh per baris (pakai lazySelect,
+       select2 baru di-init saat user klik/fokus select-nya)
+     - Event balance-input pakai delegation (sudah dipasang
+       sekali di $('#article_row').on(...) di atas), jadi TIDAK
+       perlu bind listener baru per baris
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function _buildImportRowHtml(n, articleCode, balanceValue, uom, uomMember, notes, stockBeforeVal) {
+    let meta    = articleMeta[articleCode] || {};
+    let sbRaw   = parseFloat(stockBeforeVal) || 0;
+    let balVal  = Math.max(0, parseFloat(balanceValue) || 0);
+    let uomOpts = _buildUomOptions(uomMember || meta.uomMember, uom || meta.uom);
+    let label   = _escapeAttr(meta.label || articleCode);
+    let notesEsc = _escapeAttr(notes);
+
+    return `
+    <div id="new_row${n}" class="tanda-baris mb-50">
+        <div class="form-row d-flex align-items-center">
+            <div class="col-md-3 col-12"><div class="form-group margin-nol">
+                <select class="form-control" id="articleId${n}" name="articleId[]">
+                    <option value="${_escapeAttr(articleCode)}" selected>${label}</option>
+                </select>
+            </div></div>
+            <div class="col-md-1 col-12"><div class="form-group margin-nol">
+                <select class="form-control" id="uom${n}" name="uom[]">${uomOpts}</select>
+            </div></div>
+            <div class="col-md-2 col-12"><div class="form-group margin-nol">
+                <input type="text" class="form-control text-right bg-light" id="stockBefore${n}"
+                    name="stockBefore[]" value="${humanizeNumber(sbRaw)}" readonly tabindex="-1" />
+            </div></div>
+            <div class="col-md-2 col-12"><div class="form-group margin-nol">
+                <input type="text" class="form-control text-right tombol-panah balance-input"
+                    id="balanceQty${n}" name="balanceQty[]" value="${humanizeNumber(balVal)}"
+                    maxlength="12" />
+            </div></div>
+            <div class="col-md-2 col-12"><div class="form-group margin-nol">
+                <input type="text" class="form-control text-right bg-light adj-qty-output"
+                    id="adjQty${n}" name="adjQty[]" value="0" readonly tabindex="-1" />
+            </div></div>
+            <div class="col-md-1 col-12"><div class="form-group margin-nol">
+                <input type="text" class="form-control tombol-panah" id="notesRow${n}"
+                    name="notesRow[]" maxlength="150" value="${notesEsc}" />
+            </div></div>
+            <div class="col-md-1 col-12"><div class="form-group margin-nol text-center">
+                <a style="cursor:pointer" onclick="$(this).parents('.tanda-baris').remove(); hitungGrandTotal();">
+                    <i data-feather="trash-2" class="feather-24 text-danger"></i>
+                </a>
+            </div></div>
+        </div>
+    </div>`;
+}
+
+/**
+ * Import baris hasil Excel ke DOM secara batch supaya browser tidak berat.
+ * rows: array of { article_code, qty_adjustment (=saldo akhir), uom, uom_member, notes, stock_before }
+ */
+function importRowsFast(rows) {
+    const total = rows.length;
+    const BATCH_SIZE = 150; // insert HTML jauh lebih murah dari append per-row, jadi batch bisa besar
+    let idx = 0;
+    const $container = document.getElementById('article_row');
+
+    function processBatch() {
+        const end = Math.min(idx + BATCH_SIZE, total);
+        let htmlChunk = '';
+        let rawList   = [];
+
+        for (; idx < end; idx++) {
+            let r = rows[idx];
+            cloneCount++;
+            let n = cloneCount;
+            htmlChunk += _buildImportRowHtml(
+                n, r.article_code, r.qty_adjustment, r.uom, r.uom_member, r.notes, r.stock_before
+            );
+            rawList.push({ n, sbRaw: parseFloat(r.stock_before) || 0 });
+        }
+
+        // satu kali insert untuk seluruh batch → jauh lebih ringan dari N kali append
+        $container.insertAdjacentHTML('beforeend', htmlChunk);
+
+        // set data-raw stockBefore + hitung adjustment + lazy-init select2 per baris di batch ini
+        rawList.forEach(function (d) {
+            $('#stockBefore' + d.n).data('raw', d.sbRaw);
+            _bindLazySelect2($('#articleId' + d.n), d.n);
+            recomputeRow(d.n);
+        });
+
+        if (Swal.isVisible()) {
+            Swal.getHtmlContainer().innerHTML = `<b>${idx}/${total}</b> Loaded`;
+        }
+
+        if (idx < total) {
+            // requestAnimationFrame → beri jeda ke browser tanpa nge-block render
+            requestAnimationFrame(processBatch);
+        } else {
+            feather.replace();
+            hitungGrandTotal();
+            $('#uploadExcel').removeAttr('disabled');
+            $(".loading-spinner-container").removeClass("-show");
+            Swal.close();
+            if (typeof clearFileInput === 'function') clearFileInput('file');
+        }
+    }
+
+    function startWhenReady() {
+        if (dataArticle === null) {           // meta artikel belum selesai load
+            setTimeout(startWhenReady, 200);
+            return;
+        }
+        Swal.fire({
+            title: "Importing...",
+            html: `<b>0/${total}</b> Loaded`,
+            icon: "info",
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+                processBatch();
+            }
+        });
+    }
+
+    startWhenReady();
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

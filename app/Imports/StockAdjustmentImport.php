@@ -2,11 +2,11 @@
 
 namespace App\Imports;
 
-use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\SkipsOnError;
-use Maatwebsite\Excel\Concerns\SkipsErrors;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use Illuminate\Support\Collection;
 use DB;
 
 class StockAdjustmentImport implements WithMultipleSheets
@@ -29,10 +29,8 @@ class StockAdjustmentImport implements WithMultipleSheets
     }
 }
 
-class StockAdjustmentTemplateSheet implements ToModel, WithHeadingRow, SkipsOnError
+class StockAdjustmentTemplateSheet implements ToCollection, WithHeadingRow, WithChunkReading
 {
-    use SkipsErrors;
-
     protected string $filename;
 
     public function __construct(string $filename)
@@ -41,26 +39,45 @@ class StockAdjustmentTemplateSheet implements ToModel, WithHeadingRow, SkipsOnEr
     }
 
     /**
+     * Baca file per chunk (lihat chunkSize()), lalu setiap chunk
+     * di-insert SEKALIGUS dalam satu query — bukan satu-satu.
      * Kolom template: article_code | qty_adjustment | notes
      */
-    public function model(array $row)
+    public function collection(Collection $rows)
     {
-        $artCode = trim($row['article_code']   ?? '');
-        $qty     = trim($row['qty_adjustment'] ?? '');
+        $now     = date('Y-m-d H:i:s');
+        $dataSet = [];
 
-        // Skip baris kosong
-        if ($artCode === '' && $qty === '') {
-            return null;
+        foreach ($rows as $row) {
+            $artCode = trim($row['article_code']   ?? '');
+            $qty     = trim($row['qty_adjustment'] ?? '');
+
+            // Skip baris kosong
+            if ($artCode === '' && $qty === '') {
+                continue;
+            }
+
+            $dataSet[] = [
+                'file_name'    => $this->filename,
+                'article_code' => strtoupper($artCode),
+                'qty'          => is_numeric($qty) ? (float) $qty : 0,
+                'notes'        => trim($row['notes'] ?? ''),
+                'created_at'   => $now,
+            ];
         }
 
-        DB::table('import_adjustment_tmp')->insert([
-            'file_name'    => $this->filename,
-            'article_code' => strtoupper($artCode),
-            'qty'          => is_numeric($qty) ? (float) $qty : 0,
-            'notes'        => trim($row['notes'] ?? ''),
-            'created_at'   => date('Y-m-d H:i:s'),
-        ]);
+        if (!empty($dataSet)) {
+            // insert satu query untuk seluruh chunk (bukan per baris)
+            DB::table('import_adjustment_tmp')->insert($dataSet);
+        }
+    }
 
-        return null;
+    /**
+     * Baca file 500 baris per chunk — cukup kecil untuk hemat memori,
+     * cukup besar supaya jumlah query insert tetap sedikit.
+     */
+    public function chunkSize(): int
+    {
+        return 500;
     }
 }

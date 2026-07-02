@@ -12,7 +12,7 @@
 <section id="adj-show">
     <div class="form-row">
 
-           {{-- ── HEADER CARD ─────────────────────────────────────────────── --}}
+           {{-- ── HEADER CARD ─────────────────────────────────────────────── 
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap">
@@ -36,7 +36,7 @@
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
                         </ul>
                     </div>
-                </div>
+                </div> --}}
  
                 <div class="card-content collapse show">
                     <div class="card-body">
@@ -100,10 +100,10 @@
                                     <div class="form-group"><label class="font-weight-bold d-block text-right">Stock Before</label></div>
                                 </div>
                                 <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group"><label class="font-weight-bold d-block text-right">Qty Adjustment</label></div>
+                                    <div class="form-group"><label class="font-weight-bold d-block text-right">Actual Balance</label></div>
                                 </div>
                                 <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group"><label class="font-weight-bold d-block text-right">Stock After</label></div>
+                                    <div class="form-group"><label class="font-weight-bold d-block text-right">Qty Adjustment</label></div>
                                 </div>
                                 <div class="col-md-2 col-12 d-none d-md-block">
                                     <div class="form-group"><label class="font-weight-bold d-block">Notes</label></div>
