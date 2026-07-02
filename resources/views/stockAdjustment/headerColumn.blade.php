@@ -26,14 +26,14 @@
     {{-- Qty Adjustment --}}
     <div class="col-md-2 col-12 d-none d-md-block">
         <div class="form-group mb-0">
-            <label class="font-weight-bold text-right w-100 d-block">Qty Adjustment</label>
+            <label class="font-weight-bold text-right w-100 d-block">Actual Balance</label>
         </div>
     </div>
 
     {{-- Stock After --}}
     <div class="col-md-2 col-12 d-none d-md-block">
         <div class="form-group mb-0">
-            <label class="font-weight-bold text-right w-100 d-block">Stock After</label>
+            <label class="font-weight-bold text-right w-100 d-block">Qty Adjustment</label>
         </div>
     </div>
 
