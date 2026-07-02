@@ -98,14 +98,9 @@
                     <hr>
                     <div class="form-row">
                         <div class="col-12">
-                            {{-- <button class="btn btn-warning" type="reset" id="cmdCancel" name="cmdCancel">Cancel</button> --}}
-                            {{-- <button class="btn btn-success" type="reset" id="cmdNew" name="cmdCancel">New</button> --}}
                             <a href="{{ route('delivery.index') }}" class="btn btn-light">Back</a>
                             <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
                             <button class="btn btn-dark" type="button" id="cmdPrint" name="cmdPrint">Print</button>
-                            {{-- @can('receiving-posting') --}}
-                                {{-- <button class="btn btn-primary" type="button" id="cmdPosting" name="cmdPosting">Posting</button> --}}
-                            {{-- @endcan --}}
                         </div>
                     </div>
                 </div>
@@ -178,7 +173,6 @@
         $('#statusText').text('New');
         $('#dnDate').val(currentDate);
         $('#cmdSave').show();
-        // $('#cmdPosting').hide();
         $('#cmdPrint').hide();
     });
 
@@ -200,7 +194,7 @@
     });
 
    // ============================================================
-// FUNGSI BARU: Cek stok Finish Goods
+// Cek stok Finish Goods
 // ============================================================
 checkFGStock = (articleCodes, callback) => {
     $.ajax({
@@ -220,7 +214,7 @@ checkFGStock = (articleCodes, callback) => {
 }
 
 // ============================================================
-// FUNGSI BARU: Build tabel tampilan stok FG
+// Build tabel tampilan stok FG
 // ============================================================
 buildStockTable = (stockData) => {
     let rows = '';
@@ -265,7 +259,7 @@ buildStockTable = (stockData) => {
 }
 
 // ============================================================
-// MODIFIKASI checkBeforeSave — tambah pengecekan stok FG
+// checkBeforeSave — tambah pengecekan stok FG
 // ============================================================
 checkBeforeSave = () => {
     if (!$("#frmAdd")[0].checkValidity()) {
@@ -298,15 +292,15 @@ checkBeforeSave = () => {
 
             let stock = objStock.eq(i).val().replace(/,/gi, '') || 0;
 
-if (parseFloat(qty) > parseFloat(qtySo)){
-    pesan += "Items " + articleDesc + " - Qty Delivery (" + qty + ") melebihi Qty SO (" + qtySo + ")<br>";
-    flag = 1;
-}
+            if (parseFloat(qty) > parseFloat(qtySo)){
+                pesan += "Items " + articleDesc + " - Qty Delivery (" + qty + ") melebihi Qty SO (" + qtySo + ")<br>";
+                flag = 1;
+            }
 
-if (parseFloat(qty) > parseFloat(stock)){
-    pesan += "Items " + articleDesc + " - Qty Delivery (" + qty + ") melebihi Stock Finish Goods (" + stock + ")<br>";
-    flag = 1;
-}
+            if (parseFloat(qty) > parseFloat(stock)){
+                pesan += "Items " + articleDesc + " - Qty Delivery (" + qty + ") melebihi Stock Finish Goods (" + stock + ")<br>";
+                flag = 1;
+            }
 
             if ((articleCode !== '') && (qty > 0)) {
                 articles.push({ "article_code": articleCode });
@@ -346,7 +340,6 @@ if (parseFloat(qty) > parseFloat(stock)){
         let stockTable    = buildStockTable(stockResult);
 
         if (hasZeroStock) {
-            // ── Ada stok 0 → TOLAK, tidak bisa lanjut ──────
             $('#cmdSave').removeAttr('disabled');
             Swal.fire({
                 width: 900,
@@ -361,7 +354,6 @@ if (parseFloat(qty) > parseFloat(stock)){
         }
 
         if (hasLowStock) {
-            // ── Stok ada tapi kurang dari qty DN → Warning, bisa lanjut ──
             Swal.fire({
                 width: 900,
                 title: '<strong class="text-warning">⚠️ Perhatian: Stok Finish Goods Kurang</strong>',
@@ -381,7 +373,6 @@ if (parseFloat(qty) > parseFloat(stock)){
             return;
         }
 
-        // ── Semua stok aman → lanjut ke preStore ────────────
         Swal.fire({
             width: 900,
             title: '<strong class="text-success">✅ Stok Finish Goods Tersedia</strong>',
@@ -522,15 +513,21 @@ runPreStore = (articles) => {
                             show_msg(data.title, data.message, data.alert);
                             $('#dnNumber').val(data.dnNumber);
                             $('#statusText').val('NEW');
-                            $('#idDn').val(data.id);
+                            // FIX: response store() balikin field 'idKu' (id ter-encrypt),
+                            // bukan 'id'. Sebelumnya di sini pakai data.id yang undefined,
+                            // jadi jQuery .val(undefined) gak nge-set apa-apa dan #idDn
+                            // tetap kosong -> tombol Print gagal manggil posting() -> hilang
+                            // tanpa pesan sama sekali.
+                            $('#idDn').val(data.idKu);
                             $('#dnNumber').attr('disabled','disabled');
-                            // $('#cmdSave').attr('disabled','disabled');
                             $('#cmdSave').hide();
                             $('#cmdPrint').show();
                         }
                     },
                     error: function(error) {
                         console.log(error);
+                        $('#cmdSave').removeAttr('disabled');
+                        Swal.fire('Error', 'Gagal menyimpan data, silakan coba lagi.', 'error');
                     }
                 });
 
@@ -543,120 +540,28 @@ runPreStore = (articles) => {
     }
 
     $("#cmdSave").click(function(){
-
         checkBeforeSave();
-
-        // if (!$("#frmAdd")[0].checkValidity()){
-        //     $("#frmAdd").submit();
-        // }else{ 
-        //     $("#cmdSave").attr('disabled','disabled');
-        //     $('.disabled-el').removeAttr('disabled');
-        //     let objQtySo= $('#article_row input[name="qtySo[]"]');
-        //     let objQty= $('#article_row input[name="qtyInv[]"]');
-        //     let objUom= $('#article_row span[name="uom[]"]'); 
-        //     let articles = []; 
-        //     let flag=0; 
-        //     let pesan="";
-
-        //     $("#article_row input[name='articleId[]']").map(function(i) {  
-        //         let $this=$(this);
-        //         if ($this.val()){
-        //             let articleCode = $this.data("code");
-        //             let articleDesc = $this.data("desc");
-        //             let articleUom = $this.data("uom");
-        //             let articleSoCode = $this.data("so-code");
-        //             let poNumber = $this.data("po-number");
-        //             let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-        //             let qtySo=objQtySo.eq(i).val().replace(/,/gi, '') || 0;
-                    
-        //             if ((articleCode!=='') && (qty> 0)){
-        //                 articles.push({
-        //                     "article_code":articleCode,
-        //                     "qty":qty,
-        //                     "uom":articleUom,
-        //                     "so_number":articleSoCode,
-        //                     "po_number":poNumber,
-        //                     "qty_so":qtySo
-        //                 });
-        //             }
-
-        //             if (parseInt(qty) > parseInt(qtySo)){
-        //                 pesan +="Items "+ articleDesc +"-"+qty+"-"+qtySo+" QTY Delivery is higher than QTY SO<br>"; 
-        //                 flag=1;
-        //             }
-                    
-        //         }
-        //     });
-
-        //     if (articles.length == 0){
-        //         pesan +="Articles must be filled in completely <br>"; 
-        //         flag=1;
-        //     }
-
-        //     if (flag==0){
-
-        //         let dnDate = $('#dnDate').val();
-        //         let customer = $('#customer').val();
-        //         let soNumber = $('#soNumber').val();
-        //         let poNumber = $('#soNumber').find(":selected").data("po-number");
-        //         let note = $('#note').val();
-        //         let osNumber = $('#osNumber').val();
-
-        //         $.ajax({
-        //             type: "post",
-        //             url: "{{ route('delivery.store') }}",
-        //             data: {
-        //                 articles:JSON.stringify(articles),
-        //                 dnDate:dnDate,
-        //                 customer:customer,
-        //                 soNumber:soNumber,
-        //                 poNumber:poNumber,
-        //                 note:note,
-        //                 osNumber:osNumber
-
-        //             },
-        //             dataType: "json",
-        //             success: function(data) {
-        //                 if (data.status == 0 ){
-        //                     for(let i = 0; i < data.message.length; i++) {
-        //                         show_msg(data.title, data.message[i], data.alert);
-        //                     }
-        //                     $('#dnNumber').attr('disabled','disabled');
-        //                     $('#cmdSave').removeAttr('disabled');
-        //                 }else{
-        //                     show_msg(data.title, data.message, data.alert);
-        //                     $('#dnNumber').val(data.dnNumber);
-        //                     $('#statusText').val('NEW');
-        //                     $('#idDn').val(data.id);
-        //                     $('#dnNumber').attr('disabled','disabled');
-        //                     // $('#cmdSave').attr('disabled','disabled');
-        //                     $('#cmdSave').hide();
-        //                     $('#cmdPrint').show();
-        //                 }
-        //             },
-        //             error: function(error) {
-        //                 console.log(error);
-        //             }
-        //         });
-
-        //     }else{
-        //         $('#cmdSave').removeAttr('disabled');
-        //         $('#cmdPrint').hide();
-        //         Swal.fire('Warning..',pesan,'warning');
-        //     }
-        // }
-
     });
 
     $("#cmdPrint").click(function(){
-        /* Posting langdung print*/
+        /* Posting langsung print */
+
+        // GUARD: pastikan #idDn sudah kebentuk (hasil dari Save yang sukses) sebelum
+        // manggil delivery.posting. Kalau kosong, jangan lanjut request ke server
+        // (yang tadinya bakal gagal di Crypt::decryptString('') dan bikin tombol
+        // hilang tanpa pesan).
+        let idDn = $('#idDn').val();
+        if (!idDn) {
+            Swal.fire('Error', 'ID dokumen belum ada. Silakan Save terlebih dahulu sebelum Print.', 'error');
+            return;
+        }
+
         $("#cmdPrint").attr('disabled','disabled');
-        $('#cmdPrint').hide();
-        $('#cmdSave').hide();
+        $("#cmdSave").attr('disabled','disabled');
+
         let objQty= $('input[name="qtyInv[]"]');
         let objUom= $('select[name="uom[]"]');       
-        let dnNumber = $('#dnNumber').val();   
-        let idDn = $('#idDn').val();
+        let dnNumber = $('#dnNumber').val();
         let dariNew = 'true';     
         $.ajax({
             type: "post",
@@ -669,18 +574,19 @@ runPreStore = (articles) => {
             dataType: "json",
             success: function(data) {
                 if (data.status == 0 ){
-                    let message="";
                     for(let i = 0; i < data.message.length; i++) {
                         show_msg(data.title, data.message[i], data.alert);
                     }
                     $('#dnNumber').attr('disabled','disabled');
-                    $('#cmdSave').show();
-                    $('#cmdPrint').hide();
+                    // FIX: dulu cmdPrint tetap hidden kalau posting gagal (status 0),
+                    // padahal cmdPrint sudah di-hide/disable di awal klik. Sekarang
+                    // dikembalikan supaya user bisa coba Print lagi.
+                    $('#cmdSave').removeAttr('disabled').show();
+                    $('#cmdPrint').removeAttr('disabled').show();
 
                 }else{
                     show_msg(data.title, data.message, data.alert);
                     $('#cmdSave').hide();
-                    // $('#deleteButton').hide();
                     $('#statusText').text('POSTED');
                     $('#cmdPrint').hide();
                     $('#dnNumber').attr('disabled','disabled');
@@ -698,6 +604,12 @@ runPreStore = (articles) => {
             },
             error: function(error) {
                 console.log(error);
+                // FIX: dulu di sini cuma console.log tanpa mengembalikan tombol/kasih
+                // pesan, jadi kalau request gagal (mis. id invalid, expired, error
+                // server), tombol Save & Print SAMA-SAMA hilang tanpa penjelasan.
+                $("#cmdPrint").removeAttr('disabled').show();
+                $("#cmdSave").removeAttr('disabled');
+                Swal.fire('Error', 'Gagal melakukan posting/print, silakan coba lagi.', 'error');
             }
         });
     });

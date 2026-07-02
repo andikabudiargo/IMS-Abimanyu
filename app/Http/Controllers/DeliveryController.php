@@ -996,9 +996,12 @@ public function posting(Request $request)
         )
         ->get();
 
+         $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
         $dataSetMovementFg = [];
         foreach ($movementsFg as $val) {
+             $seq++;
             $dataSetMovementFg[] = [
+                'movevement_code'    => $seq,
                 'movement_date'      => $val->movement_date,
                 'artikel_code'       => $val->article_code,
                 'artikel_desc'       => $val->article_desc,
