@@ -7,6 +7,17 @@
         background-color: #e9ecef;
         opacity: 1;
     }
+
+    #article_row .btn-remove-row {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    z-index: 2;
+    line-height: 1;
+    padding: 0 .4rem;
+    color: #ea5455;
+    font-size: 1.1rem;
+}
 </style>
 {{-- table row untuk di clone--}}
 <div id="new_row" name="new_row[]" class="d-none">
@@ -89,3 +100,78 @@
     </div>
 </div>
 {{-- \.table row --}}
+
+{{-- MANUAL ROW (khusus Non Purchase) --}}
+<div id="new_row_manual" class="d-none">
+    <div id="baru_manual" class="tanda-baris position-relative">
+        <button type="button" class="btn btn-sm btn-remove-row" title="Hapus baris">&times;</button>
+        <div class="form-row d-flex align-items-center">
+
+            <div class="col-md-4 col-12">
+                <div class="form-group">
+                    <label class="d-block d-md-none">Article</label>
+                    <select class="form-control text-hitam" id="article_id" name="article_id[]"
+                            data-code="" data-uom="" data-price="" data-prnumber="">
+                        <option value=""></option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-md-1 col-12">
+                <div class="form-group">
+                    <label class="d-block d-md-none">QTY PO</label>
+                    <input type="text" class="form-control text-hitam text-right disabled-el"
+                           id="qty_po" name="qty_po[]" disabled>
+                </div>
+            </div>
+
+            <div class="col-md-1 col-12">
+                <div class="form-group">
+                    <label class="d-block d-md-none">QTY Rec</label>
+                    <input type="text" class="form-control numeral-mask-digit text-right text-hitam"
+                           autocomplete="off" id="qty_rec" name="qty_rec[]" maxlength="11">
+                </div>
+            </div>
+
+            <div class="col-md-1 col-12">
+                <div class="form-group">
+                    <label class="d-block d-md-none">UOM</label>
+                    <select class="form-control text-hitam" id="uom" name="uom[]"></select>
+                </div>
+            </div>
+
+            <div class="col-md-1 col-12">
+                <div class="form-group">
+                    <label class="d-block d-md-none">QTY Free</label>
+                    <input type="text" class="form-control numeral-mask-digit text-right text-hitam"
+                           autocomplete="off" id="qty_free" name="qty_free[]" maxlength="11">
+                </div>
+            </div>
+
+            <div class="col-md-1 col-12">
+                <div class="form-group">
+                    <label class="d-block d-md-none">UOM Free</label>
+                    <select class="form-control text-hitam" id="uomFree" name="uomFree[]"></select>
+                </div>
+            </div>
+
+            <div class="col-md-1 col-12">
+                <div class="form-group">
+                    <label class="d-block d-md-none">Total</label>
+                    <span class="form-control readonly-grey text-right numeral-mask-digit text-hitam"
+                          id="totalQty" name="totalQty[]"></span>
+                </div>
+            </div>
+
+            <div class="col-md-2 col-12">
+                <div class="form-group">
+                    <label class="d-block d-md-none">Conv.</label>
+                    <span class="form-control readonly-grey conv-info text-hitam text-right"
+                          id="convInfo" name="convInfo[]"></span>
+                </div>
+            </div>
+
+        </div>
+        <hr class="d-block d-md-none" />
+    </div>
+</div>

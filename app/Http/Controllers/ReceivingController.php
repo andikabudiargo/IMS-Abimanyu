@@ -2085,65 +2085,60 @@ public function unPosting($recNumber)
     $searchStatus   = $request->searchStatus;
     $recDate        = $request->recDate;
     $doDate         = $request->doDate;
-    $fromDate       = "";
-    $toDate         = "";
-    $fromDateDo     = "";
-    $toDateDo       = "";
- 
-    if ($recDate) {
-        $date = explode("to", $recDate);
-        if (count($date) > 1) {
+    $fromDate = ""; $toDate = ""; $fromDateDo = ""; $toDateDo = "";
+
+    if ($recDate){
+        $date = explode("to",$recDate);
+        if(count($date)>1){
             $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
             $toDate   = implode("/", array_reverse(explode("-", trim($date[1]))));
-        } else {
+        }else{
             $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
             $toDate   = $fromDate;
         }
     }
- 
-    if ($doDate) {
-        $doDate = explode("to", $doDate);
-        if (count($doDate) > 1) {
+
+    if ($doDate){
+        $doDate = explode("to",$doDate);
+        if(count($doDate)>1){
             $fromDateDo = implode("/", array_reverse(explode("-", trim($doDate[0]))));
             $toDateDo   = implode("/", array_reverse(explode("-", trim($doDate[1]))));
-        } else {
+        }else{
             $fromDateDo = implode("/", array_reverse(explode("-", trim($doDate[0]))));
             $toDateDo   = $fromDateDo;
         }
     }
- 
-    $data = DB::table('receiving_hdr')
-        ->where(function ($query) use ($searchRec, $searchPo, $searchInv, $searchSupplier, $searchStatus, $recDate, $fromDate, $toDate, $doDate, $fromDateDo, $toDateDo) {
-            $searchPo       ? $query->where('po_number',  'ilike', '%' . $searchPo . '%')       : '';
-            $searchInv      ? $query->where('inv_number', 'ilike', '%' . $searchInv . '%')      : '';
-            $searchSupplier ? $query->where('supplier_id','ilike', '%' . $searchSupplier . '%') : '';
-            $searchRec      ? $query->where('rec_number', 'ilike', '%' . $searchRec . '%')      : '';
-            $searchStatus   ? $query->where('status', $searchStatus)                            : '';
-            $recDate        ? $query->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"),   [$fromDate,   $toDate])   : '';
-            $doDate         ? $query->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"),    [$fromDateDo, $toDateDo]) : '';
+
+    // PENTING: jangan ->get(). Biarkan query builder supaya paging (LIMIT/OFFSET) jalan di DB.
+    $query = DB::table('receiving_hdr')
+        ->where(function ($q) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
+            $searchPo       ? $q->where('po_number','ilike','%'.$searchPo.'%') : '';
+            $searchInv      ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
+            $searchSupplier ? $q->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
+            $searchRec      ? $q->where('rec_number','ilike','%'.$searchRec.'%') : '';
+            $searchStatus   ? $q->where('status',$searchStatus) : '';
+            $recDate        ? $q->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $doDate         ? $q->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
         })
-        ->whereNotIn('status', ['5', '7'])
-        ->select(
-            'receiving_hdr.*',
-            DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by"),
-            DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name"),
-            DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail 
-                        left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number 
-                        where ap_invoice_detail.rec_number = receiving_hdr.rec_number 
-                        and ap_invoice.status in ('2','3','4','6') limit 1) as ap_number"),
-            DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) and status in('4','6')) as ap_date"),
-            DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
-        )
-        ->orderBy('id')
-        ->get();
- 
-    $lockDateToDate = date('Y-m-d', strtotime($this->lockDate));
-    $bisaEdit       = Auth::user()->can('receiving-edit');
-    $bisaDelete     = Auth::user()->can('receiving-delete');
-    $bisaApprove    = Auth::user()->can('receiving-approve');
-    $bisaPosting    = Auth::user()->can('receiving-posting');
- 
-    return Datatables::of($data)
+        ->whereNotIn('status',['5','7'])
+        ->select('receiving_hdr.*'
+            ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
+            ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
+            ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail
+                        left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number
+                        where ap_invoice_detail.rec_number = receiving_hdr.rec_number
+                        and ap_invoice.status in ('2','3','4','6') limit 1 ) as ap_number")
+            ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) and status in ('4','6') limit 1) as ap_date") // <-- tambah limit 1
+            ,DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
+        );
+
+    $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
+    $bisaEdit    = Auth::user()->can('receiving-edit');
+    $bisaDelete  = Auth::user()->can('receiving-delete');
+    $bisaApprove = Auth::user()->can('receiving-approve');
+    $bisaPosting = Auth::user()->can('receiving-posting');
+
+    return Datatables::of($query)   // <-- kirim query, bukan collection
         ->addColumn('action', function ($data) use ($lockDateToDate, $bisaEdit, $bisaDelete, $bisaPosting, $bisaApprove) {
             $recDate  = date('Y-m-d', strtotime($data->rec_date));
             $bisaUbah = $recDate >= $lockDateToDate;
@@ -2524,61 +2519,65 @@ public function unPosting($recNumber)
             }
         }
 
-        $data = DB::table('receiving_det')
-        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')      
-        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')      
+       $query = DB::table('receiving_det')
+        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
         ->leftJoin('article_types','article_types.code','article.article_type')
         ->leftJoin('uom','uom.code','receiving_det.uom_rec')
-        ->where(function ($query) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
-            $searchPo ? $query->where('receiving_hdr.po_number','ilike','%'.$searchPo.'%') : '';
-            $searchInv ? $query->where('inv_number','ilike','%'.$searchInv.'%') : '';
-            $searchSupplier ? $query->where('receiving_hdr.supplier_id','ilike','%'.$searchSupplier.'%') : '';
-            $searchRec ? $query->where('receiving_det.rec_number','ilike','%'.$searchRec.'%') : '';
-            $searchStatus ? $query->where('status',$searchStatus) : '';
-            $recDate ? $query->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $doDate ? $query->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
+        ->where(function ($q) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
+            $searchPo       ? $q->where('receiving_hdr.po_number','ilike','%'.$searchPo.'%') : '';
+            $searchInv      ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
+            $searchSupplier ? $q->where('receiving_hdr.supplier_id','ilike','%'.$searchSupplier.'%') : '';
+            $searchRec      ? $q->where('receiving_det.rec_number','ilike','%'.$searchRec.'%') : '';
+            $searchStatus   ? $q->where('status',$searchStatus) : '';
+            $recDate        ? $q->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $doDate         ? $q->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
         })
         ->where('receiving_det.qty','>',0)
         ->whereNotIn('receiving_hdr.status',['5','7'])
         ->select('receiving_det.*'
-        ,DB::raw("purchase_order_hdr.ppn::numeric as ppn")
-        ,'receiving_hdr.*'
-        ,'article_alternative_code'
-        ,'article_desc'
-        ,'article_types.name as article_type_name'
-        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty,'999,999,999.99') end as qty")
-        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_free,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_free,'999,999,999.99') end as qty_free")
-        ,DB::raw("price*qty as total_dpp")
-        ,DB::raw("(price*qty)*((coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*(purchase_order_hdr.ppn::numeric))/100) as total_ppn")
-        ,DB::raw("((price*qty)*((coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*(purchase_order_hdr.ppn::numeric))/100))+(price*qty) as totaL_plus_ppn")
-        // ,DB::raw("TO_CHAR(price*qty,'999,999,999') as total_dpp")
-        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
-        // ,DB::raw("(select concat(kode,'-',nama) from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
-        ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
-        ,DB::raw("(select (select name from depts where code = dept) as nama_dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1)")
-        ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail 
-                    left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number 
-                    where ap_invoice_detail.rec_number = receiving_hdr.rec_number 
-                    and ap_invoice.status  in  ('4','6') limit 1 ) as ap_number")
-        ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)  and status in('4','6')) as ap_date")
-        ,DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
+            ,DB::raw("purchase_order_hdr.ppn::numeric as ppn")
+            ,'receiving_hdr.*'
+            ,'article_alternative_code'
+            ,'article_desc'
+            ,'article_types.name as article_type_name'
+            ,DB::raw("price*qty as total_dpp")
+            ,DB::raw("(price*qty)*((coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*(purchase_order_hdr.ppn::numeric))/100) as total_ppn")
+            ,DB::raw("((price*qty)*((coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*(purchase_order_hdr.ppn::numeric))/100))+(price*qty) as total_plus_ppn")
+            ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
+            ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
+            ,DB::raw("(select (select name from depts where code = dept) as nama_dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1)")
+            ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail
+                        left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number
+                        where ap_invoice_detail.rec_number = receiving_hdr.rec_number
+                        and ap_invoice.status in ('4','6') limit 1 ) as ap_number")
+            ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) and status in('4','6') limit 1) as ap_date") // <-- tambah limit 1
+            ,DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
         )
-        ->orderBy('receiving_det.id')
-        ->get(); 
+        ->orderBy('receiving_det.id');   // orderBy tetap boleh, biarkan
 
-        // dd($data);
-        
-        return Datatables::of($data)
+    return Datatables::of($query)
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];
             $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED','','','','','REVISI'];
-            // return "<div class='badge ".$badges[$data->status - 1]."'>".$statusRec[$data->status - 1]."</div>";
             return $statusRec[$data->status - 1];
         })
+        // beri tahu yajra kolom asli untuk sort kolom yang ambigu:
+        ->orderColumn('rec_number', 'receiving_det.rec_number $1')
+        ->orderColumn('rec_date',   'receiving_hdr.rec_date $1')
+        ->orderColumn('do_date',    'receiving_hdr.do_date $1')
+        ->orderColumn('ap_number',  'ap_number $1')
+        ->orderColumn('ap_date',    'ap_date $1')
+        ->orderColumn('note',       'receiving_hdr.note $1')
+        ->orderColumn('created_by', 'receiving_hdr.created_by $1')
+        ->orderColumn('created_at', 'receiving_hdr.created_at $1')
+        ->orderColumn('updated_at', 'receiving_hdr.updated_at $1')
+        ->orderColumn('supplier_id','receiving_hdr.supplier_id $1')
+        ->orderColumn('po_number',  'receiving_hdr.po_number $1')
         ->rawColumns(['status'])
         ->make(true);
-    }
+}
 
     public function print(Request $request)
     {
@@ -2785,7 +2784,7 @@ public function listPr(Request $request)
         ->get();
  
     if (count($data) > 0) {
-        $output .= '<option value="Choose PR">Choose PR</option>';
+        $output .= '<option value="">Choose PR</option>';
         foreach ($data as $row) {
             $output .= '<option value="'.$row->pr_number.'">'.$row->pr_number.'</option>';
         }
@@ -2957,6 +2956,66 @@ public function prDetail(Request $request)
         return 'selesai';
 
     }  
+
+    // Cari semua article (status aktif = '1') untuk baris manual (Non Purchase)
+public function listArticle(Request $request)
+{
+    $q    = trim($request->q);
+    $supp = trim($request->supp);
+
+    $rows = DB::table('article')
+        ->whereIn('article.article_type', ['CM3','RMNP'])
+        ->where(function($w) use ($supp){
+            // kondisi 1: ada di uom_con_v2 untuk supplier ini
+            $w->whereExists(function($sub) use ($supp){
+                $sub->select(DB::raw(1))
+                    ->from('uom_con_v2 as v')
+                    ->whereColumn('v.article_code', 'article.article_code')
+                    ->whereRaw('lower(trim(v.supplier_code)) = lower(trim(?))', [$supp]);
+            })
+            // kondisi 2: supplier_code di tabel article cocok (fallback)
+            ->orWhereRaw('lower(trim(article.third_party)) = lower(trim(?))', [$supp]);
+        })
+        ->when($q, function($w) use ($q){
+            $w->where(function($x) use ($q){
+                $x->where('article.article_alternative_code','ilike','%'.$q.'%')
+                  ->orWhere('article.article_desc','ilike','%'.$q.'%');
+            });
+        })
+        ->orderBy('article.article_desc')
+        ->select(
+            'article.article_code as code',
+            'article.article_alternative_code as alt',
+            'article.article_desc as descr',
+            'article.uom as uom'
+        )
+        ->limit(30)
+        ->get();
+
+    return response()->json($rows->map(fn($r) => [
+        'id'    => $r->code,
+        'text'  => $r->alt.' - '.$r->descr,
+        'code'  => $r->code,
+        'uom'   => $r->uom,
+        'price' => 0,
+    ]));
+}
+
+    // Ambil UOM + UOM Free + factor dari uom_con_v2 by article_code + supplier_code
+public function uomConv(Request $request)
+{
+    $articleCode  = trim($request->get('article_code'));
+    $supplierCode = trim($request->get('supplier_code'));
+
+    $rows = DB::table('uom_con_v2')
+        ->whereRaw('LOWER(TRIM(article_code))  = LOWER(TRIM(?))', [$articleCode])
+        ->whereRaw('LOWER(TRIM(supplier_code)) = LOWER(TRIM(?))', [$supplierCode])
+        ->orderBy('unit_from')
+        ->select('unit_from', 'unit_to', 'unit_factor')   // <-- tanpa alias
+        ->get();
+
+    return response()->json($rows);
+}
 
 
     // public function posting(Request $request)

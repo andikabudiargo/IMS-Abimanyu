@@ -13,7 +13,7 @@
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
                             <input type="hidden" id="idRec" name="idRec" class="form-control" />
                         </ul>
-                    </div>    
+                    </div>
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
@@ -22,13 +22,13 @@
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label for="recNumber">Receiving Number</label> <small class="text-muted"> automatic</small>
-                                    <input type="text" id="recNumber" name="recNumber" class="form-control text-hitam disabled-el"  disabled />
+                                    <input type="text" id="recNumber" name="recNumber" class="form-control text-hitam disabled-el" disabled />
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label for="recDate">Receiving Date*</label>
                                     <input type="text" id="recDate" name="recDate" class="form-control" placeholder="DD-MM-YYYY" required/>
-                                </div>                               
-                            <div class="form-group col-md-3">
+                                </div>
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="recType">Receive Type</label>
                                     <select class="select2 form-control" id="recType" name="recType" required>
                                         <option value="NORMAL">Purchase Order</option>
@@ -36,18 +36,18 @@
                                         <option value="JASA">Jasa</option>
                                     </select>
                                 </div>
-                                 </div>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="supplier">Supplier*</label>
                                     <select class="select2 form-control" id="supplier" name="supplier" required>
                                         <option value=""></option>
                                         @foreach($supps as $val)
-                                            <option value="{{$val->kode}}" >{{$val->kode}} - {{$val->nama}}</option>
+                                            <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                 <div class="form-group col-md-4">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="poNumber">PO Number*</label>
                                     <select class="select2 form-control" id="poNumber" name="poNumber" required>
                                     </select>
@@ -57,7 +57,7 @@
                                 <div class="form-group col-md-4">
                                     <label for="doDate">DO Date*</label>
                                     <input type="text" id="doDate" name="doDate" class="form-control" placeholder="DD-MM-YYYY" required />
-                                </div>                               
+                                </div>
                                 <div class="form-group col-md-4">
                                     <label for="doNumber">DO Number*</label>
                                     <input type="text" id="doNumber" name="doNumber" class="form-control disabled-el" required/>
@@ -65,7 +65,7 @@
                                 <div class="form-group col-md-2 d-none">
                                     <label for="invDate">Invoice Date*</label>
                                     <input type="text" id="invDate" name="invDate" class="form-control" placeholder="DD-MM-YYYY" />
-                                </div>                               
+                                </div>
                                 <div class="form-group col-md-3 d-none">
                                     <label for="invNumber">Invoice Number*</label>
                                     <input type="text" id="invNumber" name="invNumber" class="form-control disabled-el" />
@@ -74,7 +74,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1"></textarea>
                                 </div>
                             </div>
                         </form>
@@ -82,24 +82,28 @@
                 </div>
             </div>
         </div>
+
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title">Article</h4>
                 </div>
-                <div class="card-body" >
+                <div class="card-body">
                     <div class="container-list-item">
                         <div class="lebar-list-item">
-                            @include('receiving.headerColumnv2') 
-                            <input type="text" id ="last_row_number" class="d-none" value="0">
+                            @include('receiving.headerColumnv2')
+                            <input type="text" id="last_row_number" class="d-none" value="0">
                             <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin">
                             </div>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
+                        <button class="btn btn-outline-primary btn-sm d-none" type="button" id="cmdAddRow">
+                            <i data-feather="plus"></i> Add Row
+                        </button>
                     </div>
                     <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4 ">
+                        <div class="col-md-4">
                             <div class="form-group row mb-04">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
                                 <div class="col-sm-4">
@@ -108,34 +112,34 @@
                             </div>
                         </div>
                         <div class="col-md-5">
-    <div class="form-group row mb-03">
-        <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total Qty</label>
-        <div class="col-sm-4">
-            <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled />
-        </div>
-        <div class="col-sm-4">
-            <input type="text" class="form-control text-right font-weight-bold text-hitam" id="convQTY" disabled />
-        </div>
-    </div>
-    <div class="form-group row mb-03">
-        <label for="totalQtyFree" class="col-sm-4 col-form-label titik-dua">Total Qty Free</label>
-        <div class="col-sm-4">
-            <input type="text" class="form-control text-right font-weight-bold" id="totalQtyFree" disabled />
-        </div>
-        <div class="col-sm-4">
-            <input type="text" class="form-control text-right font-weight-bold text-hitam" id="convQtyFree" disabled />
-        </div>
-    </div>
-    <div class="form-group row mb-03">
-        <label for="grandTotalQty" class="col-sm-4 col-form-label titik-dua">Grand Total Qty</label>
-        <div class="col-sm-4">
-            <input type="text" class="form-control text-right font-weight-bold" id="grandTotalQty" disabled />
-        </div>
-        <div class="col-sm-4">
-            <input type="text" class="form-control text-right font-weight-bold text-hitam" id="convGrandTotalQty" disabled />
-        </div>
-    </div>
-</div>
+                            <div class="form-group row mb-03">
+                                <label for="totalQTY" class="col-sm-4 col-form-label titik-dua">Total Qty</label>
+                                <div class="col-sm-4">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQTY" disabled />
+                                </div>
+                                <div class="col-sm-4">
+                                    <input type="text" class="form-control text-right font-weight-bold text-hitam" id="convQTY" disabled />
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalQtyFree" class="col-sm-4 col-form-label titik-dua">Total Qty Free</label>
+                                <div class="col-sm-4">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQtyFree" disabled />
+                                </div>
+                                <div class="col-sm-4">
+                                    <input type="text" class="form-control text-right font-weight-bold text-hitam" id="convQtyFree" disabled />
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="grandTotalQty" class="col-sm-4 col-form-label titik-dua">Grand Total Qty</label>
+                                <div class="col-sm-4">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="grandTotalQty" disabled />
+                                </div>
+                                <div class="col-sm-4">
+                                    <input type="text" class="form-control text-right font-weight-bold text-hitam" id="convGrandTotalQty" disabled />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <hr>
                     <div class="form-row">
@@ -156,110 +160,226 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    // currentDate: format DD-MM-YYYY, dipakai untuk default value recDate & doDate
-    let currentDate = (function(){
-        let d = new Date();
-        let dd = String(d.getDate()).padStart(2, '0');
-        let mm = String(d.getMonth() + 1).padStart(2, '0');
-        let yyyy = d.getFullYear();
-        return dd + '-' + mm + '-' + yyyy;
-    })();
 
     /* =====================================================================
-       BAGIAN INI SEBELUMNYA ADA DI addArticlev2.blade.php
-       Dipindah ke sini supaya dijamin dieksekusi SETELAH jQuery ter-load
-       (addArticlev2 di-include di bagian section content, yang
-       dirender SEBELUM tag script src jquery di layout, sehingga
-       dollar-sign is not defined saat script lama itu langsung jalan di sana)
+       HELPERS
        ===================================================================== */
 
+    // format DD-MM-YYYY hari ini
+    let currentDate = (function(){
+        let d  = new Date();
+        let dd = String(d.getDate()).padStart(2,'0');
+        let mm = String(d.getMonth()+1).padStart(2,'0');
+        return dd+'-'+mm+'-'+d.getFullYear();
+    })();
+
+    let lockedAt  = "{{ $lockDate }}";
+    let dariEdit  = 'false';
+    let cloneCount = 0;
+
+    /* =====================================================================
+       RESET AREA ARTIKEL + FOOTER TOTAL
+       - panggil setiap kali ganti supplier / PO / PR
+       ===================================================================== */
+    function resetArticleArea(){
+        $('#article_row').empty();
+        cloneCount = 0;
+        hitungGrandTotal();
+    }
+
+    /* =====================================================================
+       KONVERSI UOM — rec & free factor TERPISAH
+       unit_from -> dikali unit_factor  (satuan stok = unit_to)
+       unit_to   -> dikali 1
+       lainnya   -> dikali 1  (fallback uom article)
+       ===================================================================== */
+
+    function buildUomOptions(unitFrom, unitTo){
+        let opts = '';
+        if (unitFrom) opts += '<option value="'+unitFrom+'" selected>'+unitFrom+'</option>';
+        if (unitTo && unitTo !== unitFrom) opts += '<option value="'+unitTo+'">'+unitTo+'</option>';
+        if (!opts) opts = '<option value=""></option>';
+        return opts;
+    }
+
+    function factorForUnit(selected, unitFrom, unitTo, baseFactor){
+        if (unitTo && selected === unitFrom) return { to: unitTo,              factor: baseFactor };
+        if (unitTo && selected === unitTo)   return { to: unitTo,              factor: 1          };
+        return                                      { to: selected || unitFrom, factor: 1          };
+    }
+
+    function applyRowConversion(suffix){
+        let $qtyRec  = $('#qty_rec'+suffix);
+        let unitFrom = $qtyRec.attr('data-unit-from');
+        let unitTo   = $qtyRec.attr('data-unit-to');
+        let base     = parseFloat($qtyRec.attr('data-unit-factor')) || 1;
+
+        let selRec  = $('#uom'+suffix).val();
+        let rec     = factorForUnit(selRec, unitFrom, unitTo, base);
+        $qtyRec.attr('data-conv-from', selRec)
+               .attr('data-conv-to',   rec.to)
+               .attr('data-conv-factor', rec.factor);
+
+        let selFree = $('#uomFree'+suffix).val() || selRec;
+        let free    = factorForUnit(selFree, unitFrom, unitTo, base);
+        $('#qty_free'+suffix)
+               .attr('data-conv-from',   selFree)
+               .attr('data-conv-to',     free.to)
+               .attr('data-conv-factor', free.factor);
+
+        hitungKonversi($qtyRec);
+    }
+
+    function hitungKonversi(elemen){
+        let $row   = $(elemen).closest('[id^="new_row"]');
+        let $qRec  = $row.find('input[name="qty_rec[]"]');
+        let $qFree = $row.find('input[name="qty_free[]"]');
+
+        let facRec  = parseFloat($qRec.attr('data-conv-factor'))  || 1;
+        let facFree = parseFloat($qFree.attr('data-conv-factor')) || 1;
+        let to      = $qRec.attr('data-conv-to') || $qRec.attr('data-conv-from');
+
+        let qtyRec  = parseFloat(($qRec.val()  || '0').replace(/,/gi,'')) || 0;
+        let qtyFree = parseFloat(($qFree.val() || '0').replace(/,/gi,'')) || 0;
+        let hasil   = (qtyRec * facRec) + (qtyFree * facFree);
+
+        $row.find('.conv-info').text(
+            hasil.toLocaleString(undefined,{ maximumFractionDigits: numberOfDecimalDigit })
+            + (to ? ' '+to : '')
+        );
+        hitungGrandTotal();
+    }
+
+    /* =====================================================================
+       RECTYPE CHANGE
+       ===================================================================== */
     $('#recType').change(function(){
-        let isPr = $(this).val() === 'NP';
+        let isNp = $(this).val() === 'NP';
 
-        // reset supplier (select2) — pakai change.select2 supaya tidak ikut memanggil searchPo/searchPr
         $('#supplier').val(null).trigger('change.select2');
-
-        // reset dropdown PO/PR (select2): kosongkan opsi + sisakan 1 opsi kosong, lalu refresh
         $('#poNumber').empty().append('<option value=""></option>').val('').trigger('change.select2');
+        resetArticleArea();
 
-        // reset tabel artikel & total
-        $('#article_row').empty(); cloneCount = 0; hitungGrandTotal();
+        $('label[for="poNumber"]').text(isNp ? 'PR Number' : 'PO Number*');
+        $('#lblQtyRef').text(isNp ? 'QTY PR' : 'QTY PO');
+        $('#lblQtyRefHeader').text(isNp ? 'QTY PR' : 'QTY PO');
 
-        // label ikut berubah
-        $('label[for="poNumber"]').text(isPr ? 'PR Number*' : 'PO Number*');
-        $('#lblQtyRef').text(isPr ? 'QTY PR' : 'QTY PO');
+        if (isNp){
+            $('#poNumber').removeAttr('required');
+            $('#cmdAddRow').removeClass('d-none');   // NP tanpa PR: Add Row muncul
+        } else {
+            $('#poNumber').attr('required','required');
+            $('#cmdAddRow').addClass('d-none');
+        }
+        if (window.feather) feather.replace();
     });
 
-    function searchPo(obj,value) {
+    /* =====================================================================
+       SUPPLIER CHANGE — refresh dropdown PO/PR dan bersihkan artikel
+       ===================================================================== */
+    $('#supplier').change(function(){
+        let value = $(this).val();
+        let isNp  = $('#recType').val() === 'NP';
+
+        // bersihkan artikel lama + reset tombol Add Row
+        resetArticleArea();
+
+        if (isNp){
+            // NP: belum ada PR yang dipilih → Add Row muncul kembali
+            $('#cmdAddRow').removeClass('d-none');
+            searchPr('poNumber', value);
+        } else {
+            $('#cmdAddRow').addClass('d-none');
+            searchPo('poNumber', value);
+        }
+    });
+
+    /* =====================================================================
+       PO / PR CHANGE — refresh artikel
+       ===================================================================== */
+    $('#poNumber').change(function(){
+        let value = $(this).val();
+        if ($('#recType').val() === 'NP'){
+            searchPrDet(value);
+        } else {
+            searchPoDet(value, 'false');
+        }
+    });
+
+    /* =====================================================================
+       FETCH LIST PO (NORMAL / JASA)
+       ===================================================================== */
+    function searchPo(obj, value){
         $.ajax({
             url:"{{ route('receiving.list.pov2') }}",
             method:"GET",
-            data:{
-                value: value,
-                recType: $('#recType').val()
-            },
-            success:function(result){
-                $('#'+obj).html(result);
-            },
-            error: function (response) {
-                Swal.fire("Warning","Get list PO failed","warning");
-            }
-        })
-    }
-
-    function searchPoDet(value,dariEdit) {
-        if(dariEdit=='false'){
-            $.ajax({
-                url:"{{ route('receiving.po.det2') }}",
-                method:"GET",
-                data:{
-                    value:value,
-                },
-                success:function(result){
-                    $("#article_row").empty();
-                    cloneCount=1;
-                    console.log(result.map(r => ({code:r.article_code, conv_to:r.conv_to, conv_factor:r.conv_factor})));
-                    if (result.length > 0) {
-                        for (let i = 0; i < result.length; i++) {
-                            let article     = result[i].article_code;
-                            let articleCode = result[i].article_alternative_code;
-                            let articleDesc = result[i].article_desc;
-                            let qtyPo       = result[i].qty_order;
-                            let qty         = qtyPo <= 0 ? 0 : '';
-                            let uom         = result[i].uom;
-                            let price       = result[i].price;
-                            let poPrNumber  = result[i].pr_number;
-                            let convTo      = result[i].conv_to;
-                            let convFactor  = result[i].conv_factor;
-                            add_new_row(article, articleCode, articleDesc, qtyPo, uom, price, qty, poPrNumber, convTo, convFactor);
-                        }
-                    }
-                },
-                error: function (response) {
-                    Swal.fire("Warning","Get detail PO failed","warning");
-                }
-            })
-        }else{
-            dariEdit='false';
-        }
-    }
-
-    function searchPr(obj, value){
-        if (!value){ $('#'+obj).empty(); return; }
-        $.ajax({
-            type:'post',
-            url:"{{ route('receiving.list.pr') }}",
-            data:{ value:value },
-            success:function(res){ $('#'+obj).html(res).trigger('change'); },
-            error: function (response) {
-                Swal.fire("Warning","Get list PR failed","warning");
-            }
+            data:{ value: value, recType: $('#recType').val() },
+            success:function(result){ $('#'+obj).html(result); },
+            error: function(){ Swal.fire("Warning","Get list PO failed","warning"); }
         });
     }
 
+    /* =====================================================================
+       FETCH DETAIL PO → isi baris artikel
+       - empty dulu di luar AJAX supaya tetap bersih meski request gagal
+       ===================================================================== */
+    function searchPoDet(value, dariEdit){
+        if (dariEdit !== 'false') return;
+
+        resetArticleArea();   // bersihkan dulu sebelum AJAX
+        if (!value || value === 'Choose PO') return;
+
+        $.ajax({
+            url:"{{ route('receiving.po.det2') }}",
+            method:"GET",
+            data:{ value: value },
+            success:function(result){
+                cloneCount = 0;
+                if (result.length > 0){
+                    result.forEach(function(r){
+                        let qty = r.qty_order <= 0 ? 0 : '';
+                        add_new_row(
+                            r.article_code, r.article_alternative_code, r.article_desc,
+                            r.qty_order, r.uom, r.price, qty,
+                            r.pr_number, r.conv_to, r.conv_factor
+                        );
+                    });
+                }
+            },
+            error: function(){ Swal.fire("Warning","Get detail PO failed","warning"); }
+        });
+    }
+
+    /* =====================================================================
+       FETCH LIST PR (NP)
+       ===================================================================== */
+    function searchPr(obj, value){
+        if (!value){ $('#'+obj).empty().append('<option value=""></option>'); return; }
+        $.ajax({
+            type:'post',
+            url:"{{ route('receiving.list.pr') }}",
+            data:{ value: value },
+            success:function(res){ $('#'+obj).html(res); },
+            error: function(){ Swal.fire("Warning","Get list PR failed","warning"); }
+        });
+    }
+
+    /* =====================================================================
+       FETCH DETAIL PR → isi baris artikel
+       + kontrol tombol Add Row (sembunyikan jika PR sudah dipilih)
+       ===================================================================== */
     function searchPrDet(prNumber){
-        $('#article_row').empty(); cloneCount = 0;
-        if (!prNumber || prNumber === 'Choose PR'){ hitungGrandTotal(); return; }
+        resetArticleArea();   // bersihkan dulu setiap kali PR berubah
+
+        let adaPr = prNumber && prNumber !== '' && prNumber !== 'Choose PR';
+
+        // NP + PR terpilih → sembunyikan Add Row; belum pilih PR → tampilkan
+        if ($('#recType').val() === 'NP'){
+            adaPr ? $('#cmdAddRow').addClass('d-none') : $('#cmdAddRow').removeClass('d-none');
+        }
+
+        if (!adaPr) return;
+
         $.ajax({
             type:'post',
             url:"{{ route('receiving.pr.det') }}",
@@ -268,33 +388,25 @@
             success:function(data){
                 data.forEach(function(it){
                     add_new_row(
-                        it.article_code,
-                        it.article_alternative_code,
-                        it.article_desc,
-                        it.qty_order,
-                        it.uom,
-                        it.price,
-                        it.qty_order,
-                        it.pr_number,
-                        it.conv_to,
-                        it.conv_factor
+                        it.article_code, it.article_alternative_code, it.article_desc,
+                        it.qty_order, it.uom, it.price, it.qty_order,
+                        it.pr_number, it.conv_to, it.conv_factor
                     );
                 });
                 hitungGrandTotal();
             },
-            error: function (response) {
-                Swal.fire("Warning","Get detail PR failed","warning");
-            }
+            error: function(){ Swal.fire("Warning","Get detail PR failed","warning"); }
         });
     }
 
-    function listUom(obj,obj2,value,uom) {
+    /* =====================================================================
+       FETCH LIST UOM (tidak banyak dipakai langsung, tapi dipertahankan)
+       ===================================================================== */
+    function listUom(obj, obj2, value, uom){
         $.ajax({
             url:"{{ route('receiving.list.uom') }}",
             method:"GET",
-            data:{
-                value:value,
-            },
+            data:{ value: value },
             success:function(result){
                 $('#'+obj).html(result);
                 $('#'+obj2).html(result);
@@ -303,61 +415,77 @@
                 $('#'+obj).val(uom).trigger('change');
                 $('#'+obj2).val(uom).trigger('change');
             },
-            error: function (response) {
-                Swal.fire("Warning","Get list UOM failed","warning");
-            }
-        })
-    }
-
-    function uomChange(){
-        let objUom= $('#article_row select[name="uom[]"]');
-        let objUomFree= $('#article_row select[name="uomFree[]"]');
-        let objQty= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
-
-        objUom.change(function(e){
-            mask_thousand_digit(numberOfDecimalDigit);
-        });
-
-        objUomFree.change(function(e){
-            mask_thousand_digit(numberOfDecimalDigit);
+            error: function(){ Swal.fire("Warning","Get list UOM failed","warning"); }
         });
     }
 
-    approve = (recNumber,objButton) => {
+    /* =====================================================================
+       FETCH UOM CONV dari uom_con_v2 (baris manual NP)
+       ===================================================================== */
+    function loadUomConv(suffix, articleCode, suppCode, defaultUom){
+        let $uom    = $('#uom'+suffix);
+        let $uomFr  = $('#uomFree'+suffix);
+        let $qtyRec = $('#qty_rec'+suffix);
+
+        // fallback awal: uom article, factor 1
+        $uom.html(buildUomOptions(defaultUom, null));
+        $uomFr.html(buildUomOptions(defaultUom, null));
+        $qtyRec.attr('data-unit-from', defaultUom || '')
+               .attr('data-unit-to',   defaultUom || '')
+               .attr('data-unit-factor', 1);
+        applyRowConversion(suffix);
+
+        if (!articleCode || !suppCode) return;
+
+        $.ajax({
+            url:"{{ route('receiving.uom.conv') }}",
+            method:"GET",
+            data:{ article_code: articleCode, supplier_code: suppCode },
+            dataType:"json",
+            success:function(rows){
+                if (!rows || rows.length === 0) return;  // tetap pakai fallback
+                let r    = rows[0];
+                let uFrom = r.unit_from || defaultUom;
+                let uTo   = r.unit_to;
+                let fac   = parseFloat(r.unit_factor) || 1;
+
+                $uom.html(buildUomOptions(uFrom, uTo));
+                $uomFr.html(buildUomOptions(uFrom, uTo));
+                $qtyRec.attr('data-unit-from', uFrom || '')
+                       .attr('data-unit-to',   uTo || uFrom || '')
+                       .attr('data-unit-factor', fac);
+                applyRowConversion(suffix);
+            },
+            error: function(){ Swal.fire("Warning","Get UOM conversion failed","warning"); }
+        });
+    }
+
+    /* =====================================================================
+       APPROVE (dari halaman create, jarang dipakai tapi dipertahankan)
+       ===================================================================== */
+    approve = (recNumber, objButton) => {
         $('#'+objButton).attr('disabled','disabled');
         $.ajax({
-            type: "POST",
-            url: "{{ route('receiving.approve') }}",
-            data: {
-                recNumber:recNumber
-            },
-            dataType: "json",
-            success: function(data) {
-                if (data.status == 0 ){
-                    for(let i = 0; i < data.message.length; i++) {
-                        show_msg(data.title, data.message[i], data.alert);
-                    }
-                    $('#recNumber').attr('disabled','disabled');
-                }else{
+            type:"POST",
+            url:"{{ route('receiving.approve') }}",
+            data:{ recNumber: recNumber },
+            dataType:"json",
+            success:function(data){
+                if (data.status == 0){
+                    data.message.forEach(m => show_msg(data.title, m, data.alert));
+                } else {
                     show_msg(data.title, data.message, data.alert);
-                    $('#recNumber').attr('disabled','disabled');
                     $('#cmdApprove').attr('disabled','disabled');
                     window.location.reload();
                 }
             },
-            error: function(error) {
-                console.log(error);
-            }
+            error: function(e){ console.log(e); }
         });
-    }
+    };
 
-    /* ===================================================================== 
-       BAGIAN ASLI createv2.blade.php (tidak diubah logicnya)
+    /* =====================================================================
+       DOCUMENT READY — init datepicker & state awal
        ===================================================================== */
-
-    dariEdit = 'false';
-    let lockedAt = "{{ $lockDate }}";
     $(document).ready(function(){
         validateFormToast("frmAdd");
         $("#totalRow").val(0);
@@ -371,299 +499,295 @@
         $('#cmdPrint').hide();
     });
 
-    invDate = $('#invDate');
-    if (invDate.length) {
-        invDate.flatpickr({
-            dateFormat: "d-m-Y",
-            maxDate: "today"
-        });
-    }
+    let invDateEl = $('#invDate');
+    if (invDateEl.length) invDateEl.flatpickr({ dateFormat:"d-m-Y", maxDate:"today" });
 
-    doDate = $('#doDate');
-    if (doDate.length) {
-        doDate.flatpickr({
-            dateFormat: "d-m-Y",
-            maxDate: "today",
-            minDate:lockedAt
-        });
-    }
+    let doDateEl = $('#doDate');
+    if (doDateEl.length) doDateEl.flatpickr({ dateFormat:"d-m-Y", maxDate:"today", minDate: lockedAt });
 
-    recDate = $('#recDate');
-    if (recDate.length) {
-        recDate.flatpickr({
-            dateFormat: "d-m-Y",
-            maxDate: "today",
-            minDate:lockedAt
-        });
-    }
-    
-    function reloadPage(){
-        window.location.reload();
-    }
+    let recDateEl = $('#recDate');
+    if (recDateEl.length) recDateEl.flatpickr({ dateFormat:"d-m-Y", maxDate:"today", minDate: lockedAt });
 
-    $("#cmdNew").click(function(){
-        reloadPage();
-    });
+    function reloadPage(){ window.location.reload(); }
+    $("#cmdNew").click(function(){ reloadPage(); });
 
+    /* =====================================================================
+       SAVE
+       ===================================================================== */
     $("#cmdSave").click(function(){
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
-        }else{
-            $("#cmdSave").attr('disabled','disabled');
-            $('.disabled-el').removeAttr('disabled');
-            let objQty= $('input[name="qty_rec[]"]');
-            let objUom= $('select[name="uom[]"]');
-            let objQtyFree= $('input[name="qty_free[]"]');
-            let objUomFree= $('select[name="uomFree[]"]');
-            let objQtyPo= $('input[name="qty_po[]"]');
-            
-            let articles = []; 
-            let flag=0; 
-            let pesan="";
+            return;
+        }
 
-            $("#article_row input[name='article_id[]']").map(function(i) {  
-                let $this=$(this);
-                if ($this.val()){
-                    let articleCode = $this.data("code");
-                    let articleUom = $this.data("uom");
-                    let articlePrice = $this.data("price");
-                    let prNumber = $this.data("prnumber");
-                    let article=$this.val().split("|");
-                    let plu=article[0];
-                    let articleName=article[1];
-                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                    let qtyUom=objUom.eq(i).val() || articleUom;
-                    let qtyFree=objQtyFree.eq(i).val().replace(/,/gi, '') || 0;
-                    let qtyFreeUom=objUom.eq(i).val() || articleUom;
-                    let qtyPo=objQtyPo.eq(i).val().replace(/,/gi, '') || 0;
-                    let convTo     = objQty.eq(i).attr('data-conv-to') || qtyUom;
-                    let convFactor = parseFloat(objQty.eq(i).attr('data-conv-factor')) || 1;
+        $("#cmdSave").attr('disabled','disabled');
+        $('.disabled-el').removeAttr('disabled');
 
-                    if ( (parseFloat(qty) > parseFloat(qtyPo)) && (parseFloat(qty) != 0)  ){
-                        pesan +=`Articles : ${article} QTY Rec > QTY PO <br>`; 
-                        flag=1;
-                    }
+        let objQty     = $('input[name="qty_rec[]"]');
+        let objUom     = $('select[name="uom[]"]');
+        let objQtyFree = $('input[name="qty_free[]"]');
+        let objUomFree = $('select[name="uomFree[]"]');
+        let objQtyPo   = $('input[name="qty_po[]"]');
 
-                   articles.push({
-                    "article_code":articleCode,
-                    "qty":qty,
-                    "uom":qtyUom,
-                    "qty_free":qtyFree,
-                    "uom_free":qtyFreeUom,
-                    "price":articlePrice,
-                    "pr_number":prNumber,
-                    "conv_to":convTo,
-                    "conv_factor":convFactor,
-                    });
-                }
+        let articles = [], flag = 0, pesan = "";
+
+        $("#article_row [name='article_id[]']").map(function(i){
+            let $this = $(this);
+            if (!$this.val()) return;
+
+            let articleCode    = $this.data("code");
+            let articleUom     = $this.data("uom");
+            let articlePrice   = $this.data("price");
+            articlePrice = (articlePrice === '' || articlePrice == null) ? 0 : articlePrice;
+            let prNumber       = $this.data("prnumber");
+
+            let qty            = objQty.eq(i).val().replace(/,/gi,'') || 0;
+            let qtyUom         = objUom.eq(i).val() || articleUom;
+            let qtyFree        = objQtyFree.eq(i).val().replace(/,/gi,'') || 0;
+            let qtyFreeUom     = objUomFree.eq(i).val() || qtyUom;
+            let qtyPoRaw       = objQtyPo.eq(i).val().replace(/,/gi,'');
+            let qtyPo          = qtyPoRaw || 0;
+
+            let convTo         = objQty.eq(i).attr('data-conv-to') || qtyUom;
+            let convFactor     = parseFloat(objQty.eq(i).attr('data-conv-factor'))     || 1;
+            let convFactorFree = parseFloat(objQtyFree.eq(i).attr('data-conv-factor')) || 1;
+
+            if (qtyPoRaw !== '' && parseFloat(qty) > parseFloat(qtyPo) && parseFloat(qty) != 0){
+                pesan += `Article: ${articleCode} QTY Rec > QTY PO <br>`;
+                flag = 1;
+            }
+
+            articles.push({
+                article_code:    articleCode,
+                qty:             qty,
+                uom:             qtyUom,
+                qty_free:        qtyFree,
+                uom_free:        qtyFreeUom,
+                price:           articlePrice,
+                pr_number:       prNumber,
+                conv_to:         convTo,
+                conv_factor:     convFactor,
+                conv_factor_free: convFactorFree,
             });
+        });
 
-            if (articles.length == 0){
-                pesan +="Articles must be filled in completely <br>"; 
-                flag=1;
-            }
+        if (articles.length === 0){ pesan += "Articles must be filled in completely <br>"; flag = 1; }
+        if ($("#grandTotalQty").val() == 0){ pesan += "Total Qty cannot be 0 <br>"; flag = 1; }
 
-            if ( $("#grandTotalQty").val() == 0 ){
-                pesan +="Total Qty cannot be 0 <br>"; 
-                flag=1;
-            }
-
-            if (flag==0){
-                let invNumber = $('#invNumber').val()||0;
-                let invDate = $('#invDate').val();
-                let doNumber = $('#doNumber').val();
-                let doDate = $('#doDate').val();
-                let poNumber = $('#poNumber').val();
-                let supp = $('#supplier').val();
-                let recDate = $('#recDate').val();
-                let note = $('#note').val();
-            
-                $.ajax({
-                    type: "post",
-                    url: "{{ route('receiving.store') }}",
-                    data: {
-                        invNumber:invNumber,
-                        invDate:invDate,
-                        doNumber:doNumber,
-                        doDate:doDate,
-                        poNumber:poNumber,
-                        supp:supp,
-                        recDate:recDate,
-                        recType:$('#recType').val(),
-                        note:note,
-                        articles:JSON.stringify(articles)
-                    },
-                    dataType: "json",
-                    success: function(data) {
-                        if (data.status == 0 ){
-                            for(let i = 0; i < data.message.length; i++) {
-                                show_msg(data.title, data.message[i], data.alert);
-                            }
-                            $('#recNumber').attr('disabled','disabled');
-                            $('#cmdSave').removeAttr('disabled');
-                        }else{
-                            show_msg(data.title, data.message, data.alert);
-                            $('#statusText').text(data.statusRec);
-                            $('#recNumber').val(data.recNumber);
-                            $('#cmdSave').hide();
-                            $('#cmdCancel').hide();
-                            $('#recNumber').attr('disabled','disabled');
-                            $('#cmdSave').attr('disabled','disabled');
-                            $('#supplier').attr('disabled','disabled');
-                            $('#poNumber').attr('disabled','disabled');
-                            $('#invDate').attr('disabled','disabled');
-                            $('#recDate').attr('disabled','disabled');
-                            $('#invNumber').attr('disabled','disabled');
-
-                            $('#statusText').val('NEW');
-                            $('#idRec').val(data.idKu);
-
-                            $('#cmdSave').hide();
-                            $('#cmdPrint').show();
-                        }
-                    },
-                    error: function(error) {
-                        console.log(error);
-                    }
-                });
-            }else{
-                $('#cmdSave').removeAttr('disabled');
-                $('#cmdPrint').hide();
-                Swal.fire('Warning..',pesan,'warning');
-            }
+        if (flag !== 0){
+            $('#cmdSave').removeAttr('disabled');
+            $('#cmdPrint').hide();
+            Swal.fire('Warning..', pesan, 'warning');
+            return;
         }
-    });
-  
-    $('#supplier').change(function(){
-        let value = $(this).val();
-        if ($('#recType').val() === 'NP'){
-            searchPr('poNumber', value);
-        } else {
-            searchPo('poNumber', value);
-        }
+
+        $.ajax({
+            type:"post",
+            url:"{{ route('receiving.store') }}",
+            data:{
+                invNumber: $('#invNumber').val() || 0,
+                invDate:   $('#invDate').val(),
+                doNumber:  $('#doNumber').val(),
+                doDate:    $('#doDate').val(),
+                poNumber:  $('#poNumber').val(),
+                supp:      $('#supplier').val(),
+                recDate:   $('#recDate').val(),
+                recType:   $('#recType').val(),
+                note:      $('#note').val(),
+                articles:  JSON.stringify(articles),
+            },
+            dataType:"json",
+            success:function(data){
+                if (data.status == 0){
+                    data.message.forEach(m => show_msg(data.title, m, data.alert));
+                    $('#cmdSave').removeAttr('disabled');
+                } else {
+                    show_msg(data.title, data.message, data.alert);
+                    $('#statusText').text(data.statusRec);
+                    $('#recNumber').val(data.recNumber).attr('disabled','disabled');
+                    ['#cmdSave','#cmdCancel','#supplier','#poNumber','#invDate','#recDate','#invNumber']
+                        .forEach(s => $(s).attr('disabled','disabled'));
+                    $('#statusText').val('NEW');
+                    $('#idRec').val(data.idKu);
+                    $('#cmdSave').hide();
+                    $('#cmdPrint').show();
+                }
+            },
+            error: function(e){ console.log(e); }
+        });
     });
 
-    let cloneCount=0;
-    function add_new_row(article, articleCode, articleDesc, qtyPo, uom, price, qtyRec, prNumber, convTo, convFactor) {
+    /* =====================================================================
+       TAMBAH BARIS DARI PO / PR
+       ===================================================================== */
+    function add_new_row(article, articleCode, articleDesc, qtyPo, uom, price, qtyRec, prNumber, convTo, convFactor){
         prNumber = prNumber == null ? '' : prNumber;
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
+        let n = cloneCount;
 
-        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#article_row").find('#baru').attr('id','new_row'+n);
 
-        $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-        $('#article_id'+ cloneCount).attr('data-code', article);
-        $('#article_id'+ cloneCount).attr('data-uom', uom);
-        $('#article_id'+ cloneCount).attr('data-price', price);
-        $('#article_id'+ cloneCount).attr('data-prnumber', prNumber);
-        $('#article_id'+ cloneCount).val(articleCode + " - " + articleDesc);
+        // article_id
+        $("#new_row"+n).find('#article_id').attr('id','article_id'+n);
+        $('#article_id'+n)
+            .attr('data-code',     article)
+            .attr('data-uom',      uom)
+            .attr('data-price',    price)
+            .attr('data-prnumber', prNumber)
+            .val(articleCode + " - " + articleDesc);
 
-        $("#new_row"+ cloneCount).find('#qty_po').attr('id', 'qty_po'+ cloneCount);
-        $('#qty_po'+ cloneCount).val(qtyPo*1);
+        // qty_po
+        $("#new_row"+n).find('#qty_po').attr('id','qty_po'+n);
+        $('#qty_po'+n).val(qtyPo * 1);
 
-        $("#new_row"+ cloneCount).find('#qty_rec').attr('id', 'qty_rec'+ cloneCount);
-        $('#qty_rec'+ cloneCount).val(qtyRec)
-            .attr('data-conv-from', uom)
-            .attr('data-conv-to', convTo || '')
-            .attr('data-conv-factor', (convFactor != null ? convFactor : ''));
+        // qty_rec
+        $("#new_row"+n).find('#qty_rec').attr('id','qty_rec'+n);
+        $('#qty_rec'+n).val(qtyRec);
+        $('#qty_rec'+n).on('keyup input', function(){ hitungKonversi(this); });
 
-        $('#qty_rec'+ cloneCount).on('keyup input', function(){
-            hitungKonversi(this);
-        });
+        // qty_free
+        $("#new_row"+n).find('#qty_free').attr('id','qty_free'+n);
+        $('#qty_free'+n).val('');
+        $('#qty_free'+n).on('keyup input', function(){ hitungKonversi(this); });
 
-        $("#new_row"+ cloneCount).find('#qty_free').attr('id', 'qty_free'+ cloneCount);
-        $('#qty_free'+ cloneCount).val(''); 
-        $('#qty_free'+ cloneCount).on('keyup input', function(){
-            hitungKonversi(this);
-        });
+        // uom dropdowns
+        $("#new_row"+n).find('#uom').attr('id','uom'+n);
+        $("#new_row"+n).find('#uomFree').attr('id','uomFree'+n);
+        let _opts = buildUomOptions(uom, convTo);
+        $('#uom'+n).html(_opts);
+        $('#uomFree'+n).html(_opts);
 
-        $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
-        $("#new_row"+ cloneCount).find('#uomFree').attr('id', 'uomFree'+ cloneCount);
-        $('#uom'+ cloneCount).html('<option value="'+uom+'" selected>'+uom+'</option>');
-        $('#uomFree'+ cloneCount).html('<option value="'+uom+'" selected>'+uom+'</option>');
+        // simpan meta konversi
+        $('#qty_rec'+n)
+            .attr('data-unit-from',   uom    || '')
+            .attr('data-unit-to',     convTo || '')
+            .attr('data-unit-factor', (convFactor != null && convFactor !== '') ? convFactor : 1);
 
-        qtyRec === 0 ? $('#qty_rec'+ cloneCount).attr('disabled','disabled') : '';
-        qtyRec === 0 ? $('#qty_free'+ cloneCount).attr('disabled','disabled') : '';
+        applyRowConversion(n);
+
+        // disable kalau qty_order = 0 (sudah terpenuhi)
+        if (qtyRec === 0){
+            $('#qty_rec'+n).attr('disabled','disabled');
+            $('#qty_free'+n).attr('disabled','disabled');
+        }
 
         tombolPanah('qty_rec');
         tombolPanah('qty_free');
         mask_thousand_digit(2);
         hitungTotal();
-        hitungKonversi($('#qty_rec'+ cloneCount));
+        hitungKonversi($('#qty_rec'+n));
 
-        let _qr = parseFloat(($('#qty_rec'+ cloneCount).val()  || '0').replace(/,/gi,'')) || 0;
-        let _qf = parseFloat(($('#qty_free'+ cloneCount).val() || '0').replace(/,/gi,'')) || 0;
-        $('#new_row'+ cloneCount)
-            .find('span[name="totalQty[]"]')
-            .text((_qr + _qf).toLocaleString(undefined, { maximumFractionDigits: numberOfDecimalDigit }));
+        let _qr = parseFloat(($('#qty_rec'+n).val()  || '0').replace(/,/gi,'')) || 0;
+        let _qf = parseFloat(($('#qty_free'+n).val() || '0').replace(/,/gi,'')) || 0;
+        $('#new_row'+n).find('span[name="totalQty[]"]')
+            .text((_qr+_qf).toLocaleString(undefined,{ maximumFractionDigits: numberOfDecimalDigit }));
     }
 
-    $('#poNumber').change(function(){
-        let value = $(this).val();
-        if ($('#recType').val() === 'NP'){
-            searchPrDet(value);
-        } else {
-            searchPoDet(value, 'false');
+    /* =====================================================================
+       TAMBAH BARIS MANUAL (Non Purchase — tanpa PR)
+       ===================================================================== */
+    $('#cmdAddRow').on('click', function(){
+        if (!$('#supplier').val()){
+            Swal.fire('Info','Pilih Supplier dulu agar konversi UOM sesuai.','info');
+            return;
         }
+        add_manual_row();
     });
-    
-    function hitungTotal(){
-        let objQtyRec= $('#article_row input[name="qty_rec[]"]');
-        let objQtyFree= $('#article_row input[name="qty_free[]"]');
-        let objTotalQty= $('#article_row span[name="totalQty[]"]');
-        let objQtyPo= $('#article_row input[name="qty_po[]"]');
-        
-        objQtyRec.keyup(function() {
-            let indexnya= objQtyRec.index(this);
-            let qtyRec = parseFloat(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
-            let qtyFree = parseFloat(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
-            let totalQty = qtyRec+qtyFree;
-            let qtyPo = parseFloat(objQtyPo.eq(indexnya).val().replace(/,/gi, '') || 0); 
-            let uomGroup = objQtyRec.eq(indexnya).data('uom-group');
-            if ( qtyRec > qtyPo ){
-                objQtyRec.eq(indexnya).delay(3000).css("background-color","rgba(255,0,0, 0.5)");
-            }else{
-                objQtyRec.eq(indexnya).delay(3000).css("background-color","");
-            }
-            objTotalQty.eq(indexnya).text(totalQty.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit})); 
-            hitungGrandTotal();
-        });    
 
-        objQtyFree.keyup(function() {
-            let indexnya= objQtyRec.index(this);
-            let qtyRec = parseFloat(objQtyRec.eq(indexnya).val().replace(/,/gi, '') || 0); 
-            let qtyFree = parseFloat(objQtyFree.eq(indexnya).val().replace(/,/gi, '') || 0); 
-            let totalQty = qtyRec+qtyFree;
-            let uomGroup = objQtyFree.eq(indexnya).data('uom-group');
-            objTotalQty.eq(indexnya).text(totalQty.toLocaleString(undefined, {maximumFractionDigits:numberOfDecimalDigit}));
+    function add_manual_row(){
+        $("#article_row").append($("#new_row_manual").clone().html());
+        cloneCount++;
+        let idx = cloneCount;
+
+        $("#article_row").find('#baru_manual').attr('id','new_row'+idx);
+        $("#new_row"+idx).find('#article_id').attr('id','article_id'+idx);
+        $("#new_row"+idx).find('#qty_po').attr('id','qty_po'+idx).val('');
+        $("#new_row"+idx).find('#qty_rec').attr('id','qty_rec'+idx);
+        $("#new_row"+idx).find('#qty_free').attr('id','qty_free'+idx);
+        $("#new_row"+idx).find('#uom').attr('id','uom'+idx);
+        $("#new_row"+idx).find('#uomFree').attr('id','uomFree'+idx);
+
+        let $art = $('#article_id'+idx);
+        $art.select2({
+            placeholder: 'Cari article...',
+            width: '100%',
+            ajax:{
+                url: "{{ route('receiving.list.article') }}",
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ q: params.term, supp: $('#supplier').val() }),
+                processResults: data => ({ results: data })
+            }
+        });
+
+        $art.on('select2:select', function(e){
+            let d     = e.params.data;
+            let price = (d.price === '' || d.price == null) ? 0 : d.price;
+            $(this).data('code',d.code).attr('data-code',d.code)
+                   .data('uom',d.uom).attr('data-uom',d.uom)
+                   .data('price',price).attr('data-price',price)
+                   .data('prnumber','').attr('data-prnumber','');
+            $('#qty_rec'+idx).removeAttr('disabled');
+            $('#qty_free'+idx).removeAttr('disabled');
+            loadUomConv(idx, d.code, $('#supplier').val(), d.uom);
+        });
+
+        $('#qty_rec'+idx).on('keyup input', function(){ hitungKonversi(this); });
+        $('#qty_free'+idx).on('keyup input', function(){ hitungKonversi(this); });
+
+        $("#new_row"+idx).find('.btn-remove-row').on('click', function(){
+            $("#new_row"+idx).remove();
             hitungGrandTotal();
-        }); 
+        });
+
+        tombolPanah('qty_rec');
+        tombolPanah('qty_free');
+        mask_thousand_digit(2);
+        hitungTotal();
+        hitungGrandTotal();
     }
 
-    function hitungKonversi(elemen){
-        let $row  = $(elemen).closest('[id^="new_row"]');
-        let $qRec = $row.find('input[name="qty_rec[]"]');
+    /* =====================================================================
+       DELEGASI UOM CHANGE
+       ===================================================================== */
+    $('#article_row').on('change','select[name="uom[]"]', function(){
+        applyRowConversion($(this).attr('id').replace('uom',''));
+    });
+    $('#article_row').on('change','select[name="uomFree[]"]', function(){
+        applyRowConversion($(this).attr('id').replace('uomFree',''));
+    });
 
-        let factor = parseFloat($qRec.data('conv-factor'));
-        let from   = $qRec.data('conv-from');
-        let to     = $qRec.data('conv-to') || from;
+    /* =====================================================================
+       HITUNG TOTAL & GRAND TOTAL
+       ===================================================================== */
+    function hitungTotal(){
+        let objQtyRec  = $('#article_row input[name="qty_rec[]"]');
+        let objQtyFree = $('#article_row input[name="qty_free[]"]');
+        let objTotal   = $('#article_row span[name="totalQty[]"]');
+        let objQtyPo   = $('#article_row input[name="qty_po[]"]');
 
-        if (!factor || isNaN(factor)) {
-            factor = 1;
-            to = from;
-        }
+        objQtyRec.off('keyup.ht').on('keyup.ht', function(){
+            let i       = objQtyRec.index(this);
+            let qty     = parseFloat(objQtyRec.eq(i).val().replace(/,/gi,'') || 0);
+            let qtyFree = parseFloat(objQtyFree.eq(i).val().replace(/,/gi,'') || 0);
+            objTotal.eq(i).text((qty+qtyFree).toLocaleString(undefined,{maximumFractionDigits:numberOfDecimalDigit}));
 
-        let qtyRec  = parseFloat(($row.find('input[name="qty_rec[]"]').val()  || '0').replace(/,/gi,'')) || 0;
-        let qtyFree = parseFloat(($row.find('input[name="qty_free[]"]').val() || '0').replace(/,/gi,'')) || 0;
-        let total   = qtyRec + qtyFree;
-        let hasil   = total * factor;
+            let poRaw = objQtyPo.eq(i).val();
+            let hasPo = poRaw !== undefined && poRaw !== '';
+            let qtyPo = parseFloat((poRaw||'0').replace(/,/gi,'')) || 0;
+            objQtyRec.eq(i).css("background-color", (hasPo && qty > qtyPo) ? "rgba(255,0,0,0.5)" : "");
 
-        $row.find('.conv-info').text(
-            hasil.toLocaleString(undefined, { maximumFractionDigits: numberOfDecimalDigit })
-            + (to ? ' ' + to : '')
-        );
+            hitungGrandTotal();
+        });
 
-        hitungGrandTotal();
+        objQtyFree.off('keyup.ht').on('keyup.ht', function(){
+            let i       = objQtyRec.index(this);
+            let qty     = parseFloat(objQtyRec.eq(i).val().replace(/,/gi,'') || 0);
+            let qtyFree = parseFloat(objQtyFree.eq(i).val().replace(/,/gi,'') || 0);
+            objTotal.eq(i).text((qty+qtyFree).toLocaleString(undefined,{maximumFractionDigits:numberOfDecimalDigit}));
+            hitungGrandTotal();
+        });
     }
 
     function hitungGrandTotal(){
@@ -671,9 +795,7 @@
         let objQtyRec  = $('#article_row input[name="qty_rec[]"]');
         let objQtyFree = $('#article_row input[name="qty_free[]"]');
 
-        let totalQty = 0, totalQtyFree = 0;
-        let convQty  = 0, convQtyFree  = 0;
-        let convUnit = '';
+        let totalQty = 0, totalQtyFree = 0, convQty = 0, convQtyFree = 0, convUnit = '';
 
         objQtyRec.each(function(i){
             let qty     = parseFloat(objQtyRec.eq(i).val().replace(/,/gi,''))  || 0;
@@ -681,97 +803,66 @@
             totalQty     += qty;
             totalQtyFree += qtyFree;
 
-            let factor = parseFloat(objQtyRec.eq(i).data('conv-factor'));
-            let to     = objQtyRec.eq(i).data('conv-to') || objQtyRec.eq(i).data('conv-from');
-            if (!factor || isNaN(factor)) {
-                factor = 1;
-            } else if (to) {
-                convUnit = to;
-            }
+            let facRec  = parseFloat(objQtyRec.eq(i).attr('data-conv-factor'))  || 1;
+            let facFree = parseFloat(objQtyFree.eq(i).attr('data-conv-factor')) || 1;
+            let to      = objQtyRec.eq(i).attr('data-conv-to') || objQtyRec.eq(i).attr('data-conv-from');
+            if (to) convUnit = to;
 
-            convQty     += qty * factor;
-            convQtyFree += qtyFree * factor;
+            convQty     += qty * facRec;
+            convQtyFree += qtyFree * facFree;
         });
 
-        let grandTotalQty = totalQty + totalQtyFree;
-        let convGrand     = convQty + convQtyFree;
-        let suffix        = convUnit ? ' ' + convUnit : '';
-        let fmt = (n) => n.toLocaleString(undefined, { maximumFractionDigits: numberOfDecimalDigit });
-
+        let fmt = n => n.toLocaleString(undefined,{maximumFractionDigits:numberOfDecimalDigit});
         $("#totalRow").val(objArticle.length);
         $("#totalQTY").val(fmt(totalQty));
         $("#totalQtyFree").val(fmt(totalQtyFree));
-        $("#grandTotalQty").val(fmt(grandTotalQty));
-
+        $("#grandTotalQty").val(fmt(totalQty + totalQtyFree));
         $("#convQTY").val(fmt(convQty));
         $("#convQtyFree").val(fmt(convQtyFree));
-        $("#convGrandTotalQty").val(fmt(convGrand));
+        $("#convGrandTotalQty").val(fmt(convQty + convQtyFree));
     }
 
+    /* =====================================================================
+       PRINT (= POSTING langsung dari halaman create)
+       ===================================================================== */
     $("#cmdPrint").click(function(){
-        $("#cmdPrint").prop('disabled',true);
+        $(this).prop('disabled',true);
         $('#cmdSave').hide();
         $('#cmdPrint').hide();
-        let objQty= $('input[name="qty_rec[]"]');
-        let objUom= $('select[name="uom[]"]');
-        let objQtyFree= $('input[name="qty_free[]"]');
-        let objUomFree= $('select[name="uomFree[]"]');
-        let objQtyPo= $('input[name="qty_po[]"]');    
-        let recNumber = $('#recNumber').val();   
-        let idRec = $('#idRec').val();  
-        let dariNew = 'true';     
+
         $.ajax({
-            type: "post",
-            url: "{{ route('receiving.posting') }}",
-            data: {
-                recNumber:recNumber,
-                id:idRec,
-                dariNew:dariNew
+            type:"post",
+            url:"{{ route('receiving.posting') }}",
+            data:{
+                recNumber: $('#recNumber').val(),
+                id:        $('#idRec').val(),
+                dariNew:   'true',
             },
-            dataType: "json",
-            success: function(data) {
-                if (data.status == 0 ){
-                    for(let i = 0; i < data.message.length; i++) {
-                        show_msg(data.title, data.message[i], data.alert);
-                    }
-                    $('#recNumber').attr('disabled','disabled');
+            dataType:"json",
+            success:function(data){
+                if (data.status == 0){
+                    data.message.forEach(m => show_msg(data.title, m, data.alert));
                     $('#cmdSave').show();
                     $('#cmdPrint').hide();
-                }else{
+                } else {
                     show_msg(data.title, data.message, data.alert);
-                    $('#cmdSave').hide();
                     $('#statusText').text('POSTED');
-                    $('#cmdPrint').hide();
-                    $('#recNumber').attr('disabled','disabled');
-                    $('#soNumber').attr('disabled','disabled');
-                    $('#customer').attr('disabled','disabled');
-                    $('#dnDate').attr('disabled','disabled');
-
-                    $('#cmdSave').hide();
-                    $('#cmdPrint').hide();
-
-                    objQty.attr('disabled','disabled');
-                    objUom.attr('disabled','disabled');
-                    objQtyFree.attr('disabled','disabled');
-                    objUomFree.attr('disabled','disabled');
-
-                    let id = data.idKu;
-                    let url = "{{ route('receiving.print', ['id'=>':id']) }}";
-                    url = url.replace('%3Aid', id);
+                    $('input[name="qty_rec[]"], select[name="uom[]"], input[name="qty_free[]"], select[name="uomFree[]"]')
+                        .attr('disabled','disabled');
+                    let url = "{{ route('receiving.print', ['id'=>':id']) }}".replace('%3Aid', data.idKu);
                     window.open(url, '_blank');
                     reloadPage();
                 }
             },
-            error: function(error) {
-                console.log(error);
-            }
+            error: function(e){ console.log(e); }
         });
     });
 
+    /* =====================================================================
+       CSRF
+       ===================================================================== */
     $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        }
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
     });
 
 </script>
