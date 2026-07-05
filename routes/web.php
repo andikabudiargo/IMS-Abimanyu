@@ -332,6 +332,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receiving/cancel',['as'=>'receiving.cancel','uses'=>'ReceivingController@cancel']);
 	Route::post('receiving/revision',['as'=>'receiving.revision','uses'=>'ReceivingController@revision']);
 	Route::get('receiving/notif/approve',['as'=>'receiving.notif.approve','uses'=>'ReceivingController@approve']);
+	Route::get('receiving/list/article', ['as' => 'receiving.list.article', 'uses' => 'ReceivingController@listArticle']);
+	Route::get('receiving/uom/conv',     ['as' => 'receiving.uom.conv', 'uses' => 'ReceivingController@uomConv']);
 
 	Route::get('receiving/prosesUlangKas',['as'=>'receiving.prosesUlangKas','uses'=>'ReceivingController@prosesReInsertIntoKas']);
 
