@@ -300,15 +300,16 @@
             @endcan
              --}}
              
-
-            @can('transferIn-index')
-            <li class="{{ \Request::is(['transferIn','transferIn/create','transferIn/show','transferIn/edit']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('transferIn.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Transfer in</span>
-              </a>
-            </li>
-            @endcan
+@if(auth()->user()->hasAnyRole(['Superuser', 'accounting']))
+  @can('transferIn-index')
+  <li class="{{ \Request::is(['transferIn','transferIn/create','transferIn/show','transferIn/edit']) ? 'active' : '' }}">
+    <a class="d-flex align-items-center" href="{{ route('transferIn.index') }}">
+      <i data-feather="circle"></i>
+      <span class="menu-item text-truncate" data-i18n="Input">Transfer in</span>
+    </a>
+  </li>
+  @endcan
+@endif
           
 
             {{--
@@ -322,14 +323,16 @@
             @endcan
              --}}
 
-            @can('transferOut-index')
-            <li class="{{ \Request::is(['transferOut','transferOut/create','transferOut/show','transferOut/edit']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('transferOut.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Transfer out</span>
-              </a>
+            @if(auth()->user()->hasAnyRole(['Superuser', 'accounting']))
+              @can('transferOut-index')
+              <li class="{{ \Request::is(['transferOut','transferOut/create','transferOut/show','transferOut/edit']) ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('transferOut.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Transfer out</span>
+                </a>
             </li>
              @endcan
+             @endif
               <li class="{{ \Request::is(['stockAdjustment','stockAdjustment/create','stockAdjustment/show','stockAdjustment/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('stockAdjustment.index') }}">
                 <i data-feather="circle"></i>
@@ -342,12 +345,12 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Stock Transfer</span>
               </a>
             </li>
-             <li class="{{ \Request::is(['stocReconciliation','stockReconciliation/create','stockReconciliation/show','stockReconciliation/edit']) ? 'active' : '' }}">
+             {{--<li class="{{ \Request::is(['stocReconciliation','stockReconciliation/create','stockReconciliation/show','stockReconciliation/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('stockReconciliation.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Stock Reconciliation</span>
               </a>
-            </li>
+            </li>--}}
           </ul>
         </li>
 
