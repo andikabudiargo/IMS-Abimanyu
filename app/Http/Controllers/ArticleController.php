@@ -1089,7 +1089,7 @@
                     break;
 
                 case 'DELIVERY':
-                    $id = DB::table('delivery_hdr')->where('del_number', $ref)->value('id');
+                    $id = DB::table('delivery_hdr')->where('delivery_number', $ref)->value('id');
                     if ($id) $url = route('delivery.show', ['id' => Crypt::encryptString($id)]);
                     break;
 
