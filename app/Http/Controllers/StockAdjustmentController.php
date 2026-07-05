@@ -843,14 +843,14 @@ public function cancel(Request $request)
     }
 
     // ── validasi backdate: cancel membalik arah tiap artikel ──
-    $directionMap = [];
-    foreach ($details as $d) {
-        $directionMap[$d->article_code] = $d->direction === '+' ? '-' : '+';
-    }
-    $errors = $this->validateBackdateStock($details, $siteCode, $location, $adjDateYmd, $adjDate, $directionMap);
-    if (!empty($errors)) {
-        return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>implode(' ', $errors)]);
-    }
+    //$directionMap = [];
+    //foreach ($details as $d) {
+      //  $directionMap[$d->article_code] = $d->direction === '+' ? '-' : '+';
+    //}
+    //$errors = $this->validateBackdateStock($details, $siteCode, $location, $adjDateYmd, $adjDate, $directionMap);
+    //if (!empty($errors)) {
+      //  return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>implode(' ', $errors)]);
+    //}
 
     DB::beginTransaction();
     try {
