@@ -86,6 +86,7 @@ class WarehouseControllerv2 extends Controller
             ['data'=>'inout','name'=>'inout','title'=>'Transaction'],
             ['data'=>'movement_type','name'=>'movement_type','title'=>'Type'],
             ['data'=>'movement_transnno','name'=>'movement_transnno','title'=>'Ref'],
+            ['data'=>'trx_status','name'=>'trx_status','title'=>'Status'],
             // ['data'=>'movement_price','name'=>'movement_price','title'=>'Price'],
             // ['data'=>'movement_min','name'=>'movement_min','title'=>'QTY Min'],
             // ['data'=>'movement_plus','name'=>'movement_plus','title'=>'QTY Plus'],
@@ -93,7 +94,7 @@ class WarehouseControllerv2 extends Controller
             ['data'=>'qty','name'=>'qty','title'=>'QTY'],
             ['data'=>'balanceqty','name'=>'balanceqty','title'=>'Balance'],
             ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description'],
-            ['data'=>'created_at','name'=> 'created_at','title'=>'Created At'],
+            ['data'=>'created_at','name'=> 'created_at','title'=>'Posted At'],
             ['data'=>'urutan','name'=> 'urutan','title'=>'Runnng Number', 'searchable'=>false, 'visible'=>false]
         ];
         return json_encode($kolom, true);
@@ -108,11 +109,12 @@ class WarehouseControllerv2 extends Controller
         ['data'=>'inout','name'=>'inout','title'=>'Transaction'],
         ['data'=>'movement_type','name'=>'movement_type','title'=>'Type'],
         ['data'=>'movement_transnno','name'=>'movement_transnno','title'=>'Ref'],
+        ['data'=>'trx_status','name'=>'trx_status','title'=>'Status'],
         ['data'=>'last_qty','name'=>'last_qty','title'=>'Opening'],
         ['data'=>'qty','name'=>'qty','title'=>'QTY'],
         ['data'=>'balanceqty','name'=>'balanceqty','title'=>'Balance'],
         ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description'],
-        ['data'=>'created_at','name'=> 'created_at','title'=>'Created At'],
+        ['data'=>'created_at','name'=> 'created_at','title'=>'Posted At'],
         ['data'=>'urutan','name'=> 'urutan','title'=>'Runnng Number', 'searchable'=>false, 'visible'=>false]
     ];
     return json_encode($kolom, true);

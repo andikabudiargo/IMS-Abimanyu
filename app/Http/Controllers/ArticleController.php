@@ -949,65 +949,117 @@
     if ($inout === 'in')  $inoutFilter = "and b.movement_plus > 0";
     if ($inout === 'out') $inoutFilter = "and b.movement_min  > 0";
 
-    $sqlku = "
-        WITH base AS (
-            SELECT m.*,
-                SUM(m.movement_plus - m.movement_min) OVER (
-                    ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
-                ) as balanceqty_calc,
-                SUM(m.movement_plus - m.movement_min) OVER (
-                    ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
-                ) - (m.movement_plus - m.movement_min) as last_qty_calc
-            FROM warehouse_movement m
-            WHERE m.artikel_code = '$articleCode'
-            and m.site_code = '$siteCode'
-            $whereLoc
-        )
-        SELECT
-            b.movement_code,
-            b.artikel_code,
-            b.artikel_desc,
-            b.movement_plus - b.movement_min as qty,
-            b.movement_price,
-            b.movement_date,
-            b.movement_desc,
-            b.movement_type,
-            b.movement_min,
-            b.movement_plus,
-            b.movement_transnno,
-            b.partner_type,
-            $locationCol as location_number,
+  $sqlku = "
+    WITH base AS (
+        SELECT m.*,
+            SUM(m.movement_plus - m.movement_min) OVER (
+                ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
+            ) as balanceqty_calc,
+            SUM(m.movement_plus - m.movement_min) OVER (
+                ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
+            ) - (m.movement_plus - m.movement_min) as last_qty_calc
+        FROM warehouse_movement m
+        WHERE m.artikel_code = '$articleCode'
+        and m.site_code = '$siteCode'
+        $whereLoc
+    )
+    SELECT
+        b.movement_code,
+        b.artikel_code,
+        b.artikel_desc,
+        b.movement_plus - b.movement_min as qty,
+        b.movement_price,
+        b.movement_date,
+        b.movement_desc,
+        b.movement_type,
+        b.movement_min,
+        b.movement_plus,
+        b.movement_transnno,
+        b.partner_type,
+        $locationCol as location_number,
 
-            -- mv_from: gudang asal (TRF/transfer & lokasi lain), atau supplier
-            case
-                when b.movement_type = 'TRF'
-                    then (select location_name from stock_location_master where location_code = b.movement_from)
-                when b.partner_type = 'SUPP'
-                    then (select nama from third_party where kode = b.movement_from)
-                else (select location_name from stock_location_master where location_code = b.movement_from)
-            end as mv_from,
+        case
+            when b.movement_type = 'TRF'
+                then (select location_name from stock_location_master where location_code = b.movement_from)
+            when b.partner_type = 'SUPP'
+                then (select nama from third_party where kode = b.movement_from)
+            else (select location_name from stock_location_master where location_code = b.movement_from)
+        end as mv_from,
 
-            -- mv_to: gudang tujuan (TRF/transfer & lokasi lain), atau customer
-            case
-                when b.movement_type = 'TRF'
-                    then (select location_name from stock_location_master where location_code = b.movement_to)
-                when b.partner_type = 'CUST'
-                    then (select nama from third_party where kode = b.movement_to)
-                else (select location_name from stock_location_master where location_code = b.movement_to)
-            end as mv_to,
+        case
+            when b.movement_type = 'TRF'
+                then (select location_name from stock_location_master where location_code = b.movement_to)
+            when b.partner_type = 'CUST'
+                then (select nama from third_party where kode = b.movement_to)
+            else (select location_name from stock_location_master where location_code = b.movement_to)
+        end as mv_to,
 
-            b.balanceqty_calc as balanceqty,
-            b.last_qty_calc   as last_qty,
-            ROW_NUMBER() OVER (
-                ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy') DESC, b.movement_code DESC
-            ) as urutan,
-            b.site_code,
-            b.created_at
-        FROM base b
-        WHERE 1=1
-        $dateFilter
-        $inoutFilter
-        ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy'), b.movement_code";
+        b.balanceqty_calc as balanceqty,
+        b.last_qty_calc   as last_qty,
+        ROW_NUMBER() OVER (
+            ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy') DESC, b.movement_code DESC
+        ) as urutan,
+        b.site_code,
+        b.created_at,
+
+        -- status: COALESCE dari semua JOIN, ambil yang tidak null
+        COALESCE(
+            rec.status,
+            trf.status,
+            del.status,
+            ret.status,
+            rep.status,
+            adj.status,
+            tdn.status,
+            dng.status
+        ) as trx_status
+
+    FROM base b
+
+    -- RECEIVING
+    LEFT JOIN receiving_hdr rec
+        ON rec.rec_number = b.movement_transnno
+        AND b.movement_type = 'RECEIVING'
+
+    -- TRANSFER / SUPPLY
+    LEFT JOIN transfer_stock_hdr trf
+        ON trf.tr_number = b.movement_transnno
+        AND b.movement_type IN ('TRANSFER','SUPPLY')
+
+    -- DELIVERY
+    LEFT JOIN delivery_hdr del
+        ON del.del_number = b.movement_transnno
+        AND b.movement_type = 'DELIVERY'
+
+    -- RETURN
+    LEFT JOIN dn_return_hdr ret
+        ON ret.return_number = b.movement_transnno
+        AND b.movement_type = 'RETURN'
+
+    -- REPLACEMENT
+    LEFT JOIN dn_replace_hdr rep
+        ON rep.replace_number = b.movement_transnno
+        AND b.movement_type = 'REPLACEMENT'
+
+    -- ADJUSTMENT / CANCEL ADJUSTMENT
+    LEFT JOIN stock_adjustment_hdr adj
+        ON adj.adj_code = b.movement_transnno
+        AND b.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+
+    -- DN SEMENTARA
+    LEFT JOIN temporary_dn_hdr tdn
+        ON tdn.tdn_number = b.movement_transnno
+        AND b.movement_type = 'DN SEMENTARA'
+
+    -- DN UMUM
+    LEFT JOIN dn_general_hdr dng
+        ON dng.adj_code = b.movement_transnno
+        AND b.movement_type = 'DN UMUM'
+
+    WHERE 1=1
+    $dateFilter
+    $inoutFilter
+    ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy'), b.movement_code";
 
     $data = DB::select($sqlku);
 
@@ -1098,7 +1150,23 @@
 
             return "<span class='badge badge-pill badge-light-secondary'>-</span>";
         })
-        ->rawColumns(['qty', 'balanceqty', 'movement_transnno', 'inout'])
+        ->addColumn('trx_status', function ($data) {
+    $st = $data->trx_status;
+    if ($st === null || $st === '') return "<span class='badge badge-pill badge-light-secondary'>-</span>";
+
+    // Sesuaikan mapping label & warna per modul masing-masing
+    $map = [
+        '1' => ['label' => 'DRAFT',     'class' => 'badge-light-primary'],
+        '2' => ['label' => 'VALIDATED', 'class' => 'badge-light-info'],
+        '3' => ['label' => 'APPROVED',  'class' => 'badge-light-warning'],
+        '4' => ['label' => 'POSTED',    'class' => 'badge-light-success'],
+        '5' => ['label' => 'CANCELED',  'class' => 'badge-light-danger'],
+    ];
+
+    $cfg = $map[$st] ?? ['label' => strtoupper($st), 'class' => 'badge-light-secondary'];
+    return "<span class='badge badge-pill {$cfg['class']}'>{$cfg['label']}</span>";
+})
+        ->rawColumns(['qty', 'balanceqty', 'movement_transnno', 'inout', 'trx_status'])
         ->make(true);
 }
 
