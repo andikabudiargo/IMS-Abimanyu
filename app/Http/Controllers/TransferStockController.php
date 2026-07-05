@@ -99,21 +99,213 @@ public function getTableColoumnDetail()
 }
 
     public function index(Request $request)
-    {
-        $data['title'] = "$this->title";
-        $data['subtitle'] = "$this->title";
+{
+    $user      = Auth::user();
+    $username  = $user->username;
+    $userDepts = DB::table('user_dept')
+                    ->where('username', $username)
+                    ->pluck('dept')
+                    ->toArray();
 
-        $data['kolom'] = $this->getTableColoumn();
-        $data['kolomDetail'] = $this->getTableColoumnDetail();
+    $data['title']       = "$this->title";
+    $data['subtitle']    = "$this->title";
+    $data['kolom']       = $this->getTableColoumn();
+    $data['kolomDetail'] = $this->getTableColoumnDetail();
 
-        $data['locations'] = DB::table('stock_location_master')
+    $data['locations'] = DB::table('stock_location_master')
         ->orderBy('location_name')
         ->get();
-        
-        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
-    
-        return view("transfer/transferStock.index",$data);
+
+    $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+
+    $baseSelect = [
+    'transfer_stock_hdr.*',
+    'locFrom.location_name as location_name',
+    'locTo.location_name as location_name_to',
+];
+
+    // ===== OUTSTANDING IN =====
+    // Transfer masuk ke gudang dept saya → saya yang harus posting
+    // approve_dept di-snapshot saat store = dept_code gudang tujuan
+    $data['outstandingIn'] = DB::table('transfer_stock_hdr')
+        ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
+        ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to')
+        ->whereIn('transfer_stock_hdr.status', ['1', '2'])
+        ->whereIn('transfer_stock_hdr.approve_dept', $userDepts)
+        ->select($baseSelect)
+        ->orderBy('transfer_stock_hdr.created_at', 'asc')
+        ->get()
+        ->map(function ($row) {
+    $created = \Carbon\Carbon::parse($row->created_at);
+    $seconds = $created->diffInSeconds(now(), false); // false = boleh negatif
+    // guard kalau ada clock skew kecil → anggap 0
+    if ($seconds < 0) $seconds = 0;
+    $row->age_seconds = $seconds; // simpan untuk footer "terlama"
+    $aging = $this->formatAging($seconds);
+    $row->aging_label = $aging['label'];
+    $row->aging_level = $aging['level'];
+    return $row;
+});
+
+    $data['outstandingInCount'] = $data['outstandingIn']->count();
+
+    // ===== OUTSTANDING OUT =====
+    // Transfer keluar dari gudang dept saya → menunggu diposting dept penerima
+    // locFrom.dept_code = dept saya, tapi approve_dept BUKAN dept saya (hindari overlap dengan IN)
+    $data['outstandingOut'] = DB::table('transfer_stock_hdr')
+        ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
+        ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to')
+        ->whereIn('transfer_stock_hdr.status', ['1', '2'])
+        ->where(function ($q) use ($userDepts, $username) {
+            $q->whereIn('locFrom.dept_code', $userDepts)
+              ->orWhere('transfer_stock_hdr.created_by', $username);
+        })
+        ->whereNotIn('transfer_stock_hdr.approve_dept', $userDepts) // hindari duplikat dengan IN
+        ->select($baseSelect)
+        ->orderBy('transfer_stock_hdr.created_at', 'asc')
+        ->get()
+       ->map(function ($row) {
+    $created = \Carbon\Carbon::parse($row->created_at);
+    $seconds = $created->diffInSeconds(now(), false); // false = boleh negatif
+    // guard kalau ada clock skew kecil → anggap 0
+    if ($seconds < 0) $seconds = 0;
+    $row->age_seconds = $seconds; // simpan untuk footer "terlama"
+    $aging = $this->formatAging($seconds);
+    $row->aging_label = $aging['label'];
+    $row->aging_level = $aging['level'];
+    return $row;
+});
+
+    $data['outstandingOutCount'] = $data['outstandingOut']->count();
+
+    return view("transfer/transferStock.index", $data);
+}
+
+private function processPosting(string $trNumber, string $username): array
+{
+    $siteCode  = 'HO';
+    $status    = '4';
+    $todayDate = date('Y-m-d');
+
+    $hdrQ = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->first();
+    if (!$hdrQ) {
+        return ['success' => false, 'message' => ["Transfer $trNumber tidak ditemukan"]];
     }
+
+    $locationFrom = $hdrQ->location_from;
+    $locationTo   = $hdrQ->location_to;
+    $isSupply     = ($hdrQ->tr_type === 'SUPPLY');
+    $trType       = $isSupply ? 'SUPPLY' : 'TRANSFER';
+
+    $data = DB::table('transfer_stock_det')
+        ->leftJoin('article', 'article.article_code', '=', 'transfer_stock_det.article_code')
+        ->where('transfer_stock_det.tr_number', $trNumber)
+        ->select(
+            'transfer_stock_det.*',
+            'article.article_type',
+            'article.article_desc',
+            'article.article_alternative_code',
+            'article.uom as article_uom',
+            DB::raw('coalesce(transfer_stock_det.qty, 0) as total_qty'),
+            DB::raw("coalesce(transfer_stock_det.uom,
+                (select unit_to from uom_con_v2 where article_code = transfer_stock_det.article_code limit 1)
+            ) as stock_uom")
+        )
+        ->get();
+
+    if ($data->isEmpty()) {
+        return ['success' => false, 'message' => ["Transfer $trNumber gagal diposting: tidak ada detail"]];
+    }
+
+    // ===== VALIDASI STOK (sama seperti posting() lama) =====
+    $strictStockLocation = '006';
+    $overStock = [];
+    foreach ($data as $val) {
+        $qtyBase = (float) $val->total_qty;
+
+        $onhand = (float) DB::table('warehouse_stock')
+            ->where('site_code', $siteCode)
+            ->where('article_code', $val->article_code)
+            ->where('location_number', $locationFrom)
+            ->sum('article_qty');
+
+        $reserved = (float) DB::table('transfer_stock_det as d')
+            ->join('transfer_stock_hdr as h', 'h.tr_number', '=', 'd.tr_number')
+            ->where('d.article_code', $val->article_code)
+            ->where('h.location_from', $locationFrom)
+            ->where('h.tr_number', '<>', $trNumber)
+            ->whereIn('h.status', ['1', '2', '3'])
+            ->sum(DB::raw("d.qty * coalesce(uom_conversion(d.uom,(select uom from article where article_code = d.article_code)),1)"));
+
+        $available = $onhand - $reserved;
+
+        if ($locationFrom === $strictStockLocation && $qtyBase > $available) {
+            $overStock[] = "Qty {$val->article_alternative_code} ({$qtyBase}) melebihi stok available ({$available}) di gudang asal";
+        }
+    }
+
+    if ($overStock) {
+        return ['success' => false, 'message' => $overStock];
+    }
+
+    // ===== GENERATE MOVEMENT (sama seperti posting() lama, di-copy utuh) =====
+    $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
+    $dataSetMovement = [];
+
+    $groupByFG  = [];
+    $normalRows = [];
+
+    foreach ($data as $val) {
+        $fgTarget    = $val->fg_target ?? null;
+        $articleType = strtoupper($val->article_type ?? '');
+        $isRmConvert = $isSupply && !empty($fgTarget) && in_array($articleType, ['RMP', 'RMNP']);
+
+        if ($isRmConvert) {
+            $groupByFG[$fgTarget][] = $val;
+        } else {
+            $normalRows[] = $val;
+        }
+    }
+
+    // -- foreach ($normalRows as $val) { ... } tetap sama persis seperti di posting() lama --
+    // -- foreach ($groupByFG as $fgCode => $rmList) { ... } tetap sama persis seperti di posting() lama --
+    // (copy paste dua blok itu dari method posting() yang sudah ada, jangan diubah)
+
+    DB::table('transfer_stock_hdr')
+        ->where('tr_number', $trNumber)
+        ->update([
+            'status'     => $status,
+            'updated_by' => $username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+    if (!empty($dataSetMovement)) {
+        DB::table('warehouse_movement')->insert($dataSetMovement);
+    }
+
+    return ['success' => true, 'message' => "Transfer $trNumber berhasil diposting"];
+}
+
+private function formatAging(float $seconds): array
+{
+    $seconds = (int) abs($seconds);
+
+    if ($seconds < 60) {
+        return ['label' => $seconds . ' detik', 'level' => 'success'];   // hijau
+    } elseif ($seconds < 3600) {
+        $m = floor($seconds / 60);
+        return ['label' => $m . ' menit', 'level' => 'success'];
+    } elseif ($seconds < 86400) {
+        $h = floor($seconds / 3600);
+        return ['label' => $h . ' jam', 'level' => 'warning'];            // kuning
+    } elseif ($seconds < 259200) { // < 3 hari
+        $d = floor($seconds / 86400);
+        return ['label' => $d . ' hari', 'level' => 'warning'];
+    } else {
+        $d = floor($seconds / 86400);
+        return ['label' => $d . ' hari', 'level' => 'danger'];            // merah
+    }
+}
 
     public function create(Request $request)
 {
@@ -265,6 +457,10 @@ if ($locToType === 'booth') {
 
         DB::table('transfer_stock_det')->insert($dataSet);
 
+        // ===== LANGSUNG POSTING =====
+        // $postResult = $this->processPosting($trNumber, $username);
+
+
         DB::commit();
         $message = "$title $trNumber is successfully saved";
         \LogActivity::addToLog($title, "username: $username Status $message");
@@ -276,6 +472,49 @@ if ($locToType === 'booth') {
         \LogActivity::addToLog($title, "username: $username Status $message - ".$e->getMessage());
         return response()->json(['status'=>0,'title'=>$title,'message'=>[$message],'alert'=>'error']);
     }
+}
+
+public function postingNew(Request $request)
+{
+    $user     = Auth::user();
+    $username = $user->username;
+    $id       = Crypt::decryptString($request->id);
+    $title    = "Posting $this->title";
+
+    $hdrQ = DB::table('transfer_stock_hdr')->where('id', $id)->first();
+
+    if (!$hdrQ) {
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Data tidak ditemukan']);
+    }
+    if ($hdrQ->status == '4') {
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => "$title gagal: sudah diposting"]);
+    }
+    if ($hdrQ->status == '5') {
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => "$title gagal: sudah dicancel"]);
+    }
+    if (!($user->hasAnyRole(['Superuser', 'accounting']) || $user->can('transferOut-posting'))) {
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Anda tidak berwenang posting']);
+    }
+
+    $trNumber = $hdrQ->tr_number;
+
+    $rowAffected = DB::table('transfer_stock_hdr')
+        ->where('tr_number', $trNumber)
+        ->update([
+            'status'     => '4',
+            'updated_by' => $username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+    if ($rowAffected) {
+        $message = "$title $trNumber Successfully Posted";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['title' => $title, 'alert' => 'success', 'message' => $message]);
+    }
+
+    $message = "$title $trNumber Failed to Posted";
+    \LogActivity::addToLog($title, "username: $username Status $message");
+    return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => $message]);
 }
 
 
@@ -571,6 +810,184 @@ public function posting(Request $request)
         \LogActivity::addToLog($title, "username: $username Status $message");
         return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => $message]);
     }
+}
+
+private function reverseStock(object $hdrQ, string $username, string $reasonLabel): array
+{
+    $trNumber     = $hdrQ->tr_number;
+    $isSupply     = ($hdrQ->tr_type === 'SUPPLY');
+    $baseType     = $isSupply ? 'SUPPLY' : 'TRANSFER';
+    $trType       = 'CANCEL ' . $baseType;
+    $siteCode     = 'HO';
+    $todayDate    = date('Y-m-d');
+    $locationFrom = $hdrQ->location_from;
+    $locationTo   = $hdrQ->location_to;
+    $reason       = "($reasonLabel by $username)";
+
+    $data = DB::table('transfer_stock_det')
+        ->leftJoin('article', 'article.article_code', '=', 'transfer_stock_det.article_code')
+        ->where('transfer_stock_det.tr_number', $trNumber)
+        ->select(
+            'transfer_stock_det.*',
+            'article.article_type',
+            'article.article_desc',
+            'article.article_alternative_code',
+            'article.uom as article_uom',
+            DB::raw('coalesce(transfer_stock_det.qty, 0) as total_qty'),
+            DB::raw("coalesce(transfer_stock_det.uom,
+                (select unit_to from uom_con_v2 where article_code = transfer_stock_det.article_code limit 1)
+            ) as stock_uom")
+        )
+        ->get();
+
+    if ($data->isEmpty()) {
+        return ['success' => false, 'message' => ["Transfer $trNumber gagal: tidak ada detail"]];
+    }
+
+    $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
+    $dataSetMovement = [];
+
+    $groupByFG  = [];
+    $normalRows = [];
+
+    foreach ($data as $val) {
+        $fgTarget    = $val->fg_target ?? null;
+        $articleType = strtoupper($val->article_type ?? '');
+        $isRmConvert = $isSupply && !empty($fgTarget) && in_array($articleType, ['RMP', 'RMNP']);
+
+        if ($isRmConvert) {
+            $groupByFG[$fgTarget][] = $val;
+        } else {
+            $normalRows[] = $val;
+        }
+    }
+
+    // ===== REVERSE NORMAL =====
+    foreach ($normalRows as $val) {
+        $qtyBase     = (float) $val->total_qty;
+        $hargaPindah = $this->getAvgPrice($siteCode, $val->article_code, $locationTo);
+
+        $this->tambahStockTanpaAvg($siteCode, $val->article_code, $locationFrom, $val->article_type, $val->stock_uom, $qtyBase);
+        $this->kurangiStock($siteCode, $val->article_code, $locationTo, $val->article_type, $val->stock_uom, $qtyBase);
+
+        $seq++;
+        $dataSetMovement[] = [
+            'movement_code'     => $seq,
+            'movement_date'     => date('d-m-Y', strtotime($hdrQ->tr_date)),
+            'artikel_code'      => $val->article_code,
+            'artikel_desc'      => $val->article_desc ?? '',
+            'movement_min'      => 0,
+            'movement_plus'     => $qtyBase,
+            'movement_price'    => $hargaPindah,
+            'movement_transnno' => $trNumber,
+            'movement_type'     => $trType,
+            'movement_desc'     => $reason,
+            'movement_from'     => $locationTo,
+            'movement_to'       => $locationFrom,
+            'partner_type'      => 'LOC',
+            'created_by'        => $username,
+            'created_at'        => date('Y-m-d H:i:s'),
+            'site_code'         => $siteCode,
+            'location_number'   => $locationFrom,
+            'last_qty'          => DB::raw("get_last_qty('{$val->article_code}','$todayDate','$siteCode','$locationFrom') + $qtyBase"),
+        ];
+
+        $seq++;
+        $dataSetMovement[] = [
+            'movement_code'     => $seq,
+            'movement_date'     => date('d-m-Y', strtotime($hdrQ->tr_date)),
+            'artikel_code'      => $val->article_code,
+            'artikel_desc'      => $val->article_desc ?? '',
+            'movement_min'      => $qtyBase,
+            'movement_plus'     => 0,
+            'movement_price'    => $hargaPindah,
+            'movement_transnno' => $trNumber,
+            'movement_type'     => $trType,
+            'movement_desc'     => $reason,
+            'movement_from'     => $locationTo,
+            'movement_to'       => $locationFrom,
+            'partner_type'      => 'LOC',
+            'created_by'        => $username,
+            'created_at'        => date('Y-m-d H:i:s'),
+            'site_code'         => $siteCode,
+            'location_number'   => $locationTo,
+            'last_qty'          => DB::raw("get_last_qty('{$val->article_code}','$todayDate','$siteCode','$locationTo') - $qtyBase"),
+        ];
+    }
+
+    // ===== REVERSE KONVERSI =====
+    foreach ($groupByFG as $fgCode => $rmList) {
+        $qtyFG = (float) $rmList[0]->total_qty;
+
+        $fgArticle = DB::table('article')
+            ->where('article_code', $fgCode)
+            ->select('article_desc', 'article_type', 'uom')
+            ->first();
+
+        $fgDesc  = $fgArticle->article_desc ?? $fgCode;
+        $fgType  = $fgArticle->article_type ?? 'FG';
+        $fgUom   = $fgArticle->uom ?? '';
+        $hargaFG = $this->getAvgPrice($siteCode, $fgCode, $locationTo);
+
+        $this->kurangiStock($siteCode, $fgCode, $locationTo, $fgType, $fgUom, $qtyFG);
+
+        $seq++;
+        $dataSetMovement[] = [
+            'movement_code'     => $seq,
+            'movement_date'     => date('d-m-Y', strtotime($hdrQ->tr_date)),
+            'artikel_code'      => $fgCode,
+            'artikel_desc'      => $fgDesc,
+            'movement_min'      => $qtyFG,
+            'movement_plus'     => 0,
+            'movement_price'    => $hargaFG,
+            'movement_transnno' => $trNumber,
+            'movement_type'     => $trType,
+            'movement_desc'     => $reason . " (Reverse FG {$fgCode})",
+            'movement_from'     => $locationTo,
+            'movement_to'       => $locationFrom,
+            'partner_type'      => 'LOC',
+            'created_by'        => $username,
+            'created_at'        => date('Y-m-d H:i:s'),
+            'site_code'         => $siteCode,
+            'location_number'   => $locationTo,
+            'last_qty'          => DB::raw("get_last_qty('$fgCode','$todayDate','$siteCode','$locationTo') - $qtyFG"),
+        ];
+
+        foreach ($rmList as $rm) {
+            $qtyRM   = (float) $rm->total_qty;
+            $hargaRM = $this->getAvgPrice($siteCode, $rm->article_code, $locationFrom);
+
+            $this->tambahStockTanpaAvg($siteCode, $rm->article_code, $locationFrom, $rm->article_type, $rm->stock_uom, $qtyRM);
+
+            $seq++;
+            $dataSetMovement[] = [
+                'movement_code'     => $seq,
+                'movement_date'     => date('d-m-Y', strtotime($hdrQ->tr_date)),
+                'artikel_code'      => $rm->article_code,
+                'artikel_desc'      => $rm->article_desc ?? '',
+                'movement_min'      => 0,
+                'movement_plus'     => $qtyRM,
+                'movement_price'    => $hargaRM,
+                'movement_transnno' => $trNumber,
+                'movement_type'     => $trType,
+                'movement_desc'     => $reason . " (Reverse RM untuk FG {$fgCode})",
+                'movement_from'     => $locationTo,
+                'movement_to'       => $locationFrom,
+                'partner_type'      => 'LOC',
+                'created_by'        => $username,
+                'created_at'        => date('Y-m-d H:i:s'),
+                'site_code'         => $siteCode,
+                'location_number'   => $locationFrom,
+                'last_qty'          => DB::raw("get_last_qty('{$rm->article_code}','$todayDate','$siteCode','$locationFrom') + $qtyRM"),
+            ];
+        }
+    }
+
+    if (!empty($dataSetMovement)) {
+        DB::table('warehouse_movement')->insert($dataSetMovement);
+    }
+
+    return ['success' => true, 'message' => "Stock $trNumber berhasil di-reverse"];
 }
 
 // ===== HELPER METHODS =====
@@ -1065,6 +1482,10 @@ public function update(Request $request)
     $trType = ($locToType === 'booth') ? 'SUPPLY' : 'TRANSFER';
 
     // ===== Validasi stok (available = onhand - reserved, kecuali transfer ini) =====
+    // Hanya gudang Consumable (006) yang divalidasi ketat, gudang lain boleh over-stock
+    // ← disamakan dengan aturan di store()
+    $strictStockLocation = '006';
+
     $overStock = [];
     foreach ($articles as $val) {
         $onhand = DB::table('warehouse_stock')
@@ -1087,7 +1508,7 @@ public function update(Request $request)
             [$val->qty, $val->uom, $val->article_code]
         )->q;
 
-        if ($qtyBase > $available) {
+        if ($locationCode === $strictStockLocation && $qtyBase > $available) {
             $overStock[] = "Qty {$val->article_code} ($qtyBase) melebihi stok available ($available) di gudang $locationCode";
         }
     }
@@ -1214,6 +1635,66 @@ public function update(Request $request)
             return response()->json(array('statusPo' => $statusTso,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
         }
     }
+
+    public function destroyNew(Request $request)
+{
+    $user     = Auth::user();
+    $username = $user->username;
+    $id       = Crypt::decryptString($request->id);
+    $title    = "Delete $this->title";
+
+    $hdrQ = DB::table('transfer_stock_hdr')->where('id', $id)->first();
+
+    if (!$hdrQ) {
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Data tidak ditemukan']);
+    }
+
+    $trNumber = $hdrQ->tr_number;
+    $isPosted = ($hdrQ->status == '4');
+
+    // Kalau sudah POSTED, hapus butuh otoritas sama seperti posting/cancel
+    if ($isPosted && !($user->hasAnyRole(['Superuser', 'accounting']) || $user->can('transferOut-posting'))) {
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Anda tidak berwenang menghapus transfer yang sudah diposting']);
+    }
+
+    DB::beginTransaction();
+    try {
+        // ===== Kalau statusnya POSTED, reverse stok dulu (seperti cancel) =====
+        if ($isPosted) {
+            $reverse = $this->reverseStock($hdrQ, $username, 'Delete');
+            if (!$reverse['success']) {
+                DB::rollBack();
+                return redirect()->back()->with([
+                    'title'   => $title,
+                    'alert'   => 'warning',
+                    'message' => implode(' | ', (array) $reverse['message']),
+                ]);
+            }
+        }
+
+        // ===== Hapus header & detail =====
+        DB::table('transfer_stock_det')->where('tr_number', $trNumber)->delete();
+        $rowAffected = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->delete();
+
+        if ($rowAffected > 0) {
+            DB::commit();
+            $message = "$title $trNumber Successfully Deleted";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['title' => $title, 'alert' => 'success', 'message' => $message]);
+        }
+
+        DB::rollBack();
+        $message = "$title $trNumber Failed to Delete";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => $message]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $message = "$title $trNumber Failed: " . $e->getMessage();
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => $message]);
+    }
+}
 
     public function destroy(Request $request)
 {
