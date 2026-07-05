@@ -1028,7 +1028,7 @@
 
     -- DELIVERY
     LEFT JOIN delivery_hdr del
-        ON del.del_number = b.movement_transnno
+        ON del.delivery_number = b.movement_transnno
         AND b.movement_type = 'DELIVERY'
 
     -- RETURN
@@ -1053,7 +1053,7 @@
 
     -- DN UMUM
     LEFT JOIN dn_general_hdr dng
-        ON dng.adj_code = b.movement_transnno
+        ON dng.tdn_number = b.movement_transnno
         AND b.movement_type = 'DN UMUM'
 
     WHERE 1=1
