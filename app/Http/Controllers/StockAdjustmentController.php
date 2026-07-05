@@ -636,16 +636,16 @@ public function posting(Request $request)
     }
 
     // ── VALIDASI BACKDATE per artikel, sesuai direction masing-masing ──
-    $directionMap = [];
-    foreach ($details as $d) {
-        $directionMap[$d->article_code] = $d->direction;
-    }
+    //$directionMap = [];
+    //foreach ($details as $d) {
+      //  $directionMap[$d->article_code] = $d->direction;
+    //}
 
-    $errors = $this->validateBackdateStock($details, $siteCode, $location, $adjDateYmd, $adjDate, $directionMap);
-    if (!empty($errors)) {
-        return redirect()->back()->with(['title' => $title, 'alert' => 'warning',
-            'message' => implode(' ', $errors)]);
-    }
+    //$errors = $this->validateBackdateStock($details, $siteCode, $location, $adjDateYmd, $adjDate, $directionMap);
+    //if (!empty($errors)) {
+      //  return redirect()->back()->with(['title' => $title, 'alert' => 'warning',
+        //    'message' => implode(' ', $errors)]);
+    //}
 
     DB::beginTransaction();
     try {
