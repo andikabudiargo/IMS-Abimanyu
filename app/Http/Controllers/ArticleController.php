@@ -1071,58 +1071,94 @@
                 ? "<div class='text-red'>$qty</div>"
                 : "<div class='text-hijau'>$qty</div>";
         })
-        ->addColumn('movement_transnno', function ($data) {
-            $ref = $data->movement_transnno;
-            if (!$ref) return '-';
+      ->addColumn('movement_transnno', function ($data) {
+    $ref = $data->movement_transnno;
+    if (!$ref) return '-';
 
-            $url = null;
-            switch ($data->movement_type) {
-                case 'RECEIVING':
-                    $id = DB::table('receiving_hdr')->where('rec_number', $ref)->value('id');
-                    if ($id) $url = route('receiving.show', ['id' => Crypt::encryptString($id)]);
-                    break;
+    $url = null;
+    $status = null;
 
-                case 'TRANSFER':
-                case 'SUPPLY':
-                    $id = DB::table('transfer_stock_hdr')->where('tr_number', $ref)->value('id');
-                    if ($id) $url = route('transferStock.show', ['id' => Crypt::encryptString($id)]);
-                    break;
+    // Hanya status CANCEL yang mengunci link. REVISI tetap bisa diklik.
+    $lockedStatus = ['5']; // 5 = CANCELED
 
-                case 'DELIVERY':
-                    $id = DB::table('delivery_hdr')->where('delivery_number', $ref)->value('id');
-                    if ($id) $url = route('delivery.show', ['id' => Crypt::encryptString($id)]);
-                    break;
-
-                case 'RETURN':
-                    $id = DB::table('dn_return_hdr')->where('return_number', $ref)->value('id');
-                    if ($id) $url = route('dnReturn.show', ['id' => Crypt::encryptString($id)]);
-                    break;
-
-                case 'REPLACEMENT':
-                    $id = DB::table('dn_replace_hdr')->where('replace_number', $ref)->value('id');
-                    if ($id) $url = route('dnReplace.show', ['id' => Crypt::encryptString($id)]);
-                    break;
-
-                case 'ADJUSTMENT':
-                    $id = DB::table('stock_adjustment_hdr')->where('adj_code', $ref)->value('id');
-                    if ($id) $url = route('stockAdjustment.show', ['id' => Crypt::encryptString($id)]);
-                    break;
-
-                case 'DN SEMENTARA':
-                    $id = DB::table('temporary_dn_hdr')->where('tdn_number', $ref)->value('id');
-                    if ($id) $url = route('temporaryDn.show', ['id' => Crypt::encryptString($id)]);
-                    break;
-
-                 case 'DN UMUM':
-                    $id = DB::table('dn_general_hdr')->where('adj_code', $ref)->value('id');
-                    if ($id) $url = route('dnGeneral.show', ['id' => Crypt::encryptString($id)]);
-                    break;
+    switch ($data->movement_type) {
+        case 'RECEIVING':
+            $row = DB::table('receiving_hdr')->where('rec_number', $ref)->select('id','status')->first();
+            if ($row) {
+                $url = route('receiving.show', ['id' => Crypt::encryptString($row->id)]);
+                $status = $row->status;
             }
+            break;
 
-            return $url
-                ? '<a href="' . $url . '" target="_blank" class="text-primary">' . $ref . '</a>'
-                : $ref;
-        })
+        case 'TRANSFER':
+        case 'SUPPLY':
+            $row = DB::table('transfer_stock_hdr')->where('tr_number', $ref)->select('id','status')->first();
+            if ($row) {
+                $url = route('transferStock.show', ['id' => Crypt::encryptString($row->id)]);
+                $status = $row->status;
+            }
+            break;
+
+        case 'DELIVERY':
+            $row = DB::table('delivery_hdr')->where('delivery_number', $ref)->select('id','status')->first();
+            if ($row) {
+                $url = route('delivery.show', ['id' => Crypt::encryptString($row->id)]);
+                $status = $row->status;
+            }
+            break;
+
+        case 'RETURN':
+            $row = DB::table('dn_return_hdr')->where('return_number', $ref)->select('id','status')->first();
+            if ($row) {
+                $url = route('dnReturn.show', ['id' => Crypt::encryptString($row->id)]);
+                $status = $row->status;
+            }
+            break;
+
+        case 'REPLACEMENT':
+            $row = DB::table('dn_replace_hdr')->where('replace_number', $ref)->select('id','status')->first();
+            if ($row) {
+                $url = route('dnReplace.show', ['id' => Crypt::encryptString($row->id)]);
+                $status = $row->status;
+            }
+            break;
+
+        case 'ADJUSTMENT':
+        case 'CANCEL ADJUSTMENT':
+            $row = DB::table('stock_adjustment_hdr')->where('adj_code', $ref)->select('id','status')->first();
+            if ($row) {
+                $url = route('stockAdjustment.show', ['id' => Crypt::encryptString($row->id)]);
+                $status = $row->status;
+            }
+            break;
+
+        case 'DN SEMENTARA':
+            $row = DB::table('temporary_dn_hdr')->where('tdn_number', $ref)->select('id','status')->first();
+            if ($row) {
+                $url = route('temporaryDn.show', ['id' => Crypt::encryptString($row->id)]);
+                $status = $row->status;
+            }
+            break;
+
+        case 'DN UMUM':
+            $row = DB::table('dn_general_hdr')->where('adj_code', $ref)->select('id','status')->first();
+            if ($row) {
+                $url = route('dnGeneral.show', ['id' => Crypt::encryptString($row->id)]);
+                $status = $row->status;
+            }
+            break;
+    }
+
+    // Kalau tidak ketemu row, tetap tidak boleh jadi link.
+    // Kalau ketemu tapi statusnya CANCEL, kunci juga.
+    $isLocked = !$url || in_array((string) $status, $lockedStatus, true);
+
+    if ($isLocked) {
+        return '<span class="text-muted" title="Transaksi sudah cancel, tidak bisa dibuka">' . $ref . '</span>';
+    }
+
+    return '<a href="' . $url . '" target="_blank" class="text-primary">' . $ref . '</a>';
+})
         ->addColumn('balanceqty', function ($data) {
             $decimal = (fmod($data->balanceqty, 1) !== 0.00) ? $this->decimalPlaces : 0;
             $balanceQty = number_format($data->balanceqty, $decimal);
