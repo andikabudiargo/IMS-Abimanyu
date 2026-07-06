@@ -1194,11 +1194,13 @@
 
     // Sesuaikan mapping label & warna per modul masing-masing
     $map = [
-        '1' => ['label' => 'DRAFT',     'class' => 'badge-light-primary'],
-        '2' => ['label' => 'VALIDATED', 'class' => 'badge-light-info'],
-        '3' => ['label' => 'APPROVED',  'class' => 'badge-light-warning'],
-        '4' => ['label' => 'POSTED',    'class' => 'badge-light-success'],
-        '5' => ['label' => 'CANCELED',  'class' => 'badge-light-danger'],
+        '1'  => ['label' => 'DRAFT',     'class' => 'badge-light-primary'],
+        '2'  => ['label' => 'VALIDATED', 'class' => 'badge-light-info'],
+        '3'  => ['label' => 'APPROVED',  'class' => 'badge-light-warning'],
+        '4'  => ['label' => 'POSTED',    'class' => 'badge-light-success'],
+        '5'  => ['label' => 'CANCELED',  'class' => 'badge-light-danger'],
+        '7'  => ['label' => 'REVISED',   'class' => 'badge-light-warning'],
+        '10' => ['label' => 'REVISED',    'class' => 'badge-light-warning'],
     ];
 
     $cfg = $map[$st] ?? ['label' => strtoupper($st), 'class' => 'badge-light-secondary'];
