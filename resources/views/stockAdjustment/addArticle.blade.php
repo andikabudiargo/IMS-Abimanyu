@@ -583,9 +583,8 @@ function _fetchStockBeforeBulk(rowMeta) {
             data: {
                 adjDate: adjDate,
                 location_code: locCode,
-                article_codes: chunks[ci]
+                'article_codes[]': chunks[ci]
             },
-            traditional: true, // supaya array article_codes[] ter-serialize dengan benar
             success: function (data) {
                 Object.assign(stockMap, data.stocks || {});
             },
