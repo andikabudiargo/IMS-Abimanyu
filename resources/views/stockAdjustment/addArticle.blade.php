@@ -233,7 +233,7 @@ function setStockBefore(rowId, stock) {
 function recomputeRow(rowId) {
     let stockBefore = parseFloat($('#stockBefore' + rowId).data('raw')) || 0;
     let balance     = parseFloat(String($('#balanceQty' + rowId).val()).replace(/,/g,'')) || 0;
-    let diff        = balance - stockBefore; // + berarti nambah stok, - berarti kurangi
+    let diff = Math.round((balance - stockBefore) * 10000) / 10000;  // bulatkan ke 4 desimal
 
     let $adj = $('#adjQty' + rowId);
     let sign = diff > 0 ? '+' : (diff < 0 ? '' : ''); // humanizeNumber biasanya sudah handle minus
