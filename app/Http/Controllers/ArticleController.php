@@ -1028,8 +1028,8 @@
 
     -- DELIVERY
     LEFT JOIN delivery_hdr del
-        ON del.delivery_number = b.movement_transnno
-        AND b.movement_type = 'DELIVERY'
+    ON del.delivery_number = b.movement_transnno
+    AND b.movement_type IN ('DELIVERY', 'REVISI DELIVERY', 'CANCEL DELIVERY')
 
     -- RETURN
     LEFT JOIN dn_return_hdr ret
@@ -1100,12 +1100,14 @@
             break;
 
         case 'DELIVERY':
-            $row = DB::table('delivery_hdr')->where('delivery_number', $ref)->select('id','status')->first();
-            if ($row) {
-                $url = route('delivery.show', ['id' => Crypt::encryptString($row->id)]);
-                $status = $row->status;
-            }
-            break;
+        case 'REVISI DELIVERY':
+        case 'CANCEL DELIVERY':
+    $row = DB::table('delivery_hdr')->where('delivery_number', $ref)->select('id','status')->first();
+    if ($row) {
+        $url = route('delivery.show', ['id' => Crypt::encryptString($row->id)]);
+        $status = $row->status;
+    }
+    break;
 
         case 'RETURN':
             $row = DB::table('dn_return_hdr')->where('return_number', $ref)->select('id','status')->first();
