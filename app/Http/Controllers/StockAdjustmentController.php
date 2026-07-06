@@ -1200,76 +1200,101 @@ private function summarizeDirection(array $articles): string
     public function exportExcel()              { return $this->export(); }
 
     public function importExcel(Request $request)
-    {
-        $this->validate($request, [
-            'file' => 'required|mimes:xls,xlsx|max:5120', // maks 5 MB
-        ]);
+{
+    $this->validate($request, [
+        'file' => 'required|mimes:xls,xlsx|max:5120', // maks 5 MB
+    ]);
 
-        $file         = $request->file('file');
-        $namaFile     = Auth::user()->username . '_' . time();
-        $locationCode = $request->location_code ?? '';
-        $title        = "Import $this->title";
+    $file     = $request->file('file');
+    $namaFile = Auth::user()->username . '_' . time();
+    $title    = "Import $this->title";
 
-        // batas jumlah baris yang aman untuk dirender di frontend
-        $maxRows = 2000;
+    // batas jumlah baris yang aman untuk dirender di frontend
+    $maxRows = 2000;
 
-        DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->delete();
+    // pastikan bersih dari sisa import gagal sebelumnya (nama file unik per-request,
+    // tapi jaga-jaga kalau ada retry dengan timestamp yang sama)
+    DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->delete();
 
+    try {
         try {
             Excel::import(new StockAdjustmentImport($namaFile), $file);
         } catch (\Exception $e) {
-            DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->delete();
             return response()->json(['status'=>0,'title'=>$title,
                 'message'=>['Gagal membaca file: '.$e->getMessage()],'alert'=>'error']);
         }
 
         $rowCount = DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->count();
         if ($rowCount > $maxRows) {
-            DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->delete();
             return response()->json(['status'=>0,'title'=>$title,
                 'message'=>["File berisi $rowCount baris, melebihi batas maksimal $maxRows baris per import. Silakan pecah file menjadi beberapa bagian."],
                 'alert'=>'error']);
         }
-
-        $dataValidasi = DB::table('import_adjustment_tmp')
-            ->leftJoin('article','article.article_alternative_code','=','import_adjustment_tmp.article_code')
-            ->select('import_adjustment_tmp.article_code','import_adjustment_tmp.qty',
-                DB::raw("concat(
-                    case when article.article_code is null then concat('Article Code ', import_adjustment_tmp.article_code, ' tidak terdaftar. ') end,
-                    case when coalesce(import_adjustment_tmp.qty,0)=0 then concat('Article ', import_adjustment_tmp.article_code, ' - Qty tidak boleh 0. ') end
-                ) as error_notes"))
-            ->where('import_adjustment_tmp.file_name', $namaFile)
-            ->get();
-
-        $dataNotes = $dataValidasi->filter(fn($v) => !empty(trim($v->error_notes ?? '')))
-            ->map(fn($v) => [$v->error_notes])->values()->toArray();
-
-        if (count($dataNotes) > 0) {
-            DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->delete();
-            return response()->json(['status'=>0,'title'=>$title,'message'=>$dataNotes,'alert'=>'error',
-                'pesan'=>'Ada error pada data yang diupload!','dataDetail'=>[]]);
+        if ($rowCount === 0) {
+            return response()->json(['status'=>0,'title'=>$title,
+                'message'=>['File kosong atau format kolom tidak sesuai template.'],'alert'=>'error']);
         }
 
-        // NOTE: stock_before di sini SENGAJA 0 — nilai stok historis yang
-        // sebenarnya diambil belakangan oleh frontend lewat stockBeforeBulk(),
-        // supaya query di sini tetap ringan (tidak perlu panggil
-        // get_last_qty_new() untuk tiap baris di titik ini).
-        $data = DB::table('import_adjustment_tmp')
-            ->leftJoin('article','article.article_alternative_code','=','import_adjustment_tmp.article_code')
-            ->select('article.article_code',
-                DB::raw('import_adjustment_tmp.qty as qty_adjustment'),
-                'article.uom',
-                DB::raw("(select string_agg(unit_to,',' order by unit_from) from uom_con_v2 where article_code=article.article_code) as uom_member"),
-                'import_adjustment_tmp.notes',
-                DB::raw('0 as stock_before'))
-            ->where('import_adjustment_tmp.file_name', $namaFile)
+        // ── SATU query gabungan article + import_adjustment_tmp ──
+        // Dipakai untuk validasi SEKALIGUS untuk data final, jadi tidak perlu
+        // scan tabel yang sama dua kali.
+        $rows = DB::table('import_adjustment_tmp as t')
+            ->leftJoin('article as a', 'a.article_alternative_code', '=', 't.article_code')
+            ->where('t.file_name', $namaFile)
+            ->select(
+                't.article_code as input_code',
+                't.qty as qty_adjustment',
+                't.notes',
+                'a.article_code',
+                'a.uom'
+            )
             ->get();
 
-        DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->delete();
+        // ── Validasi di PHP (data sudah di memory, tidak perlu query lagi) ──
+        $errors = [];
+        foreach ($rows as $r) {
+            if (is_null($r->article_code)) {
+                $errors[] = "Article Code {$r->input_code} tidak terdaftar.";
+            }
+            if ((float) $r->qty_adjustment === 0.0) {
+                $errors[] = "Article {$r->input_code} - Qty tidak boleh 0.";
+            }
+        }
+
+        if (!empty($errors)) {
+            return response()->json(['status'=>0,'title'=>$title,
+                'message'=>array_map(fn($e) => [$e], $errors), // pertahankan bentuk lama (array of array)
+                'alert'=>'error','pesan'=>'Ada error pada data yang diupload!','dataDetail'=>[]]);
+        }
+
+        // ── uom_member: SATU query grouped, bukan subquery per-baris ──
+        $articleCodes = $rows->pluck('article_code')->filter()->unique()->values()->all();
+
+        $uomMemberMap = DB::table('uom_con_v2')
+            ->select('article_code', DB::raw("string_agg(unit_to, ',' order by unit_from) as uom_member"))
+            ->whereIn('article_code', $articleCodes)
+            ->groupBy('article_code')
+            ->pluck('uom_member', 'article_code');
+
+        // NOTE: stock_before SENGAJA 0 — nilai stok historis diambil belakangan
+        // oleh frontend lewat stockBeforeBulk(), supaya proses import tetap ringan.
+        $data = $rows->map(fn($r) => [
+            'article_code'   => $r->article_code,
+            'qty_adjustment' => $r->qty_adjustment,
+            'uom'            => $r->uom,
+            'uom_member'     => $uomMemberMap[$r->article_code] ?? null,
+            'notes'          => $r->notes,
+            'stock_before'   => 0,
+        ])->values();
 
         return response()->json(['status'=>1,'title'=>$title,'message'=>"$title berhasil diimport.",
             'alert'=>'success','pesan'=>'','dataDetail'=>$data]);
+
+    } finally {
+        // selalu bersihkan temp table, apapun hasilnya (sukses/error/exception)
+        DB::table('import_adjustment_tmp')->where('file_name', $namaFile)->delete();
     }
+}
 
     public function export()
     {
