@@ -333,16 +333,22 @@
             </li>
              @endcan
              @endif
-              <li class="{{ \Request::is(['stockAdjustment','stockAdjustment/create','stockAdjustment/show','stockAdjustment/edit']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('stockAdjustment.index') }}">
+              <li class="{{ \Request::is(['stockMovement','stockMovement/create','stockMovement/show','stockMovement/edit']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('stockMovement.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Stock Adjustment</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Stock Movement</span>
               </a>
             </li>
              <li class="{{ \Request::is(['transferStock','transferStock/create','transferStock/show','transferStock/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('transferStock.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Stock Transfer</span>
+              </a>
+            </li>
+             <li class="{{ \Request::is(['stockAdjustment','stockAdjustment/create','stockAdjustment/show','stockAdjustment/edit']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('stockAdjustment.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Stock Adjustment</span>
               </a>
             </li>
              {{--<li class="{{ \Request::is(['stocReconciliation','stockReconciliation/create','stockReconciliation/show','stockReconciliation/edit']) ? 'active' : '' }}">

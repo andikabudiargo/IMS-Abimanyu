@@ -685,6 +685,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('warehouse/articles/listv2',['as'=>'warehouse.article.listv2','uses'=>'WarehouseControllerv2@listArticle']);
 	Route::get('warehouse/article/summary', ['as' => 'warehouse.article.summary', 'uses'=>'WarehouseControllerv2@summary']);
 
+	Route::get('warehouse/stock-movement',['as'=>'stockMovement.index','uses'=>'StockMovementController@index']);
+	Route::get('warehouse/stock-movement/list',['as'=>'stockMovement.list','uses'=>'StockMovementController@list']);
+
 
 	/* new transfer in and out */
 
