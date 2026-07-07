@@ -2092,7 +2092,7 @@ public function unPosting($recNumber)
         }
     }
 
-    ublic function list(Request $request)
+    public function list(Request $request)
 {
     $searchRec      = strtolower($request->searchRec);
     $searchPo       = strtolower($request->searchPo);
