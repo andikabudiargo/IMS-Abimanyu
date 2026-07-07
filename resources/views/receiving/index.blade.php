@@ -121,6 +121,7 @@
   let searchInv = $("#searchInv");
   let searchSupplier = $("#searchSupplier"); 
   let searchStatus = $("#searchStatus");
+  let recType = $("#recType");   // <-- tambahan
   let recDate = $("#recDate");
   let doDate = $("#doDate");
   let btnSummary = $('#btnSummary');
@@ -143,7 +144,7 @@
   $('a[data-action="reload"]').on('click', function () {
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val());
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val());
   });
 
   rangePickr = $('.flatpickr-range');
@@ -157,86 +158,87 @@
   $("#btnSearch").click(function(e){
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val());
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val());
   });
 
   btnSummary.click(function(e){
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val());
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val());
   });
 
   btnDetail.click(function(e){
     btnSummary.show();
     btnDetail.hide();
-    showListDetail(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val());
+    showListDetail(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val());
   });
 
-  const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate) => {
-    if ($('#detailedTable tr').length >0){
-        let table= $('#detailedTable').DataTable();
-        table.destroy();
-        $('#detailedTable tbody > tr').remove();
-        $("#detailedTable thead > tr").remove();
-    }
-    showDataTables({
-      tableId:"detailedTable",
-      route:"{{ route('receiving.list') }}",
-      kolom:{!! $kolom !!},
-      type:'POST',
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,15,16],
-      columnDefs :[
-        { width: '5%', targets: 0 }
-      ],
-      dataSearch:  {
-        searchRec:searchRec,
-        searchPo:searchPo,
-        searchInv:searchInv,
-        searchSupplier:searchSupplier,
-        searchStatus:searchStatus,
-        recDate:recDate,
-        doDate:doDate
-      },
-      orderColumn:[[ 13, 'desc' ]],
-      excelFileName:'receiving'
-    });
+  const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate,recType) => {
+  if ($('#detailedTable tr').length >0){
+      let table= $('#detailedTable').DataTable();
+      table.destroy();
+      $('#detailedTable tbody > tr').remove();
+      $("#detailedTable thead > tr").remove();
   }
+  showDataTables({
+    tableId:"detailedTable",
+    route:"{{ route('receiving.list') }}",
+    kolom:{!! $kolom !!},
+    type:'POST',
+    arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,15,16],
+    columnDefs :[
+      { width: '5%', targets: 0 }
+    ],
+    dataSearch:  {
+      searchRec:searchRec,
+      searchPo:searchPo,
+      searchInv:searchInv,
+      searchSupplier:searchSupplier,
+      searchStatus:searchStatus,
+      recDate:recDate,
+      doDate:doDate,
+      recType:recType          // <-- tambahan
+    },
+    orderColumn:[[ 13, 'desc' ]],
+    excelFileName:'receiving'
+  });
+}
 
-  const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate) => {
-    if ($('#detailedTable tr').length >0){
-        let table= $('#detailedTable').DataTable();
-        table.destroy();
-        $('#detailedTable tbody > tr').remove();
-        $("#detailedTable thead > tr").remove();
-    }
-    showDataTables({
-      tableId:"detailedTable",
-      route:"{{ route('receiving.list.detail') }}",
-      kolom:{!! $kolomDetail !!},
-      type:'POST',
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,25,26],
-      columnDefs :[
-        { width: '5%', targets: 0 },
-        {
-          targets: [ 12,13,15,16,17,18,19 ],
-          render: $.fn.dataTable.render.number(',', '.',2, ''),
-          className: "text-right"
-        },
-        
-      ],
-      dataSearch:  {
-        searchRec:searchRec,
-        searchPo:searchPo,
-        searchInv:searchInv,
-        searchSupplier:searchSupplier,
-        searchStatus:searchStatus,
-        recDate:recDate,
-        doDate:doDate
-      },
-      orderColumn:[[ 24, 'asc' ],[ 6, 'asc' ]],
-      excelFileName:'receiving_detail'
-    });
+const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate,recType) => {
+  if ($('#detailedTable tr').length >0){
+      let table= $('#detailedTable').DataTable();
+      table.destroy();
+      $('#detailedTable tbody > tr').remove();
+      $("#detailedTable thead > tr").remove();
   }
+  showDataTables({
+    tableId:"detailedTable",
+    route:"{{ route('receiving.list.detail') }}",
+    kolom:{!! $kolomDetail !!},
+    type:'POST',
+    arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,25,26],
+    columnDefs :[
+      { width: '5%', targets: 0 },
+      {
+        targets: [ 12,13,15,16,17,18,19 ],
+        render: $.fn.dataTable.render.number(',', '.',2, ''),
+        className: "text-right"
+      },
+    ],
+    dataSearch:  {
+      searchRec:searchRec,
+      searchPo:searchPo,
+      searchInv:searchInv,
+      searchSupplier:searchSupplier,
+      searchStatus:searchStatus,
+      recDate:recDate,
+      doDate:doDate,
+      recType:recType          // <-- tambahan
+    },
+    orderColumn:[[ 24, 'asc' ],[ 6, 'asc' ]],
+    excelFileName:'receiving_detail'
+  });
+}
 
   let href;
   $(document).on('click', '#revisionReasonButton', function(event) {

@@ -159,26 +159,38 @@ class ReceivingController extends Controller
         return view("receiving.index",$data);
     }
 
-    public function getLastCode($key)
-    {
-        DB::table('master_code')
-        ->where('code_key',$key)
+    public function getLastCode($key, $do_date = null)
+{
+    DB::table('master_code')
+        ->where('code_key', $key)
         ->update([
             'code_number' => DB::raw('code_number + 1'),
-            'updated_by' => Auth::user()->username,
-            'updated_at' => date('Y-m-d H:i:s')
+            'updated_by'  => Auth::user()->username,
+            'updated_at'  => date('Y-m-d H:i:s')
         ]);
 
-        $newCode = DB::table('master_code')
-        ->where('code_key',$key)
-        ->value('code_number'); 
-        $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
-        $month = $months[date('n')-1];
-        $year = date('Y');
-        $number="$key-ASN/$year/$month/$newCode";
-        
-        return $number;
+    $newCode = DB::table('master_code')
+        ->where('code_key', $key)
+        ->value('code_number');
+
+    $months = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+
+    // do_date formatnya d-m-Y (misal: 07-07-2026), parsing eksplisit biar aman
+    $date = $do_date ? DateTime::createFromFormat('d-m-Y', $do_date) : null;
+
+    if ($date instanceof DateTime) {
+        $month = $months[(int) $date->format('n') - 1];
+        $year  = $date->format('Y');
+    } else {
+        // fallback kalau do_date kosong / format tidak sesuai
+        $month = $months[date('n') - 1];
+        $year  = date('Y');
     }
+
+    $number = "$key-ASN/$year/$month/$newCode";
+
+    return $number;
+}
 
     public function create(Request $request)
     {
@@ -249,7 +261,7 @@ class ReceivingController extends Controller
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             $hasilUpdate = AppHelpers::resetCode($leadCode);
-            $recNumber = $this->getLastCode($leadCode);
+            $recNumber = $this->getLastCode($leadCode, $doDate);
             DB::beginTransaction();
             try {
                     $idKu = DB::table('receiving_hdr')->insertGetId([
@@ -823,25 +835,27 @@ public function posting2(Request $request)
 {
     $username   = Auth::user()->username;
     $id         = Crypt::decryptString($request->id);
- 
+
     $recHdrq    = DB::table('receiving_hdr')->where('id', $id)->first();
     $title      = "Posting $this->title";
- 
+
     if (!$recHdrq) {
         return $this->postingResp($request, 0, $title, '-', 'warning', 'Data tidak ditemukan', $id);
     }
- 
+
     $recNumber  = $recHdrq->rec_number;
     $lastStatus = $recHdrq->status;
- 
+
     $siteCode   = 'HO';
     $status     = '4';       // POSTED
     $moduleCode = $this->moduleCode;
     $todayDate  = date('Y-m-d');
- 
-    // mapping article_type -> location
-    $locationMap = function ($articleType) {
-        if ($articleType === 'CM1') {
+
+    // mapping article_type -> location, dengan pengecualian group_of_material CPA -> Consumable
+    $locationMap = function ($articleType, $groupOfMaterial = null) {
+        if ($groupOfMaterial === 'CPA') {
+            return '006'; // gudang CONSUMABLE (override khusus CPA)
+        } elseif ($articleType === 'CM1') {
             return '005'; // gudang CHEMICAL
         } elseif (in_array($articleType, ['CM2', 'CM3'])) {
             return '006'; // gudang CONSUMABLE
@@ -851,18 +865,18 @@ public function posting2(Request $request)
             return '011'; // gudang UMUM
         }
     };
- 
+
     // sudah posting => tidak boleh posting lagi
     if ($lastStatus == '4') {
         return $this->postingResp($request, 0, $title, $recNumber, 'warning',
             "$title $recNumber Failed to Posting (already posted)", $id);
     }
- 
+
     // ekspresi qty stok: pakai qty_conv; kalau null/0 fallback ke (qty+qty_free)*conv_factor
     $qtyBaseSql  = "COALESCE(NULLIF(receiving_det.qty_conv,0),
                    (receiving_det.qty + receiving_det.qty_free) * COALESCE(NULLIF(receiving_det.conv_factor,0),1))";
     $stockUomSql = "COALESCE(NULLIF(receiving_det.conv_to,''), receiving_det.uom_rec)";
- 
+
     DB::beginTransaction();
     try {
         // ----- cek receiving benar-benar punya detail (termasuk jasa) -----
@@ -870,13 +884,13 @@ public function posting2(Request $request)
             ->where('rec_number', $recNumber)
             ->whereRaw("$qtyBaseSql <> 0")
             ->exists();
- 
+
         if (!$adaDetail) {
             DB::rollBack();
             return $this->postingResp($request, 0, $title, $recNumber, 'warning',
                 "$title $recNumber Failed to Posting (tidak ada detail)", $id);
         }
- 
+
         // ----- ambil detail untuk stock (skip jasa 'JS') -----
         // bisa kosong kalau semua item jasa; posting tetap lanjut (status -> POSTED)
         $data = DB::table('receiving_det')
@@ -890,19 +904,20 @@ public function posting2(Request $request)
             ->select(
                 'receiving_det.*',
                 'article.article_type',
+                'article.group_of_material',
                 'article.uom as uom_article',
                 DB::raw("$qtyBaseSql as total_qty"),
                 DB::raw("$stockUomSql as stock_uom")
             )
             ->get();
- 
+
         // ----- update saldo stock (warehouse_stock) + cost article -----
         foreach ($data as $val) {
-            $location    = $locationMap($val->article_type);
+            $location    = $locationMap($val->article_type, $val->group_of_material);
             $averageCost = DB::selectOne("SELECT average_cost(?, ?, ?, ?) as avg", [
                 $val->article_code, $siteCode, $location, $moduleCode
             ])->avg;
- 
+
             DB::table('warehouse_stock')->updateOrInsert(
                 [
                     'site_code'       => $siteCode,
@@ -914,13 +929,13 @@ public function posting2(Request $request)
                     'uom'       => $val->stock_uom,
                 ]
             );
- 
+
             $rowAffected = DB::table('warehouse_stock')
                 ->where('site_code', $siteCode)
                 ->where('article_code', $val->article_code)
                 ->where('location_number', $location)
                 ->update(['article_qty' => DB::raw('coalesce(article_qty,0) + ' . (float) $val->total_qty)]);
- 
+
             if ($rowAffected > 0) {
                 DB::table('article')->where('article_code', $val->article_code)->update([
                     'lastcost'   => $val->price,
@@ -930,18 +945,18 @@ public function posting2(Request $request)
                 ]);
             }
         }
- 
+
         // ----- update status header -> POSTED -----
         $rowAffected = DB::table('receiving_hdr')
             ->where('rec_number', $recNumber)
             ->update(['status' => $status, 'updated_by' => $username, 'updated_at' => date('Y-m-d H:i:s')]);
- 
+
         if ($rowAffected <= 0) {
             DB::rollBack();
             return $this->postingResp($request, 0, $title, $recNumber, 'warning',
                 "$title $recNumber Failed to Posting", $id);
         }
- 
+
         // ----- catat mutasi ke warehouse_movement (skip jasa 'JS') -----
         $movements = DB::table('receiving_det')
             ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
@@ -958,6 +973,7 @@ public function posting2(Request $request)
                 'receiving_det.article_code',
                 'article.article_desc',
                 'article.article_type',
+                'article.group_of_material',
                 DB::raw("$qtyBaseSql as movement_plus"),
                 DB::raw("receiving_det.price as movement_price"),
                 'receiving_hdr.rec_number as movement_transnno',
@@ -966,14 +982,14 @@ public function posting2(Request $request)
                 'receiving_hdr.supplier_id as movement_from_code'
             )
             ->get();
- 
+
         $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
         $dataSetMovement = [];
- 
+
         foreach ($movements as $val) {
             $seq++;
-            $location = $locationMap($val->article_type);
- 
+            $location = $locationMap($val->article_type, $val->group_of_material);
+
             $dataSetMovement[] = [
                 'movement_code'     => $seq,
                 'movement_date'     => $val->movement_date,
@@ -996,11 +1012,11 @@ public function posting2(Request $request)
                 'partner_type'      => 'SUPP',
             ];
         }
- 
+
         if (!empty($dataSetMovement)) {
             DB::table('warehouse_movement')->insert($dataSetMovement);
         }
- 
+
         // ----- jurnal kas (tidak diubah, jasa tetap masuk jurnal) -----
         DB::statement("INSERT into kas_hdr (voucher_number,voucher_type,voucher_date,receive_from,amount,period,year,note,status,created_by,updated_by,created_at,updated_at,description)
             select rec_number,'REC',do_date,supplier_id
@@ -1014,7 +1030,7 @@ public function posting2(Request $request)
                 where article_type in ('RMP','CM1','CM2','RM'))
             and rec_number = '$recNumber'
             order by created_at");
- 
+
         DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at,cost_center)
             select rec_number
             ,case when article_type in ('RMP','RM') then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end
@@ -1026,13 +1042,13 @@ public function posting2(Request $request)
             and (qty+qty_free) > 0
             and rec_number in (select rec_number from receiving_hdr where status = '4' and rec_number = '$recNumber')
             order by receiving_det.created_at");
- 
+
         DB::commit();
- 
+
         $message = "$title $recNumber Successfully Posted";
         \LogActivity::addToLog($title, "username: $username Status $message");
         return $this->postingResp($request, 1, $title, $recNumber, 'success', $message, $id, $status);
- 
+
     } catch (\Exception $e) {
         DB::rollBack();
         $message = "$title $recNumber error: " . $e->getMessage();
@@ -2076,13 +2092,14 @@ public function unPosting($recNumber)
         }
     }
 
-    public function list(Request $request)
+    ublic function list(Request $request)
 {
     $searchRec      = strtolower($request->searchRec);
     $searchPo       = strtolower($request->searchPo);
     $searchInv      = strtolower($request->searchInv);
     $searchSupplier = $request->searchSupplier;
     $searchStatus   = $request->searchStatus;
+    $searchRecType  = $request->recType;   // <-- tambahan (NORMAL / NP / JASA)
     $recDate        = $request->recDate;
     $doDate         = $request->doDate;
     $fromDate = ""; $toDate = ""; $fromDateDo = ""; $toDateDo = "";
@@ -2109,14 +2126,14 @@ public function unPosting($recNumber)
         }
     }
 
-    // PENTING: jangan ->get(). Biarkan query builder supaya paging (LIMIT/OFFSET) jalan di DB.
     $query = DB::table('receiving_hdr')
-        ->where(function ($q) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
+        ->where(function ($q) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$searchRecType,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
             $searchPo       ? $q->where('po_number','ilike','%'.$searchPo.'%') : '';
             $searchInv      ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
             $searchSupplier ? $q->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchRec      ? $q->where('rec_number','ilike','%'.$searchRec.'%') : '';
             $searchStatus   ? $q->where('status',$searchStatus) : '';
+            $searchRecType  ? $q->where('rec_type',$searchRecType) : '';   // <-- tambahan
             $recDate        ? $q->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $doDate         ? $q->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
         })
@@ -2128,7 +2145,7 @@ public function unPosting($recNumber)
                         left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number
                         where ap_invoice_detail.rec_number = receiving_hdr.rec_number
                         and ap_invoice.status in ('2','3','4','6') limit 1 ) as ap_number")
-            ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) and status in ('4','6') limit 1) as ap_date") // <-- tambah limit 1
+            ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) and status in ('4','6') limit 1) as ap_date")
             ,DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
         );
 
@@ -2483,59 +2500,60 @@ public function unPosting($recNumber)
     }
 
     public function listDetail(Request $request)
-    {
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','10'=>'REVISI'];
-        $searchRec = strtolower($request->searchRec);
-        $searchPo = strtolower($request->searchPo);
-        $searchInv = strtolower($request->searchInv);
-        $searchSupplier = $request->searchSupplier;
-        $searchStatus = $request->searchStatus;
-        $recDate = $request->recDate;
-        $doDate = $request->doDate;
-        $fromDate ="";
-        $toDate = "";
-        $fromDateDo ="";
-        $toDateDo = "";
+{
+    $searchRec = strtolower($request->searchRec);
+    $searchPo = strtolower($request->searchPo);
+    $searchInv = strtolower($request->searchInv);
+    $searchSupplier = $request->searchSupplier;
+    $searchStatus = $request->searchStatus;
+    $searchRecType = $request->recType;   // <-- tambahan
+    $recDate = $request->recDate;
+    $doDate = $request->doDate;
+    $fromDate ="";
+    $toDate = "";
+    $fromDateDo ="";
+    $toDateDo = "";
 
-        if ($recDate){
-            $date = explode("to",$recDate);
-            if(count($date)>1){
-                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-            }else{
-                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = $fromDate; 
-            }
+    if ($recDate){
+        $date = explode("to",$recDate);
+        if(count($date)>1){
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        }else{
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = $fromDate; 
         }
+    }
 
-        if ($doDate){
-            $doDate = explode("to",$doDate);
-            if(count($doDate)>1){
-                $fromDateDo = implode("/", array_reverse(explode("-", trim($doDate[0]))));
-                $toDateDo = implode("/", array_reverse(explode("-", trim($doDate[1]))));
-            }else{
-                $fromDateDo = implode("/", array_reverse(explode("-", trim($doDate[0]))));
-                $toDateDo = $fromDateDo; 
-            }
+    if ($doDate){
+        $doDate = explode("to",$doDate);
+        if(count($doDate)>1){
+            $fromDateDo = implode("/", array_reverse(explode("-", trim($doDate[0]))));
+            $toDateDo = implode("/", array_reverse(explode("-", trim($doDate[1]))));
+        }else{
+            $fromDateDo = implode("/", array_reverse(explode("-", trim($doDate[0]))));
+            $toDateDo = $fromDateDo; 
         }
+    }
 
-       $query = DB::table('receiving_det')
-        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
-        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
-        ->leftJoin('article','article.article_code','receiving_det.article_code')
-        ->leftJoin('article_types','article_types.code','article.article_type')
-        ->leftJoin('uom','uom.code','receiving_det.uom_rec')
-        ->where(function ($q) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
-            $searchPo       ? $q->where('receiving_hdr.po_number','ilike','%'.$searchPo.'%') : '';
-            $searchInv      ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
-            $searchSupplier ? $q->where('receiving_hdr.supplier_id','ilike','%'.$searchSupplier.'%') : '';
-            $searchRec      ? $q->where('receiving_det.rec_number','ilike','%'.$searchRec.'%') : '';
-            $searchStatus   ? $q->where('status',$searchStatus) : '';
-            $recDate        ? $q->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $doDate         ? $q->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
-        })
-        ->where('receiving_det.qty','>',0)
-        ->whereNotIn('receiving_hdr.status',['5','7'])
+   $query = DB::table('receiving_det')
+    ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+    ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
+    ->leftJoin('article','article.article_code','receiving_det.article_code')
+    ->leftJoin('article_types','article_types.code','article.article_type')
+    ->leftJoin('uom','uom.code','receiving_det.uom_rec')
+    ->where(function ($q) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$searchRecType,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
+        $searchPo       ? $q->where('receiving_hdr.po_number','ilike','%'.$searchPo.'%') : '';
+        $searchInv      ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
+        $searchSupplier ? $q->where('receiving_hdr.supplier_id','ilike','%'.$searchSupplier.'%') : '';
+        $searchRec      ? $q->where('receiving_det.rec_number','ilike','%'.$searchRec.'%') : '';
+        $searchStatus   ? $q->where('status',$searchStatus) : '';
+        $searchRecType  ? $q->where('receiving_hdr.rec_type',$searchRecType) : '';   // <-- tambahan
+        $recDate        ? $q->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        $doDate         ? $q->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
+    })
+    ->where('receiving_det.qty','>',0)
+    ->whereNotIn('receiving_hdr.status',['5','7'])
         ->select('receiving_det.*'
             ,DB::raw("purchase_order_hdr.ppn::numeric as ppn")
             ,'receiving_hdr.*'
