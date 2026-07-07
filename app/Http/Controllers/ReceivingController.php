@@ -2380,7 +2380,7 @@ public function unPosting($recNumber)
             }
  
             // ----- POSTING -----
-            if (in_array($data->status, ['1', '3']) && $bisaPosting) {
+            if (in_array($data->status, ['1', '3', '10']) && $bisaPosting) {
                 $buttons .= "<a href='javascript:;'
                                 class='dropdown-item'
                                 data-size='sm'
