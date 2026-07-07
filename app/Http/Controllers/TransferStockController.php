@@ -1,22 +1,22 @@
-    <?php
+<?php
 
-    namespace App\Http\Controllers;
+namespace App\Http\Controllers;
 
-    use Illuminate\Http\Request;
-    use App\Http\Controllers\Controller;
-    use Illuminate\Support\Facades\Auth;
-    use Illuminate\Support\Facades\Validator;
-    use Illuminate\Support\Facades\Crypt;
-    use Response;
-    use App\Permission;
-    use DataTables;
-    use DB;
-    use PDF;
-    use AppHelpers;
-    use Approval;
-    use Excel;
-    use App\Imports\TransferOutImport;
-    use App\Exports\TransferOutExport;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Crypt;
+use Response;
+use App\Permission;
+use DataTables;
+use DB;
+use PDF;
+use AppHelpers;
+use Approval;
+use Excel;
+use App\Imports\TransferOutImport;
+use App\Exports\TransferOutExport;
 
     /*
 
