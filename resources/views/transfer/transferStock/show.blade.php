@@ -19,16 +19,22 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-2">
                                     <label for="trNumber">Transfer Number</label>
                                     <input type="text" id="trNumber" name="trNumber"
                                         value="{{ $header->tr_number }}"
                                         class="form-control" disabled />
                                 </div>
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-2">
                                     <label for="trDate">Transfer Date</label>
                                     <input type="text" id="trDate" name="trDate"
                                         value="{{ $header->tr_date }}"
+                                        class="form-control" disabled />
+                                </div>
+                                 <div class="form-group col-md-4">
+                                    <label for="penerima">Penerima</label>
+                                    <input type="text" id="penerima" name="penerima"
+                                        value="{{ $header->penerima }}"
                                         class="form-control" disabled />
                                 </div>
                             </div>
