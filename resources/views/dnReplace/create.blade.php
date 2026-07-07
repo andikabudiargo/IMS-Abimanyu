@@ -147,126 +147,128 @@
     });
 
     $("#cmdSave").click(function(){
-    if (!$("#frmAdd")[0].checkValidity()){
-        $("#frmAdd").submit();
-    } else {
-        $("#cmdSave").attr('disabled', 'disabled');
-        $('.disabled-el').removeAttr('disabled');
-        let dnReturnNumber = $('#dnReturnNumber').val();
+        if (!$("#frmAdd")[0].checkValidity()){
+            $("#frmAdd").submit();
+        }else{
+            $("#cmdSave").attr('disabled','disabled');
+            $('.disabled-el').removeAttr('disabled');
+            let dnReturnNumber = $('#dnReturnNumber').val();
+            // ambil semua data article
+            let objQtyReturn= $('input[name="qtyReturn[]"]');
+            let objQty= $('input[name="qtyReplace[]"]');
+            let objUom= $('select[name="uom[]"]');           
+            let articles = []; 
+            let flag=0; 
+            let pesan="";
 
-        let objQtyReturn = $('#articleRow input[name="qtyReturn[]"]');
-        let objQty       = $('#articleRow input[name="qtyReplace[]"]');
-        let objQtyStock  = $('#articleRow input[name="qtyStock[]"]');
-        let objUom       = $('#articleRow input[name="uom[]"]');
+            $("#articleRow input[name='articleCode[]']").map(function(i) {  
+                let $this=$(this);
+                if ($this.val()){
+                    let articleCode = $this.data("code");
+                    let articleUom = $this.data("uom");
+                    let returnNumber = $this.data("returnNumber");
+                    let article=$this.val().split("|");
+                    let plu=article[0];
+                    let articleName=article[1];
+                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                    let qtyUom=objUom.eq(i).val() || articleUom;
+                    let qtyReturn=objQtyReturn.eq(i).val().replace(/,/gi, '') || 0;
 
-        let articles = [];
-        let flag     = 0;
-        let pesan    = "";
-
-        $("#articleRow input[name='articleCode[]']").each(function(i) {
-            let $this       = $(this);
-            if ($this.val()) {
-                let articleCode  = $this.data("code");
-                let articleUom   = $this.data("uom");
-                let returnNumber = $this.data("returnNumber");
-                let qty          = parseFloat(objQty.eq(i).val().replace(/,/gi, ''))      || 0;
-                let qtyReturn    = parseFloat(objQtyReturn.eq(i).val().replace(/,/gi, '')) || 0;
-                let qtyStock     = parseFloat(objQtyStock.eq(i).val().replace(/,/gi, ''))  || 0;
-                let qtyUom       = objUom.eq(i).val() || articleUom;
-                let namaArticle  = $this.val();
-
-                if (qty > qtyReturn && qty != 0) {
-                    pesan += `Article: ${namaArticle} — Qty Replace (${qty}) melebihi Qty Return (${qtyReturn})<br>`;
-                    flag = 1;
-                }
-
-                if (qty > qtyStock && qty != 0) {
-                    pesan += `Article: ${namaArticle} — Qty Replace (${qty}) melebihi Qty Stock (${qtyStock})<br>`;
-                    flag = 1;
-                }
-
-                articles.push({
-                    "return_number" : dnReturnNumber,
-                    "article_code"  : articleCode,
-                    "qty_return"    : qtyReturn,
-                    "qty"           : qty,
-                    "uom"           : qtyUom,
-                });
-            }
-        });
-
-        if (articles.length == 0) {
-            pesan += "Articles must be filled in completely<br>";
-            flag = 1;
-        }
-
-        if ($("#totalQTY").val() == 0) {
-            pesan += "Total Qty cannot be 0<br>";
-            flag = 1;
-        }
-
-        if (flag == 0) {
-            // ✅ AJAX yang hilang — ini yang menyebabkan tidak terjadi apa-apa
-            let replaceNumber  = $('#replaceNumber').val() || 0;
-            let replaceDate    = $('#replaceDate').val();
-            let customer       = $('#customer').val();
-            let note           = $('#note').val();
-
-            $.ajax({
-                type    : "post",
-                url     : "{{ route('dnReplace.store') }}",
-                data    : {
-                    articles      : JSON.stringify(articles),
-                    replaceNumber : replaceNumber,
-                    replaceDate   : replaceDate,
-                    returnNumber  : dnReturnNumber,
-                    customer      : customer,
-                    note          : note,
-                },
-                dataType: "json",
-                success : function(data) {
-                    if (data.status == 0) {
-                        for (let i = 0; i < data.message.length; i++) {
-                            show_msg(data.title, data.message[i], data.alert);
-                        }
-                        $('#cmdSave').removeAttr('disabled');
-                    } else {
-                        show_msg(data.title, data.message, data.alert);
-                        $('#statusText').text(data.statusReplace);
-                        $('#replaceNumber').val(data.replaceNumber);
-
-                        // Disable semua input setelah save berhasil
-                        $('#replaceNumber').attr('disabled', 'disabled');
-                        $('#cmdSave').attr('disabled', 'disabled');
-                        $('#customer').attr('disabled', 'disabled');
-                        $('#dnReturnNumber').attr('disabled', 'disabled');
-                        $('#replaceDate').attr('disabled', 'disabled');
-                        $('.input-qty').attr('disabled', 'disabled');
-
-                        $('#cmdSave').hide();
-                        $('#cmdPrint').show();
-
-                        // Buka print di tab baru lalu reload
-                        let id  = data.idKu;
-                        let url = "{{ route('dnReplace.print', ['id'=>':id']) }}";
-                        url     = url.replace('%3Aid', id);
-                        window.open(url, '_blank');
-                        reloadPage();
+                    if ((parseFloat(qty) > parseFloat(qtyReturn)) && (parseFloat(qty) != 0)){
+                        pesan +=`Articles : ${article} QTY Replace > QTY Return <br>`; 
+                        flag=1;
                     }
-                },
-                error: function(error) {
-                    console.log(error);
-                    $('#cmdSave').removeAttr('disabled');  // ✅ re-enable kalau error
+
+                    articles.push({
+                        "return_number":dnReturnNumber,
+                        "article_code":articleCode,
+                        "qty_return":qtyReturn,
+                        "qty":qty,
+                        "uom":qtyUom,
+                    });
                 }
             });
 
-        } else {
-            $('#cmdSave').removeAttr('disabled');
-            $('#cmdPrint').hide();
-            Swal.fire('Warning..', pesan, 'warning');
+            if (articles.length == 0){
+                pesan +="Articles must be filled in completely <br>"; 
+                flag=1;
+            }
+
+            if ( $("#totalQTY").val() == 0 ){
+                pesan +="Total Qty cannot be 0 <br>"; 
+                flag=1;
+            }
+
+            if (flag==0){
+                let replaceNumber = $('#replaceNumber').val()||0;
+                let replaceDate = $('#replaceDate').val();
+                let dnReturnNumber = $('#dnReturnNumber').val();
+                let customer = $('#customer').val();
+                let note = $('#note').val();
+            
+                $.ajax({
+                    type: "post",
+                    url: "{{ route('dnReplace.store') }}",
+                    data: {
+                        articles:JSON.stringify(articles),
+                        replaceNumber:replaceNumber,
+                        replaceDate:replaceDate,
+                        returnNumber:dnReturnNumber,
+                        customer:customer,
+                        replaceDate:replaceDate,
+                        note:note,
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.status == 0 ){
+                            for(let i = 0; i < data.message.length; i++) {
+                                show_msg(data.title, data.message[i], data.alert);
+                            }
+                            $('#replaceNumber').attr('disabled','disabled');
+                            $('#cmdSave').removeAttr('disabled');
+                        }else{
+                            show_msg(data.title, data.message, data.alert);
+                            $('#statusText').text(data.statusReplace);
+                            $('#replaceNumber').val(data.replaceNumber);
+                            $('#cmdSave').hide();
+                            $('#cmdCancel').hide();
+                            $('#replaceNumber').attr('disabled','disabled');
+                            $('#cmdSave').attr('disabled','disabled');
+                            $('#customer').attr('disabled','disabled');
+                            $('#dnReturnNumber').attr('disabled','disabled');
+                            $('#invDate').attr('disabled','disabled');
+                            $('#replaceDate').attr('disabled','disabled');
+                            $('.input-qty').attr('disabled','disabled');
+                            
+                            $('#statusText').val('NEW');
+                            $('#cmdSave').hide();
+                            $('#cmdPrint').show();
+
+                            // objQty.attr('disabled','disabled');
+                            // objUom.attr('disabled','disabled');
+                            // objQtyFree.attr('disabled','disabled');
+                            // objUomFree.attr('disabled','disabled');
+
+                            let id = data.idKu;
+                            let url = "{{ route('dnReplace.print', ['id'=>':id']) }}";
+                            url = url.replace('%3Aid', id);
+                            // console.log(url)
+                            window.open(url, '_blank');
+                            reloadPage();
+                            
+                        }
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+            }else{
+                $('#cmdSave').removeAttr('disabled');
+                $('#cmdPrint').hide();
+                Swal.fire('Warning..',pesan,'warning');
+            }
         }
-    }
-});
+    });
 
     $('#customer').change(function(){
         let value= $(this).val();

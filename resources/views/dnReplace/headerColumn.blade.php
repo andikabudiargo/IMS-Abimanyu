@@ -12,9 +12,6 @@
                     <label>Sisa Qty Return</label>
                 </td>
                 <td class="isian text-right" style="width: 5%">
-                    <label>Qty Stock</label>  {{-- TAMBAHAN --}}
-                </td>
-                <td class="isian text-right" style="width: 5%">
                     <label>Qty</label>
                 </td>
                 <td class="isian" style="width: 8%">
