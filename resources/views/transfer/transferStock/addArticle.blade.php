@@ -2,7 +2,7 @@
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
-           <div class="col-md-3 col-12">
+           <div class="col-md-4 col-12">
     <div class="form-group margin-nol">
         <label for="articleId" class="d-block d-md-none">Article</label>
         <select class="form-control" id="articleId" name="articleId[]" data-dependent="articleId"></select>
@@ -32,16 +32,7 @@
                     </select>
                 </div>
             </div>
-            {{-- Sisipkan sebelum col trash button --}}
-<div class="col-md-3 col-12 fg-target-wrapper" style="display:none;">
-    <div class="form-group margin-nol">
-        <label class="d-block d-md-none">FG Target</label>
-        <select class="form-control form-control" id="fgTarget" name="fg_target[]">
-            <option value="">— Pilih FG —</option>
-        </select>
-    </div>
-</div>
-            <div class="col-md-2 col-12">
+            <div class="col-md-4 col-12">
                 <div class="form-group margin-nol">
                     <label for="note" class="d-block d-md-none">Note</label>
                     <input type="text" class="form-control tombol-panah"
@@ -382,11 +373,6 @@ function checkAndSetFromRmFlag(locCode) {
                     let note  = objNote.eq(i).val();
                     let uom   = objUom.eq(i).val();
 
-                    // ── ambil fg_target dari row yang sama ──────────
-                    let $row     = $this.closest('.tanda-baris');
-                    let fgTarget = $row.find('select[name="fg_target[]"]').val() || null;
-                    // ────────────────────────────────────────────────
-
                    // let stock = parseFloat(objQty.eq(i).attr('data-stock'));
                     //if (!isNaN(stock) && parseFloat(qty) > stock) {
                       //  pesan += "Qty " + articleName + " (" + qty + ") melebihi stock tersedia (" + stock + ") <br>";
@@ -403,20 +389,12 @@ if (!isNaN(stock) && parseFloat(qty) > stock) {
     // gudang lain: dibiarkan lolos (over-stock diperbolehkan), tidak menaikkan flag
 }
 
-                    // Validasi: jika booth & artikel RMP/RMNP, fg_target wajib diisi
-                    let articleType = ($this.find(":selected").data("article-type") || '').toUpperCase();
-                    if (isLocationToBooth && ['RMP','RMNP'].includes(articleType) && !fgTarget) {
-                        pesan += "FG Target untuk artikel <b>" + articleName + "</b> wajib dipilih <br>";
-                        flag = 1;
-                    }
-
                     if ((plu !== '') && (qty > 0)) {
                         arrArticles.push({
                             "article_code" : plu,
                             "qty"          : parseFloat(qty),
                             "uom"          : uom,
                             "note"         : note,
-                            "fg_target"    : fgTarget, // ← tambahan
                         });
                     }
 
@@ -433,8 +411,7 @@ if (!isNaN(stock) && parseFloat(qty) > stock) {
             } else {
                 let obj = {};
                 arrArticles.forEach((item) => {
-                    // key gabungkan article_code + fg_target agar beda FG tidak digabung
-                    let key = item.article_code + '|' + (item.fg_target || '');
+                    let key = item.article_code + '|' + item.uom;
                     if (obj[key]) {
                         obj[key].qty += item.qty;
                     } else {
@@ -456,6 +433,7 @@ if (!isNaN(stock) && parseFloat(qty) > stock) {
 
                 let trDate       = $('#trDate').val();
                 let note         = $('#note').val();
+                let penerima     = $('#penerima').val();
                 let locationFrom = $('#locationFrom').val();
                 let locationTo   = $('#locationTo').val();
 
@@ -467,6 +445,7 @@ if (!isNaN(stock) && parseFloat(qty) > stock) {
                         trNumber     : trNumber,
                         trDate       : trDate,
                         note         : note,
+                        penerima     : penerima,   // ← tambahkan ini
                         locationFrom : locationFrom,
                         locationTo   : locationTo
                     },
@@ -582,10 +561,6 @@ if (selStock !== undefined && selStock !== null && selStock !== '') {
         $("#new_row" + cloneCount).find('#uom').attr('id', 'uom' + cloneCount);
         $("#uom" + cloneCount).html(uomOption);
         $("#uom" + cloneCount).val(uom).trigger('change');
-
-        // ── FG TARGET ──────────────────────────────────────
-        $("#new_row" + cloneCount).find('#fgTarget').attr('id', 'fgTarget' + cloneCount);
-        evaluateFgTargetForRow(cloneCount);
         // ───────────────────────────────────────────────────
 
         $("#remove_button").tooltip();
@@ -600,10 +575,6 @@ if (selStock !== undefined && selStock !== null && selStock !== '') {
         $("#article_row").find('#baru').attr('id', 'new_row' + cloneCount);
         $("#new_row" + cloneCount).find('#articleId').attr('id', 'articleId' + cloneCount);
         changeselect('trArticle', 'articleId' + cloneCount, '');
-
-        // ── FG TARGET ──────────────────────────────────────
-        $("#new_row" + cloneCount).find('#fgTarget').attr('id', 'fgTarget' + cloneCount);
-        evaluateFgTargetForRow(cloneCount);
         // ───────────────────────────────────────────────────
 
         $('#remove_button').tooltip();

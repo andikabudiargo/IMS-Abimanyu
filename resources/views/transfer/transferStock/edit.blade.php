@@ -21,17 +21,21 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-2">
                                     <label for="trNumber">Transfer Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="trNumber" name="trNumber"
                                         value="{{ $header->tr_number }}"
                                         class="form-control disabled-el" disabled />
                                 </div>
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-2">
                                     <label for="trDate">Transfer Date*</label>
                                     <input type="text" id="trDate" name="trDate"
                                         value="{{ $header->tr_date }}"
                                         class="form-control" placeholder="DD-MM-YYYY" required />
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="penerima">Penerima*</label>
+                                    <input type="text" id="penerima" name="penerima" class="form-control" placeholder="Nama Penerima" value="{{ $header->penerima }}" required/>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -251,7 +255,6 @@
                         d.uom,
                         d.uom_member ?? '',
                         d.note ?? '',
-                        d.fg_target ?? ''
                     );
                 });
                 $(".loading-spinner-container").removeClass("-show");

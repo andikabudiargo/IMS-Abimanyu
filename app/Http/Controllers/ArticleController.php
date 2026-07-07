@@ -1194,7 +1194,7 @@
 
     // Sesuaikan mapping label & warna per modul masing-masing
     $map = [
-        '1'  => ['label' => 'DRAFT',     'class' => 'badge-light-primary'],
+        '1'  => ['label' => 'NEW',     'class' => 'badge-light-primary'],
         '2'  => ['label' => 'VALIDATED', 'class' => 'badge-light-info'],
         '3'  => ['label' => 'APPROVED',  'class' => 'badge-light-warning'],
         '4'  => ['label' => 'POSTED',    'class' => 'badge-light-success'],
