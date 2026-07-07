@@ -34,10 +34,8 @@ class BomReportController extends Controller
             ['data'=>'customer_code','name'=>'customer_code','title'=>'Customer'],
             ['data'=>'article_fg','name'=>'article_fg','title'=>'Article FG'],
             ['data'=>'article_des','name'=>'article_des','title'=>'Article FG Desc'],
-            ['data'=>'article_rm','name'=>'article_rm','title'=>'Article RM'],
-            ['data'=>'article_rm_desc','name'=>'article_rm_desc','title'=>'Article RM Desc'],
-            ['data'=>'article_ch','name'=>'article_ch','title'=>'Article Chemical'],
-            ['data'=>'article_des_det','name'=>'article_des_det','title'=>'Article Chemical Desc'],
+            ['data'=>'article_consumption','name'=>'article_consumption','title'=>'Article Consumption'],
+            ['data'=>'article_consumption_desc','name'=>'article_consumption_desc','title'=>'Article Consumption Desc'],
             ['data'=>'qty','name'=>'qty','title'=>'QTY Bom'],
             ['data'=>'uom_bom','name'=>'uom_bom','title'=>'UOM BOM'],
             ['data'=>'uom_con','name'=>'uom_con','title'=>'UOM Con'],
@@ -89,6 +87,102 @@ class BomReportController extends Controller
     }
 
     public function list(Request $request)
+{
+    $username = Auth::user()->username;
+    $searchBom = strtolower($request->searchBom);
+    $articleMaterial = $request->articleMaterial;
+    $articleCode = $request->articleCode;
+    $articleCodeRm = $request->articleCodeRm;
+
+    $queries = [];
+
+    // ===== BAGIAN CHEMICAL (dari bom_det) =====
+    if (!$articleCodeRm) {
+        $chemical = DB::table('bom_det')
+            ->leftJoin('bom_hdr','bom_hdr.bom_code','bom_det.bom_code')
+            ->leftJoin('article','article.article_code','bom_hdr.article_code')
+            ->leftJoin('article as b','b.article_code','bom_det.article_code')
+            ->where('bom_hdr.status','<>','7')
+            ->where(function ($q) use ($searchBom,$articleCode,$articleMaterial) {
+                $searchBom ? $q->where('bom_det.bom_code','ilike','%'.$searchBom.'%') : '';
+                $articleCode ? $q->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
+                $articleMaterial ? $q->where('bom_det.article_code','ilike','%'.$articleMaterial.'%') : '';
+            })
+            ->select(
+                'bom_det.bom_code',
+                'bom_hdr.customer as customer_code',
+                'bom_hdr.status as statusku',
+                'article.article_alternative_code as article_fg',
+                'article.article_desc as article_des',
+                'b.article_alternative_code as article_consumption',
+                'b.article_desc as article_consumption_desc',
+                'bom_det.qty as qty',
+                'bom_det.uom as uom_bom',
+                'bom_det.uom_con as uom_con',
+                DB::raw("(coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = b.uom),1)) as conversi"),
+                'bom_hdr.part_no',
+                'bom_hdr.model',
+                'bom_hdr.group_of_material',
+                'bom_det.note'
+            );
+        $queries[] = $chemical;
+    }
+
+    // ===== BAGIAN RM (dari bom_rm) =====
+    if (!$articleMaterial) {
+        $rm = DB::table('bom_rm')
+            ->leftJoin('bom_hdr','bom_hdr.bom_code','bom_rm.bom_code')
+            ->leftJoin('article','article.article_code','bom_hdr.article_code')
+            ->where('bom_hdr.status','<>','7')
+            ->where(function ($q) use ($searchBom,$articleCode,$articleCodeRm) {
+                $searchBom ? $q->where('bom_rm.bom_code','ilike','%'.$searchBom.'%') : '';
+                $articleCode ? $q->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
+                $articleCodeRm ? $q->where('bom_rm.article_code','ilike','%'.$articleCodeRm.'%') : '';
+            })
+            ->select(
+                'bom_rm.bom_code',
+                'bom_hdr.customer as customer_code',
+                'bom_hdr.status as statusku',
+                'article.article_alternative_code as article_fg',
+                'article.article_desc as article_des',
+                'bom_rm.article_alternative_code as article_consumption',
+                'bom_rm.article_desc as article_consumption_desc',
+                'bom_rm.qty as qty',
+                'bom_rm.uom as uom_bom',
+                DB::raw("NULL as uom_con"),
+                DB::raw("1 as conversi"),
+                'bom_hdr.part_no',
+                'bom_hdr.model',
+                'bom_hdr.group_of_material',
+                DB::raw("NULL as note")
+            );
+        $queries[] = $rm;
+    }
+
+    // gabungkan (UNION ALL)
+    $union = array_shift($queries);
+    foreach ($queries as $q) {
+        $union->unionAll($q);
+    }
+
+    $data = DB::query()->fromSub($union, 'consumption')
+        ->orderBy('bom_code')
+        ->get();
+
+    return Datatables::of($data)
+    ->addColumn('statusku', function ($data) {
+        $status = ['NEW','VALIDATE','APPROVED','RECEIVED','DELETED','CLOSED','REVISED','DECLINE'];
+        if ($data->statusku > 0 ){
+            return $status[$data->statusku - 1];
+        }else{
+            return '';
+        }
+    })
+    ->rawColumns(['statusku'])
+    ->make(true);
+}
+
+    public function listOld(Request $request)
     {
         $username =  Auth::user()->username;
         $searchBom = strtolower($request->searchBom);
