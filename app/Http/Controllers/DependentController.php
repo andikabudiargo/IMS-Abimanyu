@@ -434,7 +434,11 @@ class DependentController extends Controller
         Kalau article kolom marketing = 1, tidak harus punya BOM
     */
     $data= DB::table($table) 
-    ->leftJoin('warehouse_stock','warehouse_stock.article_code','=',$table.'.article_code')
+    // INI: filter ada di ON clause join → article tetap muncul semua
+->leftJoin('warehouse_stock', function($join) use ($table) {
+    $join->on('warehouse_stock.article_code', '=', $table.'.article_code')
+         ->where('warehouse_stock.location_number', '=', '007');
+})
     ->leftJoin('group_materials','group_materials.code','=',$table.'.group_of_material')
     ->leftJoin('uom','uom.code','=',$table.'.uom')
     ->whereIn('article.article_code', function($query) use ($code){
