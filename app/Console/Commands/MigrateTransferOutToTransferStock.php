@@ -382,35 +382,36 @@ DB::table('transfer_stock_hdr')->insert([
 
         }
 
-        $progress->finish();
+       $progress->finish();
 
-        $this->newLine(2);
+$this->line('');
+$this->line('');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Summary
-        |--------------------------------------------------------------------------
-        */
+/*
+|--------------------------------------------------------------------------
+| Summary
+|--------------------------------------------------------------------------
+*/
 
-        $this->info("=========================================");
-        $this->info("MIGRASI SELESAI");
-        $this->info("=========================================");
-        $this->info("Berhasil : {$success}");
-        $this->info("Gagal    : ".count($failed));
+$this->info("=========================================");
+$this->info("MIGRASI SELESAI");
+$this->info("=========================================");
+$this->info("Berhasil : {$success}");
+$this->info("Gagal    : ".count($failed));
 
-        if(count($failed) > 0){
+if(count($failed) > 0){
 
-            $this->newLine();
+    $this->line('');
 
-            $this->warn("Daftar gagal :");
+    $this->warn("Daftar gagal :");
 
-            foreach($failed as $row){
+    foreach($failed as $row){
 
-                $this->line(" - ".$row);
+        $this->line(" - ".$row);
 
-            }
+    }
 
-        }
+}
 
         return 0;
 
