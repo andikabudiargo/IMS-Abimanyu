@@ -34,7 +34,7 @@
                                        <option value="">All</option>
                                         <option value="NORMAL">Purchase Order</option>
                                         <option value="NP">Non Purchase</option>
-                                        <option value="JASA">Jasa</option>
+                                        <option value="JS">Jasa</option>
                                     </select>
                                 </div>
             </div>

@@ -72,6 +72,30 @@ class ReceivingController extends Controller
     }
 
     public function getTableColoumn(){
+    $kolom=
+    [
+        ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
+        ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
+        ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+        ['data'=>'status','name'=>'status','title'=>'Status','searchable'=>false],
+        ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
+        ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number','searchable'=>false],
+        ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date','searchable'=>false],
+        ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+        ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'],
+        ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier','searchable'=>false],
+        ['data'=>'note','name'=>'note','title'=>'Note'],
+        ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+        ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By','searchable'=>false],
+        ['data'=>'created_at','name'=>'created_at','title'=>'Created At', 'visible'=>false,'searchable'=>false],
+        ['data'=>'tanggal_do','name'=>'tanggal_do','title'=>'Tanggal DO', 'visible'=>false,'searchable'=>false],
+        ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+        ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated At']
+    ];
+    return json_encode($kolom, true);
+}
+
+    public function getTableColoumnOld(){
         $kolom=
         [
             ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
@@ -99,6 +123,40 @@ class ReceivingController extends Controller
     }
 
     public function getTableColoumnDetail(){
+    $kolom=
+    [
+        ['data'=>'nama_dept','name'=>'nama_dept','title'=>'Departemen','searchable'=>false],
+        ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+        ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
+        ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'],
+        ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number','searchable'=>false],
+        ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date','searchable'=>false],
+        ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
+        ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+        ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'],
+        ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier','searchable'=>false],
+        ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
+        ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
+        ['data'=>'qty','name'=>'qty','title'=>'qty'],
+        ['data'=>'qty_free','name'=>'qty_free','title'=>'qty Free'],
+        ['data'=>'uom_rec','name'=>'uom_rec','title'=>'uom'],
+        ['data'=>'price','name'=>'price','title'=>'Price'],
+        ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN','searchable'=>false],
+        ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN','searchable'=>false],
+        ['data'=>'total_plus_ppn','name'=>'total_plus_ppn','title'=>'Total Plus PPN','searchable'=>false],
+        ['data'=>'status','name'=>'status','title'=>'Status'],
+        ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+        ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By','searchable'=>false],
+        ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan','searchable'=>false],
+        ['data'=>'note','name'=>'note','title'=>'Note'],
+        ['data'=>'tanggal_do','name'=>'tanggal_do','title'=>'Tanggal DO', 'visible'=>false,'searchable'=>false],
+        ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+        ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated At']
+    ];
+    return json_encode($kolom, true);
+}
+
+    public function getTableColoumnDetailOld(){
         $kolom=
         [
             ['data'=>'nama_dept','name'=>'nama_dept','title'=>'Departemen'],
@@ -159,7 +217,7 @@ class ReceivingController extends Controller
         return view("receiving.index",$data);
     }
 
-    public function getLastCode($key, $do_date = null)
+    public function getLastCode($key, $rec_date = null)
 {
     DB::table('master_code')
         ->where('code_key', $key)
@@ -175,14 +233,15 @@ class ReceivingController extends Controller
 
     $months = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
-    // do_date formatnya d-m-Y (misal: 07-07-2026), parsing eksplisit biar aman
-    $date = $do_date ? DateTime::createFromFormat('d-m-Y', $do_date) : null;
+    // rec_date formatnya d-m-Y (misal: 07-07-2026), parsing eksplisit biar aman
+    // FIX: pakai \DateTime (fully qualified) karena controller ini ada di namespace App\Http\Controllers
+    $date = $rec_date ? \DateTime::createFromFormat('d-m-Y', $rec_date) : null;
 
-    if ($date instanceof DateTime) {
+    if ($date instanceof \DateTime) {
         $month = $months[(int) $date->format('n') - 1];
         $year  = $date->format('Y');
     } else {
-        // fallback kalau do_date kosong / format tidak sesuai
+        // fallback kalau rec_date kosong / format tidak sesuai
         $month = $months[date('n') - 1];
         $year  = date('Y');
     }
@@ -246,7 +305,7 @@ class ReceivingController extends Controller
             // 'invDate'  => 'required',
             'doNumber'=>'required|iunique:receiving_hdr,do_number,po_number',
             'doDate'  => 'required',
-            // 'recDate'  => 'required',
+            'recDate'  => 'required',
             // 'poNumber'  => 'required',
         ],$customMessages);
         
@@ -261,7 +320,7 @@ class ReceivingController extends Controller
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             $hasilUpdate = AppHelpers::resetCode($leadCode);
-            $recNumber = $this->getLastCode($leadCode, $doDate);
+            $recNumber = $this->getLastCode($leadCode, $recDate);
             DB::beginTransaction();
             try {
                     $idKu = DB::table('receiving_hdr')->insertGetId([
@@ -328,7 +387,7 @@ class ReceivingController extends Controller
                     \LogActivity::addToLog($title,"username: $username Status $message");
                     return response()->json(array('statusRec' => $statusRec, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>$idKu));
 
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 DB::rollBack();
                 $title = "Save $this->title";
                 $alert  ="warning";
@@ -476,6 +535,137 @@ class ReceivingController extends Controller
     }
 
     public function update(Request $request)
+{
+    $username =  Auth::user()->username;
+    $recNumber = $request->recNumber;
+    $doNumber = $request->doNumber;
+    $doDate = $request->doDate;
+    $invNumber = $request->invNumber;
+    $invDate = $request->invDate;
+    $poNumber = $request->poNumber;
+    $supplier = $request->supp;
+    $recDate = $request->recDate;
+    $note = $request->note;
+    $articles = json_decode($request->articles);
+    $recType = "NORMAL";
+    $statusRec ="Update";
+    $authorizedBy = "";
+
+    $customMessages = [
+        'required' => 'The field is required.',
+        'unique' => 'The code has already been taken', 
+        'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
+    ];
+    
+    Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
+        $query = DB::table($parameters[0]);
+        $column = $query->getGrammar()->wrap($parameters[1]);
+        $column2 = $query->getGrammar()->wrap($parameters[2]);
+        return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
+                      ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
+    });
+    
+    $validation = Validator::make($request->all(),$messages = [
+        'recDate'  => 'required',
+        'poNumber'  => 'required',
+    ],$customMessages);
+            
+    $error_array = array();
+    $success_output = '';
+    if ($validation->fails()){
+        foreach ($validation->messages()->getMessages() as $field_name => $messages){
+            $error_array[] = $messages;
+        }
+        $title="Update $this->title";
+        $alert ="error";
+        return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
+    }else{
+        DB::beginTransaction();
+        try {
+                $row_affected=DB::table('receiving_hdr')
+                ->where('rec_number',$recNumber)
+                ->update(
+                    [   
+                        'do_number' => $doNumber,
+                        'do_date' => $doDate,
+                        'inv_number' => $invNumber,
+                        'inv_date' => $invDate,
+                        'po_number' => $poNumber,
+                        'supplier_id' => $supplier,
+                        'rec_date' => $recDate,
+                        'authorized_by' => $authorizedBy,
+                        'prepared_by' => Auth::user()->username,
+                        'rec_type' => $recType,
+                        'note' => $note,
+                        'updated_by' => Auth::user()->username,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                $dataset=[];
+                foreach ($articles as $val) {
+                    $dataSet[] = [
+                        $recNumber.$val->article_code
+                    ];
+                }
+
+                //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
+                DB::table('receiving_det')
+                    ->whereNotIn(DB::raw("CONCAT(rec_number,article_code)"),$dataSet)
+                    ->where('rec_number',$recNumber)
+                    ->delete();
+
+                // ===== FIX: hitung ulang conv_to / conv_factor / qty_conv, sama seperti store2() =====
+                // supaya kode CPA & JASA ikut tersimpan dan berfungsi saat posting/cancel setelah update
+                foreach ($articles as $val) {
+                    $qty     = (float) $val->qty;
+                    $qtyFree = (float) $val->qty_free;
+                    $factor  = (float) ($val->conv_factor ?? 1);
+                    if ($factor <= 0) { $factor = 1; }
+
+                    // qty dalam satuan stok (conv_to)
+                    $qtyConv = ($qty + $qtyFree) * $factor;
+
+                    DB::table('receiving_det')
+                    ->updateOrInsert(
+                        ['rec_number' => $recNumber,'article_code' => $val->article_code],
+                        [
+                            'rec_number' => $recNumber,
+                            'article_code' => $val->article_code,
+                            'qty' => $val->qty,
+                            'uom_rec' => $val->uom,
+                            'qty_free' => $val->qty_free,
+                            'uom_free' => $val->uom_free,
+                            'price' => $val->price,
+                            'conv_to'      => $val->conv_to ?? $val->uom,
+                            'conv_factor'  => $val->conv_factor ?? 1,
+                            'qty_conv'     => $qtyConv,
+                            'updated_by' => Auth::user()->username,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                            'pr_number' => $val->pr_number,
+                        ]
+                    );
+                }
+                                                            
+                DB::commit();
+                $title ="Update $this->title";
+                $alert  ="success";
+                $message  = "$title $recNumber is successfully updated";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $title ="Update $this->title";
+            $alert  ="warning";
+            $message  = "$title $recNumber is failed to updated";
+            \LogActivity::addToLog($title,"username: $username Status $message");
+            return response()->json(array('statusRec' => $statusRec,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+        }
+    }
+}
+
+    public function updateOld(Request $request)
     {
         $username =  Auth::user()->username;
         $recNumber = $request->recNumber;
@@ -591,7 +781,7 @@ class ReceivingController extends Controller
                     \LogActivity::addToLog($title,"username: $username Status $message");
                     return response()->json(array('statusRec' => $statusRec,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
 
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 DB::rollBack();
                 $title ="Update $this->title";
                 $alert  ="warning";
@@ -1113,18 +1303,20 @@ public function cancel(Request $request)
     $reason     = "(Cancel by $username, Reason: $request->reason)";
     $todayDate  = date('Y-m-d');
  
-     // mapping article_type -> location
-    $locationMap = function ($articleType) {
-        if ($articleType === 'CM1') {
-            return '005'; // gudang CHEMICAL
-        } elseif (in_array($articleType, ['CM2', 'CM3'])) {
-            return '006'; // gudang CONSUMABLE
-        } elseif (in_array($articleType, ['RMP', 'RMNP'])) {
-            return '009'; // gudang RAW MATERIAL
-        } else {
-            return '011'; // gudang UMUM
-        }
-    };
+    // mapping article_type -> location, dengan pengecualian group_of_material CPA -> Consumable
+$locationMap = function ($articleType, $groupOfMaterial = null) {
+    if ($groupOfMaterial === 'CPA') {
+        return '006'; // gudang CONSUMABLE (override khusus CPA)
+    } elseif ($articleType === 'CM1') {
+        return '005'; // gudang CHEMICAL
+    } elseif (in_array($articleType, ['CM2', 'CM3'])) {
+        return '006'; // gudang CONSUMABLE
+    } elseif (in_array($articleType, ['RMP', 'RMNP'])) {
+        return '009'; // gudang RAW MATERIAL
+    } else {
+        return '011'; // gudang UMUM
+    }
+};
  
     // qty konversi
     $qtyBaseSql  = "COALESCE(NULLIF(receiving_det.qty_conv,0),
@@ -1150,31 +1342,32 @@ public function cancel(Request $request)
  
         // ----- ambil detail untuk stock (skip jasa 'JS') -----
         // bisa kosong kalau semua item jasa; cancel tetap lanjut (status -> CANCELED)
-        $data = DB::table('receiving_det')
-            ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
-            ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
-            ->where('receiving_det.rec_number', $recNumber)
-            ->where('receiving_hdr.status', '4')
-            ->whereRaw("$qtyBaseSql <> 0")
-            ->where(function ($q) {
-                $q->whereNull('article.group_of_material')
-                  ->orWhere('article.group_of_material', '<>', 'JS');
-            })
-            ->select(
-                'receiving_det.*',
-                'article.article_type',
-                'article.uom as uom_article',
-                DB::raw("$qtyBaseSql as total_qty"),
-                DB::raw("$stockUomSql as stock_uom")
-            )
-            ->get();
+       $data = DB::table('receiving_det')
+    ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
+    ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+    ->where('receiving_det.rec_number', $recNumber)
+    ->where('receiving_hdr.status', '4')
+    ->whereRaw("$qtyBaseSql <> 0")
+    ->where(function ($q) {
+        $q->whereNull('article.group_of_material')
+          ->orWhere('article.group_of_material', '<>', 'JS');
+    })
+    ->select(
+        'receiving_det.*',
+        'article.article_type',
+        'article.group_of_material',   // <-- FIX: tambahkan ini
+        'article.uom as uom_article',
+        DB::raw("$qtyBaseSql as total_qty"),
+        DB::raw("$stockUomSql as stock_uom")
+    )
+    ->get();
  
         // ----- kurangi saldo stock (warehouse_stock) + update cost article -----
-        foreach ($data as $val) {
-            $location    = $locationMap($val->article_type);
-            $averageCost = DB::selectOne("SELECT average_cost(?, ?, ?, ?) as avg", [
-                $val->article_code, $siteCode, $location, $moduleCode
-            ])->avg;
+       foreach ($data as $val) {
+    $location    = $locationMap($val->article_type, $val->group_of_material); // <-- FIX
+    $averageCost = DB::selectOne("SELECT average_cost(?, ?, ?, ?) as avg", [
+        $val->article_code, $siteCode, $location, $moduleCode
+    ])->avg;
  
             DB::table('warehouse_stock')->updateOrInsert(
                 [
@@ -1219,37 +1412,38 @@ public function cancel(Request $request)
             ]);
  
         // ----- catat mutasi pembatalan ke warehouse_movement (skip jasa 'JS') -----
-        $movements = DB::table('receiving_det')
-            ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
-            ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
-            ->where('receiving_det.rec_number', $recNumber)
-            ->where('receiving_hdr.status', '5')
-            ->whereRaw("$qtyBaseSql <> 0")
-            ->where(function ($q) {
-                $q->whereNull('article.group_of_material')
-                  ->orWhere('article.group_of_material', '<>', 'JS');
-            })
-            ->select(
-                'receiving_hdr.rec_date as movement_date',
-                'receiving_det.article_code',
-                'article.article_desc',
-                'article.article_type',
-                DB::raw("$qtyBaseSql as movement_min"),
-                DB::raw("0 as movement_plus"),
-                DB::raw("receiving_det.price as movement_price"),
-                'receiving_hdr.rec_number as movement_transnno',
-                'receiving_hdr.note as movement_desc',
-                DB::raw("$stockUomSql as movement_uom"),
-                'receiving_hdr.supplier_id as movement_from_code'
-            )
-            ->get();
- 
-        $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
-        $dataSetMovement = [];
- 
-        foreach ($movements as $val) {
-            $seq++;
-            $location = $locationMap($val->article_type);
+       $movements = DB::table('receiving_det')
+    ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
+    ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+    ->where('receiving_det.rec_number', $recNumber)
+    ->where('receiving_hdr.status', '5')
+    ->whereRaw("$qtyBaseSql <> 0")
+    ->where(function ($q) {
+        $q->whereNull('article.group_of_material')
+          ->orWhere('article.group_of_material', '<>', 'JS');
+    })
+    ->select(
+        'receiving_hdr.rec_date as movement_date',
+        'receiving_det.article_code',
+        'article.article_desc',
+        'article.article_type',
+        'article.group_of_material',   // <-- FIX: tambahkan ini
+        DB::raw("$qtyBaseSql as movement_min"),
+        DB::raw("0 as movement_plus"),
+        DB::raw("receiving_det.price as movement_price"),
+        'receiving_hdr.rec_number as movement_transnno',
+        'receiving_hdr.note as movement_desc',
+        DB::raw("$stockUomSql as movement_uom"),
+        'receiving_hdr.supplier_id as movement_from_code'
+    )
+    ->get();
+
+$seq             = (int) DB::table('warehouse_movement')->max('movement_code');
+$dataSetMovement = [];
+
+foreach ($movements as $val) {
+    $seq++;
+    $location = $locationMap($val->article_type, $val->group_of_material);
  
             $dataSetMovement[] = [
                 'movement_code'     => $seq,
@@ -1644,10 +1838,12 @@ public function unPosting($recNumber)
     $siteCode   = 'HO';
     $moduleCode = $this->moduleCode;
     $todayDate  = date('Y-m-d');
- 
-    // mapping article_type -> location
-    $locationMap = function ($articleType) {
-        if ($articleType === 'CM1') {
+
+    // mapping article_type -> location, dengan pengecualian group_of_material CPA -> Consumable
+    $locationMap = function ($articleType, $groupOfMaterial = null) {
+        if ($groupOfMaterial === 'CPA') {
+            return '006'; // gudang CONSUMABLE (override khusus CPA)
+        } elseif ($articleType === 'CM1') {
             return '005'; // gudang CHEMICAL
         } elseif (in_array($articleType, ['CM2', 'CM3'])) {
             return '006'; // gudang CONSUMABLE
@@ -1657,18 +1853,16 @@ public function unPosting($recNumber)
             return '011'; // gudang UMUM
         }
     };
- 
-    // qty konversi
+
     $qtyBaseSql  = "COALESCE(NULLIF(receiving_det.qty_conv,0),
                     (receiving_det.qty + receiving_det.qty_free) * COALESCE(NULLIF(receiving_det.conv_factor,0),1))";
     $stockUomSql = "COALESCE(NULLIF(receiving_det.conv_to,''), receiving_det.uom_rec)";
- 
+
     if (!$recNumber) {
         return 'false';
     }
- 
+
     // ----- ambil detail untuk stock (skip jasa 'JS') -----
-    // bisa kosong kalau semua item jasa; unposting tetap lanjut
     $data = DB::table('receiving_det')
         ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
         ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
@@ -1681,16 +1875,17 @@ public function unPosting($recNumber)
         ->select(
             'receiving_det.*',
             'article.article_type',
+            'article.group_of_material',   // <-- FIX: tambahkan ini
             'article.uom as uom_article',
             DB::raw("$qtyBaseSql as total_qty"),
             DB::raw("$stockUomSql as stock_uom")
         )
         ->get();
- 
+
     // ----- kurangi saldo stock (warehouse_stock) -----
     foreach ($data as $val) {
-        $location = $locationMap($val->article_type);
- 
+        $location = $locationMap($val->article_type, $val->group_of_material); // <-- FIX
+
         DB::table('warehouse_stock')->updateOrInsert(
             [
                 'site_code'       => $siteCode,
@@ -1702,7 +1897,7 @@ public function unPosting($recNumber)
                 'uom'       => $val->stock_uom,
             ]
         );
- 
+
         DB::table('warehouse_stock')
             ->where('site_code', $siteCode)
             ->where('article_code', $val->article_code)
@@ -1711,7 +1906,7 @@ public function unPosting($recNumber)
                 'article_qty' => DB::raw('coalesce(article_qty,0) - ' . (float) $val->total_qty),
             ]);
     }
- 
+
     // ----- catat mutasi unposting ke warehouse_movement (skip jasa 'JS') -----
     $movements = DB::table('receiving_det')
         ->leftJoin('receiving_hdr', 'receiving_hdr.rec_number', 'receiving_det.rec_number')
@@ -1727,6 +1922,7 @@ public function unPosting($recNumber)
             'receiving_det.article_code',
             'article.article_desc',
             'article.article_type',
+            'article.group_of_material',   // <-- FIX: tambahkan ini
             DB::raw("$qtyBaseSql as movement_min"),
             DB::raw("0 as movement_plus"),
             DB::raw("receiving_det.price as movement_price"),
@@ -1736,14 +1932,14 @@ public function unPosting($recNumber)
             'receiving_hdr.supplier_id as movement_from_code'
         )
         ->get();
- 
+
     $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
     $dataSetMovement = [];
- 
+
     foreach ($movements as $val) {
         $seq++;
-        $location = $locationMap($val->article_type);
- 
+        $location = $locationMap($val->article_type, $val->group_of_material); // <-- FIX
+
         $dataSetMovement[] = [
             'movement_code'     => $seq,
             'movement_date'     => $val->movement_date,
@@ -1766,14 +1962,14 @@ public function unPosting($recNumber)
             'partner_type'      => 'SUPP',
         ];
     }
- 
+
     if (!empty($dataSetMovement)) {
         DB::table('warehouse_movement')->insert($dataSetMovement);
     }
- 
+
     DB::table('kas_det')->where('voucher_number', $recNumber)->delete();
     DB::table('kas_hdr')->where('voucher_number', $recNumber)->delete();
- 
+
     return 'true';
 }
 
@@ -2907,7 +3103,7 @@ public function prDetail(Request $request)
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('statusPo' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             $title ="Approve $this->title";
             $alert  ="warning";
