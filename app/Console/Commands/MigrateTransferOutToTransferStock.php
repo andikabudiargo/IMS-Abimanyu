@@ -257,7 +257,8 @@ $locationTo = $this->mapLocation(
 $newTrNumber = $getLastCode->invoke(
     $controller,
     'TRF',
-    $hdr->tr_date
+    $hdr->tr_date,
+    'system-migration'
 );
 
                                 /*

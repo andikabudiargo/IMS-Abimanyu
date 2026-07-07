@@ -76,30 +76,75 @@ use App\Exports\TransferOutExport;
         return json_encode($kolom, true);
     }
 
-       public function getLastCode($key, $trDate = null)
+    public function getLastCode($key, $trDate = null, $username = null)
 {
+    // Jika dipanggil dari Artisan tidak ada Auth::user()
+    $username = $username ?? optional(Auth::user())->username ?? 'system-migration';
+
     DB::table('master_code')
-    ->where('code_key',$key)
-    ->update([
-        'code_number' => DB::raw('code_number + 1'),
-        'updated_by' => Auth::user()->username,
-        'updated_at' => date('Y-m-d H:i:s')
-    ]);
+        ->where('code_key', $key)
+        ->update([
+            'code_number' => DB::raw('code_number + 1'),
+            'updated_by'  => $username,
+            'updated_at'  => now()
+        ]);
 
     $newCode = DB::table('master_code')
-    ->where('code_key',$key)
-    ->value('code_number');
+        ->where('code_key', $key)
+        ->value('code_number');
 
-    $months = ['I', 'II', 'III','IV','V', 'VI', 'VII', 'VIII','IX','X','XI','XII'];
+    $months = [
+        'I', 'II', 'III', 'IV', 'V', 'VI',
+        'VII', 'VIII', 'IX', 'X', 'XI', 'XII'
+    ];
 
-    // pakai trDate kalau ada, fallback ke tanggal sekarang
-    $refDate = $trDate ? \Carbon\Carbon::createFromFormat('d-m-Y', $trDate) : \Carbon\Carbon::now();
+    // ==========================
+    // Parsing tanggal
+    // ==========================
+    if (empty($trDate)) {
+
+        $refDate = now();
+
+    } else {
+
+        try {
+
+            // Format dari database: 2026-07-07
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trDate)) {
+
+                $refDate = \Carbon\Carbon::createFromFormat('Y-m-d', $trDate);
+
+            }
+            // Format dari form: 07-07-2026
+            elseif (preg_match('/^\d{2}-\d{2}-\d{4}$/', $trDate)) {
+
+                $refDate = \Carbon\Carbon::createFromFormat('d-m-Y', $trDate);
+
+            }
+            // Format lain
+            else {
+
+                $refDate = \Carbon\Carbon::parse($trDate);
+
+            }
+
+        } catch (\Exception $e) {
+
+            $refDate = now();
+
+        }
+    }
 
     $month = $months[$refDate->month - 1];
     $year  = $refDate->year;
-    $codeNumber = "$key/$year/$month/" . str_pad($newCode, 4, '0', STR_PAD_LEFT);
 
-    return $codeNumber;
+    return sprintf(
+        '%s/%s/%s/%04d',
+        $key,
+        $year,
+        $month,
+        $newCode
+    );
 }
 
         public function index(Request $request)
@@ -449,7 +494,11 @@ use App\Exports\TransferOutExport;
             ->value('dept_code');
 
         $hasilUpdate = AppHelpers::resetCode($poLeadCode);
-       $trNumber = $this->getLastCode($poLeadCode, $trDate);
+       $trNumber = $this->getLastCode(
+    $poLeadCode,
+    $trDate,
+    Auth::user()->username
+);
 
         DB::beginTransaction();
         try {
