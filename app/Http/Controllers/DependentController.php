@@ -868,7 +868,7 @@ class DependentController extends Controller
 
     // hanya gudang Consumable (006) yang dibatasi ketat sesuai stock available
     if ($code === '006') {
-        $query->whereRaw("coalesce(warehouse_stock.article_qty,0) - $reserved > 0");
+        $query->whereRaw("coalesce(warehouse_stock.article_qty,0) - $reserved >=0");
     }
 
     $data = $query->select(
