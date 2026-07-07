@@ -664,9 +664,9 @@ if (selStock !== undefined && selStock !== null && selStock !== '') {
         $(this).addClass('qty-over-stock')
                .attr('title', 'Qty melebihi stock tersedia (' + formatStock(stock) + ')');
 
-        if (isStrictStockLocation()) {
-            show_msg('Warning', 'Qty transfer melebihi stock tersedia (' + stock + ') di gudang ini.', 'warning');
-        }
+       // if (isStrictStockLocation()) {
+         //   show_msg('Warning', 'Qty transfer melebihi stock tersedia (' + stock + ') di gudang ini.', 'warning');
+        //}
         // gudang selain Consumable: silent, cukup border merah sebagai penanda, tanpa toast berulang
     } else {
         $(this).removeClass('qty-over-stock').removeAttr('title');
