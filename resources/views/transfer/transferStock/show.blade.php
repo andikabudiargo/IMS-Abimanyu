@@ -53,7 +53,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea id="note" name="note" class="form-control" rows="1" disabled>{{ $header->note }}</textarea>
+                                    <textarea id="note" name="note" class="form-control" rows="4" disabled>{{ $header->note }}</textarea>
                                 </div>
                             </div>
                         </form>
