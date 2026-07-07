@@ -866,11 +866,6 @@ class DependentController extends Controller
         ->where('article.status','1')
         ->whereNotIn('article.article_type', ['GA','PT']);
 
-    // hanya gudang Consumable (006) yang dibatasi ketat sesuai stock available
-    if ($code === '006') {
-        $query->whereRaw("coalesce(warehouse_stock.article_qty,0) - $reserved >=0");
-    }
-
     $data = $query->select(
             'article.*',
             DB::raw("coalesce(warehouse_stock.article_qty,0) - $reserved as stock"),
