@@ -10,7 +10,7 @@ use App\Helpers\AppHelpers;
 class MigrateTransferOutToTransferStock extends Command
 {
     protected $signature = 'transfer-out:migrate
-                            {--from=2026-07-01 : Tanggal awal migrasi}
+                            {--from=01-07-2026 : Tanggal awal migrasi}
                             {--to= : Tanggal akhir migrasi (default hari ini)}
                             {--dry-run : Hanya tampilkan data tanpa eksekusi}';
 
@@ -102,8 +102,12 @@ return $goods->location_stock;
 
     public function handle()
     {
-        $from   = $this->option('from');
-        $to     = $this->option('to') ?: date('Y-m-d');
+       $from = \Carbon\Carbon::createFromFormat('d-m-Y', $this->option('from'))
+            ->format('Y-m-d');
+
+$to = $this->option('to')
+    ? \Carbon\Carbon::createFromFormat('d-m-Y', $this->option('to'))->format('Y-m-d')
+    : now()->format('Y-m-d');
         $dryRun = $this->option('dry-run');
 
         $this->info("Periode : {$from} s/d {$to}");
@@ -113,17 +117,20 @@ return $goods->location_stock;
         | Ambil Transfer Out yang belum pernah dimigrasi
         |--------------------------------------------------------------------------
         */
-        $transferOuts = DB::table('transfer_hdr as h')
-        ->where('h.tr_type', 'TROUT')
-            ->whereBetween(DB::raw('DATE(h.tr_date)'), [$from, $to])
-            ->whereNotExists(function ($q) {
-                $q->select(DB::raw(1))
-                    ->from('transfer_stock_hdr as s')
-                    ->whereColumn('s.ref_number', 'h.tr_number');
-            })
-            ->orderBy('h.tr_date')
-            ->orderBy('h.tr_number')
-            ->get();
+       $transferOuts = DB::table('transfer_hdr as h')
+    ->where('h.tr_type', 'TROUT')
+    ->whereBetween(
+        DB::raw("to_date(h.tr_date, 'DD-MM-YYYY')"),
+        [$from, $to]
+    )
+    ->whereNotExists(function ($q) {
+        $q->select(DB::raw(1))
+          ->from('transfer_stock_hdr as s')
+          ->whereColumn('s.ref_number', 'h.tr_number');
+    })
+    ->orderByRaw("to_date(h.tr_date,'DD-MM-YYYY')")
+    ->orderBy('h.tr_number')
+    ->get();
 
         if ($transferOuts->isEmpty()) {
             $this->info('Tidak ada data yang perlu dimigrasi.');
