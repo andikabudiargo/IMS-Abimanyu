@@ -220,34 +220,34 @@ use App\Exports\TransferOutExport;
     }
 
     // ===== VALIDASI STOK (hanya gudang 006 yang ketat) =====
-    $strictStockLocation = '006';
-    $overStock = [];
-    foreach ($data as $val) {
-        $qtyBase = (float) $val->total_qty;
+   // $strictStockLocation = '006';
+    //$overStock = [];
+    //foreach ($data as $val) {
+      //  $qtyBase = (float) $val->total_qty;
 
-        $onhand = (float) DB::table('warehouse_stock')
-            ->where('site_code', $siteCode)
-            ->where('article_code', $val->article_code)
-            ->where('location_number', $locationFrom)
-            ->sum('article_qty');
+        //$onhand = (float) DB::table('warehouse_stock')
+          //  ->where('site_code', $siteCode)
+           // ->where('article_code', $val->article_code)
+           // ->where('location_number', $locationFrom)
+           // ->sum('article_qty');
 
-        $reserved = (float) DB::table('transfer_stock_det as d')
-            ->join('transfer_stock_hdr as h', 'h.tr_number', '=', 'd.tr_number')
-            ->where('d.article_code', $val->article_code)
-            ->where('h.location_from', $locationFrom)
-            ->where('h.tr_number', '<>', $trNumber)
-            ->whereIn('h.status', ['1', '2', '3'])
-            ->sum(DB::raw("d.qty * coalesce(uom_conversion(d.uom,(select uom from article where article_code = d.article_code)),1)"));
+        //$reserved = (float) DB::table('transfer_stock_det as d')
+          //  ->join('transfer_stock_hdr as h', 'h.tr_number', '=', 'd.tr_number')
+           // ->where('d.article_code', $val->article_code)
+           // ->where('h.location_from', $locationFrom)
+           // ->where('h.tr_number', '<>', $trNumber)
+           // ->whereIn('h.status', ['1', '2', '3'])
+           // ->sum(DB::raw("d.qty * coalesce(uom_conversion(d.uom,(select uom from article where article_code = d.article_code)),1)"));
 
-        $available = $onhand - $reserved;
+        //$available = $onhand - $reserved;
 
-        if ($locationFrom === $strictStockLocation && $qtyBase > $available) {
-            $overStock[] = "Qty {$val->article_alternative_code} ({$qtyBase}) melebihi stok available ({$available}) di gudang asal";
-        }
-    }
-    if ($overStock) {
-        return ['success' => false, 'message' => $overStock];
-    }
+        //if ($locationFrom === $strictStockLocation && $qtyBase > $available) {
+          //  $overStock[] = "Qty {$val->article_alternative_code} ({$qtyBase}) melebihi stok available ({$available}) di gudang asal";
+        //}
+    //}
+    //if ($overStock) {
+      //  return ['success' => false, 'message' => $overStock];
+    //}
 
     // ===== GENERATE MOVEMENT =====
     $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
@@ -412,36 +412,36 @@ use App\Exports\TransferOutExport;
     }
     // ---- Validasi stok ----
         // Hanya gudang Consumable (006) yang divalidasi ketat, gudang lain boleh over-stock
-        $strictStockLocation = '006';
+      //  $strictStockLocation = '006';
 
-        $overStock = [];
-        foreach ($articles as $val) {
-            $onhand = DB::table('warehouse_stock')
-                ->where('article_code', $val->article_code)
-                ->where('location_number', $locationCode)
-                ->sum('article_qty');
+        //$overStock = [];
+        //foreach ($articles as $val) {
+          //  $onhand = DB::table('warehouse_stock')
+            //    ->where('article_code', $val->article_code)
+              //  ->where('location_number', $locationCode)
+                //->sum('article_qty');
 
-            $reserved = DB::table('transfer_stock_det as d')
-                ->join('transfer_stock_hdr as h','h.tr_number','=','d.tr_number')
-                ->where('d.article_code', $val->article_code)
-                ->where('h.location_from', $locationCode)
-                ->whereIn('h.status', ['1','2','3'])
-                ->sum(DB::raw("d.qty * coalesce(uom_conversion(d.uom,(select uom from article where article_code = d.article_code)),1)"));
+            //$reserved = DB::table('transfer_stock_det as d')
+              //  ->join('transfer_stock_hdr as h','h.tr_number','=','d.tr_number')
+               // ->where('d.article_code', $val->article_code)
+               // ->where('h.location_from', $locationCode)
+                //->whereIn('h.status', ['1','2','3'])
+               // ->sum(DB::raw("d.qty * coalesce(uom_conversion(d.uom,(select uom from article where article_code = d.article_code)),1)"));
 
-            $available = $onhand - $reserved;
+            //$available = $onhand - $reserved;
 
-            $qtyBase = DB::selectOne(
-                "select ? * coalesce(uom_conversion(?, (select uom from article where article_code = ?)),1) as q",
-                [$val->qty, $val->uom, $val->article_code]
-            )->q;
+            //$qtyBase = DB::selectOne(
+              //  "select ? * coalesce(uom_conversion(?, (select uom from article where article_code = ?)),1) as q",
+               // [$val->qty, $val->uom, $val->article_code]
+            //)->q;
 
-            if ($locationCode === $strictStockLocation && $qtyBase > $available) {
-                $overStock[] = "Qty {$val->article_code} ($qtyBase) melebihi stok available ($available) di gudang $locationCode";
-            }
-        }
-        if ($overStock) {
-            return response()->json(['status'=>0,'title'=>$title,'message'=>$overStock,'alert'=>'error']);
-        }
+            //if ($locationCode === $strictStockLocation && $qtyBase > $available) {
+              //  $overStock[] = "Qty {$val->article_code} ($qtyBase) melebihi stok available ($available) di gudang $locationCode";
+            //}
+        //}
+        //if ($overStock) {
+          //  return response()->json(['status'=>0,'title'=>$title,'message'=>$overStock,'alert'=>'error']);
+        //}
 
         // ---- Snapshot dept approver ----
         $approveDept = DB::table('stock_location_master')
@@ -478,7 +478,6 @@ use App\Exports\TransferOutExport;
                     'qty'          => $val->qty,
                     'uom'          => $val->uom,
                     'note'         => $val->note,
-                    'fg_target'    => $val->fg_target ?? null,  // ← fg_target
                     'created_by'   => $username,
                     'updated_by'   => $username,
                     'created_at'   => date('Y-m-d H:i:s'),
