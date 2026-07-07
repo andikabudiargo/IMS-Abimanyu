@@ -242,10 +242,10 @@ private function punyaReplaceAktif($returnNumber)
     }
 
     // ── VALIDASI QTY RETUR (cegah retur > terkirim / retur ganda) ──
-    $qtyErrors = $this->checkReturnQty($articles, $soNumber, null);
-    if (!empty($qtyErrors)) {
-        return response()->json(['status' => 0, 'message' => $qtyErrors, 'alert' => 'warning']);
-    }
+    //$qtyErrors = $this->checkReturnQty($articles, $soNumber, null);
+    //if (!empty($qtyErrors)) {
+      //  return response()->json(['status' => 0, 'message' => $qtyErrors, 'alert' => 'warning']);
+    //}
 
     $hasilUpdate  = AppHelpers::resetCode($leadCode);
     $returnNumber = $this->getLastCode($leadCode);
@@ -812,10 +812,10 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
     }
 
     // ── VALIDASI QTY RETUR (kecualikan return ini sendiri dari hitungan "sudah diretur") ──
-    $qtyErrors = $this->checkReturnQty($articles, $soNumber, $returnNumber);
-    if (!empty($qtyErrors)) {
-        return response()->json(['status' => 0, 'message' => $qtyErrors, 'alert' => 'warning']);
-    }
+   // $qtyErrors = $this->checkReturnQty($articles, $soNumber, $returnNumber);
+    //if (!empty($qtyErrors)) {
+      //  return response()->json(['status' => 0, 'message' => $qtyErrors, 'alert' => 'warning']);
+    //}
 
      $customerLama = $hdr->customer_id;
 

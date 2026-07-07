@@ -46,10 +46,6 @@
                                     <label for="dnNumber">Customer DN Number</label>
                                     <input type="text" id="dnNumber" name="dnNumber" class="form-control disabled-el" value="{{ $header->dn_number }}" />
                                 </div>
-                                <div class="form-group col-md-3">
-                                                <label for="soNumber">SO Number</label>
-                                                <input type="text" id="soNumber" name="soNumber" class="form-control disabled-el" value="{{ $header->so_number }}" disabled />
-                                            </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">

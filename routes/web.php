@@ -953,8 +953,8 @@ Route::post('stockReconciliation/cancel',['as'=>'stockReconciliation.cancel','us
 	Route::get('dnReturn/print',['as'=>'dnReturn.print','uses'=>'DnReturnController@print']);
 	Route::post('dnReturn/get/article',['as'=>'dnReturn.get.article','uses'=>'DnReturnController@getArticle']);
 	Route::get('dnReturn/list/so',       ['as'=>'dnReturn.list.so',      'uses'=>'DnReturnController@listSo']);
-Route::get('dnReturn/article/by-so', ['as'=>'dnReturn.article.bySo', 'uses'=>'DnReturnController@articleBySo']);
-Route::post('dnReturn/posting',      ['as'=>'dnReturn.posting',      'uses'=>'DnReturnController@posting']);
+	Route::get('dnReturn/article/by-so', ['as'=>'dnReturn.article.bySo', 'uses'=>'DnReturnController@articleBySo']);
+	Route::post('dnReturn/posting',      ['as'=>'dnReturn.posting',      'uses'=>'DnReturnController@posting']);
 
 	Route::get('dnReplace',['as'=>'dnReplace.index','uses'=>'DnReplaceController@index']);
 	Route::get('dnReplace/create',['as'=>'dnReplace.create','uses'=>'DnReplaceController@create']);
