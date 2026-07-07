@@ -245,11 +245,11 @@ $locationTo = $this->mapLocation(
                 ---------------------------------------------------------
                 */
 
-             AppHelpers::resetCode($controller->moduleCode);
+             AppHelpers::resetCode('TRF');
 
 $newTrNumber = $getLastCode->invoke(
     $controller,
-    $controller->moduleCode,
+    'TRF',
     $hdr->tr_date
 );
 
