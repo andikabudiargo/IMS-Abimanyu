@@ -745,7 +745,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::put('transferStock/update',['as'=>'transferStock.update','uses'=>'TransferStockController@update']);
 	Route::get('transferStock/list',['as'=>'transferStock.list','uses'=>'TransferStockController@list']);
 	Route::get('transferStock/list/detail',['as'=>'transferStock.list.detail','uses'=>'TransferStockController@listDetail']);
-	Route::get('transferStock/edit',['as'=>'transferStock.edit','uses'=>'TransferStockController@edit','middleware' => ['permission:transferStock-edit']]);
+	Route::get('transferStock/edit',['as'=>'transferStock.edit','uses'=>'TransferStockController@edit']);
 	Route::post('transferStock/posting',['as'=>'transferStock.posting','uses'=>'TransferStockController@posting']);
 	Route::get('transferStock/print',['as'=>'transferStock.print','uses'=>'TransferStockController@print']);
 	Route::post('transferStock/delete',['as'=>'transferStock.destroy','uses'=>'TransferStockController@destroy']);

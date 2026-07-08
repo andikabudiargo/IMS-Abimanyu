@@ -274,7 +274,7 @@ private function checkStockTdn($articles)
 }
 
 /**
- * Memotong stok gudang FG dan mencatat movement_stock untuk sebuah TDN.
+ * Memotong stok gudang FG dan mencatat warehouse_movement untuk sebuah TDN.
  * Dipanggil dari dalam transaction store(). Tidak melakukan validasi stok
  * lagi di sini - itu tanggung jawab checkStockTdn() yang dipanggil sebelumnya.
  */
@@ -282,7 +282,7 @@ private function checkStockTdn($articles)
  * Posting stok untuk TDN. Dipanggil saat klik tombol Print (mirip receiving).
  *
  * GUARD anti double-potong:
- * Sebelum memotong stok, dicek apakah sudah pernah ada record movement_stock
+ * Sebelum memotong stok, dicek apakah sudah pernah ada record warehouse_movement
  * bertipe 'TDN' untuk nomor ini. Kalau sudah ada, stok TIDAK dipotong lagi -
  * method tetap mengembalikan sukses supaya dokumen tetap bisa dicetak ulang.
  * Ini yang membuat klik Print berkali-kali AMAN: dokumen tercetak tiap kali,
@@ -309,7 +309,7 @@ public function posting(Request $request)
     $deliveryDate = $tDnHdr->delivery_date;
 
     // ── GUARD: sudah pernah diposting? ──
-    $sudahPosting = DB::table('movement_stock')
+    $sudahPosting = DB::table('warehouse_movement')
         ->where('movement_transnno', $tDnNumber)
         ->where('movement_type', 'DN SEMENTARA') // sebelumnya: 'TDN'
         ->count();
@@ -367,7 +367,7 @@ public function posting(Request $request)
 }
 
 /**
- * Worker: potong stok gudang FG + catat movement_stock.
+ * Worker: potong stok gudang FG + catat warehouse_movement.
  * TIDAK melakukan guard di sini - guard dilakukan oleh caller (posting()).
  * Dipanggil dari dalam transaction.
  */
@@ -440,7 +440,7 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
     }
 
     if (!empty($movementSet)) {
-        DB::table('movement_stock')->insert($movementSet);
+        DB::table('warehouse_movement')->insert($movementSet);
     }
 }
 
@@ -602,7 +602,7 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
             }
  
             DB::table('temporary_dn_det')->insert($dataSet);
-            DB::table('movement_stock')->insert($movementSet);
+            DB::table('warehouse_movement')->insert($movementSet);
  
             DB::commit();
  
@@ -864,7 +864,7 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
     // Sama seperti createDn()/destroy(), penandanya adalah keberadaan movement 'DN SEMENTARA'.
     // Kalau sudah diposting, mengubah qty di sini akan bikin qty dokumen tidak sinkron
     // dengan stok yang sudah terpotong. User harus Cancel dulu kalau mau mengubah.
-    $sudahPosting = DB::table('movement_stock')
+    $sudahPosting = DB::table('warehouse_movement')
         ->where('movement_transnno', $tDnNumber)
         ->where('movement_type', 'DN SEMENTARA')
         ->count();
@@ -1217,7 +1217,7 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
     // Cek apakah TDN ini pernah diposting (stok pernah dipotong).
     // Kalau belum pernah, cancel TIDAK boleh mengembalikan stok
     // (karena tidak ada yang dipotong -> mengembalikan malah bikin stok kelebihan).
-    $sudahPosting = DB::table('movement_stock')
+    $sudahPosting = DB::table('warehouse_movement')
         ->where('movement_transnno', $tDnNumber)
         ->where('movement_type', 'DN SEMENTARA')
         ->count();
@@ -1297,7 +1297,7 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
                 }
 
                 if (!empty($reverseMovements)) {
-                    DB::table('movement_stock')->insert($reverseMovements);
+                    DB::table('warehouse_movement')->insert($reverseMovements);
                 }
             }
 
@@ -1487,7 +1487,7 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
     //  - tidak ada yang bisa direlabel, DAN
     //  - DN baru akan berstatus POSTED (4) tanpa stok pernah dipotong -> stok kelebihan.
     // Jadi harus ditolak: user wajib Print/posting dulu.
-    $sudahPosting = DB::table('movement_stock')
+    $sudahPosting = DB::table('warehouse_movement')
         ->where('movement_transnno', $tDnNumber)
         ->where('movement_type', 'DN SEMENTARA')
         ->count();
@@ -1537,7 +1537,7 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
             // Relabel movement TDN -> DN baru. TIDAK potong stok lagi.
             // 'DN SEMENTARA' cocok dengan yang ditulis postingTdn(); target 'Delivery'
             // (kapital awal) agar konsisten dengan DeliveryController::posting().
-            DB::table('movement_stock')
+            DB::table('warehouse_movement')
                 ->where('movement_transnno', $tDnNumber)
                 ->where('movement_type', 'DN SEMENTARA')
                 ->update([
