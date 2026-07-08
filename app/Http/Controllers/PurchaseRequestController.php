@@ -2349,7 +2349,7 @@ if (!empty($missingArticles)) {
         ,1 as factor_qty
         ,coalesce(article.min_package,1) as min_package
         ,coalesce(article.safety_stock,0) as safety_stock 
-        ,coalesce(get_last_qty_new(bom_rm.article_code,'$stockDate','$siteCode','009'), 0) as qty_stock
+        ,coalesce(get_last_qty_new(bom_rm.article_code,'$stockDate','$siteCode',NULL), 0) as qty_stock
         ,bom_rm.article_alternative_code as alternative
         ,bom_rm.article_desc
         from production_detail_temp
