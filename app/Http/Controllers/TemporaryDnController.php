@@ -378,6 +378,12 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
 
     $movementSet = [];
 
+    // Manual sequence: karena kolom movement_code sudah tidak punya sequence
+    // yang valid di database (nextval mengarah ke sequence yang tidak ada),
+    // nomor movement_code di-generate sendiri dari MAX(movement_code)+1.
+    // Pola sama seperti ReceivingController::posting2()/cancel()/unPosting().
+    $seq = (int) DB::table('warehouse_movement')->max('movement_code');
+
     foreach ($articles as $val) {
         $articleInfo = DB::table('article')
             ->where('article_code', $val->article_code)
@@ -385,13 +391,11 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
             ->first();
 
         if (!$articleInfo) {
-            // article tidak ditemukan - lempar supaya transaction rollback
             throw new \Exception("Article {$val->article_code} tidak ditemukan");
         }
 
-        $totalQty = $val->qty; // qty asli, tanpa uom_conversion
+        $totalQty = $val->qty;
 
-        // Pastikan row ada di warehouse_stock
         DB::table('warehouse_stock')
             ->updateOrInsert(
                 [
@@ -405,7 +409,6 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
                 ]
             );
 
-        // Kurangi stock FG
         DB::table('warehouse_stock')
             ->where('site_code', $siteCode)
             ->where('article_code', $val->article_code)
@@ -414,14 +417,16 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
                 'article_qty' => DB::raw('coalesce(article_qty,0) - ' . $totalQty),
             ]);
 
-        // Ambil last_qty setelah dikurangi untuk movement
         $lastQtyAfter = DB::table('warehouse_stock')
             ->where('site_code', $siteCode)
             ->where('article_code', $val->article_code)
             ->where('location_number', $location)
             ->value('article_qty') ?? 0;
 
+        $seq++; // increment manual, bukan nextval()
+
         $movementSet[] = [
+            'movement_code'     => $seq,
             'movement_date'     => $deliveryDate,
             'artikel_code'      => $val->article_code,
             'artikel_desc'      => $articleInfo->article_desc,
@@ -1261,6 +1266,8 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
                     )
                     ->get();
 
+                    $seq = (int) DB::table('warehouse_movement')->max('movement_code');
+
                 $reverseMovements = [];
                 foreach ($details as $det) {
                     // Kembalikan stock ke warehouse_stock
@@ -1278,7 +1285,9 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
                         ->where('location_number', $location)
                         ->value('article_qty') ?? 0;
 
+                         $seq++;
                     $reverseMovements[] = [
+                         'movement_code'     => $seq,
                         'movement_date'     => date('d-m-Y'),
                         'artikel_code'      => $det->article_code,
                         'artikel_desc'      => $det->article_desc,
