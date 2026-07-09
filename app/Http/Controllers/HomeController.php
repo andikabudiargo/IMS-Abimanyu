@@ -41,6 +41,22 @@ class HomeController extends Controller
         }
     }
 
+    private static function formatAgingHome(float $seconds): array
+{
+    $seconds = (int) abs($seconds);
+
+    if ($seconds < 60) {
+        return ['label' => $seconds . ' detik', 'level' => 'success'];
+    } elseif ($seconds < 3600) {
+        return ['label' => floor($seconds / 60) . ' menit', 'level' => 'success'];
+    } elseif ($seconds < 86400) {
+        return ['label' => floor($seconds / 3600) . ' jam', 'level' => 'warning'];
+    } elseif ($seconds < 259200) {
+        return ['label' => floor($seconds / 86400) . ' hari', 'level' => 'warning'];
+    }
+    return ['label' => floor($seconds / 86400) . ' hari', 'level' => 'danger'];
+}
+
     public function index()
     {
 
@@ -422,6 +438,64 @@ class HomeController extends Controller
             ) as Oki
         where current_level+1 = berhak_approve");
 
+        // Cek dept user (pakai tabel user_dept yang sudah dipakai di query PR)
+$userDepts = DB::table('user_dept')
+    ->where('username', $username)
+    ->pluck('dept')
+    ->toArray();
+
+$allowedLocations = ['009', '005', '006', '007']; // RM, Chemical, Consumable, FG
+
+$data['listCriticalStock'] = DB::table('warehouse_stock as ws')
+    ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+    ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
+    ->leftJoin('stock_location_master as loc', 'loc.location_code', '=', 'ws.location_number')
+    ->whereIn('ws.location_number', $allowedLocations)
+    ->select(
+        'a.article_code',
+        'a.article_alternative_code as code',
+        'a.article_desc as name',
+        'a.uom',
+        DB::raw('coalesce(a.safety_stock,0) as safety_stock'),
+        'loc.location_name',
+        DB::raw('coalesce(ws.article_qty,0) as stock_qty'),
+        'tp.nama as supplier_name'
+    )
+    ->whereRaw('coalesce(ws.article_qty,0) < coalesce(a.safety_stock,0)')
+    ->orderBy('a.article_desc')
+    ->get();
+
+$data['criticalStockCount'] = $data['listCriticalStock']->count();
+
+        // ===== Transfer Stock yang perlu diposting (masuk ke gudang dept saya) =====
+$userDepts = DB::table('user_dept')
+    ->where('username', $username)
+    ->pluck('dept')
+    ->toArray();
+
+$data['outstandingTransferIn'] = DB::table('transfer_stock_hdr')
+    ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
+    ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to')
+    ->whereIn('transfer_stock_hdr.status', ['1', '2'])
+    ->whereIn('transfer_stock_hdr.approve_dept', $userDepts)
+    ->select(
+        'transfer_stock_hdr.*',
+        'locFrom.location_name as location_name',
+        'locTo.location_name as location_name_to'
+    )
+    ->orderBy('transfer_stock_hdr.created_at', 'asc')
+    ->get()
+    ->map(function ($row) {
+        $created = Carbon::parse($row->created_at);
+        $seconds = max(0, $created->diffInSeconds(now(), false));
+        $row->age_seconds = $seconds;
+        $aging = self::formatAgingHome($seconds);
+        $row->aging_label = $aging['label'];
+        $row->aging_level = $aging['level'];
+        return $row;
+    });
+
+$data['outstandingTransferInCount'] = $data['outstandingTransferIn']->count();
         $data['bomCount'] = count($data['listBom']);
         $data['greeting'] = self::greeting(); 
         

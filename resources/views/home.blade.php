@@ -22,6 +22,144 @@
         </div>
     </div>
     @endif
+    @if( $listCriticalStock && $criticalStockCount>0 )
+    <div class="form-row">
+        <div class="col-lg-12 col-12">
+            <div class="card border-danger">
+                <div class="card-header" style="color:#EA5455">
+                    <strong>
+                        Critical Stock Alert
+                        <div class="badge badge-pill badge-danger">{{ $criticalStockCount }}</div>
+                    </strong>
+                    <div class="ml-auto">
+                        <a class="btn btn-outline-primary btn-sm" href="{{ route('warehouse.articlev2') }}">
+                            <i data-feather='package'></i>
+                            Lihat Stock
+                        </a>
+                        <a class="btn btn-danger btn-sm" href="{{ route('purchaseRequest.create') }}">
+                            <i data-feather='plus-circle'></i>
+                            Buat PR
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height:300px">
+                       <table class="table" width="100%">
+    <thead>
+        <tr>
+            <th>No</th>
+            <th>Location</th>
+            <th>Code</th>
+            <th>Article</th>
+            <th>Supplier/Customer</th>
+            <th>Stock</th>
+            <th>Safety Stock</th>
+            <th>UOM</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($listCriticalStock as $key=>$val)
+        <tr>
+            <td>{{ $key+1 }}</td>
+            <td>{{ $val->location_name }}</td>
+            <td>{{ $val->code }}</td>
+            <td>{{ $val->name }}</td>
+            <td>{{ $val->supplier_name }}</td>
+            <td class="text-right text-danger font-weight-bolder">
+                {{ number_format($val->stock_qty) }}
+            </td>
+            <td class="text-right">{{ number_format($val->safety_stock) }}</td>
+            <td>{{ $val->uom }}</td>
+            <td>
+                <a class="btn btn-outline-info btn-sm"
+                    href="{{ route('warehouse.article') }}?code={{ $val->code }}">
+                    <i data-feather='eye'></i>
+                    Detail
+                </a>
+            </td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
+@if( $outstandingTransferInCount>0 )
+    <div class="form-row">
+        <div class="col-lg-12 col-12">
+            <div class="card border-warning">
+                <div class="card-header" style="color:#d98a0b">
+                    <strong>
+                        Transfer Stock Perlu Diposting
+                        <div class="badge badge-pill badge-warning">{{ $outstandingTransferInCount }}</div>
+                    </strong>
+                    <div class="ml-auto">
+                        <a class="btn btn-outline-primary btn-sm" href="{{ route('transferStock.index') }}">
+                            <i data-feather='list'></i>
+                            Lihat Semua Transfer
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height:300px">
+                        <table class="table" width="100%">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Transfer Number</th>
+                                    <th>Date</th>
+                                    <th>From</th>
+                                    <th>To</th>
+                                    <th>Created By</th>
+                                    <th>Pending</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($outstandingTransferIn as $key=>$val)
+                                <tr>
+                                    <td>{{ $key+1 }}</td>
+                                    <td class="font-weight-bolder">{{ $val->tr_number }}</td>
+                                    <td>{{ $val->tr_date }}</td>
+                                    <td>{{ $val->location_name }}</td>
+                                    <td class="font-weight-bolder">{{ $val->location_name_to }}</td>
+                                    <td>{{ $val->created_by }}</td>
+                                    <td>
+                                        <span class="badge badge-{{ $val->aging_level }}">{{ $val->aging_label }}</span>
+                                    </td>
+                                    <td>
+                                        <a href='javascript:;'
+                                            onclick="action(this)"
+                                            id="buttonTrfHome{{ $key }}"
+                                            class="btn btn-outline-success btn-sm buttonTrf-{{ $val->id }}"
+                                            data-id-class="buttonTrf-{{ $val->id }}"
+                                            data-doc-number="{{ $val->tr_number }}"
+                                            data-url="{{ route('transferStock.posting', ['id'=>Crypt::encryptString($val->id)]) }}">
+                                            <i data-feather='check-circle'></i>
+                                            Posting
+                                        </a>
+                                        <a class="btn btn-outline-info btn-sm"
+                                            href="{{ route('transferStock.show', ['id'=>Crypt::encryptString($val->id)]) }}">
+                                            <i data-feather='list'></i>
+                                            Detail
+                                        </a>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
     @if(count($listBom)>0)
         <div class="form-row">
             <div class="col-lg-12 col-12">
