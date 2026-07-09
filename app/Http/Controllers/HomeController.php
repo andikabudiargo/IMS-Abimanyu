@@ -444,27 +444,42 @@ $userDepts = DB::table('user_dept')
     ->pluck('dept')
     ->toArray();
 
-$allowedLocations = ['009', '005', '006', '007']; // RM, Chemical, Consumable, FG
+// ===== Cek akses Critical Stock Alert =====
+$userDepts = DB::table('user_dept')
+    ->where('username', $username)
+    ->pluck('dept') // sesuaikan nama kolom kalau bukan 'dept'
+    ->toArray();
 
-$data['listCriticalStock'] = DB::table('warehouse_stock as ws')
-    ->join('article as a', 'a.article_code', '=', 'ws.article_code')
-    ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
-    ->leftJoin('stock_location_master as loc', 'loc.location_code', '=', 'ws.location_number')
-    ->whereIn('ws.location_number', $allowedLocations)
-    ->select(
-        'a.article_code',
-        'a.article_alternative_code as code',
-        'a.article_desc as name',
-        'a.uom',
-        DB::raw('coalesce(a.safety_stock,0) as safety_stock'),
-        'loc.location_name',
-        DB::raw('coalesce(ws.article_qty,0) as stock_qty'),
-        'tp.nama as supplier_name'
-    )
-    ->whereRaw('coalesce(ws.article_qty,0) < coalesce(a.safety_stock,0)')
-    ->orderBy('a.article_desc')
-    ->get();
+$allowedDeptCriticalStock = ['005', '008']; // 005 = Logistik, 008 = Purchasing
+$hasAllowedDept = count(array_intersect($userDepts, $allowedDeptCriticalStock)) > 0;
+$hasPrivilegedRole = Auth::user()->hasAnyRole(['Superuser', 'accounting']);
 
+$data['showCriticalStock'] = $hasAllowedDept || $hasPrivilegedRole;
+
+if ($data['showCriticalStock']) {
+    $allowedLocations = ['009', '005', '006']; // RM, Chemical, Consumable, FG
+
+    $data['listCriticalStock'] = DB::table('warehouse_stock as ws')
+        ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+        ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
+        ->leftJoin('stock_location_master as loc', 'loc.location_code', '=', 'ws.location_number')
+        ->whereIn('ws.location_number', $allowedLocations)
+        ->select(
+            'a.article_code',
+            'a.article_alternative_code as code',
+            'a.article_desc as name',
+            'a.uom',
+            DB::raw('coalesce(a.safety_stock,0) as safety_stock'),
+            'loc.location_name',
+            DB::raw('coalesce(ws.article_qty,0) as stock_qty'),
+            'tp.nama as supplier_name'
+        )
+        ->whereRaw('coalesce(ws.article_qty,0) < coalesce(a.safety_stock,0)')
+        ->orderBy('a.article_desc')
+        ->get();
+} else {
+    $data['listCriticalStock'] = collect();
+}
 $data['criticalStockCount'] = $data['listCriticalStock']->count();
 
         // ===== Transfer Stock yang perlu diposting (masuk ke gudang dept saya) =====
