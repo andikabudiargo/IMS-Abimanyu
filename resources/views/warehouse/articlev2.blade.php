@@ -278,6 +278,13 @@
 .mv-filter label { letter-spacing: .5px; }
 .mv-filter .input-group-text { background: #fff; }
 #mvReset i { width: 16px; height: 16px; }
+
+#detailedTable_wrapper .dataTables_length { display: flex; align-items: center; }
+#detailedTable_wrapper .dataTables_length .custom-switch { margin-bottom: 0; }
+#detailedTable_wrapper .dataTables_length .custom-control-label { 
+  cursor: pointer; 
+  padding-top: 2px;
+}
 </style>
 @endsection
 @section('scripts')
@@ -301,6 +308,30 @@
     mask_thousand_digit(numberOfDecimalDigit);
   });
 
+ let hideEmptyState = false;   // <-- state persisten toggle
+
+$('#detailedTable').on('init.dt', function () {
+    var $len = $('#detailedTable_wrapper .dataTables_length');
+    if (!$len.length) return;
+    if ($len.find('#toggleHideEmpty').length) return; // udah ada, skip
+
+    var toggleHtml =
+      '<span class="d-inline-flex align-items-center ml-2">' +
+        '<div class="custom-control custom-switch">' +
+          '<input type="checkbox" class="custom-control-input" id="toggleHideEmpty">' +
+          '<label class="custom-control-label" for="toggleHideEmpty">Hide Qty 0</label>' +
+        '</div>' +
+      '</span>';
+    $len.append(toggleHtml);
+
+    $('#toggleHideEmpty').prop('checked', hideEmptyState);
+});
+
+$(document).on('change', '#toggleHideEmpty', function () {
+    hideEmptyState = $(this).is(':checked');   // simpan dulu ke variable
+    $('#btnSearch').click();
+});
+
   //refresh di cards
   $('a[data-action="reload"]').on('click', function () {
     // showList(name.val(),code.val(),group.val(),supp.val(),type.val(),opr.val(),qty.val());
@@ -320,7 +351,8 @@
     opr: opr.val(),
     qty: qty.val(),
     status: searchStatus.val(),
-    location: $("#searchLoc").val()
+    location: $("#searchLoc").val(),
+    hideEmptyQty: $('#toggleHideEmpty').is(':checked') ? 1 : 0   // <-- baru
 });
 
 const loadSummary = (f) => {
@@ -340,8 +372,8 @@ const loadSummary = (f) => {
 $("#btnSearch").click(function (e) {
     e.preventDefault();
     const f = getFilters();
-    showList(f.name, f.code, f.group, f.supp, f.type, f.opr, f.qty, f.status, f.location);
-    loadSummary(f);   // <-- card ikut filter yang sama
+    showList(f.name, f.code, f.group, f.supp, f.type, f.opr, f.qty, f.status, f.location, f.hideEmptyQty);
+    loadSummary(f);
 });
 
 // klik card -> set status filter -> jalankan search
@@ -357,7 +389,7 @@ $('#btnAnalytics').on('click', function () {
     $('#mdlAnalytics').modal('show');
 });
 
-  const showList = (name,code,group,supp,type,opr,qty,status,location) => {
+  const showList = (name,code,group,supp,type,opr,qty,status,location,hideEmptyQty) => {
     if ($('#detailedTable tr').length > 0){
         let table = $('#detailedTable').DataTable();
         table.destroy();
@@ -382,10 +414,14 @@ $('#btnAnalytics').on('click', function () {
             opr:opr,
             qty:qty,
             status:status,
-            location:location      // <-- ikut dikirim ke controller
+            location:location,
+            hideEmptyQty: hideEmptyQty ?? (hideEmptyState ? 1 : 0)   // <-- ganti
         },
         orderColumn:[[ 1, 'asc' ],[ 2, 'asc' ]],
-        excelFileName:'article_stock'
+        excelFileName:'article_stock',
+        drawCallback: function () {
+            if (window.feather) feather.replace();
+        }
     });
 }
 

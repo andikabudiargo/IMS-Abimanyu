@@ -1156,6 +1156,7 @@ class WarehouseControllerv2 extends Controller
     $qty      = $request->qty;
     $operator = $request->opr;
     $location = $request->location;   // location_number (mis. '011'); kosong = All
+    $hideEmptyQty = $request->hideEmptyQty;   // <-- baru
 
     // label lokasi: nama gudang kalau dipilih, 'ALL' kalau semua
     $locationLabel = $location
@@ -1205,7 +1206,7 @@ class WarehouseControllerv2 extends Controller
             $j->on('stock.article_code', '=', 'article.article_code');
         })
         ->leftJoin('uom', 'uom.code', 'article.uom')
-       ->where(function ($query) use ($code, $name, $group, $supp, $type, $operator, $qty, $status) {
+      ->where(function ($query) use ($code, $name, $group, $supp, $type, $operator, $qty, $status, $hideEmptyQty) {
     $code  ? $query->where('article.article_alternative_code', 'ilike', '%'.$code.'%') : '';
     $name  ? $query->where('article.article_desc', 'ilike', '%'.$name.'%') : '';
     $group ? $query->where('article.group_of_material', 'ilike', '%'.$group.'%') : '';
@@ -1219,6 +1220,9 @@ class WarehouseControllerv2 extends Controller
         $query->where('stock.article_qty', '>=', DB::raw('coalesce(safety_stock,0)'));
     } else if ($status == 'empty') {
         $query->where('stock.article_qty', '<=', 0);
+    }
+    if ($hideEmptyQty) {
+        $query->where('stock.article_qty', '>', 0);
     }
 })
         ->orderBy('article_desc')
@@ -1270,6 +1274,7 @@ public function summary(Request $request)
     $qty      = $request->qty;
     $operator = $request->opr;
     $location = $request->location;
+    $hideEmptyQty = $request->hideEmptyQty;
 
     $stockSub = DB::table('warehouse_stock')
         ->select('article_code', DB::raw('sum(article_qty) as article_qty'))
@@ -1278,18 +1283,22 @@ public function summary(Request $request)
         })
         ->groupBy('article_code');
 
-    $base = DB::table('article')
-        ->joinSub($stockSub, 'stock', function ($j) {
-            $j->on('stock.article_code', '=', 'article.article_code');
-        })
-        ->where(function ($query) use ($code, $name, $group, $supp, $type, $operator, $qty) {
-            $code  ? $query->where('article.article_alternative_code', 'ilike', '%'.$code.'%') : '';
-            $name  ? $query->where('article.article_desc', 'ilike', '%'.$name.'%') : '';
-            $group ? $query->where('article.group_of_material', 'ilike', '%'.$group.'%') : '';
-            $supp  ? $query->where('article.third_party', 'ilike', '%'.$supp.'%') : '';
-            $type  ? $query->where('article.article_alternative_code', 'ilike', $type.'%') : '';
-            $operator ? $query->where('stock.article_qty', $operator, (float)$qty) : '';
-        });
+   $base = DB::table('article')
+    ->joinSub($stockSub, 'stock', function ($j) {
+        $j->on('stock.article_code', '=', 'article.article_code');
+    })
+    ->where(function ($query) use ($code, $name, $group, $supp, $type, $operator, $qty, $hideEmptyQty) {   // <-- tambahkan $hideEmptyQty di sini
+        $code  ? $query->where('article.article_alternative_code', 'ilike', '%'.$code.'%') : '';
+        $name  ? $query->where('article.article_desc', 'ilike', '%'.$name.'%') : '';
+        $group ? $query->where('article.group_of_material', 'ilike', '%'.$group.'%') : '';
+        $supp  ? $query->where('article.third_party', 'ilike', '%'.$supp.'%') : '';
+        $type  ? $query->where('article.article_alternative_code', 'ilike', $type.'%') : '';
+        $operator ? $query->where('stock.article_qty', $operator, (float)$qty) : '';
+
+        if ($hideEmptyQty) {                          // <-- tambahkan blok ini
+            $query->where('stock.article_qty', '>', 0);
+        }
+    });
 
     $total    = (clone $base)->count();
     $critical = (clone $base)->whereRaw('stock.article_qty <  coalesce(article.safety_stock,0)')->count();
