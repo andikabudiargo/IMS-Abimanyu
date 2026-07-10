@@ -536,132 +536,153 @@ class ReceivingController extends Controller
 
     public function update(Request $request)
 {
-    $username =  Auth::user()->username;
+    $username  = Auth::user()->username;
     $recNumber = $request->recNumber;
-    $doNumber = $request->doNumber;
-    $doDate = $request->doDate;
+
+    // ---- Ambil header saat ini dulu (untuk validasi status & rec_type asli) ----
+    $currentHeader = DB::table('receiving_hdr')->where('rec_number', $recNumber)->first();
+
+    if (!$currentHeader) {
+        return response()->json([
+            'status' => 0, 'title' => "Update $this->title",
+            'message' => ["Data $recNumber tidak ditemukan"], 'alert' => 'error',
+        ]);
+    }
+
+
+    $doNumber  = $request->doNumber;
+    $doDate    = $request->doDate;
     $invNumber = $request->invNumber;
-    $invDate = $request->invDate;
-    $poNumber = $request->poNumber;
-    $supplier = $request->supp;
-    $recDate = $request->recDate;
-    $note = $request->note;
-    $articles = json_decode($request->articles);
-    $recType = "NORMAL";
-    $statusRec ="Update";
+    $invDate   = $request->invDate;
+    $poNumber  = $request->poNumber;
+    $supplier  = $request->supp;
+    $recDate   = $request->recDate;
+    $note      = $request->note;
+    $articles  = json_decode($request->articles);
+
+    // ---- FIX #1: JANGAN hardcode NORMAL, pertahankan rec_type asli ----
+    $recType   = $currentHeader->rec_type;
+    $statusRec = "Update";
     $authorizedBy = "";
 
     $customMessages = [
         'required' => 'The field is required.',
-        'unique' => 'The code has already been taken', 
-        'iunique' => "Invoice : $invNumber has already been taken on PO : $poNumber",
+        'unique'   => 'The code has already been taken',
+        'iunique'  => "DO Number : $doNumber has already been taken on PO : $poNumber",
     ];
-    
-    Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
-        $query = DB::table($parameters[0]);
-        $column = $query->getGrammar()->wrap($parameters[1]);
+
+    Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber, $recNumber) {
+        $query   = DB::table($parameters[0]);
+        $column  = $query->getGrammar()->wrap($parameters[1]);
         $column2 = $query->getGrammar()->wrap($parameters[2]);
         return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
-                      ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
+                      ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])
+                      ->where('rec_number', '<>', $recNumber) // exclude diri sendiri
+                      ->count();
     });
-    
-    $validation = Validator::make($request->all(),$messages = [
+
+    // ---- FIX #5: pasang validasi doNumber yang tadinya cuma didefinisikan pesannya ----
+    $validation = Validator::make($request->all(), [
         'recDate'  => 'required',
-        'poNumber'  => 'required',
-    ],$customMessages);
-            
-    $error_array = array();
-    $success_output = '';
-    if ($validation->fails()){
-        foreach ($validation->messages()->getMessages() as $field_name => $messages){
+        'poNumber' => 'required',
+        'doNumber' => 'required|iunique:receiving_hdr,do_number,po_number',
+    ], $customMessages);
+
+    if ($validation->fails()) {
+        $error_array = [];
+        foreach ($validation->messages()->getMessages() as $field_name => $messages) {
             $error_array[] = $messages;
         }
-        $title="Update $this->title";
-        $alert ="error";
-        return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
-    }else{
-        DB::beginTransaction();
-        try {
-                $row_affected=DB::table('receiving_hdr')
-                ->where('rec_number',$recNumber)
-                ->update(
-                    [   
-                        'do_number' => $doNumber,
-                        'do_date' => $doDate,
-                        'inv_number' => $invNumber,
-                        'inv_date' => $invDate,
-                        'po_number' => $poNumber,
-                        'supplier_id' => $supplier,
-                        'rec_date' => $recDate,
-                        'authorized_by' => $authorizedBy,
-                        'prepared_by' => Auth::user()->username,
-                        'rec_type' => $recType,
-                        'note' => $note,
-                        'updated_by' => Auth::user()->username,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                );
+        return response()->json([
+            'status' => 0, 'title' => "Update $this->title",
+            'message' => $error_array, 'alert' => 'error',
+        ]);
+    }
 
-                $dataset=[];
-                foreach ($articles as $val) {
-                    $dataSet[] = [
-                        $recNumber.$val->article_code
-                    ];
-                }
+    if (empty($articles)) {
+        return response()->json([
+            'status' => 0, 'title' => "Update $this->title",
+            'message' => ["Articles must be filled in completely"], 'alert' => 'error',
+        ]);
+    }
 
-                //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
-                DB::table('receiving_det')
-                    ->whereNotIn(DB::raw("CONCAT(rec_number,article_code)"),$dataSet)
-                    ->where('rec_number',$recNumber)
-                    ->delete();
+    DB::beginTransaction();
+    try {
+        DB::table('receiving_hdr')
+            ->where('rec_number', $recNumber)
+            ->update([
+                'do_number'     => $doNumber,
+                'do_date'       => $doDate,
+                'inv_number'    => $invNumber,
+                'inv_date'      => $invDate,
+                'po_number'     => $poNumber,
+                'supplier_id'   => $supplier,
+                'rec_date'      => $recDate,
+                'authorized_by' => $authorizedBy,
+                'prepared_by'   => $username,
+                'rec_type'      => $recType,
+                'note'          => $note,
+                'updated_by'    => $username,
+                'updated_at'    => date('Y-m-d H:i:s'),
+            ]);
 
-                // ===== FIX: hitung ulang conv_to / conv_factor / qty_conv, sama seperti store2() =====
-                // supaya kode CPA & JASA ikut tersimpan dan berfungsi saat posting/cancel setelah update
-                foreach ($articles as $val) {
-                    $qty     = (float) $val->qty;
-                    $qtyFree = (float) $val->qty_free;
-                    $factor  = (float) ($val->conv_factor ?? 1);
-                    if ($factor <= 0) { $factor = 1; }
-
-                    // qty dalam satuan stok (conv_to)
-                    $qtyConv = ($qty + $qtyFree) * $factor;
-
-                    DB::table('receiving_det')
-                    ->updateOrInsert(
-                        ['rec_number' => $recNumber,'article_code' => $val->article_code],
-                        [
-                            'rec_number' => $recNumber,
-                            'article_code' => $val->article_code,
-                            'qty' => $val->qty,
-                            'uom_rec' => $val->uom,
-                            'qty_free' => $val->qty_free,
-                            'uom_free' => $val->uom_free,
-                            'price' => $val->price,
-                            'conv_to'      => $val->conv_to ?? $val->uom,
-                            'conv_factor'  => $val->conv_factor ?? 1,
-                            'qty_conv'     => $qtyConv,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s'),
-                            'pr_number' => $val->pr_number,
-                        ]
-                    );
-                }
-                                                            
-                DB::commit();
-                $title ="Update $this->title";
-                $alert  ="success";
-                $message  = "$title $recNumber is successfully updated";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusRec' => $statusRec,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $title ="Update $this->title";
-            $alert  ="warning";
-            $message  = "$title $recNumber is failed to updated";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return response()->json(array('statusRec' => $statusRec,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber));
+        // ---- FIX #2: array datar (string), bukan array bersarang ----
+        $dataSet = [];
+        foreach ($articles as $val) {
+            $dataSet[] = $recNumber . $val->article_code;
         }
+
+        DB::table('receiving_det')
+            ->whereNotIn(DB::raw("CONCAT(rec_number,article_code)"), $dataSet)
+            ->where('rec_number', $recNumber)
+            ->delete();
+
+        foreach ($articles as $val) {
+            $qty     = (float) $val->qty;
+            $qtyFree = (float) $val->qty_free;
+            $factor  = (float) ($val->conv_factor ?? 1);
+            if ($factor <= 0) { $factor = 1; }
+            $qtyConv = ($qty + $qtyFree) * $factor;
+
+            DB::table('receiving_det')->updateOrInsert(
+                ['rec_number' => $recNumber, 'article_code' => $val->article_code],
+                [
+                    'rec_number'   => $recNumber,
+                    'article_code' => $val->article_code,
+                    'qty'          => $val->qty,
+                    'uom_rec'      => $val->uom,
+                    'qty_free'     => $val->qty_free,
+                    'uom_free'     => $val->uom_free,
+                    'price'        => $val->price,
+                    'conv_to'      => $val->conv_to ?? $val->uom,
+                    'conv_factor'  => $val->conv_factor ?? 1,
+                    'qty_conv'     => $qtyConv,
+                    'updated_by'   => $username,
+                    'updated_at'   => date('Y-m-d H:i:s'),
+                    'pr_number'    => $val->pr_number,
+                ]
+            );
+        }
+
+        DB::commit();
+        $title   = "Update $this->title";
+        $message = "$title $recNumber is successfully updated";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return response()->json([
+            'statusRec' => $statusRec, 'status' => 1, 'title' => $title,
+            'message' => $message, 'alert' => 'success', 'recNumber' => $recNumber,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $title   = "Update $this->title";
+        $message = "$title $recNumber is failed to updated";
+        \LogActivity::addToLog($title, "username: $username Status $message: " . $e->getMessage());
+        // ---- FIX #4: status harus 0 kalau gagal ----
+        return response()->json([
+            'statusRec' => $statusRec, 'status' => 0, 'title' => $title,
+            'message' => $message, 'alert' => 'warning', 'recNumber' => $recNumber,
+        ]);
     }
 }
 
