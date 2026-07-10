@@ -34,6 +34,7 @@ class BomReportController extends Controller
             ['data'=>'customer_code','name'=>'customer_code','title'=>'Customer'],
             ['data'=>'article_fg','name'=>'article_fg','title'=>'Article FG'],
             ['data'=>'article_des','name'=>'article_des','title'=>'Article FG Desc'],
+            ['data'=>'tone','name'=>'tone','title'=>'Tone'],   // <-- TAMBAHAN
             ['data'=>'article_consumption','name'=>'article_consumption','title'=>'Article Consumption'],
             ['data'=>'article_consumption_desc','name'=>'article_consumption_desc','title'=>'Article Consumption Desc'],
             ['data'=>'qty','name'=>'qty','title'=>'QTY Bom'],
@@ -99,64 +100,72 @@ class BomReportController extends Controller
     // ===== BAGIAN RM (dari bom_rm) =====
     if (!$articleMaterial) {
         $rm = DB::table('bom_rm')
-            ->leftJoin('bom_hdr','bom_hdr.bom_code','bom_rm.bom_code')
-            ->leftJoin('article','article.article_code','bom_hdr.article_code')
-            ->where('bom_hdr.status','<>','7')
-            ->where(function ($q) use ($searchBom,$articleCode,$articleCodeRm) {
-                $searchBom ? $q->where('bom_rm.bom_code','ilike','%'.$searchBom.'%') : '';
-                $articleCode ? $q->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
-                $articleCodeRm ? $q->where('bom_rm.article_code','ilike','%'.$articleCodeRm.'%') : '';
-            })
-            ->select(
-                'bom_rm.bom_code',
-                'bom_hdr.customer as customer_code',
-                'bom_hdr.status as statusku',
-                'article.article_alternative_code as article_fg',
-                'article.article_desc as article_des',
-                'bom_rm.article_alternative_code as article_consumption',
-                'bom_rm.article_desc as article_consumption_desc',
-                'bom_rm.qty as qty',
-                'bom_rm.uom as uom_bom',
-                DB::raw("NULL as uom_con"),
-                DB::raw("1 as conversi"),
-                'bom_hdr.part_no',
-                'bom_hdr.model',
-                'bom_hdr.group_of_material',
-                DB::raw("NULL as note")
-            );
-        $queries[] = $rm;
+    ->leftJoin('bom_hdr','bom_hdr.bom_code','bom_rm.bom_code')
+    ->leftJoin('article','article.article_code','bom_hdr.article_code')
+    ->where('bom_hdr.status','<>','7')
+    ->where(function ($q) use ($searchBom,$articleCode,$articleCodeRm) {
+        $searchBom ? $q->where('bom_rm.bom_code','ilike','%'.$searchBom.'%') : '';
+        $articleCode ? $q->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
+        $articleCodeRm ? $q->where('bom_rm.article_code','ilike','%'.$articleCodeRm.'%') : '';
+    })
+    ->select(
+        'bom_rm.bom_code',
+        'bom_hdr.customer as customer_code',
+        'bom_hdr.status as statusku',
+        'article.article_alternative_code as article_fg',
+        'article.article_desc as article_des',
+        'bom_rm.article_alternative_code as article_consumption',
+        'bom_rm.article_desc as article_consumption_desc',
+        'bom_rm.qty as qty',
+        'bom_rm.uom as uom_bom',
+        DB::raw("NULL as uom_con"),
+        DB::raw("1 as conversi"),
+        DB::raw("'All' as tone"),          // <-- TAMBAHAN
+        'bom_hdr.part_no',
+        'bom_hdr.model',
+        'bom_hdr.group_of_material',
+        DB::raw("NULL as note")
+    );
+$queries[] = $rm;
     }
 
     // ===== BAGIAN CHEMICAL (dari bom_det) =====
     if (!$articleCodeRm) {
-        $chemical = DB::table('bom_det')
-            ->leftJoin('bom_hdr','bom_hdr.bom_code','bom_det.bom_code')
-            ->leftJoin('article','article.article_code','bom_hdr.article_code')
-            ->leftJoin('article as b','b.article_code','bom_det.article_code')
-            ->where('bom_hdr.status','<>','7')
-            ->where(function ($q) use ($searchBom,$articleCode,$articleMaterial) {
-                $searchBom ? $q->where('bom_det.bom_code','ilike','%'.$searchBom.'%') : '';
-                $articleCode ? $q->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
-                $articleMaterial ? $q->where('bom_det.article_code','ilike','%'.$articleMaterial.'%') : '';
-            })
-            ->select(
-                'bom_det.bom_code',
-                'bom_hdr.customer as customer_code',
-                'bom_hdr.status as statusku',
-                'article.article_alternative_code as article_fg',
-                'article.article_desc as article_des',
-                'b.article_alternative_code as article_consumption',
-                'b.article_desc as article_consumption_desc',
-                'bom_det.qty as qty',
-                'bom_det.uom as uom_bom',
-                'bom_det.uom_con as uom_con',
-                DB::raw("(coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = b.uom),1)) as conversi"),
-                'bom_hdr.part_no',
-                'bom_hdr.model',
-                'bom_hdr.group_of_material',
-                'bom_det.note'
-            );
-        $queries[] = $chemical;
+       $chemical = DB::table('bom_det')
+    ->leftJoin('bom_hdr','bom_hdr.bom_code','bom_det.bom_code')
+    ->leftJoin('article','article.article_code','bom_hdr.article_code')
+    ->leftJoin('article as b','b.article_code','bom_det.article_code')
+    ->where('bom_hdr.status','<>','7')
+    ->where(function ($q) use ($searchBom,$articleCode,$articleMaterial) {
+        $searchBom ? $q->where('bom_det.bom_code','ilike','%'.$searchBom.'%') : '';
+        $articleCode ? $q->where('bom_hdr.article_code','ilike','%'.$articleCode.'%') : '';
+        $articleMaterial ? $q->where('bom_det.article_code','ilike','%'.$articleMaterial.'%') : '';
+    })
+    ->select(
+        'bom_det.bom_code',
+        'bom_hdr.customer as customer_code',
+        'bom_hdr.status as statusku',
+        'article.article_alternative_code as article_fg',
+        'article.article_desc as article_des',
+        'b.article_alternative_code as article_consumption',
+        'b.article_desc as article_consumption_desc',
+        'bom_det.qty as qty',
+        'bom_det.uom as uom_bom',
+        'bom_det.uom_con as uom_con',
+        DB::raw("(coalesce((select unit_factor from uom_con where unit_from = bom_det.uom_con and unit_to = b.uom),1)) as conversi"),
+        DB::raw("CASE bom_det.tone
+                    WHEN 't1' THEN 'TONE 1'
+                    WHEN 't2' THEN 'TONE 2'
+                    WHEN 't3' THEN 'TONE 3'
+                    WHEN 't4' THEN 'TONE 4'
+                    ELSE 'All'
+                  END as tone"),                 // <-- TAMBAHAN
+        'bom_hdr.part_no',
+        'bom_hdr.model',
+        'bom_hdr.group_of_material',
+        'bom_det.note'
+    );
+$queries[] = $chemical;
     }
 
     
