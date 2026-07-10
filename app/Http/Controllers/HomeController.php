@@ -474,8 +474,13 @@ if ($data['showCriticalStock']) {
             DB::raw('coalesce(ws.article_qty,0) as stock_qty'),
             'tp.nama as supplier_name'
         )
-        ->whereRaw('coalesce(ws.article_qty,0) < coalesce(a.safety_stock,0)')
-        ->orderBy('a.article_desc')
+       ->where(function($q){
+    $q->whereRaw('coalesce(ws.article_qty,0) < coalesce(a.safety_stock,0)')
+      ->orWhere(function($q2){
+          $q2->whereNull('a.safety_stock')->where('ws.article_qty', '<=', 0);
+      });
+})
+        ->orderBy('a.article_code')
         ->get();
 } else {
     $data['listCriticalStock'] = collect();
