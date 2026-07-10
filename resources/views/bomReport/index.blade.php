@@ -141,7 +141,7 @@
         articleMaterial:articleMaterial,
         articleCodeRm:articleCodeRm
       },
-      orderColumn:[[ 1, 'desc' ]],
+      orderColumn:[[ 0, 'desc' ]],
       excelFileName:'detail_bom',
       
     });
