@@ -2050,7 +2050,7 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
 
     }
 
-    public function getArticle(Request $request){
+   public function getArticle(Request $request){
     $custCode = $request->custCode;
     $siteCode = $this->siteCode;   // 'HO'
     $location = $this->locationFg; // '007'
@@ -2064,7 +2064,6 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
         })
         ->where('third_party',$custCode)
         ->where('article_type','FG')
-        ->whereRaw("coalesce((select article_qty from warehouse_stock where site_code = '$siteCode' and article_code = article.article_code and location_number = '$location'),0) > 0")
         ->select(
             'article.article_code',
             'article.article_alternative_code',
