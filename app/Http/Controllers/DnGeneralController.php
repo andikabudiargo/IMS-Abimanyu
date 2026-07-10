@@ -1127,56 +1127,71 @@ class DnGeneralController extends Controller
     }
 
     public function articlesByType(Request $request)
-    {
-        $type   = $request->type;
-        $gudang = $this->gudangMap[$type] ?? null;
+{
+    $type   = $request->type;
+    $gudang = $this->gudangMap[$type] ?? null;
 
-        if (!$gudang) {
-            return response()->json([]);
-        }
-
-        // ── OTHER: semua artikel AKTIF kecuali group of material = JS ──
-        // Tidak dibatasi customer/supplier & tidak wajib punya stok.
-        if ($type === 'other') {
-            return DB::table('article as a')
-                ->leftJoin('warehouse_stock as s', function ($join) use ($gudang) {
-                    $join->on('s.article_code', '=', 'a.article_code')
-                         ->where('s.location_number', '=', $gudang);
-                })
-                ->where('a.is_active', 'Y')
-                ->where(function ($q) {
-                    $q->where('a.group_of_material', '!=', 'JS')
-                      ->orWhereNull('a.group_of_material');
-                })
-                ->select(
-                    'a.article_code             as code',
-                    'a.article_alternative_code as alt_code',
-                    'a.article_desc             as name',
-                    DB::raw('coalesce(s.article_qty, 0) as qty'),
-                    'a.uom'
-                )
-                ->orderBy('a.article_alternative_code')
-                ->get();
-        }
-
-        // ── RM / OT: dibatasi supplier/customer + wajib ada stok ──
-        if (!$request->customer) {
-            return response()->json([]);
-        }
-
-        return DB::table('warehouse_stock as s')
-            ->join('article as a', 's.article_code', '=', 'a.article_code')
-            ->where('s.location_number', $gudang)
-            ->where('s.article_qty', '>', 0)
-            ->where('a.third_party', $request->customer)
+    // ── OTHER: semua artikel AKTIF kecuali group of material = JS ──
+    if ($type === 'other') {
+        return DB::table('article as a')
+            ->leftJoin('warehouse_stock as s', function ($join) use ($gudang) {
+                $join->on('s.article_code', '=', 'a.article_code')
+                     ->where('s.location_number', '=', $gudang);
+            })
+            ->where('a.is_active', 'Y')
+            ->where(function ($q) {
+                $q->where('a.group_of_material', '!=', 'JS')
+                  ->orWhereNull('a.group_of_material');
+            })
             ->select(
                 'a.article_code             as code',
                 'a.article_alternative_code as alt_code',
                 'a.article_desc             as name',
-                's.article_qty              as qty',
+                DB::raw('coalesce(s.article_qty, 0) as qty'),
                 'a.uom'
             )
             ->orderBy('a.article_alternative_code')
             ->get();
     }
+
+    if (!$request->customer) {
+        return response()->json([]);
+    }
+
+    // ── FG: tidak cek gudang & stok, hanya berdasarkan customer ──
+    if ($type === 'fg') {
+        return DB::table('article as a')
+            ->where('a.article_type', 'FG')
+            ->where('a.third_party', $request->customer)
+            ->select(
+                'a.article_code             as code',
+                'a.article_alternative_code as alt_code',
+                'a.article_desc             as name',
+                DB::raw('0 as qty'),
+                'a.uom'
+            )
+            ->orderBy('a.article_alternative_code')
+            ->get();
+    }
+
+    // ── RM / OT: berdasarkan gudang + stok + customer ──
+    if (!$gudang) {
+        return response()->json([]);
+    }
+
+    return DB::table('warehouse_stock as s')
+        ->join('article as a', 's.article_code', '=', 'a.article_code')
+        ->where('s.location_number', $gudang)
+        ->where('s.article_qty', '>', 0)
+        ->where('a.third_party', $request->customer)
+        ->select(
+            'a.article_code             as code',
+            'a.article_alternative_code as alt_code',
+            'a.article_desc             as name',
+            's.article_qty              as qty',
+            'a.uom'
+        )
+        ->orderBy('a.article_alternative_code')
+        ->get();
+}
 }

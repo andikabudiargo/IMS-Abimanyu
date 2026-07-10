@@ -205,38 +205,39 @@ class DnReplaceController extends Controller
      * kalau baris stock belum ada sebelumnya.
      */
     private function decrementStock($articleCode, $locationCode, $qtyKeluar)
-    {
-        if ($qtyKeluar <= 0) {
-            return null;
-        }
+{
+    if ($qtyKeluar <= 0) {
+        return null;
+    }
 
-        $stockRow = DB::table('warehouse_stock')
+    $siteCode = 'HO';   // ← tambahkan ini
+
+    $stockRow = DB::table('warehouse_stock')
+        ->where('site_code', $siteCode)          // ← tambahkan
+        ->where('article_code', $articleCode)
+        ->where('location_number', $locationCode)
+        ->lockForUpdate()
+        ->first();
+
+    if ($stockRow) {
+        DB::table('warehouse_stock')
+            ->where('site_code', $siteCode)      // ← tambahkan
             ->where('article_code', $articleCode)
             ->where('location_number', $locationCode)
-            ->lockForUpdate()
-            ->first();
+            ->decrement('article_qty', $qtyKeluar);
 
-        if ($stockRow) {
-            DB::table('warehouse_stock')
-                ->where('article_code', $articleCode)
-                ->where('location_number', $locationCode)
-                ->decrement('article_qty', $qtyKeluar);
-
-            return $stockRow->avg_price ?? 0;
-        }
-
-        // Belum ada baris stock utk artikel ini -> buat baru (boleh minus)
-        // supaya stock & movement tetap sinkron.
-        // NOTE: kalau warehouse_stock punya kolom NOT NULL lain tanpa default,
-        // tambahkan di array insert ini.
-        DB::table('warehouse_stock')->insert([
-            'article_code'    => $articleCode,
-            'location_number' => $locationCode,
-            'article_qty'     => -$qtyKeluar,
-        ]);
-
-        return 0;
+        return $stockRow->avg_price ?? 0;
     }
+
+    DB::table('warehouse_stock')->insert([
+        'site_code'       => $siteCode,          // ← tambahkan — ini yang bikin error kamu
+        'article_code'    => $articleCode,
+        'location_number' => $locationCode,
+        'article_qty'     => -$qtyKeluar,
+    ]);
+
+    return 0;
+}
 
     /**
      * Validasi kuota terhadap RETURN (pengganti cek stock):
@@ -396,20 +397,22 @@ class DnReplaceController extends Controller
      * dengan DB::beginTransaction()/commit() di caller.
      */
     private function unPosting($replaceNumber, $username)
-    {
-        $locationFG = '007';
+{
+    $siteCode   = 'HO';   // ← tambahkan
+    $locationFG = '007';
 
-        $detail = DB::table('dn_replace_det')
-            ->where('replace_number', $replaceNumber)
-            ->where('qty', '<>', 0)
-            ->get();
+    $detail = DB::table('dn_replace_det')
+        ->where('replace_number', $replaceNumber)
+        ->where('qty', '<>', 0)
+        ->get();
 
-        foreach ($detail as $val) {
-            DB::table('warehouse_stock')
-                ->where('article_code', $val->article_code)
-                ->where('location_number', $locationFG)
-                ->increment('article_qty', (float) $val->qty);
-        }
+    foreach ($detail as $val) {
+        DB::table('warehouse_stock')
+            ->where('site_code', $siteCode)      // ← tambahkan
+            ->where('article_code', $val->article_code)
+            ->where('location_number', $locationFG)
+            ->increment('article_qty', (float) $val->qty);
+    }
 
         DB::table('warehouse_movement')
             ->where('movement_transnno', $replaceNumber)
