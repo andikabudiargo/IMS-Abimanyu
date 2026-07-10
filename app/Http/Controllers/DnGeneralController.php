@@ -376,8 +376,8 @@ class DnGeneralController extends Controller
             return response()->json(['status' => 0, 'message' => ['Minimal 1 artikel harus diisi.'], 'alert' => 'warning']);
         }
 
-        // ── Validasi stok (kecuali artikel manual OTHER) ──
-        $stockErrors = [];
+        // ── Validasi dasar saja — TANPA cek stok gudang (overstock diizinkan, stok boleh minus) ──
+        $validErrors = [];
         foreach ($articles as $val) {
             if ($this->isManualArticle($val->article_code)) {
                 continue;
@@ -385,29 +385,21 @@ class DnGeneralController extends Controller
 
             $qty = (float) $val->qty;
             if ($qty <= 0) {
-                $stockErrors[] = "Qty untuk {$val->article_code} harus lebih dari 0.";
+                $validErrors[] = "Qty untuk {$val->article_code} harus lebih dari 0.";
                 continue;
             }
 
-            $articleInfo = DB::table('article')
+            $exists = DB::table('article')
                 ->where('article_code', $val->article_code)
-                ->select('article_desc', 'article_alternative_code')
-                ->first();
+                ->exists();
 
-            if (!$articleInfo) {
-                $stockErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
-                continue;
-            }
-
-            $stockNow = $this->currentStock($val->article_code, $location);
-            if ($stockNow < $qty) {
-                $stockErrors[] = "Stock {$articleInfo->article_alternative_code} - {$articleInfo->article_desc} "
-                    . "tidak cukup (stock: {$stockNow}, butuh: {$qty})";
+            if (!$exists) {
+                $validErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
             }
         }
 
-        if (!empty($stockErrors)) {
-            return response()->json(['status' => 0, 'message' => $stockErrors, 'alert' => 'warning']);
+        if (!empty($validErrors)) {
+            return response()->json(['status' => 0, 'message' => $validErrors, 'alert' => 'warning']);
         }
 
         AppHelpers::resetCode($leadCode);
@@ -609,9 +601,8 @@ class DnGeneralController extends Controller
             ->where('article_code', '!=', self::MANUAL_CODE)
             ->get();
 
-        // ── Validasi stok baru ──
-        // Stok tersedia = stok sekarang + qty lama artikel yang sama (karena akan di-reverse)
-        $stockErrors = [];
+        // ── Validasi dasar saja — TANPA cek stok gudang (overstock diizinkan, stok boleh minus) ──
+        $validErrors = [];
         foreach ($articles as $val) {
             if ($this->isManualArticle($val->article_code)) {
                 continue;
@@ -619,32 +610,21 @@ class DnGeneralController extends Controller
 
             $qty = (float) $val->qty;
             if ($qty <= 0) {
-                $stockErrors[] = "Qty untuk {$val->article_code} harus lebih dari 0.";
+                $validErrors[] = "Qty untuk {$val->article_code} harus lebih dari 0.";
                 continue;
             }
 
-            $articleInfo = DB::table('article')
+            $exists = DB::table('article')
                 ->where('article_code', $val->article_code)
-                ->select('article_desc', 'article_alternative_code')
-                ->first();
+                ->exists();
 
-            if (!$articleInfo) {
-                $stockErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
-                continue;
-            }
-
-            $stockNow = $this->currentStock($val->article_code, $location);
-            $oldQty   = (float) $oldDetails->where('article_code', $val->article_code)->sum('qty');
-            $stockAvailable = $stockNow + $oldQty;
-
-            if ($stockAvailable < $qty) {
-                $stockErrors[] = "Stock {$articleInfo->article_alternative_code} - {$articleInfo->article_desc} "
-                    . "tidak cukup (stock tersedia: {$stockAvailable}, butuh: {$qty})";
+            if (!$exists) {
+                $validErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
             }
         }
 
-        if (!empty($stockErrors)) {
-            return response()->json(['status' => 0, 'message' => $stockErrors, 'alert' => 'warning']);
+        if (!empty($validErrors)) {
+            return response()->json(['status' => 0, 'message' => $validErrors, 'alert' => 'warning']);
         }
 
         $partnerType = $this->resolvePartnerType($dnType, $customerId);
