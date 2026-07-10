@@ -88,27 +88,36 @@ class DnGeneralController extends Controller
         return view("dnGeneral.index",$data);
     }
 
-    public function getLastCode($key)
-    {
-        DB::table('master_code')
-        ->where('code_key',$key)
-        ->update([
-            'code_number' => DB::raw('code_number + 1'),
-            'updated_by' => Auth::user()->username,
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
+    public function getLastCode($key, $prefix = null, $deliveryDate = null)
+{
+    $prefix = $prefix ?? $key;   // kalau tidak diisi, pakai $key seperti dulu
 
-        $newCode = DB::table('master_code')
-        ->where('code_key',$key)
-        ->value('code_number'); 
+    DB::table('master_code')
+    ->where('code_key', $key)
+    ->update([
+        'code_number' => DB::raw('code_number + 1'),
+        'updated_by'  => Auth::user()->username,
+        'updated_at'  => date('Y-m-d H:i:s')
+    ]);
 
-        $newCode = str_pad($newCode,5,"0", STR_PAD_LEFT);
-        $month = str_pad(date('n'),2,"0", STR_PAD_LEFT);
-        $year = date('y');
-        $prNumber="$key-$year-$month-$newCode";
-        
-        return $prNumber;
+    $newCode = DB::table('master_code')
+    ->where('code_key', $key)
+    ->value('code_number');
+
+    $newCode = str_pad($newCode, 5, "0", STR_PAD_LEFT);
+
+    // Ambil bulan & tahun dari delivery_date (format DD-MM-YYYY), fallback ke tanggal hari ini
+    if ($deliveryDate) {
+        $parts = explode('-', $deliveryDate);   // [DD, MM, YYYY]
+        $month = str_pad($parts[1], 2, "0", STR_PAD_LEFT);
+        $year  = substr($parts[2], -2);          // 2026 -> 26
+    } else {
+        $month = str_pad(date('n'), 2, "0", STR_PAD_LEFT);
+        $year  = date('y');
     }
+
+    return "$prefix-$year-$month-$newCode";   // contoh: DN-UMUM-26-07-00001
+}
 
     public function create(Request $request)
 {
@@ -203,21 +212,21 @@ public function store(Request $request)
         };
 
         // CEK STOCK semua article (kecuali manual)
-        $stockErrors = [];
-        foreach ($articles as $val) {
-            if ($isManual($val->article_code)) {
-                continue;
-            }
+      //  $stockErrors = [];
+      //  foreach ($articles as $val) {
+        //    if ($isManual($val->article_code)) {
+          //      continue;
+            //}
 
-            $articleInfo = DB::table('article')
-                ->where('article_code', $val->article_code)
-                ->select('article_desc', 'article_alternative_code')
-                ->first();
+            //$articleInfo = DB::table('article')
+              //  ->where('article_code', $val->article_code)
+                //->select('article_desc', 'article_alternative_code')
+                //->first();
 
-            if (!$articleInfo) {
-                $stockErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
-                continue;
-            }
+            //if (!$articleInfo) {
+              //  $stockErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
+                //continue;
+            //}
 
             $qty = $val->qty;
 
@@ -238,7 +247,7 @@ public function store(Request $request)
         }
 
         $hasilUpdate = AppHelpers::resetCode($leadCode);
-        $tDnNumber   = $this->getLastCode($leadCode);
+$tDnNumber   = $this->getLastCode($leadCode, 'DN-UMUM', $deliveryDate);
 
         DB::beginTransaction();
         try {
@@ -542,19 +551,19 @@ $movementSet[] = [
 
     // Cek stock artikel BARU (kecuali manual)
     // Stock yang tersedia = stock sekarang + stock lama artikel yang sama (karena nanti di-reverse)
-    $stockErrors = [];
-    foreach ($articles as $val) {
-        if ($isManual($val->article_code)) continue;
+   // $stockErrors = [];
+    //foreach ($articles as $val) {
+      //  if ($isManual($val->article_code)) continue;
 
-        $articleInfo = DB::table('article')
-            ->where('article_code', $val->article_code)
-            ->select('article_desc', 'article_alternative_code')
-            ->first();
+        //$articleInfo = DB::table('article')
+          //  ->where('article_code', $val->article_code)
+            //->select('article_desc', 'article_alternative_code')
+            //->first();
 
-        if (!$articleInfo) {
-            $stockErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
-            continue;
-        }
+        //if (!$articleInfo) {
+          //  $stockErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
+            //continue;
+        //}
 
         $stockNow = DB::table('warehouse_stock')
             ->where('site_code', $siteCode)
@@ -701,7 +710,7 @@ $movementSet[] = [
                 'movement_plus'     => 0,
                 'movement_price'    => 0,
                 'movement_transnno' => $tDnNumber,
-                'movement_type'     => 'SURAT JALAN UMUM',
+                'movement_type'     => 'DN UMUM',
                 'movement_desc'     => $perihal,
                 'movement_from'     => $location,
                 'partner_type'      => $partnerType,
@@ -843,8 +852,8 @@ $movementSet[] = [
                 'movement_plus'     => $det->qty,
                 'movement_price'    => 0,
                 'movement_transnno' => $tDnNumber . '(C)',
-                'movement_type'     => 'DELETE DN GENERAL',
-                'movement_desc'     => "Delete DN General: $tDnNumber",
+                'movement_type'     => 'DELETE SURAT JALAN UMUM',
+                'movement_desc'     => "Delete DN Umum: $tDnNumber",
                 'movement_from'     => null,
                 'partner_type'      => null,
                 'movement_to'       => $dnHdr->customer_id,
@@ -1578,21 +1587,48 @@ $movementSet[] = [
         'other' => '011',
     ];
 
-    $gudang = isset($gudangMap[$request->type]) ? $gudangMap[$request->type] : null;
+    $type   = $request->type;
+    $gudang = $gudangMap[$type] ?? null;
 
-    if (!$gudang || !$request->customer) return response()->json([]);
+    if (!$gudang) return response()->json([]);
+
+    // ── OTHER: semua artikel AKTIF, KECUALI group of material = JS ──
+    // Tidak dibatasi per customer/supplier & tidak wajib punya stok.
+    if ($type === 'other') {
+        return DB::table('article as a')
+            ->leftJoin('warehouse_stock as s', function ($join) use ($gudang) {
+                $join->on('s.article_code', '=', 'a.article_code')
+                     ->where('s.location_number', '=', $gudang);
+            })
+            ->where('a.is_active', 'Y')                       // ← SESUAIKAN kolom "aktif"
+            ->where(function ($q) {
+                $q->where('a.group_of_material', '!=', 'JS')  // ← SESUAIKAN nama kolom group
+                  ->orWhereNull('a.group_of_material');
+            })
+            ->select(
+                'a.article_code             as code',
+                'a.article_alternative_code as alt_code',
+                'a.article_desc             as name',
+                DB::raw('coalesce(s.article_qty, 0) as qty'),
+                'a.uom'
+            )
+            ->orderBy('a.article_alternative_code')
+            ->get();
+    }
+
+    // ── RM / OT: tetap dibatasi supplier/customer + wajib ada stok ──
+    if (!$request->customer) return response()->json([]);
 
     return DB::table('warehouse_stock as s')
-        ->join('article as a',     's.article_code', '=', 'a.article_code')
-        ->join('third_party as t', 'a.third_party',  '=', 't.kode')
+        ->join('article as a', 's.article_code', '=', 'a.article_code')
         ->where('s.location_number', $gudang)
         ->where('s.article_qty', '>', 0)
-        ->where('t.kode', $request->customer)
+        ->where('a.third_party', $request->customer)
         ->select(
-            'a.article_code                as code',
-            'a.article_alternative_code    as alt_code',  // ← tambah ini
-            'a.article_desc                as name',
-            's.article_qty                 as qty',
+            'a.article_code             as code',
+            'a.article_alternative_code as alt_code',
+            'a.article_desc             as name',
+            's.article_qty              as qty',
             'a.uom'
         )
         ->orderBy('a.article_alternative_code')

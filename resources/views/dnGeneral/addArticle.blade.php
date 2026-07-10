@@ -307,16 +307,7 @@
                 flag = 1; return;
             }
 
-            // Validasi stok (kecuali artikel manual)
-            var isManual = ($row.attr('data-manual') === '1') || (code === 'OTHER');
-            if (!isManual) {
-                var stock = parseFloat($row.attr('data-stock') || '0') || 0;
-                if (Number(qty) > stock) {
-                    pesan += 'QTY artikel <b>' + (name || code) + '</b> (' + Number(qty).toLocaleString('en-US') +
-                             ') melebihi stok gudang (' + stock.toLocaleString('en-US') + ').<br>';
-                    flag = 1; return;
-                }
-            }
+           
 
             // Duplikat: other yang manual (kode OTHER) cek pakai deskripsi;
             // other yang dari daftar (kode asli) cek pakai kode
