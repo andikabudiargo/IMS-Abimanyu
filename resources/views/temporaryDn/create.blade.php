@@ -114,42 +114,36 @@
             let flag=0;
             let pesan="";
 
-            $("#article_row select[name='articleCode[]']").map(function(i) {
-                let $this=$(this);
-                if ($this.val()){
-                    let articleCode=$this.val();
-                    let articleName=$this.select2('data')[0].text;
-                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                    let uom=objUom.eq(i).text();
-                    let stock=parseFloat(objStock.eq(i).data('stock')) || 0; // baru
+           $("#article_row select[name='articleCode[]']").map(function(i) {
+    let $this=$(this);
+    if ($this.val()){
+        let articleCode=$this.val();
+        let articleName=$this.select2('data')[0].text;
+        let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+        let uom=objUom.eq(i).text();
 
-                    let obj = $.grep(articles, function(obj){
-                        return obj.article_code === articleCode;
-                    })[0];
+        let obj = $.grep(articles, function(obj){
+            return obj.article_code === articleCode;
+        })[0];
 
-                    if(obj) {
-                        pesan +="Article "+articleName+" entered more than once !! <br>";
-                        flag=1;
-                    } else {
-                        if ((articleCode!=='') && (qty> 0)){
-                            articles.push({
-                                "article_code":articleCode,
-                                "qty":qty,
-                                "uom":uom
-                            });
-                        }
-                    }
-                    if ( qty == 0 ){
-                        pesan +=`QTY of items ${articleName} cannot be 0 <br>`;
-                        flag=1;
-                    }
-                    // validasi stock: qty tidak boleh melebihi stock FG
-                    if ( parseFloat(qty) > stock ){
-                        pesan += `QTY ${articleName} (${qty}) melebihi stock FG (${stock}) <br>`;
-                        flag=1;
-                    }
-                }
-            });
+        if(obj) {
+            pesan +="Article "+articleName+" entered more than once !! <br>";
+            flag=1;
+        } else {
+            if ((articleCode!=='') && (qty> 0)){
+                articles.push({
+                    "article_code":articleCode,
+                    "qty":qty,
+                    "uom":uom
+                });
+            }
+        }
+        if ( qty == 0 ){
+            pesan +=`QTY of items ${articleName} cannot be 0 <br>`;
+            flag=1;
+        }
+    }
+});
 
             if (articles.length == 0){
                 pesan +="Articles must be filled in completely <br>";

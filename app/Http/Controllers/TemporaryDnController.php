@@ -174,10 +174,10 @@ class TemporaryDnController extends Controller
 
     // Cek stock dulu sebelum ambil nomor & insert apapun (validasi awal saja).
     // Pemotongan stok TIDAK dilakukan di sini - itu terjadi saat posting (klik Print).
-    $stockErrors = $this->checkStockTdn($articles);
-    if (!empty($stockErrors)) {
-        return response()->json(['status' => 0, 'message' => $stockErrors, 'alert' => 'warning']);
-    }
+    //$stockErrors = $this->checkStockTdn($articles);
+    //if (!empty($stockErrors)) {
+      //  return response()->json(['status' => 0, 'message' => $stockErrors, 'alert' => 'warning']);
+    //}
 
     $hasilUpdate = AppHelpers::resetCode($leadCode);
     $tDnNumber   = $this->getLastCode($leadCode);
@@ -330,13 +330,13 @@ public function posting(Request $request)
         ->get();
 
     // Cek stok sebelum potong (jaga-jaga stok berubah sejak TDN dibuat)
-    $stockErrors = $this->checkStockTdn($articles);
-    if (!empty($stockErrors)) {
-        return response()->json([
-            'status' => 0, 'title' => "Posting $this->title",
-            'message' => $stockErrors, 'alert' => 'warning', 'tDnNumber' => $tDnNumber,
-        ]);
-    }
+   // $stockErrors = $this->checkStockTdn($articles);
+    //if (!empty($stockErrors)) {
+      //  return response()->json([
+        //    'status' => 0, 'title' => "Posting $this->title",
+          //  'message' => $stockErrors, 'alert' => 'warning', 'tDnNumber' => $tDnNumber,
+        //]);
+    //}
 
     DB::beginTransaction();
     try {
