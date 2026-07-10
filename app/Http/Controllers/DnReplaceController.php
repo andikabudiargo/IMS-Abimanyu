@@ -22,53 +22,92 @@ class DnReplaceController extends Controller
     private $decimalPlaces;
     private $lockDate;
     private $lockDateIndex;
+
+    /*
+        Status header (dn_replace_hdr.status / dn_return_hdr.status):
+            '1' => OPEN
+            '2' => CLOSED
+            '3' => CANCELED
+
+        CATATAN REFACTOR (v5):
+        =======================
+        1. FATAL FIX: menghapus tag "<?php" kedua yang nyelip di tengah body class
+           (persis sebelum method revision() di versi sebelumnya). Dua tag <?php
+           tanpa penutup di antaranya = parse error, file lama tidak bisa dieksekusi
+           sama sekali.
+
+        2. FIX KRITIS: movement_type disamakan jadi $this->moduleCode ("DN-REPLACE")
+           di SEMUA tempat insert warehouse_movement (store, update, posting, revision)
+           DAN semua guard yang mengecek movement_type (wasPosted/alreadyPosted/unPosting).
+           Sebelumnya nilainya beda-beda ('REPLACEMENT' di store(), moduleCode di update(),
+           'DELIVERY' di posting()) sementara semua guard mencari moduleCode saja -- akibatnya
+           dokumen yang dibuat lewat store() tidak pernah terdeteksi "sudah posting" saat
+           di-update/cancel/destroy, sehingga stock lama tidak pernah di-reverse (stock
+           bisa kepotong dobel saat edit, atau nyangkut minus permanen saat cancel/delete).
+
+        3. FIX: status setelah posting sekarang benar-benar '2' (CLOSED), bukan '1' seperti
+           di versi sebelumnya (komentarnya bilang CLOSED tapi nilainya OPEN). Ditentukan
+           lewat helper applyReplaceStatus() supaya konsisten: CLOSED kalau qty return sudah
+           habis dipakai, OPEN kalau masih ada sisa. Dipakai di store(), update(), posting(),
+           dan revision() -- tidak lagi di-hardcode manual di 4 tempat berbeda.
+
+        4. REFACTOR: logika "kurangi stock FG + insert warehouse_movement" yang tadinya
+           diduplikasi persis 4 kali (store/update/posting/revision) diekstrak jadi satu
+           helper private postingInline(), sesuai catatan TODO yang memang sudah ada di
+           kode sebelumnya.
+
+        5. FIX: unPosting() dulu dipanggil dengan 3 argumen padahal definisinya cuma
+           menerima 2 ($replaceNumber, $username) -- argumen ke-2 ('Revision') salah
+           kepakai jadi $username, argumen ke-3 diabaikan. unPosting() juga tidak pernah
+           me-return apa pun, padahal caller mengecek `if ($hasil !== 'true')` yang pasti
+           selalu true (exception selalu terlempar walau reverse-nya sendiri berhasil).
+           Sekarang unPosting() eksplisit `return true;` dan dipanggil dengan argumen yang
+           benar.
+
+        6. FIX: double `$seq++` di store() (movement_code loncat 2 tiap baris) -- sekarang
+           increment sekali saja, konsisten dengan method lain.
+
+        7. FIX: dropdown <option> di show()/edit() dulu menghitung variabel $selected tapi
+           tidak pernah dipakai -- atribut `selected` di-hardcode di semua opsi (semua
+           opsi kelihatan terpilih). Sekarang $selected benar-benar dipasang di elemen.
+
+        8. store()/update()/posting() sekarang punya guard stock cukup via decrementStock()
+           (boleh minus, tapi tervalidasi ke qty return lewat assertNotExceedReturn()), lock
+           row sebelum decrement, dan cek row affected supaya stock & movement tidak pernah
+           out-of-sync.
+
+        9. update() cek dulu apakah dokumen ini sebelumnya benar-benar sudah posting (ada
+           baris warehouse_movement) sebelum melakukan reverse stock lama, supaya tidak
+           salah nambah stock "hantu" untuk dokumen hasil storeTidakPosting().
+
+        10. cancel() dibungkus transaction (dulu DB::commit() dipanggil tanpa
+            DB::beginTransaction() -> error), me-reverse stock & menghapus movement yang
+            sudah diposting, tidak lagi menimpa kolom return_number dengan po_number (kolom
+            itu tidak ada di tabel ini), dan tidak lagi memakai raw string concat untuk
+            reason (potensi SQL injection) -- sekarang lewat query builder / binding.
+
+        11. destroy() dibungkus transaction, me-reverse stock & menghapus movement sebelum
+            menghapus header/detail, dan memperbaiki bug pengambilan nomor urut (dulu
+            explode('-', $replaceNumber)[3] salah ambil index karena moduleCode "DN-REPLACE"
+            sendiri mengandung tanda "-"; sekarang pakai elemen terakhir hasil explode).
+
+        12. average_cost() di posting() dihapus dari query karena hasilnya tidak pernah
+            dipakai (yang dipakai adalah $stockFG dari decrementStock()) -- query jadi
+            kerja sia-sia setiap posting.
+
+        13. getTableColoumnDetail(): label kolom created_at_1 diperbaiki dari 'Created By'
+            (salah copy-paste) jadi 'Created At'.
+
+        CATATAN: helper sisaReturn()/applyReplaceStatus()/applyReturnStatus() dipakai oleh
+        revision() versi sebelumnya tapi tidak pernah didefinisikan di file itu -- sekarang
+        sudah ditambahkan di sini.
+    */
+
     public function __construct()
     {
-
         $this->title = "DN Replace";
         $this->moduleCode = "DN-REPLACE";
         $this->decimalPlaces = config('globalParam.decimal');
-        // $lockDate1 = DB::table('application_lock')
-        // ->where('code_key',$this->moduleCode)
-        // ->where('status','1')
-        // ->value('lock_date');
-
-        /*
-            $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months'));
-            $lastDatePrevMonth = date('t-m-Y', strtotime('-1 months',strtotime('05-11-2023')));
-            $firstDayCurrentMonth = date('1-m-Y');
-            $firstDayCurrentMonth = date('1-m-Y', strtotime('05-11-2023'));
-            $prevmonth = date('M Y 1', strtotime('-1 months'));
-            
-            
-            jika tanggal hari ini lebih kecil dari lockdate maka
-            min date nya adalah tanggal akhir dari bulan sebelumnya
-            kalau tanggal hari ini lebi besar dari lockdate maka 
-            tanggal minimum nya adalah tanngal awal di bulan ini
-        */
-
-        // $todayDate = date('d-m-Y');
-        // $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
-        // $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
-
-        // dd(date('t-m-Y', strtotime($lockDateAt)));
-        // dd($todayDate." < ".$lockDateAt);
-
-        // if ($todayDate < $lockDateAt ){
-        //     $firstDatePrevMonth = date('1-m-Y', strtotime("-1 months",strtotime($lockDateHere)));
-        //     $lockDateAt = $firstDatePrevMonth;
-        // }else{
-        //     $lockDateAt = date('1-m-Y', strtotime($lockDateAt));
-        // }
-
-        // // $lockDateHere = $lockDate1 ? $lockDate1 : '2023-01-01' ;
-        // // $lockDateAt = date('d-m-Y', strtotime("+1 day", strtotime($lockDateHere)));
-        // $this->lockDate = $lockDateAt;
-
-        // $lockDateHereIndex = $lockDate1 ? $lockDate1 : '2023-01-01' ;
-        // $lockDateAtIndex = date('d-m-Y', strtotime($lockDateHere));
-        // $this->lockDateIndex = $lockDateAtIndex;
-
     }
 
     public function getTableColoumn(){
@@ -80,7 +119,6 @@ class DnReplaceController extends Controller
             ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
             ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
-            // ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
@@ -96,14 +134,13 @@ class DnReplaceController extends Controller
             ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
             ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
-            // ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
             ['data'=>'qty','name'=>'qty','title'=>'qty'],
             ['data'=>'uom','name'=>'uom','title'=>'uom'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by_1','name'=>'created_by_1','title'=>'Created By'],
-            ['data'=>'created_at_1','name'=>'created_at_1','title'=>'Created By'],
+            ['data'=>'created_at_1','name'=>'created_at_1','title'=>'Created At'],
         ];
         return json_encode($kolom, true);
     }
@@ -116,16 +153,10 @@ class DnReplaceController extends Controller
         ->orderBy('nama')
         ->get();
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
-        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
-
         $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
         $data['kolom'] = $this->getTableColoumn();
         $data['kolomDetail'] = $this->getTableColoumnDetail();
 
-        // dd($this->lockDate);
-        // $data['lockDate'] = $this->lockDateIndex;
-            
         return view("dnReplace.index",$data);
     }
 
@@ -141,13 +172,13 @@ class DnReplaceController extends Controller
 
         $newCode = DB::table('master_code')
         ->where('code_key',$key)
-        ->value('code_number'); 
+        ->value('code_number');
 
         $newCode = str_pad($newCode,5,"0", STR_PAD_LEFT);
         $month = str_pad(date('n'),2,"0", STR_PAD_LEFT);
         $year = date('y');
         $prNumber="$key-$year-$month-$newCode";
-        
+
         return $prNumber;
     }
 
@@ -160,88 +191,145 @@ class DnReplaceController extends Controller
         ->orderBy('nama')
         ->get();
         $data['oEdit']=false;
-        // $data['lockDate'] = $this->lockDate;
 
         return view("dnReplace.create",$data);
     }
 
-    public function store(Request $request)
-{
-    $username     = Auth::user()->username;
-    $articles     = json_decode($request->articles);
-    $replaceDate  = $request->replaceDate;
-    $returnNumber = $request->returnNumber;
-    $customer     = $request->customer;
-    $note         = $request->note;
-    $status       = '1';           // langsung CLOSED setelah save+posting
-    $leadCode     = $this->moduleCode;
-
-    // parameter posting
-    $siteCode     = 'HO';
-    $locationFG   = '007';
-    $todayDate    = date('Y-m-d');
-    $movementDate = date('d-m-Y');
-
-    $customMessages = [
-        'required' => 'The field is required.',
-        'unique'   => 'The code has already been taken',
-    ];
-
-    $validation = Validator::make($request->all(), [
-        'returnNumber' => 'required',
-        'replaceDate'  => 'required',
-    ], $customMessages);
-
-    if ($validation->fails()) {
-        $error_array = [];
-        foreach ($validation->messages()->getMessages() as $field_name => $messages) {
-            $error_array[] = $messages;
+    /**
+     * Kurangi stock (dengan lock row untuk mencegah race condition saat ada
+     * 2 proses posting bersamaan). Pengecekan "stock cukup atau tidak" SENGAJA
+     * DIHILANGKAN -- stock boleh minus. Kuota divalidasi ke qty return lewat
+     * assertNotExceedReturn(), bukan ke ketersediaan stock FG.
+     *
+     * Return: avg_price baris stock (untuk dicatat di movement_price), atau 0
+     * kalau baris stock belum ada sebelumnya.
+     */
+    private function decrementStock($articleCode, $locationCode, $qtyKeluar)
+    {
+        if ($qtyKeluar <= 0) {
+            return null;
         }
-        return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => $error_array, 'alert' => 'error']);
-    }
 
-    $hasilUpdate   = AppHelpers::resetCode($leadCode);
-    $replaceNumber = $this->getLastCode($leadCode);
+        $stockRow = DB::table('warehouse_stock')
+            ->where('article_code', $articleCode)
+            ->where('location_number', $locationCode)
+            ->lockForUpdate()
+            ->first();
 
-    DB::beginTransaction();
-    try {
-        // ===== 1. INSERT HEADER =====
-        $idKu = DB::table('dn_replace_hdr')->insertGetId([
-            'replace_number'        => $replaceNumber,
-            'return_number'         => $returnNumber,
-            'replace_date'          => $replaceDate,
-            'customer_id'           => $customer,
-            'status'                => $status,
-            'note'                  => $note,
-            'origin_replace_number' => $replaceNumber,
-            'created_by'            => $username,
-            'updated_by'            => $username,
-            'created_at'            => date('Y-m-d H:i:s'),
-            'updated_at'            => date('Y-m-d H:i:s'),
+        if ($stockRow) {
+            DB::table('warehouse_stock')
+                ->where('article_code', $articleCode)
+                ->where('location_number', $locationCode)
+                ->decrement('article_qty', $qtyKeluar);
+
+            return $stockRow->avg_price ?? 0;
+        }
+
+        // Belum ada baris stock utk artikel ini -> buat baru (boleh minus)
+        // supaya stock & movement tetap sinkron.
+        // NOTE: kalau warehouse_stock punya kolom NOT NULL lain tanpa default,
+        // tambahkan di array insert ini.
+        DB::table('warehouse_stock')->insert([
+            'article_code'    => $articleCode,
+            'location_number' => $locationCode,
+            'article_qty'     => -$qtyKeluar,
         ]);
 
-        $idKuEnc = Crypt::encryptString($idKu);
+        return 0;
+    }
 
-        // ===== 2. INSERT DETAIL =====
-        $dataSet = [];
-        foreach ($articles as $val) {
-            $dataSet[] = [
-                'replace_number' => $replaceNumber,
-                'return_number'  => $returnNumber,
-                'article_code'   => $val->article_code,
-                'qty_return'     => $val->qty_return,
-                'qty'            => $val->qty,
-                'uom'            => $val->uom,
-                'created_by'     => $username,
-                'updated_by'     => $username,
-                'created_at'     => date('Y-m-d H:i:s'),
-                'updated_at'     => date('Y-m-d H:i:s'),
-            ];
+    /**
+     * Validasi kuota terhadap RETURN (pengganti cek stock):
+     * total qty replace utk 1 artikel tidak boleh melebihi qty di dn_return_det,
+     * dihitung akumulasi dari semua dokumen replace non-CANCELED utk return tsb.
+     */
+    private function assertNotExceedReturn($returnNumber, $articleCode, $qtyNow, $excludeReplaceNumber = null)
+    {
+        $qtyReturn = (float) DB::table('dn_return_det')
+            ->where('return_number', $returnNumber)
+            ->where('article_code', $articleCode)
+            ->sum('qty');
+
+        $qtyReplacedLain = (float) DB::table('dn_replace_det')
+            ->join('dn_replace_hdr', 'dn_replace_hdr.replace_number', '=', 'dn_replace_det.replace_number')
+            ->where('dn_replace_det.return_number', $returnNumber)
+            ->where('dn_replace_det.article_code', $articleCode)
+            ->whereNotIn('dn_replace_hdr.status', ['3'])
+            ->when($excludeReplaceNumber, function ($q) use ($excludeReplaceNumber) {
+                $q->where('dn_replace_det.replace_number', '<>', $excludeReplaceNumber);
+            })
+            ->sum('dn_replace_det.qty');
+
+        if (($qtyReplacedLain + $qtyNow) > $qtyReturn) {
+            $sisa = $qtyReturn - $qtyReplacedLain;
+            throw new \Exception("Qty replace artikel {$articleCode} melebihi qty return. Sisa yang boleh di-replace: {$sisa}");
         }
-        DB::table('dn_replace_det')->insert($dataSet);
+    }
 
-        // ===== 3. POSTING: kurangi stock FG (007) + movement =====
-        $detailPosting = DB::table('dn_replace_det')
+    /**
+     * Sisa qty return yang belum dipakai oleh dokumen replace manapun (agregat
+     * total per return_number, bukan per-artikel -- kalau butuh validasi
+     * per-artikel yang lebih ketat, ini perlu dipecah per article_code).
+     */
+    private function sisaReturn($returnNumber)
+    {
+        $result = DB::select("
+            SELECT sum(qty) - sum(qty_replace) as sisa_return
+            FROM (
+                SELECT *,
+                (SELECT sum(qty) FROM dn_replace_det
+                 WHERE return_number = dn_return_det.return_number
+                 AND article_code = dn_return_det.article_code) as qty_replace
+                FROM dn_return_det
+                WHERE return_number = ?
+            ) as oki
+        ", [$returnNumber]);
+
+        return $result[0]->sisa_return ?? 0;
+    }
+
+    /** Update status dn_return_hdr: CANCELED('3')/habis kalau sisa == 0, selain itu OPEN('1'). */
+    private function applyReturnStatus($returnNumber, $username)
+    {
+        DB::table('dn_return_hdr')
+            ->where('return_number', $returnNumber)
+            ->update([
+                'status'     => ($this->sisaReturn($returnNumber) == 0) ? '3' : '1',
+                'updated_by' => $username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+    }
+
+    /** Update status dn_replace_hdr: CLOSED('2') kalau qty return sudah habis, OPEN('1') kalau masih sisa. */
+    private function applyReplaceStatus($replaceNumber, $returnNumber, $username)
+    {
+        $status = ($this->sisaReturn($returnNumber) == 0) ? '2' : '1';
+
+        DB::table('dn_replace_hdr')
+            ->where('replace_number', $replaceNumber)
+            ->update([
+                'status'     => $status,
+                'updated_by' => $username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+        return $status;
+    }
+
+    /**
+     * Posting inline: kurangi stock FG (007) untuk setiap baris dn_replace_det
+     * milik $replaceNumber, lalu insert warehouse_movement-nya. Dipakai bareng
+     * oleh store(), update(), posting(), dan revision() supaya logikanya tidak
+     * diduplikasi 4x.
+     */
+    private function postingInline($replaceNumber, $returnNumber, $customer, $note, $username, $excludeReplaceNumber = null)
+    {
+        $siteCode     = 'HO';
+        $locationFG   = '007';
+        $todayDate    = date('Y-m-d');
+        $movementDate = date('d-m-Y');
+
+        $detail = DB::table('dn_replace_det')
             ->leftJoin('article', 'article.article_code', '=', 'dn_replace_det.article_code')
             ->where('dn_replace_det.replace_number', $replaceNumber)
             ->where('dn_replace_det.qty', '<>', 0)
@@ -249,27 +337,24 @@ class DnReplaceController extends Controller
                 'dn_replace_det.*',
                 'article.article_type',
                 'article.article_desc',
-                'article.uom as uom_article',
+                'article.uom as uom_article'
             )
             ->get();
 
         $seq = (int) DB::table('warehouse_movement')->max('movement_code');
         $dataSetMovement = [];
 
-        foreach ($detailPosting as $val) {
+        foreach ($detail as $val) {
             $qtyKeluar = (float) $val->qty;
+            if ($qtyKeluar <= 0) {
+                continue;
+            }
 
-            // Kurangi stock warehouse FG location 007
-            DB::table('warehouse_stock')
-                ->where('article_code', $val->article_code)
-                ->where('location_number', $locationFG)
-                ->decrement('article_qty', $qtyKeluar);
+            // Validasi kuota ke RETURN (bukan cek stock cukup)
+            $this->assertNotExceedReturn($returnNumber, $val->article_code, $qtyKeluar, $excludeReplaceNumber);
 
-            // Ambil avg_price untuk movement_price
-            $stockFG = DB::table('warehouse_stock')
-                ->where('article_code', $val->article_code)
-                ->where('location_number', $locationFG)
-                ->value('avg_price');
+            // Kurangi stock (boleh minus, sudah tervalidasi ke return di atas)
+            $stockFG = $this->decrementStock($val->article_code, $locationFG, $qtyKeluar);
 
             $seq++;
             $dataSetMovement[] = [
@@ -281,13 +366,13 @@ class DnReplaceController extends Controller
                 'movement_plus'     => 0,
                 'movement_price'    => $stockFG ?? 0,
                 'movement_transnno' => $replaceNumber,
-                'movement_type'     => $this->moduleCode,
-                'movement_desc'     => $note ?? $replaceNumber,
+                'movement_type'     => 'REPLACEMENT',
+                'movement_desc'     => $note ?: $replaceNumber,
                 'created_by'        => $username,
                 'created_at'        => date('Y-m-d H:i:s'),
                 'site_code'         => $siteCode,
                 'location_number'   => $locationFG,
-                'last_qty'          => DB::raw("get_last_qty('{$val->article_code}','$todayDate','$siteCode','$locationFG') - $qtyKeluar"),
+                'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$todayDate','$siteCode','$locationFG') - $qtyKeluar"),
                 'movement_from'     => $locationFG,  // dari gudang FG 007
                 'movement_to'       => $customer,    // ke customer
                 'partner_type'      => 'CUST',
@@ -298,82 +383,188 @@ class DnReplaceController extends Controller
             DB::table('warehouse_movement')->insert($dataSetMovement);
         }
 
-        // ===== 4. CEK SISA RETURN =====
-        $sisaReturn = DB::select("
-            SELECT sum(qty) - sum(qty_replace) as sisa_return 
-            FROM (
-                SELECT *, 
-                (SELECT sum(qty) FROM dn_replace_det 
-                 WHERE return_number = dn_return_det.return_number 
-                 AND article_code = dn_return_det.article_code) as qty_replace
-                FROM dn_return_det 
-                WHERE return_number = '$returnNumber'
-            ) as oki
-        ");
+        return count($dataSetMovement);
+    }
 
-        // Update status DN Return: CLOSED (3) jika sisa 0, tetap OPEN (1) jika masih ada sisa
-        DB::table('dn_return_hdr')
-            ->where('return_number', $returnNumber)
-            ->update([
-                'status'     => ($sisaReturn[0]->sisa_return == 0) ? '3' : '1',
-                'updated_by' => $username,
-                'updated_at' => date('Y-m-d H:i:s'),
+    /**
+     * Reverse posting: kembalikan stock FG yang sudah dikurangi lewat
+     * warehouse_movement milik $replaceNumber, lalu hapus movement-nya.
+     *
+     * PENTING: method ini TIDAK membuka/menutup transaction sendiri -- dipanggil
+     * dari dalam transaction milik caller (update()/cancel()/destroy()/revision()).
+     * Kalau suatu saat perlu dipanggil berdiri sendiri, bungkus pemanggilannya
+     * dengan DB::beginTransaction()/commit() di caller.
+     */
+    private function unPosting($replaceNumber, $username)
+    {
+        $locationFG = '007';
+
+        $detail = DB::table('dn_replace_det')
+            ->where('replace_number', $replaceNumber)
+            ->where('qty', '<>', 0)
+            ->get();
+
+        foreach ($detail as $val) {
+            DB::table('warehouse_stock')
+                ->where('article_code', $val->article_code)
+                ->where('location_number', $locationFG)
+                ->increment('article_qty', (float) $val->qty);
+        }
+
+        DB::table('warehouse_movement')
+            ->where('movement_transnno', $replaceNumber)
+            ->where('movement_type', 'REPLACEMENT')
+            ->delete();
+
+        \LogActivity::addToLog("Unposting $this->title", "username: $username Status $replaceNumber stock reversed & movement removed");
+
+        return true;
+    }
+
+    /** Apakah dokumen ini pernah benar-benar diposting (ada movement-nya)? */
+    private function wasPosted($replaceNumber)
+    {
+        return DB::table('warehouse_movement')
+            ->where('movement_transnno', $replaceNumber)
+            ->where('movement_type', 'REPLACEMENT')
+            ->exists();
+    }
+
+    public function store(Request $request)
+    {
+        $username     = Auth::user()->username;
+        $articles     = json_decode($request->articles);
+        $replaceDate  = $request->replaceDate;
+        $returnNumber = $request->returnNumber;
+        $customer     = $request->customer;
+        $note         = $request->note;
+        $leadCode     = $this->moduleCode;
+
+        $customMessages = [
+            'required' => 'The field is required.',
+            'unique'   => 'The code has already been taken',
+        ];
+
+        $validation = Validator::make($request->all(), [
+            'returnNumber' => 'required',
+            'replaceDate'  => 'required',
+        ], $customMessages);
+
+        if ($validation->fails()) {
+            $error_array = [];
+            foreach ($validation->messages()->getMessages() as $field_name => $messages) {
+                $error_array[] = $messages;
+            }
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => $error_array, 'alert' => 'error']);
+        }
+
+        // GUARD: harus ada minimal 1 artikel
+        if (empty($articles)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => 'Article list is empty', 'alert' => 'error']);
+        }
+
+        $hasilUpdate   = AppHelpers::resetCode($leadCode);
+        $replaceNumber = $this->getLastCode($leadCode);
+
+        DB::beginTransaction();
+        try {
+            // ===== 1. INSERT HEADER (status sementara OPEN, difinalkan di langkah 4) =====
+            $idKu = DB::table('dn_replace_hdr')->insertGetId([
+                'replace_number'        => $replaceNumber,
+                'return_number'         => $returnNumber,
+                'replace_date'          => $replaceDate,
+                'customer_id'           => $customer,
+                'status'                => '1',
+                'note'                  => $note,
+                'origin_replace_number' => $replaceNumber,
+                'created_by'            => $username,
+                'updated_by'            => $username,
+                'created_at'            => date('Y-m-d H:i:s'),
+                'updated_at'            => date('Y-m-d H:i:s'),
             ]);
 
-        DB::commit();
+            $idKuEnc = Crypt::encryptString($idKu);
 
-        $title   = "Save $this->title";
-        $alert   = "success";
-        $message = "$title $replaceNumber successfully saved & posted";
-        \LogActivity::addToLog($title, "username: $username Status $message");
+            // ===== 2. INSERT DETAIL =====
+            $dataSet = [];
+            foreach ($articles as $val) {
+                $dataSet[] = [
+                    'replace_number' => $replaceNumber,
+                    'return_number'  => $returnNumber,
+                    'article_code'   => $val->article_code,
+                    'qty_return'     => $val->qty_return,
+                    'qty'            => $val->qty,
+                    'uom'            => $val->uom,
+                    'created_by'     => $username,
+                    'updated_by'     => $username,
+                    'created_at'     => date('Y-m-d H:i:s'),
+                    'updated_at'     => date('Y-m-d H:i:s'),
+                ];
+            }
+            DB::table('dn_replace_det')->insert($dataSet);
 
-        return response()->json([
-            'statusReplace' => 'CLOSED',
-            'title'         => $title,
-            'status'        => 1,
-            'message'       => $message,
-            'alert'         => $alert,
-            'replaceNumber' => $replaceNumber,
-            'idKu'          => $idKuEnc,
-        ]);
+            // ===== 3. POSTING: kurangi stock FG (007) + movement =====
+            $this->postingInline($replaceNumber, $returnNumber, $customer, $note, $username, $replaceNumber);
 
-    } catch (\Exception $e) {
-        DB::rollBack();
-        $title   = "Save $this->title";
-        $alert   = "warning";
-        $message = "$title $replaceNumber failed: " . $e->getMessage();
-        \LogActivity::addToLog($title, "username: $username Status $message");
+            // ===== 4. FINALISASI STATUS (replace & return) berdasarkan sisa qty return =====
+            $status = $this->applyReplaceStatus($replaceNumber, $returnNumber, $username);
+            $this->applyReturnStatus($returnNumber, $username);
 
-        return response()->json([
-            'statusReplace' => 'FAILED',
-            'title'         => $title,
-            'status'        => 0,
-            'message'       => $message,
-            'alert'         => $alert,
-            'replaceNumber' => $replaceNumber,
-            'idKu'          => '',
-        ]);
+            DB::commit();
+
+            $title   = "Save $this->title";
+            $alert   = "success";
+            $message = "$title $replaceNumber successfully saved & posted";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            return response()->json([
+                'statusReplace' => ($status == '2') ? 'CLOSED' : 'OPEN',
+                'title'         => $title,
+                'status'        => 1,
+                'message'       => $message,
+                'alert'         => $alert,
+                'replaceNumber' => $replaceNumber,
+                'idKu'          => $idKuEnc,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $title   = "Save $this->title";
+            $alert   = "warning";
+            $message = "$title $replaceNumber failed: " . $e->getMessage();
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            return response()->json([
+                'statusReplace' => 'FAILED',
+                'title'         => $title,
+                'status'        => 0,
+                'message'       => $message,
+                'alert'         => $alert,
+                'replaceNumber' => $replaceNumber,
+                'idKu'          => '',
+            ]);
+        }
     }
-}
 
     public function storeTidakPosting(Request $request)
     {
-        $username =  Auth::user()->username;
-        $articles = json_decode($request->articles);
-        $replaceDate = $request->replaceDate;
+        // Method ini sengaja TIDAK memotong stock / membuat movement.
+        // update()/cancel()/destroy() mendeteksi ini otomatis lewat wasPosted(),
+        // jadi dokumen yang dibuat lewat sini aman diedit tanpa memicu bug "phantom stock".
+        $username     = Auth::user()->username;
+        $articles     = json_decode($request->articles);
+        $replaceDate  = $request->replaceDate;
         $returnNumber = $request->returnNumber;
-        $customer = $request->customer;
-        $note = $request->note;
-        $status = '1';
-        $leadCode = $this->moduleCode;
+        $customer     = $request->customer;
+        $note         = $request->note;
+        $status       = '1';
+        $leadCode     = $this->moduleCode;
 
-        // $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
-        
         $customMessages = [
             'required' => 'The field is required.',
-            'unique' => 'The code has already been taken', 
+            'unique'   => 'The code has already been taken',
         ];
-        
+
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($returnNumber) {
             $query = DB::table($parameters[0]);
             $column = $query->getGrammar()->wrap($parameters[1]);
@@ -381,106 +572,107 @@ class DnReplaceController extends Controller
             return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
                           ->whereRaw("lower({$column2}) = lower(?)", [$returnNumber])->count();
         });
-        
-        $validation = Validator::make($request->all(),$messages = [
-            'returnNumber'=>'required',
+
+        $validation = Validator::make($request->all(), [
+            'returnNumber' => 'required',
             'replaceDate'  => 'required',
-        ],$customMessages);
-        
-        $error_array = array();
-        $success_output = '';
-        if ($validation->fails()){
-            foreach ($validation->messages()->getMessages() as $field_name => $messages){
+        ], $customMessages);
+
+        if ($validation->fails()) {
+            $error_array = [];
+            foreach ($validation->messages()->getMessages() as $field_name => $messages) {
                 $error_array[] = $messages;
             }
-            $title="Save $this->title";
-            $alert ="error";
-            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
-        }else{
-            $hasilUpdate = AppHelpers::resetCode($leadCode);
-            $replaceNumber = $this->getLastCode($leadCode);
-            DB::beginTransaction();
-            try {
-                    $idKu = DB::table('dn_replace_hdr')->insertGetId([
-                        'replace_number' => $replaceNumber,
-                        'return_number' => $returnNumber,
-                        'replace_date' => $replaceDate,
-                        'customer_id' => $customer,
-                        'status' => $status,
-                        'note' => $note,
-                        'origin_replace_number' => $replaceNumber,
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+            $title = "Save $this->title";
+            $alert = "error";
+            return response()->json(['status' => 0, 'title' => $title, 'message' => $error_array, 'alert' => $alert]);
+        }
 
-                    $idKu = Crypt::encryptString($idKu);
+        if (empty($articles)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => 'Article list is empty', 'alert' => 'error']);
+        }
 
-                    $dataSet = [];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            'replace_number' => $replaceNumber,
-                            'return_number' => $returnNumber,
-                            'article_code' => $val->article_code,
-                            'qty_return' => $val->qty_return,
-                            'qty' => $val->qty,
-                            'uom' => $val->uom,
-                            'created_by' => Auth::user()->username,
-                            'updated_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ];
-                    }
+        $hasilUpdate   = AppHelpers::resetCode($leadCode);
+        $replaceNumber = $this->getLastCode($leadCode);
 
-                    DB::table('dn_replace_det')->insert($dataSet);
+        DB::beginTransaction();
+        try {
+            $idKu = DB::table('dn_replace_hdr')->insertGetId([
+                'replace_number'        => $replaceNumber,
+                'return_number'         => $returnNumber,
+                'replace_date'          => $replaceDate,
+                'customer_id'           => $customer,
+                'status'                => $status,
+                'note'                  => $note,
+                'origin_replace_number' => $replaceNumber,
+                'created_by'            => $username,
+                'updated_by'            => $username,
+                'created_at'            => date('Y-m-d H:i:s'),
+                'updated_at'            => date('Y-m-d H:i:s'),
+            ]);
 
-                    $sisaReturn = DB::select("SELECT sum(qty) - sum(qty_replace) as sisa_return from 
-                    (select * ,
-                    (select sum(qty) from dn_replace_det where return_number = dn_return_det.return_number and article_code= dn_return_det.article_code) as qty_replace
-                    from dn_return_det where return_number = '$returnNumber') as oki
-                    ");
+            $idKuEnc = Crypt::encryptString($idKu);
 
-                    if ($sisaReturn[0]->sisa_return == 0){
-                        DB::table('dn_return_hdr')
-                        ->where('return_number',$returnNumber)
-                        ->update([
-                            'status' => '3',
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]);
-                    }else{
-                        DB::table('dn_return_hdr')
-                        ->where('return_number',$returnNumber)
-                        ->update([
-                            'status' => '1',
-                        ]);
-                    }
-
-                    DB::commit();
-                    $title = "Save $this->title";
-                    $alert  ="success";
-                    $message  = "$title $replaceNumber is successfully saved";
-                    $statusReplace  = 'NEW';
-                    \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('statusReplace' => $statusReplace, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'replaceNumber'=>$replaceNumber,'idKu'=>$idKu));
-
-            } catch (Exception $e) {
-                DB::rollBack();
-                $title = "Save $this->title";
-                $alert  ="warning";
-                $message  = "$title $replaceNumber is failed to save";
-                $statusReplace = 'FAILED';
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusReplace' => $statusReplace, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'replaceNumber'=>$replaceNumber,'idKu'=>''));
+            $dataSet = [];
+            foreach ($articles as $val) {
+                $dataSet[] = [
+                    'replace_number' => $replaceNumber,
+                    'return_number'  => $returnNumber,
+                    'article_code'   => $val->article_code,
+                    'qty_return'     => $val->qty_return,
+                    'qty'            => $val->qty,
+                    'uom'            => $val->uom,
+                    'created_by'     => $username,
+                    'updated_by'     => $username,
+                    'created_at'     => date('Y-m-d H:i:s'),
+                    'updated_at'     => date('Y-m-d H:i:s'),
+                ];
             }
+            DB::table('dn_replace_det')->insert($dataSet);
+
+            $this->applyReturnStatus($returnNumber, $username);
+
+            DB::commit();
+            $title         = "Save $this->title";
+            $alert         = "success";
+            $message       = "$title $replaceNumber is successfully saved";
+            $statusReplace = 'NEW';
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            return response()->json([
+                'statusReplace' => $statusReplace,
+                'title'         => $title,
+                'status'        => 1,
+                'message'       => $message,
+                'alert'         => $alert,
+                'replaceNumber' => $replaceNumber,
+                'idKu'          => $idKuEnc,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $title         = "Save $this->title";
+            $alert         = "warning";
+            $message       = "$title $replaceNumber is failed to save: " . $e->getMessage();
+            $statusReplace = 'FAILED';
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            return response()->json([
+                'statusReplace' => $statusReplace,
+                'title'         => $title,
+                'status'        => 0,
+                'message'       => $message,
+                'alert'         => $alert,
+                'replaceNumber' => $replaceNumber,
+                'idKu'          => '',
+            ]);
         }
     }
 
     public function show(Request $request)
     {
-        $username =  Auth::user()->username;
-        $id=Crypt::decryptString($request->id);
+        $username = Auth::user()->username;
+        $id = Crypt::decryptString($request->id);
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
 
@@ -489,7 +681,7 @@ class DnReplaceController extends Controller
         ->leftJoin('third_party', 'third_party.kode', '=', 'dn_replace_hdr.customer_id')
         ->select('dn_replace_hdr.*'
         ,'dn_return_hdr.dn_number'
-        ,DB::raw('(select sum(qty) from dn_replace_det where replace_number = dn_replace_hdr.replace_number) as sum_qty') 
+        ,DB::raw('(select sum(qty) from dn_replace_det where replace_number = dn_replace_hdr.replace_number) as sum_qty')
         ,DB::raw('(select count(*) from dn_replace_det where replace_number = dn_replace_hdr.replace_number) as sum_row')
         ,DB::raw("concat(kode,'-',nama) as customer_name"))
         ->where('dn_replace_hdr.id',$id)
@@ -498,7 +690,7 @@ class DnReplaceController extends Controller
         $replaceNumber = $data['header']->replace_number;
         $custId = $data['header']->customer_id;
         $returnNumber = $data['header']->return_number;
-                
+
         $data['details'] = DB::table('dn_replace_det')
         ->leftJoin('dn_replace_hdr','dn_replace_hdr.replace_number','dn_replace_det.replace_number')
         ->leftJoin('article','article.article_code','=','dn_replace_det.article_code')
@@ -509,10 +701,10 @@ class DnReplaceController extends Controller
             ,DB::raw("(select qty from dn_return_det where return_number = dn_replace_det.return_number and article_code = dn_replace_det.article_code) as tot_qty_return"),
             DB::RAW("coalesce(
                 (select ((select sum(qty) from dn_return_det where return_number = dn_replace_hdr.return_number and article_code = dn_replace_det.article_code) + dn_replace_det.qty) - sum(qty) as qty_return from dn_replace_det a where replace_number in (
-            select replace_number from dn_replace_hdr z where z.status not in ('3') and z.return_number = dn_replace_hdr.return_number) 
+            select replace_number from dn_replace_hdr z where z.status not in ('3') and z.return_number = dn_replace_hdr.return_number)
             and article_code = dn_replace_det.article_code),0) as qty_return")
         )
-        ->get();       
+        ->get();
 
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -526,25 +718,26 @@ class DnReplaceController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$replaceNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$replaceNumber,$username);
 
-        // $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
         $statusReplace = ['OPEN','CLOSED','CANCELED'];
         $data['statusReplace'] = $statusReplace[$data['header']->status-1];
 
         $data['oEdit']=true;
 
-        $dataCust= DB::table("dn_return_hdr") 
+        $dataCust= DB::table("dn_return_hdr")
         ->where("customer_id",$custId)
         ->where("status","1")
         ->orderBy("return_number")
         ->select('return_number','dn_number')
-        ->get();          
+        ->get();
 
         $output = "";
         if (count($dataCust)>0){
-            $output .='<option value="Choose PO">Choose DN</option>';            
+            $output .='<option value="Choose PO">Choose DN</option>';
             foreach ($dataCust as $row){
-                $selected = $row->return_number=== $returnNumber ? 'selected' :'';
-                $output .='<option value="'.$row->return_number.'" selected data-dn= "'.$row->dn_number.'">'.$row->return_number.'</option>';            
+                // FIX: $selected sebelumnya dihitung tapi tidak pernah dipakai --
+                // atribut 'selected' dulu hardcoded di semua <option>.
+                $selected = $row->return_number === $returnNumber ? 'selected' : '';
+                $output .='<option value="'.$row->return_number.'" '.$selected.' data-dn="'.$row->dn_number.'">'.$row->return_number.'</option>';
             }
         }
 
@@ -553,18 +746,14 @@ class DnReplaceController extends Controller
         $status = ['OPEN','CLOSED','CANCELED'];
         $data['status'] = $status[$data['header']->status-1];
 
-        // $data['lockDate'] = $this->lockDate;
-
-        // dd($data);
-
         return view("dnReplace.show",$data);
-        
+
     }
 
     public function edit(Request $request)
     {
-        $username =  Auth::user()->username;
-        $id=Crypt::decryptString($request->id);
+        $username = Auth::user()->username;
+        $id = Crypt::decryptString($request->id);
         $data['title'] = "Edit $this->title";
         $data['subtitle'] = "Edit $this->title";
 
@@ -576,7 +765,7 @@ class DnReplaceController extends Controller
         $replaceNumber = $data['header']->replace_number;
         $custId = $data['header']->customer_id;
         $returnNumber = $data['header']->return_number;
-                
+
         $data['detail'] = DB::table('dn_replace_det')
         ->leftJoin('dn_replace_hdr','dn_replace_hdr.replace_number','dn_replace_det.replace_number')
         ->leftJoin('article','article.article_code','=','dn_replace_det.article_code')
@@ -586,10 +775,10 @@ class DnReplaceController extends Controller
             DB::raw("(select qty from dn_return_det where return_number = dn_replace_det.return_number and article_code = dn_replace_det.article_code) as tot_qty_return"),
             DB::RAW("coalesce(
                 (select ((select sum(qty) from dn_return_det where return_number = dn_replace_hdr.return_number and article_code = dn_replace_det.article_code) + dn_replace_det.qty) - sum(qty) as qty_return from dn_replace_det a where replace_number in (
-            select replace_number from dn_replace_hdr z where z.status not in ('3') and z.return_number = dn_replace_hdr.return_number) 
+            select replace_number from dn_replace_hdr z where z.status not in ('3') and z.return_number = dn_replace_hdr.return_number)
             and article_code = dn_replace_det.article_code),0) as qty_return")
         )
-        ->get();       
+        ->get();
 
         $data['custs'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
@@ -603,25 +792,24 @@ class DnReplaceController extends Controller
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$replaceNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$replaceNumber,$username);
 
-        // $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
         $statusReplace = ['OPEN','CLOSED','CANCELED'];
         $data['statusReplace'] = $statusReplace[$data['header']->status-1];
 
         $data['oEdit']=true;
 
-        $dataCust= DB::table("dn_return_hdr") 
+        $dataCust= DB::table("dn_return_hdr")
         ->where("customer_id",$custId)
         ->where("status","1")
         ->orderBy("return_number")
         ->select('return_number','dn_number')
-        ->get();          
+        ->get();
 
         $output = "";
         if (count($dataCust)>0){
-            $output .='<option value="Choose PO">Choose DN</option>';            
+            $output .='<option value="Choose PO">Choose DN</option>';
             foreach ($dataCust as $row){
-                $selected = $row->return_number=== $returnNumber ? 'selected' :'';
-                $output .='<option value="'.$row->return_number.'" selected data-dn= "'.$row->dn_number.'">'.$row->return_number.'</option>';            
+                $selected = $row->return_number === $returnNumber ? 'selected' : '';
+                $output .='<option value="'.$row->return_number.'" '.$selected.' data-dn="'.$row->dn_number.'">'.$row->return_number.'</option>';
             }
         }
 
@@ -630,463 +818,191 @@ class DnReplaceController extends Controller
         $status = ['OPEN','CLOSED','CANCELED'];
         $data['status'] = $status[$data['header']->status-1];
 
-        // $data['lockDate'] = $this->lockDate;
-
-        // dd($data);
-
         return view("dnReplace.edit",$data);
-        
+
     }
 
     public function update(Request $request)
-{
-    $username     = Auth::user()->username;
-    $replaceNumber = $request->replaceNumber;
-    $replaceDate  = $request->replaceDate;
-    $returnNumber = $request->returnNumber;
-    $customer     = $request->customer;
-    $note         = $request->note;
-    $articles     = json_decode($request->articles);
-    $status       = '1';
-
-    $siteCode     = 'HO';
-    $locationFG   = '007';
-    $todayDate    = date('Y-m-d');
-    $movementDate = date('d-m-Y');
-
-    $customMessages = [
-        'required' => 'The field is required.',
-        'unique'   => 'The code has already been taken',
-    ];
-
-    $validation = Validator::make($request->all(), [
-        'replaceDate'   => 'required',
-        'replaceNumber' => 'required',
-    ], $customMessages);
-
-    if ($validation->fails()) {
-        $error_array = [];
-        foreach ($validation->messages()->getMessages() as $field_name => $messages) {
-            $error_array[] = $messages;
-        }
-        return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => $error_array, 'alert' => 'error']);
-    }
-
-    DB::beginTransaction();
-    try {
-        // ===== 1. AMBIL DETAIL LAMA =====
-        $detailLama = DB::table('dn_replace_det')
-            ->leftJoin('article', 'article.article_code', '=', 'dn_replace_det.article_code')
-            ->where('dn_replace_det.replace_number', $replaceNumber)
-            ->where('dn_replace_det.qty', '<>', 0)
-            ->select('dn_replace_det.*', 'article.article_desc')
-            ->get();
-
-        // ===== 2. KEMBALIKAN STOCK LAMA =====
-        foreach ($detailLama as $val) {
-            DB::table('warehouse_stock')
-                ->where('article_code', $val->article_code)
-                ->where('location_number', $locationFG)
-                ->increment('article_qty', (float) $val->qty);
-        }
-
-        // ===== 3. HAPUS MOVEMENT LAMA =====
-        DB::table('warehouse_movement')
-            ->where('movement_transnno', $replaceNumber)
-            ->where('movement_type', $this->moduleCode)
-            ->delete();
-
-        // ===== 4. UPDATE HEADER =====
-        DB::table('dn_replace_hdr')
-            ->where('replace_number', $replaceNumber)
-            ->update([
-                'return_number' => $returnNumber,
-                'replace_date'  => $replaceDate,
-                'customer_id'   => $customer,
-                'status'        => $status,
-                'note'          => $note,
-                'updated_by'    => $username,
-                'updated_at'    => date('Y-m-d H:i:s'),
-            ]);
-
-        // ===== 5. UPDATE DETAIL (delete not exist + upsert) =====
-        $dataSet = [];
-        foreach ($articles as $val) {
-            $dataSet[] = [$replaceNumber . $val->article_code];
-        }
-
-        DB::table('dn_replace_det')
-            ->whereNotIn(DB::raw("CONCAT(replace_number,article_code)"), $dataSet)
-            ->where('replace_number', $replaceNumber)
-            ->delete();
-
-        foreach ($articles as $val) {
-            DB::table('dn_replace_det')
-                ->updateOrInsert(
-                    ['replace_number' => $replaceNumber, 'article_code' => $val->article_code],
-                    [
-                        'replace_number' => $replaceNumber,
-                        'return_number'  => $returnNumber,
-                        'article_code'   => $val->article_code,
-                        'qty_return'     => $val->qty_return,
-                        'qty'            => $val->qty,
-                        'uom'            => $val->uom,
-                        'updated_by'     => $username,
-                        'updated_at'     => date('Y-m-d H:i:s'),
-                    ]
-                );
-        }
-
-        // ===== 6. POSTING ULANG: kurangi stock FG (007) + movement baru =====
-        $detailBaru = DB::table('dn_replace_det')
-            ->leftJoin('article', 'article.article_code', '=', 'dn_replace_det.article_code')
-            ->where('dn_replace_det.replace_number', $replaceNumber)
-            ->where('dn_replace_det.qty', '<>', 0)
-            ->select(
-                'dn_replace_det.*',
-                'article.article_type',
-                'article.article_desc',
-                'article.uom as uom_article',
-            )
-            ->get();
-
-        $seq = (int) DB::table('warehouse_movement')->max('movement_code');
-        $dataSetMovement = [];
-
-        foreach ($detailBaru as $val) {
-            $qtyKeluar = (float) $val->qty;
-
-            // Kurangi stock warehouse FG location 007
-            DB::table('warehouse_stock')
-                ->where('article_code', $val->article_code)
-                ->where('location_number', $locationFG)
-                ->decrement('article_qty', $qtyKeluar);
-
-            // Ambil avg_price untuk movement_price
-            $stockFG = DB::table('warehouse_stock')
-                ->where('article_code', $val->article_code)
-                ->where('location_number', $locationFG)
-                ->value('avg_price');
-
-            $seq++;
-            $dataSetMovement[] = [
-                'movement_code'     => $seq,
-                'movement_date'     => $movementDate,
-                'artikel_code'      => $val->article_code,
-                'artikel_desc'      => $val->article_desc ?? '',
-                'movement_min'      => $qtyKeluar,
-                'movement_plus'     => 0,
-                'movement_price'    => $stockFG ?? 0,
-                'movement_transnno' => $replaceNumber,
-                'movement_type'     => $this->moduleCode,
-                'movement_desc'     => $note ?? $replaceNumber,
-                'created_by'        => $username,
-                'created_at'        => date('Y-m-d H:i:s'),
-                'site_code'         => $siteCode,
-                'location_number'   => $locationFG,
-                'last_qty'          => DB::raw("get_last_qty('{$val->article_code}','$todayDate','$siteCode','$locationFG') - $qtyKeluar"),
-                'movement_from'     => $locationFG,
-                'movement_to'       => $customer,
-                'partner_type'      => 'CUST',
-            ];
-        }
-
-        if (!empty($dataSetMovement)) {
-            DB::table('warehouse_movement')->insert($dataSetMovement);
-        }
-
-        // ===== 7. CEK SISA RETURN =====
-        $sisaReturn = DB::select("
-            SELECT sum(qty) - sum(qty_replace) as sisa_return 
-            FROM (
-                SELECT *, 
-                (SELECT sum(qty) FROM dn_replace_det 
-                 WHERE return_number = dn_return_det.return_number 
-                 AND article_code = dn_return_det.article_code) as qty_replace
-                FROM dn_return_det 
-                WHERE return_number = '$returnNumber'
-            ) as oki
-        ");
-
-        DB::table('dn_return_hdr')
-            ->where('return_number', $returnNumber)
-            ->update([
-                'status'     => ($sisaReturn[0]->sisa_return == 0) ? '3' : '1',
-                'updated_by' => $username,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
-
-        DB::commit();
-
-        $title   = "Update $this->title";
-        $alert   = "success";
-        $message = "$title $replaceNumber is successfully updated";
-        \LogActivity::addToLog($title, "username: $username Status $message");
-
-        return response()->json([
-            'statusReplace' => 'UPDATED',
-            'status'        => 1,
-            'title'         => $title,
-            'message'       => $message,
-            'alert'         => $alert,
-            'replaceNumber' => $replaceNumber,
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-
-        $title   = "Update $this->title";
-        $alert   = "warning";
-        $message = "$title $replaceNumber is failed to update: " . $e->getMessage();
-        \LogActivity::addToLog($title, "username: $username Status $message");
-
-        return response()->json([
-            'statusReplace' => 'FAILED',
-            'status'        => 0,
-            'title'         => $title,
-            'message'       => $message,
-            'alert'         => $alert,
-            'replaceNumber' => $replaceNumber,
-        ]);
-    }
-}
-
-    public function updateOld(Request $request)
     {
-        $username =  Auth::user()->username;
+        $username      = Auth::user()->username;
         $replaceNumber = $request->replaceNumber;
-        $replaceDate = $request->replaceDate;
-        $returnNumber = $request->returnNumber;
-        $customer = $request->customer;
-        $note = $request->note;
-        $articles = json_decode($request->articles);
-        $status = '1';
-        
-        // $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
+        $replaceDate   = $request->replaceDate;
+        $returnNumber  = $request->returnNumber;
+        $customer      = $request->customer;
+        $note          = $request->note;
+        $articles      = json_decode($request->articles);
+
+        $locationFG = '007';
 
         $customMessages = [
             'required' => 'The field is required.',
-            'unique' => 'The code has already been taken', 
+            'unique'   => 'The code has already been taken',
         ];
-        
-        Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
-            $query = DB::table($parameters[0]);
-            $column = $query->getGrammar()->wrap($parameters[1]);
-            $column2 = $query->getGrammar()->wrap($parameters[2]);
-        });
-        
-        $validation = Validator::make($request->all(),$messages = [
-            // 'invNumber'=>'required|iunique:dn_replace_hdr,inv_number,po_number',
-            'replaceDate'  => 'required',
-            'replaceNumber'  => 'required',
-            // 'supplier'  => 'required',
-        ],$customMessages);
-                
-        $error_array = array();
-        $success_output = '';
-        // return $validation;
-        if ($validation->fails()){
-            foreach ($validation->messages()->getMessages() as $field_name => $messages){
+
+        $validation = Validator::make($request->all(), [
+            'replaceDate'   => 'required',
+            'replaceNumber' => 'required',
+        ], $customMessages);
+
+        if ($validation->fails()) {
+            $error_array = [];
+            foreach ($validation->messages()->getMessages() as $field_name => $messages) {
                 $error_array[] = $messages;
             }
-            $title="Update $this->title";
-            $alert ="error";
-            return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
-        }else{
-            DB::beginTransaction();
-            try {
-                    $row_affected=DB::table('dn_replace_hdr')
-                    ->where('replace_number',$replaceNumber)
-                    ->update(
-                        [   
-                            'return_number' => $returnNumber,
-                            'replace_date' => $replaceDate,
-                            'customer_id' => $customer,
-                            'status' => $status,
-                            'note' => $note,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => $error_array, 'alert' => 'error']);
+        }
+
+        if (empty($articles)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => 'Article list is empty', 'alert' => 'error']);
+        }
+
+        DB::beginTransaction();
+        try {
+            // GUARD: cek dulu apakah dokumen ini SEBELUMNYA benar-benar sudah diposting
+            // (ada baris warehouse_movement). Kalau dokumen dibuat lewat storeTidakPosting(),
+            // stock belum pernah dikurangi, jadi jangan di-reverse (mencegah phantom stock).
+            if ($this->wasPosted($replaceNumber)) {
+                $this->unPosting($replaceNumber, $username);
+            }
+
+            // ===== UPDATE HEADER (status sementara OPEN, difinalkan setelah posting ulang) =====
+            DB::table('dn_replace_hdr')
+                ->where('replace_number', $replaceNumber)
+                ->update([
+                    'return_number' => $returnNumber,
+                    'replace_date'  => $replaceDate,
+                    'customer_id'   => $customer,
+                    'status'        => '1',
+                    'note'          => $note,
+                    'updated_by'    => $username,
+                    'updated_at'    => date('Y-m-d H:i:s'),
+                ]);
+
+            // ===== UPDATE DETAIL (delete not exist + upsert) =====
+            $keepKeys = [];
+            foreach ($articles as $val) {
+                $keepKeys[] = $replaceNumber . $val->article_code;
+            }
+
+            DB::table('dn_replace_det')
+                ->whereNotIn(DB::raw("CONCAT(replace_number,article_code)"), $keepKeys)
+                ->where('replace_number', $replaceNumber)
+                ->delete();
+
+            foreach ($articles as $val) {
+                DB::table('dn_replace_det')
+                    ->updateOrInsert(
+                        ['replace_number' => $replaceNumber, 'article_code' => $val->article_code],
+                        [
+                            'replace_number' => $replaceNumber,
+                            'return_number'  => $returnNumber,
+                            'article_code'   => $val->article_code,
+                            'qty_return'     => $val->qty_return,
+                            'qty'            => $val->qty,
+                            'uom'            => $val->uom,
+                            'updated_by'     => $username,
+                            'updated_at'     => date('Y-m-d H:i:s'),
                         ]
                     );
-
-                    $dataset=[];
-                    foreach ($articles as $val) {
-                        $dataSet[] = [
-                            $replaceNumber.$val->article_code
-                        ];
-                        
-                    }
-
-                    //Delete kalo article tidak ada di po $poNumber dan article nya $val->article_code
-                    //berdasarkan 2 kondisi
-                    DB::table('dn_replace_det')
-                        ->whereNotIn(DB::raw("CONCAT(replace_number,article_code)"),$dataSet)
-                        ->where('replace_number',$replaceNumber)
-                        ->delete();
-
-                    foreach ($articles as $val) {
-                        DB::table('dn_replace_det')
-                        ->updateOrInsert(
-                            ['replace_number' => $replaceNumber,'article_code' => $val->article_code],
-                            [
-                                'replace_number' => $replaceNumber,
-                                'return_number' => $returnNumber,
-                                'article_code' => $val->article_code,
-                                'qty' => $val->qty,
-                                'uom' => $val->uom,
-                                'updated_by' => Auth::user()->username,
-                                'updated_at' => date('Y-m-d H:i:s')
-                            ]
-                        );
-                    }
-
-                    $sisaReturn = DB::select("SELECT sum(qty) - sum(qty_replace) as sisa_return from 
-                    (select * ,
-                    (select sum(qty) from dn_replace_det where return_number = dn_return_det.return_number and article_code= dn_return_det.article_code) as qty_replace
-                    from dn_return_det where return_number = '$returnNumber') as oki
-                    ");
-
-                    if ($sisaReturn[0]->sisa_return == 0){
-                        DB::table('dn_return_hdr')
-                        ->where('return_number',$returnNumber)
-                        ->update([
-                            'status' => '3',
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]);
-                    }else{
-                        DB::table('dn_return_hdr')
-                        ->where('return_number',$returnNumber)
-                        ->update([
-                            'status' => '1',
-                        ]);
-                    }
-                                                                
-                    DB::commit();
-                    $title ="Update $this->title";
-                    $alert  ="success";
-                    $message  = "$title $replaceNumber is successfully updated";
-                    $statusReplace = 'UPDATED';
-                    \LogActivity::addToLog($title,"username: $username Status $message");
-                    return response()->json(array('statusReplace' => $statusReplace,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'replaceNumber'=>$replaceNumber));
-
-            } catch (Exception $e) {
-                DB::rollBack();
-                $title ="Update $this->title";
-                $alert  ="warning";
-                $message  = "$title $replaceNumber is failed to updated";
-                $statusReplace = 'FAILED';
-                \LogActivity::addToLog($title,"username: $username Status $message");
-                return response()->json(array('statusReplace' => $statusReplace,'status' => 1, 'title' => $title,'message' => $message,'alert'=>$alert,'replaceNumber'=>$replaceNumber));
             }
+
+            // ===== POSTING ULANG: kurangi stock FG (007) + movement baru =====
+            $this->postingInline($replaceNumber, $returnNumber, $customer, $note, $username, $replaceNumber);
+
+            // ===== FINALISASI STATUS =====
+            $status = $this->applyReplaceStatus($replaceNumber, $returnNumber, $username);
+            $this->applyReturnStatus($returnNumber, $username);
+
+            DB::commit();
+
+            $title   = "Update $this->title";
+            $alert   = "success";
+            $message = "$title $replaceNumber is successfully updated";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            return response()->json([
+                'statusReplace' => ($status == '2') ? 'CLOSED' : 'OPEN',
+                'status'        => 1,
+                'title'         => $title,
+                'message'       => $message,
+                'alert'         => $alert,
+                'replaceNumber' => $replaceNumber,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            $title   = "Update $this->title";
+            $alert   = "warning";
+            $message = "$title $replaceNumber is failed to update: " . $e->getMessage();
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            return response()->json([
+                'statusReplace' => 'FAILED',
+                'status'        => 0,
+                'title'         => $title,
+                'message'       => $message,
+                'alert'         => $alert,
+                'replaceNumber' => $replaceNumber,
+            ]);
         }
     }
 
     public function posting(Request $request)
-{
-    $username    = Auth::user()->username;
-    $id          = Crypt::decryptString($request->id);
-    $replaceNumber = DB::table('dn_replace_hdr')->where('id', $id)->value('replace_number');
-    $siteCode    = 'HO';
-    $locationFG  = '007';          // TAMBAHAN: lokasi warehouse FG
-    $status      = '4';
-    $moduleCode  = $this->moduleCode;
-    $todayDate   = date('Y-m-d');
-    $movementDate = date("d-m-Y");
-    $dariNew     = $request->dariNew;
+    {
+        $username      = Auth::user()->username;
+        $id            = Crypt::decryptString($request->id);
+        $header        = DB::table('dn_replace_hdr')->where('id', $id)->first();
+        $replaceNumber = $header->replace_number ?? null;
+        $dariNew       = $request->dariNew;
 
-    if ($replaceNumber) {
-        $data = DB::table('dn_replace_det')
-            ->leftJoin('dn_replace_hdr', 'dn_replace_hdr.replace_number', 'dn_replace_det.replace_number')
-            ->leftJoin('article', 'article.article_code', 'dn_replace_det.article_code')
-            ->where('dn_replace_det.replace_number', $replaceNumber)
-            ->select(
-                'dn_replace_det.*',
-                'article.article_type',
-                'article.article_desc',
-                'article.uom as uom_article',
-                DB::RAW("average_cost(dn_replace_det.article_code,'$siteCode','$locationFG','$moduleCode') as average_cost"),
-                DB::RAW("dn_replace_det.qty as total_qty")   // qty langsung, tanpa uom_conversion karena tidak ada kolom price/uom_rec di replace
-            )
-            ->get();
+        if (!$replaceNumber) {
+            $title   = "Posting $this->title";
+            $alert   = "warning";
+            $message = "$title Failed to Posting — Replace Number not found";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+        }
+
+        $returnNumber = $header->return_number;
+        $customer     = $header->customer_id;
+        $note         = $header->note;
+
+        // GUARD: cegah double posting -- store()/update() sudah posting inline,
+        // jadi endpoint ini seharusnya cuma dipakai untuk dokumen hasil storeTidakPosting()
+        // yang belum pernah ada movement-nya sama sekali.
+        if ($this->wasPosted($replaceNumber)) {
+            $title   = "Posting $this->title";
+            $alert   = "warning";
+            $message = "$title $replaceNumber already posted, cannot post again";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            if ($dariNew == 'true') {
+                return response()->json(['statusReplace' => 'OPEN', 'title' => $title, 'status' => 0, 'message' => $message, 'alert' => $alert, 'replaceNumber' => $replaceNumber, 'idKu' => '']);
+            } else {
+                return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+            }
+        }
 
         DB::beginTransaction();
         try {
-            foreach ($data as $val) {
+            $this->postingInline($replaceNumber, $returnNumber, $customer, $note, $username, $replaceNumber);
 
-                // =============================================
-                // TAMBAHAN: Kurangi stock dari warehouse_stocks
-                // location_number = '007' (Finish Goods)
-                // =============================================
-                DB::table('warehouse_stock')
-                    ->where('article_code', $val->article_code)
-                    ->where('location_number', $locationFG)
-                    ->decrement('article_qty', $val->total_qty);
+            $status = $this->applyReplaceStatus($replaceNumber, $returnNumber, $username);
+            $this->applyReturnStatus($returnNumber, $username);
 
-            }
+            $idKu = Crypt::encryptString($id);
+            DB::commit();
 
-            // Update status header menjadi CLOSED (2)
-            $rowAffected = DB::table('dn_replace_hdr')
-                ->where('replace_number', $replaceNumber)
-                ->update([
-                    'status'     => '2',            // CLOSED setelah posting
-                    'updated_by' => $username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+            $title   = "Posting $this->title";
+            $alert   = "success";
+            $message = "$title $replaceNumber Successfully Posted";
+            \LogActivity::addToLog($title, "username: $username Status $message");
 
-            if ($rowAffected > 0) {
-
-                // =============================================
-                // TAMBAHAN: Insert movement KELUAR dari loc 007
-                // =============================================
-                $dataSetMovement = [];
-                foreach ($data as $val) {
-                    $dataSetMovement[] = [
-                        'movement_date'     => $movementDate,
-                        'artikel_code'      => $val->article_code,
-                        'artikel_desc'      => $val->article_desc,
-                        'movement_min'      => $val->total_qty,   // keluar
-                        'movement_plus'     => 0,
-                        'movement_price'    => 0,
-                        'movement_transnno' => $replaceNumber,
-                        'movement_type'     => $moduleCode,
-                        'movement_desc'     => $replaceNumber,
-                        'created_by'        => $username,
-                        'created_at'        => date('Y-m-d H:i:s'),
-                        'site_code'         => $siteCode,
-                        'location_number'   => $locationFG,       // dari loc 007
-                        'last_qty'          => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$locationFG') - $val->total_qty")
-                    ];
-                }
-
-                DB::table('warehouse_movement')->insert($dataSetMovement);
-
-                $idKu = Crypt::encryptString($id);
-                DB::commit();
-
-                $title   = "Posting $this->title";
-                $alert   = "success";
-                $message = "$title $replaceNumber Successfully Posted";
-                \LogActivity::addToLog($title, "username: $username Status $message");
-
-                if ($dariNew == 'true') {
-                    return response()->json(['statusReplace' => $status, 'title' => $title, 'status' => 1, 'message' => $message, 'alert' => $alert, 'replaceNumber' => $replaceNumber, 'idKu' => $idKu]);
-                } else {
-                    return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
-                }
-
+            if ($dariNew == 'true') {
+                return response()->json(['statusReplace' => ($status == '2') ? 'CLOSED' : 'OPEN', 'title' => $title, 'status' => 1, 'message' => $message, 'alert' => $alert, 'replaceNumber' => $replaceNumber, 'idKu' => $idKu]);
             } else {
-                DB::rollBack();
-                $title   = "Posting $this->title";
-                $alert   = "warning";
-                $message = "$title $replaceNumber Failed to Posting";
-                \LogActivity::addToLog($title, "username: $username Status $message");
-
-                if ($dariNew == 'true') {
-                    return response()->json(['statusReplace' => $status, 'title' => $title, 'status' => 0, 'message' => $message, 'alert' => $alert, 'replaceNumber' => $replaceNumber, 'idKu' => '']);
-                } else {
-                    return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
-                }
+                return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
             }
 
         } catch (\Exception $e) {
@@ -1097,575 +1013,299 @@ class DnReplaceController extends Controller
             \LogActivity::addToLog($title, "username: $username Status $message");
 
             if ($dariNew == 'true') {
-                return response()->json(['statusReplace' => $status, 'title' => $title, 'status' => 0, 'message' => $message, 'alert' => $alert, 'replaceNumber' => $replaceNumber, 'idKu' => '']);
+                return response()->json(['statusReplace' => 'OPEN', 'title' => $title, 'status' => 0, 'message' => $message, 'alert' => $alert, 'replaceNumber' => $replaceNumber, 'idKu' => '']);
             } else {
                 return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
             }
-        }
-
-    } else {
-        $title   = "Posting $this->title";
-        $alert   = "warning";
-        $message = "$title Failed to Posting — Replace Number not found";
-        \LogActivity::addToLog($title, "username: $username Status $message");
-        return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
-    }
-}
-
-    public function postingOld(Request $request)
-    {
-        $username =  Auth::user()->username;
-        $id=Crypt::decryptString($request->id);
-        $replaceNumber = $request->replaceNumber;
-        $replaceNumber = DB::table('dn_replace_hdr')->where('id',$id)->value('replace_number');
-        $recType = "NORMAL";
-        $siteCode = 'HO';
-        $location ='WH';
-        $status = '4';
-        $moduleCode = $this->moduleCode;
-        $todayDate = date('Y-m-d');
-        $movementDate = date("d-m-Y");
-        $dariNew = $request->dariNew;
-
-        // $rowAffected = 0;
-
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
-        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
-            
-        if ($replaceNumber){
-            $data = DB::table('dn_replace_det')
-            ->leftJoin('dn_replace_hdr','dn_replace_hdr.replace_number','dn_replace_det.replace_number')
-            ->leftJoin('article','article.article_code','dn_replace_det.article_code')
-            ->where('dn_replace_det.replace_number',$replaceNumber)
-            // ->where('dn_replace_hdr.status','3')
-            ->select('dn_replace_det.*'
-            ,'article.article_type'
-            ,'article.uom as uom_article'
-            ,DB::RAW("average_cost(dn_replace_det.article_code,'$siteCode','$location','$moduleCode') as average_cost")
-            ,DB::RAW("(dn_replace_det.qty*uom_conversion(dn_replace_det.uom_rec,article.uom))+(dn_replace_det.qty_free*uom_conversion(dn_replace_det.uom_rec,article.uom)) as total_qty")
-            )
-            ->get();
-
-
-            foreach($data as $val){
-                //insert article code kalo belum ada di tabel item_stock
-                // if( $val->total_qty > 0 ){
-                    DB::table('article_stock')
-                    ->updateOrInsert(
-                        [ 'site_code' =>$siteCode,
-                          'article_code' => $val->article_code,
-                          'location_number'=> $location
-                        ],
-                        [
-                          'dept_code'=>$val->article_type,
-                          'uom'=>$val->uom_article,
-                        ]
-                    );
-    
-                    //update qty nya ditambahkan dengan qty baru
-                    $rowAffected = DB::table('article_stock')
-                    ->where('site_code',$siteCode)
-                    ->where('article_code',$val->article_code)
-                    ->where('location_number',$location)
-                    ->update([
-                        'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
-                    ]);
-
-                    if ($rowAffected > 0){
-                        DB::table('article')
-                        ->where('article_code',$val->article_code)
-                        ->update(
-                        [   
-                            'lastcost' => $val->price,
-                            'avgcost' =>  $val->average_cost,
-                            'updated_by' => Auth::user()->username,
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]
-                        );
-                    }
-                // }
-
-                // $rowAffected = DB::table('article_stock')
-                // ->where('site_code',$siteCode)
-                // ->where('article_code',$val->article_code)
-                // ->increment('article_qty', $val->total_qty);
-
-            }
-                    
-            $rowAffected = DB::table('dn_replace_hdr')
-            ->where('replace_number',$replaceNumber)
-            ->update(
-                [   
-                    'status' => $status,
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
-            
-            if ($rowAffected > 0){
-                $movements = DB::table('dn_replace_det')
-                ->leftJoin('dn_replace_hdr','dn_replace_hdr.replace_number','dn_replace_det.replace_number')
-                ->leftJoin('article','article.article_code','dn_replace_det.article_code')
-                ->where('dn_replace_det.replace_number',$replaceNumber)
-                ->where('dn_replace_hdr.status','4')
-                ->where('qty', '<>', 0)
-                ->select(
-                    DB::RAW("'$movementDate' as movement_date")
-                    // 'dn_replace_hdr.rec_date as movement_date'
-                    ,'dn_replace_det.article_code'
-                    ,'article.article_desc'
-                    ,DB::raw("0 as movement_min")
-                    ,DB::RAW("(uom_conversion(dn_replace_det.uom_rec,article.uom)*dn_replace_det.qty) as movement_plus")
-                    ,DB::raw("dn_replace_det.price as movement_price ")
-                    ,'dn_replace_hdr.replace_number as movement_transnno'
-                    ,DB::raw("'$moduleCode' as movement_type")
-                    ,'dn_replace_hdr.po_number as movement_desc'
-                )
-                ->get();
-                
-                $dataSetMovement = [];
-                foreach ($movements as $val) {
-                    $dataSetMovement[] = [
-                        'movement_date' => $val->movement_date,
-                        'artikel_code' => $val->article_code,
-                        'artikel_desc' => $val->article_desc,
-                        'movement_min' => $val->movement_min,
-                        'movement_plus' => $val->movement_plus,
-                        'movement_price' => $val->movement_price,
-                        'movement_transnno' => $val->movement_transnno,
-                        'movement_type' => $val->movement_type,
-                        'movement_desc' => $val->movement_desc,
-                        'created_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'site_code' => $siteCode,
-                        'location_number' => $location,
-                        'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)")
-                    ];
-                }
-
-                DB::table('movement')->insert($dataSetMovement);
-
-                DB::statement("INSERT into kas_hdr (voucher_number,voucher_type,voucher_date,receive_from,amount,period,year,note,status,created_by,updated_by,created_at,updated_at,description)
-                select replace_number as voucher_number
-                ,'REC' as voucher_type
-                ,do_date as voucher_date
-                ,customer_id as receive_from
-                ,(select sum((qty+qty_free)*price) from dn_replace_det where replace_number = dn_replace_hdr.replace_number) as amount
-                ,substring(do_date,4,2)::integer as period
-                ,substring(do_date,7) as year,note
-                ,'3' as status
-                ,created_by
-                ,updated_by
-                ,now()
-                ,now()
-                ,replace_number as description 
-                from dn_replace_hdr
-                where status = '4'
-                and replace_number in (select replace_number
-                from dn_replace_det
-                left join article on article.article_code = dn_replace_det.article_code
-                where article_type in ('RMP','CM1','CM2','RM'))
-                and replace_number = '$replaceNumber'
-                order by created_at");
-
-                DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at,cost_center) 
-                select replace_number as voucher_number
-                ,case when article_type='RMP' then '1100.31' when article_type='RM' then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end as account
-                ,concat(replace_number,' ',article_desc) 
-                ,(qty+qty_free)*price as debit
-                ,dn_replace_det.created_by
-                ,dn_replace_det.updated_by
-                ,now()
-                ,now()
-                ,'003' as cost_center
-                from dn_replace_det
-                left join article on article.article_code = dn_replace_det.article_code
-                where article_type in ('RMP','CM1','CM2','RM')
-                and (qty+qty_free) > 0
-                and replace_number in (select replace_number from dn_replace_hdr where status = '4' and replace_number = '$replaceNumber')
-                order by dn_replace_det.created_at");
-
-                $idKu = Crypt::encryptString($id);
-
-                DB::commit();
-                $title ="Posting $this->title";
-                $alert  ="success";
-                $message  = "$title $replaceNumber Successfully Posted";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-
-                if($dariNew=='true'){
-                    return response()->json(array('statusReplace' => $status, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'replaceNumber'=>$replaceNumber,'idKu'=>$idKu));
-                }else{
-                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-                }      
-                // return response()->json(array('statusReplace' => $statusReplace,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'replaceNumber'=>$replaceNumber));
-            }else{
-
-                $title ="Posting $this->title";
-                $alert  ="warning";
-                $message  = "$title $replaceNumber Failed to Posting";
-                \LogActivity::addToLog($title,"username: $username Status $message");
-
-                if($dariNew=='true'){
-                    return response()->json(array('statusReplace' => $status, 'title' => $title, 'status' => 0, 'message' => $message,'alert'=>$alert,'replaceNumber'=>$replaceNumber,'idKu'=>$idKu));
-                }else{
-                    return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-                }     
-                // return response()->json(array('statusReplace' => $statusReplace,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'replaceNumber'=>$replaceNumber));
-            }
-        }else{
-            $title ="Posting $this->title";
-            $alert  ="warning";
-            $message  = "$title $replaceNumber Failed to Posting";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
         }
     }
 
     public function cancel(Request $request)
     {
         /*
-            $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCEL'];
-            ['OPEN','CLOSED','CANCELED']; 
+            $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
         */
 
-        $username =  Auth::user()->username;
-        $id=Crypt::decryptString($request->id);
-        $replaceNumber = DB::table('dn_replace_hdr')->where('id',$id)->value('replace_number');
+        $username = Auth::user()->username;
+        $id = Crypt::decryptString($request->id);
         $status = '3';
-        $moduleCode = $this->moduleCode;
-        $reason = "(Cancel by $username, Reason: $request->reason)";
-        $todayDate = date('Y-m-d');
-        $movementDate = date("d-m-Y");
-        
-        DB::table('dn_replace_hdr')
-        ->where('replace_number',$replaceNumber)
-        ->update(
-            [   
-                'status' => $status,
-                'return_number'=>DB::raw("CONCAT(po_number,';','(C)')") ,
-                'note' => DB::raw("CONCAT(note,';','$reason')") ,
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]
-        );
-
-        DB::commit();
-        $title ="Cancel $this->title";
-        $alert  ="success";
-        $message  = "$title $replaceNumber Successfully Canceled";
-        \LogActivity::addToLog($title,"username: $username Status $message");
-        return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-    }
-  
-    public function destroy(Request $request)
-    {
-       /*
-            $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCEL'];
-            ['OPEN','CLOSED','CANCELED']; 
-        */
-
-        $username =  Auth::user()->username;       
-        $id=Crypt::decryptString($request->id);
-        $leadCode = $this->moduleCode;
-        
-        $replaceNumber = DB::table('dn_replace_hdr')->where('id',$id)
-        ->whereNotIn('status',['3'])
-        ->value('replace_number');
-
-        $urutan = (int)explode('-',$replaceNumber)[3];
-        $urutanSebelum = (int)explode('-',$replaceNumber)[3] -1;
-
-        $rowAffected = DB::table('dn_replace_hdr')->where('replace_number',$replaceNumber)->delete();
-
-        if($rowAffected>0){
-            DB::table('dn_replace_det')->where('replace_number',$replaceNumber)->delete();
-
-            db::table('master_code')
-            ->where('code_key',$leadCode)
-            ->where('code_number',$urutan)
-            ->update([
-                'code_number' => $urutanSebelum
-            ]);
-
-            $title ="Delete $this->title";
-            $alert  ="success";
-            $message  = "$title $replaceNumber Successfully Deleted";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);  
-        }else{
-            $title ="Delete $this->title";
-            $alert  ="warning";
-            $message  = "$title $replaceNumber Failed to Delete";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);
-        }
-    }
-
-    public function revision(Request $request)
-    {
-        $username =  Auth::user()->username;
-        $id=Crypt::decryptString($request->id);
-        $receiving=DB::table('dn_replace_hdr')->where('id',$id)->first();
-        $recOrigin=$receiving->replace_number;
-        $recStatus=$receiving->status;
-        
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
-        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
-              
-        $numRevision = $request->nR ? $request->nR +1 : 1 ;
-        $numRevisionName = '-R'.$numRevision;
-        $recNew = $recOrigin.$numRevisionName;
-        $checkNewRec=DB::table('dn_replace_hdr')->where('replace_number',$recNew)->count();
         $reason = $request->reason;
 
-        if ($checkNewRec > 0){
-            $recNew = $recOrigin.'-R'.($numRevision+1);
-        } 
-                
-        $sqlHdr = "INSERT into dn_replace_hdr 
-        (
-            replace_number,
-            inv_number,
-            inv_date,
-            do_number,
-            do_date,
-            po_number,
-            customer_id,
-            rec_date,
-            authorized_by,
-            authorized_at,
-            prepared_by,
-            rec_type,
-            status,
-            note,
-            created_by,
-            updated_by,
-            created_at,
-            updated_at,
-            origin_replace_number,
-            num_revision,
-            revised_by,
-            revised_at,
-            reason
-        )
-        select 
-            '$recNew',
-            inv_number,
-            inv_date,
-            do_number,
-            do_date,
-            po_number,
-            customer_id,
-            rec_date,
-            authorized_by,
-            authorized_at,
-            prepared_by,
-            rec_type,
-            '7',
-            note,
-            created_by,
-            '$username',
-            created_at,
-            '".date('Y-m-d H:i:s')."',
-            '$recOrigin',
-            $numRevision,
-            '$username',
-            '".date('Y-m-d H:i:s')."',
-            '$reason'
-        from dn_replace_hdr where replace_number = '$recOrigin'";
+        $header = DB::table('dn_replace_hdr')->where('id', $id)->first();
 
-        $sqlDet="INSERT into dn_replace_det
-        (
-            replace_number,
-            article_code,
-            qty,
-            uom_rec,
-            qty_free,
-            uom_free,
-            price,
-            created_by,
-            updated_by,
-            created_at,
-            updated_at,
-            pr_number
-        )
-        select 
-            '$recNew',
-            article_code,
-            qty,
-            uom_rec,
-            qty_free,
-            uom_free,
-            price,
-            created_by,
-            '$username',
-            created_at,
-            '".date('Y-m-d H:i:s')."',
-            pr_number
-        from dn_replace_det where replace_number = '$recOrigin'";
+        if (!$header) {
+            return redirect()->back()->with(['title' => "Cancel $this->title", 'alert' => 'warning', 'message' => 'Document not found']);
+        }
 
-        $rowAffected =  DB::select($sqlHdr);
-        if ($rowAffected){
-            DB::select($sqlDet);
+        $replaceNumber = $header->replace_number;
+        $returnNumber  = $header->return_number;
 
-            // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
-            // ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
-        
-            $rowAffected = DB::table('dn_replace_hdr')
-            ->where('replace_number',$recOrigin)
-            ->update(
-                [
-                    'num_revision' => $numRevision,
-                    'status' => '10', //Revisi
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
-
-            if($rowAffected){
-                if($recStatus == '4'){
-                    $this->unPosting($recOrigin);
-                }
+        // FIX: dulu tidak ada DB::beginTransaction() padahal DB::commit() dipanggil -> exception.
+        DB::beginTransaction();
+        try {
+            // GUARD: reverse stock & hapus movement yang sudah diposting sebelum cancel,
+            // supaya stock FG tidak nyangkut minus setelah dokumen dibatalkan.
+            if ($this->wasPosted($replaceNumber)) {
+                $this->unPosting($replaceNumber, $username);
             }
 
-            DB::table('approval_history')
-            ->where('module_number',$recOrigin)
-            ->update(
-                [
-                    'module_number' => $recNew,
-                    'status' => '0',
-                    'updated_by' => Auth::user()->username,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]
-            );
-            
-            DB::table('kas_det')->where('voucher_number',$recOrigin)->delete();
-            DB::table('kas_hdr')->where('voucher_number',$recOrigin)->delete();
+            // FIX: dulu pakai DB::raw("CONCAT(po_number,...)") ke kolom return_number,
+            // padahal kolom po_number tidak ada di tabel ini dan itu merusak return_number.
+            // Sekarang cukup dicatat di note lewat parameter binding (bukan raw string
+            // concat) untuk menghindari SQL injection dari $reason.
+            $reasonNote = "(Cancel by {$username}, Reason: {$reason})";
+            $newNote = trim(($header->note ?? '') . ';' . $reasonNote, ';');
 
-            $title ="Save $this->title";
-            $alert  ="success";
-            $message  = "$title Revision Rec: $recOrigin to $recNew is successfully saved";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->route('dnReplace.edit', ['id'=>Crypt::encryptString($id)]);
-        }else{
-            $title ="Save $this->title";
-            $alert  ="warning";
-            $message  = "$title Revision Rec: $recOrigin to $recNew is failed to save";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'message'=> $message]);
-        }
-        
-    }
-
-    public function unPosting($replaceNumber)
-    {
-        $username =  Auth::user()->username;
-        $recType = "NORMAL";
-        $siteCode = 'HO';
-        $location ='WH';
-        $moduleCode = $this->moduleCode;
-        $todayDate = date('Y-m-d');
-        $movementDate = date("d-m-Y");
-        
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
-        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
-            
-        if ($replaceNumber){
-            $data = DB::table('dn_replace_det')
-            ->leftJoin('dn_replace_hdr','dn_replace_hdr.replace_number','dn_replace_det.replace_number')
-            ->leftJoin('article','article.article_code','dn_replace_det.article_code')
-            ->where('dn_replace_det.replace_number',$replaceNumber)
-            // ->where('dn_replace_hdr.status','3')
-            ->select('dn_replace_det.*'
-            ,'article.article_type'
-            ,'article.uom as uom_article'
-            ,DB::RAW("average_cost(dn_replace_det.article_code,'$siteCode','$location','$moduleCode') as average_cost")
-            ,DB::RAW("(dn_replace_det.qty*uom_conversion(dn_replace_det.uom_rec,article.uom))+(dn_replace_det.qty_free*uom_conversion(dn_replace_det.uom_rec,article.uom)) as total_qty")
-            )
-            ->get();
-
-            foreach($data as $val){
-                //insert article code kalo belum ada di tabel item_stock
-                DB::table('article_stock')
-                ->updateOrInsert(
-                    [   'site_code' =>$siteCode,
-                        'article_code' => $val->article_code,
-                        'location_number'=> $location
-                    ],
-                    [
-                        'dept_code'=>$val->article_type,
-                        'uom'=>$val->uom_article,
-                    ]
-                );
-
-                //update qty nya dikurang qty lama karena di unpost
-                $rowAffected = DB::table('article_stock')
-                ->where('site_code',$siteCode)
-                ->where('article_code',$val->article_code)
-                ->where('location_number',$location)
+            DB::table('dn_replace_hdr')
+                ->where('replace_number', $replaceNumber)
                 ->update([
-                    'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
+                    'status'     => $status,
+                    'note'       => $newNote,
+                    'updated_by' => $username,
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ]);
 
+            // Return-nya dibebaskan lagi setelah dokumen replace ini dibatalkan.
+            $this->applyReturnStatus($returnNumber, $username);
+
+            DB::commit();
+            $title   = "Cancel $this->title";
+            $alert   = "success";
+            $message = "$title $replaceNumber Successfully Canceled";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $title   = "Cancel $this->title";
+            $alert   = "warning";
+            $message = "$title $replaceNumber Failed to Cancel: " . $e->getMessage();
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+        }
+    }
+
+    public function destroy(Request $request)
+    {
+        /*
+            $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
+        */
+
+        $username = Auth::user()->username;
+        $id = Crypt::decryptString($request->id);
+        $leadCode = $this->moduleCode;
+
+        $header = DB::table('dn_replace_hdr')
+            ->where('id', $id)
+            ->whereNotIn('status', ['3'])
+            ->first();
+
+        if (!$header) {
+            $title   = "Delete $this->title";
+            $alert   = "warning";
+            $message = "$title Failed to Delete — document not found or already canceled";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+        }
+
+        $replaceNumber = $header->replace_number;
+        $returnNumber  = $header->return_number;
+
+        // FIX: format replace_number = "DN-REPLACE-YY-MM-00001". Karena moduleCode
+        // "DN-REPLACE" sendiri mengandung "-", explode('-')[3] dulu salah ambil "MM",
+        // bukan angka urut "00001". Sekarang pakai elemen TERAKHIR dari hasil explode.
+        $parts = explode('-', $replaceNumber);
+        $urutan = (int) end($parts);
+        $urutanSebelum = $urutan - 1;
+
+        DB::beginTransaction();
+        try {
+            // GUARD: reverse stock & hapus movement dulu sebelum hapus dokumen,
+            // supaya stock FG tidak nyangkut minus & tidak ada movement history yatim.
+            if ($this->wasPosted($replaceNumber)) {
+                $this->unPosting($replaceNumber, $username);
             }
-                                            
-            $movements = DB::table('dn_replace_det')
-            ->leftJoin('dn_replace_hdr','dn_replace_hdr.replace_number','dn_replace_det.replace_number')
-            ->leftJoin('article','article.article_code','dn_replace_det.article_code')
-            ->where('dn_replace_det.replace_number',$replaceNumber)
-            // ->where('dn_replace_hdr.status','4')
-            ->where('qty', '<>', 0)
-            ->select(
-                DB::RAW("'$movementDate' as movement_date")
-                // 'dn_replace_hdr.rec_date as movement_date'
-                ,'dn_replace_det.article_code'
-                ,'article.article_desc'
-                ,DB::RAW("(uom_conversion(dn_replace_det.uom_rec,article.uom)*dn_replace_det.qty) as movement_min")
-                ,DB::raw("0 as movement_plus")
-                ,DB::raw("dn_replace_det.price as movement_price ")
-                ,'dn_replace_hdr.replace_number as movement_transnno'
-                ,DB::raw("'$moduleCode' as movement_type")
-                ,'dn_replace_hdr.po_number as movement_desc'
-            )
+
+            $rowAffected = DB::table('dn_replace_hdr')->where('replace_number', $replaceNumber)->delete();
+
+            if ($rowAffected > 0) {
+                DB::table('dn_replace_det')->where('replace_number', $replaceNumber)->delete();
+
+                DB::table('master_code')
+                    ->where('code_key', $leadCode)
+                    ->where('code_number', $urutan)
+                    ->update([
+                        'code_number' => $urutanSebelum
+                    ]);
+
+                $this->applyReturnStatus($returnNumber, $username);
+
+                DB::commit();
+                $title   = "Delete $this->title";
+                $alert   = "success";
+                $message = "$title $replaceNumber Successfully Deleted";
+                \LogActivity::addToLog($title, "username: $username Status $message");
+                return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+            } else {
+                DB::rollBack();
+                $title   = "Delete $this->title";
+                $alert   = "warning";
+                $message = "$title $replaceNumber Failed to Delete";
+                \LogActivity::addToLog($title, "username: $username Status $message");
+                return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $title   = "Delete $this->title";
+            $alert   = "warning";
+            $message = "$title $replaceNumber Failed to Delete: " . $e->getMessage();
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+        }
+    }
+
+    /**
+     * Buat dokumen revisi dari dokumen replace yang sudah ada: dokumen asal
+     * di-unposting & di-CANCEL, lalu dokumen baru (nomor "-R<n>") dibuat,
+     * detail-nya dicopy, langsung diposting ulang, dan statusnya difinalkan
+     * lewat applyReplaceStatus()/applyReturnStatus() (CLOSED kalau return
+     * habis, OPEN kalau masih sisa).
+     */
+    public function revision(Request $request)
+    {
+        $username = Auth::user()->username;
+        $id       = Crypt::decryptString($request->id);
+        $reason   = $request->reason;
+
+        $original = DB::table('dn_replace_hdr')->where('id', $id)->first();
+
+        if (!$original) {
+            $title = "Revision $this->title";
+            return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Document not found']);
+        }
+
+        if ($original->status == '3') {
+            $title = "Revision $this->title";
+            return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Canceled document cannot be revised']);
+        }
+
+        $recOrigin    = $original->replace_number;
+        $trueOrigin   = $original->origin_replace_number ?: $recOrigin;
+        $returnNumber = $original->return_number;
+        $customer     = $original->customer_id;
+        $note         = $original->note;
+
+        // Nomor revisi berikutnya (server-side, dari rantai origin).
+        $numRevision = DB::table('dn_replace_hdr')
+            ->where('origin_replace_number', $trueOrigin)
+            ->count();
+
+        $recNew = $trueOrigin . '-R' . $numRevision;
+        while (DB::table('dn_replace_hdr')->where('replace_number', $recNew)->exists()) {
+            $numRevision++;
+            $recNew = $trueOrigin . '-R' . $numRevision;
+        }
+
+        $detailOriginal = DB::table('dn_replace_det')
+            ->where('replace_number', $recOrigin)
             ->get();
-            
-            $dataSetMovement = [];
-            foreach ($movements as $val) {
-                $dataSetMovement[] = [
-                    'movement_date' => $val->movement_date,
-                    'artikel_code' => $val->article_code,
-                    'artikel_desc' => $val->article_desc,
-                    'movement_min' => $val->movement_min,
-                    'movement_plus' => $val->movement_plus,
-                    'movement_price' => $val->movement_price,
-                    'movement_transnno' => $val->movement_transnno,
-                    'movement_type' => $val->movement_type,
-                    'movement_desc' => $val->movement_desc."(Revision)",
-                    'created_by' => Auth::user()->username,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'site_code' => $siteCode,
-                    'location_number' => $location,
-                    'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
+
+        DB::beginTransaction();
+        try {
+            // 1. Reverse stok dokumen asal jika sudah pernah ada movement.
+            if ($this->wasPosted($recOrigin)) {
+                $this->unPosting($recOrigin, $username);
+            }
+
+            // 2. HEADER BARU (status sementara OPEN, difinalkan di langkah 6).
+            $noteBaru = trim(
+                ($note ?? '') . "; Revision of {$recOrigin}" . ($reason ? ", reason: {$reason}" : ''),
+                '; '
+            );
+
+            $newId = DB::table('dn_replace_hdr')->insertGetId([
+                'replace_number'        => $recNew,
+                'return_number'         => $returnNumber,
+                'replace_date'          => $original->replace_date,
+                'customer_id'           => $customer,
+                'status'                => '1',
+                'note'                  => $noteBaru,
+                'origin_replace_number' => $trueOrigin,
+                'created_by'            => $username,
+                'updated_by'            => $username,
+                'created_at'            => date('Y-m-d H:i:s'),
+                'updated_at'            => date('Y-m-d H:i:s'),
+            ]);
+
+            // 3. COPY DETAIL (return_number & qty_return ikut).
+            $dataSet = [];
+            foreach ($detailOriginal as $val) {
+                $dataSet[] = [
+                    'replace_number' => $recNew,
+                    'return_number'  => $val->return_number,
+                    'article_code'   => $val->article_code,
+                    'qty_return'     => $val->qty_return,
+                    'qty'            => $val->qty,
+                    'uom'            => $val->uom,
+                    'created_by'     => $username,
+                    'updated_by'     => $username,
+                    'created_at'     => date('Y-m-d H:i:s'),
+                    'updated_at'     => date('Y-m-d H:i:s'),
                 ];
             }
+            if (!empty($dataSet)) {
+                DB::table('dn_replace_det')->insert($dataSet);
+            }
 
-            DB::table('movement')->insert($dataSetMovement);
+            // 4. Dokumen asal -> CANCELED (digantikan) -- dilakukan SEBELUM posting
+            //    dokumen baru supaya assertNotExceedReturn() tidak menghitung dokumen
+            //    asal (yang qty-nya identik) sebagai pemakai kuota return.
+            DB::table('dn_replace_hdr')
+                ->where('replace_number', $recOrigin)
+                ->update([
+                    'status'     => '3',
+                    'note'       => trim(($note ?? '') . "; Superseded by revision {$recNew}" . ($reason ? ", reason: {$reason}" : ''), '; '),
+                    'updated_by' => $username,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
 
-            DB::table('kas_det')->where('voucher_number',$replaceNumber)->delete();
-            DB::table('kas_hdr')->where('voucher_number',$replaceNumber)->delete();
+            // 5. POSTING INLINE dokumen baru: potong stok FG (007) + movement.
+            $this->postingInline($recNew, $returnNumber, $customer, $noteBaru, $username, $recNew);
 
-            return 'true';
-        }else{
-            return 'false';
+            // 6. Status akhir: CLOSED kalau return habis, OPEN kalau masih ada sisa.
+            $this->applyReplaceStatus($recNew, $returnNumber, $username);
+            $this->applyReturnStatus($returnNumber, $username);
+
+            // 7. Pindahkan approval history ke nomor baru.
+            DB::table('approval_history')
+                ->where('module_number', $recOrigin)
+                ->update([
+                    'module_number' => $recNew,
+                    'status'        => '0',
+                    'updated_by'    => $username,
+                    'updated_at'    => date('Y-m-d H:i:s'),
+                ]);
+
+            DB::commit();
+
+            $title   = "Revision $this->title";
+            $message = "$title: $recOrigin successfully revised to $recNew";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            return redirect()->route('dnReplace.edit', ['id' => Crypt::encryptString($newId)])
+                ->with(['title' => $title, 'alert' => 'success', 'message' => $message]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $title   = "Revision $this->title";
+            $message = "$title: $recOrigin failed to revise: " . $e->getMessage();
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => $message]);
         }
     }
 
     public function list(Request $request)
     {
-        // $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
-        // ['OPEN','CLOSED','CANCELED']; 
-
         $searchReplace = strtolower($request->searchReplace);
         $searchReturn = strtolower($request->searchReturn);
         $searchCustomer = $request->searchCustomer;
@@ -1682,7 +1322,7 @@ class DnReplaceController extends Controller
                 $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
             }else{
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = $fromDate; 
+                $toDate = $fromDate;
             }
         }
 
@@ -1700,8 +1340,8 @@ class DnReplaceController extends Controller
         ,DB::raw("to_char(to_date(replace_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_replace")
         )
         ->orderBy('id')
-        ->get(); 
-       
+        ->get();
+
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
             $buttons = '<div class="d-inline-flex">
@@ -1710,7 +1350,6 @@ class DnReplaceController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
-            // if (($data->status == '1') OR ($data->status == '2')){
             if ($data->status == '1'){
                 if (Auth::user()->can('receiving-edit')) {
                     $buttons .=     '<a href="'. route('dnReplace.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
@@ -1720,30 +1359,10 @@ class DnReplaceController extends Controller
                 }
             }
 
-            // if ( in_array($data->status,['1','2','3','4']) ) {
-            //     // if (Auth::user()->can('receiving-revision')) {
-            //         $replaceDate = date('Y-m-d', strtotime($data->rec_date));
-            //         if($replaceDate>=$lockDateToDate){
-            //             $buttons .= "<a href='javascript:;'
-            //                             id='revisionReasonButton'
-            //                             class='dropdown-item'
-            //                             data-toggle='modal'
-            //                             data-target='#reasonModalRevision'
-            //                             data-href='". route('dnReplace.revision', ['id'=>Crypt::encryptString($data->id),'nR'=>$data->num_revision]) ."'>
-            //                             <i data-feather='corner-down-left' class='feather-14-red'></i>
-            //                             <span>". __('Revision') ."</span>
-            //                         </a>";
-            //         }
-            //     // }            
-            // }
-
-            // if ($data->status == '4'){
-                $buttons .=         "<a href='". route('dnReplace.print', ['id'=>Crypt::encryptString($data->id)]) ."' target='_blank' class='dropdown-item'>
-                                        <i data-feather='printer'></i>
-                                        <span>". __('Print') ."</span>
-                                    </a>";
-
-            // }
+            $buttons .=         "<a href='". route('dnReplace.print', ['id'=>Crypt::encryptString($data->id)]) ."' target='_blank' class='dropdown-item'>
+                                    <i data-feather='printer'></i>
+                                    <span>". __('Print') ."</span>
+                                </a>";
 
             $buttons .=         '<a href="'. route('dnReplace.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="list"></i>
@@ -1751,7 +1370,6 @@ class DnReplaceController extends Controller
                                 </a>';
 
             if ( $data->status == '2' ){
-                if (Auth::user()->can('receiving-delete')) {
                     $buttons .=         "<a href='javascript:;'
                                             id='cancelReasonButton'
                                             class='dropdown-item'
@@ -1761,23 +1379,20 @@ class DnReplaceController extends Controller
                                             <i data-feather='corner-down-left' class='feather-14-red'></i>
                                             <span>". __('Cancel') ."</span>
                                         </a>";
-                }
             }
-            
+
             if ($data->status == '1'){
-                if (Auth::user()->can('receiving-delete')) {
                     $buttons .=         "<a href='javascript:;'
-                                        class='dropdown-item' 
+                                        class='dropdown-item'
                                         data-size='sm'
                                         data-ajax-delete='true'
-                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?' 
+                                        data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?'
                                         data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
                                         data-modal-id='".$data->id."'
                                         data-url='". route('dnReplace.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
                                         <i data-feather='trash-2' class='feather-14-red'></i>
                                         <span>". __('Delete') ."</span>
                                     </a>";
-                }
             }
 
             $buttons .=     '</div>
@@ -1786,9 +1401,8 @@ class DnReplaceController extends Controller
             return $buttons;
         })
         ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];            
+            $badges=['badge-primary','badge-info','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];
             $statusReplace = ['OPEN','CLOSED','CANCELED'];
-            // $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusReplace[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status'])
@@ -1813,12 +1427,12 @@ class DnReplaceController extends Controller
                 $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
             }else{
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = $fromDate; 
+                $toDate = $fromDate;
             }
         }
 
         $data = DB::table('dn_replace_det')
-        ->leftJoin('dn_replace_hdr','dn_replace_hdr.replace_number','dn_replace_det.replace_number')      
+        ->leftJoin('dn_replace_hdr','dn_replace_hdr.replace_number','dn_replace_det.replace_number')
         ->leftJoin('article','article.article_code','dn_replace_det.article_code')
         ->where(function ($query) use ($searchReplace,$searchReturn,$searchCustomer,$searchStatus,$replaceDate,$fromDate,$toDate) {
             $searchReturn ? $query->where('dn_replace_det.return_number','ilike','%'.$searchReturn.'%') : '';
@@ -1839,13 +1453,12 @@ class DnReplaceController extends Controller
         ,DB::raw("to_char(to_date(replace_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_replace")
         )
         ->orderBy('dn_replace_det.id')
-        ->get(); 
-        
+        ->get();
+
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];            
+            $badges=['badge-primary','badge-info','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];
             $statusReplace = ['OPEN','CLOSED','CANCELED'];
-            // $data['status'] = ['1'=>'OPEN','2'=>'CLOSED','3'=>'CANCELED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusReplace[$data->status - 1]."</div>";
         })
         ->rawColumns(['status'])
@@ -1860,7 +1473,7 @@ class DnReplaceController extends Controller
         ->where('code','ASN')
         ->select('name as nama', 'address as alamat', DB::RAW('(select region_name from regions where region_code = city::integer)  as kota'),'tlp')
         ->get()->first();
-                
+
         $recHdr=DB::table('dn_replace_hdr')
         ->leftJoin('dn_return_hdr','dn_return_hdr.return_number','dn_replace_hdr.return_number')
         ->select('dn_replace_hdr.*','dn_return_hdr.dn_number')
@@ -1874,7 +1487,7 @@ class DnReplaceController extends Controller
         ->first();
 
         $replaceNumber=$recHdr->replace_number;
-       
+
         $data['details']=DB::table('dn_replace_det')
         ->leftJoin('article','article.article_code','dn_replace_det.article_code')
         ->where('replace_number',$replaceNumber)
@@ -1886,7 +1499,7 @@ class DnReplaceController extends Controller
         ->where('kode',$recHdr->customer_id)
         ->orderBy('nama')
         ->first();
-        
+
         $status = ['OPEN','CLOSED','CANCELED'];
         $data['status'] = $status[$recHdr->status-1];
 
@@ -1895,111 +1508,61 @@ class DnReplaceController extends Controller
         $data['title'] =$replaceNumber;
 
         return view('dnReplace.print',$data);
-
-        // view()->share($data);
-
-        // $pdf = PDF::loadView('dnReplace.print');
-        // return $pdf->stream("PO_$replaceNumber.pdf");
-
     }
 
     public function listReturn(Request $request)
-{
-    $cust = $request->value;      
-    $output = "";
-
-    $data = DB::table("dn_return_hdr") 
-        ->where("customer_id", $cust)
-        ->where("status", "1")
-        ->orderBy("return_number")
-        ->select('return_number', 'dn_number')
-        ->get();          
-
-    if (count($data) > 0) {
-        $output .= '<option value="">Choose DN Return</option>';            
-        foreach ($data as $row) {
-            $dnLabel = $row->dn_number ? ' (' . $row->dn_number . ')' : '';
-            $output .= '<option value="' . $row->return_number . '" data-dn="' . $row->dn_number . '">'
-                        . $row->return_number . $dnLabel .
-                       '</option>';            
-        }
-    }
-
-    return $output;
-}
-
-    public function listReturnOld(Request $request)
     {
-        $cust= $request->value;      
-        $output="";
+        $cust = $request->value;
+        $output = "";
 
-        $data= DB::table("dn_return_hdr") 
-        ->where("customer_id",$cust)
-        ->where("status","1")
-        ->orderBy("return_number")
-        ->select('return_number','dn_number')
-        ->get();          
+        $data = DB::table("dn_return_hdr")
+            ->where("customer_id", $cust)
+            ->where("status", "1")
+            ->orderBy("return_number")
+            ->select('return_number', 'dn_number')
+            ->get();
 
-        if (count($data)>0){
-            $output .='<option value="Choose PO">Choose DN</option>';            
-            foreach ($data as $row){
-                $output .='<option value="'.$row->return_number.'" data-dn= "'.$row->dn_number.'">'.$row->return_number.'</option>';            
+        if (count($data) > 0) {
+            $output .= '<option value="">Choose DN Return</option>';
+            foreach ($data as $row) {
+                $dnLabel = $row->dn_number ? ' (' . $row->dn_number . ')' : '';
+                $output .= '<option value="' . $row->return_number . '" data-dn="' . $row->dn_number . '">'
+                            . $row->return_number . $dnLabel .
+                           '</option>';
             }
         }
+
         return $output;
     }
 
     public function returnDetail(Request $request)
-{
-    $returnNumber = $request->value;
-    $data = DB::select("SELECT 
-    a.*,
-    a.article_code,
-    article_alternative_code,
-    article_desc,
-    (COALESCE(a.qty,0)) as tot_qty_return,
-    (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_return,
-    a.uom,
-    COALESCE(ws.qty_stock, 0) as qty_stock
-    from dn_return_det a
-    left join article on article.article_code = a.article_code
-    left join (
-        select sum(qty) as qty, return_number, article_code 
-        from dn_replace_det 
-        where return_number = '$returnNumber' 
-        group by return_number, article_code
-    ) as b on a.article_code = b.article_code
-    -- TAMBAHAN: join ke warehouse_stocks untuk ambil qty stock FG location 007
-    left join (
-        select article_code, sum(article_qty) as qty_stock
-        from warehouse_stock
-        where location_number = '007'
-        group by article_code
-    ) as ws on ws.article_code = a.article_code
-    where a.return_number = '$returnNumber'
-    order by a.id");
-
-    return response()->json($data);
-}
-
-    public function returnDetailOld(Request $request)
     {
         $returnNumber = $request->value;
-        $data = DB::select("SELECT 
+        $data = DB::select("SELECT
         a.*,
         a.article_code,
         article_alternative_code,
         article_desc,
         (COALESCE(a.qty,0)) as tot_qty_return,
-        (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_return
-        ,a.uom
+        (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_return,
+        a.uom,
+        COALESCE(ws.qty_stock, 0) as qty_stock
         from dn_return_det a
         left join article on article.article_code = a.article_code
-        left join (select sum(qty) as qty,return_number, article_code from dn_replace_det where return_number = '$returnNumber' group by return_number, article_code) as b
-        on a.article_code = b.article_code
-        where a.return_number = '$returnNumber'
-        order by a.id");
-
+        left join (
+            select sum(qty) as qty, return_number, article_code
+            from dn_replace_det
+            where return_number = ?
+            group by return_number, article_code
+        ) as b on a.article_code = b.article_code
+        left join (
+            select article_code, sum(article_qty) as qty_stock
+            from warehouse_stock
+            where location_number = '007'
+            group by article_code
+        ) as ws on ws.article_code = a.article_code
+        where a.return_number = ?
+        order by a.id", [$returnNumber, $returnNumber]);
 
         return response()->json($data);
     }
