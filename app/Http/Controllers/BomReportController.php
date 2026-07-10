@@ -124,7 +124,8 @@ class BomReportController extends Controller
         'bom_hdr.part_no',
         'bom_hdr.model',
         'bom_hdr.group_of_material',
-        DB::raw("NULL as note")
+        DB::raw("NULL as note"),
+        DB::raw("0 as sort_type")
     );
 $queries[] = $rm;
     }
@@ -158,12 +159,14 @@ $queries[] = $rm;
                     WHEN 't2' THEN 'TONE 2'
                     WHEN 't3' THEN 'TONE 3'
                     WHEN 't4' THEN 'TONE 4'
-                    ELSE 'All'
+                    WHEN 't5' THEN 'TONE 5'
+                    ELSE 'RM'
                   END as tone"),                 // <-- TAMBAHAN
         'bom_hdr.part_no',
         'bom_hdr.model',
         'bom_hdr.group_of_material',
-        'bom_det.note'
+        'bom_det.note',
+         DB::raw("1 as sort_type")
     );
 $queries[] = $chemical;
     }
@@ -178,6 +181,8 @@ $queries[] = $chemical;
 
     $data = DB::query()->fromSub($union, 'consumption')
         ->orderBy('bom_code')
+        ->orderBy('sort_type')      // <-- RM (0) duluan, baru Chemical (1)
+        ->orderBy('article_consumption')
         ->get();
 
     return Datatables::of($data)
