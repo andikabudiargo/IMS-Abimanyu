@@ -140,18 +140,7 @@
                     <div class="form-row mt-75">
                         <div class="col-md-12">
                             <a href="{{ route('transferStock.index') }}" class="btn btn-light">Back</a>
-                            @if($approveValidate ? $approveValidate[0]->validate : '')
-                                <input type="hidden" id="approveLevel" value="{{ $approveValidate[0]->next_level }}">
-                                <input type="hidden" id="maxLevel"     value="{{ $approveValidate[0]->max_level }}">
-                                <button class="btn btn-success" type="button" id="cmdApprove">Approve</button>
-                                @if($statusTr == 'NEW')
                                     <button class="btn btn-primary" type="button" id="cmdSave">Save</button>
-                                @endif
-                            @else
-                                @if(!$approveValidate && $statusTr == 'NEW')
-                                    <button class="btn btn-primary" type="button" id="cmdSave">Save</button>
-                                @endif
-                            @endif
                         </div>
                     </div>
                     <hr>
