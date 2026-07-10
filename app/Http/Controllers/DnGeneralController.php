@@ -1159,7 +1159,7 @@ class DnGeneralController extends Controller
     }
 
     // ── FG: tidak cek gudang & stok, hanya berdasarkan customer ──
-    if ($type === 'fg') {
+    if ($type === 'ot') {
         return DB::table('article as a')
             ->where('a.article_type', 'FG')
             ->where('a.third_party', $request->customer)
