@@ -164,7 +164,7 @@
         searchCustomer:searchCustomer
       },
       orderColumn:[[ 1, 'desc' ]],
-      excelFileName:'temporary_DN'
+      excelFileName:'general_DN'
     });
   }
 
@@ -194,7 +194,7 @@
         searchCustomer:searchCustomer
       },
       // orderColumn:[[ 2, 'asc' ]],
-      excelFileName:'temporary_DN_detail'
+      excelFileName:'general_DN_detail'
     });
   }
 
