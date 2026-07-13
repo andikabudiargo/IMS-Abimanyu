@@ -141,10 +141,6 @@
                                                 <td width="30%" valign="top" class="tanpa-padding font-14">Perihal</td>
                                                 <td class="tanpa-padding font-14">: {{ $dnHdr->perihal }}</td>
                                             </tr>
-                                            <tr>
-                                                <td width="30%" valign="top" class="tanpa-padding font-14">Catatan</td>
-                                                <td class="tanpa-padding font-14">: {{ $dnHdr->note }}</td>
-                                            </tr>
                                         </table>
                                     </td>
                                 </tr>
@@ -166,7 +162,6 @@
                                         <td width="55%" align="center">Description</td>
                                         <td width="10%" align="center">Qty</td>
                                         <td width="10%" align="center">UOM</td>
-                                        <td width="5%"  align="center">Ket</td>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -181,7 +176,6 @@
                                             <td align="left">{{ $val->article_desc }}</td>
                                             <td align="right">{{ number_format($val->qty) }}</td>
                                             <td align="left">{{ $val->uom }}</td>
-                                            <td align="left"></td>
                                         </tr>
                                     @endforeach
 
@@ -199,7 +193,7 @@
                                     @endfor
 
                                     <tr style="border: thin solid var(--line-color)">
-                                        <td colspan="6">Keterangan: {{ $dnHdr->note }}</td>
+                                        <td colspan="6">Catatan: {{ $dnHdr->note }}</td>
                                     </tr>
                                 </tbody>
                             </table>
