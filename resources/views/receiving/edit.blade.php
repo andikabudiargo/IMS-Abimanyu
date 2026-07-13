@@ -213,6 +213,18 @@
 <script type="text/javascript">
 
     /* =====================================================================
+       CSRF — HARUS di paling atas. Ajax pertama (initPoDropdown) terpicu
+       langsung dari $(document).ready(), yang kalau DOM sudah siap saat
+       script ini jalan, dieksekusi SINKRON saat itu juga — jadi kalau
+       ajaxSetup ini taruh di bawah file, ajax pertama itu terkirim TANPA
+       header CSRF dan gagal 419 (ini salah satu penyebab dropdown PR
+       gagal terisi / tampak "wajib" tapi kosong).
+       ===================================================================== */
+    $.ajaxSetup({
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+    });
+
+    /* =====================================================================
        CATATAN (sudah dicocokkan dengan ReceivingController@edit / @update):
        1. $header->rec_type ada di tabel receiving_hdr (NORMAL/NP/JASA).
        2. $detail (dari ReceivingController@edit) TIDAK mengambil ulang
@@ -320,9 +332,37 @@
     function updateRecTypeLabels(){
         let isNp = $('#recType').val() === 'NP';
         $('label[for="poNumber"]').text(isNp ? 'PR Number' : 'PO Number*');
-        $('#lblQtyRef').text(isNp ? 'QTY PR' : 'QTY PO');
+        // FIX: #lblQtyRef ada di dalam template baris (#new_row) yang di-clone
+        // berkali-kali -> id jadi duplikat di DOM, cuma baris pertama yang ke-update.
+        // Pakai class .lbl-qty-ref supaya konsisten di semua baris (lihat catatan
+        // di addArticlev2.blade.php: id="lblQtyRef" sebaiknya diganti class).
+        $('.lbl-qty-ref, #lblQtyRef').text(isNp ? 'QTY PR' : 'QTY PO');
         $('#lblQtyRefHeader').text(isNp ? 'QTY PR' : 'QTY PO');
         if (window.feather) feather.replace();
+    }
+
+    // FIX: sebelumnya toggle required/cmdAddRow cuma ada di dalam handler
+    // $('#recType').change(...) — di halaman edit #recType di-disable dan
+    // diisi lewat Blade (bukan lewat interaksi user), jadi event 'change'
+    // TIDAK PERNAH nyala dan #poNumber tetap wajib diisi meski recType-nya NP.
+    // Fungsi ini dipanggil langsung tanpa bergantung event 'change'.
+    function applyRecTypeConstraints(){
+        let isNp = $('#recType').val() === 'NP';
+        if (isNp){
+            $('#poNumber').removeAttr('required');
+        } else {
+            $('#poNumber').attr('required','required');
+            $('#cmdAddRow').addClass('d-none');
+        }
+    }
+
+    // Tombol Add Row untuk NP: tampil kalau belum ada PR terpilih, sembunyi
+    // kalau sudah ada PR terpilih. Dipisah dari searchPrDet supaya tetap
+    // jalan walau searchPrDet return lebih awal (saat load data awal edit).
+    function updateAddRowVisibility(prNumber){
+        if ($('#recType').val() !== 'NP') return;
+        let adaPr = prNumber && prNumber !== '' && prNumber !== 'Choose PR';
+        adaPr ? $('#cmdAddRow').addClass('d-none') : $('#cmdAddRow').removeClass('d-none');
     }
 
     /* =====================================================================
@@ -330,6 +370,7 @@
        ===================================================================== */
     $('#recType').change(function(){
         updateRecTypeLabels();
+        applyRecTypeConstraints();
         $('#supplier').val(null).trigger('change.select2');
         $('#poNumber').empty().append('<option value=""></option>').val('').trigger('change.select2');
         resetArticleArea();
@@ -430,16 +471,16 @@
        FETCH DETAIL PR → isi baris artikel (hanya jika bukan load awal edit)
        ===================================================================== */
     function searchPrDet(prNumber){
+        // FIX: toggle visibilitas Add Row dijalankan duluan, di luar guard
+        // dariEdit, supaya tetap benar walau baris ini return lebih awal
+        // saat load data awal (dariEdit masih 'true').
+        updateAddRowVisibility(prNumber);
+
         if (dariEdit !== 'false') return;
 
         resetArticleArea();
 
         let adaPr = prNumber && prNumber !== '' && prNumber !== 'Choose PR';
-
-        if ($('#recType').val() === 'NP'){
-            adaPr ? $('#cmdAddRow').addClass('d-none') : $('#cmdAddRow').removeClass('d-none');
-        }
-
         if (!adaPr) return;
 
         $.ajax({
@@ -577,13 +618,27 @@
         validateFormToast("frmAdd");
         $('#statusText').text("{{ $statusRec }}");
         updateRecTypeLabels();
-        initPoDropdown();
+        applyRecTypeConstraints();     // FIX: pasang required/cmdAddRow dari awal, bukan cuma lewat event change
+        updateAddRowVisibility("{{ $header->po_number }}");
 
+        // Baris artikel dimuat dari $detail DULUAN, tidak bergantung hasil
+        // ajax initPoDropdown (yang async) — supaya tetap tampil walau
+        // ajax dropdown PO/PR gagal/lambat.
         let detailData = {!! $detail !!};
-        detailData.forEach(function(row){
-            add_new_row_edit(row);
+        detailData.forEach(function(row, idx){
+            try {
+                add_new_row_edit(row);
+            } catch (e) {
+                // FIX: kalau ada 1 baris data yang bentuknya tidak terduga,
+                // jangan biarkan itu membatalkan SEMUA baris berikutnya —
+                // dulu error di sini bisa bikin seluruh daftar artikel
+                // "kosong" tanpa keterangan apapun.
+                console.error('Gagal memuat baris artikel ke-' + (idx + 1) + ':', e, row);
+            }
         });
         hitungGrandTotal();
+
+        initPoDropdown();
 
         if ("{{ $statusRec }}" !== 'REVISI'){
             lockFormForReadOnly();
@@ -624,11 +679,11 @@
         $("#cmdUpdate").attr('disabled','disabled');
         $('.disabled-el').removeAttr('disabled');
 
-        let objQty     = $('input[name="qty_rec[]"]');
-        let objUom     = $('select[name="uom[]"]');
-        let objQtyFree = $('input[name="qty_free[]"]');
-        let objUomFree = $('select[name="uomFree[]"]');
-        let objQtyPo   = $('input[name="qty_po[]"]');
+        let objQty     = $('#article_row input[name="qty_rec[]"]');
+        let objUom     = $('#article_row select[name="uom[]"]');
+        let objQtyFree = $('#article_row input[name="qty_free[]"]');
+        let objUomFree = $('#article_row select[name="uomFree[]"]');
+        let objQtyPo   = $('#article_row input[name="qty_po[]"]');
 
         let articles = [], flag = 0, pesan = "";
 
@@ -959,7 +1014,10 @@
     }
 
     function hitungGrandTotal(){
-        let objArticle = $('#article_row input[name="article_id[]"]');
+        // FIX: article_id di baris manual (NP tanpa PR) adalah <select>, bukan
+        // <input> — kalau dibatasi ke "input[name=...]" baris manual tidak
+        // ikut terhitung dan "Row(s)" bisa tampil salah (bahkan 0).
+        let objArticle = $('#article_row [name="article_id[]"]');
         let objQtyRec  = $('#article_row input[name="qty_rec[]"]');
         let objQtyFree = $('#article_row input[name="qty_free[]"]');
 
@@ -990,12 +1048,6 @@
         $("#convGrandTotalQty").val(fmt(convQty + convQtyFree));
     }
 
-    /* =====================================================================
-       CSRF
-       ===================================================================== */
-    $.ajaxSetup({
-        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-    });
 
 </script>
 @endsection
