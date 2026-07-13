@@ -213,21 +213,32 @@
 <script type="text/javascript">
 
     /* =====================================================================
-       CATATAN PENYESUAIAN (mohon dicek ulang terhadap controller/DB Anda):
-       1. $header->rec_type diasumsikan ada (NORMAL/NP/JASA), sama seperti
-          create v2. Jika kolom ini belum ada di tabel receiving header,
-          tambahkan dulu, atau ganti default value di bawah.
-       2. $detail per baris diasumsikan punya field yang sama dengan yang
-          disimpan oleh receiving.store (v2):
-          article_code, article_alternative_code, article_desc, qty_po,
-          uom, price, qty, qty_free, pr_number, unit_from, unit_to,
-          unit_factor, uom_rec (opsional), uom_free (opsional).
+       CATATAN (sudah dicocokkan dengan ReceivingController@edit / @update):
+       1. $header->rec_type ada di tabel receiving_hdr (NORMAL/NP/JASA).
+       2. $detail (dari ReceivingController@edit) TIDAK mengambil ulang
+          unit_from/unit_to/unit_factor dari uom_con_v2 — nilai konversi
+          sudah tersimpan langsung di receiving_det sejak store/update:
+            - uom_rec     = satuan saat terima (dipakai sbg "unit_from")
+            - conv_to     = satuan stok         (dipakai sbg "unit_to")
+            - conv_factor = faktor konversi ke satuan stok
+            - uom_free    = satuan untuk qty_free
+            - qty_po      = sisa qty PO (dihitung di query edit())
+            - po_price    = harga PO TERKINI (lihat komentar controller
+                             "Update harga dari PO") — dipakai sbg harga
+                             tampilan/update, fallback ke price tersimpan
+                             kalau article tidak ada di PO (mis. NP dari PR).
        3. Route mengikuti versi v2 seperti di halaman create:
-          receiving.list.pov2, receiving.po.det2, receiving.list.pr,
-          receiving.pr.det, receiving.uom.conv, receiving.list.article,
-          receiving.update, receiving.approve, receiving.print.
+          receiving.list.pov2 (listPo2), receiving.po.det2 (poDetail2),
+          receiving.list.pr (listPr), receiving.pr.det (prDetail),
+          receiving.uom.conv (uomConv), receiving.list.article (listArticle),
+          receiving.update (update), receiving.approve (approve),
+          receiving.print (print).
        4. Form (PO/PR, DO, Note, Article) hanya aktif diedit saat
           status = REVISI. Selain itu di-lock read only.
+          !! PENTING: ini baru validasi di sisi UI. Pastikan endpoint
+          receiving.update di server JUGA menolak update kalau status
+          bukan REVISI — lihat catatan bug #3 di controller yang saya
+          kirim terpisah.
        5. Tombol Print hanya muncul saat status = POSTED.
        ===================================================================== */
 
@@ -710,15 +721,25 @@
         let articleCode = row.article_alternative_code;
         let articleDesc = row.article_desc;
         let qtyPo       = row.qty_po;
-        let uom         = row.uom;
-        let price       = row.price;
+        let uom         = row.uom; // uom dasar article (fallback unit_to)
+
+        // Harga ikut PO terkini kalau ada (sesuai komentar controller "Update harga dari PO"),
+        // fallback ke harga tersimpan kalau article tidak ada di PO (mis. receiving NP dari PR).
+        let price = (row.po_price !== null && row.po_price !== undefined && row.po_price !== '')
+            ? row.po_price
+            : row.price;
+
         let qtyRec      = row.qty;
         let qtyFree     = row.qty_free;
         let prNumber    = row.pr_number == null ? '' : row.pr_number;
-        let unitFrom    = row.unit_from || uom;
-        let unitTo      = row.unit_to;
-        let unitFactor  = parseFloat(row.unit_factor) || 1;
-        let uomRec      = row.uom_rec  || uom  || unitFrom;
+
+        // Data konversi disimpan langsung di receiving_det saat store/update (bukan di-lookup lagi
+        // dari uom_con_v2): uom_rec = satuan saat terima (unit_from), conv_to = satuan stok (unit_to),
+        // conv_factor = faktor konversi ke satuan stok.
+        let unitFrom    = row.uom_rec  || uom;
+        let unitTo      = row.conv_to  || uom;
+        let unitFactor  = parseFloat(row.conv_factor) || 1;
+        let uomRec      = row.uom_rec  || unitFrom;
         let uomFree     = row.uom_free || uomRec;
 
         $("#article_row").append($("#new_row").clone().html());

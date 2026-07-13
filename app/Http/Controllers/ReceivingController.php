@@ -549,6 +549,22 @@ class ReceivingController extends Controller
         ]);
     }
 
+    // ---- FIX #3: hanya boleh diupdate saat status REVISI ('10') ----
+    if ($currentHeader->status != '10') {
+        return response()->json([
+            'status' => 0, 'title' => "Update $this->title",
+            'message' => ["Data $recNumber tidak dapat diupdate karena status bukan REVISI"],
+            'alert' => 'error',
+        ]);
+    }
+
+    // ---- FIX #6: otorisasi ----
+    if (!Auth::user()->can('receiving-edit')) {
+        return response()->json([
+            'status' => 0, 'title' => "Update $this->title",
+            'message' => ["Anda tidak memiliki akses untuk mengupdate data ini"], 'alert' => 'error',
+        ]);
+    }
 
     $doNumber  = $request->doNumber;
     $doDate    = $request->doDate;
