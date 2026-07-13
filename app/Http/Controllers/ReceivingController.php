@@ -549,7 +549,7 @@ class ReceivingController extends Controller
         ]);
     }
 
-    // ---- FIX #3: hanya boleh diupdate saat status REVISI ('10') ----
+    // ---- hanya boleh diupdate saat status REVISI ('10') ----
     if ($currentHeader->status != '10') {
         return response()->json([
             'status' => 0, 'title' => "Update $this->title",
@@ -558,7 +558,7 @@ class ReceivingController extends Controller
         ]);
     }
 
-    // ---- FIX #6: otorisasi ----
+    // ---- otorisasi ----
     if (!Auth::user()->can('receiving-edit')) {
         return response()->json([
             'status' => 0, 'title' => "Update $this->title",
@@ -576,8 +576,9 @@ class ReceivingController extends Controller
     $note      = $request->note;
     $articles  = json_decode($request->articles);
 
-    // ---- FIX #1: JANGAN hardcode NORMAL, pertahankan rec_type asli ----
+    // Pertahankan rec_type asli, JANGAN hardcode NORMAL
     $recType   = $currentHeader->rec_type;
+    $isNp      = ($recType === 'NP');
     $statusRec = "Update";
     $authorizedBy = "";
 
@@ -587,22 +588,32 @@ class ReceivingController extends Controller
         'iunique'  => "DO Number : $doNumber has already been taken on PO : $poNumber",
     ];
 
+    // FIX: iunique untuk doNumber mengecek duplikat berdasarkan kombinasi
+    // do_number + po_number. Untuk NP, po_number kosong/PR number —
+    // aturan tetap dipakai tapi exclude record diri sendiri.
     Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber, $recNumber) {
         $query   = DB::table($parameters[0]);
         $column  = $query->getGrammar()->wrap($parameters[1]);
         $column2 = $query->getGrammar()->wrap($parameters[2]);
         return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
                       ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])
-                      ->where('rec_number', '<>', $recNumber) // exclude diri sendiri
+                      ->where('rec_number', '<>', $recNumber)
                       ->count();
     });
 
-    // ---- FIX #5: pasang validasi doNumber yang tadinya cuma didefinisikan pesannya ----
-    $validation = Validator::make($request->all(), [
-        'recDate'  => 'required',
-        'poNumber' => 'required',
-        'doNumber' => 'required|iunique:receiving_hdr,do_number,po_number',
-    ], $customMessages);
+    // FIX: untuk NP, poNumber boleh kosong (tidak ada PO) — hapus required-nya.
+    // doNumber tetap wajib diisi untuk semua tipe.
+    // iunique untuk doNumber tetap jalan untuk NORMAL/JASA; untuk NP karena
+    // poNumber kosong, kombinasinya unik secara natural.
+    $rules = ['recDate' => 'required'];
+    if (!$isNp) {
+        $rules['poNumber'] = 'required';
+        $rules['doNumber'] = 'required|iunique:receiving_hdr,do_number,po_number';
+    } else {
+        $rules['doNumber'] = 'required';
+    }
+
+    $validation = Validator::make($request->all(), $rules, $customMessages);
 
     if ($validation->fails()) {
         $error_array = [];
@@ -642,7 +653,7 @@ class ReceivingController extends Controller
                 'updated_at'    => date('Y-m-d H:i:s'),
             ]);
 
-        // ---- FIX #2: array datar (string), bukan array bersarang ----
+        // array datar (string) untuk whereNotIn
         $dataSet = [];
         foreach ($articles as $val) {
             $dataSet[] = $recNumber . $val->article_code;
@@ -694,7 +705,6 @@ class ReceivingController extends Controller
         $title   = "Update $this->title";
         $message = "$title $recNumber is failed to updated";
         \LogActivity::addToLog($title, "username: $username Status $message: " . $e->getMessage());
-        // ---- FIX #4: status harus 0 kalau gagal ----
         return response()->json([
             'statusRec' => $statusRec, 'status' => 0, 'title' => $title,
             'message' => $message, 'alert' => 'warning', 'recNumber' => $recNumber,
