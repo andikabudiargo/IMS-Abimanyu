@@ -480,6 +480,7 @@ if ($data['showCriticalStock']) {
           $q2->whereNull('a.safety_stock')->where('ws.article_qty', '<=', 0);
       });
 })
+        ->orderBy('ws.location_number', 'asc')
         ->orderBy('a.article_alternative_code', 'asc')
         ->get();
 } else {
