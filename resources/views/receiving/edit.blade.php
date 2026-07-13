@@ -724,10 +724,10 @@
             let convFactor     = parseFloat(objQty.eq(i).attr('data-conv-factor'))     || 1;
             let convFactorFree = parseFloat(objQtyFree.eq(i).attr('data-conv-factor')) || 1;
 
-            if (qtyPoRaw !== '' && parseFloat(qty) > parseFloat(qtyPo) && parseFloat(qty) != 0){
-                pesan += `Article: ${articleCode} QTY Rec > QTY PO <br>`;
-                flag = 1;
-            }
+           // if (qtyPoRaw !== '' && parseFloat(qty) > parseFloat(qtyPo) && parseFloat(qty) != 0){
+             //   pesan += `Article: ${articleCode} QTY Rec > QTY PO <br>`;
+               // flag = 1;
+            // }
 
             articles.push({
                 article_code:     articleCode,
