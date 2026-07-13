@@ -590,11 +590,19 @@
                 url:"{{ route('receiving.list.pr') }}",
                 data:{ value: supplierId },
                 success:function(res){
+                    console.log('[DEBUG] response list.pr (mentah):', res);
                     $('#poNumber').html(res);
                     $('#poNumber').val(poNumber).trigger('change');
+                    console.log('[DEBUG] target poNumber:', JSON.stringify(poNumber), '| setelah di-set, val jadi:', JSON.stringify($('#poNumber').val()));
+                    if ($('#poNumber').val() !== poNumber && poNumber){
+                        console.warn('[DEBUG] poNumber "' + poNumber + '" TIDAK ADA di antara <option> hasil list.pr — cek apakah PR ini benar2 ada di listPr() controller (filter purchase_type=np, supp_code, status<>5).');
+                    }
                     dariEdit = 'false';
                 },
-                error: function(){ Swal.fire("Warning","Get list PR failed","warning"); }
+                error: function(xhr){
+                    console.error('[DEBUG] AJAX list.pr GAGAL. status:', xhr.status, '| response:', xhr.responseText);
+                    Swal.fire("Warning","Get list PR failed","warning");
+                }
             });
         } else {
             $.ajax({
@@ -621,10 +629,18 @@
         applyRecTypeConstraints();     // FIX: pasang required/cmdAddRow dari awal, bukan cuma lewat event change
         updateAddRowVisibility("{{ $header->po_number }}");
 
+        // === DEBUG SEMENTARA — cek di Console (F12) saat buka halaman edit ===
+        console.log('[DEBUG] recType       :', $('#recType').val());
+        console.log('[DEBUG] supplier_id   :', "{{ $header->supplier_id }}");
+        console.log('[DEBUG] po_number(PR) :', "{{ $header->po_number }}");
+        console.log('[DEBUG] statusRec     :', "{{ $statusRec }}");
+
         // Baris artikel dimuat dari $detail DULUAN, tidak bergantung hasil
         // ajax initPoDropdown (yang async) — supaya tetap tampil walau
         // ajax dropdown PO/PR gagal/lambat.
         let detailData = {!! $detail !!};
+        console.log('[DEBUG] jumlah $detail:', detailData.length, detailData);
+
         detailData.forEach(function(row, idx){
             try {
                 add_new_row_edit(row);

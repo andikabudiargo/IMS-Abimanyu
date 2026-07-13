@@ -1724,57 +1724,72 @@ foreach ($movements as $val) {
 public function revision(Request $request)
 {
     /*
-
-            26/3/2025
+        26/3/2025
         Update/revisi program kalau pada saat revisi ternyata di PO nya article nya dihapus dan ada article baru
         maka article yang tadinya tidak ada di PO akan di insert ke receiving tapi kalau tidak ada di PO akan di hapus di receiving
-    */
- 
-    /*
+
         14/5/2025
         Pada saat revisi harga / price mengikuti harga terbaru dari PO nya
+
+        ==== FIX (rec_type NP) ====
+        Blok "sync ke PO" ($sqlDetFromPO, $deleteArticleNotInPO, $sqlUpdatePriceFromPo)
+        mengasumsikan receiving_hdr.po_number berisi PO Number asli yang bisa
+        dicocokkan ke purchase_order_det. Itu hanya benar untuk rec_type
+        NORMAL/JASA. Untuk NP, kolom po_number berisi PR Number (kalau NP dari PR)
+        atau kosong (kalau NP manual). Akibatnya:
+          - subquery "select article_code from purchase_order_det where po_number = '<PR/kosong>'"
+            SELALU kosong,
+          - sehingga "article_code NOT IN (subquery kosong)" bernilai TRUE untuk
+            semua baris,
+          - dan $deleteArticleNotInPO menghapus SELURUH receiving_det milik record NP
+            (baik yang berasal dari PR maupun yang di-input manual).
+          - $sqlUpdatePriceFromPo juga meng-NULL-kan price semua baris.
+        Solusi: untuk NP, ketiga query itu dilewati sepenuhnya. Data detail NP
+        cukup di-copy apa adanya ($sqlDet), tidak ada "sync ke PO".
     */
 
-        $username  = Auth::user()->username;
+    $username  = Auth::user()->username;
     $id        = Crypt::decryptString($request->id);
     $receiving = DB::table('receiving_hdr')->where('id', $id)->first();
     $title     = "Save $this->title";
- 
+
     if (!$receiving) {
         return redirect()->back()->with([
             'alert'   => 'warning',
             'message' => "$title Failed (data tidak ditemukan)",
         ]);
     }
- 
+
     $recOrigin = $receiving->rec_number;
     $recStatus = $receiving->status;
     $poNumber  = $receiving->po_number;
- 
+    $recType   = $receiving->rec_type;        // FIX: dipakai untuk membedakan NP vs NORMAL/JASA
+    $isNp      = ($recType === 'NP');          // FIX
+
     // ----- validasi AP: tidak boleh revisi kalau sudah ada AP aktif -----
     $apNumber = DB::table('ap_invoice_detail')
         ->leftJoin('ap_invoice', 'ap_invoice.ap_number', '=', 'ap_invoice_detail.ap_number')
         ->where('ap_invoice_detail.rec_number', $recOrigin)
         ->whereIn('ap_invoice.status', ['2', '3', '4', '6'])
         ->value('ap_invoice_detail.ap_number');
- 
+
     if ($apNumber) {
         return redirect()->back()->with([
             'alert'   => 'warning',
             'message' => "$title Revision $recOrigin Failed — AP Invoice $apNumber masih aktif. Cancel AP Invoice terlebih dahulu sebelum melakukan Revision Receiving.",
         ]);
     }
- 
+
     $numRevision     = $request->nR ? $request->nR + 1 : 1;
     $numRevisionName = '-R' . $numRevision;
     $recNew          = $recOrigin . $numRevisionName;
     $checkNewRec     = DB::table('receiving_hdr')->where('rec_number', $recNew)->count();
     $reason          = $request->reason;
- 
+
     if ($checkNewRec > 0) {
         $recNew = $recOrigin . '-R' . ($numRevision + 1);
     }
- 
+
     $sqlHdr = "INSERT into receiving_hdr 
     (
         rec_number, inv_number, inv_date, do_number, do_date, po_number,
@@ -1789,18 +1804,25 @@ public function revision(Request $request)
         '" . date('Y-m-d H:i:s') . "',
         '$recOrigin', $numRevision, '$username', '" . date('Y-m-d H:i:s') . "', '$reason'
     from receiving_hdr where rec_number = '$recOrigin'";
- 
+
+    // Copy detail apa adanya ke record arsip (-R). Ini WAJIB jalan untuk semua
+    // rec_type — juga jadi "cadangan" data asli sebelum record aktif disentuh.
+    // FIX: ikut meng-copy kolom konversi (conv_to, conv_factor, qty_conv) supaya
+    // arsip revisi tetap utuh dan bisa dipakai untuk restore kalau perlu.
     $sqlDet = "INSERT into receiving_det
     (
         rec_number, article_code, qty, uom_rec, qty_free, uom_free,
-        price, created_by, updated_by, created_at, updated_at, pr_number
+        price, conv_to, conv_factor, qty_conv,
+        created_by, updated_by, created_at, updated_at, pr_number
     )
     select 
         '$recNew', article_code, qty, uom_rec, qty_free, uom_free,
-        price, created_by, '$username', created_at,
+        price, conv_to, conv_factor, qty_conv,
+        created_by, '$username', created_at,
         '" . date('Y-m-d H:i:s') . "', pr_number
     from receiving_det where rec_number = '$recOrigin'";
- 
+
+    // ---- query "sync ke PO" (HANYA untuk NORMAL/JASA) ----
     $sqlDetFromPO = "INSERT into receiving_det
     (
         rec_number, article_code, qty, uom_rec, qty_free, uom_free,
@@ -1813,25 +1835,40 @@ public function revision(Request $request)
     from purchase_order_det 
     where po_number = '$poNumber' 
     and article_code not in (select article_code from receiving_det where rec_number = '$recNew')";
- 
+
     $sqlUpdatePriceFromPo = "UPDATE receiving_det r set price = 
         (select price from purchase_order_det po 
          where po.po_number = '$poNumber' 
          and po.pr_number = r.pr_number
          and po.article_code = r.article_code)
         where rec_number = '$recOrigin'";
- 
+
     $deleteArticleNotInPO = "DELETE from receiving_det where rec_number = '$recOrigin' 
     and article_code not in (select article_code from purchase_order_det where po_number = '$poNumber')";
- 
-    $rowAffected = DB::select($sqlHdr);
- 
-    if ($rowAffected) {
+
+    // FIX: seluruh proses dibungkus transaction supaya kalau ada satu langkah
+    // gagal, tidak meninggalkan data setengah jadi (mis. header arsip terbuat
+    // tapi detail tidak, atau detail asli terlanjur terhapus).
+    DB::beginTransaction();
+    try {
+        $rowAffected = DB::select($sqlHdr);
+
+        if (!$rowAffected) {
+            DB::rollBack();
+            $message = "$title Revision Rec: $recOrigin to $recNew is failed to save";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['alert' => 'warning', 'message' => $message]);
+        }
+
         DB::select($sqlDet);
-        DB::select($sqlDetFromPO);
-        DB::select($deleteArticleNotInPO);
-        DB::select($sqlUpdatePriceFromPo);
- 
+
+        // ---- FIX UTAMA: hanya sync ke PO untuk NORMAL/JASA, JANGAN untuk NP ----
+        if (!$isNp) {
+            DB::select($sqlDetFromPO);
+            DB::select($deleteArticleNotInPO);
+            DB::select($sqlUpdatePriceFromPo);
+        }
+
         DB::table('receiving_hdr')
             ->where('rec_number', $recOrigin)
             ->update([
@@ -1840,11 +1877,11 @@ public function revision(Request $request)
                 'updated_by'   => $username,
                 'updated_at'   => date('Y-m-d H:i:s'),
             ]);
- 
+
         if ($recStatus == '4') {
             $this->unPosting($recOrigin);
         }
- 
+
         DB::table('approval_history')
             ->where('module_number', $recOrigin)
             ->update([
@@ -1853,18 +1890,21 @@ public function revision(Request $request)
                 'updated_by'    => $username,
                 'updated_at'    => date('Y-m-d H:i:s'),
             ]);
- 
+
         DB::table('kas_det')->where('voucher_number', $recOrigin)->delete();
         DB::table('kas_hdr')->where('voucher_number', $recOrigin)->delete();
- 
+
+        DB::commit();
+
         $message = "$title Revision Rec: $recOrigin to $recNew is successfully saved";
         \LogActivity::addToLog($title, "username: $username Status $message");
         return redirect()->route('receiving.edit', ['id' => Crypt::encryptString($id)]);
- 
-    } else {
-        $message = "$title Revision Rec: $recOrigin to $recNew is failed to save";
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $message = "$title Revision Rec: $recOrigin to $recNew error: " . $e->getMessage();
         \LogActivity::addToLog($title, "username: $username Status $message");
-        return redirect()->back()->with(['alert' => 'warning', 'message' => $message]);
+        return redirect()->back()->with(['alert' => 'error', 'message' => $message]);
     }
 }
  
