@@ -43,44 +43,76 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive" style="max-height:300px">
-                       <table class="table" width="100%">
-    <thead>
-        <tr>
-            <th>No</th>
-            <th>Location</th>
-            <th>Code</th>
-            <th>Article</th>
-            <th>Supplier/Customer</th>
-            <th>Stock</th>
-            <th>Safety Stock</th>
-            <th>UOM</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach($listCriticalStock as $key=>$val)
+                   <div class="table-responsive" style="max-height:300px; overflow-y:auto;">
+    <table class="table table-hover mb-0" width="100%">
+        <thead style="position: sticky; top: 0; z-index: 10; background: #fff;">
+            <tr>
+                <th>No</th>
+                <th>Location</th>
+                <th>Code</th>
+                <th>Article</th>
+                <th>Supplier/Customer</th>
+                <th>Stock</th>
+                <th>Safety Stock</th>
+                <th>UOM</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+   <tbody>
+    @php
+        $lastLocation = '';
+    @endphp
+
+    @foreach($listCriticalStock as $key => $val)
+
+        @if($lastLocation != $val->location_name)
+            <tr style="background:#e8f4fd;">
+                <td colspan="9" class="font-weight-bold text-primary">
+                    {{ $val->location_name }}
+                </td>
+            </tr>
+
+            @php
+                $lastLocation = $val->location_name;
+            @endphp
+        @endif
+
         <tr>
             <td>{{ $key+1 }}</td>
-            <td>{{ $val->location_name }}</td>
-            <td>{{ $val->code }}</td>
-            <td>{{ $val->name }}</td>
+
+            <td class="font-weight-bold">{{ $val->location_name }}</td>
+
+            <td class="font-weight-bold">
+                {{ $val->code }}
+            </td>
+
+            <td class="font-weight-bold">
+                {{ $val->name }}
+            </td>
+
             <td>{{ $val->supplier_name }}</td>
+
             <td class="text-right text-danger font-weight-bolder">
                 {{ number_format($val->stock_qty) }}
             </td>
-            <td class="text-right">{{ number_format($val->safety_stock) }}</td>
+
+            <td class="text-right">
+                {{ number_format($val->safety_stock) }}
+            </td>
+
             <td>{{ $val->uom }}</td>
+
             <td>
                 <a class="btn btn-outline-info btn-sm"
-                    href="{{ route('warehouse.article') }}?code={{ $val->code }}">
-                    <i data-feather='eye'></i>
+                   href="{{ route('warehouse.article') }}?code={{ $val->code }}">
+                    <i data-feather="eye"></i>
                     Detail
                 </a>
             </td>
         </tr>
-        @endforeach
-    </tbody>
+
+    @endforeach
+</tbody>
 </table>
                     </div>
                 </div>
