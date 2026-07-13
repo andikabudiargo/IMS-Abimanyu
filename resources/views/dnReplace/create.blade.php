@@ -25,7 +25,7 @@
                                     <input type="text" id="replaceNumber" name="replaceNumber" class="form-control text-hitam disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="replaceDate">Receiving Date*</label>
+                                    <label for="replaceDate">Delivery Date*</label>
                                     <input type="text" id="replaceDate" name="replaceDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
                             </div>

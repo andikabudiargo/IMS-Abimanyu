@@ -25,7 +25,7 @@
                                     <input type="text" id="returnNumber" name="returnNumber" class="form-control disabled-el"  disabled />
                                 </div>
                                 <div class="form-group col-md-2">
-                                    <label for="returnDate">Delivery Date*</label>
+                                    <label for="returnDate">Receive Date*</label>
                                     <input type="text" id="returnDate" name="returnDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
                             </div>
