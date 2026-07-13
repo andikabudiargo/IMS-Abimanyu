@@ -195,25 +195,41 @@ class DnReplaceController extends Controller
         return view("dnReplace.create",$data);
     }
 
-    /**
-     * Kurangi stock (dengan lock row untuk mencegah race condition saat ada
-     * 2 proses posting bersamaan). Pengecekan "stock cukup atau tidak" SENGAJA
-     * DIHILANGKAN -- stock boleh minus. Kuota divalidasi ke qty return lewat
-     * assertNotExceedReturn(), bukan ke ketersediaan stock FG.
-     *
-     * Return: avg_price baris stock (untuk dicatat di movement_price), atau 0
-     * kalau baris stock belum ada sebelumnya.
-     */
-    private function decrementStock($articleCode, $locationCode, $qtyKeluar)
+  /**
+ * Kurangi stock (dengan lock row untuk mencegah race condition saat ada
+ * 2 proses posting bersamaan). Pengecekan "stock cukup atau tidak" SENGAJA
+ * DIHILANGKAN -- stock boleh minus. Kuota divalidasi ke qty return lewat
+ * assertNotExceedReturn(), bukan ke ketersediaan stock FG.
+ *
+ * dept_code & uom diambil dari tabel article (article_type & uom), sama
+ * seperti pola di DeliveryController::posting() -- supaya insert baris baru
+ * ke warehouse_stock tidak melanggar NOT NULL constraint pada dept_code.
+ *
+ * Return: avg_price baris stock (untuk dicatat di movement_price), atau 0
+ * kalau baris stock belum ada sebelumnya.
+ */
+private function decrementStock($articleCode, $locationCode, $qtyKeluar)
 {
     if ($qtyKeluar <= 0) {
         return null;
     }
 
-    $siteCode = 'HO';   // ← tambahkan ini
+    $siteCode = 'HO';
+
+    // Ambil dept_code (article_type) & uom dari master artikel, dipakai
+    // untuk melengkapi baris warehouse_stock yang belum ada (insert) TANPA
+    // menimpa dept_code/uom baris yang sudah ada (biar tidak mengganggu
+    // data existing kalau ternyata beda).
+    $article = DB::table('article')
+        ->where('article_code', $articleCode)
+        ->select('article_type', 'uom')
+        ->first();
+
+    $deptCode = $article->article_type ?? '';
+    $uom      = $article->uom ?? '';
 
     $stockRow = DB::table('warehouse_stock')
-        ->where('site_code', $siteCode)          // ← tambahkan
+        ->where('site_code', $siteCode)
         ->where('article_code', $articleCode)
         ->where('location_number', $locationCode)
         ->lockForUpdate()
@@ -221,7 +237,7 @@ class DnReplaceController extends Controller
 
     if ($stockRow) {
         DB::table('warehouse_stock')
-            ->where('site_code', $siteCode)      // ← tambahkan
+            ->where('site_code', $siteCode)
             ->where('article_code', $articleCode)
             ->where('location_number', $locationCode)
             ->decrement('article_qty', $qtyKeluar);
@@ -230,10 +246,12 @@ class DnReplaceController extends Controller
     }
 
     DB::table('warehouse_stock')->insert([
-        'site_code'       => $siteCode,          // ← tambahkan — ini yang bikin error kamu
+        'site_code'       => $siteCode,
         'article_code'    => $articleCode,
         'location_number' => $locationCode,
         'article_qty'     => -$qtyKeluar,
+        'dept_code'       => $deptCode,   // ← FIX: wajib diisi, tidak boleh null
+        'uom'             => $uom,        // ← ikut dilengkapi sekalian
     ]);
 
     return 0;
@@ -387,42 +405,84 @@ class DnReplaceController extends Controller
         return count($dataSetMovement);
     }
 
-    /**
-     * Reverse posting: kembalikan stock FG yang sudah dikurangi lewat
-     * warehouse_movement milik $replaceNumber, lalu hapus movement-nya.
-     *
-     * PENTING: method ini TIDAK membuka/menutup transaction sendiri -- dipanggil
-     * dari dalam transaction milik caller (update()/cancel()/destroy()/revision()).
-     * Kalau suatu saat perlu dipanggil berdiri sendiri, bungkus pemanggilannya
-     * dengan DB::beginTransaction()/commit() di caller.
-     */
-    private function unPosting($replaceNumber, $username)
+/**
+ * Reverse posting: INSERT movement pengembalian (bukan hapus movement lama)
+ * supaya history tetap ada, lalu kembalikan stock FG. $movementType dan
+ * $reason ditentukan oleh pemanggil agar bisa dibedakan CANCEL vs REVISI.
+ */
+private function unPosting($replaceNumber, $username, $reason = '', $movementType = 'REVERSE REPLACEMENT')
 {
-    $siteCode   = 'HO';   // ← tambahkan
+    $siteCode   = 'HO';
     $locationFG = '007';
+    $todayDate  = date('Y-m-d');
 
     $detail = DB::table('dn_replace_det')
-        ->where('replace_number', $replaceNumber)
-        ->where('qty', '<>', 0)
+        ->leftJoin('article', 'article.article_code', '=', 'dn_replace_det.article_code')
+        ->where('dn_replace_det.replace_number', $replaceNumber)
+        ->where('dn_replace_det.qty', '<>', 0)
+        ->select('dn_replace_det.*', 'article.article_type', 'article.article_desc', 'article.uom as uom_article')
         ->get();
 
+    $seq = (int) DB::table('warehouse_movement')->max('movement_code');
+    $dataSetMovement = [];
+
     foreach ($detail as $val) {
+        // Pastikan baris stock ada (lengkap dept_code) sebelum increment.
         DB::table('warehouse_stock')
-            ->where('site_code', $siteCode)      // ← tambahkan
+            ->updateOrInsert(
+                [
+                    'site_code'       => $siteCode,
+                    'article_code'    => $val->article_code,
+                    'location_number' => $locationFG,
+                ],
+                [
+                    'dept_code' => $val->article_type ?? '',
+                    'uom'       => $val->uom_article ?? '',
+                ]
+            );
+
+        DB::table('warehouse_stock')
+            ->where('site_code', $siteCode)
             ->where('article_code', $val->article_code)
             ->where('location_number', $locationFG)
             ->increment('article_qty', (float) $val->qty);
+
+        // INSERT movement pengembalian (bukan hapus), supaya ada jejak audit
+        // dengan label yang membedakan CANCEL/REVISI, sama seperti DeliveryController.
+        $seq++;
+        $dataSetMovement[] = [
+            'movement_code'     => $seq,
+            'movement_date'     => date('d-m-Y'),
+            'artikel_code'      => $val->article_code,
+            'artikel_desc'      => $val->article_desc ?? '',
+            'movement_min'      => 0,
+            'movement_plus'     => (float) $val->qty,   // masuk kembali ke FG
+            'movement_price'    => 0,
+            'movement_transnno' => $replaceNumber,
+            'movement_type'     => $movementType,        // ← 'CANCEL REPLACEMENT' / 'REVISI REPLACEMENT'
+            'movement_desc'     => trim(($replaceNumber ?: '') . ($reason ? " ($reason)" : '')),
+            'created_by'        => $username,
+            'created_at'        => date('Y-m-d H:i:s'),
+            'site_code'         => $siteCode,
+            'location_number'   => $locationFG,
+            'movement_from'     => null,       // kembali dari customer
+            'movement_to'       => $locationFG,
+            'partner_type'      => 'CUST',
+            'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$todayDate','$siteCode','$locationFG') + {$val->qty}"),
+        ];
     }
 
-        DB::table('warehouse_movement')
-            ->where('movement_transnno', $replaceNumber)
-            ->where('movement_type', 'REPLACEMENT')
-            ->delete();
-
-        \LogActivity::addToLog("Unposting $this->title", "username: $username Status $replaceNumber stock reversed & movement removed");
-
-        return true;
+    if (!empty($dataSetMovement)) {
+        DB::table('warehouse_movement')->insert($dataSetMovement);
     }
+
+    // Movement asli TIDAK dihapus lagi -- tetap ada sebagai history "barang keluar",
+    // dilengkapi movement baru "barang masuk kembali" di atas.
+
+    \LogActivity::addToLog("Unposting $this->title", "username: $username Status $replaceNumber stock reversed ($movementType)");
+
+    return true;
+}
 
     /** Apakah dokumen ini pernah benar-benar diposting (ada movement-nya)? */
     private function wasPosted($replaceNumber)
@@ -864,9 +924,10 @@ class DnReplaceController extends Controller
             // GUARD: cek dulu apakah dokumen ini SEBELUMNYA benar-benar sudah diposting
             // (ada baris warehouse_movement). Kalau dokumen dibuat lewat storeTidakPosting(),
             // stock belum pernah dikurangi, jadi jangan di-reverse (mencegah phantom stock).
-            if ($this->wasPosted($replaceNumber)) {
-                $this->unPosting($replaceNumber, $username);
-            }
+           // update() -- ini revisi qty dalam dokumen yang sama, bisa pakai label netral
+if ($this->wasPosted($replaceNumber)) {
+    $this->unPosting($replaceNumber, $username, 'Update', 'REVISI REPLACEMENT');
+}
 
             // ===== UPDATE HEADER (status sementara OPEN, difinalkan setelah posting ulang) =====
             DB::table('dn_replace_hdr')
@@ -1048,9 +1109,10 @@ class DnReplaceController extends Controller
         try {
             // GUARD: reverse stock & hapus movement yang sudah diposting sebelum cancel,
             // supaya stock FG tidak nyangkut minus setelah dokumen dibatalkan.
-            if ($this->wasPosted($replaceNumber)) {
-                $this->unPosting($replaceNumber, $username);
-            }
+           // cancel()
+if ($this->wasPosted($replaceNumber)) {
+    $this->unPosting($replaceNumber, $username, $reason, 'CANCEL REPLACEMENT');
+}
 
             // FIX: dulu pakai DB::raw("CONCAT(po_number,...)") ke kolom return_number,
             // padahal kolom po_number tidak ada di tabel ini dan itu merusak return_number.
@@ -1126,7 +1188,7 @@ class DnReplaceController extends Controller
             // GUARD: reverse stock & hapus movement dulu sebelum hapus dokumen,
             // supaya stock FG tidak nyangkut minus & tidak ada movement history yatim.
             if ($this->wasPosted($replaceNumber)) {
-                $this->unPosting($replaceNumber, $username);
+                $this->unPosting($replaceNumber, $username, 'Delete', 'DELETE REPLACEMENT');
             }
 
             $rowAffected = DB::table('dn_replace_hdr')->where('replace_number', $replaceNumber)->delete();
@@ -1216,9 +1278,10 @@ class DnReplaceController extends Controller
         DB::beginTransaction();
         try {
             // 1. Reverse stok dokumen asal jika sudah pernah ada movement.
-            if ($this->wasPosted($recOrigin)) {
-                $this->unPosting($recOrigin, $username);
-            }
+          // revision()
+if ($this->wasPosted($recOrigin)) {
+    $this->unPosting($recOrigin, $username, $reason, 'REVISI REPLACEMENT');
+}
 
             // 2. HEADER BARU (status sementara OPEN, difinalkan di langkah 6).
             $noteBaru = trim(
