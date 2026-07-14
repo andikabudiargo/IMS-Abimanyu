@@ -1157,25 +1157,25 @@ foreach ($data as $val) {
             foreach ($articles as $val) {
                 $keep[] = $trNumber . $val->article_code;
             }
-            DB::table('transfer_stock_det')
-                ->whereNotIn(DB::raw("CONCAT(tr_number, article_code)"), $keep)
-                ->where('tr_number', $trNumber)
-                ->delete();
+          // ===== 4) Sinkron detail =====
+DB::table('transfer_stock_det')
+    ->where('tr_number', $trNumber)
+    ->delete();
 
-            foreach ($articles as $val) {
-                DB::table('transfer_stock_det')->updateOrInsert(
-                    ['tr_number' => $trNumber, 'article_code' => $val->article_code],
-                    [
-                        'qty'        => $val->qty,
-                        'uom'        => $val->uom,
-                        'note'       => $val->note ?? null,
-                        'fg_target'  => $val->fg_target ?? null,
-                        'updated_by' => $username,
-                        'updated_at' => date('Y-m-d H:i:s'),
-                    ]
-                );
+foreach ($articles as $val) {
+    DB::table('transfer_stock_det')->insert([
+        '           tr_number'   => $trNumber,
+                    'article_code'=> $val->article_code,
+                    'qty'         => $val->qty,
+                    'uom'         => $val->uom,
+                    'note'        => $val->note ?? null,
+                    'fg_target'   => $val->fg_target ?? null,
+                    'created_by'  => $username,
+                    'updated_by'  => $username,
+                    'created_at'  => date('Y-m-d H:i:s'),
+                    'updated_at'  => date('Y-m-d H:i:s'),
+                ]);
             }
-
             // ===== 5) Posting ulang (validasi stok ada di dalam processPosting) =====
             $postResult = $this->processPosting($trNumber, $username);
             if (!$postResult['success']) {
