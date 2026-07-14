@@ -1446,12 +1446,12 @@ class DnReplaceController extends Controller
                             </a>';
             $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
 
-            if ($data->status == '1'){
+           
                     $buttons .=     '<a href="'. route('dnReplace.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                         <i data-feather="file-text"></i>
                                         <span>'. __("Edit") .'</span>
                                     </a>';
-            }
+         
 
             $buttons .=         "<a href='". route('dnReplace.print', ['id'=>Crypt::encryptString($data->id)]) ."' target='_blank' class='dropdown-item'>
                                     <i data-feather='printer'></i>
