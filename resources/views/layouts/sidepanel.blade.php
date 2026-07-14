@@ -421,12 +421,44 @@
           </ul>
         </li>
 
+        <li class=" navigation-header"><span data-i18n="Logistic">Manufacturing</span><i data-feather="more-horizontal"></i>
+        </li>
+        
+        <li class=" {{ in_array(\Request::segment(1), ['engineering','boms','bomsUpload','bom']) ? 'active' : '' }} nav-item">
+  <a class="d-flex align-items-center" href="javascript:void(0);">
+    <i data-feather='tool'></i>
+    <span class="menu-title text-truncate" data-i18n="Form Elements">Engineering
+    </span>
+  </a>
+  <ul class="menu-content">
+
+    @can('bom-index')
+    <li class="{{ in_array(\Request::segment(1),['boms','bomsUpload']) ? 'active' : '' }}">
+      <a class="d-flex align-items-center" href="{{ route('boms.index') }}">
+        <i data-feather="circle"></i>
+        <span class="menu-item text-truncate" data-i18n="Input">Bill Of Material</span>
+      </a>
+    </li>
+    @endcan
+
+    @can('bom-index')
+    <li class="{{ \Request::segment(1) == 'bom' ? 'active' : '' }}">
+      <a class="d-flex align-items-center" href="{{ route('bom.report.index') }}">
+        <i data-feather="circle"></i>
+        <span class="menu-item text-truncate" data-i18n="Input">BOM Report</span>
+      </a>
+    </li>
+    @endcan
+
+  </ul>
+</li>
+
         <li class=" navigation-header"><span data-i18n="PPIC">PPIC</span><i data-feather="more-horizontal"></i>
         </li>
 
-        <li class=" {{ in_array(\Request::segment(1), ['boms','bom','workingOrders','workOrderSheet','deliveryPlan','wosMixing']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['workingOrders','workOrderSheet','deliveryPlan','wosMixing']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
-            <i data-feather='tool'></i>
+            <i data-feather='calendar'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">PPIC
             </span>
           </a>
@@ -446,25 +478,6 @@
               <a class="d-flex align-items-center" href="{{ route('wosMixing.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">WOS Mixing</span>
-              </a>
-            </li>
-            @endcan
-
-            @can('bom-index')
-            {{-- <li class="{{ \Request::segment(1) == 'boms' ? 'active' : '' }}" > --}}
-            <li class="{{ in_array(\Request::segment(1),['boms','bomsUpload']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('boms.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Bill Of Material</span>
-              </a>
-            </li>
-            @endcan
-
-            @can('bom-index')
-            <li class="{{ \Request::segment(1) == 'bom' ? 'active' : '' }}" >
-              <a class="d-flex align-items-center" href="{{ route('bom.report.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">BOM Report</span>
               </a>
             </li>
             @endcan
@@ -590,6 +603,15 @@
               </li>
               @endcan
 
+               @can('accType-index')
+              <li class="{{ \Request::segment(1) == 'asset'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('asset.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Assets</span>
+                </a>
+              </li>
+              @endcan
+
               @can('ap-index')
               <li class="{{ \Request::segment(1) == 'balanceSheet'  ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('balanceSheet.index') }}">
@@ -632,15 +654,6 @@
                 <a class="d-flex align-items-center" href="{{ route('accounts.index') }}">
                   <i data-feather="circle"></i>
                   <span class="menu-item text-truncate" data-i18n="Input">Account</span>
-                </a>
-              </li>
-              @endcan
-
-              @can('accType-index')
-              <li class="{{ \Request::segment(1) == 'asset'  ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('asset.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Assets</span>
                 </a>
               </li>
               @endcan
