@@ -47,16 +47,7 @@
 <div class="col-md-1 col-12">
     <div class="form-group margin-nol">
         <label for="priceJasa" class="d-block d-md-none">Price Jasa</label>
-        <div class="input-group input-group-merge">
-            <input type="text" class="form-control numeral-mask-digit text-right" id="priceJasa" name="priceJasa[]" oninput='inputDecimal(this)' maxlength="14">
-            <div class="input-group-append">
-                <span class="input-group-text cursor-pointer" style="padding:0 4px;">
-                    <a onmouseover="this.style.cursor='pointer'" id="listPriceService" name="listPriceService[]" data-toggle="tooltip" data-placement="right" title="History Price Service">
-                        <i data-feather="info" class="feather-24"></i>
-                    </a>
-                </span>
-            </div>
-        </div>
+        <input type="text" class="form-control numeral-mask-digit text-right" id="priceJasa" name="priceJasa[]" oninput='inputDecimal(this)' maxlength="14">
     </div>
 </div>
             <div class="col-md-1 col-12">
@@ -137,44 +128,43 @@
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row' + cloneCount);
-        
-        // rename elemen seperti biasa...
+
         $("#new_row" + cloneCount).find('#article_id').attr('id', 'article_id' + cloneCount);
         $("#new_row" + cloneCount).find('#price').attr('id', 'price' + cloneCount);
         $("#new_row" + cloneCount).find('#priceJasa').attr('id', 'priceJasa' + cloneCount);
         $("#new_row" + cloneCount).find('#listPriceMaterial').attr('id', 'listPriceMaterial' + cloneCount);
-        $("#new_row" + cloneCount).find('#listPriceService').attr('id', 'listPriceService' + cloneCount);
-       changeselect('article_id','article_id'+ cloneCount,cust[0],'FG');
+        // listPriceService dihapus, tidak perlu di-rename lagi
+        changeselect('article_id','article_id'+ cloneCount,cust[0],'FG');
         var $art = $("#article_id"+cloneCount);
-        $art.wrap('<div class="position-relative"></div>');   // pembungkus ala Vuexy
+        $art.wrap('<div class="position-relative"></div>');
         $art.select2({
             dropdownAutoWidth: true,
             width: '100%',
-            dropdownParent: $art.parent()      // parent = div pembungkus, BUKAN form-group
+            dropdownParent: $art.parent()
         });
-            tombolPanah('qty_order');
-            tombolPanah('price');
-            tombolPanah('priceJasa');
-            activate_angka();
-            mask_thousand();
-            mask_thousand_digit(2);
-            splitArticle();
-            hitungTotal();
-            hitungGrandTotal();
-        }else{
-            Swal.fire({
-                title: 'Warning',
-                text: "Choose customer",
-                icon: 'warning',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    customer.select2('open');
-                }
-            })
-        }
-    };
+        tombolPanah('qty_order');
+        tombolPanah('price');
+        tombolPanah('priceJasa');
+        activate_angka();
+        mask_thousand();
+        mask_thousand_digit(2);
+        splitArticle();
+        hitungTotal();
+        hitungGrandTotal();
+    } else {
+        Swal.fire({
+            title: 'Warning',
+            text: "Choose customer",
+            icon: 'warning',
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'OK'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                customer.select2('open');
+            }
+        })
+    }
+};
 
   function splitArticle() {
     let objArticle = $('#article_row select[name="article_id[]"]');
@@ -189,20 +179,14 @@
         let arrDetail = detail.split("|");
         let articleCode = arrDetail[0];
         let articleName = objArticle.eq(objIndex).select2('data')[0].text;
-        
+
         objGroup.eq(objIndex).text(arrDetail[1]);
         objStock.eq(objIndex).val(arrDetail[2] * 1 || 0);
         objUom.eq(objIndex).text(arrDetail[3]);
 
-        // Set onclick untuk tombol history price
-        let priceId = $('#article_row input[name="price[]"]').eq(objIndex).attr('id');
-        let priceJasaId = $('#article_row input[name="priceJasa[]"]').eq(objIndex).attr('id');
-        
+        // Hanya satu tombol info, di kolom Price Material
         let btnMaterial = $('#article_row a[name="listPriceMaterial[]"]').eq(objIndex);
-        let btnService = $('#article_row a[name="listPriceService[]"]').eq(objIndex);
-        
-        btnMaterial.attr("onclick", `listPriceSo('${articleCode}','${articleName}','${priceId}','material');`);
-        btnService.attr("onclick", `listPriceSo('${articleCode}','${articleName}','${priceJasaId}','service');`);
+        btnMaterial.attr("onclick", `listPriceSo('${articleCode}','${articleName}',${objIndex});`);
 
         if (detail) {
             setTimeout(() => {
@@ -263,13 +247,13 @@
         });    
     }
 
-    function listPriceSo(article, desc, idTarget, priceType) {
+    function listPriceSo(article, desc, rowIndex) {
     Swal.fire({
         html: '<div id="swalPriceRoot">'
             + '<div id="swalPriceBody" style="min-height:120px;text-align:center;padding:20px;">'
             + '<div class="spinner-border text-primary" role="status"></div>'
             + '<p class="mt-2 mb-0 text-muted">Memuat data harga...</p></div></div>',
-        width: 820,
+        width: 780,
         padding: 0,
         showConfirmButton: false,
         showCloseButton: true,
@@ -281,7 +265,7 @@
                 url: "{{ route('salesOrder.price.list') }}",
                 data: { article: article },
                 success: function(data) {
-                   let header = `
+                    let header = `
                         <div style="background:linear-gradient(135deg,#7367f0 0%,#9e95f5 100%);
                                     padding:18px 24px;text-align:left;width:100%;box-sizing:border-box;margin:0;">
                             <div style="color:#fff;font-size:1.05rem;font-weight:600;letter-spacing:.3px;">
@@ -296,33 +280,28 @@
                         for (let i = 0; i < data.length; i++) {
                             let pm = parseFloat(data[i].price || 0);
                             let ps = parseFloat(data[i].price_service || 0);
-
-                            let matCell = (priceType === 'material')
-                                ? `<button class="btn btn-sm price-pick-btn"
-                                     onclick="definePriceSo('${idTarget}','${pm}')">
-                                     ${humanizeNumber(pm.toFixed(2))}</button>`
-                                : `<span class="text-muted">${humanizeNumber(pm.toFixed(2))}</span>`;
-
-                            let svcCell = (priceType === 'service')
-                                ? `<button class="btn btn-sm price-pick-btn"
-                                     onclick="definePriceSo('${idTarget}','${ps}')">
-                                     ${humanizeNumber(ps.toFixed(2))}</button>`
-                                : `<span class="text-muted">${humanizeNumber(ps.toFixed(2))}</span>`;
+                            let tt = parseFloat(data[i].total || 0);
 
                             rows += `<tr>
                                 <td class="text-center text-muted">${i + 1}</td>
                                 <td><span class="badge badge-light-primary">${data[i].so_code}</span></td>
                                 <td class="text-center">${data[i].so_date}</td>
                                 <td class="text-center text-muted">${data[i].updated_at}</td>
-                                <td class="text-right">${matCell}</td>
-                                <td class="text-right">${svcCell}</td>
+                                <td class="text-right">${humanizeNumber(pm.toFixed(2))}</td>
+                                <td class="text-right">${humanizeNumber(ps.toFixed(2))}</td>
+                                <td class="text-right">
+                                    <button class="btn btn-sm price-pick-btn"
+                                        onclick="definePriceSo(${rowIndex}, ${pm}, ${ps})">
+                                        ${humanizeNumber(tt.toFixed(2))}
+                                    </button>
+                                </td>
                             </tr>`;
                         }
 
                         let body = `
                             <div style="padding:16px 24px 24px;">
                                 <div style="font-size:.78rem;color:#6e6b7b;margin-bottom:10px;text-align:left;">
-                                    Berikut history perubahan harga selama periode tahun berjalan.
+                                    Klik nilai <b>Total</b> untuk mengisi Price Material dan Price Jasa pada baris ini.
                                 </div>
                                 <table class="table price-history-table mb-0">
                                     <thead>
@@ -331,8 +310,9 @@
                                             <th>SO Number</th>
                                             <th class="text-center">SO Date</th>
                                             <th class="text-center">Updated</th>
-                                            <th class="text-right">Material</th>
-                                            <th class="text-right">Service</th>
+                                            <th class="text-right">Price Material</th>
+                                            <th class="text-right">Price Jasa</th>
+                                            <th class="text-right">Total</th>
                                         </tr>
                                     </thead>
                                     <tbody>${rows}</tbody>
@@ -356,19 +336,15 @@
     });
 }
 
-function definePriceSo(idTarget, harga) {
-    $('#' + idTarget).val(humanizeNumber(parseFloat(harga).toFixed(2) || 0));
+function definePriceSo(rowIndex, priceMaterial, priceJasa) {
+    let objPrice     = $('#article_row input[name="price[]"]');
+    let objPriceJasa = $('#article_row input[name="priceJasa[]"]');
 
-    let allPrice = $('#article_row input[name="price[]"]');
-    let allPriceJasa = $('#article_row input[name="priceJasa[]"]');
-    let rowIndex = -1;
+    objPrice.eq(rowIndex).val(humanizeNumber(parseFloat(priceMaterial).toFixed(2)));
+    objPriceJasa.eq(rowIndex).val(humanizeNumber(parseFloat(priceJasa).toFixed(2)));
 
-    allPrice.each(function(i){ if ($(this).attr('id') === idTarget) { rowIndex = i; return false; } });
-    if (rowIndex < 0) {
-        allPriceJasa.each(function(i){ if ($(this).attr('id') === idTarget) { rowIndex = i; return false; } });
-    }
-
-    if (rowIndex >= 0) hitungTotalPerBaris(rowIndex);
+    // Total, T.Material, T.Service dihitung ulang otomatis berdasarkan qty yang sedang diinput di baris ini
+    hitungTotalPerBaris(rowIndex);
 
     Swal.close();
 }

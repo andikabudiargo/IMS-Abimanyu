@@ -1785,6 +1785,13 @@ class SalesOrderController extends Controller
         LIMIT 10
     ");
 
+    // Total = price material + price jasa (tanpa qty)
+    foreach ($listArticle as $row) {
+        $price        = (float) ($row->price ?? 0);
+        $priceService = (float) ($row->price_service ?? 0);
+        $row->total   = $price + $priceService;
+    }
+
     return Response()->json($listArticle);
 }
 
