@@ -1748,5 +1748,45 @@ class SalesOrderController extends Controller
         ->make(true);
     }
 
+    public function priceList(Request $request)
+{
+    $articleCode = $request->article;
+    $currentYear = date('Y');
+
+    $listArticle = DB::select("
+        SELECT so_code, so_date, price, price_service, created_at, updated_at
+        FROM (
+            SELECT 
+                so_code, so_date, price, price_service, created_at, updated_at, tgl_so,
+                LAG(price) OVER (ORDER BY tgl_so ASC, created_at ASC) AS prev_price,
+                LAG(price_service) OVER (ORDER BY tgl_so ASC, created_at ASC) AS prev_price_service,
+                ROW_NUMBER() OVER (ORDER BY tgl_so ASC, created_at ASC) AS rn
+            FROM (
+                SELECT 
+                    sales_order_det.so_code, 
+                    so_date, 
+                    price, 
+                    price_service,
+                    sales_order_hdr.created_at,
+                    to_char(sales_order_hdr.updated_at,'dd-mm-yyyy') as updated_at,
+                    TO_DATE(so_date,'dd-mm-yyyy') as tgl_so
+                FROM sales_order_det 
+                LEFT JOIN sales_order_hdr ON sales_order_hdr.so_code = sales_order_det.so_code 
+                WHERE article_code = '$articleCode' 
+                AND sales_order_hdr.status NOT IN ('5','8')
+                AND sales_order_hdr.so_code NOT LIKE '%-R%'
+                AND EXTRACT(YEAR FROM TO_DATE(so_date,'dd-mm-yyyy')) = $currentYear
+            ) raw_data
+        ) with_lag
+        WHERE rn = 1 
+           OR price IS DISTINCT FROM prev_price 
+           OR price_service IS DISTINCT FROM prev_price_service
+        ORDER BY tgl_so ASC
+        LIMIT 10
+    ");
+
+    return Response()->json($listArticle);
+}
+
     
 }

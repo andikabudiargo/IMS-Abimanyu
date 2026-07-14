@@ -263,6 +263,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('salesOrders/print',['as'=>'salesOrder.print','uses'=>'SalesOrderController@print']);
 	Route::get('salesOrder/approve',['as'=>'salesOrder.approve','uses'=>'SalesOrderController@approve']);
 	Route::post('salesOrder/revision',['as'=>'salesOrder.revision','uses'=>'SalesOrderController@revision']);
+	Route::get('salesOrder/price/list', ['as'=>'salesOrder.price.list','uses'=>'SalesOrderController@priceList']);
 
 	Route::get('salesOrderReport',['as'=>'salesOrder.report','uses'=>'SalesOrderController@report']);
 	Route::get('salesOrderReport/list',['as'=>'salesOrder.list.report','uses'=>'SalesOrderController@listReport']);

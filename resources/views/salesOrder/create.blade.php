@@ -193,6 +193,7 @@
         </div>
     </div>
 </section>
+
 @endsection
 @section('styles')
 <style>
@@ -250,6 +251,82 @@
         }
     }
 
+ .price-history-popup {
+    border-radius: 8px !important;
+    overflow: hidden;
+    padding: 0 !important;
+    position: relative;
+}
+/* Reset semua padding/margin bawaan SweetAlert */
+.price-history-popup .swal2-html-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    text-align: left !important;
+}
+.price-history-popup .swal2-header,
+.price-history-popup .swal2-content {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+/* Pastikan root konten kita melebar penuh */
+.price-history-popup #swalPriceRoot {
+    width: 100%;
+    text-align: left;
+}
+.price-history-popup .swal2-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    color: #fff !important;
+    font-size: 1.6rem;
+    opacity: .85;
+    z-index: 5;
+    line-height: 1;
+    margin: 0;
+}
+.price-history-popup .swal2-close:hover { opacity: 1; transform: scale(1.1); }
+
+.price-history-table thead th {
+    background: #f8f8fb;
+    color: #6e6b7b;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    border-top: none;
+    border-bottom: 1px solid #ebe9f1;
+    padding: 8px 10px;
+}
+.price-history-table tbody td {
+    padding: 9px 10px;
+    vertical-align: middle;
+    font-size: .85rem;
+    border-top: 1px solid #f2f0f7;
+}
+.price-history-table tbody tr:hover { background: #f8f7ff; }
+
+.badge-light-primary {
+    background: #e8e6fb;
+    color: #7367f0;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.price-pick-btn {
+    background: #fff;
+    color: #7367f0;
+    border: 1px solid #7367f0;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 3px 12px;
+    transition: all .15s ease;
+}
+.price-pick-btn:hover {
+    background: #7367f0;
+    color: #fff;
+    box-shadow: 0 3px 8px rgba(115,103,240,.35);
+}
 </style>
 @endsection
 @section('scripts')

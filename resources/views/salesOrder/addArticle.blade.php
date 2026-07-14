@@ -28,18 +28,37 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="price" class="d-block d-md-none">Price</label>
-                    <input type="text" class="form-control numeral-mask-digit text-right" id= "price" name="price[]"  oninput='inputDecimal(this)' maxlength="14">
-                </div>
+           {{-- Ganti bagian col price yang lama --}}
+<div class="col-md-1 col-12">
+    <div class="form-group margin-nol">
+        <label for="price" class="d-block d-md-none">Price</label>
+        <div class="input-group input-group-merge">
+            <input type="text" class="form-control numeral-mask-digit text-right" id="price" name="price[]" oninput='inputDecimal(this)' maxlength="14">
+            <div class="input-group-append">
+                <span class="input-group-text cursor-pointer" style="padding:0 4px;">
+                    <a onmouseover="this.style.cursor='pointer'" id="listPriceMaterial" name="listPriceMaterial[]" data-toggle="tooltip" data-placement="right" title="History Price Material">
+                        <i data-feather="info" class="feather-24"></i>
+                    </a>
+                </span>
             </div>
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="priceJasa" class="d-block d-md-none">Price Jasa</label>
-                    <input type="text" class="form-control numeral-mask-digit text-right" id = "priceJasa" name="priceJasa[]"  oninput='inputDecimal(this)' maxlength="14">
-                </div>
+        </div>
+    </div>
+</div>
+<div class="col-md-1 col-12">
+    <div class="form-group margin-nol">
+        <label for="priceJasa" class="d-block d-md-none">Price Jasa</label>
+        <div class="input-group input-group-merge">
+            <input type="text" class="form-control numeral-mask-digit text-right" id="priceJasa" name="priceJasa[]" oninput='inputDecimal(this)' maxlength="14">
+            <div class="input-group-append">
+                <span class="input-group-text cursor-pointer" style="padding:0 4px;">
+                    <a onmouseover="this.style.cursor='pointer'" id="listPriceService" name="listPriceService[]" data-toggle="tooltip" data-placement="right" title="History Price Service">
+                        <i data-feather="info" class="feather-24"></i>
+                    </a>
+                </span>
             </div>
+        </div>
+    </div>
+</div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="totalLine" class="d-block d-md-none">T.Material</label>
@@ -112,15 +131,27 @@
     });
     
     function add_new_row() {
-        let customer = $('#cust');
-        let cust = customer.val().split("|");
-        if (customer.val()){            
-            $("#article_row").append($("#new_row").clone().html());
-            cloneCount++;
-            $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
-            $("#new_row"+ cloneCount).find('#article_id').attr('id', 'article_id'+ cloneCount);
-            changeselect('article_id','article_id'+ cloneCount,cust[0],'FG');
-            $("#article_id"+cloneCount).select2();
+    let customer = $('#cust');
+    let cust = customer.val().split("|");
+    if (customer.val()) {
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#article_row").find('#baru').attr('id', 'new_row' + cloneCount);
+        
+        // rename elemen seperti biasa...
+        $("#new_row" + cloneCount).find('#article_id').attr('id', 'article_id' + cloneCount);
+        $("#new_row" + cloneCount).find('#price').attr('id', 'price' + cloneCount);
+        $("#new_row" + cloneCount).find('#priceJasa').attr('id', 'priceJasa' + cloneCount);
+        $("#new_row" + cloneCount).find('#listPriceMaterial').attr('id', 'listPriceMaterial' + cloneCount);
+        $("#new_row" + cloneCount).find('#listPriceService').attr('id', 'listPriceService' + cloneCount);
+       changeselect('article_id','article_id'+ cloneCount,cust[0],'FG');
+        var $art = $("#article_id"+cloneCount);
+        $art.wrap('<div class="position-relative"></div>');   // pembungkus ala Vuexy
+        $art.select2({
+            dropdownAutoWidth: true,
+            width: '100%',
+            dropdownParent: $art.parent()      // parent = div pembungkus, BUKAN form-group
+        });
             tombolPanah('qty_order');
             tombolPanah('price');
             tombolPanah('priceJasa');
@@ -145,29 +176,41 @@
         }
     };
 
-    function splitArticle(){
-        // split article with delimiter |
-        let objArticle = $('#article_row select[name="article_id[]"]');
-        let objGroup= $('#article_row span[name="group[]"]');
-        let objStock= $('#article_row input[name="qty_stock[]"]');
-        let objUom= $('#article_row span[name="uom[]"]'); 
-        let objQty= $('#article_row input[name="qty_order[]"]');
+  function splitArticle() {
+    let objArticle = $('#article_row select[name="article_id[]"]');
+    let objGroup = $('#article_row span[name="group[]"]');
+    let objStock = $('#article_row input[name="qty_stock[]"]');
+    let objUom = $('#article_row span[name="uom[]"]');
+    let objQty = $('#article_row input[name="qty_order[]"]');
 
-        objArticle.change(function(e){        
-            let objIndex = objArticle.index(this);
-            let detail = objArticle.eq(objIndex).val();
-            let arrDetail = detail.split("|");
-            objGroup.eq(objIndex).text(arrDetail[1]);
-            objStock.eq(objIndex).val(arrDetail[2]*1||0);
-            objUom.eq(objIndex).text(arrDetail[3]);
-            objArticle.eq(objIndex).select2('open'); //belum bisa jalan
-            if (detail){
-                setTimeout(() => {
-                    objQty.eq(objIndex).focus().select();
-                }, 5);
-            }
-		});
-    }
+    objArticle.change(function(e) {
+        let objIndex = objArticle.index(this);
+        let detail = objArticle.eq(objIndex).val();
+        let arrDetail = detail.split("|");
+        let articleCode = arrDetail[0];
+        let articleName = objArticle.eq(objIndex).select2('data')[0].text;
+        
+        objGroup.eq(objIndex).text(arrDetail[1]);
+        objStock.eq(objIndex).val(arrDetail[2] * 1 || 0);
+        objUom.eq(objIndex).text(arrDetail[3]);
+
+        // Set onclick untuk tombol history price
+        let priceId = $('#article_row input[name="price[]"]').eq(objIndex).attr('id');
+        let priceJasaId = $('#article_row input[name="priceJasa[]"]').eq(objIndex).attr('id');
+        
+        let btnMaterial = $('#article_row a[name="listPriceMaterial[]"]').eq(objIndex);
+        let btnService = $('#article_row a[name="listPriceService[]"]').eq(objIndex);
+        
+        btnMaterial.attr("onclick", `listPriceSo('${articleCode}','${articleName}','${priceId}','material');`);
+        btnService.attr("onclick", `listPriceSo('${articleCode}','${articleName}','${priceJasaId}','service');`);
+
+        if (detail) {
+            setTimeout(() => {
+                objQty.eq(objIndex).focus().select();
+            }, 5);
+        }
+    });
+}
 
     function hitungTotal(){
         let objQty= $('#article_row input[name="qty_order[]"]');
@@ -219,6 +262,116 @@
             // hitungGrandTotal();
         });    
     }
+
+    function listPriceSo(article, desc, idTarget, priceType) {
+    Swal.fire({
+        html: '<div id="swalPriceRoot">'
+            + '<div id="swalPriceBody" style="min-height:120px;text-align:center;padding:20px;">'
+            + '<div class="spinner-border text-primary" role="status"></div>'
+            + '<p class="mt-2 mb-0 text-muted">Memuat data harga...</p></div></div>',
+        width: 820,
+        padding: 0,
+        showConfirmButton: false,
+        showCloseButton: true,
+        customClass: { popup: 'price-history-popup' },
+        didOpen: function() {
+            $.ajax({
+                dataType: 'json',
+                type: 'GET',
+                url: "{{ route('salesOrder.price.list') }}",
+                data: { article: article },
+                success: function(data) {
+                   let header = `
+                        <div style="background:linear-gradient(135deg,#7367f0 0%,#9e95f5 100%);
+                                    padding:18px 24px;text-align:left;width:100%;box-sizing:border-box;margin:0;">
+                            <div style="color:#fff;font-size:1.05rem;font-weight:600;letter-spacing:.3px;">
+                                <i data-feather="trending-up" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px;"></i>
+                                Price History
+                            </div>
+                            <div style="color:rgba(255,255,255,.85);font-size:.82rem;margin-top:2px;">${desc}</div>
+                        </div>`;
+
+                    if (data.length > 0) {
+                        let rows = '';
+                        for (let i = 0; i < data.length; i++) {
+                            let pm = parseFloat(data[i].price || 0);
+                            let ps = parseFloat(data[i].price_service || 0);
+
+                            let matCell = (priceType === 'material')
+                                ? `<button class="btn btn-sm price-pick-btn"
+                                     onclick="definePriceSo('${idTarget}','${pm}')">
+                                     ${humanizeNumber(pm.toFixed(2))}</button>`
+                                : `<span class="text-muted">${humanizeNumber(pm.toFixed(2))}</span>`;
+
+                            let svcCell = (priceType === 'service')
+                                ? `<button class="btn btn-sm price-pick-btn"
+                                     onclick="definePriceSo('${idTarget}','${ps}')">
+                                     ${humanizeNumber(ps.toFixed(2))}</button>`
+                                : `<span class="text-muted">${humanizeNumber(ps.toFixed(2))}</span>`;
+
+                            rows += `<tr>
+                                <td class="text-center text-muted">${i + 1}</td>
+                                <td><span class="badge badge-light-primary">${data[i].so_code}</span></td>
+                                <td class="text-center">${data[i].so_date}</td>
+                                <td class="text-center text-muted">${data[i].updated_at}</td>
+                                <td class="text-right">${matCell}</td>
+                                <td class="text-right">${svcCell}</td>
+                            </tr>`;
+                        }
+
+                        let body = `
+                            <div style="padding:16px 24px 24px;">
+                                <div style="font-size:.78rem;color:#6e6b7b;margin-bottom:10px;text-align:left;">
+                                    Berikut history perubahan harga selama periode tahun berjalan.
+                                </div>
+                                <table class="table price-history-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:40px;">#</th>
+                                            <th>SO Number</th>
+                                            <th class="text-center">SO Date</th>
+                                            <th class="text-center">Updated</th>
+                                            <th class="text-right">Material</th>
+                                            <th class="text-right">Service</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${rows}</tbody>
+                                </table>
+                            </div>`;
+                        $('#swalPriceRoot').html(header + body);
+                    } else {
+                        $('#swalPriceRoot').html(header +
+                            `<div style="padding:40px 24px;text-align:center;color:#b9b9c3;">
+                                <i data-feather="inbox" style="width:38px;height:38px;"></i>
+                                <p class="mt-2 mb-0">Tidak ada perubahan harga sebelumnya.</p>
+                             </div>`);
+                    }
+                    if (window.feather) feather.replace();
+                },
+                error: function() {
+                    $('#swalPriceBody').html('<p class="text-danger mb-0 py-3">Error mengambil data harga.</p>');
+                }
+            });
+        }
+    });
+}
+
+function definePriceSo(idTarget, harga) {
+    $('#' + idTarget).val(humanizeNumber(parseFloat(harga).toFixed(2) || 0));
+
+    let allPrice = $('#article_row input[name="price[]"]');
+    let allPriceJasa = $('#article_row input[name="priceJasa[]"]');
+    let rowIndex = -1;
+
+    allPrice.each(function(i){ if ($(this).attr('id') === idTarget) { rowIndex = i; return false; } });
+    if (rowIndex < 0) {
+        allPriceJasa.each(function(i){ if ($(this).attr('id') === idTarget) { rowIndex = i; return false; } });
+    }
+
+    if (rowIndex >= 0) hitungTotalPerBaris(rowIndex);
+
+    Swal.close();
+}
 
     hitungTotalPerBaris=(indexnya)=>{
         let objQty= $('#article_row input[name="qty_order[]"]');
@@ -300,20 +453,16 @@
     }
 
     function changeselect(dependent,obj,value,type) {
-      $.ajax({
+    $.ajax({
         url:"{{ route('dynamic.dependent') }}",
         method:"POST",
-        data:{
-            value:value,
-            type:type,
-            dependent:dependent
-        },
+        data:{ value:value, type:type, dependent:dependent },
         success:function(result){
             $('#'+obj).html(result);
             $('#'+obj).val('').trigger('change');
         }
-      })
-    }
+    })
+}
 
     getActivePpn = (tanggal) => {
         return $.ajax({
