@@ -1164,7 +1164,7 @@ DB::table('transfer_stock_det')
 
 foreach ($articles as $val) {
     DB::table('transfer_stock_det')->insert([
-        '           tr_number'   => $trNumber,
+                    'tr_number'   => $trNumber,
                     'article_code'=> $val->article_code,
                     'qty'         => $val->qty,
                     'uom'         => $val->uom,
