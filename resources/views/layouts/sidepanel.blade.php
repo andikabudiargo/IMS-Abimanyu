@@ -28,7 +28,7 @@
       <ul class="navigation navigation-main" id="main-menu-navigation" data-menu="menu-navigation">
         <li class=" nav-item">
           <a class="d-flex align-items-center" href="{{ route('home') }}">
-            <i data-feather="home">
+            <i data-feather="globe">
             </i>
             <span class="menu-title text-truncate" data-i18n="Dashboards">Dashboards</span>
           </a>
@@ -37,7 +37,7 @@
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['articles','articles','articles/create','articles/edit','articles/show','stockTake','uoms','uomCons','groupMaterials','articleTypes']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
-            <i data-feather="box"></i>
+            <i data-feather="pocket"></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Inventory
             </span>
           </a>
@@ -105,7 +105,7 @@
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo','forecastSales','salesOrderReport']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
-            <i data-feather='layers'></i>
+            <i data-feather='phone-outgoing'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Sales
             </span>
           </a>
@@ -265,7 +265,7 @@
         
         <li class=" {{ in_array(\Request::segment(1), ['warehouse','transferIn']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
-            <i data-feather='box'></i>
+            <i data-feather='home'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Warehouse
             </span>
           </a>
