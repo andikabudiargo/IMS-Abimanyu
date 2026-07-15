@@ -1226,20 +1226,20 @@ public function getTableColoumnMovementGlobal()
             $buttons .= '</div></div>';
             return $buttons;
         })
-        ->addColumn('article_qty', function ($data) {
-            $decimal    = (fmod($data->article_qty, 1) !== 0.00) ? $this->decimalPlaces : 0;
-            $artilceQty = number_format($data->article_qty, $decimal);
-            return $data->article_qty < 0
-                ? "<div class='text-red'>$artilceQty</div>"
-                : "<div class='text-hitam'>$artilceQty</div>";
-        })
+       ->addColumn('article_qty', function ($data) {
+    $artilceQty = number_format((float) $data->article_qty, 2);
+    return $data->article_qty < 0
+        ? "<div class='text-red'>$artilceQty</div>"
+        : "<div class='text-hitam'>$artilceQty</div>";
+})
         ->addColumn('status', function ($data) {
             $badges     = ['badge-light-danger', 'badge-light-primary'];
             $statusCode = ['Freeze', 'Active'];
             return "<div class='badge badge-pill ".$badges[$data->status]."'>".$statusCode[$data->status]."</div>";
         })
         ->addColumn('critical_stock', function ($data) {
-    if ($data->article_qty < $data->safety_stock) {
+    $safety = (float) ($data->safety_stock ?? 0);
+    if ($data->article_qty < $safety) {
         return "<div class='badge badge-pill badge-light-danger'>Critical</div>";
     }
     return "<div class='badge badge-pill badge-light-primary'>Save</div>";
