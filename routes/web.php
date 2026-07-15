@@ -688,6 +688,8 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('warehouse/stock-movement',['as'=>'stockMovement.index','uses'=>'StockMovementController@index']);
 	Route::get('warehouse/stock-movement/list',['as'=>'stockMovement.list','uses'=>'StockMovementController@list']);
+	Route::get('stock-movement/export-grouped', ['as' => 'stockMovement.export', 'uses' => 'StockMovementController@export']);
+
 
 
 	/* new transfer in and out */
