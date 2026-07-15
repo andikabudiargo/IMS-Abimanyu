@@ -77,47 +77,31 @@ class WarehouseControllerv2 extends Controller
         return json_encode($kolom, true);
     }
 
-    public function getTableColoumnMovement(){
-        $kolom=    
-        [
-            ['data'=>'movement_date','name'=>'movement_date','title'=>'Date'],
-            ['data'=>'mv_from','name'=>'mv_from','title'=>'From'],
-            ['data'=>'mv_to','name'=>'mv_to','title'=>'To'],
-            ['data'=>'inout','name'=>'inout','title'=>'Transaction'],
-            ['data'=>'movement_type','name'=>'movement_type','title'=>'Type'],
-            ['data'=>'movement_transnno','name'=>'movement_transnno','title'=>'Ref'],
-            ['data'=>'trx_status','name'=>'trx_status','title'=>'Status'],
-            // ['data'=>'movement_price','name'=>'movement_price','title'=>'Price'],
-            // ['data'=>'movement_min','name'=>'movement_min','title'=>'QTY Min'],
-            // ['data'=>'movement_plus','name'=>'movement_plus','title'=>'QTY Plus'],
-            ['data'=>'last_qty','name'=>'last_qty','title'=>'Opening'],
-            ['data'=>'qty','name'=>'qty','title'=>'QTY'],
-            ['data'=>'balanceqty','name'=>'balanceqty','title'=>'Balance'],
-            ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description'],
-            ['data'=>'created_at','name'=> 'created_at','title'=>'Posted At'],
-            ['data'=>'urutan','name'=> 'urutan','title'=>'Runnng Number', 'searchable'=>false, 'visible'=>false]
-        ];
-        return json_encode($kolom, true);
-    }
-
-    public function getTableColoumnMovementGlobal(){
-    $kolom=    
-    [
+    public function getTableColoumnMovement()
+{
+    $kolom = [
         ['data'=>'movement_date','name'=>'movement_date','title'=>'Date'],
         ['data'=>'mv_from','name'=>'mv_from','title'=>'From'],
         ['data'=>'mv_to','name'=>'mv_to','title'=>'To'],
         ['data'=>'inout','name'=>'inout','title'=>'Transaction'],
         ['data'=>'movement_type','name'=>'movement_type','title'=>'Type'],
         ['data'=>'movement_transnno','name'=>'movement_transnno','title'=>'Ref'],
+        ['data'=>'last_qty','name'=>'last_qty','title'=>'Opening','className'=>'text-right'],
+        ['data'=>'qty_in','name'=>'qty_in','title'=>'QTY In','className'=>'text-right','searchable'=>false],
+        ['data'=>'qty_out','name'=>'qty_out','title'=>'QTY Out','className'=>'text-right','searchable'=>false],
+        ['data'=>'balanceqty','name'=>'balanceqty','title'=>'Balance','className'=>'text-right'],
         ['data'=>'trx_status','name'=>'trx_status','title'=>'Status'],
-        ['data'=>'last_qty','name'=>'last_qty','title'=>'Opening'],
-        ['data'=>'qty','name'=>'qty','title'=>'QTY'],
-        ['data'=>'balanceqty','name'=>'balanceqty','title'=>'Balance'],
-        ['data'=>'movement_desc','name'=> 'movement_desc','title'=>'Description'],
-        ['data'=>'created_at','name'=> 'created_at','title'=>'Posted At'],
-        ['data'=>'urutan','name'=> 'urutan','title'=>'Runnng Number', 'searchable'=>false, 'visible'=>false]
+        ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+        ['data'=>'movement_desc','name'=>'movement_desc','title'=>'Description'],
+        ['data'=>'urutan','name'=>'urutan','title'=>'Running Number','searchable'=>false,'visible'=>false],
     ];
     return json_encode($kolom, true);
+}
+
+// Alias supaya view lama yang masih panggil versi global tidak error.
+public function getTableColoumnMovementGlobal()
+{
+    return $this->getTableColoumnMovement();
 }
 
     public function article(Request $request)

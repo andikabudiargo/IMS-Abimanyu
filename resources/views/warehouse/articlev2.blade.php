@@ -285,6 +285,35 @@
   cursor: pointer; 
   padding-top: 2px;
 }
+
+#mdlmovetable tbody tr.mv-summary > td {
+    background: #fafbfc !important;
+    border-top: 1px solid rgba(47,51,73,.08);
+    border-bottom: 1px solid rgba(47,51,73,.08);
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+    color: #2f3349;
+    font-weight: 600;
+}
+#mdlmovetable tbody tr.row-saldo-awal  > td { background: #f6f5ff !important; }
+#mdlmovetable tbody tr.row-saldo-akhir > td { background: #f2fbf6 !important; }
+
+/* garis aksen tipis di kiri, pengganti blok warna */
+#mdlmovetable tbody tr.mv-summary > td:first-child { border-left: 3px solid transparent; }
+#mdlmovetable tbody tr.row-saldo-awal  > td:first-child { border-left-color: #7367f0; }
+#mdlmovetable tbody tr.row-saldo-akhir > td:first-child { border-left-color: #28c76f; }
+
+.mv-summary-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .72rem; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: .28rem .6rem; border-radius: 6px;
+}
+.mv-summary-badge svg { width: 13px; height: 13px; }
+.row-saldo-awal  .mv-summary-badge { color:#5e50ee; background: rgba(115,103,240,.12); }
+.row-saldo-akhir .mv-summary-badge { color:#1f9d57; background: rgba(40,199,111,.12); }
+
+#mdlmovetable tbody tr.mv-summary .mv-balance { font-size: .95rem; font-weight: 700; }
 </style>
 @endsection
 @section('scripts')
@@ -425,7 +454,7 @@ $('#btnAnalytics').on('click', function () {
     });
 }
 
-  let curArt  = { code:'', altcode:'', desc:'' };
+let curArt  = { code:'', altcode:'', desc:'' };
 let mvPicker = null;
 
 const movement = (artCode, artikelAlternativeCode, artDesc) => {
@@ -434,12 +463,19 @@ const movement = (artCode, artikelAlternativeCode, artDesc) => {
 
     // reset filter tiap modal dibuka
     $('#mvInout').val('');
+
+    // default range: tanggal 1 bulan berjalan s/d hari ini
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const defaultRange = [firstDayOfMonth, today];
+
     if (mvPicker) {
-        mvPicker.clear();
+        mvPicker.setDate(defaultRange, false);
     } else {
         mvPicker = $('#mvDateRange').flatpickr({
             mode: 'range',
             dateFormat: 'd-m-Y',                       // cocok dgn movement_date 'dd-mm-yyyy'
+            defaultDate: defaultRange,
             onClose: function (sel) {
                 if (sel.length === 0 || sel.length === 2) loadMovement();
             }
@@ -447,7 +483,10 @@ const movement = (artCode, artikelAlternativeCode, artDesc) => {
     }
     $('#mvInout').off('change.mv').on('change.mv', loadMovement);
     $('#mvReset').off('click.mv').on('click.mv', function () {
-        if (mvPicker) mvPicker.clear();
+        // reset ke default (tgl 1 bulan berjalan - hari ini), bukan kosong
+        const t = new Date();
+        const f = new Date(t.getFullYear(), t.getMonth(), 1);
+        if (mvPicker) mvPicker.setDate([f, t], false);
         $('#mvInout').val('');
         loadMovement();
     });
@@ -455,6 +494,47 @@ const movement = (artCode, artikelAlternativeCode, artDesc) => {
     $('#mdlmovement').modal('show');
     loadMovement();
 };
+
+/**
+ * Merge baris SALDO AWAL (OPENING) & SALDO AKHIR (CLOSING):
+ * - gabungkan kolom Date..QTY jadi satu cell label (colspan)
+ * - angka tetap sejajar di kolom Balance
+ * - highlight barisnya karena ini special case
+ *
+ * Deteksi via teks kolom TYPE (movement_type = 'OPENING'/'CLOSING'),
+ * jadi tidak tergantung row().data() yang mungkin tidak tersedia dari helper.
+ */
+function mergeMovementSummaryRows() {
+    var $t = $('#mdlmovetable');
+    if (!$.fn.DataTable.isDataTable($t)) return;
+    var table = $t.DataTable();
+    var stopIdx = table.column('movement_transnno:name').index(); // merge berhenti sebelum kolom Ref
+    if (stopIdx === undefined) return;
+
+    $t.find('tbody > tr').each(function () {
+        var $tr = $(this);
+        if ($tr.hasClass('mv-merged')) return;
+        var d = table.row(this).data();
+        if (!d || !d.is_summary) return;
+
+       $tr.addClass('mv-merged mv-summary')
+   .addClass(d.movement_type === 'OPENING' ? 'row-saldo-awal' : 'row-saldo-akhir');
+
+        var $cells = $tr.children('td').filter(function () {
+            var ci = table.cell(this).index();
+            return ci && ci.column < stopIdx;
+        });
+        if ($cells.length) {
+            var $first = $cells.first();
+            $cells.slice(1).remove();
+           $first.attr('colspan', $cells.length)
+      .addClass('text-left')
+      .html(d.summary_label || '');
+        }
+    });
+    if (window.feather) feather.replace();
+}
+$('#mdlmovetable').off('draw.dt.mvmerge').on('draw.dt.mvmerge', mergeMovementSummaryRows);
 
 const loadMovement = () => {
     if ($('#mdlmovetable tr').length > 0){
@@ -478,6 +558,11 @@ const loadMovement = () => {
     const rightTargets = kolomMovement
         .map((c, i) => rightCols.includes(c.data) ? i : -1)
         .filter(i => i >= 0);
+
+    // index kolom untuk merge baris SALDO AWAL/AKHIR
+    const typeIdx = kolomMovement.findIndex(c => c.data === 'movement_type');
+    const qtyIdx  = kolomMovement.findIndex(c => c.data === 'qty');
+    const balIdx  = kolomMovement.findIndex(c => c.data === 'balanceqty');
 
     showDataTables({
         tableId:"mdlmovetable",
@@ -510,6 +595,19 @@ const loadMovement = () => {
             $(api.settings()[0].nScrollBody).scrollTop(api.settings()[0].nScrollBody.scrollHeight);
         }
     });
+
+    // Pasang merge lewat event draw.dt langsung ke tabel (independen dari showDataTables).
+    // Namespace .mvmerge supaya bisa di-rebind tiap loadMovement tanpa dobel.
+    $('#mdlmovetable')
+        .off('draw.dt.mvmerge')
+        .on('draw.dt.mvmerge', function () {
+            mergeMovementSummaryRows(typeIdx, qtyIdx, balIdx);
+        });
+
+    // jaga-jaga kalau draw pertama sudah terjadi sebelum handler terpasang
+    setTimeout(function () {
+        mergeMovementSummaryRows(typeIdx, qtyIdx, balIdx);
+    }, 300);
 };
 
   $.ajaxSetup({
