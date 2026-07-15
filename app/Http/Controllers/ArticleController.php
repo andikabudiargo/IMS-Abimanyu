@@ -989,6 +989,7 @@
                   select 1 from stock_adjustment_hdr h
                   where h.adj_code = m.movement_transnno
                     and h.adj_type = 'OPENING BALANCE'
+                     and h.status != '5'      
               )
           )
     )
@@ -1192,6 +1193,7 @@ private function resolveOpeningBalance($articleCode, $location, $periode, $tahun
                 FROM stock_adjustment_hdr hdr
                 JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
                 WHERE hdr.adj_type = 'OPENING BALANCE'
+                  AND hdr.status != '5'
                   AND hdr.periode = :periode
                   AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date,'dd-mm-yyyy')) = :tahun
                   AND det.article_code = :art";
@@ -1207,6 +1209,7 @@ private function resolveOpeningBalance($articleCode, $location, $periode, $tahun
             FROM stock_adjustment_hdr hdr
             JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
             WHERE hdr.adj_type = 'OPENING BALANCE'
+              AND hdr.status != '5'
               AND hdr.periode = :periode
               AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date,'dd-mm-yyyy')) = :tahun
               AND det.article_code = :art
