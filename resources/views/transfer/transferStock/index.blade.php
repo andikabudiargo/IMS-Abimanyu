@@ -445,6 +445,25 @@
       $('#modalReasonCancel').attr("action", href);
   });
 
+  $(document).on('click', '.edit-with-reason', function() {
+      let url = $(this).data('href');
+
+      Swal.fire({
+          title: 'Alasan Edit',
+          input: 'textarea',
+          inputPlaceholder: 'Kenapa dokumen ini diedit?',
+          showCancelButton: true,
+          confirmButtonText: 'Lanjut Edit',
+          cancelButtonText: 'Batal',
+          inputValidator: (v) => !v && 'Alasan wajib diisi'
+      }).then((result) => {
+          if (result.isConfirmed) {
+              let sep = url.includes('?') ? '&' : '?';
+              window.location.href = url + sep + 'editReason=' + encodeURIComponent(result.value);
+          }
+      });
+  });
+
   initDatePicker(rangePickr,{
     minDate: "01/01/2010",
     maxDate: "31/12/2030",

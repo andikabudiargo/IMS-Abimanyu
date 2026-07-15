@@ -146,11 +146,21 @@
 </style>
 
 <script type="text/javascript">
-    function formatStock(v){
-        let n = parseFloat(String(v).replace(/,/g, ''));
-        if (isNaN(n)) return '';
-        return parseFloat(n.toFixed(4)).toString();
-    }
+// ── kolom QTY di modul Transfer Stock cukup 2 desimal ──
+const QTY_DECIMAL = 2;
+
+  function formatStock(v){
+    let n = parseFloat(String(v).replace(/,/g, ''));
+    if (isNaN(n)) return '';
+    return parseFloat(n.toFixed(4)).toString();
+}
+
+// ── khusus kolom QTY: maksimal 2 desimal ──
+function formatQty(v){
+    let n = parseFloat(String(v).replace(/,/g, ''));
+    if (isNaN(n)) return '';
+    return parseFloat(n.toFixed(2)).toString();   // 12.5000 → "12.5" | 12.3456 → "12.35"
+}
 
     const currentDate = "{{ $currentDateValue }}";
     const trDate = $('#trDate');
@@ -339,14 +349,28 @@ function checkAndSetFromRmFlag(locCode) {
     });
 }
 
+btnLoading = ($btn, text) => {
+        $btn.data('original-html', $btn.html())
+            .prop('disabled', true)
+            .html('<span class="spinner-border spinner-border-sm mr-50" role="status"></span>' + (text || 'Menyimpan...'));
+    }
+
+    btnReset = ($btn) => {
+        $btn.prop('disabled', false).html($btn.data('original-html'));
+        if (typeof feather !== 'undefined') feather.replace();
+    }
+
     // ============================================================
     // SIMPAN DATA
     // ============================================================
 
-    simpanData = (oEdit) => {
+  simpanData = (oEdit) => {
+        let $btn = $('#cmdSave');
+
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         } else {
+            btnLoading($btn, 'Menyimpan...');
             $('.disabled-el').removeAttr('disabled');
             let objQty  = $('#article_row input[name="qty[]"]');
             let objUom  = $('#article_row select[name="uom[]"]');
@@ -436,40 +460,51 @@ if (!isNaN(stock) && parseFloat(qty) > stock) {
                 let penerima     = $('#penerima').val();
                 let locationFrom = $('#locationFrom').val();
                 let locationTo   = $('#locationTo').val();
+$.ajax({
+    type: "post",
+    url: url,
+    data: {
+        articles     : JSON.stringify(articles),
+        trNumber     : trNumber,
+        trDate       : trDate,
+        note         : note,
+        penerima     : penerima,
+        locationFrom : locationFrom,
+        locationTo   : locationTo,
+        editReason   : $('#editReason').val(),
+    },
+    dataType: "json",
+    success: function(data) {
+        if (data.status == 0) {
+            btnReset($btn);                       // ← WAJIB, biar tombol hidup lagi
+            for (let i = 0; i < data.message.length; i++) {
+                show_msg(data.title, data.message[i], data.alert);
+            }
+            $('#trNumber').attr('disabled','disabled');
+            return;
+        }
 
-                $.ajax({
-                    type: "post",
-                    url: url,
-                    data: {
-                        articles     : JSON.stringify(articles),
-                        trNumber     : trNumber,
-                        trDate       : trDate,
-                        note         : note,
-                        penerima     : penerima,   // ← tambahkan ini
-                        locationFrom : locationFrom,
-                        locationTo   : locationTo
-                    },
-                    dataType: "json",
-                    success: function(data) {
-                        if (data.status == 0) {
-                            for (let i = 0; i < data.message.length; i++) {
-                                show_msg(data.title, data.message[i], data.alert);
-                            }
-                            $('#trNumber').attr('disabled','disabled');
-                        } else {
-                            show_msg(data.title, data.message, data.alert);
-                            $('#trNumber').attr('disabled','disabled');
-                            $('#trNumber').val(data.trNumber);
-                            $('#oEdit').val(data.oEdit);
-                            if (oEdit == false) {
-                                window.location.href = "{{ route('transferStock.create') }}";
-                            }
-                        }
-                    },
-                    error: function(error) { console.log(error); }
-                });
+        show_msg(data.title, data.message, data.alert);
+        $('#trNumber').attr('disabled','disabled').val(data.trNumber);
+        $('#oEdit').val(data.oEdit);
+
+        if (data.redirect_url) {                  // ← EDIT: ke halaman show
+            window.location.href = data.redirect_url;
+        } else if (oEdit == false) {              // ← CREATE: balik ke form kosong
+            window.location.href = "{{ route('transferStock.create') }}";
+        } else {
+            btnReset($btn);
+        }
+    },
+    error: function(error) {
+        btnReset($btn);                           // ← WAJIB
+        console.log(error);
+        show_msg('Error', 'Terjadi kesalahan saat menyimpan, cek console.', 'error');
+    }
+});
 
             } else {
+                 btnReset($btn);
                 Swal.fire('Warning..', pesan, 'warning');
             }
         }
@@ -524,7 +559,7 @@ if (selStock !== undefined && selStock !== null && selStock !== '') {
         qty = selStock;
     }
 }
-$("#qty" + cloneCount).val(qty);
+$("#qty" + cloneCount).val(formatQty(qty));
 
 $("#new_row" + cloneCount).find('#stock').attr('id', 'stock' + cloneCount);
 if (selStock !== undefined && selStock !== null && selStock !== '') {
