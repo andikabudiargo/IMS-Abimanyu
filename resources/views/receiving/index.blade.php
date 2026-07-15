@@ -34,7 +34,8 @@
                                        <option value="">All</option>
                                         <option value="NORMAL">Purchase Order</option>
                                         <option value="NP">Non Purchase</option>
-                                        <option value="JS">Jasa</option>
+                                         <option value="TRIAL">Trial & Project</option>
+                                        <option value="JASA">Jasa</option>
                                     </select>
                                 </div>
             </div>
@@ -199,7 +200,7 @@
       doDate:doDate,
       recType:recType          // <-- tambahan
     },
-    orderColumn:[[ 13, 'desc' ]],
+    orderColumn:[[ 2, 'desc' ]],
     excelFileName:'receiving'
   });
 }
@@ -235,7 +236,7 @@ const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus
       doDate:doDate,
       recType:recType          // <-- tambahan
     },
-    orderColumn:[[ 24, 'asc' ],[ 6, 'asc' ]],
+    orderColumn:[[ 2, 'asc' ]],
     excelFileName:'receiving_detail'
   });
 }

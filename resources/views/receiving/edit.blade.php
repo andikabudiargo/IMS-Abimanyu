@@ -31,10 +31,11 @@
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="recType">Receive Type</label>
                                     <select class="select2 form-control" id="recType" name="recType" required disabled>
-                                        <option value="NORMAL" {{ $header->rec_type == 'NORMAL' ? 'selected' : '' }}>Purchase Order</option>
-                                        <option value="NP" {{ $header->rec_type == 'NP' ? 'selected' : '' }}>Non Purchase</option>
-                                        <option value="JASA" {{ $header->rec_type == 'JASA' ? 'selected' : '' }}>Jasa</option>
-                                    </select>
+    <option value="NORMAL" {{ $header->rec_type == 'NORMAL' ? 'selected' : '' }}>Purchase Order</option>
+    <option value="NP" {{ $header->rec_type == 'NP' ? 'selected' : '' }}>Non Purchase</option>
+    <option value="TRIAL" {{ $header->rec_type == 'TRIAL' ? 'selected' : '' }}>Trial & Project</option>
+    <option value="JASA" {{ $header->rec_type == 'JASA' ? 'selected' : '' }}>Jasa</option>
+</select>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -329,41 +330,44 @@
     /* =====================================================================
        LABEL & TOMBOL ADD ROW MENGIKUTI recType
        ===================================================================== */
-    function updateRecTypeLabels(){
-        let isNp = $('#recType').val() === 'NP';
-        $('label[for="poNumber"]').text(isNp ? 'PR Number' : 'PO Number*');
-        // FIX: #lblQtyRef ada di dalam template baris (#new_row) yang di-clone
-        // berkali-kali -> id jadi duplikat di DOM, cuma baris pertama yang ke-update.
-        // Pakai class .lbl-qty-ref supaya konsisten di semua baris (lihat catatan
-        // di addArticlev2.blade.php: id="lblQtyRef" sebaiknya diganti class).
-        $('.lbl-qty-ref, #lblQtyRef').text(isNp ? 'QTY PR' : 'QTY PO');
-        $('#lblQtyRefHeader').text(isNp ? 'QTY PR' : 'QTY PO');
-        if (window.feather) feather.replace();
-    }
+  function updateRecTypeLabels(){
+    let recType = $('#recType').val();
+    let isNp    = recType === 'NP';
+    let isTrial = recType === 'TRIAL';   // FIX
+    $('label[for="poNumber"]').text(isNp ? 'PR Number' : 'PO Number*');
+    $('.lbl-qty-ref, #lblQtyRef').text((isNp || isTrial) ? 'QTY PR' : 'QTY PO');   // FIX
+    $('#lblQtyRefHeader').text((isNp || isTrial) ? 'QTY PR' : 'QTY PO');           // FIX
+    if (window.feather) feather.replace();
+}
 
-    // FIX: sebelumnya toggle required/cmdAddRow cuma ada di dalam handler
-    // $('#recType').change(...) — di halaman edit #recType di-disable dan
-    // diisi lewat Blade (bukan lewat interaksi user), jadi event 'change'
-    // TIDAK PERNAH nyala dan #poNumber tetap wajib diisi meski recType-nya NP.
-    // Fungsi ini dipanggil langsung tanpa bergantung event 'change'.
-    function applyRecTypeConstraints(){
-        let isNp = $('#recType').val() === 'NP';
-        if (isNp){
-            $('#poNumber').removeAttr('required');
-        } else {
-            $('#poNumber').attr('required','required');
-            $('#cmdAddRow').addClass('d-none');
-        }
-    }
+function applyRecTypeConstraints(){
+    let recType = $('#recType').val();
+    let isNp    = recType === 'NP';
+    let isTrial = recType === 'TRIAL';   // FIX
 
-    // Tombol Add Row untuk NP: tampil kalau belum ada PR terpilih, sembunyi
-    // kalau sudah ada PR terpilih. Dipisah dari searchPrDet supaya tetap
-    // jalan walau searchPrDet return lebih awal (saat load data awal edit).
-    function updateAddRowVisibility(prNumber){
-        if ($('#recType').val() !== 'NP') return;
-        let adaPr = prNumber && prNumber !== '' && prNumber !== 'Choose PR';
-        adaPr ? $('#cmdAddRow').addClass('d-none') : $('#cmdAddRow').removeClass('d-none');
+    if (isTrial){
+        // Trial & Project: full manual, tidak ada PO/PR sama sekali
+        $('#poNumber').closest('.form-group').addClass('d-none').removeAttr('required');
+    } else if (isNp){
+        $('#poNumber').closest('.form-group').removeClass('d-none');
+        $('#poNumber').removeAttr('required');
+    } else {
+        $('#poNumber').closest('.form-group').removeClass('d-none');
+        $('#poNumber').attr('required','required');
+        $('#cmdAddRow').addClass('d-none');
     }
+}
+
+function updateAddRowVisibility(prNumber){
+    let recType = $('#recType').val();
+    if (recType === 'TRIAL'){
+        $('#cmdAddRow').removeClass('d-none');   // FIX: TRIAL selalu manual, selalu tampil
+        return;
+    }
+    if (recType !== 'NP') return;
+    let adaPr = prNumber && prNumber !== '' && prNumber !== 'Choose PR';
+    adaPr ? $('#cmdAddRow').addClass('d-none') : $('#cmdAddRow').removeClass('d-none');
+}
 
     /* =====================================================================
        RECTYPE CHANGE (disabled di edit, disiapkan bila suatu saat dibuka)
@@ -546,24 +550,30 @@
        APPROVE
        ===================================================================== */
     function approve(recNumber, objButton){
-        $('#'+objButton).attr('disabled','disabled');
-        $.ajax({
-            type:"POST",
-            url:"{{ route('receiving.approve') }}",
-            data:{ recNumber: recNumber },
-            dataType:"json",
-            success:function(data){
-                if (data.status == 0){
+    $('#'+objButton).attr('disabled','disabled');
+    $.ajax({
+        type:"POST",
+        url:"{{ route('receiving.approve') }}",
+        data:{ recNumber: recNumber },
+        dataType:"json",
+        success:function(data){
+            if (data.status == 0){
+                // FIX: message dari controller bisa string (dari catch)
+                // atau array (dari Validator/error_array)
+                if (Array.isArray(data.message)) {
                     data.message.forEach(m => show_msg(data.title, m, data.alert));
-                    $('#'+objButton).removeAttr('disabled');
                 } else {
                     show_msg(data.title, data.message, data.alert);
-                    reloadPage();
                 }
-            },
-            error: function(e){ console.log(e); $('#'+objButton).removeAttr('disabled'); }
-        });
-    }
+                $('#'+objButton).removeAttr('disabled');
+            } else {
+                show_msg(data.title, data.message, data.alert);
+                reloadPage();   // otomatis menampilkan status POSTED kalau auto-posting sukses — tidak perlu diubah
+            }
+        },
+        error: function(e){ console.log(e); $('#'+objButton).removeAttr('disabled'); }
+    });
+}
 
     /* =====================================================================
        KUNCI FORM (read-only) JIKA STATUS BUKAN REVISI
@@ -579,45 +589,49 @@
        (dariEdit tetap 'true' selama proses ini agar tidak memicu reset
        artikel — baris artikel dimuat manual dari $detail)
        ===================================================================== */
-    function initPoDropdown(){
-        let isNp       = $('#recType').val() === 'NP';
-        let supplierId = "{{ $header->supplier_id }}";
-        let poNumber   = "{{ $header->po_number }}";
+   function initPoDropdown(){
+    let recType    = $('#recType').val();
+    let isNp       = recType === 'NP';
+    let isTrial    = recType === 'TRIAL';   // FIX
+    let supplierId = "{{ $header->supplier_id }}";
+    let poNumber   = "{{ $header->po_number }}";
 
-        if (isNp){
-            $.ajax({
-                type:'post',
-                url:"{{ route('receiving.list.pr') }}",
-                data:{ value: supplierId },
-                success:function(res){
-                    console.log('[DEBUG] response list.pr (mentah):', res);
-                    $('#poNumber').html(res);
-                    $('#poNumber').val(poNumber).trigger('change');
-                    console.log('[DEBUG] target poNumber:', JSON.stringify(poNumber), '| setelah di-set, val jadi:', JSON.stringify($('#poNumber').val()));
-                    if ($('#poNumber').val() !== poNumber && poNumber){
-                        console.warn('[DEBUG] poNumber "' + poNumber + '" TIDAK ADA di antara <option> hasil list.pr — cek apakah PR ini benar2 ada di listPr() controller (filter purchase_type=np, supp_code, status<>5).');
-                    }
-                    dariEdit = 'false';
-                },
-                error: function(xhr){
-                    console.error('[DEBUG] AJAX list.pr GAGAL. status:', xhr.status, '| response:', xhr.responseText);
-                    Swal.fire("Warning","Get list PR failed","warning");
-                }
-            });
-        } else {
-            $.ajax({
-                url:"{{ route('receiving.list.pov2') }}",
-                method:"GET",
-                data:{ value: supplierId, recType: $('#recType').val() },
-                success:function(res){
-                    $('#poNumber').html(res);
-                    $('#poNumber').val(poNumber).trigger('change');
-                    dariEdit = 'false';
-                },
-                error: function(){ Swal.fire("Warning","Get list PO failed","warning"); }
-            });
-        }
+    if (isTrial){
+        // FIX: TRIAL tidak punya PO/PR — tidak perlu fetch apapun,
+        // langsung tandai load awal selesai supaya interaksi berikutnya
+        // (kalau form di-unlock karena status REVISI) berjalan normal.
+        dariEdit = 'false';
+        return;
     }
+
+    if (isNp){
+        $.ajax({
+            type:'post',
+            url:"{{ route('receiving.list.pr') }}",
+            data:{ value: supplierId },
+            success:function(res){
+                $('#poNumber').html(res);
+                $('#poNumber').val(poNumber).trigger('change');
+                dariEdit = 'false';
+            },
+            error: function(xhr){
+                Swal.fire("Warning","Get list PR failed","warning");
+            }
+        });
+    } else {
+        $.ajax({
+            url:"{{ route('receiving.list.pov2') }}",
+            method:"GET",
+            data:{ value: supplierId, recType: recType },
+            success:function(res){
+                $('#poNumber').html(res);
+                $('#poNumber').val(poNumber).trigger('change');
+                dariEdit = 'false';
+            },
+            error: function(){ Swal.fire("Warning","Get list PO failed","warning"); }
+        });
+    }
+}
 
     /* =====================================================================
        DOCUMENT READY
@@ -955,7 +969,7 @@
                 url: "{{ route('receiving.list.article') }}",
                 dataType: 'json',
                 delay: 250,
-                data: params => ({ q: params.term, supp: $('#supplier').val() }),
+                data: params => ({ q: params.term, supp: $('#supplier').val(), recType: $('#recType').val() }),
                 processResults: data => ({ results: data })
             }
         });

@@ -33,6 +33,7 @@
                                     <select class="select2 form-control" id="recType" name="recType" required>
                                         <option value="NORMAL">Purchase Order</option>
                                         <option value="NP">Non Purchase</option>
+                                        <option value="TRIAL">Trial & Project</option>
                                         <option value="JASA">Jasa</option>
                                     </select>
                                 </div>
@@ -253,58 +254,72 @@
     /* =====================================================================
        RECTYPE CHANGE
        ===================================================================== */
-    $('#recType').change(function(){
-        let isNp = $(this).val() === 'NP';
+   $('#recType').change(function(){
+    let val     = $(this).val();
+    let isNp    = val === 'NP';
+    let isTrial = val === 'TRIAL';
 
-        $('#supplier').val(null).trigger('change.select2');
-        $('#poNumber').empty().append('<option value=""></option>').val('').trigger('change.select2');
-        resetArticleArea();
+    $('#supplier').val(null).trigger('change.select2');
+    $('#poNumber').empty().append('<option value=""></option>').val('').trigger('change.select2');
+    resetArticleArea();
 
-        $('label[for="poNumber"]').text(isNp ? 'PR Number' : 'PO Number*');
-        $('#lblQtyRef').text(isNp ? 'QTY PR' : 'QTY PO');
-        $('#lblQtyRefHeader').text(isNp ? 'QTY PR' : 'QTY PO');
+    $('label[for="poNumber"]').text(isNp ? 'PR Number' : 'PO Number*');
+    $('#lblQtyRef').text((isNp || isTrial) ? 'QTY PR' : 'QTY PO');
+    $('#lblQtyRefHeader').text((isNp || isTrial) ? 'QTY PR' : 'QTY PO');
 
+    if (isTrial){
+        // Trial & Project: full manual, tidak butuh PO/PR sama sekali
+        $('#poNumber').closest('.form-group').addClass('d-none').removeAttr('required');
+        $('#cmdAddRow').removeClass('d-none');
+    } else {
+        $('#poNumber').closest('.form-group').removeClass('d-none');
         if (isNp){
             $('#poNumber').removeAttr('required');
-            $('#cmdAddRow').removeClass('d-none');   // NP tanpa PR: Add Row muncul
+            $('#cmdAddRow').removeClass('d-none');
         } else {
             $('#poNumber').attr('required','required');
             $('#cmdAddRow').addClass('d-none');
         }
-        if (window.feather) feather.replace();
-    });
+    }
+    if (window.feather) feather.replace();
+});
 
     /* =====================================================================
        SUPPLIER CHANGE — refresh dropdown PO/PR dan bersihkan artikel
        ===================================================================== */
-    $('#supplier').change(function(){
-        let value = $(this).val();
-        let isNp  = $('#recType').val() === 'NP';
+   $('#supplier').change(function(){
+    let value   = $(this).val();
+    let recType = $('#recType').val();
+    let isNp    = recType === 'NP';
+    let isTrial = recType === 'TRIAL';
 
-        // bersihkan artikel lama + reset tombol Add Row
-        resetArticleArea();
+    resetArticleArea();
 
-        if (isNp){
-            // NP: belum ada PR yang dipilih → Add Row muncul kembali
-            $('#cmdAddRow').removeClass('d-none');
-            searchPr('poNumber', value);
-        } else {
-            $('#cmdAddRow').addClass('d-none');
-            searchPo('poNumber', value);
-        }
-    });
+    if (isTrial){
+        // langsung manual, tidak fetch PO/PR apapun
+        $('#cmdAddRow').removeClass('d-none');
+    } else if (isNp){
+        $('#cmdAddRow').removeClass('d-none');
+        searchPr('poNumber', value);
+    } else {
+        $('#cmdAddRow').addClass('d-none');
+        searchPo('poNumber', value);
+    }
+});
 
     /* =====================================================================
        PO / PR CHANGE — refresh artikel
        ===================================================================== */
-    $('#poNumber').change(function(){
-        let value = $(this).val();
-        if ($('#recType').val() === 'NP'){
-            searchPrDet(value);
-        } else {
-            searchPoDet(value, 'false');
-        }
-    });
+   $('#poNumber').change(function(){
+    let recType = $('#recType').val();
+    if (recType === 'TRIAL') return;
+    let value = $(this).val();
+    if (recType === 'NP'){
+        searchPrDet(value);
+    } else {
+        searchPoDet(value, 'false');
+    }
+});
 
     /* =====================================================================
        FETCH LIST PO (NORMAL / JASA)
@@ -463,25 +478,31 @@
     /* =====================================================================
        APPROVE (dari halaman create, jarang dipakai tapi dipertahankan)
        ===================================================================== */
-    approve = (recNumber, objButton) => {
-        $('#'+objButton).attr('disabled','disabled');
-        $.ajax({
-            type:"POST",
-            url:"{{ route('receiving.approve') }}",
-            data:{ recNumber: recNumber },
-            dataType:"json",
-            success:function(data){
-                if (data.status == 0){
+   approve = (recNumber, objButton) => {
+    $('#'+objButton).attr('disabled','disabled');
+    $.ajax({
+        type:"POST",
+        url:"{{ route('receiving.approve') }}",
+        data:{ recNumber: recNumber },
+        dataType:"json",
+        success:function(data){
+            if (data.status == 0){
+                // FIX: message bisa berupa string (dari catch di controller) atau array
+                if (Array.isArray(data.message)) {
                     data.message.forEach(m => show_msg(data.title, m, data.alert));
                 } else {
                     show_msg(data.title, data.message, data.alert);
-                    $('#cmdApprove').attr('disabled','disabled');
-                    window.location.reload();
                 }
-            },
-            error: function(e){ console.log(e); }
-        });
-    };
+                $('#'+objButton).removeAttr('disabled');   // FIX: re-enable tombol kalau gagal, biar bisa dicoba lagi
+            } else {
+                show_msg(data.title, data.message, data.alert);
+                $('#cmdApprove').attr('disabled','disabled');
+                window.location.reload();   // reload otomatis menampilkan status POSTED kalau auto-posting sukses
+            }
+        },
+        error: function(e){ console.log(e); }
+    });
+};
 
     /* =====================================================================
        DOCUMENT READY — init datepicker & state awal
@@ -709,17 +730,17 @@
         $("#new_row"+idx).find('#uomFree').attr('id','uomFree'+idx);
 
         let $art = $('#article_id'+idx);
-        $art.select2({
-            placeholder: 'Cari article...',
-            width: '100%',
-            ajax:{
-                url: "{{ route('receiving.list.article') }}",
-                dataType: 'json',
-                delay: 250,
-                data: params => ({ q: params.term, supp: $('#supplier').val() }),
-                processResults: data => ({ results: data })
-            }
-        });
+       $art.select2({
+    placeholder: 'Cari article...',
+    width: '100%',
+    ajax:{
+        url: "{{ route('receiving.list.article') }}",
+        dataType: 'json',
+        delay: 250,
+        data: params => ({ q: params.term, supp: $('#supplier').val(), recType: $('#recType').val() }),
+        processResults: data => ({ results: data })
+    }
+});
 
         $art.on('select2:select', function(e){
             let d     = e.params.data;
