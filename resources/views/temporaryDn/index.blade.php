@@ -215,15 +215,14 @@
   
     
 </script>
-@if ($alert = Session::get('hasilPosting'))
+@if (Session::get('idDelivery'))
     <script>
-      if("{{ $alert }}" == 'success' ){
-        // alert("{{ Session::get('idDelivery') }}");
+      (function() {
         let id = "{{ Session::get('idDelivery') }}";
         let url = "{{ route('delivery.print', ['id'=>':id']) }}";
-        url = url.replace('%3Aid', id);
+        url = url.replace('%3Aid', id).replace(':id', id);
         window.open(url, '_blank');
-      }
+      })();
     </script>
 @endif
 @endsection
