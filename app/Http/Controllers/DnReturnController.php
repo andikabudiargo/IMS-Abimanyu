@@ -33,43 +33,46 @@ class DnReturnController extends Controller
         $this->mvType     = 'RETURN';   // dipakai konsisten di store/update/destroy
     }
 
-    public function getTableColoumn(){
-        $kolom=
-        [
-            ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false],
-            ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
-            ['data'=>'dn_number','name'=>'dn_number','title'=>'Customer DN Number'],
-            ['data'=>'so_number','name'=>'so_number','title'=>'SO Number'],
-            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
-            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
-            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
-            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
-        ];
-        return json_encode($kolom, true);
-    }
+    public function getTableColoumn()
+{
+    $kolom =
+    [
+        ['data'=>'action','name'=>'action','title'=>'Action','orderable'=>false,'searchable'=>false],
+        ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
+        ['data'=>'dn_number','name'=>'dn_number','title'=>'Customer DN Number'],
+        ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'],
+        ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
+        ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
+        ['data'=>'status','name'=>'status','title'=>'Status'],
+        ['data'=>'reconciliation','name'=>'reconciliation','title'=>'Reconciliation','orderable'=>false,'searchable'=>false],
+        ['data'=>'note','name'=>'note','title'=>'Note'],
+        ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+        ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
+        ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
+        ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
+    ];
+
+    return json_encode($kolom, true);
+}
 
     public function getTableColoumnDetail(){
         $kolom=
         [
-            ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
-            ['data'=>'dn_number','name'=>'dn_number','title'=>'Customer DN Number'],
-            ['data'=>'so_number','name'=>'so_number','title'=>'SO Number'],
-            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
-            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
-            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
-            ['data'=>'article_desc','name'=>'article_desc','title'=>'Description'],
-            ['data'=>'qty','name'=>'qty','title'=>'Qty'],
-            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
-            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
-            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
+            ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'], //0
+            ['data'=>'dn_number','name'=>'dn_number','title'=>'Customer DN Number'], //1
+            ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'], //2
+            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'], //4
+            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'], //5
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'], //6
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Description'], //7
+            ['data'=>'qty','name'=>'qty','title'=>'Qty'], //8
+            ['data'=>'uom','name'=>'uom','title'=>'UOM'], //9
+            ['data'=>'status','name'=>'status','title'=>'Status'], //10
+            ['data'=>'note','name'=>'note','title'=>'Note'], //11
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'], //12
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'], //13
+            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'], //14
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'], //15
         ];
         return json_encode($kolom, true);
     }
@@ -821,8 +824,10 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
 
     DB::beginTransaction();
     try {
-        // 1. REVERSE stok & movement lama
-        $this->reverseReturn($returnNumber, $username, $returnDate, $soNumber, 'REVERSE', 'Reversal edit',  $customerLama);
+      // 1. REVERSE stok & movement lama (hanya kalau memang pernah diposting)
+        if ($this->wasPosted($returnNumber)) {
+            $this->reverseReturn($returnNumber, $username, $returnDate, $soNumber, 'REVERSE', 'Reversal edit', $customerLama);
+        }
 
         // 2. UPDATE header
         DB::table('dn_return_hdr')
@@ -973,8 +978,10 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
 
     DB::beginTransaction();
     try {
-        // 1. REVERSE stok & movement
-        $this->reverseReturn($returnNumber, $username, $returnDate, $soNumber, 'CANCEL', 'Cancel', $customerId);
+       // 1. REVERSE stok & movement (hanya kalau memang pernah diposting)
+        if ($this->wasPosted($returnNumber)) {
+            $this->reverseReturn($returnNumber, $username, $returnDate, $soNumber, 'CANCEL', 'Cancel', $customerId);
+        }
 
         // 2. Cancel header & detail
         $rowAffected = DB::table('dn_return_hdr')
@@ -1093,7 +1100,24 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
             'dn_return_hdr.*',
             'nama as customer_name',
             // jumlah DN Replace aktif (status bukan 3=CANCELED) untuk return ini
-            DB::raw("(select count(*) from dn_replace_hdr r where r.return_number = dn_return_hdr.return_number and r.status not in ('3')) as ada_replace")
+            DB::raw("(select count(*) from dn_replace_hdr r where r.return_number = dn_return_hdr.return_number and r.status not in ('3')) as ada_replace"),
+            // nomor DN Replace yang mau ditampilkan: prioritaskan yang masih AKTIF
+            // (status bukan CANCELED); kalau semua replace-nya sudah CANCELED,
+            // fallback ke yang paling terakhir dibuat -- supaya tetap ada jejak,
+            // bukan langsung kosong padahal riwayatnya ada.
+            DB::raw("(
+                select replace_number from dn_replace_hdr r
+                where r.return_number = dn_return_hdr.return_number
+                order by (r.status <> '3') desc, r.id desc
+                limit 1
+            ) as replace_number"),
+            DB::raw("(
+    select id
+    from dn_replace_hdr r
+    where r.return_number = dn_return_hdr.return_number
+    order by (r.status <> '3') desc, r.id desc
+    limit 1
+) as replace_id")
         )
         ->orderBy('id')
         ->get();
@@ -1159,8 +1183,197 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
             $statusPr = ['OPEN', '', 'CLOSED', 'CANCELED'];
             return "<div class='badge " . $badges[$data->status - 1] . "'>" . $statusPr[$data->status - 1] . "</div>";
         })
-        ->rawColumns(['action', 'status', 'return_number'])
+       ->editColumn('replace_number', function ($data) {
+    if (!$data->replace_number) {
+        return '-';
+    }
+
+    return '<a href="' . route('dnReplace.show', [
+            'id' => Crypt::encryptString($data->replace_id)
+        ]) . '" target="_blank">'
+        . e($data->replace_number) .
+        '</a>';
+})
+
+->addColumn('reconciliation', function ($data) {
+
+    return '<button
+        type="button"
+        class="btn btn-sm btn-outline-info btn-reconciliation"
+        data-id="'.Crypt::encryptString($data->id).'">
+        <i data-feather="git-merge"></i>
+        Reconciliation
+    </button>';
+
+})
+        ->rawColumns(['action', 'status', 'return_number', 'replace_number',  'reconciliation'])
         ->make(true);
+}
+
+public function reconciliation(Request $request)
+{
+    $id = Crypt::decryptString($request->id);
+
+    $header = DB::table('dn_return_hdr as h')
+        ->leftJoin('third_party as c', 'c.kode', '=', 'h.customer_id')
+        ->select(
+            'h.*',
+            'c.nama as customer_name'
+        )
+        ->where('h.id', $id)
+        ->first();
+
+    if (!$header) {
+        return response()->json([
+            'success' => false,
+            'message' => 'DN Return not found.'
+        ], 404);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Replace History
+    |--------------------------------------------------------------------------
+    */
+
+   /*
+    |--------------------------------------------------------------------------
+    | Replace History (termasuk CANCELED, supaya jejaknya terlihat)
+    |--------------------------------------------------------------------------
+    */
+
+    $statusReplaceMap = [
+        '1' => ['label' => 'OPEN',     'badge' => 'info'],
+        '2' => ['label' => 'CLOSED',   'badge' => 'success'],
+        '3' => ['label' => 'CANCELED', 'badge' => 'danger'],
+    ];
+
+    $replaceHeaders = DB::table('dn_replace_hdr as h')
+        ->select(
+            'h.id',
+            'h.replace_number',
+            'h.status',
+            'h.created_by',
+            'h.created_at',
+            DB::raw('(select coalesce(sum(d.qty),0) from dn_replace_det d
+                      where d.replace_number = h.replace_number) as qty_total')
+        )
+        ->where('h.return_number', $header->return_number)
+        ->orderBy('h.created_at')
+        ->get()
+        ->map(function ($row) use ($statusReplaceMap) {
+
+            $row->id_encrypt   = Crypt::encryptString($row->id);
+
+            $st = $statusReplaceMap[$row->status] ?? ['label' => 'UNKNOWN', 'badge' => 'secondary'];
+
+            $row->status_label = $st['label'];
+            $row->status_badge = $st['badge'];
+            $row->is_canceled  = ($row->status == '3');
+
+            return $row;
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Qty Replace
+    |--------------------------------------------------------------------------
+    */
+
+    $replaceQty = DB::table('dn_replace_det as d')
+        ->join('dn_replace_hdr as h', 'h.replace_number', '=', 'd.replace_number')
+        ->select(
+            'd.return_number',
+            'd.article_code',
+            DB::raw('SUM(d.qty) qty_replace')
+        )
+        ->where('h.status', '!=', '3')
+        ->groupBy(
+            'd.return_number',
+            'd.article_code'
+        );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Detail
+    |--------------------------------------------------------------------------
+    */
+
+    $details = DB::table('dn_return_det as rd')
+        ->leftJoinSub($replaceQty, 'rp', function ($join) {
+
+            $join->on('rp.return_number', '=', 'rd.return_number')
+                ->on('rp.article_code', '=', 'rd.article_code');
+
+        })
+        ->leftJoin('article as a', 'a.article_code', '=', 'rd.article_code')
+        ->select(
+            'rd.article_code',
+            'a.article_alternative_code',
+            'a.article_desc',
+            'rd.uom',
+            DB::raw('rd.qty qty_return'),
+            DB::raw('COALESCE(rp.qty_replace,0) qty_replace'),
+            DB::raw('(rd.qty-COALESCE(rp.qty_replace,0)) qty_remaining')
+        )
+        ->where('rd.return_number', $header->return_number)
+        ->orderBy('a.article_alternative_code')
+        ->get();
+
+    $totalReturn = 0;
+    $totalReplace = 0;
+
+    foreach ($details as $row) {
+
+        $totalReturn += $row->qty_return;
+        $totalReplace += $row->qty_replace;
+
+        if ($row->qty_replace == 0) {
+
+            $row->status = 'Open';
+            $row->badge = 'info';
+
+        } elseif ($row->qty_remaining == 0) {
+
+            $row->status = 'Match';
+            $row->badge = 'success';
+
+        } elseif ($row->qty_remaining > 0) {
+
+            $row->status = number_format($row->qty_remaining) . ' Remaining';
+            $row->badge = 'warning';
+
+        } else {
+
+            $row->status = 'Over Replace';
+            $row->badge = 'danger';
+
+        }
+    }
+
+    return response()->json([
+
+        'success' => true,
+
+        'header' => [
+
+            'return_number' => $header->return_number,
+            'dn_number' => $header->dn_number,
+            'return_date' => $header->return_date,
+            'customer_code' => $header->customer_id,
+            'customer_name' => $header->customer_name,
+
+            'total_return' => $totalReturn,
+            'total_replace' => $totalReplace,
+            'remaining' => $totalReturn - $totalReplace
+
+        ],
+
+        'replace' => $replaceHeaders,
+
+        'details' => $details
+
+    ]);
 }
 
     public function listOld(Request $request)
@@ -1336,6 +1549,32 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
         ->rawColumns(['status'])
         ->make(true);
     }
+
+    /**
+ * Apakah return ini SAAT INI masih "secara stock" ter-posting?
+ *
+ * Dihitung dari NET qty (pola sama dengan DnReplaceController::wasPosted()):
+ * total movement_plus bertipe 'RETURN' dikurangi total movement_min dari
+ * movement pembalikan ('RETURN-REVERSE' / 'RETURN-CANCEL').
+ *
+ * Perlu karena dokumen lama hasil storeOld() TIDAK pernah posting stok.
+ * Kalau dokumen itu sekarang diedit/dicancel, reverseReturn() akan mengurangi
+ * stok WIP yang tidak pernah ditambah -> phantom minus.
+ */
+private function wasPosted($returnNumber)
+{
+    $masuk = (float) DB::table('warehouse_movement')
+        ->where('movement_transnno', $returnNumber)
+        ->where('movement_type', $this->mvType)
+        ->sum('movement_plus');
+
+    $keluar = (float) DB::table('warehouse_movement')
+        ->where('movement_transnno', $returnNumber)
+        ->whereIn('movement_type', [$this->mvType . '-REVERSE', $this->mvType . '-CANCEL'])
+        ->sum('movement_min');
+
+    return $masuk > $keluar;
+}
 
     public function print(Request $request)
     {

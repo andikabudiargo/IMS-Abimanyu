@@ -775,6 +775,7 @@ Route::post('stockAdjustment/delete',['as'=>'stockAdjustment.destroy','uses'=>'S
 Route::get('stockAdjustment/print',['as'=>'stockAdjustment.print','uses'=>'StockAdjustmentController@print']);
 Route::post('stockAdjustment/posting',['as'=>'stockAdjustment.posting','uses'=>'StockAdjustmentController@posting']);
 Route::post('stockAdjustment/cancel',['as'=>'stockAdjustment.cancel','uses'=>'StockAdjustmentController@cancel']);
+Route::get('stockAdjustment/revisionHistory', ['as'=>'stockAdjustment.revisionHistory','uses'=>'StockAdjustmentController@revisionHistory']);
 
 Route::get('stockReconciliation',['as'=>'stockReconciliation.index','uses'=>'StockReconciliationController@index','middleware' => ['permission:transferOut-index']]);
 Route::get('stockReconciliation/list',['as'=>'stockReconciliation.list','uses'=>'StockReconciliationController@list']);
@@ -958,6 +959,7 @@ Route::post('stockReconciliation/cancel',['as'=>'stockReconciliation.cancel','us
 	Route::get('dnReturn/list/so',       ['as'=>'dnReturn.list.so',      'uses'=>'DnReturnController@listSo']);
 	Route::get('dnReturn/article/by-so', ['as'=>'dnReturn.article.bySo', 'uses'=>'DnReturnController@articleBySo']);
 	Route::post('dnReturn/posting',      ['as'=>'dnReturn.posting',      'uses'=>'DnReturnController@posting']);
+	Route::get('dnReturn/reconciliation',['as'   => 'dnReturn.reconciliation','uses' => 'DnReturnController@reconciliation']);
 
 	Route::get('dnReplace',['as'=>'dnReplace.index','uses'=>'DnReplaceController@index']);
 	Route::get('dnReplace/create',['as'=>'dnReplace.create','uses'=>'DnReplaceController@create']);

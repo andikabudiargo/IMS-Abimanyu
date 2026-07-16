@@ -282,20 +282,20 @@ class DnReplaceController extends Controller
     private function sisaReturn($returnNumber)
 {
     $result = DB::select("
-        SELECT sum(qty) - sum(qty_replace) as sisa_return
+        SELECT COALESCE(sum(qty),0) - COALESCE(sum(qty_replace),0) as sisa_return
         FROM (
-            SELECT *,
-            (SELECT sum(d.qty) FROM dn_replace_det d
-             LEFT JOIN dn_replace_hdr h ON h.replace_number = d.replace_number
+            SELECT qty,
+            COALESCE((SELECT sum(d.qty) FROM dn_replace_det d
+             JOIN dn_replace_hdr h ON h.replace_number = d.replace_number
              WHERE d.return_number = dn_return_det.return_number
              AND d.article_code = dn_return_det.article_code
-             AND h.status <> '3') as qty_replace
+             AND h.status <> '3'), 0) as qty_replace
             FROM dn_return_det
             WHERE return_number = ?
         ) as oki
     ", [$returnNumber]);
 
-    return $result[0]->sisa_return ?? 0;
+    return (float) ($result[0]->sisa_return ?? 0);
 }
 
     /** Update status dn_return_hdr: CANCELED('3')/habis kalau sisa == 0, selain itu OPEN('1'). */
@@ -312,19 +312,21 @@ class DnReplaceController extends Controller
 
     /** Update status dn_replace_hdr: CLOSED('2') kalau qty return sudah habis, OPEN('1') kalau masih sisa. */
     private function applyReplaceStatus($replaceNumber, $returnNumber, $username)
-    {
-        $status = ($this->sisaReturn($returnNumber) == 0) ? '2' : '1';
+{
+    $status = ($this->sisaReturn($returnNumber) <= 0) ? '2' : '1';
 
-        DB::table('dn_replace_hdr')
-            ->where('replace_number', $replaceNumber)
-            ->update([
-                'status'     => $status,
-                'updated_by' => $username,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+    // Semua dokumen aktif untuk return ini ikut disinkronkan
+    DB::table('dn_replace_hdr')
+        ->where('return_number', $returnNumber)
+        ->whereNotIn('status', ['3'])
+        ->update([
+            'status'     => $status,
+            'updated_by' => $username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
 
-        return $status;
-    }
+    return $status;
+}
 
     /**
      * Posting inline: kurangi stock FG (007) untuk setiap baris dn_replace_det
