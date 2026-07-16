@@ -120,9 +120,24 @@
 <script type="text/javascript">
     let currentDate = "{{ $currentDateValue }}";
     let dariEdit="";
-    
+
+    /**
+     * Ambil daftar DN Return untuk customer terpilih, lalu isi ke dropdown $('#'+obj).
+     *
+     * FIX: dulu method ini cuma me-refresh dropdown Return Number tanpa mereset
+     * tabel artikel di bawahnya. Akibatnya kalau user ganti Customer setelah
+     * sudah pilih Return Number sebelumnya, baris-baris artikel LAMA (milik
+     * customer sebelumnya) tetap nyangkut di tabel -- termasuk totalRow/totalQTY
+     * yang masih menghitung data lama -- padahal customer & return number-nya
+     * sudah berubah. Sekarang di-reset dulu di awal supaya tidak ada data nyasar.
+     */
     function searchDn(obj,value) {
         $("#dnNumber").val('');
+        $("#articleRow").empty();
+        $("#totalRow").val(0);
+        $("#totalQTY").val(humanizeNumber(0));
+        $('#'+obj).html('<option value="">Choose DN Return</option>').trigger('change.select2');
+
         $.ajax({
             url:"{{ route('dnReplace.list.return') }}",
             method:"GET",
@@ -131,10 +146,8 @@
             },
             success:function(result){
                 $('#'+obj).html(result);
-                // $('#'+obj).val('').trigger('change');
             },
             error: function (response) {
-                //Error here
                 Swal.fire("Warning","Get list DN Return failed","warning");
             }
         })
@@ -149,11 +162,9 @@
                     value:value,
                 },
                 success:function(result){
-                    // if (cloneCount > 1){
-                        $("#articleRow").empty();
-                        cloneCount=0;
-                    // }
-                    
+                    $("#articleRow").empty();
+                    cloneCount=0;
+
                     if(result.length > 0 ){
                         for (let i = 0; i < result.length; i++) {
                             let article=result[i].article_code;
@@ -167,6 +178,11 @@
                             addNewRow(article,articleCode,articleDesc,qtyReturn,uom,qty,returnNumber,totQtyReturn);
                         }
                     }
+
+                    // Tabel di-reset ulang (empty()) di atas, jadi total lama ikut hilang --
+                    // hitung ulang supaya totalRow/totalQTY sinkron dengan baris baru.
+                    hitungBaris();
+                    hitungTotal();
                 },
                 error: function (response) {
                     Swal.fire("Warning","Get detail DN Return failed","warning");
@@ -199,7 +215,12 @@
         $("#new_row"+ cloneCount).find('#articleCode').attr('id', 'articleCode'+ cloneCount);
         $('#articleCode'+ cloneCount).attr('data-code', article);
         $('#articleCode'+ cloneCount).attr('data-uom', uom);
-        $('#articleCode'+ cloneCount).attr('data-returnNumber', returnNumber);
+        // FIX: sebelumnya ditulis "data-returnNumber" (camelCase). Browser otomatis
+        // me-lowercase-kan nama atribut custom jadi "data-returnnumber" (tanpa
+        // tanda hubung), sehingga jQuery .data("returnNumber") -- yang mencari
+        // "data-return-number" -- TIDAK PERNAH bisa menemukannya (selalu undefined).
+        // Sekarang ditulis kebab-case yang benar supaya .data("returnNumber") jalan.
+        $('#articleCode'+ cloneCount).attr('data-return-number', returnNumber);
         $('#articleCode'+ cloneCount).val(articleCode +" - " + articleDesc);
         $("#new_row"+ cloneCount).find('#qtyReturn').attr('id', 'qtyReturn'+ cloneCount);
         $("#new_row"+ cloneCount).find('#totQtyReturn').attr('id', 'totQtyReturn'+ cloneCount);
@@ -215,8 +236,5 @@
         hitungBaris();
         qty ? hitungTotal() :'';
     }
-
-    
-
 
 </script>

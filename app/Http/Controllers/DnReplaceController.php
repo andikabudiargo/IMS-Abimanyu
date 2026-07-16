@@ -280,21 +280,23 @@ class DnReplaceController extends Controller
      * per-artikel yang lebih ketat, ini perlu dipecah per article_code).
      */
     private function sisaReturn($returnNumber)
-    {
-        $result = DB::select("
-            SELECT sum(qty) - sum(qty_replace) as sisa_return
-            FROM (
-                SELECT *,
-                (SELECT sum(qty) FROM dn_replace_det
-                 WHERE return_number = dn_return_det.return_number
-                 AND article_code = dn_return_det.article_code) as qty_replace
-                FROM dn_return_det
-                WHERE return_number = ?
-            ) as oki
-        ", [$returnNumber]);
+{
+    $result = DB::select("
+        SELECT sum(qty) - sum(qty_replace) as sisa_return
+        FROM (
+            SELECT *,
+            (SELECT sum(d.qty) FROM dn_replace_det d
+             LEFT JOIN dn_replace_hdr h ON h.replace_number = d.replace_number
+             WHERE d.return_number = dn_return_det.return_number
+             AND d.article_code = dn_return_det.article_code
+             AND h.status <> '3') as qty_replace
+            FROM dn_return_det
+            WHERE return_number = ?
+        ) as oki
+    ", [$returnNumber]);
 
-        return $result[0]->sisa_return ?? 0;
-    }
+    return $result[0]->sisa_return ?? 0;
+}
 
     /** Update status dn_return_hdr: CANCELED('3')/habis kalau sisa == 0, selain itu OPEN('1'). */
     private function applyReturnStatus($returnNumber, $username)
@@ -813,12 +815,15 @@ class DnReplaceController extends Controller
 
         $data['oEdit']=true;
 
-        $dataCust= DB::table("dn_return_hdr")
-        ->where("customer_id",$custId)
-        ->where("status","1")
-        ->orderBy("return_number")
-        ->select('return_number','dn_number')
-        ->get();
+       $dataCust = DB::table("dn_return_hdr")
+    ->where(function($q) use ($custId, $returnNumber) {
+        $q->where("customer_id", $custId)
+          ->where("status", "1");
+    })
+    ->orWhere("return_number", $returnNumber)
+    ->orderBy("return_number")
+    ->select('return_number', 'dn_number')
+    ->get();
 
         $output = "";
         if (count($dataCust)>0){
@@ -887,12 +892,15 @@ class DnReplaceController extends Controller
 
         $data['oEdit']=true;
 
-        $dataCust= DB::table("dn_return_hdr")
-        ->where("customer_id",$custId)
-        ->where("status","1")
-        ->orderBy("return_number")
-        ->select('return_number','dn_number')
-        ->get();
+       $dataCust = DB::table("dn_return_hdr")
+    ->where(function($q) use ($custId, $returnNumber) {
+        $q->where("customer_id", $custId)
+          ->where("status", "1");
+    })
+    ->orWhere("return_number", $returnNumber)
+    ->orderBy("return_number")
+    ->select('return_number', 'dn_number')
+    ->get();
 
         $output = "";
         if (count($dataCust)>0){
@@ -1128,6 +1136,10 @@ class DnReplaceController extends Controller
         if (!$header) {
             return redirect()->back()->with(['title' => "Cancel $this->title", 'alert' => 'warning', 'message' => 'Document not found']);
         }
+
+        if ($header->status == '3') {
+    return redirect()->back()->with(['title' => "Cancel $this->title", 'alert' => 'warning', 'message' => "$header->replace_number sudah dibatalkan sebelumnya"]);
+}
 
         $replaceNumber = $header->replace_number;
         $returnNumber  = $header->return_number;
@@ -1630,35 +1642,36 @@ class DnReplaceController extends Controller
     }
 
     public function returnDetail(Request $request)
-    {
-        $returnNumber = $request->value;
-        $data = DB::select("SELECT
-        a.*,
-        a.article_code,
-        article_alternative_code,
-        article_desc,
-        (COALESCE(a.qty,0)) as tot_qty_return,
-        (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_return,
-        a.uom,
-        COALESCE(ws.qty_stock, 0) as qty_stock
-        from dn_return_det a
-        left join article on article.article_code = a.article_code
-        left join (
-            select sum(qty) as qty, return_number, article_code
-            from dn_replace_det
-            where return_number = ?
-            group by return_number, article_code
-        ) as b on a.article_code = b.article_code
-        left join (
-            select article_code, sum(article_qty) as qty_stock
-            from warehouse_stock
-            where location_number = '007'
-            group by article_code
-        ) as ws on ws.article_code = a.article_code
-        where a.return_number = ?
-        order by a.id", [$returnNumber, $returnNumber]);
+{
+    $returnNumber = $request->value;
+    $data = DB::select("SELECT
+    a.*,
+    a.article_code,
+    article_alternative_code,
+    article_desc,
+    (COALESCE(a.qty,0)) as tot_qty_return,
+    (COALESCE(a.qty,0)-COALESCE(b.qty,0)) as qty_return,
+    a.uom,
+    COALESCE(ws.qty_stock, 0) as qty_stock
+    from dn_return_det a
+    left join article on article.article_code = a.article_code
+    left join (
+        select sum(d.qty) as qty, d.return_number, d.article_code
+        from dn_replace_det d
+        left join dn_replace_hdr h on h.replace_number = d.replace_number
+        where d.return_number = ?
+        and h.status <> '3'
+        group by d.return_number, d.article_code
+    ) as b on a.article_code = b.article_code
+    left join (
+        select article_code, sum(article_qty) as qty_stock
+        from warehouse_stock
+        where location_number = '007'
+        group by article_code
+    ) as ws on ws.article_code = a.article_code
+    where a.return_number = ?
+    order by a.id", [$returnNumber, $returnNumber]);
 
-        return response()->json($data);
-    }
-
+    return response()->json($data);
+}
 }

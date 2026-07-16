@@ -7,7 +7,7 @@
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Status: {{ $status }}</span></h4>
+                    <h4 class="card-title">Status: <span id="statusText">{{ $status }}</span></h4>
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -30,8 +30,8 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label class="form-label" for="customer">Customer*</label>
-                                    <select class="select2 form-control" id="customer" name="customer" required>
+                                    <label class="form-label" for="customer">Customer*</label> <small class="text-muted">tidak dapat diubah saat edit</small>
+                                    <select class="select2 form-control" id="customer" name="customer" required disabled>
                                         <option value=""></option>
                                         @foreach($custs as $val)
                                             <option value="{{$val->kode}}" {{$val->kode == $header->customer_id ? "selected" : ""}}>{{$val->kode}} - {{$val->nama}}</option>
@@ -156,14 +156,38 @@
         reloadPage();
     });
 
+    // Catatan: Customer sengaja dikunci (disabled) di halaman Edit -- lihat
+    // atribut `disabled` di <select id="customer">. Field select yang disabled
+    // tidak memicu event 'change' sama sekali, jadi user tidak akan bisa
+    // memicu reset baris artikel lewat ganti customer di halaman ini.
+    // Kalau nanti field ini butuh dibuka lagi, INGAT: searchDn() di
+    // addArticle.blade.php akan mengosongkan #articleRow begitu dipanggil --
+    // pertimbangkan tambah konfirmasi dulu sebelum mengizinkan itu terjadi
+    // di halaman Edit (beda dengan Create yang formnya memang masih kosong).
+    $('#customer').change(function(){
+        let value= $(this).val();
+        searchDn('dnReturnNumber',value);
+    });
+
+    $('#dnReturnNumber').change(function(){
+        $("#dnNumber").val('');
+        let value= $(this).val();
+        let dnNumber=$(this).find(":selected").data("dn");
+        $("#dnNumber").val(dnNumber);
+        searchDnDet(value,'false');
+    })   
+
     $("#cmdUpdate").click(function(){
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{
+            let $btnUpdate = $("#cmdUpdate");
+            let originalHtml = $btnUpdate.html();
+
+            $btnUpdate.attr('disabled','disabled');
             $('.disabled-el').removeAttr('disabled');
             // ambil semua data article
             let dnReturnNumber = $('#dnReturnNumber').val();
-            // ambil semua data article
             let objQtyReturn= $('input[name="qtyReturn[]"]');
             let objQty= $('input[name="qtyReplace[]"]');
             let objUom= $('select[name="uom[]"]');           
@@ -210,9 +234,11 @@
             }
 
             if (flag==0){
+                // Animasi saving di tombol
+                $btnUpdate.html('<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span> Saving...');
+
                 let replaceNumber = $('#replaceNumber').val()||0;
                 let replaceDate = $('#replaceDate').val();
-                let dnReturnNumber = $('#dnReturnNumber').val();
                 let customer = $('#customer').val();
                 let note = $('#note').val();
             
@@ -225,7 +251,6 @@
                         replaceDate:replaceDate,
                         returnNumber:dnReturnNumber,
                         customer:customer,
-                        replaceDate:replaceDate,
                         note:note,
                     },
                     dataType: "json",
@@ -234,39 +259,43 @@
                             for(let i = 0; i < data.message.length; i++) {
                                 show_msg(data.title, data.message[i], data.alert);
                             }
-                            $('#replaceNumberr').attr('disabled','disabled');
-                            $('#cmdSave').show();
+                            $btnUpdate.html(originalHtml).removeAttr('disabled');
                         }else{
                             show_msg(data.title, data.message, data.alert);
                             $('#statusText').text(data.statusReplace);
                             $('#replaceNumber').val(data.replaceNumber);
-                            $('#cmdSave').hide();
-                            $('#cmdCancel').hide();
-                            $('#replaceNumber').attr('disabled','disabled');
+
+                            // Field lain juga dikunci setelah tersimpan, konsisten
+                            // dengan pola di halaman Create -- mencegah user
+                            // mengira masih bisa lanjut edit padahal sudah tersubmit.
+                            $('#dnReturnNumber').attr('disabled','disabled');
+                            $('#replaceDate').attr('disabled','disabled');
+                            $('.input-qty').attr('disabled','disabled');
+                            $btnUpdate.html(originalHtml).attr('disabled','disabled');
+
+                            // FIX: sebelumnya TIDAK ADA reload/refresh sama sekali
+                            // setelah update sukses -- halaman diam saja walau data
+                            // di server sudah berubah (termasuk status OPEN/CLOSED).
+                            // Reload dikasih jeda dulu supaya toast sukses sempat
+                            // terlihat oleh user sebelum halaman refresh.
+                            setTimeout(reloadPage, 1200);
                         }
                     },
-                    error: function(error) {
-                        console.log(error);
+                    error: function(xhr) {
+                        console.log(xhr);
+                        // FIX: sebelumnya cuma console.log(), tombol Update tetap
+                        // disabled selamanya dan user tidak dapat notifikasi apapun
+                        // kalau request gagal di level HTTP.
+                        $btnUpdate.html(originalHtml).removeAttr('disabled');
+                        Swal.fire('Error','Gagal menyimpan perubahan, silakan coba lagi.','error');
                     }
                 });
             }else{
+                $btnUpdate.html(originalHtml).removeAttr('disabled');
                 Swal.fire('Warning..',pesan,'warning');
             }
         }
     });
-            
-    $('#customer').change(function(){
-        let value= $(this).val();
-        searchDn('dnReturnNumber',value);
-    });
-     
-    $('#dnReturnNumber').change(function(){
-        $("#dnNumber").val('');
-        let value= $(this).val();
-        let dnNumber=$(this).find(":selected").data("dn");
-        $("#dnNumber").val(dnNumber);
-        searchDnDet(value,'false');
-    })   
 
 
     $.ajaxSetup({
