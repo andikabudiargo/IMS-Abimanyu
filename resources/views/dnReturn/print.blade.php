@@ -185,9 +185,7 @@
 
     </style>
 </head>
-{{-- <body class="{{ (count($details)) < 5 ? "A4A5" : "A4" }}"> --}}
-<body class="{{ (count($details)) < 5 ? "letter2" : "letter" }}">    
-{{-- <body class="A4"> --}}
+<body class="{{ (count($details)) < 5 ? "letter2" : "letter" }}">
     <div class="row hide-print" style="margin-left:20px;margin-top:20px">
         <div class="col-md-12">
             <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
@@ -203,22 +201,22 @@
                             <table width="100%" style="border: thin solid var(--line-color);padding-left:10px">
                                 <tr>
                                     <td width="30%">
-                                        <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 100%;"> 
+                                        <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 100%;">
                                     </td>
                                     <td width="20%"></td>
                                     <td width="50%" style="vertical-align: bottom;">
-                                        <div class="huruf-tebal font-16" style="padding-right:10px">SURAT JALAN SEMENTARA</div>
+                                        <div class="huruf-tebal font-16" style="padding-right:10px">SURAT JALAN RETURN</div>
                                         <br>
                                         <table>
-                                            {{-- <tr class="tanpa-padding">
+                                            <tr class="tanpa-padding">
                                                 <td class="tanpa-padding font-14" width="50"></td>
-                                                <td class="tanpa-padding font-14">Nomor</td>
-                                                <td class="tanpa-padding font-14">: {{ $tDnHdr->delivery_number }}</td>
-                                            </tr> --}}
+                                                <td class="tanpa-padding font-14" width="70">Nomor</td>
+                                                <td class="tanpa-padding font-14">: {{ $tDnNumber }}</td>
+                                            </tr>
                                             <tr class="tanpa-padding">
                                                 <td class="tanpa-padding font-14"></td>
-                                                <td class="tanpa-padding font-14">Nomor</td>
-                                                <td class="tanpa-padding font-14">: {{ $tDnHdr->return_number }}</td>
+                                                <td class="tanpa-padding font-14">Status</td>
+                                                <td class="tanpa-padding font-14">: {{ $status }}</td>
                                             </tr>
                                         </table>
                                     </td>
@@ -228,24 +226,24 @@
                                 <tr>
                                     <td width="50%" valign="top">
                                         <table>
-                                            {{-- <tr>
-                                                <td width="25%" class="tanpa-padding">Nomor</td><td class="tanpa-padding">: {{ $tDnHdr->return_number }}</td>
-                                            </tr> --}}
                                             <tr>
-                                                <td width="25%" class="tanpa-padding">Tanggal</td><td class="tanpa-padding">: {{ $tDnHdr->return_date }}</td>
+                                                <td width="35%" class="tanpa-padding">Tanggal</td>
+                                                <td class="tanpa-padding">: {{ $tDnDate }}</td>
                                             </tr>
-                                            {{-- <tr>
-                                                <td class="tanpa-padding">Jam</td><td class="tanpa-padding">: {{ date('H:i:s') }}</td>
-                                            </tr> --}}
-                                            {{-- <tr>
-                                                <td class="tanpa-padding">Hal</td><td class="tanpa-padding">: {{ $tDnHdr->perihal }}</td>
-                                            </tr> --}}
+                                            <tr>
+                                                <td class="tanpa-padding">SO Number</td>
+                                                <td class="tanpa-padding">: {{ $soNumber }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="tanpa-padding">Customer DN</td>
+                                                <td class="tanpa-padding">: {{ $dnNumber }}</td>
+                                            </tr>
                                         </table>
                                     </td>
                                     <td width="50%" valign="top" style="border-left: thin solid var(--line-color);padding-left:5px" class="font-small">
                                         <strong>Kepada Yth.</strong><br>
-                                            {{ $customers ? $customers->nama : ''  }} <br>
-                                            {{ $customers ? $customers->alamat_kirim_1 : '' }} <br>
+                                        {{ $customers ? $customers->nama : '' }} <br>
+                                        {{ $customers ? $customers->alamat_kirim_1 : '' }} <br>
                                     </td>
                                 </tr>
                             </table>
@@ -268,27 +266,26 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($details as $val )
-                                        <tr >
-                                            <td align="center"><div style="height:35px;display: table-cell;
-                                                vertical-align: middle;
-                                                text-align: center;">{{ ++$no }}</div></td>
+                                    @foreach ($details as $val)
+                                        <tr>
+                                            <td align="center">
+                                                <div style="height:35px;display: table-cell;vertical-align: middle;text-align: center;">{{ ++$no }}</div>
+                                            </td>
                                             <td align="left">{{ $val->article_alternative_code }}</td>
                                             <td align="left">{{ $val->article_desc }}</td>
                                             <td align="right">{{ number_format($val->qty) }}</td>
                                             <td align="left">{{ $val->uom }}</td>
                                         </tr>
-                                        
-                                    @endforeach      
-                                                        
-                                    @if((count($details))>4)
+                                    @endforeach
+
+                                    @if ((count($details)) > 4)
                                         <?php $totalBaris = 19 ?>
                                     @else
                                         <?php $totalBaris = 4 ?>
                                     @endif
 
-                                    @for ($i=1;$i<= $totalBaris-(count($details));$i++)
-                                        <tr >
+                                    @for ($i = 1; $i <= $totalBaris - (count($details)); $i++)
+                                        <tr>
                                             <td align="right" class="putih"><div style="height:35px;"></div></td>
                                             <td align="left"></td>
                                             <td align="left"></td>
@@ -296,9 +293,9 @@
                                             <td align="left"></td>
                                         </tr>
                                     @endfor
-                                                            
+
                                     <tr style="border: thin solid var(--line-color)">
-                                        <td colspan="5">Description: </td>
+                                        <td colspan="5">Description: {{ $tDnNote }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -339,25 +336,24 @@
             </tbody>
             <tfoot>
                 <tr>
-                <td>
-                <div class="footer-space">
-                </div>
-                </td>
+                    <td>
+                        <div class="footer-space"></div>
+                    </td>
                 </tr>
             </tfoot>
         </table>
     </div>
     <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
     <script>
-        $("#cmdPrint").click(function(){ 
+        $("#cmdPrint").click(function () {
             window.print();
             window.onafterprint = function () {
                 window.close();
             }
-            window.onfocus = function () { 
-                setTimeout(function () { 
-                    window.close(); 
-                }, 200); 
+            window.onfocus = function () {
+                setTimeout(function () {
+                    window.close();
+                }, 200);
             }
         });
     </script>

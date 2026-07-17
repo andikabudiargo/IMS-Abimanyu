@@ -1152,6 +1152,12 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
                             <i data-feather="list"></i>
                             Detail
                          </a>';
+            
+              // ── PRINT: selalu tersedia ──
+            $buttons .= '<a href="' . route('dnReturn.print', ['id' => Crypt::encryptString($data->id)]) . '" target="_blank" class="dropdown-item">
+                            <i data-feather="printer"></i>
+                            Print
+                         </a>';
 
             // ── CANCEL: tolak jika sudah ada replace aktif ──
             if ($adaReplace) {
@@ -1578,49 +1584,53 @@ private function wasPosted($returnNumber)
 
     public function print(Request $request)
     {
-        $data['title'] = "Print $this->title";
+        $id = Crypt::decryptString($request->id);
+
+        $tDnHdr = DB::table('dn_return_hdr')
+            ->where('dn_return_hdr.id', $id)
+            ->first();
+
+        if (!$tDnHdr) {
+            abort(404, "DN Return tidak ditemukan");
+        }
+
+        $returnNumber = $tDnHdr->return_number;
+
+        $data['title']    = "Print $this->title";
         $data['subtitle'] = "Print $this->title";
-        $id=Crypt::decryptString($request->id);
-                
-        $tDnHdr=DB::table('dn_return_hdr')
-        ->where('dn_return_hdr.id',$id)
-        ->first();
+        $data['tDnHdr']   = $tDnHdr;
 
-        $data['tDnHdr']=DB::table('dn_return_hdr')
-        ->where('dn_return_hdr.id',$id)
-        ->first();
+        $data['details'] = DB::table('dn_return_det')
+            ->leftJoin('article', 'article.article_code', '=', 'dn_return_det.article_code')
+            ->where('dn_return_det.return_number', $returnNumber)
+            ->select(
+                'dn_return_det.article_code',
+                'article.article_alternative_code',
+                'article.article_desc',
+                'dn_return_det.qty',
+                'dn_return_det.uom'
+            )
+            ->orderBy('dn_return_det.id')
+            ->get();
 
-        $returnNumber=$tDnHdr->return_number;
+        $data['tDnNumber'] = $returnNumber;
+        $data['tDnDate']   = $tDnHdr->return_date;
+        $data['tDnNote']   = $tDnHdr->note;
+        $data['soNumber']  = $tDnHdr->so_number ?? '-';
+        $data['dnNumber']  = $tDnHdr->dn_number ?? '-';
 
-        $data['details']=DB::table('dn_return_det')
-        ->leftJoin('article','article.article_code','dn_return_det.article_code')
-        ->select('article_alternative_code'
-        ,'article_desc'
-        ,'dn_return_det.qty'
-        ,'dn_return_det.uom'
-        ,DB::raw("(select STRING_AGG( (qty::real)::text,' -> ' ORDER BY return_number) AS main from (select * from dn_return_det p where article_code = dn_return_det.article_code and return_number like '$returnNumber%' limit 2) sub) as notes")
-        )
-        ->where('return_number',$returnNumber)
-        ->orderBy('dn_return_det.id')
-        ->get();
+        // status DN Return: 1=OPEN, 3=CLOSED, 4=CANCELED (sama dgn list/show)
+        $statusPr = ['OPEN', '', 'CLOSED', 'CANCELED'];
+        $data['status'] = $statusPr[$tDnHdr->status - 1] ?? 'UNKNOWN';
 
-        $data['tDnNumber'] =$returnNumber;
-        $data['tDnDate'] =$tDnHdr->return_date;
-        $data['tDnNote'] =$tDnHdr->note;
-        
-        $statusPr = ['NEW','VALIDATED','APPROVED','RECEIVED','CANCELED','CLOSED','PO'];
-        $data['prStatus'] = $statusPr[$tDnHdr->status-1];
-
-        $data['no'] =0;
+        $data['no'] = 0;
 
         $data['customers'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
-        ->where('kode',$tDnHdr->customer_id)
-        ->orderBy('nama')
-        ->first();
+            ->where('third_party_type', '=', 'cust')
+            ->where('kode', $tDnHdr->customer_id)
+            ->first();
 
-        return view('dnReturn.print',$data);
-
+        return view('dnReturn.print', $data);
     }
 
     public function getArticle(Request $request){
