@@ -1138,7 +1138,7 @@ class DnGeneralController extends Controller
                 $join->on('s.article_code', '=', 'a.article_code')
                      ->where('s.location_number', '=', $gudang);
             })
-            ->where('a.is_active', 'Y')
+            ->where('a.status', '1')
             ->where(function ($q) {
                 $q->where('a.group_of_material', '!=', 'JS')
                   ->orWhereNull('a.group_of_material');

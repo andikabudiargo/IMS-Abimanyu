@@ -37,6 +37,11 @@
                                         <option value="">Choose Type</option>
                                         <option value="rm">Return RM</option>
                                         <option value="ot">Return OT</option>
+                                        <option value="other">Box Kosong</option>
+                                        <option value="other">Troli Kosong</option>
+                                        <option value="other">Trial & Sample</option>
+                                        <option value="other">Material Support</option>
+                                        <option value="other">Chemical Support</option>
                                         <option value="other">Other</option>
                                     </select>
                                 </div>
