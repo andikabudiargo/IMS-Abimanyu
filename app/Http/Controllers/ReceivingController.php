@@ -591,15 +591,26 @@ class ReceivingController extends Controller
     // FIX: iunique untuk doNumber mengecek duplikat berdasarkan kombinasi
     // do_number + po_number. Untuk NP, po_number kosong/PR number —
     // aturan tetap dipakai tapi exclude record diri sendiri.
-    Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber, $recNumber) {
-        $query   = DB::table($parameters[0]);
-        $column  = $query->getGrammar()->wrap($parameters[1]);
-        $column2 = $query->getGrammar()->wrap($parameters[2]);
-        return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
-                      ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])
-                      ->where('rec_number', '<>', $recNumber)
-                      ->count();
-    });
+  Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) 
+    use ($poNumber, $recNumber) {
+    
+    $query   = DB::table($parameters[0]);
+    $column  = $query->getGrammar()->wrap($parameters[1]);
+    $column2 = $query->getGrammar()->wrap($parameters[2]);
+    
+    $originRec = DB::table('receiving_hdr')
+        ->where('rec_number', $recNumber)
+        ->value('origin_rec_number') ?? $recNumber;
+    
+    return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
+                  ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])
+                  ->where(function($q) use ($originRec) {
+                      // Exclude original dan semua revinya
+                      $q->where('origin_rec_number', '<>', $originRec)
+                        ->where('rec_number', '<>', $originRec);
+                  })
+                  ->count();
+});
 
     // FIX: untuk NP, poNumber boleh kosong (tidak ada PO) — hapus required-nya.
     // doNumber tetap wajib diisi untuk semua tipe.
