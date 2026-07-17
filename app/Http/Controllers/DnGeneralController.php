@@ -31,6 +31,18 @@ class DnGeneralController extends Controller
     /** Kode artikel manual (tanpa stok) */
     const MANUAL_CODE = 'OTHER';
 
+    /** Dept yang nomornya pakai DN-UMUM, selain ini SJ-UMUM. Dept ini juga saling lihat di list. */
+    private $deptDnUmum = ['011', '014', '005'];
+
+    /** Peta prefix -> code_key di master_code (counter terpisah) */
+    private $codeKeyMap = [
+        'DN-UMUM' => 'DN-GENERAL',
+        'SJ-UMUM' => 'SJ-GENERAL',
+    ];
+
+    /** Role yang bisa lihat semua dept (nama harus PERSIS sama dengan tabel roles) */
+    private $rolesSeeAll = ['Superuser', 'Accounting'];
+
     /** Peta status tunggal untuk seluruh controller */
     private $statusMap = [
         '1' => 'NEW',
@@ -48,7 +60,101 @@ class DnGeneralController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | Helpers
+    | Helpers — Dept & Visibility
+    |--------------------------------------------------------------------------
+    */
+
+    /** Ambil dept user yang login, ternormalisasi 3 digit. Return null bila tidak ter-set. */
+    private function resolveDept()
+    {
+        // ganti 'dept_code' sesuai nama kolom dept di tabel users
+        $dept = trim((string) (Auth::user()->dept_code ?? ''));
+
+        if ($dept === '') {
+            return null;
+        }
+
+        return str_pad($dept, 3, '0', STR_PAD_LEFT); // jaga-jaga kalau tersimpan '5' bukan '005'
+    }
+
+    /** Tentukan prefix nomor berdasarkan dept user yang login */
+    private function resolvePrefix()
+    {
+        $dept = $this->resolveDept();
+
+        return in_array($dept, $this->deptDnUmum, true) ? 'DN-UMUM' : 'SJ-UMUM';
+    }
+
+    /**
+     * Dept apa saja yang boleh dilihat user ini.
+     * return null = tanpa filter (lihat semua)
+     */
+    private function visibleDepts()
+    {
+        // Superuser & Accounting lihat semua
+        if (Auth::user()->hasAnyRole($this->rolesSeeAll)) {
+            return null;
+        }
+
+        $dept = $this->resolveDept();
+
+        // Fail-closed: user tanpa dept tidak lihat apa-apa
+        if ($dept === null) {
+            return ['__NONE__'];
+        }
+
+        // Dept grup DN-UMUM saling lihat satu sama lain
+        if (in_array($dept, $this->deptDnUmum, true)) {
+            return $this->deptDnUmum;
+        }
+
+        return [$dept];
+    }
+
+    /**
+     * Terapkan filter dept ke query list.
+     * Dept diambil dari user pembuat (join users lewat created_by), bukan kolom di dn_general_hdr.
+     */
+    private function applyDeptFilter($query)
+    {
+        $depts = $this->visibleDepts();
+
+        if ($depts === null) {
+            return $query; // Superuser / Accounting: tanpa filter
+        }
+
+        $placeholders = implode(',', array_fill(0, count($depts), '?'));
+
+        return $query
+            ->leftJoin('users as u', 'u.username', '=', 'dn_general_hdr.created_by')
+            ->whereRaw("lpad(trim(u.dept_code),3,'0') in ({$placeholders})", $depts);
+    }
+
+    /**
+     * Pastikan header ini boleh diakses user sekarang.
+     * Dipakai di show/edit/print/update/destroy/closed supaya tidak bisa ditembus lewat URL.
+     */
+    private function assertDeptAccess($dnHdr)
+    {
+        $depts = $this->visibleDepts();
+
+        if ($depts === null) {
+            return; // Superuser / Accounting
+        }
+
+        $dept = DB::table('users')->where('username', $dnHdr->created_by)->value('dept_code');
+        $dept = ($dept !== null && trim((string) $dept) !== '')
+            ? str_pad(trim((string) $dept), 3, '0', STR_PAD_LEFT)
+            : null;
+
+        if (!in_array($dept, $depts, true)) {
+            abort(403, 'Anda tidak punya akses ke dokumen ini.');
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Helpers — Lain-lain
     |--------------------------------------------------------------------------
     */
 
@@ -216,6 +322,12 @@ class DnGeneralController extends Controller
             )
             ->first();
 
+        if (!$dnHdr) {
+            abort(404);
+        }
+
+        $this->assertDeptAccess($dnHdr);
+
         $details = DB::table('dn_general_det')
             ->leftJoin('article', 'article.article_code', '=', 'dn_general_det.article_code')
             ->where('dn_general_det.tdn_number', $dnHdr->tdn_number)
@@ -242,7 +354,14 @@ class DnGeneralController extends Controller
         $data['title']    = "Edit {$this->title}";
         $data['subtitle'] = "Edit {$this->title}";
 
-        $header    = DB::table('dn_general_hdr')->where('id', $id)->first();
+        $header = DB::table('dn_general_hdr')->where('id', $id)->first();
+
+        if (!$header) {
+            abort(404);
+        }
+
+        $this->assertDeptAccess($header);
+
         $tDnNumber = $header->tdn_number;
 
         $data['header']  = $header;
@@ -272,7 +391,14 @@ class DnGeneralController extends Controller
     {
         $id = Crypt::decryptString($request->id);
 
-        $dnHdr     = DB::table('dn_general_hdr')->where('id', $id)->first();
+        $dnHdr = DB::table('dn_general_hdr')->where('id', $id)->first();
+
+        if (!$dnHdr) {
+            abort(404);
+        }
+
+        $this->assertDeptAccess($dnHdr);
+
         $tDnNumber = $dnHdr->tdn_number;
 
         $details = DB::table('dn_general_det')
@@ -308,13 +434,18 @@ class DnGeneralController extends Controller
     {
         $prefix = $prefix ?? $key;
 
-        DB::table('master_code')
+        $affected = DB::table('master_code')
             ->where('code_key', $key)
             ->update([
                 'code_number' => DB::raw('code_number + 1'),
                 'updated_by'  => Auth::user()->username,
                 'updated_at'  => date('Y-m-d H:i:s'),
             ]);
+
+        // Guard: kalau row tidak ada, jangan diam-diam menghasilkan nomor 00000
+        if ($affected < 1) {
+            throw new \Exception("Code key '{$key}' tidak ditemukan di master_code.");
+        }
 
         $newCode = DB::table('master_code')->where('code_key', $key)->value('code_number');
         $newCode = str_pad($newCode, 5, "0", STR_PAD_LEFT);
@@ -349,8 +480,12 @@ class DnGeneralController extends Controller
         $dnType       = $request->dnType;      // 'rm' | 'ot' | 'other'
         $status       = '1';
         $siteCode     = $this->siteCode;
-        $leadCode     = $this->moduleCode;
         $location     = $this->gudangMap[$dnType] ?? null;
+
+        // Penomoran: prefix & counter tergantung dept user yang login
+        $deptCode = $this->resolveDept();
+        $prefix   = $this->resolvePrefix();
+        $leadCode = $this->codeKeyMap[$prefix];
 
         $validation = Validator::make($request->all(), [
             'deliveryDate' => 'required',
@@ -370,6 +505,15 @@ class DnGeneralController extends Controller
 
         if (!$location) {
             return response()->json(['status' => 0, 'message' => ['Type tidak valid.'], 'alert' => 'warning']);
+        }
+
+        // User tanpa dept ditolak — jangan diam-diam dikasih SJ-UMUM
+        if (!$deptCode) {
+            return response()->json([
+                'status'  => 0,
+                'message' => ['Dept user tidak ter-set. Hubungi admin.'],
+                'alert'   => 'warning',
+            ]);
         }
 
         if (empty($articles)) {
@@ -403,7 +547,7 @@ class DnGeneralController extends Controller
         }
 
         AppHelpers::resetCode($leadCode);
-        $tDnNumber   = $this->getLastCode($leadCode, 'DN-UMUM', $deliveryDate);
+        $tDnNumber   = $this->getLastCode($leadCode, $prefix, $deliveryDate);
         $partnerType = $this->resolvePartnerType($dnType, $customerId);
 
         DB::beginTransaction();
@@ -584,6 +728,8 @@ class DnGeneralController extends Controller
         if (!$dnHdr) {
             return response()->json(['status' => 0, 'message' => ['Data tidak ditemukan.'], 'alert' => 'warning']);
         }
+
+        $this->assertDeptAccess($dnHdr);
 
         $dnType   = $dnHdr->dn_type;
         $location = $this->gudangMap[$dnType] ?? null;
@@ -788,6 +934,8 @@ class DnGeneralController extends Controller
             ]);
         }
 
+        $this->assertDeptAccess($dnHdr);
+
         // Cegah cancel ganda
         if ($dnHdr->status === '4') {
             return redirect()->back()->with([
@@ -914,9 +1062,21 @@ class DnGeneralController extends Controller
 
     public function closed(Request $request)
     {
-        $username  = Auth::user()->username;
-        $id        = Crypt::decryptString($request->id);
-        $tDnNumber = DB::table('dn_general_hdr')->where('id', $id)->value('tdn_number');
+        $username = Auth::user()->username;
+        $id       = Crypt::decryptString($request->id);
+
+        $dnHdr = DB::table('dn_general_hdr')->where('id', $id)->first();
+        if (!$dnHdr) {
+            return redirect()->back()->with([
+                'title'   => "Close {$this->title}",
+                'alert'   => 'warning',
+                'message' => 'Data tidak ditemukan.',
+            ]);
+        }
+
+        $this->assertDeptAccess($dnHdr);
+
+        $tDnNumber = $dnHdr->tdn_number;
 
         DB::beginTransaction();
         try {
@@ -980,6 +1140,9 @@ class DnGeneralController extends Controller
             ->where('dn_general_hdr.status', '!=', '4')
             ->select('dn_general_hdr.*', DB::raw("concat(third_party.kode,'-',third_party.nama) as customer_name"))
             ->orderBy('dn_general_hdr.id', 'desc');
+
+        // Filter berdasarkan dept user pembuat
+        $this->applyDeptFilter($data);
 
         return \DataTables::of($data)
             ->filterColumn('customer_name', function ($query, $keyword) {
@@ -1075,6 +1238,9 @@ class DnGeneralController extends Controller
             ->orderBy('dn_general_det.id')
             ->orderBy('dn_general_det.tdn_number');
 
+        // Filter berdasarkan dept user pembuat
+        $this->applyDeptFilter($data);
+
         return \DataTables::of($data)
             ->filterColumn('customer_name', function ($query, $keyword) {
                 $query->whereRaw("concat(third_party.kode,'-',third_party.nama) ilike ?", ["%{$keyword}%"]);
@@ -1127,71 +1293,71 @@ class DnGeneralController extends Controller
     }
 
     public function articlesByType(Request $request)
-{
-    $type   = $request->type;
-    $gudang = $this->gudangMap[$type] ?? null;
+    {
+        $type   = $request->type;
+        $gudang = $this->gudangMap[$type] ?? null;
 
-    // ── OTHER: semua artikel AKTIF kecuali group of material = JS ──
-    if ($type === 'other') {
-        return DB::table('article as a')
-            ->leftJoin('warehouse_stock as s', function ($join) use ($gudang) {
-                $join->on('s.article_code', '=', 'a.article_code')
-                     ->where('s.location_number', '=', $gudang);
-            })
-            ->where('a.status', '1')
-            ->where(function ($q) {
-                $q->where('a.group_of_material', '!=', 'JS')
-                  ->orWhereNull('a.group_of_material');
-            })
-            ->select(
-                'a.article_code             as code',
-                'a.article_alternative_code as alt_code',
-                'a.article_desc             as name',
-                DB::raw('coalesce(s.article_qty, 0) as qty'),
-                'a.uom'
-            )
-            ->orderBy('a.article_alternative_code')
-            ->get();
-    }
+        // ── OTHER: semua artikel AKTIF kecuali group of material = JS ──
+        if ($type === 'other') {
+            return DB::table('article as a')
+                ->leftJoin('warehouse_stock as s', function ($join) use ($gudang) {
+                    $join->on('s.article_code', '=', 'a.article_code')
+                        ->where('s.location_number', '=', $gudang);
+                })
+                ->where('a.status', '1')
+                ->where(function ($q) {
+                    $q->where('a.group_of_material', '!=', 'JS')
+                        ->orWhereNull('a.group_of_material');
+                })
+                ->select(
+                    'a.article_code             as code',
+                    'a.article_alternative_code as alt_code',
+                    'a.article_desc             as name',
+                    DB::raw('coalesce(s.article_qty, 0) as qty'),
+                    'a.uom'
+                )
+                ->orderBy('a.article_alternative_code')
+                ->get();
+        }
 
-    if (!$request->customer) {
-        return response()->json([]);
-    }
+        if (!$request->customer) {
+            return response()->json([]);
+        }
 
-    // ── FG: tidak cek gudang & stok, hanya berdasarkan customer ──
-    if ($type === 'ot') {
-        return DB::table('article as a')
-            ->where('a.article_type', 'FG')
+        // ── FG: tidak cek gudang & stok, hanya berdasarkan customer ──
+        if ($type === 'ot') {
+            return DB::table('article as a')
+                ->where('a.article_type', 'FG')
+                ->where('a.third_party', $request->customer)
+                ->select(
+                    'a.article_code             as code',
+                    'a.article_alternative_code as alt_code',
+                    'a.article_desc             as name',
+                    DB::raw('0 as qty'),
+                    'a.uom'
+                )
+                ->orderBy('a.article_alternative_code')
+                ->get();
+        }
+
+        // ── RM: berdasarkan gudang + stok + customer ──
+        if (!$gudang) {
+            return response()->json([]);
+        }
+
+        return DB::table('warehouse_stock as s')
+            ->join('article as a', 's.article_code', '=', 'a.article_code')
+            ->where('s.location_number', $gudang)
+            ->where('s.article_qty', '>', 0)
             ->where('a.third_party', $request->customer)
             ->select(
                 'a.article_code             as code',
                 'a.article_alternative_code as alt_code',
                 'a.article_desc             as name',
-                DB::raw('0 as qty'),
+                's.article_qty              as qty',
                 'a.uom'
             )
             ->orderBy('a.article_alternative_code')
             ->get();
     }
-
-    // ── RM / OT: berdasarkan gudang + stok + customer ──
-    if (!$gudang) {
-        return response()->json([]);
-    }
-
-    return DB::table('warehouse_stock as s')
-        ->join('article as a', 's.article_code', '=', 'a.article_code')
-        ->where('s.location_number', $gudang)
-        ->where('s.article_qty', '>', 0)
-        ->where('a.third_party', $request->customer)
-        ->select(
-            'a.article_code             as code',
-            'a.article_alternative_code as alt_code',
-            'a.article_desc             as name',
-            's.article_qty              as qty',
-            'a.uom'
-        )
-        ->orderBy('a.article_alternative_code')
-        ->get();
-}
 }
