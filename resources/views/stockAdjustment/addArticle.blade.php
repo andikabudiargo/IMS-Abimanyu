@@ -1,94 +1,20 @@
-{{-- adjustment/stockAdjustment/addArticle.blade.php --}}
+{{-- adjustment/stockAdjustment/addArticle.blade.php
 
-{{-- ══════════════════════════════════════════════════════
-     TEMPLATE ROW  (hidden, cloned by JS)
-     User isi SALDO AKHIR (balance) — sistem hitung selisih
-     dan arahnya (+/-) otomatis dibanding stock before
-══════════════════════════════════════════════════════════ --}}
-<div id="new_row" class="d-none">
-    <div id="baru" class="tanda-baris mb-50">
-        <div class="form-row d-flex align-items-center">
+     Grid artikel Stock Adjustment — dipakai bersama create.blade.php & edit.blade.php.
 
-            {{-- Article select --}}
-            <div class="col-md-3 col-12">
-                <div class="form-group margin-nol">
-                    <label class="d-block d-md-none">Article</label>
-                    <select class="form-control" id="articleId" name="articleId[]"></select>
-                </div>
-            </div>
+     ── MODEL INPUT ──────────────────────────────────────────────────────
+     User mengisi SALDO AKHIR (balance) yang seharusnya. Sistem menghitung
+     selisih terhadap Stock Before, lalu menurunkan qty + direction (+/-).
+     Baris yang selisihnya 0 tidak dikirim ke server.
 
-            {{-- UOM --}}
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label class="d-block d-md-none">UOM</label>
-                    <select class="form-control" id="uom" name="uom[]"></select>
-                </div>
-            </div>
-
-            {{-- Stock Before (readonly) --}}
-            <div class="col-md-2 col-12">
-                <div class="form-group margin-nol">
-                    <label class="d-block d-md-none">Stock Before</label>
-                    <input type="text"
-                        class="form-control text-right bg-light"
-                        id="stockBefore" name="stockBefore[]"
-                        value="0" readonly tabindex="-1" />
-                </div>
-            </div>
-
-            {{-- New Balance (yang diisi user = saldo akhir seharusnya) --}}
-            <div class="col-md-2 col-12">
-                <div class="form-group margin-nol">
-                    <label class="d-block d-md-none">Saldo Akhir</label>
-                    <input type="text"
-                        class="form-control text-right tombol-panah balance-input"
-                        id="balanceQty" name="balanceQty[]"
-                        placeholder="0"
-                        maxlength="12"
-                        data-type-el-kiri="select"
-                        data-nama-el-kiri="articleId"
-                        data-type-el-kanan="input"
-                        data-nama-el-kanan="notesRow" />
-                </div>
-            </div>
-
-            {{-- Adjustment (readonly, computed: balance - stockBefore) --}}
-            <div class="col-md-2 col-12">
-                <div class="form-group margin-nol">
-                    <label class="d-block d-md-none">Adjustment</label>
-                    <input type="text"
-                        class="form-control text-right bg-light adj-qty-output"
-                        id="adjQty" name="adjQty[]"
-                        value="0" readonly tabindex="-1" />
-                </div>
-            </div>
-
-            {{-- Notes --}}
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <input type="text" class="form-control tombol-panah"
-                        id="notesRow" name="notesRow[]"
-                        maxlength="150"
-                        data-type-el-kiri="input"
-                        data-nama-el-kiri="balanceQty" />
-                </div>
-            </div>
-
-            {{-- Delete --}}
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol text-center">
-                    <a style="cursor:pointer"
-                        onclick="$(this).parents('.tanda-baris').remove(); hitungGrandTotal();">
-                        <i data-feather="trash-2" class="feather-24 text-danger"></i>
-                    </a>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</div>
-{{-- /.new_row --}}
-
+     ── KONTRAK DENGAN HALAMAN PEMAKAI ───────────────────────────────────
+     Wajib ada di DOM   : #adjDate #adjType #location #periode #description
+                          #article_row #totalRow #oEdit #cmdSave
+     Opsional di DOM    : #note        (kalau tidak ada, dikirim null)
+     Disediakan halaman : clearFileInput(id)
+     Hook opsional      : onSaveSuccess(data, oEdit), onSaveFailed(data)
+     Global untuk edit  : adjRevisionCode, adjReviseReason  (lihat blok 1)
+--}}
 
 <style>
     .margin-nol  { margin-bottom: 0.5rem; }
@@ -97,11 +23,9 @@
 
     label.titik-dua::after { content:":"; position:absolute; right:1px; }
 
-    /* adjustment output colour based on computed sign */
     .adj-qty-output.adj-positive { border-color:#28c76f !important; color:#28c76f !important; background:#f0fdf6 !important; }
     .adj-qty-output.adj-negative { border-color:#ea5455 !important; color:#ea5455 !important; background:#fff5f5 !important; }
 
-    /* balance-input highlight kalau beda dari stock before */
     .balance-input.balance-changed { border-color:#ff9f43; }
 
     @media screen and (min-width:1200px) and (max-width:1600px) {
@@ -114,49 +38,116 @@
     }
 </style>
 
-
 <script type="text/javascript">
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   GLOBALS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* ══════════════════════════════════════════════════════════════════════
+   1. KONSTANTA & STATE
+══════════════════════════════════════════════════════════════════════ */
+
 const currentDate = "{{ $currentDateValue }}";
-let   dataArticle = null;   // null = belum selesai load; "" / [] = kosong
-let articleMeta  = {};   // code -> {label, uom, uomMember}
-let   cloneCount  = 0;
 
-$(function () {
-    const dp = $('#adjDate');
-    if (dp.length) {
-        dp.flatpickr({
-            dateFormat: 'd-m-Y',
-            onChange: function () {
-                // tanggal adjustment berubah → stock before semua baris harus dihitung ulang
-                if (typeof refreshStockOnRows === 'function') refreshStockOnRows();
-            }
-        });
-    }
-    // fallback kalau value adjDate berubah tanpa lewat flatpickr (mis. old('adjDate') / set via JS lain)
-    $('#adjDate').on('change', function () {
-        if (typeof refreshStockOnRows === 'function') refreshStockOnRows();
-    });
+/** Toleransi float. Samakan dengan EPSILON di StockAdjustmentController. */
+const ADJ_EPS = 1e-6;
 
-    /* ── EVENT DELEGATION — dipasang SEKALI untuk semua baris,
-          termasuk baris hasil import massal.
-          Ini menggantikan bindQtyEvents(n) yang lama (1 listener per baris). ── */
-    $('#article_row').on('input keyup', '.balance-input', function () {
-        let n = $(this).attr('id').replace('balanceQty', '');
-        let v = $(this).val().replace(/-/g, '');
-        if ($(this).val() !== v) $(this).val(v);
-        $(this).data('autofilled', false); // user sudah edit manual
-        recomputeRow(n);
-        hitungGrandTotal();
-    });
-});
+/** Desimal maksimum qty — samakan dengan presisi kolom di PostgreSQL. */
+const ADJ_DP = 4;
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ARTICLE LOADER
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+const IMPORT_BATCH = 150;   // baris per insert DOM
+const STOCK_CHUNK  = 500;   // article_code unik per request bulk
+
+let dataArticle = null;   // null = belum selesai load; '' = gagal/kosong
+let articleMeta = {};     // code -> { label, uom, uomMember }
+let rowSeq      = 0;      // penomoran baris, tidak pernah dipakai ulang
+
+/* ── Di-set oleh edit.blade.php kalau dokumen sudah pernah diposting (4/6).
+      create.blade.php membiarkannya null → perilaku tidak berubah.
+
+      adjRevisionCode dikirim ke stockBefore & stockBeforeBulk. Tanpa itu
+      Stock Before jadi DOBEL: get_last_qty_new memfilter `<= tanggal`, jadi
+      movement dokumen ini sendiri ikut terhitung di saldo historisnya.
+      Server mengeluarkannya kalau adjCode dikirim.                      ── */
+let adjRevisionCode = null;
+let adjReviseReason = null;
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   2. UTIL
+══════════════════════════════════════════════════════════════════════ */
+
+/** "1,234.5" -> 1234.5 ; null/''/NaN -> 0 */
+function parseNum(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    const n = parseFloat(String(v).replace(/,/g, ''));
+    return isNaN(n) ? 0 : n;
+}
+
+/** Bulatkan ke ADJ_DP desimal — mencegah debu float jadi qty palsu. */
+function roundQty(n) {
+    const f = Math.pow(10, ADJ_DP);
+    return Math.round((n + Number.EPSILON) * f) / f;
+}
+
+function isZero(n) { return Math.abs(n) < ADJ_EPS; }
+
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+/* Semua id baris terkumpul di satu tempat, bukan tersebar sebagai
+   string concat di belasan fungsi. */
+function $rowEl(n)       { return $('#new_row' + n); }
+function $article(n)     { return $('#articleId' + n); }
+function $uom(n)         { return $('#uom' + n); }
+function $stockBefore(n) { return $('#stockBefore' + n); }
+function $balance(n)     { return $('#balanceQty' + n); }
+function $adjQty(n)      { return $('#adjQty' + n); }
+function $notes(n)       { return $('#notesRow' + n); }
+
+function rowIds() {
+    return $('#article_row .tanda-baris').map(function () {
+        return $(this).attr('id').replace('new_row', '');
+    }).get();
+}
+
+function getStockBefore(n) { return parseNum($stockBefore(n).data('raw')); }
+
+/**
+ * Nilai numerik saldo akhir.
+ *
+ * Kenapa tidak langsung parseNum($el.val()): humanizeNumber() memformat
+ * tampilan dan bisa memotong desimal. Kalau stok aslinya 10.1234 lalu
+ * ditampilkan "10.12", membacanya balik dari .val() menghasilkan selisih
+ * -0.0034 — adjustment palsu untuk baris yang sebenarnya tidak berubah.
+ * Jadi nilai eksak disimpan di .data('raw') dan itu yang dipakai selama
+ * user belum mengetik sendiri.
+ */
+function getBalance(n) {
+    const $b = $balance(n);
+    if ($b.data('typed')) return parseNum($b.val());
+    const raw = $b.data('raw');
+    return (raw === undefined || raw === null) ? parseNum($b.val()) : parseNum(raw);
+}
+
+function setBalance(n, value, opts) {
+    opts = opts || {};
+    const v = Math.max(0, parseNum(value));
+    $balance(n).val(humanizeNumber(v))
+               .data('raw', v)
+               .data('typed', false)
+               .data('autofilled', !!opts.autofilled);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   3. ARTICLE META
+══════════════════════════════════════════════════════════════════════ */
+
 function isiArticle(dependent) {
     $.ajax({
         url:    "{{ route('dynamic.dependent') }}",
@@ -164,7 +155,7 @@ function isiArticle(dependent) {
         data:   { dependent: dependent },
         success: function (result) {
             dataArticle = result;
-            _buildArticleMeta(result);
+            buildArticleMeta(result);
         },
         error: function () {
             dataArticle = '';
@@ -173,11 +164,10 @@ function isiArticle(dependent) {
     });
 }
 
-function _buildArticleMeta(html) {
+function buildArticleMeta(html) {
     articleMeta = {};
     $('<select>').html(html).find('option').each(function () {
-        let $o  = $(this);
-        let val = $o.val();
+        const $o = $(this), val = $o.val();
         if (!val) return;
         articleMeta[val] = {
             label:     $o.text(),
@@ -187,14 +177,224 @@ function _buildArticleMeta(html) {
     });
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   STOCK BEFORE FETCH
-   Selalu ikutkan adjDate — stock before dihitung dari saldo
-   HISTORIS pada tanggal adjustment (bukan saldo current),
-   supaya konsisten dengan validasi backdate di server.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/** Jalankan cb setelah daftar artikel siap (sukses maupun gagal). */
+function whenArticlesReady(cb) {
+    if (dataArticle !== null) { cb(); return; }
+    setTimeout(function () { whenArticlesReady(cb); }, 150);
+}
+
+function buildUomOptions(uomMember, uomBase) {
+    if (uomMember) {
+        return uomMember.toString().split(',')
+            .map(u => `<option value="${esc(u.trim())}">${esc(u.trim())}</option>`).join('');
+    }
+    return uomBase ? `<option value="${esc(uomBase)}">${esc(uomBase)}</option>` : '';
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   4. MARKUP BARIS — SATU-SATUNYA definisi
+
+   Sebelumnya markup baris hidup di TIGA tempat: template #new_row (untuk
+   di-clone), _buildImportRowHtml() (string, untuk import), dan _wireIds()
+   (daftar id yang harus di-rename setelah clone). Menambah satu kolom
+   berarti mengubah ketiganya; lupa salah satu → jalur import dan jalur
+   manual berbeda diam-diam. Sekarang hanya di sini.
+══════════════════════════════════════════════════════════════════════ */
+
+function buildRowHtml(n, d) {
+    d = d || {};
+    const meta    = articleMeta[d.articleCode] || {};
+    const label   = esc(d.label || meta.label || d.articleCode || '');
+    const uomOpts = buildUomOptions(d.uomMember || meta.uomMember, d.uom || meta.uom);
+    const sb      = parseNum(d.stockBefore);
+    const bal     = (d.balance === null || d.balance === undefined || d.balance === '')
+                        ? '' : humanizeNumber(Math.max(0, parseNum(d.balance)));
+
+    const artOption = d.articleCode
+        ? `<option value="${esc(d.articleCode)}" selected>${label}</option>`
+        : '<option value=""></option>';
+
+    return `
+    <div id="new_row${n}" class="tanda-baris mb-50">
+        <div class="form-row d-flex align-items-center">
+
+            <div class="col-md-3 col-12"><div class="form-group margin-nol">
+                <label class="d-block d-md-none">Article</label>
+                <select class="form-control article-select" id="articleId${n}" name="articleId[]">
+                    ${artOption}
+                </select>
+            </div></div>
+
+            <div class="col-md-1 col-12"><div class="form-group margin-nol">
+                <label class="d-block d-md-none">UOM</label>
+                <select class="form-control" id="uom${n}" name="uom[]">${uomOpts}</select>
+            </div></div>
+
+            <div class="col-md-2 col-12"><div class="form-group margin-nol">
+                <label class="d-block d-md-none">Stock Before</label>
+                <input type="text" class="form-control text-right bg-light"
+                    id="stockBefore${n}" name="stockBefore[]"
+                    value="${humanizeNumber(sb)}" readonly tabindex="-1" />
+            </div></div>
+
+            <div class="col-md-2 col-12"><div class="form-group margin-nol">
+                <label class="d-block d-md-none">Saldo Akhir</label>
+                <input type="text" class="form-control text-right tombol-panah balance-input"
+                    id="balanceQty${n}" name="balanceQty[]"
+                    value="${bal}" placeholder="0" maxlength="12"
+                    data-type-el-kiri="select"  data-nama-el-kiri="articleId"
+                    data-type-el-kanan="input"  data-nama-el-kanan="notesRow" />
+            </div></div>
+
+            <div class="col-md-2 col-12"><div class="form-group margin-nol">
+                <label class="d-block d-md-none">Adjustment</label>
+                <input type="text" class="form-control text-right bg-light adj-qty-output"
+                    id="adjQty${n}" name="adjQty[]" value="0" readonly tabindex="-1" />
+            </div></div>
+
+            <div class="col-md-1 col-12"><div class="form-group margin-nol">
+                <input type="text" class="form-control tombol-panah"
+                    id="notesRow${n}" name="notesRow[]" maxlength="150"
+                    value="${esc(d.notes)}"
+                    data-type-el-kiri="input" data-nama-el-kiri="balanceQty" />
+            </div></div>
+
+            <div class="col-md-1 col-12"><div class="form-group margin-nol text-center">
+                <a class="btn-del-row" style="cursor:pointer">
+                    <i data-feather="trash-2" class="feather-24 text-danger"></i>
+                </a>
+            </div></div>
+
+        </div>
+    </div>`;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   5. TAMBAH BARIS
+══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Sisipkan banyak baris sekaligus dalam SATU operasi DOM.
+ *
+ * @param  {Array}  list  array of row-data (lihat buildRowHtml)
+ * @param  {Object} opts  { eager: bool } — eager = select2 langsung di-init
+ * @return {Array}        [{ n, articleCode }] untuk bulk stock fetch
+ */
+function appendRows(list, opts) {
+    opts = opts || {};
+    let html = '';
+    const meta = [];
+
+    list.forEach(function (d) {
+        rowSeq++;
+        html += buildRowHtml(rowSeq, d);
+        meta.push({ n: rowSeq, data: d });
+    });
+
+    document.getElementById('article_row').insertAdjacentHTML('beforeend', html);
+
+    meta.forEach(function (m) {
+        const n = m.n, d = m.data;
+
+        // Nilai eksak disimpan terpisah dari tampilan — lihat getBalance().
+        $stockBefore(n).data('raw', parseNum(d.stockBefore));
+
+        if (d.balance !== null && d.balance !== undefined && d.balance !== '') {
+            $balance(n).data('raw', Math.max(0, parseNum(d.balance)))
+                       .data('typed', false)
+                       .data('autofilled', false);
+        }
+
+        if (d.uom) $uom(n).val(d.uom);
+
+        if (opts.eager) initSelect2(n);
+        else            bindLazySelect2(n);
+
+        recomputeRow(n);
+    });
+
+    return meta.map(m => ({ n: m.n, articleCode: m.data.articleCode }));
+}
+
+function initSelect2(n) {
+    const $sel = $article(n);
+    if ($sel.hasClass('select2-hidden-accessible')) return;
+
+    const current = $sel.val();
+    $sel.off('.lazyInit');
+    $sel.html('<option value=""></option>' + dataArticle);
+    if (current) $sel.val(current);
+    $sel.select2({ width: '100%', placeholder: 'Pilih artikel...' });
+}
+
+/**
+ * select2 baru di-init saat select-nya disentuh.
+ *
+ * Untuk dokumen hasil import ribuan baris, meng-init select2 penuh per baris
+ * saat render bikin browser menggantung — daftar artikel di-clone sebanyak
+ * jumlah barisnya.
+ */
+function bindLazySelect2(n) {
+    $article(n).on('mousedown.lazyInit focus.lazyInit', function () { initSelect2(n); });
+}
+
+/** Tambah 1 baris kosong — dipanggil tombol Add Article. */
+function add_new_row() {
+    if (!$('#adjDate').val()) {
+        Swal.fire({ toast:true, position:'top-end', icon:'warning',
+            title:'Isi Adjustment Date terlebih dahulu.', timer:1500, showConfirmButton:false });
+        return;
+    }
+    if (dataArticle === null) {
+        Swal.fire({ toast:true, position:'top-end', icon:'info',
+            title:'Memuat daftar artikel...', timer:1200, showConfirmButton:false });
+        whenArticlesReady(add_new_row);
+        return;
+    }
+
+    appendRows([{}], { eager: true });
+    feather.replace();
+    hitungGrandTotal();
+}
+
+/**
+ * Tambah 1 baris terisi (dipakai halaman edit).
+ * Signature dipertahankan supaya pemanggil lama tetap jalan.
+ */
+function add_new_row_edit(articleCode, balanceValue, uom, uomMember, notes, stockBeforeVal, opts) {
+    opts = opts || {};
+
+    const meta = appendRows([{
+        articleCode: articleCode,
+        balance:     balanceValue,
+        uom:         uom,
+        uomMember:   uomMember,
+        notes:       notes,
+        stockBefore: stockBeforeVal
+    }], { eager: !opts.lazySelect });
+
+    if (articleCode && $('#location').val() && !opts.skipFetch) {
+        fetchStockBefore(articleCode, $('#location').val(), meta[0].n);
+    }
+    if (!opts.skipFeather) feather.replace();
+    hitungGrandTotal();
+
+    return meta[0].n;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   6. STOCK BEFORE
+
+   Selalu ikutkan adjDate — Stock Before dihitung dari saldo HISTORIS pada
+   tanggal adjustment, bukan saldo current, supaya cocok dengan yang dipakai
+   server saat posting.
+══════════════════════════════════════════════════════════════════════ */
+
 function fetchStockBefore(articleCode, locationCode, rowId) {
-    let adjDate = $('#adjDate').val();
+    const adjDate = $('#adjDate').val();
 
     if (!articleCode || !locationCode) { setStockBefore(rowId, 0); return; }
 
@@ -209,513 +409,431 @@ function fetchStockBefore(articleCode, locationCode, rowId) {
     $.ajax({
         url:    "{{ route('stockAdjustment.stockBefore') }}",
         method: "GET",
-        data:   { article_code: articleCode, location_code: locationCode, adjDate: adjDate },
+        data:   {
+            article_code:  articleCode,
+            location_code: locationCode,
+            adjDate:       adjDate,
+            adjCode:       adjRevisionCode   // null di jalur create
+        },
         success: function (data) { setStockBefore(rowId, data.stock ?? 0); },
         error:   function ()     { setStockBefore(rowId, 0); }
     });
 }
-function setStockBefore(rowId, stock) {
-    let $sb = $('#stockBefore' + rowId);
-    $sb.val(humanizeNumber(stock)).data('raw', stock);
 
-    // Prefill saldo akhir = stock saat ini kalau user belum isi apa-apa
-    // supaya default adjustment = 0, tinggal diedit kalau memang beda.
-    let $bal = $('#balanceQty' + rowId);
-    if ($bal.val() === '' || $bal.data('autofilled')) {
-        $bal.val(humanizeNumber(stock)).data('autofilled', true);
+function setStockBefore(rowId, stock) {
+    const v = parseNum(stock);
+    $stockBefore(rowId).val(humanizeNumber(v)).data('raw', v);
+
+    // Prefill saldo akhir = stok saat ini kalau user belum isi apa pun,
+    // supaya default adjustment = 0 dan tinggal diedit kalau memang beda.
+    const $b = $balance(rowId);
+    if ($b.val() === '' || $b.data('autofilled')) {
+        setBalance(rowId, v, { autofilled: true });
     }
     recomputeRow(rowId);
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ROW RECALC — inti dari perubahan: balance -> selisih otomatis
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function recomputeRow(rowId) {
-    let stockBefore = parseFloat($('#stockBefore' + rowId).data('raw')) || 0;
-    let balance     = parseFloat(String($('#balanceQty' + rowId).val()).replace(/,/g,'')) || 0;
-    let diff = Math.round((balance - stockBefore) * 10000) / 10000;  // bulatkan ke 4 desimal
-
-    let $adj = $('#adjQty' + rowId);
-    let sign = diff > 0 ? '+' : (diff < 0 ? '' : ''); // humanizeNumber biasanya sudah handle minus
-    $adj.val(sign + humanizeNumber(diff));
-    $adj.removeClass('adj-positive adj-negative');
-    if (diff > 0) $adj.addClass('adj-positive');
-    if (diff < 0) $adj.addClass('adj-negative');
-
-    $('#balanceQty' + rowId).toggleClass('balance-changed', diff !== 0);
-}
-function recomputeAllRows() {
-    $('#article_row .tanda-baris').each(function () {
-        recomputeRow($(this).attr('id').replace('new_row',''));
-    });
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ADD ROW — manual (tunggu dataArticle siap)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function add_new_row() {
-    if (!$('#adjDate').val()) {
-        Swal.fire({ toast:true, position:'top-end', icon:'warning',
-            title:'Isi Adjustment Date terlebih dahulu.', timer:1500, showConfirmButton:false });
-        return;
-    }
-    if (dataArticle === null) {
-        Swal.fire({ toast:true, position:'top-end', icon:'info',
-            title:'Memuat daftar artikel...', timer:1200, showConfirmButton:false });
-        setTimeout(add_new_row, 1200);
-        return;
-    }
-    _doAddRow('', null, null, null, '');
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ADD ROW — programmatic (edit satuan / non-bulk)
-   balanceValue = saldo akhir yang seharusnya untuk artikel ini
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function add_new_row_edit(articleCode, balanceValue, uom, uomMember, notes, stockBeforeVal, opts) {
-    _doAddRow(articleCode, balanceValue, uom, uomMember, notes, stockBeforeVal, opts);
-}
-
-function _doAddRow(articleCode, balanceValue, uom, uomMember, notes, stockBeforeVal, opts) {
-    opts = opts || {};
-    cloneCount++;
-    let n = cloneCount;
-
-    let $template = $($('#new_row').clone().html());
-    let $row = $template.filter('.tanda-baris').length
-                ? $template.filter('.tanda-baris')
-                : $template.find('.tanda-baris').first();
-
-    $row.attr('id', 'new_row' + n);
-    _wireIds($row, n);
-    $('#article_row').append($row);
-
-    let $sel = $('#articleId' + n);
-
-    if (opts.lazySelect && articleCode) {
-        let meta = articleMeta[articleCode] || {};
-        $sel.html(
-            '<option value="' + articleCode + '" selected>' +
-            (meta.label || articleCode) + '</option>'
-        );
-        let uomOpts = _buildUomOptions(uomMember || meta.uomMember, uom || meta.uom);
-        $('#uom' + n).html(uomOpts).val(uom || meta.uom);
-        _bindLazySelect2($sel, n);
-    } else {
-        $sel.html('<option value=""></option>' + dataArticle);
-        $sel.select2({ width: '100%', placeholder: 'Pilih artikel...' });
-        if (articleCode) {
-            $sel.val(articleCode).trigger('change');
-            let uomOpts = _buildUomOptions(uomMember, uom);
-            $('#uom' + n).html(uomOpts).val(uom).trigger('change');
-        }
-    }
-
-    $sel.on('change', function () {
-        let artCode = $(this).val();
-        let locCode = $('#location').val();
-        let $opt      = $(this).find(':selected');
-        let uomMember = $opt.data('uom-member');
-        let uomBase   = $opt.data('uom');
-        $('#uom' + n).html(_buildUomOptions(uomMember, uomBase)).val(uomBase).trigger('change');
-        $('#balanceQty' + n).val('').data('autofilled', false);
-        fetchStockBefore(artCode, locCode, n);
-        setTimeout(() => { $('#balanceQty' + n).focus().select(); }, 10);
-    });
-
-    let sbRaw = parseFloat(stockBeforeVal) || 0;
-    $('#stockBefore' + n).val(humanizeNumber(sbRaw)).data('raw', sbRaw);
-
-    if (balanceValue !== null && balanceValue !== undefined && balanceValue !== '') {
-        $('#balanceQty' + n).val(Math.max(0, parseFloat(balanceValue) || 0)).data('autofilled', false);
-    }
-    if (notes) $('#notesRow' + n).val(notes);
-
-    if (articleCode && $('#location').val() && !opts.skipFetch) {
-        fetchStockBefore(articleCode, $('#location').val(), n);
-    } else {
-        recomputeRow(n);
-    }
-
-    hitungGrandTotal();
-
-    if (!opts.skipFeather) feather.replace();
-}
-
-function _bindLazySelect2($sel, n) {
-    $sel.on('mousedown.lazyInit focus.lazyInit', function () {
-        if ($(this).hasClass('select2-hidden-accessible')) return;
-        let current = $(this).val();
-        $(this).off('.lazyInit');
-        $(this).html('<option value=""></option>' + dataArticle);
-        $(this).val(current);
-        $(this).select2({ width: '100%', placeholder: 'Pilih artikel...' });
-    });
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   WIRE IDs
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function _wireIds(row, n) {
-    row.find('#articleId').attr('id',   'articleId'   + n);
-    row.find('#uom').attr('id',         'uom'         + n);
-    row.find('#stockBefore').attr('id', 'stockBefore' + n);
-    row.find('#balanceQty').attr('id',  'balanceQty'  + n);
-    row.find('#adjQty').attr('id',      'adjQty'      + n);
-    row.find('#notesRow').attr('id',    'notesRow'    + n);
-}
-
-function _buildUomOptions(uomMember, uomBase) {
-    let opts = '';
-    if (uomMember) {
-        uomMember.toString().split(',').forEach(u => { opts += `<option value="${u.trim()}">${u.trim()}</option>`; });
-    } else if (uomBase) {
-        opts = `<option value="${uomBase}">${uomBase}</option>`;
-    }
-    return opts;
-}
-
-function _escapeAttr(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   LOCATION / DATE CHANGE → refresh semua stock before
-   (balance yang sudah diisi manual TIDAK ditimpa, hanya yang autofilled)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function refreshStockOnRows() {
-    let locCode = $('#location').val();
-    $('#article_row .tanda-baris').each(function () {
-        let rowId   = $(this).attr('id').replace('new_row', '');
-        let artCode = $('#articleId' + rowId).val();
-        fetchStockBefore(artCode, locCode, rowId);
-    });
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ROW COUNT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function hitungGrandTotal() {
-    $('#totalRow').val($('#article_row .tanda-baris').length);
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   FAST PATH — khusus IMPORT EXCEL (bulk insert DOM)
-   Jauh lebih ringan dibanding _doAddRow karena:
-     - HTML dibangun sebagai string per BATCH, lalu di-insert
-       sekali per batch (bukan .append() satu-satu)
-     - Tidak ada select2 penuh per baris (pakai lazySelect,
-       select2 baru di-init saat user klik/fokus select-nya)
-     - Event balance-input pakai delegation (sudah dipasang
-       sekali di $('#article_row').on(...) di atas), jadi TIDAK
-       perlu bind listener baru per baris
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function _buildImportRowHtml(n, articleCode, balanceValue, uom, uomMember, notes, stockBeforeVal) {
-    let meta    = articleMeta[articleCode] || {};
-    let sbRaw   = parseFloat(stockBeforeVal) || 0;
-    let balVal  = Math.max(0, parseFloat(balanceValue) || 0);
-    let uomOpts = _buildUomOptions(uomMember || meta.uomMember, uom || meta.uom);
-    let label   = _escapeAttr(meta.label || articleCode);
-    let notesEsc = _escapeAttr(notes);
-
-    return `
-    <div id="new_row${n}" class="tanda-baris mb-50">
-        <div class="form-row d-flex align-items-center">
-            <div class="col-md-3 col-12"><div class="form-group margin-nol">
-                <select class="form-control" id="articleId${n}" name="articleId[]">
-                    <option value="${_escapeAttr(articleCode)}" selected>${label}</option>
-                </select>
-            </div></div>
-            <div class="col-md-1 col-12"><div class="form-group margin-nol">
-                <select class="form-control" id="uom${n}" name="uom[]">${uomOpts}</select>
-            </div></div>
-            <div class="col-md-2 col-12"><div class="form-group margin-nol">
-                <input type="text" class="form-control text-right bg-light" id="stockBefore${n}"
-                    name="stockBefore[]" value="${humanizeNumber(sbRaw)}" readonly tabindex="-1" />
-            </div></div>
-            <div class="col-md-2 col-12"><div class="form-group margin-nol">
-                <input type="text" class="form-control text-right tombol-panah balance-input"
-                    id="balanceQty${n}" name="balanceQty[]" value="${humanizeNumber(balVal)}"
-                    maxlength="12" />
-            </div></div>
-            <div class="col-md-2 col-12"><div class="form-group margin-nol">
-                <input type="text" class="form-control text-right bg-light adj-qty-output"
-                    id="adjQty${n}" name="adjQty[]" value="0" readonly tabindex="-1" />
-            </div></div>
-            <div class="col-md-1 col-12"><div class="form-group margin-nol">
-                <input type="text" class="form-control tombol-panah" id="notesRow${n}"
-                    name="notesRow[]" maxlength="150" value="${notesEsc}" />
-            </div></div>
-            <div class="col-md-1 col-12"><div class="form-group margin-nol text-center">
-                <a style="cursor:pointer" onclick="$(this).parents('.tanda-baris').remove(); hitungGrandTotal();">
-                    <i data-feather="trash-2" class="feather-24 text-danger"></i>
-                </a>
-            </div></div>
-        </div>
-    </div>`;
-}
-
 /**
- * Import baris hasil Excel ke DOM secara batch supaya browser tidak berat.
- * rows: array of { article_code, qty_adjustment (=saldo akhir), uom, uom_member, notes, stock_before }
+ * Ambil Stock Before untuk BANYAK baris sekaligus, dipecah per chunk.
  *
- * PENTING: `stock_before` yang dikirim controller saat ini SELALU 0
- * (lihat catatan di importExcel() backend). Nilai stok historis yang
- * benar — termasuk untuk tanggal BACKDATE — baru diambil SETELAH semua
- * baris ter-render, lewat _fetchStockBeforeBulk() di bawah, yang
- * memanggil satu endpoint (stockBeforeBulk) untuk SEMUA artikel
- * sekaligus dalam satu/segelintir query. Ini supaya tetap ringan
- * (bukan 1 request per baris) tapi datanya tetap benar.
+ * @param {Array}    rowMeta  [{ n, articleCode }]
+ * @param {Function} done     dipanggil setelah semua chunk selesai
+ * @param {Function} onProg   opsional (selesai, totalChunk)
+ *
+ * Callback `done` sengaja dipisah: versi lama memanggil _finishImport()
+ * langsung dari dalam sini, jadi fungsinya tidak bisa dipakai ulang di luar
+ * import — memakainya saat ganti Location akan menutup Swal dan mereset
+ * input file tanpa sebab.
  */
-function importRowsFast(rows) {
-    const total = rows.length;
-    const BATCH_SIZE = 150; // insert HTML jauh lebih murah dari append per-row, jadi batch bisa besar
-    let idx = 0;
-    const $container = document.getElementById('article_row');
-    const rowMeta = []; // { n, articleCode } — dipakai nanti untuk bulk stock-before fetch
+function fetchStockBulk(rowMeta, done, onProg) {
+    done = done || function () {};
 
-    function processBatch() {
-        const end = Math.min(idx + BATCH_SIZE, total);
-        let htmlChunk = '';
-        let rawList   = [];
+    const adjDate = $('#adjDate').val();
+    const locCode = $('#location').val();
 
-        for (; idx < end; idx++) {
-            let r = rows[idx];
-            cloneCount++;
-            let n = cloneCount;
-            htmlChunk += _buildImportRowHtml(
-                n, r.article_code, r.qty_adjustment, r.uom, r.uom_member, r.notes, r.stock_before
-            );
-            rawList.push({ n, sbRaw: parseFloat(r.stock_before) || 0 });
-            rowMeta.push({ n, articleCode: r.article_code });
-        }
+    if (!adjDate || !locCode || !rowMeta || rowMeta.length === 0) { done({}); return; }
 
-        // satu kali insert untuk seluruh batch → jauh lebih ringan dari N kali append
-        $container.insertAdjacentHTML('beforeend', htmlChunk);
-
-        // set data-raw stockBefore (masih placeholder) + lazy-init select2 per baris di batch ini
-        rawList.forEach(function (d) {
-            $('#stockBefore' + d.n).data('raw', d.sbRaw);
-            _bindLazySelect2($('#articleId' + d.n), d.n);
-            recomputeRow(d.n);
-        });
-
-        if (Swal.isVisible()) {
-            Swal.getHtmlContainer().innerHTML = `<b>${idx}/${total}</b> baris dimuat`;
-        }
-
-        if (idx < total) {
-            // requestAnimationFrame → beri jeda ke browser tanpa nge-block render
-            requestAnimationFrame(processBatch);
-        } else {
-            feather.replace();
-            hitungGrandTotal();
-            // semua baris sudah tampil, lanjut ambil stock before HISTORIS yang benar
-            _fetchStockBeforeBulk(rowMeta);
-        }
-    }
-
-    function startWhenReady() {
-        if (dataArticle === null) {           // meta artikel belum selesai load
-            setTimeout(startWhenReady, 200);
-            return;
-        }
-        Swal.fire({
-            title: "Importing...",
-            html: `<b>0/${total}</b> baris dimuat`,
-            icon: "info",
-            showConfirmButton: false,
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-                processBatch();
-            }
-        });
-    }
-
-    startWhenReady();
-}
-
-/**
- * Ambil stock before HISTORIS (sesuai adjDate, termasuk backdate) untuk
- * seluruh baris hasil import, lewat endpoint bulk (1 query untuk banyak
- * artikel), dipecah per CHUNK_CODES kode supaya payload request tidak
- * terlalu besar untuk import yang sangat banyak baris.
- */
-function _fetchStockBeforeBulk(rowMeta) {
-    const adjDate  = $('#adjDate').val();
-    const locCode  = $('#location').val();
-    const CHUNK_CODES = 500; // jumlah article_code unik per request
-
-    if (!adjDate || !locCode || rowMeta.length === 0) {
-        _finishImport();
-        return;
-    }
-
-    // kumpulkan article_code unik
-    const uniqueCodes = [...new Set(rowMeta.map(m => m.articleCode).filter(Boolean))];
+    const codes  = [...new Set(rowMeta.map(m => m.articleCode).filter(Boolean))];
     const chunks = [];
-    for (let i = 0; i < uniqueCodes.length; i += CHUNK_CODES) {
-        chunks.push(uniqueCodes.slice(i, i + CHUNK_CODES));
+    for (let i = 0; i < codes.length; i += STOCK_CHUNK) {
+        chunks.push(codes.slice(i, i + STOCK_CHUNK));
     }
+    if (chunks.length === 0) { done({}); return; }
 
-    let done = 0;
     const stockMap = {};
+    let finished = 0;
 
-    if (Swal.isVisible()) {
-        Swal.getHtmlContainer().innerHTML = `Memuat stock before (0/${chunks.length} batch)...`;
-    }
+    if (onProg) onProg(0, chunks.length);
 
-    function runChunk(ci) {
+    (function runChunk(ci) {
         if (ci >= chunks.length) {
-            _applyStockBeforeResults(rowMeta, stockMap);
-            _finishImport();
+            applyStockBulk(rowMeta, stockMap);
+            done(stockMap);
             return;
         }
         $.ajax({
-            url: "{{ route('stockAdjustment.stockBeforeBulk') }}",
+            url:    "{{ route('stockAdjustment.stockBeforeBulk') }}",
             method: "POST",
-            data: {
-                adjDate: adjDate,
-                location_code: locCode,
+            data:   {
+                adjDate:           adjDate,
+                location_code:     locCode,
+                adjCode:           adjRevisionCode,
                 'article_codes[]': chunks[ci]
             },
-            success: function (data) {
-                Object.assign(stockMap, data.stocks || {});
-            },
-            error: function () {
-                // kalau satu chunk gagal, baris terkait tetap pakai 0 — tidak menghentikan proses
+            success: function (data) { Object.assign(stockMap, data.stocks || {}); },
+            error:   function () {
+                // Satu chunk gagal → baris terkait tetap 0, proses jalan terus.
                 console.error('Gagal memuat stock before untuk batch', ci);
             },
             complete: function () {
-                done++;
-                if (Swal.isVisible()) {
-                    Swal.getHtmlContainer().innerHTML = `Memuat stock before (${done}/${chunks.length} batch)...`;
-                }
+                finished++;
+                if (onProg) onProg(finished, chunks.length);
                 runChunk(ci + 1);
             }
         });
-    }
-
-    runChunk(0);
+    })(0);
 }
 
-function _applyStockBeforeResults(rowMeta, stockMap) {
+function applyStockBulk(rowMeta, stockMap) {
     rowMeta.forEach(function (m) {
         if (!Object.prototype.hasOwnProperty.call(stockMap, m.articleCode)) return;
-        let stock = parseFloat(stockMap[m.articleCode]) || 0;
-        $('#stockBefore' + m.n).val(humanizeNumber(stock)).data('raw', stock);
-        // balance TIDAK disentuh — itu nilai saldo akhir dari Excel, harus tetap
+
+        const v = parseNum(stockMap[m.articleCode]);
+        $stockBefore(m.n).val(humanizeNumber(v)).data('raw', v);
+
+        const $b = $balance(m.n);
+        if ($b.val() === '' || $b.data('autofilled')) {
+            setBalance(m.n, v, { autofilled: true });
+        }
         recomputeRow(m.n);
     });
 }
 
-function _finishImport() {
-    $('#uploadExcel').removeAttr('disabled');
-    $(".loading-spinner-container").removeClass("-show");
-    Swal.close();
-    if (typeof clearFileInput === 'function') clearFileInput('file');
+/**
+ * Refresh Stock Before seluruh baris — dipakai saat Location / adjDate berubah.
+ *
+ * Versi lama memanggil fetchStockBefore() per baris: dokumen 500 baris = 500
+ * request HTTP sekali ganti lokasi. Sekarang satu endpoint bulk.
+ * Saldo akhir yang sudah diisi manual TIDAK ditimpa, hanya yang autofilled.
+ */
+function refreshStockOnRows(done) {
+    const rowMeta = rowIds()
+        .map(n => ({ n: n, articleCode: $article(n).val() }))
+        .filter(m => m.articleCode);
+
+    if (rowMeta.length === 0) { if (done) done({}); return; }
+
+    fetchStockBulk(rowMeta, function (map) {
+        hitungGrandTotal();
+        if (done) done(map);
+    });
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   SAVE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-simpanData = (oEdit) => {
-    let manualErrors = [];
-    if (!$('#adjDate').val())    manualErrors.push('Adjustment Date harus diisi.');
-    if (!$('#adjType').val())    manualErrors.push('Adjustment Type harus dipilih.');
-    if (!$('#location').val())   manualErrors.push('Location harus dipilih.');
-    if (!$('#periode').val())    manualErrors.push('Periode harus dipilih.');
-    if (manualErrors.length > 0) {
-        Swal.fire({ title: 'Validation Error', html: manualErrors.join('<br>'), icon: 'warning' });
-        return;
+
+/* ══════════════════════════════════════════════════════════════════════
+   7. RECOMPUTE
+══════════════════════════════════════════════════════════════════════ */
+
+function recomputeRow(n) {
+    const diff = roundQty(getBalance(n) - getStockBefore(n));
+
+    $adjQty(n)
+        .val((diff > 0 ? '+' : '') + humanizeNumber(diff))
+        .removeClass('adj-positive adj-negative')
+        .addClass(diff > 0 ? 'adj-positive' : (diff < 0 ? 'adj-negative' : ''));
+
+    $balance(n).toggleClass('balance-changed', !isZero(diff));
+    return diff;
+}
+
+function recomputeAllRows() { rowIds().forEach(recomputeRow); }
+
+function hitungGrandTotal() {
+    $('#totalRow').val($('#article_row .tanda-baris').length);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   8. EVENT DELEGATION
+
+   Semua listener dipasang SEKALI di container. Versi lama membind sebagian
+   per baris dan sebagian lagi lewat onclick inline di markup, jadi baris
+   hasil import massal diam-diam kehilangan perilaku tertentu — mis.
+   select-on-click yang dibind pakai $("input[type='text']").on(...) saat
+   page load hanya kena input yang sudah ada waktu itu.
+══════════════════════════════════════════════════════════════════════ */
+
+$(function () {
+    const $c = $('#article_row');
+
+    /* Saldo akhir diketik */
+    $c.on('input keyup', '.balance-input', function () {
+        const n = $(this).attr('id').replace('balanceQty', '');
+        const v = $(this).val().replace(/-/g, '');       // saldo tidak boleh negatif
+        if ($(this).val() !== v) $(this).val(v);
+
+        $(this).data('typed', true).data('autofilled', false);
+        recomputeRow(n);
+        hitungGrandTotal();
+    });
+
+    /* Artikel dipilih */
+    $c.on('change', 'select.article-select', function () {
+        const n       = $(this).attr('id').replace('articleId', '');
+        const artCode = $(this).val();
+        const $opt    = $(this).find(':selected');
+
+        $uom(n).html(buildUomOptions($opt.data('uom-member'), $opt.data('uom')))
+               .val($opt.data('uom')).trigger('change');
+
+        $balance(n).val('').removeData('raw').data('typed', false).data('autofilled', true);
+        fetchStockBefore(artCode, $('#location').val(), n);
+
+        setTimeout(() => { $balance(n).focus().select(); }, 10);
+    });
+
+    /* Hapus baris */
+    $c.on('click', '.btn-del-row', function () {
+        $(this).closest('.tanda-baris').remove();
+        hitungGrandTotal();
+    });
+
+    /* Select-on-click, termasuk baris yang ditambah belakangan */
+    $c.on('click', "input[type='text']:not([readonly])", function () { $(this).select(); });
+
+    /* Tanggal adjustment berubah → seluruh Stock Before historis ikut geser */
+    const $dp = $('#adjDate');
+    if ($dp.length) {
+        $dp.flatpickr({
+            dateFormat: 'd-m-Y',
+            onChange: function () { refreshStockOnRows(); }
+        });
+        // Fallback kalau value diubah tanpa lewat flatpickr
+        $dp.on('change', function () { refreshStockOnRows(); });
     }
+});
 
-    let articles = [];
-    let errors   = [];
-    let skipped  = 0;
 
-    $('#article_row .tanda-baris').each(function () {
-        let rowId   = $(this).attr('id').replace('new_row', '');
-        let artCode = $('#articleId' + rowId).val();
+/* ══════════════════════════════════════════════════════════════════════
+   9. KUMPULKAN BARIS
+
+   Satu tempat untuk membaca grid. simpanData() memakainya, dan halaman edit
+   memakainya juga untuk membangun preview dampak revisi — supaya keduanya
+   tidak bisa berbeda pendapat soal baris mana yang terkirim.
+══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * @return {Object} { articles, skipped, errors, seen }
+ *   articles : payload siap kirim (baris berselisih 0 sudah dibuang)
+ *   skipped  : [{ code, label }] baris yang selisihnya 0
+ *   seen     : { article_code: label } semua artikel yang ada di grid
+ */
+function collectRows() {
+    const articles = [];
+    const skipped  = [];
+    const errors   = [];
+    const seen     = {};
+
+    rowIds().forEach(function (n) {
+        const artCode = $article(n).val();
         if (!artCode) return;
 
-        let artLabel = $('#articleId' + rowId).find(':selected').text();
-        let uom      = $('#uom' + rowId).val();
-        let sbRaw    = parseFloat($('#stockBefore' + rowId).data('raw')) || 0;
-        let balance  = parseFloat(String($('#balanceQty' + rowId).val()).replace(/,/g,'')) || 0;
-        let notes    = $('#notesRow' + rowId).val();
+        const label = $article(n).find(':selected').text() || artCode;
+        seen[artCode] = label;
 
+        const balance = getBalance(n);
         if (balance < 0) {
-            errors.push(`Saldo akhir untuk <b>${artLabel}</b> tidak boleh negatif.`);
+            errors.push(`Saldo akhir untuk <b>${esc(label)}</b> tidak boleh negatif.`);
             return;
         }
 
-        let diff = balance - sbRaw;
-        if (diff === 0) {
-            // tidak ada perubahan untuk artikel ini — lewati, bukan error
-            skipped++;
-            return;
-        }
+        // Dibulatkan SEBELUM dibanding nol. Tanpa ini, baris yang tampil "0"
+        // bisa punya selisih 1e-15 dan tetap terkirim sebagai adjustment —
+        // lalu ditolak server dengan "Qty tidak boleh 0" yang membingungkan.
+        const diff = roundQty(balance - getStockBefore(n));
 
-        let direction = diff > 0 ? '+' : '-';
-        let qty       = Math.abs(diff);
+        if (isZero(diff)) { skipped.push({ code: artCode, label: label }); return; }
 
         articles.push({
             article_code:   artCode,
-            uom,
-            direction,
-            stock_before:   sbRaw,
-            qty_adjustment: qty,
+            uom:            $uom(n).val(),
+            direction:      diff > 0 ? '+' : '-',
+            stock_before:   getStockBefore(n),
+            qty_adjustment: Math.abs(diff),
             stock_after:    balance,
-            notes
+            notes:          $notes(n).val()
         });
     });
 
-    if (articles.length === 0) {
-        errors.push(skipped > 0
-            ? 'Tidak ada artikel yang saldonya berubah. Ubah saldo akhir minimal 1 artikel.'
-            : 'Artikel harus diisi.');
-    }
-    if (errors.length > 0) {
+    return { articles, skipped, errors, seen };
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   10. SAVE
+══════════════════════════════════════════════════════════════════════ */
+
+simpanData = (oEdit) => {
+    const errors = [];
+
+    if (!$('#adjDate').val())  errors.push('Adjustment Date harus diisi.');
+    if (!$('#adjType').val())  errors.push('Adjustment Type harus dipilih.');
+    if (!$('#location').val()) errors.push('Location harus dipilih.');
+    if (!$('#periode').val())  errors.push('Periode harus dipilih.');
+
+    if (errors.length) {
         Swal.fire({ title:'Validation Error', html: errors.join('<br>'), icon:'warning' });
         return;
     }
 
-    let url = oEdit ? "{{ route('stockAdjustment.update') }}"
-                    : "{{ route('stockAdjustment.store')  }}";
+    const res = collectRows();
+    const all = res.errors.slice();
+
+    if (res.articles.length === 0) {
+        if (adjRevisionCode) {
+            all.push('Semua artikel jadi selisih 0. Kalau maksudnya membatalkan seluruh '
+                   + 'adjustment ini, gunakan <strong>Cancel</strong> dari halaman list — '
+                   + 'bukan revisi kosong.');
+        } else {
+            all.push(res.skipped.length > 0
+                ? 'Tidak ada artikel yang saldonya berubah. Ubah saldo akhir minimal 1 artikel.'
+                : 'Artikel harus diisi.');
+        }
+    }
+
+    if (all.length) {
+        Swal.fire({ title:'Validation Error', html: all.join('<br>'), icon:'warning' });
+        return;
+    }
+
+    const url = oEdit ? "{{ route('stockAdjustment.update') }}"
+                      : "{{ route('stockAdjustment.store')  }}";
+
+    $('#cmdSave').attr('disabled', 'disabled');
 
     $.ajax({
-        type: "POST", url,
+        type: "POST",
+        url:  url,
         data: {
+            // #adjCode & #location bisa disabled; .val() tetap mengembalikan nilainya.
             adjCode:     $('#adjCode').val(),
             adjDate:     $('#adjDate').val(),
             adjType:     $('#adjType').val(),
             periode:     $('#periode').val(),
             location:    $('#location').val(),
             description: $('#description').val(),
-            articles:    JSON.stringify(articles),
+            note:        $('#note').length ? $('#note').val() : null,
+            articles:    JSON.stringify(res.articles),
+            reason:      adjReviseReason,   // null di jalur draft — diabaikan controller
         },
         dataType: "json",
         success: function (data) {
             if (data.status == 0) {
                 data.message.forEach(m => show_msg(data.title, m, data.alert));
-            } else {
-                show_msg(data.title, data.message, data.alert);
-                $('#adjCode').val(data.adjCode);
-                $('#oEdit').val(data.oEdit);
-                if (!oEdit) window.location.href = "{{ route('stockAdjustment.create') }}";
+                if (typeof onSaveFailed === 'function') onSaveFailed(data);
+                return;
             }
+            show_msg(data.title, data.message, data.alert);
+            $('#adjCode').val(data.adjCode);
+            $('#oEdit').val(data.oEdit);
+
+            if (typeof onSaveSuccess === 'function') { onSaveSuccess(data, oEdit); return; }
+            if (!oEdit) window.location.href = "{{ route('stockAdjustment.create') }}";
         },
-        error: function (err) { console.error(err); }
+        error: function (err) {
+            console.error(err);
+            Swal.fire('Error..', 'Gagal menyimpan. Cek koneksi lalu coba lagi.', 'error');
+            if (typeof onSaveFailed === 'function') onSaveFailed(null);
+        },
+        complete: function () {
+            $('#cmdSave').removeAttr('disabled');
+        }
     });
 };
 
-$("input[type='text']").on('click', function () { $(this).select(); });
+
+/* ══════════════════════════════════════════════════════════════════════
+   11. IMPORT EXCEL
+
+   Ringan karena: HTML dibangun per BATCH lalu di-insert sekali per batch;
+   select2 lazy (baru init saat select disentuh); listener lewat delegation
+   jadi tidak ada bind per baris.
+
+   `stock_before` dari controller SELALU 0 — nilai historis yang benar
+   (termasuk untuk backdate) diambil setelah semua baris ter-render, lewat
+   satu endpoint bulk untuk semua artikel sekaligus.
+══════════════════════════════════════════════════════════════════════ */
+
+function importRowsFast(rows) {
+    const total = rows.length;
+    let idx = 0;
+    let rowMeta = [];
+
+    function processBatch() {
+        const end   = Math.min(idx + IMPORT_BATCH, total);
+        const batch = [];
+
+        for (; idx < end; idx++) {
+            const r = rows[idx];
+            batch.push({
+                articleCode: r.article_code,
+                balance:     r.qty_adjustment,   // dari Excel = saldo akhir yang dituju
+                uom:         r.uom,
+                uomMember:   r.uom_member,
+                notes:       r.notes,
+                stockBefore: r.stock_before      // placeholder 0, ditimpa bulk fetch
+            });
+        }
+
+        rowMeta = rowMeta.concat(appendRows(batch, { eager: false }));
+
+        if (Swal.isVisible()) {
+            Swal.getHtmlContainer().innerHTML = `<b>${idx}/${total}</b> baris dimuat`;
+        }
+
+        if (idx < total) {
+            requestAnimationFrame(processBatch);   // beri napas ke browser
+            return;
+        }
+
+        feather.replace();
+        hitungGrandTotal();
+
+        fetchStockBulk(rowMeta, finishImport, function (done, chunks) {
+            if (Swal.isVisible()) {
+                Swal.getHtmlContainer().innerHTML =
+                    `Memuat stock before (${done}/${chunks} batch)...`;
+            }
+        });
+    }
+
+    whenArticlesReady(function () {
+        Swal.fire({
+            title: "Importing...",
+            html:  `<b>0/${total}</b> baris dimuat`,
+            icon:  "info",
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); processBatch(); }
+        });
+    });
+}
+
+function finishImport() {
+    $('#uploadExcel').removeAttr('disabled');
+    $(".loading-spinner-container").removeClass("-show");
+    Swal.close();
+    if (typeof clearFileInput === 'function') clearFileInput('file');
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   12. ALIAS BACK-COMPAT — nama lama yang mungkin masih dipanggil blade lain
+══════════════════════════════════════════════════════════════════════ */
+
+const _fetchStockBeforeBulk = fetchStockBulk;
+const _finishImport         = finishImport;
+const _buildUomOptions      = buildUomOptions;
+const _escapeAttr           = esc;
 
 </script>
