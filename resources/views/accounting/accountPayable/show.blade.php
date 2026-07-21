@@ -16,7 +16,7 @@
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
-                        <form id="frmAdd" name="frmAdd" action="{{ route('ap.update',['id'=>Crypt::encryptString($id)]) }}" method="post" autocomplete="off">
+                        <form id="frmAdd" name="frmAdd" action="{{ route('accountPayable.update',['id'=>Crypt::encryptString($id)]) }}" method="post" autocomplete="off">
                             @csrf
                             <div class="row">
                                 <div class="col-md-6 col-12">
