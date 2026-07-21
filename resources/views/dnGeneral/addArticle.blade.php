@@ -277,6 +277,100 @@
         feather.replace();
     };
 
+    // ── Tambah baris untuk mode EDIT (pre-filled) ─────────────────────────────
+add_new_row_edit = function(code, qty, uom, desc) {
+    if (!currentType) return;
+
+    cloneCount++;
+    var $clone = $('#new_row').clone();
+    $clone.removeAttr('id').removeClass('d-none');
+
+    var $select = $clone.find('select[name="articleCode[]"]');
+    $select.attr('id', 'articleCode' + cloneCount);
+    $clone.find('input[name="qtyOrder[]"]').attr('id', 'qtyOrder' + cloneCount);
+
+    // UOM: rm/ot span auto, other input editable
+    if (currentType === 'other') {
+        $clone.find('.uom-val').addClass('d-none');
+        $clone.find('.uom-input').removeClass('d-none');
+    } else {
+        $clone.find('.uom-val').removeClass('d-none');
+        $clone.find('.uom-input').addClass('d-none');
+    }
+
+    $('#article_row').append($clone);
+
+    var isManual = (String(code).toUpperCase() === 'OTHER');
+
+    if (currentType === 'other') {
+        // Select2 dengan tags (sama seperti add_new_row)
+        $select.html(dataArticle);
+        $select.select2({
+            placeholder : '-- Cari atau ketik artikel --',
+            tags        : true,
+            createTag   : function(params) {
+                var term = $.trim(params.term).toUpperCase();
+                if (!term) return null;
+                return { id: 'OTHER', text: term, newTag: true };
+            },
+            insertTag: function(data, tag) { data.unshift(tag); }
+        });
+
+        if (isManual) {
+            // Manual OTHER: buat option baru pakai deskripsi asli
+            var newOpt = new Option(desc, 'OTHER', true, true);
+            $(newOpt).attr('data-newtag', '1');
+            $select.append(newOpt).trigger('change');
+
+            var $row = $select.closest('.tanda-baris');
+            $row.find('.stok-angka').text('0');
+            $row.attr('data-stock', '0');
+            $row.attr('data-manual', '1');
+            $row.find('input[name="uomManual[]"]').val(uom || '');
+        } else {
+            // Dari daftar gudang
+            $select.val(code).trigger('change');
+            var $row  = $select.closest('.tanda-baris');
+            var $opt  = $select.find('option[value="' + code + '"]');
+            var stok  = $opt.attr('qty') || '0';
+            $row.find('.stok-angka').text(stok);
+            $row.attr('data-stock', parseFloat((stok || '0').replace(/,/g, '')) || 0);
+            $row.attr('data-manual', '0');
+            $row.find('input[name="uomManual[]"]').val(uom || $opt.attr('uom_val') || '');
+        }
+    } else {
+        // rm / ot
+        $select.html(dataArticle);
+        $select.select2({ placeholder: '-- Pilih Artikel --' });
+        $select.val(code).trigger('change');
+
+        var $row = $select.closest('.tanda-baris');
+        var $opt = $select.find('option[value="' + code + '"]');
+        var stok = $opt.attr('qty') || '-';
+        $row.find('.stok-angka').text(stok);
+        $row.find('.uom-val').text(uom || $opt.attr('uom_val') || '-');
+        $row.attr('data-stock', parseFloat(($opt.attr('qty') || '0').replace(/,/g, '')) || 0);
+    }
+
+    // Set qty
+    var $qtyInput = $clone.find('input[name="qtyOrder[]"]');
+    $qtyInput.val(qty);
+
+    // Pasang listener validasi & uppercase (sama seperti add_new_row)
+    $qtyInput.on('input keyup change', function() { validateQtyStock($(this)); });
+    $clone.find('input[name="uomManual[]"]').on('input', function() {
+        var pos = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(pos, pos);
+    });
+
+    mask_thousand();
+    validateQtyStock($qtyInput);
+    recordCount();
+    disabledEnabledSelect2();
+    feather.replace();
+};
+
     // ── Collect & validasi ────────────────────────────────────────────────────
     function collectArticles() {
         var articles = [], flag = 0, pesan = '';
