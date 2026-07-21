@@ -64,93 +64,114 @@ class DnGeneralController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    /** Ambil dept user yang login, ternormalisasi 3 digit. Return null bila tidak ter-set. */
-    private function resolveDept()
-    {
-        // ganti 'dept_code' sesuai nama kolom dept di tabel users
-        $dept = trim((string) (Auth::user()->dept_code ?? ''));
+   /** Ambil SEMUA dept user yang login (dari pivot user_dept), ternormalisasi 3 digit */
+private function resolveDepts()
+{
+    $rows = DB::table('user_dept')
+        ->where('username', Auth::user()->username)
+        ->pluck('dept')
+        ->map(function ($d) {
+            $d = trim((string) $d);
+            return $d === '' ? null : str_pad($d, 3, '0', STR_PAD_LEFT);
+        })
+        ->filter()      // buang null
+        ->unique()
+        ->values()
+        ->all();
 
-        if ($dept === '') {
-            return null;
+    return $rows; // array, bisa kosong []
+}
+
+/** Prefix nomor: kalau salah satu dept user masuk grup DN-UMUM -> DN-UMUM, selain itu SJ-UMUM */
+private function resolvePrefix()
+{
+    $depts = $this->resolveDepts();
+
+    foreach ($depts as $d) {
+        if (in_array($d, $this->deptDnUmum, true)) {
+            return 'DN-UMUM';
         }
-
-        return str_pad($dept, 3, '0', STR_PAD_LEFT); // jaga-jaga kalau tersimpan '5' bukan '005'
     }
 
-    /** Tentukan prefix nomor berdasarkan dept user yang login */
-    private function resolvePrefix()
-    {
-        $dept = $this->resolveDept();
+    return 'SJ-UMUM';
+}
 
-        return in_array($dept, $this->deptDnUmum, true) ? 'DN-UMUM' : 'SJ-UMUM';
+/**
+ * Dept apa saja yang boleh dilihat user ini.
+ * return null = tanpa filter (lihat semua)
+ */
+private function visibleDepts()
+{
+    // Superuser & Accounting lihat semua
+    if (Auth::user()->hasAnyRole($this->rolesSeeAll)) {
+        return null;
     }
 
-    /**
-     * Dept apa saja yang boleh dilihat user ini.
-     * return null = tanpa filter (lihat semua)
-     */
-    private function visibleDepts()
-    {
-        // Superuser & Accounting lihat semua
-        if (Auth::user()->hasAnyRole($this->rolesSeeAll)) {
-            return null;
-        }
+    $depts = $this->resolveDepts();
 
-        $dept = $this->resolveDept();
-
-        // Fail-closed: user tanpa dept tidak lihat apa-apa
-        if ($dept === null) {
-            return ['__NONE__'];
-        }
-
-        // Dept grup DN-UMUM saling lihat satu sama lain
-        if (in_array($dept, $this->deptDnUmum, true)) {
-            return $this->deptDnUmum;
-        }
-
-        return [$dept];
+    // Fail-closed: user tanpa dept tidak lihat apa-apa
+    if (empty($depts)) {
+        return ['__NONE__'];
     }
+
+    // Kalau user punya dept di grup DN-UMUM, seluruh grup DN-UMUM ikut terlihat
+    $result = $depts;
+    foreach ($depts as $d) {
+        if (in_array($d, $this->deptDnUmum, true)) {
+            $result = array_merge($result, $this->deptDnUmum);
+            break;
+        }
+    }
+
+    return array_values(array_unique($result));
+}
 
     /**
      * Terapkan filter dept ke query list.
      * Dept diambil dari user pembuat (join users lewat created_by), bukan kolom di dn_general_hdr.
      */
     private function applyDeptFilter($query)
-    {
-        $depts = $this->visibleDepts();
+{
+    $depts = $this->visibleDepts();
 
-        if ($depts === null) {
-            return $query; // Superuser / Accounting: tanpa filter
-        }
-
-        $placeholders = implode(',', array_fill(0, count($depts), '?'));
-
-        return $query
-            ->leftJoin('users as u', 'u.username', '=', 'dn_general_hdr.created_by')
-            ->whereRaw("lpad(trim(u.dept_code),3,'0') in ({$placeholders})", $depts);
+    if ($depts === null) {
+        return $query; // Superuser / Accounting: tanpa filter
     }
+
+    $placeholders = implode(',', array_fill(0, count($depts), '?'));
+
+    // created_by cocok dengan user_dept.username; lpad menyamakan '5' vs '005'
+    return $query->whereExists(function ($q) use ($placeholders, $depts) {
+        $q->select(DB::raw(1))
+          ->from('user_dept')
+          ->whereColumn('user_dept.username', 'dn_general_hdr.created_by')
+          ->whereRaw("lpad(trim(user_dept.dept),3,'0') in ({$placeholders})", $depts);
+    });
+}
 
     /**
      * Pastikan header ini boleh diakses user sekarang.
      * Dipakai di show/edit/print/update/destroy/closed supaya tidak bisa ditembus lewat URL.
      */
     private function assertDeptAccess($dnHdr)
-    {
-        $depts = $this->visibleDepts();
+{
+    $depts = $this->visibleDepts();
 
-        if ($depts === null) {
-            return; // Superuser / Accounting
-        }
-
-        $dept = DB::table('users')->where('username', $dnHdr->created_by)->value('dept_code');
-        $dept = ($dept !== null && trim((string) $dept) !== '')
-            ? str_pad(trim((string) $dept), 3, '0', STR_PAD_LEFT)
-            : null;
-
-        if (!in_array($dept, $depts, true)) {
-            abort(403, 'Anda tidak punya akses ke dokumen ini.');
-        }
+    if ($depts === null) {
+        return; // Superuser / Accounting
     }
+
+    $creatorDepts = DB::table('user_dept')
+        ->where('username', $dnHdr->created_by)
+        ->pluck('dept')
+        ->map(fn ($d) => str_pad(trim((string) $d), 3, '0', STR_PAD_LEFT))
+        ->all();
+
+    // Boleh akses kalau ada irisan antara dept pembuat & dept yang terlihat user
+    if (empty(array_intersect($creatorDepts, $depts))) {
+        abort(403, 'Anda tidak punya akses ke dokumen ini.');
+    }
+}
 
     /*
     |--------------------------------------------------------------------------
@@ -483,9 +504,9 @@ class DnGeneralController extends Controller
         $location     = $this->gudangMap[$dnType] ?? null;
 
         // Penomoran: prefix & counter tergantung dept user yang login
-        $deptCode = $this->resolveDept();
-        $prefix   = $this->resolvePrefix();
-        $leadCode = $this->codeKeyMap[$prefix];
+       $deptCode = $this->resolveDepts();   // array
+$prefix   = $this->resolvePrefix();
+$leadCode = $this->codeKeyMap[$prefix];
 
         $validation = Validator::make($request->all(), [
             'deliveryDate' => 'required',
@@ -507,14 +528,13 @@ class DnGeneralController extends Controller
             return response()->json(['status' => 0, 'message' => ['Type tidak valid.'], 'alert' => 'warning']);
         }
 
-        // User tanpa dept ditolak — jangan diam-diam dikasih SJ-UMUM
-        if (!$deptCode) {
-            return response()->json([
-                'status'  => 0,
-                'message' => ['Dept user tidak ter-set. Hubungi admin.'],
-                'alert'   => 'warning',
-            ]);
-        }
+       if (empty($deptCode)) {
+    return response()->json([
+        'status'  => 0,
+        'message' => ['Dept user tidak ter-set. Hubungi IT.'],
+        'alert'   => 'warning',
+    ]);
+}
 
         if (empty($articles)) {
             return response()->json(['status' => 0, 'message' => ['Minimal 1 artikel harus diisi.'], 'alert' => 'warning']);
