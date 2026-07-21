@@ -457,7 +457,7 @@ $hasPrivilegedRole = Auth::user()->hasAnyRole(['Superuser', 'accounting']);
 $data['showCriticalStock'] = $hasAllowedDept || $hasPrivilegedRole;
 
 if ($data['showCriticalStock']) {
-    $allowedLocations = ['009', '005', '006']; // RM, Chemical, Consumable, FG
+    $allowedLocations = ['009', '005', '006', '007']; // RM, Chemical, Consumable, FG
 
     $data['listCriticalStock'] = DB::table('warehouse_stock as ws')
         ->join('article as a', 'a.article_code', '=', 'ws.article_code')
