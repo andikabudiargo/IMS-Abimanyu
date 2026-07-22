@@ -1381,7 +1381,7 @@ $leadCode = $this->codeKeyMap[$prefix];
 
     case 'lb3':
         // Hanya group_of_material B3
-        $query->where('a.group_of_material', 'B3');
+        $query->whereIn('a.group_of_material',['B3', 'KLB3', 'JASA']);
         break;
 
     case 'rig':
