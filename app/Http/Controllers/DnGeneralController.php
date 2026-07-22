@@ -50,7 +50,7 @@ class DnGeneralController extends Controller
     ];
 
     /** Role yang bisa lihat semua dept (nama harus PERSIS sama dengan tabel roles) */
-    private $rolesSeeAll = ['Superuser', 'Accounting'];
+    private $rolesSeeAll = ['Superuser', 'accounting'];
 
     /** Peta status tunggal untuk seluruh controller */
     private $statusMap = [
