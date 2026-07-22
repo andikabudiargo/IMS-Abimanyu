@@ -236,7 +236,7 @@ private function visibleDepts()
         'trial' => "<span class='badge badge-primary'>TRIAL & SAMPLE</span>",
         'ms'    => "<span class='badge badge-light-primary'>MATERIAL SUPPORT</span>",
         'cs'    => "<span class='badge badge-warning'>CHEMICAL SUPPORT</span>",
-        'lb3'   => "<span class='badge badge-dark'>LIMBAH B3</span>"
+        'lb3'   => "<span class='badge badge-dark'>LIMBAH B3</span>",
         'lnb3'  => "<span class='badge badge-dark'>LIMBAH NON B3</span>",
         'rig'   => "<span class='badge badge-info'>RETURN ISI GAS</span>",
         'other' => "<span class='badge badge-warning'>OTHER</span>",
