@@ -364,41 +364,6 @@
     </div>{{-- /.form-row --}}
 </section>
 
-{{-- ── MODAL REASON ─────────────────────────────────────────────────── --}}
-@if($isRevision)
-<div class="modal fade" id="reasonModalRevisi" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title">Alasan Revisi</h5>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-            </div>
-            <div class="modal-body">
-
-                {{-- Ringkasan dampak diisi oleh JS sebelum modal tampil --}}
-                <div id="revisePreview" class="mb-1"></div>
-
-                <label class="form-label">
-                    Kenapa dokumen ini direvisi? <span class="text-danger">*</span>
-                </label>
-                <textarea id="reviseReason" class="form-control" rows="3"
-                          maxlength="500"
-                          placeholder="cth: salah input qty, saldo akhir seharusnya 12 bukan 10"></textarea>
-                <small class="text-muted">
-                    Tersimpan permanen di revision history bersama rincian perubahannya.
-                </small>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-warning" id="btnConfirmRevisi">
-                    Simpan Revisi
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-@endif
-
 @endsection
 
 @section('styles')
@@ -632,20 +597,46 @@ document.querySelector('#cmdSave').addEventListener('click', () => {
         return;
     }
 
-    $('#revisePreview').html(preview.html);
-    $('#reviseReason').val('').removeClass('is-invalid');
-    $('#reasonModalRevisi').modal('show');
-});
-
-$('#btnConfirmRevisi').on('click', function () {
-    const reason = $('#reviseReason').val().trim();
-    if (!reason) {
-        $('#reviseReason').addClass('is-invalid').focus();
-        return;
-    }
-    adjReviseReason = reason;
-    $('#reasonModalRevisi').modal('hide');
-    simpanData(true);
+    Swal.fire({
+        title: 'Alasan Revisi',
+        html: `
+            <div class="text-left">
+                ${preview.html}
+                <label class="form-label mt-1 d-block">
+                    Kenapa dokumen ini direvisi? <span class="text-danger">*</span>
+                </label>
+                <textarea id="swalReviseReason" class="form-control" rows="3" maxlength="500"
+                    placeholder="cth: salah input qty, saldo akhir seharusnya 12 bukan 10"
+                    style="resize:none;"></textarea>
+                <small class="text-muted d-block mt-25">
+                    Tersimpan permanen di revision history bersama rincian perubahannya.
+                </small>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Simpan Revisi',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#FF9F43',
+        reverseButtons: true,
+        focusConfirm: false,
+        didOpen: () => {
+            document.getElementById('swalReviseReason').focus();
+        },
+        preConfirm: () => {
+            const reason = document.getElementById('swalReviseReason').value.trim();
+            if (!reason) {
+                Swal.showValidationMessage('Alasan revisi wajib diisi');
+                return false;
+            }
+            return reason;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            adjReviseReason = result.value;
+            simpanData(true);
+        }
+    });
 });
 
 /* Dipanggil dari simpanData() di addArticle.blade.php setelah response sukses. */
