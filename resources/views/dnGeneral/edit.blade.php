@@ -37,10 +37,18 @@
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label class="form-label">Type</label>
-                                    @php
-                                        $typeLabel = ['rm' => 'Return RM', 'ot' => 'Return OT', 'other' => 'Other'];
-                                        $typeBadge = ['rm' => 'badge-danger', 'ot' => 'badge-info', 'other' => 'badge-warning'];
-                                    @endphp
+                                   @php
+    $typeLabel = [
+        'rm' => 'Return RM', 'ot' => 'Return OT', 'box' => 'Box Kosong', 'troli' => 'Troli Kosong',
+        'trial' => 'Trial & Sample', 'ms' => 'Material Support', 'cs' => 'Chemical Support',
+        'lnb3' => 'Limbah Non B3', 'rig' => 'Return Isi Gas', 'other' => 'Other'
+    ];
+    $typeBadge = [
+        'rm' => 'badge-danger', 'ot' => 'badge-info', 'box' => 'badge-secondary', 'troli' => 'badge-secondary',
+        'trial' => 'badge-primary', 'ms' => 'badge-light-primary', 'cs' => 'badge-warning',
+        'lnb3' => 'badge-dark', 'rig' => 'badge-info', 'other' => 'badge-warning'
+    ];
+@endphp
                                     <div class="form-control" style="background:#f8f8f8;">
                                         <span class="badge {{ $typeBadge[$header->dn_type] ?? 'badge-secondary' }}">
                                             {{ $typeLabel[$header->dn_type] ?? strtoupper($header->dn_type) }}

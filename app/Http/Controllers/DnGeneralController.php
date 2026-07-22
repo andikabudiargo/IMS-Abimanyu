@@ -18,11 +18,19 @@ class DnGeneralController extends Controller
 
     /** Site & gudang asal per tipe DN */
     private $siteCode = 'HO';
+
     private $gudangMap = [
-        'rm'    => '037',   // Return NG RM   -> Supplier
-        'ot'    => '008',   // Return OT      -> Customer
-        'other' => '011',   // Other          -> bebas (third_party)
-    ];
+    'rm'    => '037',   // Return NG RM   -> Supplier
+    'ot'    => '008',   // Return OT      -> Customer
+    'other' => '011',   // Other          -> bebas (third_party)
+    'box'   => '011',   // Box Kosong     -> TODO: konfirmasi kode lokasi asli
+    'troli' => '011',   // Troli Kosong   -> TODO: konfirmasi kode lokasi asli
+    'trial' => '011',   // Trial & Sample -> TODO: konfirmasi kode lokasi asli
+    'ms'    => '011',   // Material Support -> TODO: konfirmasi kode lokasi asli
+    'cs'    => '011',   // Chemical Support -> TODO: konfirmasi kode lokasi asli
+    'lnb3'  => '011',   // Limbah Non B3  -> TODO: konfirmasi kode lokasi asli
+    'rig'   => '011',   // Return Isi Gas -> TODO: konfirmasi kode lokasi asli
+];
 
     /** Jenis movement dipakai konsisten di store/update/destroy */
     const MOVEMENT_TYPE        = 'SURAT JALAN UMUM';
@@ -218,14 +226,21 @@ private function visibleDepts()
     }
 
     private function dnTypeBadgeHtml($type)
-    {
-        $map = [
-            'rm'    => "<span class='badge badge-danger'>RETURN NG RM</span>",
-            'ot'    => "<span class='badge badge-info'>RETURN OT</span>",
-            'other' => "<span class='badge badge-warning'>OTHER</span>",
-        ];
-        return $map[$type] ?? "<span class='badge badge-secondary'>" . strtoupper((string) $type) . "</span>";
-    }
+{
+    $map = [
+        'rm'    => "<span class='badge badge-danger'>RETURN NG RM</span>",
+        'ot'    => "<span class='badge badge-info'>RETURN OT</span>",
+        'box'   => "<span class='badge badge-secondary'>BOX KOSONG</span>",
+        'troli' => "<span class='badge badge-secondary'>TROLI KOSONG</span>",
+        'trial' => "<span class='badge badge-primary'>TRIAL & SAMPLE</span>",
+        'ms'    => "<span class='badge badge-light-primary'>MATERIAL SUPPORT</span>",
+        'cs'    => "<span class='badge badge-warning'>CHEMICAL SUPPORT</span>",
+        'lnb3'  => "<span class='badge badge-dark'>LIMBAH NON B3</span>",
+        'rig'   => "<span class='badge badge-info'>RETURN ISI GAS</span>",
+        'other' => "<span class='badge badge-warning'>OTHER</span>",
+    ];
+    return $map[$type] ?? "<span class='badge badge-secondary'>" . strtoupper((string) $type) . "</span>";
+}
 
     /** Ambil qty stok terkini sebuah artikel di lokasi tertentu */
     private function currentStock($articleCode, $location)
@@ -236,6 +251,8 @@ private function visibleDepts()
             ->where('location_number', $location)
             ->value('article_qty') ?? 0);
     }
+
+    
 
     /*
     |--------------------------------------------------------------------------
@@ -1313,71 +1330,108 @@ $leadCode = $this->codeKeyMap[$prefix];
     }
 
     public function articlesByType(Request $request)
-    {
-        $type   = $request->type;
-        $gudang = $this->gudangMap[$type] ?? null;
+{
+    $type   = $request->type;
+    $gudang = $this->gudangMap[$type] ?? null;
 
-        // ── OTHER: semua artikel AKTIF kecuali group of material = JS ──
-        if ($type === 'other') {
-            return DB::table('article as a')
-                ->leftJoin('warehouse_stock as s', function ($join) use ($gudang) {
-                    $join->on('s.article_code', '=', 'a.article_code')
-                        ->where('s.location_number', '=', $gudang);
-                })
-                ->where('a.status', '1')
-                ->where(function ($q) {
-                    $q->where('a.group_of_material', '!=', 'JS')
-                        ->orWhereNull('a.group_of_material');
-                })
-                ->select(
-                    'a.article_code             as code',
-                    'a.article_alternative_code as alt_code',
-                    'a.article_desc             as name',
-                    DB::raw('coalesce(s.article_qty, 0) as qty'),
-                    'a.uom'
-                )
-                ->orderBy('a.article_alternative_code')
-                ->get();
-        }
+    // Type yang: (1) tampilkan semua supplier & customer, (2) artikel TIDAK
+    // bergantung pada customer yang dipilih (list-nya sama untuk semua)
+    $customerIndependentTypes = ['other', 'box', 'troli', 'trial', 'ms', 'cs', 'lnb3', 'rig'];
 
-        if (!$request->customer) {
-            return response()->json([]);
-        }
+    if (in_array($type, $customerIndependentTypes, true)) {
+        $query = DB::table('article as a')
+            ->leftJoin('warehouse_stock as s', function ($join) use ($gudang) {
+                $join->on('s.article_code', '=', 'a.article_code')
+                    ->where('s.location_number', '=', $gudang);
+            })
+            ->where('a.status', '1');
 
-        // ── FG: tidak cek gudang & stok, hanya berdasarkan customer ──
-        if ($type === 'ot') {
-            return DB::table('article as a')
-                ->where('a.article_type', 'FG')
-                ->where('a.third_party', $request->customer)
-                ->select(
-                    'a.article_code             as code',
-                    'a.article_alternative_code as alt_code',
-                    'a.article_desc             as name',
-                    DB::raw('0 as qty'),
-                    'a.uom'
-                )
-                ->orderBy('a.article_alternative_code')
-                ->get();
-        }
+       switch ($type) {
+    case 'other':
+    case 'box':
+    case 'troli':
+        // Semua artikel aktif (status=1 sudah difilter di atas), kecuali group JS.
+        $query->where(function ($q) {
+            $q->where('a.group_of_material', '!=', 'JS')
+                ->orWhereNull('a.group_of_material');
+        });
+        break;
 
-        // ── RM: berdasarkan gudang + stok + customer ──
-        if (!$gudang) {
-            return response()->json([]);
-        }
+    case 'trial':
+        // Semua artikel aktif (freeze otomatis ter-exclude karena status=1),
+        // kecuali article_type GA.
+        $query->where('a.article_type', '!=', 'GA');
+        break;
 
-        return DB::table('warehouse_stock as s')
-            ->join('article as a', 's.article_code', '=', 'a.article_code')
-            ->where('s.location_number', $gudang)
-            ->where('s.article_qty', '>', 0)
-            ->where('a.third_party', $request->customer)
-            ->select(
+    case 'cs':
+        // Hanya article_type CM1
+        $query->where('a.article_type', 'CM1');
+        break;
+
+    case 'ms':
+        // Semua artikel aktif, tanpa filter tambahan
+        break;
+
+    case 'lnb3':
+        // Hanya group_of_material NB3
+        $query->where('a.group_of_material', 'NB3');
+        break;
+
+    case 'rig':
+        // Hanya article_type GA
+        $query->where('a.article_type', 'GA');
+        break;
+}
+
+        return $query->select(
                 'a.article_code             as code',
                 'a.article_alternative_code as alt_code',
                 'a.article_desc             as name',
-                's.article_qty              as qty',
+                DB::raw('coalesce(s.article_qty, 0) as qty'),
                 'a.uom'
             )
             ->orderBy('a.article_alternative_code')
             ->get();
     }
+
+    // ── rm & ot: artikel tergantung customer yang dipilih ──
+    if (!$request->customer) {
+        return response()->json([]);
+    }
+
+    if ($type === 'ot') {
+        return DB::table('article as a')
+            ->where('a.article_type', 'FG')
+            ->where('a.third_party', $request->customer)
+            ->select(
+                'a.article_code             as code',
+                'a.article_alternative_code as alt_code',
+                'a.article_desc             as name',
+                DB::raw('0 as qty'),
+                'a.uom'
+            )
+            ->orderBy('a.article_alternative_code')
+            ->get();
+    }
+
+    // ── rm: berdasarkan gudang + stok + customer ──
+    if (!$gudang) {
+        return response()->json([]);
+    }
+
+    return DB::table('warehouse_stock as s')
+        ->join('article as a', 's.article_code', '=', 'a.article_code')
+        ->where('s.location_number', $gudang)
+        ->where('s.article_qty', '>', 0)
+        ->where('a.third_party', $request->customer)
+        ->select(
+            'a.article_code             as code',
+            'a.article_alternative_code as alt_code',
+            'a.article_desc             as name',
+            's.article_qty              as qty',
+            'a.uom'
+        )
+        ->orderBy('a.article_alternative_code')
+        ->get();
+}
 }

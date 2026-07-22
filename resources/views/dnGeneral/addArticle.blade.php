@@ -158,6 +158,12 @@
         return true;
     }
 
+    // Type yang boleh ketik artikel manual (select2 tags)
+var MANUAL_TYPES = ['other', 'box', 'troli'];
+function isManualType(type) {
+    return MANUAL_TYPES.indexOf(type) !== -1;
+}
+
         // ── Tambah baris baru ─────────────────────────────────────────────────────
     add_new_row = function() {
         if (!currentType) {
@@ -178,21 +184,21 @@
         $clone.find('input[name="qtyOrder[]"]').attr('id', 'qtyOrder' + cloneCount);
 
         // UOM: rm/ot pakai span auto; other pakai input editable
-        if (currentType === 'other') {
-            $clone.find('.uom-val').addClass('d-none');
-            $clone.find('.uom-input').removeClass('d-none');
-        } else {
-            $clone.find('.uom-val').removeClass('d-none');
-            $clone.find('.uom-input').addClass('d-none');
-        }
+      if (isManualType(currentType)) {
+    $clone.find('.uom-val').addClass('d-none');
+    $clone.find('.uom-input').removeClass('d-none');
+} else {
+    $clone.find('.uom-val').removeClass('d-none');
+    $clone.find('.uom-input').addClass('d-none');
+}
 
         $('#article_row').append($clone);
 
         // ── Init Select2 ─────────────────────────────────────────────────────
-        if (currentType === 'other') {
-            $select.html(dataArticle);
-            $select.select2({
-                placeholder : '-- Cari atau ketik artikel --',
+        if (isManualType(currentType)) {
+    $select.html(dataArticle);
+    $select.select2({
+                placeholder : '-- Choose Article --',
                 tags        : true,
                 createTag   : function(params) {
                     var term = $.trim(params.term).toUpperCase();   // paksa uppercase
@@ -290,23 +296,23 @@ add_new_row_edit = function(code, qty, uom, desc) {
     $clone.find('input[name="qtyOrder[]"]').attr('id', 'qtyOrder' + cloneCount);
 
     // UOM: rm/ot span auto, other input editable
-    if (currentType === 'other') {
-        $clone.find('.uom-val').addClass('d-none');
-        $clone.find('.uom-input').removeClass('d-none');
-    } else {
-        $clone.find('.uom-val').removeClass('d-none');
-        $clone.find('.uom-input').addClass('d-none');
-    }
+   if (isManualType(currentType)) {
+    $clone.find('.uom-val').addClass('d-none');
+    $clone.find('.uom-input').removeClass('d-none');
+} else {
+    $clone.find('.uom-val').removeClass('d-none');
+    $clone.find('.uom-input').addClass('d-none');
+}
 
     $('#article_row').append($clone);
 
     var isManual = (String(code).toUpperCase() === 'OTHER');
 
-    if (currentType === 'other') {
+    if (isManualType(currentType)) {
         // Select2 dengan tags (sama seperti add_new_row)
         $select.html(dataArticle);
         $select.select2({
-            placeholder : '-- Cari atau ketik artikel --',
+            placeholder : '-- Choose Article --',
             tags        : true,
             createTag   : function(params) {
                 var term = $.trim(params.term).toUpperCase();
@@ -384,11 +390,11 @@ add_new_row_edit = function(code, qty, uom, desc) {
             var name = selData ? $.trim(selData.text) : '';
 
             var uom;
-            if (currentType === 'other') {
-                uom = $row.find('input[name="uomManual[]"]').val().trim();
-            } else {
-                uom = $row.find('.uom-val').text().trim();
-            }
+            if (isManualType(currentType)) {
+    uom = $row.find('input[name="uomManual[]"]').val().trim();
+} else {
+    uom = $row.find('.uom-val').text().trim();
+}
 
             var qty = $row.find('input[name="qtyOrder[]"]').val().replace(/,/g, '') || 0;
 
@@ -397,7 +403,7 @@ add_new_row_edit = function(code, qty, uom, desc) {
                 flag = 1; return;
             }
             if (Number(qty) <= 0) {
-                pesan += 'QTY artikel <b>' + (currentType === 'other' ? name : code) + '</b> tidak boleh 0.<br>';
+                pesan += 'QTY artikel <b>' + (isManualType(currentType) ? name : code) + '</b> tidak boleh 0.<br>';
                 flag = 1; return;
             }
 
