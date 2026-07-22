@@ -85,7 +85,7 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-6 d-none">
                                 <label for="price">Price</label>
                                 <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price',$article->costprice) }}"  maxlength="18"/>
                             </div>
@@ -98,6 +98,15 @@
                                     @endforeach
                                 </select>
                             </div>
+                           <div class="form-group col-md-6">
+    <label class="form-label" for="coa">Chart of Account (CoA)</label>
+    <select class="select2 form-control" id="coa" name="coa" required>
+        <option value=""></option>
+        @foreach($accounts as $val)
+            <option value="{{ $val->account }}" {{ $val->account == old('coa', $article->coa) ? 'selected' : '' }}>{{ $val->account }} - {{ $val->description }}</option>
+        @endforeach
+    </select>
+</div>
                         </div>
                         <div class="form-row">
                             <div class="col-6">

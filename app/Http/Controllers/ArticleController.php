@@ -400,6 +400,14 @@
             ->where('key',$data['article']->article_code)
             ->get();
 
+            $data['accounts'] = DB::table('accounts')
+    // ->whereIn('type_code',['21','22','23','24'])
+    ->where('acc_header','!=','HEADER')
+    ->orderByRaw("CASE WHEN account ~ '^[0-9]+(\.[0-9]+)?$' THEN account::numeric ELSE NULL END")
+    ->orderBy('account')
+    ->get();
+
+
             $data['types'] = DB::table('article_types')
             ->where ('status','=',1)
             ->orderBy('name')
@@ -1371,6 +1379,14 @@ private function buildSummaryRow(array $p)
             ->orderBy('name')
             ->get();
 
+            $data['accounts'] = DB::table('accounts')
+    // ->whereIn('type_code',['21','22','23','24'])
+    ->where('acc_header','!=','HEADER')
+    ->orderByRaw("CASE WHEN account ~ '^[0-9]+(\.[0-9]+)?$' THEN account::numeric ELSE NULL END")
+    ->orderBy('account')
+    ->get();
+
+
             $data['uoms'] = DB::table('uom')
             ->orderBy('name')
             ->get();
@@ -1387,6 +1403,7 @@ private function buildSummaryRow(array $p)
             $nama = strtoupper($request->nama);
             $group = $request->group;
             $uom = $request->uom;
+            $coa = $request->coa;
             // $price = $request->price;
             // $price = $price ? str_replace(",","",$price) : $price;
             // $sapetiStok = $request->safetyStock;
@@ -1443,6 +1460,7 @@ private function buildSummaryRow(array $p)
                         'third_party' => $cust[0],
                         'note' => $note,
                         'uom' => $uom,
+                        'coa' => $coa, 
                         'safety_stock' => $safetyStock,
                         'min_package' => $minimumPackage,
                         'costprice' => $price,
@@ -1542,7 +1560,7 @@ private function buildSummaryRow(array $p)
     
     $data['article'] = DB::table('article_request')
     ->where('id',$id)
-    ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing','status_approve'])->first();
+    ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','coa','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing','status_approve'])->first();
 
     $data['bisaApprove'] = DB::table('article_request')
     ->select('article_request.*'
@@ -1568,6 +1586,13 @@ private function buildSummaryRow(array $p)
     ->orderBy('name')
     ->get();
 
+    $data['accounts'] = DB::table('accounts')
+    // ->whereIn('type_code',['21','22','23','24'])
+    ->where('acc_header','!=','HEADER')
+    ->orderByRaw("CASE WHEN account ~ '^[0-9]+(\.[0-9]+)?$' THEN account::numeric ELSE NULL END")
+    ->orderBy('account')
+    ->get();
+
     $data['suppliers']= DB::table('article_supplier_request') 
     ->where('article_code',$data['article']->article_code)
     ->orderBy('id')
@@ -1587,6 +1612,7 @@ private function buildSummaryRow(array $p)
             $nama = strtoupper($request->nama);
             $group = $request->group;
             $uom = $request->uom;
+            $coa = $request->coa;
             $price = preg_replace('/[^0-9.]/', '', $request->price);
             $safetyStock = preg_replace('/[^0-9.]/', '', $request->safetyStock);
             $minimumPackage = preg_replace('/[^0-9.]/', '', $request->minimumPackage);
@@ -1628,6 +1654,7 @@ private function buildSummaryRow(array $p)
                             'third_party' => $cust[0],
                             'note' => $note,
                             'uom' => $uom,
+                            'coa' => $coa,
                             'safety_stock' => $safetyStock,
                             'min_package' => $minimumPackage,
                             'costprice' => $price,
@@ -1962,6 +1989,7 @@ private function buildSummaryRow(array $p)
             $nama = strtoupper($request->nama);
             $group = $request->group;
             $uom = $request->uom;
+            $coa = $request->coa;
             $price = is_null($request->price) ? 0 : preg_replace('/[^0-9.]/', '', $request->price);
             $safetyStock = is_null($request->safetyStock) ? 0 : preg_replace('/[^0-9.]/', '', $request->safetyStock);
             $minimumPackage = preg_replace('/[^0-9.]/', '', $request->minimumPackage);
@@ -2009,6 +2037,7 @@ private function buildSummaryRow(array $p)
                         'third_party' => $cust[0],
                         'note' => $note,
                         'uom' => $uom,
+                        'coa' => $coa,
                         'safety_stock' => $safetyStock,
                         'min_package' => $minimumPackage,
                         'costprice' => $price,
