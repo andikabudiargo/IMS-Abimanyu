@@ -42,6 +42,7 @@
                                             <option value="trial">Trial & Sample</option>
                                             <option value="ms">Material Support</option>
                                             <option value="cs">Chemical Support</option>
+                                            <option value="lb3">Limbah B3</option>
                                             <option value="lnb3">Limbah Non B3</option>
                                             <option value="rig">Return Isi Gas</option>
                                             <option value="other">Other</option>
@@ -153,6 +154,7 @@
     trial: @json($allParties),
     ms   : @json($allParties),
     cs   : @json($allParties),
+    lb3 : @json($allParties),
     lnb3 : @json($allParties),
     rig  : @json($allParties),
     other: @json($allParties)
@@ -172,12 +174,12 @@
     function setBadge(type) {
     var label = {
         rm:'Return RM', ot:'Return OT', box:'Box Kosong', troli:'Troli Kosong',
-        trial:'Trial & Sample', ms:'Material Support', cs:'Chemical Support',
+        trial:'Trial & Sample', ms:'Material Support', cs:'Chemical Support',  lb3:'Limbah B3',
         lnb3:'Limbah Non B3', rig:'Return Isi Gas', other:'Other'
     };
     var color = {
         rm:'badge-danger', ot:'badge-info', box:'badge-secondary', troli:'badge-secondary',
-        trial:'badge-primary', ms:'badge-light-primary', cs:'badge-warning',
+        trial:'badge-primary', ms:'badge-light-primary', cs:'badge-warning',  lb3:'badge-dark',
         lnb3:'badge-dark', rig:'badge-info', other:'badge-warning'
     };
     $('#typeBadge')

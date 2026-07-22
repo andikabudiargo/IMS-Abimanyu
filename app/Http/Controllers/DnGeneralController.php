@@ -28,6 +28,7 @@ class DnGeneralController extends Controller
     'trial' => '011',   // Trial & Sample -> TODO: konfirmasi kode lokasi asli
     'ms'    => '011',   // Material Support -> TODO: konfirmasi kode lokasi asli
     'cs'    => '011',   // Chemical Support -> TODO: konfirmasi kode lokasi asli
+    'lb3'    => '011',   // Chemical Support -> TODO: konfirmasi kode lokasi asli
     'lnb3'  => '011',   // Limbah Non B3  -> TODO: konfirmasi kode lokasi asli
     'rig'   => '011',   // Return Isi Gas -> TODO: konfirmasi kode lokasi asli
 ];
@@ -235,6 +236,7 @@ private function visibleDepts()
         'trial' => "<span class='badge badge-primary'>TRIAL & SAMPLE</span>",
         'ms'    => "<span class='badge badge-light-primary'>MATERIAL SUPPORT</span>",
         'cs'    => "<span class='badge badge-warning'>CHEMICAL SUPPORT</span>",
+        'lb3'   => "<span class='badge badge-dark'>LIMBAH B3</span>"
         'lnb3'  => "<span class='badge badge-dark'>LIMBAH NON B3</span>",
         'rig'   => "<span class='badge badge-info'>RETURN ISI GAS</span>",
         'other' => "<span class='badge badge-warning'>OTHER</span>",
@@ -1336,7 +1338,7 @@ $leadCode = $this->codeKeyMap[$prefix];
 
     // Type yang: (1) tampilkan semua supplier & customer, (2) artikel TIDAK
     // bergantung pada customer yang dipilih (list-nya sama untuk semua)
-    $customerIndependentTypes = ['other', 'box', 'troli', 'trial', 'ms', 'cs', 'lnb3', 'rig'];
+    $customerIndependentTypes = ['other', 'box', 'troli', 'trial', 'ms', 'cs', 'lb3', 'lnb3', 'rig'];
 
     if (in_array($type, $customerIndependentTypes, true)) {
         $query = DB::table('article as a')
@@ -1375,6 +1377,11 @@ $leadCode = $this->codeKeyMap[$prefix];
     case 'lnb3':
         // Hanya group_of_material NB3
         $query->where('a.group_of_material', 'NB3');
+        break;
+
+    case 'lb3':
+        // Hanya group_of_material B3
+        $query->where('a.group_of_material', 'B3');
         break;
 
     case 'rig':
