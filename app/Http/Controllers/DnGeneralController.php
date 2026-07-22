@@ -1400,19 +1400,25 @@ $leadCode = $this->codeKeyMap[$prefix];
     }
 
     if ($type === 'ot') {
-        return DB::table('article as a')
-            ->where('a.article_type', 'FG')
-            ->where('a.third_party', $request->customer)
-            ->select(
-                'a.article_code             as code',
-                'a.article_alternative_code as alt_code',
-                'a.article_desc             as name',
-                DB::raw('0 as qty'),
-                'a.uom'
-            )
-            ->orderBy('a.article_alternative_code')
-            ->get();
-    }
+    $gudangOt = $this->gudangMap['ot']; // '008'
+
+    return DB::table('article as a')
+        ->leftJoin('warehouse_stock as s', function ($join) use ($gudangOt) {
+            $join->on('s.article_code', '=', 'a.article_code')
+                ->where('s.location_number', '=', $gudangOt);
+        })
+        ->where('a.article_type', 'FG')
+        ->where('a.third_party', $request->customer)
+        ->select(
+            'a.article_code             as code',
+            'a.article_alternative_code as alt_code',
+            'a.article_desc             as name',
+            DB::raw('coalesce(s.article_qty, 0) as qty'),
+            'a.uom'
+        )
+        ->orderBy('a.article_alternative_code')
+        ->get();
+}
 
     // ── rm: berdasarkan gudang + stok + customer ──
     if (!$gudang) {
