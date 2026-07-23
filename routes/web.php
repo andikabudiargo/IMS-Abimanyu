@@ -620,13 +620,18 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('actualLoading/wos/detail',['as'=>'production.actualLoading.wos.detail','uses'=>'Production\ActualLoadingController@wosDetail']);
 	Route::post('actualLoading/approve',['as'=>'production.actualLoading.approve','uses'=>'Production\ActualLoadingController@approve']);
 	Route::get('actualLoading/revision',['as'=>'production.actualLoading.revision','uses'=>'Production\ActualLoadingController@revision','middleware' => ['permission:actualLoading-revision']]);
-
+	Route::get('actualLoading/articleBySprayBooth', ['as'=>'production.actualLoading.articleBySprayBooth','uses'=>'Production\ActualLoadingController@articleBySprayBooth']);
+	Route::get('production/actual-loading/rm-detail-by-spray-booth',['as'=>'production.actualLoading.rmDetailBySprayBooth', 'uses'=>'Production\ActualLoadingController@rmDetailBySprayBooth']);
 	Route::get('actualLoading/export-excel',['as'=>'actualLoading.export.excel','uses'=>'Production\ActualLoadingController@export']);
 	Route::post('actualLoading/import-excel',['as'=>'actualLoading.import.excel','uses'=>'Production\ActualLoadingController@importExcel']);
+	Route::get('actualLoading/repaintDetailByArticle', ['as'=>'production.actualLoading.repaintDetailByArticle','uses'=>'Production\ActualLoadingController@repaintDetailByArticle']);
 
 	Route::get('actualFinishGoods',['as'=>'production.actualFinishGoods.index','uses'=>'Production\ActualFinishGoodsController@index','middleware' => ['permission:actualFinishGoods-index']]);
 	Route::get('actualFinishGoods/list',['as'=>'production.actualFinishGoods.list','uses'=>'Production\ActualFinishGoodsController@list']);
 	Route::get('actualFinishGoods/list/detail',['as'=>'production.actualFinishGoods.list.detail','uses'=>'Production\ActualFinishGoodsController@listDetail']);
+	Route::get('production/actual-finish-goods/create', ['as' => 'production.actualFinishGoods.create', 'uses'=>'Production\ActualFinishGoodsController@create']);
+	Route::get('production/actual-finish-goods/article-by-loading',['as'=>'production.actualFinishGoods.articleByLoading', 'uses'=>'Production\ActualFinishGoodsController@articleByLoading']);
+	Route::post('production/actual-finish-goods/store', ['as'=>'production.actualFinishGoods.store', 'uses'=>'Production\ActualFinishGoodsController@store']);
 	Route::get('actualFinishGoods/show',['as'=>'production.actualFinishGoods.show','uses'=>'Production\ActualFinishGoodsController@show']);
 	Route::get('actualFinishGoods/edit',['as'=>'production.actualFinishGoods.edit','uses'=>'Production\ActualFinishGoodsController@edit','middleware' => ['permission:actualFinishGoods-edit']]);
 	Route::post('actualFinishGoods/update',['as'=>'production.actualFinishGoods.update','uses'=>'Production\ActualFinishGoodsController@update']);
@@ -745,6 +750,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('transferStock/show',['as'=>'transferStock.show','uses'=>'TransferStockController@show']);
 	Route::post('transferStock/store',['as'=>'transferStock.store','uses'=>'TransferStockController@store']);
 	Route::post('transferStock/approve',['as'=>'transferStock.approve','uses'=>'TransferStockController@approve']);
+	Route::post('transferStock/updatePostedQty', ['as'=>'transferStock.updatePostedQty','uses'=>'TransferStockController@updatePostedQty']);
 	Route::post('transferStock/update',['as'=>'transferStock.update','uses'=>'TransferStockController@update']);
 	Route::get('transferStock/list',['as'=>'transferStock.list','uses'=>'TransferStockController@list']);
 	Route::get('transferStock/list/detail',['as'=>'transferStock.list.detail','uses'=>'TransferStockController@listDetail']);
