@@ -30,7 +30,7 @@ public function __construct()
     $this->title      = "Actual Finish Goods";
     $this->moduleCode = "PRDFG";
 
-    $this->whLoading = '038'; // sumber stok fisik (hasil actual loading)
+    $this->whLoading = '047'; // sumber stok fisik (hasil actual loading)
     $this->whFg      = '007'; // gudang FG
     $this->whFgOt    = '008'; // gudang FG OT
     $this->whWip     = '012'; // gudang WIP

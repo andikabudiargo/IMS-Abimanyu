@@ -453,7 +453,7 @@ public function repaintDetailByArticle(Request $request)
     $reference   = $request->reference;   // ⬅ NEW
     $note        = $request->note;
 
-    $loadingLocation = '038';       // gudang Actual Loading (tujuan)
+    $loadingLocation = '047';       // gudang Actual Loading (tujuan)
     $movementType    = 'LOADING';
 
     $validation = Validator::make($request->all(), [
@@ -1519,14 +1519,14 @@ public function update(Request $request)
             if ($qtyFresh > 0) {
                 foreach ($this->getBomRm($articleCode) as $rm) {
                     $this->postOut($seq, $rm->article_code, $qtyFresh * (float)$rm->qty_per_fg,
-                        $sprayBooth, '038', 'LOADING', $prdNumber, "Fresh RM (edit)", $username);
+                        $sprayBooth, '047', 'LOADING', $prdNumber, "Fresh RM (edit)", $username);
                 }
                 $this->postIn($seq, $articleCode, $val->uom ?? null, $qtyFresh,
-                    '038', $sprayBooth, 'LOADING', $prdNumber, "Fresh RM (edit)", $username);
+                    '047', $sprayBooth, 'LOADING', $prdNumber, "Fresh RM (edit)", $username);
             }
             if ($qtyRepaint > 0) {
                 $this->moveRepaintFromWip($seq, $articleCode, $val->uom ?? null, $qtyRepaint,
-                    '038', 'LOADING', $prdNumber, $username);
+                    '047', 'LOADING', $prdNumber, $username);
             }
         }
 
