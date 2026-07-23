@@ -106,35 +106,37 @@ class DnReplaceController extends Controller
     public function getTableColoumn(){
         $kolom=
         [
-            ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
-            ['data'=>'replace_number','name'=>'replace_number','title'=>'Rec Number'],
-            ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
-            ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
-            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
-            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
-        ];
+    ['data'=>'action','name'=>'action','title'=>'action', 'orderable'=> false,'searchable'=>false],
+    ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'],
+    ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
+    ['data'=>'tanggal_return','name'=>'tanggal_return','title'=>'Return Date'], // baru
+    ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
+    ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
+    ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
+    ['data'=>'note','name'=>'note','title'=>'Note'],
+    ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+    ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
+];
         return json_encode($kolom, true);
     }
 
     public function getTableColoumnDetail(){
         $kolom=
         [
-            ['data'=>'replace_number','name'=>'replace_number','title'=>'Rec Number'],
-            ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
-            ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
-            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
-            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
-            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
-            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
-            ['data'=>'qty','name'=>'qty','title'=>'qty'],
-            ['data'=>'uom','name'=>'uom','title'=>'uom'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'created_by_1','name'=>'created_by_1','title'=>'Created By'],
-            ['data'=>'created_at_1','name'=>'created_at_1','title'=>'Created At'],
-        ];
+    ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'],
+    ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
+    ['data'=>'tanggal_return','name'=>'tanggal_return','title'=>'Return Date'], // baru
+    ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
+    ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
+    ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
+    ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
+    ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
+    ['data'=>'qty','name'=>'qty','title'=>'Qty'],
+    ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+    ['data'=>'note','name'=>'note','title'=>'Note'],
+    ['data'=>'created_by_1','name'=>'created_by_1','title'=>'Created By'],
+    ['data'=>'created_at_1','name'=>'created_at_1','title'=>'Created At'],
+];
         return json_encode($kolom, true);
     }
 
@@ -1204,7 +1206,7 @@ class DnReplaceController extends Controller
 
         $header = DB::table('dn_replace_hdr')
             ->where('id', $id)
-            ->whereNotIn('status', ['3'])
+            ->whereNotIn('dn_replace_hdr.status', ['3'])
             ->first();
 
         if (!$header) {
@@ -1437,19 +1439,23 @@ class DnReplaceController extends Controller
         }
 
         $data = DB::table('dn_replace_hdr')
+        ->leftJoin('dn_return_hdr','dn_return_hdr.return_number','=','dn_replace_hdr.return_number')
         ->where(function ($query) use ($searchReplace,$searchReturn,$searchCustomer,$searchStatus,$replaceDate,$fromDate,$toDate) {
             $searchReturn ? $query->where('return_number','ilike','%'.$searchReturn.'%') : '';
             $searchCustomer ? $query->where('customer_id','ilike','%'.$searchCustomer.'%') : '';
             $searchReplace ? $query->where('replace_number','ilike','%'.$searchReplace.'%') : '';
-            $searchStatus ? $query->where('status',$searchStatus) : '';
+           $searchStatus ? $query->where('dn_replace_hdr.status', $searchStatus) : '';
             $replaceDate ? $query->whereBetween(DB::raw("to_date(replace_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->whereNotIn('status',['3'])
-        ->select('dn_replace_hdr.*'
-        ,DB::raw("(select nama from third_party where kode = dn_replace_hdr.customer_id limit 1) as customer_name")
-        ,DB::raw("to_char(to_date(replace_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_replace")
-        )
-        ->orderBy('id')
+       ->whereNotIn('dn_replace_hdr.status', ['3'])
+       ->select(
+    'dn_replace_hdr.*',
+    'dn_return_hdr.id as return_id', // WAJIB ADA
+    DB::raw("(select nama from third_party where kode = dn_replace_hdr.customer_id limit 1) as customer_name"),
+    DB::raw("to_char(to_date(dn_replace_hdr.replace_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_replace"),
+    DB::raw("to_char(to_date(dn_return_hdr.return_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_return")
+)
+        ->orderBy('dn_replace_hdr.id')
         ->get();
 
         return Datatables::of($data)
@@ -1508,12 +1514,22 @@ class DnReplaceController extends Controller
 
             return $buttons;
         })
+      ->editColumn('return_number', function ($data) {
+
+    if (empty($data->return_id)) {
+        return $data->return_number;
+    }
+
+    return '<a href="'.route('dnReturn.show', [
+        'id' => Crypt::encryptString($data->return_id)
+    ]).'">'.$data->return_number.'</a>';
+})
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];
             $statusReplace = ['OPEN','CLOSED','CANCELED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusReplace[$data->status - 1]."</div>";
         })
-        ->rawColumns(['action','status'])
+        ->rawColumns(['action','status', 'return_number'])
         ->make(true);
     }
 
@@ -1541,6 +1557,12 @@ class DnReplaceController extends Controller
 
         $data = DB::table('dn_replace_det')
         ->leftJoin('dn_replace_hdr','dn_replace_hdr.replace_number','dn_replace_det.replace_number')
+        ->leftJoin(
+    'dn_return_hdr',
+    'dn_return_hdr.return_number',
+    '=',
+    'dn_replace_det.return_number'
+)
         ->leftJoin('article','article.article_code','dn_replace_det.article_code')
         ->where(function ($query) use ($searchReplace,$searchReturn,$searchCustomer,$searchStatus,$replaceDate,$fromDate,$toDate) {
             $searchReturn ? $query->where('dn_replace_det.return_number','ilike','%'.$searchReturn.'%') : '';
@@ -1551,15 +1573,17 @@ class DnReplaceController extends Controller
         })
         ->where('dn_replace_det.qty','>',0)
         ->whereNotIn('dn_replace_hdr.status',['3'])
-        ->select('dn_replace_det.*'
-        ,'dn_replace_hdr.*'
-        ,'dn_replace_hdr.created_by as created_by_1'
-        ,'dn_replace_hdr.created_at as created_at_1'
-        ,'article_alternative_code'
-        ,'article_desc'
-        ,DB::raw("(select nama from third_party where kode = dn_replace_hdr.customer_id limit 1) as customer_name")
-        ,DB::raw("to_char(to_date(replace_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_replace")
-        )
+        ->select(
+    'dn_replace_det.*',
+    'dn_replace_hdr.*',
+    'dn_replace_hdr.created_by as created_by_1',
+    'dn_replace_hdr.created_at as created_at_1',
+    'article_alternative_code',
+    'article_desc',
+    DB::raw("(select nama from third_party where kode = dn_replace_hdr.customer_id limit 1) as customer_name"),
+    DB::raw("to_char(to_date(dn_replace_hdr.replace_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_replace"),
+    DB::raw("to_char(to_date(dn_return_hdr.return_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_return")
+)
         ->orderBy('dn_replace_det.id')
         ->get();
 
@@ -1569,7 +1593,17 @@ class DnReplaceController extends Controller
             $statusReplace = ['OPEN','CLOSED','CANCELED'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusReplace[$data->status - 1]."</div>";
         })
-        ->rawColumns(['status'])
+        ->editColumn('return_number', function ($data) {
+
+    if (!$data->return_id) {
+        return $data->return_number;
+    }
+
+    return '<a href="'.route('dnReturn.show', [
+        'id' => Crypt::encryptString($data->return_id)
+    ]).'">'.$data->return_number.'</a>';
+})
+        ->rawColumns(['status','return_number'])
         ->make(true);
     }
 
