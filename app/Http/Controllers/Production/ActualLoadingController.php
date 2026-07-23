@@ -257,39 +257,43 @@ public function articleBySprayBooth(Request $request)
             'afg.article_desc',
             'afg.uom',
             DB::raw("(select string_agg(unit_to,',' order by unit_from) from uom_con_v2 where article_code = afg.article_code) as uom_member"),
-            DB::raw("(
-                select coalesce(min(floor(coalesce(ws.total_qty,0) / nullif(br2.qty,0))),0)
-                from bom_rm br2
-                join article arm2
-                    on arm2.article_code = br2.article_code
-                   and arm2.article_type in ('RMP','RMNP')
-                left join (
-                    select article_code, sum(article_qty) as total_qty
-                    from warehouse_stock
-                    where location_number = '$locationCode'
-                    group by article_code
-                ) ws on ws.article_code = br2.article_code
-                where br2.bom_code = bh.bom_code
-            ) as stock_rm_fresh"),
-            DB::raw("(
-                select coalesce(sum(ws.article_qty),0)
-                from warehouse_stock ws
-                join stock_location_master slm on slm.location_code = ws.location_number
-                where ws.article_code = afg.article_code
-                  and slm.location_type = 'wip'
-            ) as stock_fg_repaint")
+           DB::raw("(
+    select greatest(coalesce(min(floor(greatest(coalesce(ws.total_qty,0),0) / nullif(br2.qty,0))),0),0)
+    from bom_rm br2
+    join article arm2
+        on arm2.article_code = br2.article_code
+       and arm2.article_type in ('RMP','RMNP')
+    left join (
+        select article_code, sum(article_qty) as total_qty
+        from warehouse_stock
+        where location_number = '$locationCode'
+        group by article_code
+    ) ws on ws.article_code = br2.article_code
+    where br2.bom_code = bh.bom_code
+) as stock_rm_fresh")
+           DB::raw("(
+    select coalesce(sum(greatest(t.qty,0)),0)
+    from (
+        select ws.location_number, sum(ws.article_qty) as qty
+        from warehouse_stock ws
+        join stock_location_master slm on slm.location_code = ws.location_number
+        where ws.article_code = afg.article_code
+          and slm.location_type = 'wip'
+        group by ws.location_number
+    ) t
+) as stock_fg_repaint")
         )
         ->distinct()
         ->orderBy('afg.article_alternative_code')
         ->get();
  
     // ── Gabung jadi satu angka: Max FG ──
-    $fgList = $fgList->map(function ($r) {
-        $fresh   = (float) ($r->stock_rm_fresh   ?? 0);
-        $repaint = (float) ($r->stock_fg_repaint ?? 0);
-        $r->max_fg = $fresh + $repaint;
-        return $r;
-    })->values();
+   $fgList = $fgList->map(function ($r) {
+    $fresh   = max(0, (float) ($r->stock_rm_fresh   ?? 0));
+    $repaint = max(0, (float) ($r->stock_fg_repaint ?? 0));
+    $r->max_fg = $fresh + $repaint;
+    return $r;
+})->values();
  
     return response()->json($fgList);
 }
@@ -324,7 +328,7 @@ public function rmDetailBySprayBooth(Request $request)
             DB::raw('sum(ws.article_qty) as qty')
         )
         ->groupBy('slm.location_code', 'slm.location_name', 'a.uom')
-        ->havingRaw('sum(ws.article_qty) <> 0')
+        ->havingRaw('sum(ws.article_qty) > 0')   // sebelumnya <> 0
         ->orderBy('slm.location_name')
         ->get();
  
@@ -343,12 +347,12 @@ public function rmDetailBySprayBooth(Request $request)
             'arm.article_desc',
             'arm.uom',
             'br.qty as qty_per_fg',
-            DB::raw("coalesce((
-                select sum(ws.article_qty)
-                from warehouse_stock ws
-                where ws.article_code = arm.article_code
-                  and ws.location_number = ?
-            ),0) as stock_qty")
+            DB::raw("greatest(coalesce((
+    select sum(ws.article_qty)
+    from warehouse_stock ws
+    where ws.article_code = arm.article_code
+      and ws.location_number = ?
+),0),0) as stock_qty")
         )
         ->addBinding($locationCode, 'select')
         ->get();
@@ -364,11 +368,11 @@ public function rmDetailBySprayBooth(Request $request)
         ]);
     }
  
-    $rows = $rows->map(function ($r) {
-        $perFg      = (float) $r->qty_per_fg;
-        $r->max_fg  = $perFg > 0 ? floor(((float) $r->stock_qty) / $perFg) : 0;
-        return $r;
-    });
+   $rows = $rows->map(function ($r) {
+    $perFg     = (float) $r->qty_per_fg;
+    $r->max_fg = $perFg > 0 ? max(0, floor(((float) $r->stock_qty) / $perFg)) : 0;
+    return $r;
+});
  
     $overall = (float) $rows->min('max_fg'); // kapasitas fresh sebenarnya (bottleneck)
     $best    = (float) $rows->max('max_fg'); // kapasitas tertinggi andai RM lain tak terbatas
@@ -617,20 +621,29 @@ private function freshCapacity($fgArticle, $sprayBooth)
             ->where('location_number', $sprayBooth)
             ->sum('article_qty');
 
-        $canMake = floor($have / $perFg);
-        $maxFg = is_null($maxFg) ? $canMake : min($maxFg, $canMake);
+        $have    = max(0, $have);                  // ⬅ minus dianggap 0
+        $canMake = max(0, floor($have / $perFg));  // ⬅ clamp
+        $maxFg   = is_null($maxFg) ? $canMake : min($maxFg, $canMake);
     }
-    return (float)($maxFg ?? 0);
+    return (float) max(0, $maxFg ?? 0);
 }
 
-/** Total FG article ini di semua gudang ber-type WIP. */
+/** Total FG di gudang WIP, lokasi bersaldo minus dianggap 0. */
 private function wipAvailable($fgArticle)
 {
-    return (float) DB::table('warehouse_stock as ws')
+    $perLoc = DB::table('warehouse_stock as ws')
         ->join('stock_location_master as slm','slm.location_code','=','ws.location_number')
         ->where('ws.article_code', $fgArticle)
         ->where('slm.location_type','wip')
-        ->sum('ws.article_qty');
+        ->groupBy('ws.location_number')
+        ->select('ws.location_number', DB::raw('sum(ws.article_qty) as qty'))
+        ->get();
+
+    $total = 0;
+    foreach ($perLoc as $r) {
+        $total += max(0, (float) $r->qty);   // ⬅ minus dianggap 0
+    }
+    return (float) $total;
 }
 
 /** Alokasi qty repaint KELUAR dari beberapa gudang WIP (greedy). */
