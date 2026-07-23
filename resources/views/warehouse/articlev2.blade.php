@@ -582,7 +582,7 @@ const loadMovement = () => {
         },
         orderColumn: [[ kolomMovement.length - 1, 'desc' ]],
         scrollY:300,
-        excelFileName: 'Movement_' + curArt.code + '_' + curArt.desc,
+        excelFileName: 'Movement_' + curArt.altcode + '_' + curArt.desc,
         lengthMenu: [
             [ -1, 10, 25, 50 ],
             [ 'all', '10', '25', '50']
