@@ -45,9 +45,9 @@
             <div class="form-row">
                 <div class="col-12"> 
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    {{-- @can('actualFinishGoods-create')
+                    @can('actualFinishGoods-create')
                     <a href="{{ route('production.actualFinishGoods.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    @endcan --}}
+                    @endcan
                 </div>
             </div>
         </form>

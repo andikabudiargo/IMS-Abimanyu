@@ -20,13 +20,23 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ActualFinishGoodsController extends Controller
 {
-    private $title;
-    private $moduleCode;
-    public function __construct()
-    {
-        $this->title = "Actual Finish Goods";
-        $this->moduleCode = "PRDFG";
-    }
+   private $title;
+private $moduleCode;
+private $whLoading, $whFg, $whFgOt, $whWip;
+private $loadingStatusDone;
+
+public function __construct()
+{
+    $this->title      = "Actual Finish Goods";
+    $this->moduleCode = "PRDFG";
+
+    $this->whLoading = '038'; // sumber stok fisik (hasil actual loading)
+    $this->whFg      = '007'; // gudang FG
+    $this->whFgOt    = '008'; // gudang FG OT
+    $this->whWip     = '012'; // gudang WIP
+
+    $this->loadingStatusDone = 4; // status actual loading setelah FG diinput (4 = POSTED)
+}
 
     public function getTableColoumn()
     {
@@ -91,26 +101,410 @@ class ActualFinishGoodsController extends Controller
     }
 
     public function getLastCode($key)
-    {
-        DB::table('master_code')
-        ->where('code_key',$key)
+{
+    DB::table('master_code')
+        ->where('code_key', $key)
         ->update([
             'code_number' => DB::raw('code_number + 1'),
-            'updated_by' => Auth::user()->username,
-            'updated_at' => date('Y-m-d H:i:s')
+            'updated_by'  => Auth::user()->username,
+            'updated_at'  => date('Y-m-d H:i:s'),
         ]);
 
-        $newCode = DB::table('master_code')
-        ->where('code_key',$key)
-        ->value('code_number'); 
-        $month = date('n');
-        $year = date('Y');
-        $prdNumber="$key/$year/$month/$newCode";
-        
-        return $prdNumber;
-    }
+    $newCode = DB::table('master_code')
+        ->where('code_key', $key)
+        ->value('code_number');
+
+    $monthRoman = $this->toRomanMonth((int) date('n'));
+    $year       = date('Y');
+    $codeNumber = str_pad($newCode, 4, '0', STR_PAD_LEFT);
+
+    // Format: AFG-ASN-{bulan romawi}-{tahun}-{nomor}
+    return "$key-ASN-$monthRoman-$year-$codeNumber";
+}
+
+private function toRomanMonth(int $month): string
+{
+    $romans = [
+        1 => 'I',   2 => 'II',  3 => 'III', 4 => 'IV',
+        5 => 'V',   6 => 'VI',  7 => 'VII', 8 => 'VIII',
+        9 => 'IX',  10 => 'X',  11 => 'XI', 12 => 'XII',
+    ];
+    return $romans[$month] ?? '';
+}
+
 
     public function create(Request $request)
+{
+    $data['title']    = "Input Actual Finish Goods";
+    $data['subtitle'] = "Input Actual Finish Goods";
+
+    // Actual Loading yg sudah POSTED (4) & belum punya FG (belum di-input)
+    $data['listLoading'] = DB::table('actual_loading_hdr as alh')
+        ->where('alh.status', 1)
+        ->whereNotExists(function ($q) {
+            $q->select(DB::raw(1))
+              ->from('actual_finish_goods_hdr as afg')
+              ->whereColumn('afg.loading_code', 'alh.prod_code')
+              ->where('afg.status', '<>', 5); // abaikan yg canceled
+        })
+        ->orderBy('alh.prod_code', 'desc')
+        ->select(
+            'alh.prod_code',
+            'alh.wos_reference',
+            DB::raw("to_char(alh.loading_date, 'DD-MM-YYYY') as loading_date_fmt")
+        )
+        ->get();
+
+    $data['statusPrd'] = 'NEW';
+    $data['oEdit']     = false;
+
+    return view("production.actualFinishGoods.create", $data);
+}
+
+/** Ambil artikel dari actual_loading_det utk prod_code terpilih */
+public function articleByLoading(Request $request)
+{
+    $prodCode = $request->prod_code;
+
+    $rows = DB::table('actual_loading_det as ald')
+        ->leftJoin('article as a', 'a.article_code', '=', 'ald.article_code')
+        ->where('ald.prod_code', $prodCode)
+        ->select(
+            'ald.article_code',
+            'a.article_alternative_code',
+            'a.article_desc',
+            'ald.uom',
+            'ald.qty as qty_loading'
+        )
+        ->orderBy('ald.urutan')
+        ->get();
+
+    return response()->json($rows);
+}
+
+public function store(Request $request)
+{
+    $username    = Auth::user()->username;
+    $articles    = json_decode($request->articles);
+    $fgDate      = $request->fgDate;
+    $loadingCode = $request->loadingCode;
+    $reference   = $request->reference;
+    $note        = $request->note;
+
+    $validation = Validator::make($request->all(), [
+        'loadingCode' => 'required',
+        'fgDate'      => 'required',
+    ]);
+    if ($validation->fails()) {
+        $errs = [];
+        foreach ($validation->messages()->getMessages() as $m) { $errs[] = $m; }
+        return response()->json(['status'=>0,'title'=>"Save Actual Finish Goods",'message'=>$errs,'alert'=>'error']);
+    }
+    if (empty($articles)) {
+        return response()->json(['status'=>0,'title'=>"Save Actual Finish Goods",'message'=>[['Tidak ada artikel yang diinput.']],'alert'=>'error']);
+    }
+
+    $fgDateDb = $fgDate ? implode('-', array_reverse(explode('-', $fgDate))) : date('Y-m-d');
+    $now      = date('Y-m-d H:i:s');
+
+    DB::beginTransaction();
+    try {
+        // ── header loading: pastikan ada & belum diproses ──
+        $loading = DB::table('actual_loading_hdr as alh')
+            ->leftJoin('stock_location_master as slm', 'slm.location_code', '=', 'alh.spray_booth')
+            ->where('alh.prod_code', $loadingCode)
+            ->select(
+                'alh.status',
+                'alh.spray_booth',
+                DB::raw("coalesce(slm.location_name, alh.spray_booth) as booth_name")
+            )
+            ->first();
+
+        if (!$loading) {
+            throw new \Exception("Actual Loading {$loadingCode} tidak ditemukan.");
+        }
+        if ((int)$loading->status === $this->loadingStatusDone) {
+            throw new \Exception("Actual Loading {$loadingCode} sudah pernah diinput Finish Goods-nya.");
+        }
+
+        $sprayBooth = $loading->spray_booth;
+        $boothName  = $loading->booth_name ?? '-';
+        $refText    = $reference ? " ({$reference})" : '';
+        $descBase   = "HASIL LOADING {$boothName}{$refText}"; // ex: HASIL LOADING SPRAYBOOTH 5A (WOS MALAM A)
+
+        AppHelpers::resetCode('AFG');
+        $fgNumber = $this->getLastCode('AFG');
+
+        DB::table('actual_finish_goods_hdr')->insert([
+            'fg_code'       => $fgNumber,
+            'loading_code'  => $loadingCode,
+            'wos_reference' => $reference,
+            'spray_booth'   => $sprayBooth,
+            'fg_date'       => $fgDateDb,
+            'num_revision'  => 0,
+            'status'        => 1, // NEW
+            'note'          => $note,
+            'created_by'    => $username,
+            'updated_by'    => $username,
+            'created_at'    => $now,
+            'updated_at'    => $now,
+        ]);
+
+        $seq          = (int) DB::table('warehouse_movement')->max('movement_code');
+        $movementType = 'FINISH GOODS';
+        $urutan       = 0;
+        $savedRows    = 0;
+
+        foreach ($articles as $val) {
+            $qtyFg    = (float)($val->qty_fg  ?? 0);
+            $qtyOt    = (float)($val->qty_ot  ?? 0);
+            $qtyWip   = (float)($val->qty_wip ?? 0);
+            $qtyTotal = $qtyFg + $qtyOt + $qtyWip;
+            if ($qtyTotal <= 0) continue;
+
+            $urutan++;
+            $savedRows++;
+
+            // stok fisik di gudang loading (038) harus cukup
+            $avail = (float) DB::table('warehouse_stock')
+                ->where('article_code', $val->article_code)
+                ->where('location_number', $this->whLoading)
+                ->sum('article_qty');
+
+            if ($avail < $qtyTotal) {
+                throw new \Exception(
+                    "Stok loading (038) untuk {$val->article_code} tidak cukup ".
+                    "(tersedia {$avail}, butuh {$qtyTotal})."
+                );
+            }
+
+            DB::table('actual_finish_goods_det')->insert([
+                'fg_code'      => $fgNumber,
+                'loading_code' => $loadingCode,
+                'urutan'       => $urutan,
+                'article_code' => $val->article_code,
+                'uom'          => $val->uom ?? null,
+                'qty_loading'  => (float)($val->qty_loading ?? 0),
+                'qty_wip'      => $qtyWip,
+                'qty_fg'       => $qtyFg,
+                'qty_ot'       => $qtyOt,
+                'note'         => $val->note ?? null,
+                'created_by'   => $username,
+                'updated_by'   => $username,
+                'created_at'   => $now,
+                'updated_at'   => $now,
+            ]);
+
+            // FG->007, OT->008, WIP->012 (potong dari 038, booth cuma di desc)
+            $this->postFgBucket($seq, $val->article_code, $val->uom, $qtyFg,  $this->whFg,   $movementType, $fgNumber, "{$descBase} - FG",  $username);
+            $this->postFgBucket($seq, $val->article_code, $val->uom, $qtyOt,  $this->whFgOt, $movementType, $fgNumber, "{$descBase} - OT",  $username);
+            $this->postFgBucket($seq, $val->article_code, $val->uom, $qtyWip, $this->whWip,  $movementType, $fgNumber, "{$descBase} - WIP", $username);
+        }
+
+        if ($savedRows === 0) {
+            throw new \Exception("Tidak ada qty (FG/OT/WIP) yang diinput.");
+        }
+
+        // ── tutup Actual Loading: status jadi POSTED ──
+        DB::table('actual_loading_hdr')
+            ->where('prod_code', $loadingCode)
+            ->update([
+                'status'     => $this->loadingStatusDone,
+                'updated_by' => $username,
+                'updated_at' => $now,
+            ]);
+
+        DB::commit();
+        $title   = "Save Actual Finish Goods";
+        $message = "$title $fgNumber is successfully saved";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','fgNumber'=>$fgNumber,'oEdit'=>true]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return response()->json(['status'=>0,'title'=>"Save Actual Finish Goods",'message'=>[[$e->getMessage()]],'alert'=>'error']);
+    }
+}
+
+/** 1 bucket (FG/OT/WIP): potong dari gudang loading (038), masuk ke $toLoc. */
+private function postFgBucket(&$seq, $article, $uom, $qty, $toLoc, $movementType, $transno, $desc, $username)
+{
+    if ($qty <= 0) return;
+    $this->postOut($seq, $article, $qty, $this->whLoading, $toLoc, $movementType, $transno, $desc, $username);
+    $this->postIn ($seq, $article, $uom, $qty, $toLoc, $this->whLoading, $movementType, $transno, $desc, $username);
+}
+
+/** Satu baris KELUAR: kurangi warehouse_stock sumber + movement (min) */
+private function postOut(&$seq, $article, $qty, $fromLoc, $toLoc, $movementType, $transno, $desc, $username)
+{
+    if ($qty <= 0) return;
+    $now   = date('Y-m-d H:i:s');
+    $adesc = DB::table('article')->where('article_code',$article)->value('article_desc');
+
+    DB::table('warehouse_stock')
+        ->where('article_code',$article)->where('location_number',$fromLoc)
+        ->update([
+            'article_qty' => DB::raw('coalesce(article_qty,0) - '.$qty),
+            'updated_by'  => $username,
+            'updated_at'  => $now,
+        ]);
+
+    $this->writeMovement($seq, $article, $adesc, $qty, $fromLoc, 'out',
+                         $fromLoc, $toLoc, $movementType, $transno, $desc, $username);
+}
+
+/** Satu baris MASUK: tambah warehouse_stock tujuan + movement (plus) */
+private function postIn(&$seq, $article, $uom, $qty, $toLoc, $fromLoc, $movementType, $transno, $desc, $username)
+{
+    if ($qty <= 0) return;
+    $now = date('Y-m-d H:i:s');
+
+    $art   = DB::table('article')->where('article_code',$article)->select('article_desc','article_type')->first();
+    $adesc = $art->article_desc ?? null;
+    $dept  = $art->article_type ?? null;
+
+    $exists = DB::table('warehouse_stock')
+        ->where('article_code',$article)->where('location_number',$toLoc)->exists();
+
+    if ($exists) {
+        DB::table('warehouse_stock')
+            ->where('article_code',$article)->where('location_number',$toLoc)
+            ->update([
+                'article_qty' => DB::raw('coalesce(article_qty,0) + '.$qty),
+                'updated_by'  => $username,
+                'updated_at'  => $now,
+            ]);
+    } else {
+        DB::table('warehouse_stock')->insert([
+            'site_code'       => 'HO',
+            'article_code'    => $article,
+            'location_number' => $toLoc,
+            'article_qty'     => $qty,
+            'uom'             => $uom,
+            'dept_code'       => $dept,
+            'created_by'      => $username,
+            'updated_by'      => $username,
+            'created_at'      => $now,
+            'updated_at'      => $now,
+        ]);
+    }
+
+    $this->writeMovement($seq, $article, $adesc, $qty, $toLoc, 'in',
+                         $fromLoc, $toLoc, $movementType, $transno, $desc, $username);
+}
+
+/** Tulis 1 baris warehouse_movement. $direction: 'in'|'out'. Naikkan $seq. */
+private function writeMovement(&$seq, $article, $adesc, $qty, $location, $direction,
+                               $fromLoc, $toLoc, $movementType, $transno, $desc, $username)
+{
+    $sign  = ($direction === 'in') ? '+' : '-';
+    $today = date('Y-m-d');
+
+    DB::table('warehouse_movement')->insert([
+        'movement_code'     => ++$seq,
+        'movement_date'     => date('d-m-Y'),
+        'site_code'         => 'HO',
+        'location_number'   => $location,   // lokasi yg saldonya kena (OUT=038, IN=tujuan)
+        'artikel_code'      => $article,
+        'artikel_desc'      => $adesc,
+        'movement_min'      => ($direction === 'out') ? $qty : 0,
+        'movement_plus'     => ($direction === 'in')  ? $qty : 0,
+        'movement_from'     => $fromLoc,    // 038 (sumber fisik)
+        'movement_to'       => $toLoc,      // 007 / 008 / 012
+        'movement_type'     => $movementType,
+        'movement_transnno' => $transno,
+        'movement_desc'     => $desc,       // "FG | Booth: SB1" dst
+        'last_qty'          => DB::raw("get_last_qty_new('$article','$today','HO','$location') $sign $qty"),
+        'created_by'        => $username,
+        'created_at'        => date('Y-m-d H:i:s'),
+    ]);
+}
+
+public function storeOld(Request $request)
+{
+    $username    = Auth::user()->username;
+    $articles    = json_decode($request->articles);
+    $fgDate      = $request->fgDate;
+    $loadingCode = $request->loadingCode;
+    $reference   = $request->reference;
+    $note        = $request->note;
+
+    $validation = Validator::make($request->all(), [
+        'loadingCode' => 'required',
+        'fgDate'      => 'required',
+    ]);
+    if ($validation->fails()) {
+        $errs = [];
+        foreach ($validation->messages()->getMessages() as $m) { $errs[] = $m; }
+        return response()->json(['status'=>0,'title'=>"Save Actual Finish Goods",'message'=>$errs,'alert'=>'error']);
+    }
+    if (empty($articles)) {
+        return response()->json(['status'=>0,'title'=>"Save Actual Finish Goods",'message'=>[['Tidak ada artikel yang diinput.']],'alert'=>'error']);
+    }
+
+    $fgDateDb = $fgDate ? implode('-', array_reverse(explode('-', $fgDate))) : date('Y-m-d');
+    $now      = date('Y-m-d H:i:s');
+
+    DB::beginTransaction();
+    try {
+        AppHelpers::resetCode('AFG');
+        $fgNumber = $this->getLastCode('AFG'); // reuse pola getLastCode (romawi bulan)
+
+        DB::table('actual_finish_goods_hdr')->insert([
+            'fg_code'       => $fgNumber,
+            'loading_code'  => $loadingCode,
+            'wos_reference' => $reference,
+            'fg_date'       => $fgDateDb,
+            'num_revision'  => 0,
+            'status'        => 1, // NEW
+            'note'          => $note,
+            'created_by'    => $username,
+            'updated_by'    => $username,
+            'created_at'    => $now,
+            'updated_at'    => $now,
+        ]);
+
+        $urutan = 0;
+        foreach ($articles as $val) {
+            $urutan++;
+            $qtyWip = (float)($val->qty_wip ?? 0);
+            $qtyFg  = (float)($val->qty_fg  ?? 0);
+            $qtyOt  = (float)($val->qty_ot  ?? 0);
+
+            // lewati baris yg semua qty-nya 0
+            if ($qtyWip <= 0 && $qtyFg <= 0 && $qtyOt <= 0) continue;
+
+            DB::table('actual_finish_goods_det')->insert([
+                'fg_code'      => $fgNumber,
+                'loading_code' => $loadingCode,
+                'urutan'       => $urutan,
+                'article_code' => $val->article_code,
+                'uom'          => $val->uom ?? null,
+                'qty_loading'  => (float)($val->qty_loading ?? 0),
+                'qty_wip'      => $qtyWip,
+                'qty_fg'       => $qtyFg,
+                'qty_ot'       => $qtyOt,
+                'note'         => $val->note ?? null,
+                'created_by'   => $username,
+                'updated_by'   => $username,
+                'created_at'   => $now,
+                'updated_at'   => $now,
+            ]);
+        }
+
+        DB::commit();
+        $title   = "Save Actual Finish Goods";
+        $message = "$title $fgNumber is successfully saved";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','fgNumber'=>$fgNumber,'oEdit'=>true]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return response()->json(['status'=>0,'title'=>"Save Actual Finish Goods",'message'=>[[$e->getMessage()]],'alert'=>'error']);
+    }
+}
+
+    public function createOld(Request $request)
     {
         $data['title'] = "Input $this->title";
         $data['subtitle'] = "Input $this->title";
