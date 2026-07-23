@@ -34,6 +34,42 @@ class ActualLoadingController extends Controller
         [
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
             ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Code'],
+            ['data'=>'prod_date','name'=>'prod_date','title'=>'Prod. Date'],
+            ['data'=>'spraybooth','name'=>'spraybooth','title'=>'Spray Booth'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnDetail()
+    {
+        $kolom=
+        [
+            ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Number'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'prod_date','name'=>'prod_date','title'=>'Prod. Date'],
+            ['data'=>'article_code_fg','name'=>'article_code_fg','title'=>'Article Code'],
+            ['data'=>'article_desc_fg','name'=>'article_desc_fg','title'=>'Article Desc'],
+            ['data'=>'article_code_rm','name'=>'article_code_rm','title'=>'Article Code RM'],
+            ['data'=>'article_desc_rm','name'=>'article_desc_rm','title'=>'Article Desc RM'],
+            ['data'=>'qty_fresh','name'=>'qty_fresh','title'=>'Qty Fresh'],
+            ['data'=>'qty_repaint','name'=>'qty_repaint','title'=>'Qty Repaint'],
+            ['data'=>'note','name'=>'note','title'=>'Note']
+        ];
+
+        return json_encode($kolom, true);
+    }
+
+    public function getTableColoumnOld()
+    {
+        $kolom=
+        [
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
+            ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Code'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'prod_date','name'=>'prod_date','title'=>'Prod. Date'],
             ['data'=>'wo_code','name'=>'wo_code','title'=>'WOS. Code'],
@@ -48,7 +84,7 @@ class ActualLoadingController extends Controller
         return json_encode($kolom, true);
     }
 
-    public function getTableColoumnDetail()
+    public function getTableColoumnDetailOld()
     {
         $kolom=
         [
@@ -90,6 +126,44 @@ class ActualLoadingController extends Controller
     }
 
     public function getLastCode($key)
+{
+    DB::table('master_code')
+        ->where('code_key', $key)
+        ->update([
+            'code_number' => DB::raw('code_number + 1'),
+            'updated_by'  => Auth::user()->username,
+            'updated_at'  => date('Y-m-d H:i:s'),
+        ]);
+
+    $newCode = DB::table('master_code')
+        ->where('code_key', $key)
+        ->value('code_number');
+
+    $monthRoman = $this->toRomanMonth((int) date('n'));
+    $year       = date('Y');
+    $codeNumber = str_pad($newCode, 4, '0', STR_PAD_LEFT);
+
+    // Format: PRD-ASN-{bulan romawi}-{tahun}-{codeNumber}
+    $prdNumber = "$key-ASN-$monthRoman-$year-$codeNumber";
+
+    return $prdNumber;
+}
+
+/**
+ * Konversi bulan (1-12) ke angka romawi (I-XII).
+ */
+private function toRomanMonth(int $month): string
+{
+    $romans = [
+        1 => 'I',   2 => 'II',  3 => 'III', 4 => 'IV',
+        5 => 'V',   6 => 'VI',  7 => 'VII', 8 => 'VIII',
+        9 => 'IX',  10 => 'X',  11 => 'XI', 12 => 'XII',
+    ];
+
+    return $romans[$month] ?? '';
+}
+
+    public function getLastCodeOld($key)
     {
         DB::table('master_code')
         ->where('code_key',$key)
@@ -110,6 +184,225 @@ class ActualLoadingController extends Controller
     }
 
     public function create(Request $request)
+{
+    $data['title'] = "Input $this->title";
+    $data['subtitle'] = "Input $this->title";
+
+    $data['listWo'] = DB::table('wo_hdr')
+        ->where('status','=','3')
+        ->whereNotIn('wo_hdr.wo_code', function($query) {
+            $query->select('wo_code')->from('production_hdr')->where('status','<>','5');
+        })
+        ->select('wo_hdr.*',DB::raw("to_char(wo_date, 'DD-MM-YYYY') as tanggal"))
+        ->get();
+
+    // ── NEW: daftar Spray Booth ──
+    $data['sprayBooths'] = DB::table('stock_location_master')
+        ->where('location_type', 'booth')
+        ->orderBy('location_name')
+        ->get();
+
+    $data['statusPrd'] = 'NEW';
+    $data['oEdit'] = false;
+
+    return view("production.actualLoading.create",$data);
+}
+
+/**
+ * Ambil daftar FG yang bisa diproduksi di Spray Booth:
+ * - FG punya BOM aktif dengan komponen RM bertipe RMP/RMNP
+ * - FG tersebut ada stoknya (qty > 0) di lokasi ber-type 'wip'
+ *
+ * NOTE: asumsi tabel stok FG adalah 'stock' (location_code, article_code, qty)
+ * — sesuaikan kalau ternyata pakai 'warehouse_stock' (location_number).
+ */
+public function articleBySprayBooth(Request $request)
+{
+    $locationCode = $request->location_code;
+
+    $isBooth = DB::table('stock_location_master')
+        ->where('location_code', $locationCode)
+        ->where('location_type', 'booth')
+        ->exists();
+
+    if (!$isBooth) {
+        return response()->json([]);
+    }
+
+    $fgList = DB::table('bom_hdr as bh')
+        ->join('bom_rm as br', 'br.bom_code', '=', 'bh.bom_code')
+        ->join('article as arm', 'arm.article_code', '=', 'br.article_code')
+        ->join('article as afg', 'afg.article_code', '=', 'bh.article_code')
+        ->where('bh.status', '3')
+        ->whereIn('arm.article_type', ['RMP', 'RMNP'])
+        // ── Munculkan FG hanya jika minimal ADA salah satu RM komponennya yang stock > 0 di booth ini ──
+        ->whereExists(function ($q) use ($locationCode) {
+            $q->select(DB::raw(1))
+              ->from('bom_rm as br3')
+              ->join('article as arm3', 'arm3.article_code', '=', 'br3.article_code')
+              ->whereColumn('br3.bom_code', 'bh.bom_code')
+              ->whereIn('arm3.article_type', ['RMP', 'RMNP'])
+              ->whereRaw("
+                  coalesce((
+                      select sum(article_qty)
+                      from warehouse_stock
+                      where article_code = br3.article_code
+                        and location_number = '$locationCode'
+                  ), 0) > 0
+              ");
+        })
+        ->select(
+            'afg.article_code',
+            'afg.article_alternative_code',
+            'afg.article_desc',
+            'afg.uom',
+            DB::raw("(select string_agg(unit_to,',' order by unit_from) from uom_con_v2 where article_code = afg.article_code) as uom_member"),
+            DB::raw("(
+                select coalesce(min(floor(coalesce(ws.total_qty,0) / nullif(br2.qty,0))),0)
+                from bom_rm br2
+                join article arm2
+                    on arm2.article_code = br2.article_code
+                   and arm2.article_type in ('RMP','RMNP')
+                left join (
+                    select article_code, sum(article_qty) as total_qty
+                    from warehouse_stock
+                    where location_number = '$locationCode'
+                    group by article_code
+                ) ws on ws.article_code = br2.article_code
+                where br2.bom_code = bh.bom_code
+            ) as stock_rm_fresh"),
+            DB::raw("(
+                select coalesce(sum(ws.article_qty),0)
+                from warehouse_stock ws
+                join stock_location_master slm on slm.location_code = ws.location_number
+                where ws.article_code = afg.article_code
+                  and slm.location_type = 'wip'
+            ) as stock_fg_repaint")
+        )
+        ->distinct()
+        ->orderBy('afg.article_alternative_code')
+        ->get();
+
+    return response()->json($fgList);
+}
+
+/**
+ * Detail breakdown stock RM vs kebutuhan BOM untuk 1 FG tertentu,
+ * di lokasi spray booth yang dipilih. Dipakai untuk tombol "info"
+ * di kolom stock_rm_fresh pada grid.
+ */
+public function rmDetailBySprayBooth(Request $request)
+{
+    $locationCode = $request->location_code;
+    $articleCode  = $request->article_code; // kode article FG
+
+    $rows = DB::table('bom_hdr as bh')
+        ->join('bom_rm as br', 'br.bom_code', '=', 'bh.bom_code')
+        ->join('article as arm', 'arm.article_code', '=', 'br.article_code')
+        ->where('bh.status', '3')
+        ->where('bh.article_code', $articleCode)
+        ->whereIn('arm.article_type', ['RMP', 'RMNP'])
+        ->select(
+            'arm.article_code',
+            'arm.article_alternative_code',
+            'arm.article_desc',
+            'arm.uom',
+            'br.qty as qty_per_fg',
+            DB::raw("coalesce((
+                select sum(ws.article_qty)
+                from warehouse_stock ws
+                where ws.article_code = arm.article_code
+                  and ws.location_number = '$locationCode'
+            ),0) as stock_qty")
+        )
+        ->get();
+
+    if ($rows->isEmpty()) {
+        return response()->json(['rows' => [], 'max_fg' => 0]);
+    }
+
+    // hitung max FG yang bisa dibuat per RM (kalau cuma RM ini yang jadi batasan)
+    $rows = $rows->map(function ($r) {
+        $r->max_fg = $r->qty_per_fg > 0 ? floor($r->stock_qty / $r->qty_per_fg) : 0;
+        return $r;
+    });
+
+    $overallAchievable = $rows->min('max_fg'); // ini yang tampil di grid utama (bottleneck)
+    $bestCapacity       = $rows->max('max_fg'); // potensi tertinggi andai RM lain tak terbatas
+
+    $result = $rows->map(function ($r) use ($overallAchievable, $bestCapacity) {
+        $isBottleneck = ((float) $r->max_fg === (float) $overallAchievable);
+
+        $surplusQty = null;
+        $deficitQty = null;
+        $deficitFg  = null;
+
+        if ($isBottleneck) {
+            $deficitFg  = $bestCapacity - $r->max_fg;
+            $deficitQty = ($bestCapacity * $r->qty_per_fg) - $r->stock_qty;
+        } else {
+            $surplusQty = $r->stock_qty - ($overallAchievable * $r->qty_per_fg);
+        }
+
+        return [
+            'article_code'             => $r->article_code,
+            'article_alternative_code' => $r->article_alternative_code,
+            'article_desc'             => $r->article_desc,
+            'uom'                      => $r->uom,
+            'qty_per_fg'               => $r->qty_per_fg,
+            'stock_qty'                => $r->stock_qty,
+            'max_fg'                   => $r->max_fg,
+            'is_bottleneck'            => $isBottleneck,
+            'surplus_qty'              => $surplusQty,
+            'deficit_qty'              => $deficitQty,
+            'deficit_fg'               => $deficitFg,
+        ];
+    });
+
+    return response()->json([
+        'rows'   => $result,
+        'max_fg' => $overallAchievable,
+    ]);
+}
+
+/**
+ * Breakdown stock Repaint (FG yang ada di gudang ber-type 'wip')
+ * per lokasi gudang, untuk 1 FG tertentu.
+ * Dipakai tombol "info" di kolom stock_fg_repaint (RM Repaint) pada grid.
+ *
+ * NOTE: total di sini HARUS sama dengan subquery stock_fg_repaint
+ *       di articleBySprayBooth() -> sum(article_qty) where location_type='wip'.
+ *       Ga difilter by spray booth karena repaint bisa dari WIP mana aja.
+ */
+public function repaintDetailByArticle(Request $request)
+{
+    $articleCode = $request->article_code; // kode article FG
+
+    $rows = DB::table('warehouse_stock as ws')
+        ->join('stock_location_master as slm', 'slm.location_code', '=', 'ws.location_number')
+        ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+        ->where('ws.article_code', $articleCode)
+        ->where('slm.location_type', 'wip')
+        ->select(
+            'slm.location_code',
+            'slm.location_name',
+            'a.uom',
+            DB::raw('sum(ws.article_qty) as qty')
+        )
+        ->groupBy('slm.location_code', 'slm.location_name', 'a.uom')
+        ->havingRaw('sum(ws.article_qty) <> 0') // sembunyikan gudang qty 0, total ga berubah
+        ->orderBy('slm.location_name')
+        ->get();
+
+    $total = $rows->sum('qty');
+
+    return response()->json([
+        'rows'  => $rows,
+        'total' => $total,
+    ]);
+}
+
+    public function createOld(Request $request)
     {
         $data['title'] = "Input $this->title";
         $data['subtitle'] = "Input $this->title";
@@ -151,7 +444,310 @@ class ActualLoadingController extends Controller
     
     }
 
-    public function store(Request $request)
+   public function store(Request $request)
+{
+    $username    = Auth::user()->username;
+    $articles    = json_decode($request->articles);
+    $loadingDate = $request->loadingDate;
+    $sprayBooth  = $request->sprayBooth;
+    $reference   = $request->reference;   // ⬅ NEW
+    $note        = $request->note;
+
+    $loadingLocation = '038';       // gudang Actual Loading (tujuan)
+    $movementType    = 'LOADING';
+
+    $validation = Validator::make($request->all(), [
+        'sprayBooth'  => 'required',
+        'loadingDate' => 'required',
+    ]);
+    if ($validation->fails()) {
+        $errs = [];
+        foreach ($validation->messages()->getMessages() as $m) { $errs[] = $m; }
+        return response()->json(['status'=>0,'title'=>"Save $this->title",'message'=>$errs,'alert'=>'error']);
+    }
+    if (empty($articles)) {
+        return response()->json(['status'=>0,'title'=>"Save $this->title",'message'=>[['Tidak ada artikel yang diinput.']],'alert'=>'error']);
+    }
+
+    $loadingDateDb = $loadingDate ? implode('-', array_reverse(explode('-', $loadingDate))) : date('Y-m-d');
+    $now = date('Y-m-d H:i:s');
+
+    DB::beginTransaction();
+    try {
+        AppHelpers::resetCode($this->moduleCode);
+        $prdNumber = $this->getLastCode($this->moduleCode);
+
+        DB::table('actual_loading_hdr')->insert([
+            'prod_code'          => $prdNumber,
+            'original_prod_code' => $prdNumber,
+            'loading_date'       => $loadingDateDb,
+            'spray_booth'        => $sprayBooth,
+            'wos_reference'       => $reference,   // ⬅ NEW
+            'num_revision'       => 0,
+            'status'             => 1,
+            'note'               => $note,
+            'created_by'         => $username,
+            'updated_by'         => $username,
+            'created_at'         => $now,
+            'updated_at'         => $now,
+        ]);
+
+        // counter movement_code (pola TransferStock: max+1, increment per baris)
+        $seq = (int) DB::table('warehouse_movement')->max('movement_code');
+
+        $urutan = 0;
+        foreach ($articles as $val) {
+            $urutan++;
+            $qtyTotal = (float)($val->qty ?? 0);
+            if ($qtyTotal <= 0) continue;
+
+            // pecah otomatis: fresh dulu, sisanya repaint
+            $freshCapacity = $this->freshCapacity($val->article_code, $sprayBooth);
+            $qtyFresh   = min($qtyTotal, $freshCapacity);
+            $qtyRepaint = $qtyTotal - $qtyFresh;
+
+            if ($qtyRepaint > 0) {
+                $wipAvail = $this->wipAvailable($val->article_code);
+                if ($wipAvail < $qtyRepaint) {
+                    throw new \Exception(
+                        "Qty {$qtyTotal} untuk {$val->article_code} tidak tercukupi. ".
+                        "Fresh maks {$freshCapacity}, repaint (WIP) maks {$wipAvail}."
+                    );
+                }
+            }
+
+            DB::table('actual_loading_det')->insert([
+                'prod_code'              => $prdNumber,
+                'urutan'                 => $urutan,
+                'article_code'           => $val->article_code,
+                'uom'                    => $val->uom ?? null,
+                'qty'                    => $qtyTotal,
+                'qty_fresh'              => $qtyFresh,
+                'qty_repaint'            => $qtyRepaint,
+                'stock_fresh_snapshot'   => (float)($val->stock_fresh   ?? 0),
+                'stock_repaint_snapshot' => (float)($val->stock_repaint ?? 0),
+                'note'                   => $val->note ?? null,
+                'created_by'             => $username,
+                'updated_by'             => $username,
+                'created_at'             => $now,
+                'updated_at'             => $now,
+            ]);
+
+          if ($qtyFresh > 0) {
+        foreach ($this->getBomRm($val->article_code) as $rm) {
+            $this->postOut(
+                $seq, $rm->article_code, $qtyFresh * (float)$rm->qty_per_fg,
+                $sprayBooth, $loadingLocation, $movementType, $prdNumber,
+                "Fresh RM", $username
+            );
+        }
+        $this->postIn(
+            $seq, $val->article_code, $val->uom, $qtyFresh,
+            $loadingLocation, $sprayBooth, $movementType, $prdNumber,   // ⬅ from = $sprayBooth (bukan null)
+            "Fresh RM", $username
+        );
+    }
+
+            // REPAINT: FG dari WIP -> loading. OUT+IN dipasangkan per sumber
+            //          di DALAM moveRepaintFromWip (from = WIP asal, akurat)
+            if ($qtyRepaint > 0) {
+                $this->moveRepaintFromWip(
+                    $seq, $val->article_code, $val->uom, $qtyRepaint,
+                    $loadingLocation, $movementType, $prdNumber, $username
+                );
+            }
+        }   // ⬅ penutup foreach — pastikan HANYA satu, tepat di sini
+
+        DB::commit();
+        $title   = "Save $this->title";
+        $message = "$title $prdNumber is successfully saved";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','prdNumber'=>$prdNumber,'oEdit'=>true]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return response()->json(['status'=>0,'title'=>"Save $this->title",'message'=>[[$e->getMessage()]],'alert'=>'error']);
+    }
+}
+
+/** Komponen RM (RMP/RMNP) dari BOM aktif suatu FG + qty per FG */
+private function getBomRm($fgArticle)
+{
+    return DB::table('bom_hdr as bh')
+        ->join('bom_rm as br', 'br.bom_code', '=', 'bh.bom_code')
+        ->join('article as arm', 'arm.article_code', '=', 'br.article_code')
+        ->where('bh.status', '3')
+        ->where('bh.article_code', $fgArticle)
+        ->whereIn('arm.article_type', ['RMP','RMNP'])
+        ->select('arm.article_code','arm.uom','br.qty as qty_per_fg')
+        ->get();
+}
+
+/** Kapasitas fresh: brp FG bisa dibuat dari RM di booth (bottleneck BOM). */
+private function freshCapacity($fgArticle, $sprayBooth)
+{
+    $rows = $this->getBomRm($fgArticle);
+    if ($rows->isEmpty()) return 0;
+
+    $maxFg = null;
+    foreach ($rows as $rm) {
+        $perFg = (float)$rm->qty_per_fg;
+        if ($perFg <= 0) continue;
+
+        $have = (float) DB::table('warehouse_stock')
+            ->where('article_code', $rm->article_code)
+            ->where('location_number', $sprayBooth)
+            ->sum('article_qty');
+
+        $canMake = floor($have / $perFg);
+        $maxFg = is_null($maxFg) ? $canMake : min($maxFg, $canMake);
+    }
+    return (float)($maxFg ?? 0);
+}
+
+/** Total FG article ini di semua gudang ber-type WIP. */
+private function wipAvailable($fgArticle)
+{
+    return (float) DB::table('warehouse_stock as ws')
+        ->join('stock_location_master as slm','slm.location_code','=','ws.location_number')
+        ->where('ws.article_code', $fgArticle)
+        ->where('slm.location_type','wip')
+        ->sum('ws.article_qty');
+}
+
+/** Alokasi qty repaint KELUAR dari beberapa gudang WIP (greedy). */
+/**
+ * Alokasi qty repaint dari beberapa gudang WIP (greedy),
+ * DAN langsung catat pasangan OUT+IN per sumber supaya
+ * movement_from di sisi IN akurat (bukan hardcode 'WIP').
+ */
+private function moveRepaintFromWip(&$seq, $fgArticle, $uom, $qtyNeeded, $toLoc, $movementType, $transno, $username)
+{
+    $sources = DB::table('warehouse_stock as ws')
+        ->join('stock_location_master as slm','slm.location_code','=','ws.location_number')
+        ->where('ws.article_code', $fgArticle)
+        ->where('slm.location_type','wip')
+        ->where('ws.article_qty','>',0)
+        ->groupBy('ws.location_number','slm.location_name')
+        ->orderBy('slm.location_name')
+        ->select('ws.location_number', DB::raw('sum(ws.article_qty) as qty'))
+        ->get();
+
+    $remaining = $qtyNeeded;
+    foreach ($sources as $src) {
+        if ($remaining <= 0) break;
+        $take = min($remaining, (float)$src->qty);
+        if ($take <= 0) continue;
+
+        // OUT dari WIP asal
+        $this->postOut(
+            $seq, $fgArticle, $take,
+            $src->location_number, $toLoc, $movementType, $transno,
+            "Repaint dari WIP", $username
+        );
+        // IN ke loading, from = WIP asal yang SAMA (bukan hardcode)
+        $this->postIn(
+            $seq, $fgArticle, $uom, $take,
+            $toLoc, $src->location_number, $movementType, $transno,
+            "FG Repaint", $username
+        );
+
+        $remaining -= $take;
+    }
+    if ($remaining > 0) {
+        throw new \Exception("Alokasi repaint {$fgArticle} tidak cukup (sisa {$remaining}).");
+    }
+}
+
+/** Satu baris KELUAR: kurangi warehouse_stock sumber + movement (min) */
+private function postOut(&$seq, $article, $qty, $fromLoc, $toLoc, $movementType, $transno, $desc, $username)
+{
+    if ($qty <= 0) return;
+    $now = date('Y-m-d H:i:s');
+    $adesc = DB::table('article')->where('article_code',$article)->value('article_desc');
+
+    DB::table('warehouse_stock')
+        ->where('article_code',$article)->where('location_number',$fromLoc)
+        ->update([
+            'article_qty' => DB::raw('coalesce(article_qty,0) - '.$qty),
+            'updated_by'  => $username,
+            'updated_at'  => $now,
+        ]);
+
+    // location_number = fromLoc (yg saldonya turun); from/to = jejak operasi
+    $this->writeMovement($seq, $article, $adesc, $qty, $fromLoc, 'out',
+                         $fromLoc, $toLoc, $movementType, $transno, $desc, $username);
+}
+
+/** Satu baris MASUK: tambah warehouse_stock tujuan + movement (plus) */
+private function postIn(&$seq, $article, $uom, $qty, $toLoc, $fromLoc, $movementType, $transno, $desc, $username)
+{
+    if ($qty <= 0) return;
+    $now = date('Y-m-d H:i:s');
+
+    $art = DB::table('article')->where('article_code',$article)
+        ->select('article_desc','article_type')->first();
+    $adesc = $art->article_desc ?? null;
+    $dept  = $art->article_type ?? null;
+
+    $exists = DB::table('warehouse_stock')
+        ->where('article_code',$article)->where('location_number',$toLoc)->exists();
+    if ($exists) {
+        DB::table('warehouse_stock')
+            ->where('article_code',$article)->where('location_number',$toLoc)
+            ->update([
+                'article_qty' => DB::raw('coalesce(article_qty,0) + '.$qty),
+                'updated_by'  => $username,
+                'updated_at'  => $now,
+            ]);
+    } else {
+        DB::table('warehouse_stock')->insert([
+            'site_code'       => 'HO',
+            'article_code'    => $article,
+            'location_number' => $toLoc,
+            'article_qty'     => $qty,
+            'uom'             => $uom,
+            'dept_code'       => $dept,
+            'created_by'      => $username,
+            'updated_by'      => $username,
+            'created_at'      => $now,
+            'updated_at'      => $now,
+        ]);
+    }
+
+    // location_number = toLoc (yg saldonya naik); from/to = jejak operasi
+    $this->writeMovement($seq, $article, $adesc, $qty, $toLoc, 'in',
+                         $fromLoc, $toLoc, $movementType, $transno, $desc, $username);
+}
+
+/** Tulis 1 baris warehouse_movement. $direction: 'in'|'out'. Naikkan $seq. */
+private function writeMovement(&$seq, $article, $adesc, $qty, $location, $direction,
+                               $fromLoc, $toLoc, $movementType, $transno, $desc, $username)
+{
+    $sign  = ($direction === 'in') ? '+' : '-';
+    $today = date('Y-m-d');
+
+    DB::table('warehouse_movement')->insert([
+        'movement_code'     => ++$seq,
+        'movement_date'     => date('d-m-Y'),
+        'site_code'         => 'HO',
+        'location_number'   => $location,      // lokasi yg saldonya kena
+        'artikel_code'      => $article,
+        'artikel_desc'      => $adesc,
+        'movement_min'      => ($direction === 'out') ? $qty : 0,
+        'movement_plus'     => ($direction === 'in')  ? $qty : 0,
+        'movement_from'     => $fromLoc,       // ⬅ sumber operasi
+        'movement_to'       => $toLoc,         // ⬅ tujuan operasi
+        'movement_type'     => $movementType,
+        'movement_transnno' => $transno,
+        'movement_desc'     => $desc,
+        'last_qty'          => DB::raw("get_last_qty_new('$article','$today','HO','$location') $sign $qty"),
+        'created_by'        => $username,
+        'created_at'        => date('Y-m-d H:i:s'),
+    ]);
+}
+
+    public function storeOld(Request $request)
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
@@ -529,6 +1125,51 @@ class ActualLoadingController extends Controller
     }
 
     public function show(Request $request)
+{
+    $id = Crypt::decryptString($request->id);
+    $username = Auth::user()->username;
+    $data['title'] = "Detail $this->title";
+    $data['subtitle'] = "Detail $this->title";
+
+    $data['header'] = DB::table('actual_loading_hdr as alh')
+        ->leftJoin('stock_location_master as slm', 'slm.location_code', '=', 'alh.spray_booth')
+        ->where('alh.id', $id)
+        ->select(
+            'alh.*',
+            DB::raw("to_char(alh.loading_date, 'DD-MM-YYYY') as loading_date_fmt"),
+            DB::raw("coalesce(slm.location_name, alh.spray_booth) as spray_booth_name")
+        )
+        ->first();
+
+    if (!$data['header']) {
+        abort(404);
+    }
+
+    $prdNumber = $data['header']->prod_code;
+
+    $data['details'] = DB::table('actual_loading_det as ald')
+        ->leftJoin('article as a', 'a.article_code', '=', 'ald.article_code')
+        ->where('ald.prod_code', $prdNumber)
+        ->select(
+            'ald.*',
+            'a.article_alternative_code',
+            'a.article_desc'
+        )
+        ->orderBy('ald.urutan')
+        ->get();
+
+    $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode, $prdNumber, $username);
+    $data['approveValidate'] = Approval::approveValidate($this->moduleCode, $prdNumber, $username);
+
+    $data['oEdit'] = true;
+
+    $statusPrd = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED'];
+    $data['statusPrd'] = $statusPrd[$data['header']->status] ?? $data['header']->status;
+
+    return view("production.actualLoading.show", $data);
+}
+
+    public function showOld(Request $request)
     {
         $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;
@@ -601,6 +1242,73 @@ class ActualLoadingController extends Controller
     }
 
     public function edit(Request $request)
+{
+    $id = Crypt::decryptString($request->id);
+    $username = Auth::user()->username;
+    $data['title'] = "Edit $this->title";
+    $data['subtitle'] = "Edit $this->title";
+
+    $data['header'] = DB::table('actual_loading_hdr as alh')
+        ->leftJoin('stock_location_master as slm', 'slm.location_code', '=', 'alh.spray_booth')
+        ->where('alh.id', $id)
+        ->select(
+            'alh.*',
+            DB::raw("to_char(alh.loading_date, 'DD-MM-YYYY') as loading_date_fmt"),
+            DB::raw("coalesce(slm.location_name, alh.spray_booth) as spray_booth_name")
+        )
+        ->first();
+
+    if (!$data['header']) {
+        abort(404);
+    }
+
+    $prdNumber = $data['header']->prod_code;
+
+    $data['details'] = DB::table('actual_loading_det as ald')
+        ->leftJoin('article as a', 'a.article_code', '=', 'ald.article_code')
+        ->where('ald.prod_code', $prdNumber)
+        ->select(
+            'ald.*',
+            'a.article_alternative_code',
+            'a.article_desc',
+            'a.uom as uom_master'
+        )
+        ->orderBy('ald.urutan')
+        ->get();
+
+    $data['sprayBooths'] = DB::table('stock_location_master')
+        ->where('location_type', 'booth')
+        ->orderBy('location_name')
+        ->get();
+
+    // ── Log histori, dikelompokkan per revisi ──
+    $logs = DB::table('actual_loading_log')
+        ->where('prod_code', $prdNumber)
+        ->orderBy('revision', 'desc')
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    $data['history'] = $logs->groupBy('revision')->map(function ($group) {
+        return [
+            'revision'   => $group->first()->revision,
+            'created_by' => $group->first()->created_by,
+            'created_at' => $group->first()->created_at,
+            'changes'    => $group,
+        ];
+    })->values();
+
+    $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode, $prdNumber, $username);
+    $data['approveValidate'] = Approval::approveValidate($this->moduleCode, $prdNumber, $username);
+
+    $data['oEdit'] = true;
+
+    $statusPrd = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED'];
+    $data['statusPrd'] = $statusPrd[$data['header']->status] ?? $data['header']->status;
+
+    return view("production.actualLoading.edit", $data);
+}
+
+    public function editOld(Request $request)
     {
         $id=Crypt::decryptString($request->id);
         $username =  Auth::user()->username;
@@ -638,7 +1346,230 @@ class ActualLoadingController extends Controller
         
     }
 
-    public function update(Request $request)
+    /**
+ * Hitung net qty (plus-min) per artikel+lokasi untuk 1 dokumen,
+ * lalu posting movement penyeimbang supaya net kembali ke 0.
+ * Dipanggil SEBELUM posting ulang movement baru saat update.
+ */
+private function reverseDocumentStock(&$seq, $prdNumber, $username)
+{
+    $nets = DB::table('warehouse_movement')
+        ->where('movement_transnno', $prdNumber)
+        ->select(
+            'artikel_code',
+            'location_number',
+            DB::raw('sum(movement_plus - movement_min) as net_qty')
+        )
+        ->groupBy('artikel_code', 'location_number')
+        ->havingRaw('sum(movement_plus - movement_min) <> 0')
+        ->get();
+
+    foreach ($nets as $row) {
+        $netQty = (float) $row->net_qty;
+        $loc    = $row->location_number;
+        $art    = $row->artikel_code;
+
+        if ($netQty > 0) {
+            // net-nya nambah stok -> reversal-nya KELUAR
+            $this->postOut(
+                $seq, $art, $netQty, $loc, $loc,
+                $prdNumber, 'Reversal (edit)', $username
+            );
+        } else {
+            // net-nya ngurangin stok -> reversal-nya MASUK
+            $uom = DB::table('article')->where('article_code', $art)->value('uom');
+            $this->postIn(
+                $seq, $art, $uom, abs($netQty), $loc, $loc,
+                $prdNumber, 'Reversal (edit)', $username
+            );
+        }
+    }
+}
+
+public function update(Request $request)
+{
+    $username    = Auth::user()->username;
+    $prdNumber   = $request->prdNumber;
+    $loadingDate = $request->loadingDate;
+    $sprayBooth  = $request->sprayBooth;
+    $reference   = $request->reference;   // ⬅ NEW
+    $note        = $request->note;
+    $articles    = json_decode($request->articles);
+    $now         = date('Y-m-d H:i:s');
+
+    $validation = Validator::make($request->all(), [
+        'sprayBooth'  => 'required',
+        'loadingDate' => 'required',
+    ]);
+    if ($validation->fails()) {
+        $errs = [];
+        foreach ($validation->messages()->getMessages() as $m) { $errs[] = $m; }
+        return response()->json(['status'=>0,'title'=>"Update $this->title",'message'=>$errs,'alert'=>'error']);
+    }
+    if (empty($articles)) {
+        return response()->json(['status'=>0,'title'=>"Update $this->title",'message'=>[['Tidak ada artikel yang diinput.']],'alert'=>'error']);
+    }
+
+    $loadingDateDb = $loadingDate ? implode('-', array_reverse(explode('-', $loadingDate))) : null;
+
+    DB::beginTransaction();
+    try {
+        $oldHeader = DB::table('actual_loading_hdr')->where('prod_code', $prdNumber)->first();
+        if (!$oldHeader) {
+            throw new \Exception("Data $prdNumber tidak ditemukan.");
+        }
+        if ($oldHeader->status != 1) {
+            throw new \Exception("Hanya data berstatus NEW yang bisa diedit langsung. Gunakan Revision untuk dokumen yang sudah diproses.");
+        }
+
+        $newRevision  = $oldHeader->num_revision + 1;
+        $changeCount  = 0;
+        $seq          = (int) DB::table('warehouse_movement')->max('movement_code');
+
+        // ── 1. Diff-log field header ──
+       $headerFieldsMap = [
+    'loading_date'  => ['old' => $oldHeader->loading_date, 'new' => $loadingDateDb, 'label' => 'Loading Date'],
+    'spray_booth'   => ['old' => $oldHeader->spray_booth, 'new' => $sprayBooth, 'label' => 'Spray Booth'],
+    'wos_reference' => ['old' => $oldHeader->wos_reference, 'new' => $reference, 'label' => 'Referensi WOS'], // ⬅ NEW
+    'note'          => ['old' => $oldHeader->note, 'new' => $note, 'label' => 'Note'],
+];
+        foreach ($headerFieldsMap as $val) {
+            if ((string)$val['old'] !== (string)$val['new']) {
+                DB::table('actual_loading_log')->insert([
+                    'prod_code' => $prdNumber, 'revision' => $newRevision, 'ref_type' => 'hdr',
+                    'article_code' => null, 'field_name' => $val['label'],
+                    'old_value' => $val['old'], 'new_value' => $val['new'],
+                    'created_by' => $username, 'created_at' => $now,
+                ]);
+                $changeCount++;
+            }
+        }
+
+        // ── 2. Reversal SEMUA movement lama dokumen ini ke net 0 ──
+        $this->reverseDocumentStock($seq, $prdNumber, $username);
+
+        // ── 3. Diff-log per artikel + hapus detail lama, siapkan insert baru ──
+        $oldDetails = DB::table('actual_loading_det')->where('prod_code', $prdNumber)->get()->keyBy('article_code');
+        $seenArticles = [];
+        $urutan = 0;
+
+        DB::table('actual_loading_det')->where('prod_code', $prdNumber)->delete();
+
+        foreach ($articles as $val) {
+            $urutan++;
+            $articleCode = $val->article_code;
+            $seenArticles[] = $articleCode;
+
+            $qtyFresh   = (float)($val->qty_fresh ?? 0);
+            $qtyRepaint = (float)($val->qty_repaint ?? 0);
+            $qtyTotal   = $qtyFresh + $qtyRepaint;
+            $newNote    = $val->note ?? null;
+
+            $old = $oldDetails->get($articleCode);
+            if ($old) {
+                foreach ([
+                    'Qty Fresh'   => [(float)$old->qty_fresh, $qtyFresh],
+                    'Qty Repaint' => [(float)$old->qty_repaint, $qtyRepaint],
+                    'Note'        => [$old->note, $newNote],
+                ] as $label => [$oldVal, $newVal]) {
+                    if ((string)$oldVal !== (string)$newVal) {
+                        DB::table('actual_loading_log')->insert([
+                            'prod_code' => $prdNumber, 'revision' => $newRevision, 'ref_type' => 'det',
+                            'article_code' => $articleCode, 'field_name' => $label,
+                            'old_value' => $oldVal, 'new_value' => $newVal,
+                            'created_by' => $username, 'created_at' => $now,
+                        ]);
+                        $changeCount++;
+                    }
+                }
+            } else {
+                DB::table('actual_loading_log')->insert([
+                    'prod_code' => $prdNumber, 'revision' => $newRevision, 'ref_type' => 'det',
+                    'article_code' => $articleCode, 'field_name' => 'Article Added',
+                    'old_value' => null, 'new_value' => "Fresh: $qtyFresh, Repaint: $qtyRepaint",
+                    'created_by' => $username, 'created_at' => $now,
+                ]);
+                $changeCount++;
+            }
+
+            if ($qtyTotal <= 0) continue;
+
+            // ── validasi ulang ketersediaan (sama seperti store) ──
+            $freshCapacity = $this->freshCapacity($articleCode, $sprayBooth);
+            if ($qtyFresh > $freshCapacity) {
+                throw new \Exception("Qty Fresh {$qtyFresh} untuk {$articleCode} melebihi kapasitas RM ({$freshCapacity}).");
+            }
+            if ($qtyRepaint > 0) {
+                $wipAvail = $this->wipAvailable($articleCode);
+                if ($wipAvail < $qtyRepaint) {
+                    throw new \Exception("Qty Repaint {$qtyRepaint} untuk {$articleCode} tidak tercukupi. WIP tersedia {$wipAvail}.");
+                }
+            }
+
+            DB::table('actual_loading_det')->insert([
+                'prod_code' => $prdNumber, 'urutan' => $urutan, 'article_code' => $articleCode,
+                'uom' => $val->uom ?? ($old->uom ?? null),
+                'qty' => $qtyTotal, 'qty_fresh' => $qtyFresh, 'qty_repaint' => $qtyRepaint,
+                'note' => $newNote,
+                'created_by' => $old->created_by ?? $username, 'updated_by' => $username,
+                'created_at' => $old->created_at ?? $now, 'updated_at' => $now,
+            ]);
+
+            // ── 4. Posting ulang movement (sama logika seperti store) ──
+            if ($qtyFresh > 0) {
+                foreach ($this->getBomRm($articleCode) as $rm) {
+                    $this->postOut($seq, $rm->article_code, $qtyFresh * (float)$rm->qty_per_fg,
+                        $sprayBooth, '038', 'LOADING', $prdNumber, "Fresh RM (edit)", $username);
+                }
+                $this->postIn($seq, $articleCode, $val->uom ?? null, $qtyFresh,
+                    '038', $sprayBooth, 'LOADING', $prdNumber, "Fresh RM (edit)", $username);
+            }
+            if ($qtyRepaint > 0) {
+                $this->moveRepaintFromWip($seq, $articleCode, $val->uom ?? null, $qtyRepaint,
+                    '038', 'LOADING', $prdNumber, $username);
+            }
+        }
+
+        // ── artikel yang dihapus saat edit ──
+        foreach ($oldDetails as $articleCode => $old) {
+            if (!in_array($articleCode, $seenArticles)) {
+                DB::table('actual_loading_log')->insert([
+                    'prod_code' => $prdNumber, 'revision' => $newRevision, 'ref_type' => 'det',
+                    'article_code' => $articleCode, 'field_name' => 'Article Removed',
+                    'old_value' => "Fresh: {$old->qty_fresh}, Repaint: {$old->qty_repaint}", 'new_value' => null,
+                    'created_by' => $username, 'created_at' => $now,
+                ]);
+                $changeCount++;
+            }
+        }
+
+        DB::table('actual_loading_hdr')->where('prod_code', $prdNumber)->update([
+            'loading_date' => $loadingDateDb,
+            'spray_booth'  => $sprayBooth,
+             'wos_reference' => $reference,   // ⬅ NEW
+            'note'         => $note,
+            'num_revision' => $changeCount > 0 ? $newRevision : $oldHeader->num_revision,
+            'updated_by'   => $username,
+            'updated_at'   => $now,
+        ]);
+
+        DB::commit();
+
+        $title   = "Update $this->title";
+        $message = $changeCount > 0
+            ? "$title $prdNumber berhasil disimpan (Revisi $newRevision, $changeCount perubahan, stok disesuaikan)"
+            : "$title $prdNumber tidak ada perubahan";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+
+        return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','prdNumber'=>$prdNumber,'oEdit'=>true]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return response()->json(['status'=>0,'title'=>"Update $this->title",'message'=>[[$e->getMessage()]],'alert'=>'error']);
+    }
+}
+
+    public function updateOld(Request $request)
     {
         $username =  Auth::user()->username;
         $articles = json_decode($request -> articles);
@@ -752,6 +1683,117 @@ class ActualLoadingController extends Controller
     }
 
     public function list(Request $request)
+{
+    $searchPrd    = strtolower($request->searchPrd);
+    $prdDate      = $request->prdDate;
+    $searchStatus = $request->searchStatus;
+
+    $fromDate = "";
+    $toDate   = "";
+
+    if ($prdDate) {
+        $date = explode("to", $prdDate);
+        if (count($date) > 1) {
+            $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = implode("-", array_reverse(explode("-", trim($date[1]))));
+        } else {
+            $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = $fromDate;
+        }
+    }
+
+   $data = DB::table('actual_loading_hdr')
+    ->leftJoin('stock_location_master', 'stock_location_master.location_code', '=', 'actual_loading_hdr.spray_booth')
+    ->when($searchPrd, function ($query) use ($searchPrd) {
+        $query->where('actual_loading_hdr.prod_code', 'ilike', '%'.$searchPrd.'%');
+    })
+    ->when($prdDate, function ($query) use ($fromDate, $toDate) {
+        $query->whereBetween(DB::raw('actual_loading_hdr.loading_date'), [$fromDate, $toDate]);
+    })
+    ->when($searchStatus, function ($query) use ($searchStatus) {
+        $query->where('actual_loading_hdr.status', $searchStatus);
+    })
+    ->select(
+        'actual_loading_hdr.id',
+        'actual_loading_hdr.prod_code',
+        DB::raw("to_char(actual_loading_hdr.loading_date, 'DD-MM-YYYY') as prod_date"),
+        DB::raw("coalesce(stock_location_master.location_name, actual_loading_hdr.spray_booth) as spraybooth"),
+        'actual_loading_hdr.status',
+        'actual_loading_hdr.num_revision',
+        'actual_loading_hdr.note',
+        'actual_loading_hdr.created_by',
+        DB::raw("to_char(actual_loading_hdr.created_at, 'DD-MM-YYYY HH24:MI') as created_at")
+    )
+    ->orderBy('actual_loading_hdr.id', 'desc')
+    ->get();
+
+    return Datatables::of($data)
+        ->addColumn('action', function ($data) {
+            $buttons = '<div class="d-inline-flex">
+                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
+                                <i data-feather="menu"></i>
+                            </a>';
+            $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
+
+            if (Auth::user()->can('actualLoading-edit') && $data->status == '1') {
+                $buttons .= '<a href="'. route('production.actualLoading.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                                <i data-feather="file-text"></i>
+                                Edit
+                            </a>';
+            }
+
+            $buttons .= '<a href="'. route('production.actualLoading.print', ['id'=>Crypt::encryptString($data->id)]) .'" target="_blank" class="dropdown-item">
+                            <i data-feather="printer"></i>
+                            Print
+                        </a>';
+
+            if (Auth::user()->can('actualLoading-posting') && $data->status == '3') {
+                $buttons .= "<a href='javascript:;'
+                    class='dropdown-item'
+                    data-size='sm'
+                    data-ajax-delete='true'
+                    data-confirm='Are You Sure want to post This number?'
+                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                    data-modal-id='".$data->id."'
+                    data-url='". route('production.actualLoading.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                    <i data-feather='check' class='feather-14-red'></i>
+                    <span>". __('Posting') ."</span>
+                    </a>";
+            }
+
+            $buttons .= '<a href="'. route('production.actualLoading.show', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
+                            <i data-feather="list"></i>
+                            Detail
+                        </a>';
+
+            if (Auth::user()->can('actualLoading-delete') && $data->status == '1') {
+                $buttons .= "<a href='javascript:;'
+                    class='dropdown-item'
+                    data-size='sm'
+                    data-ajax-delete='true'
+                    data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?'
+                    data-confirm-yes='document.getElementById(\""."delete-form-".$data->id."\").submit();'
+                    data-modal-id='".$data->id."'
+                    data-url='". route('production.actualLoading.destroy', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                    <i data-feather='trash-2' class='feather-14-red'></i>
+                    <span>". __('Delete') ."</span>
+                    </a>";
+            }
+
+            $buttons .= '</div></div>';
+            return $buttons;
+        })
+        ->addColumn('status', function ($data) {
+            $badges = ['badge-primary', 'badge-info', 'badge-success', 'badge-warning'];
+            $status = ['ON PROCESS', 'VALIDATE', 'APPROVED', 'POSTED'];
+            $idx = $data->status - 1;
+            return "<div class='badge ".($badges[$idx] ?? 'badge-secondary')."'>".($status[$idx] ?? $data->status)."</div>";
+        })
+        ->rawColumns(['action', 'status'])
+        ->make(true);
+}
+
+    public function listOld(Request $request)
     {
         $searchPrd = strtolower($request->searchPrd);
         $searchWos = strtolower($request->searchWos);

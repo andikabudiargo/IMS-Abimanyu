@@ -1,0 +1,415 @@
+@extends('layouts.app')
+@section('title', $title)
+@section('content')
+@include('layouts.breadcrumb')
+<section id="add-index">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Status: {{ $statusPrd }}</h4>
+                    <input type="hidden" id='oEdit' value="{{ $oEdit }}">
+                    <div class="heading-elements">
+                        <ul class="list-inline mb-0">
+                            <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+                        </ul>
+                    </div>    
+                </div>
+                <div class="card-content collapse show">
+                    <div class="card-body">
+                        <form id="frmAdd" name="frmAdd" autocomplete="off">
+                            @csrf
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label for="prdNumber">Production Number</label>
+                                    <input type="text" id="prdNumber" name="prdNumber" class="form-control form-control-sm disabled-el" disabled />
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="wosNumber">WOS Number</label>
+                                    <select class="select2 form-control" id="wosNumber" name="wosNumber" required>
+                                        <option value=""></option>
+                                        @foreach($listWo as $val)
+                                            <option value="{{ $val->wo_code }}"   
+                                                data-shift="{{ $val->wo_shift }}"
+                                                data-group="{{ $val->wo_group }}"
+                                                data-date="{{ $val->tanggal }}"
+                                                data-start-time="{{ $val->start_time }}"
+                                                data-working-hour="{{ $val->working_hour }}"
+                                                data-efficiency="{{ $val->efficiency }}"
+                                                data-note="{{ $val->note }}"
+                                                data-spray-booth="{{ $val->spray_booth }}"
+                                                >{{$val->wo_code}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label for="wosDate">Date*</label>
+                                    <input type="text" id="wosDate" name="wosDate" class="form-control" placeholder="DD-MM-YYYY" disabled />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="shift">Shift*</label>
+                                    <input type="text" id="shift" name="shift" class="form-control" disabled />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="group">Group*</label>
+                                    <input type="text" id="group" name="group" class="form-control" disabled />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="wosTime">Start Time*</label>
+                                    <input type="text" id="wosTime" name="wosTime" class="form-control" placeholder="HH:MM" required />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="workingHour">Working Hour*</label>
+                                    <input type="text" id="workingHour" name="workingHour" class="form-control numeral-mask-satuan text-right" maxlength="2" required />
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="efficiency">Efficiency*</label>
+                                    <input type="text" id="efficiency" name="efficiency" value="95" class="form-control numeral-mask-satuan text-right" maxlength="3" required />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="sprayBooth">Spray booth</label>
+                                        <select class="select2 form-control" id="sprayBooth" name="sprayBooth" required disabled>
+                                            <option value=""></option>
+                                            <option value="sb1">Spray Booth 1</option>
+                                            <option value="sb2">Spray Booth 2</option>
+                                            <option value="sb3">Spray Booth 3</option>
+                                            <option value="sb4">Spray Booth 4</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="form-group col-md-8">
+                                    <label class="form-label" for="note">Notes</label>
+                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
+                                </div>
+                            </div>
+                        </form>
+                        <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" id="aWosNumber" name="aWosNumber" value="oki"/>
+                            <div class="form-row">
+                                <div class="col-lg-3 col-md-12">
+                                    <div class="form-group">
+                                        <button type="button" class="btn btn-info" id ="cmdDownloadTemplate" name="cmdDownloadTemplate"><i data-feather="download"></i> Downlod Template</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col-lg-3 col-md-12">
+                                    <div class="form-group">
+                                        <div>
+                                            <input type="file" class="custom-file-input" name="file" id="file" required/>
+                                            <label class="custom-file-label" for="file">Choose file</label>
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 col-md-12">
+                                    <button type="button" class="btn btn-primary">
+                                        <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                                        <span class="align-middle d-sm-inline-block d-none" id="uploadExcel">Upload Excel</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Article</h4>
+                </div>
+                <div class="card-body" >
+                    {{-- <button class="btn btn-success btn-sm" type="button" id="cmdSort" name="cmdSort">Sort</button> --}}
+                    <div class="container-list-item">
+                        <div class="lebar-list-item">
+                            <br>
+                            @include('production.actualLoading.headerColumn')
+                            <div class="" id="article_row" style="max-height: 18rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
+                                <input type="text" id ="last_row_number" class="d-none" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    @include('production.actualLoading.summary')
+                    <hr>
+                    <div class="form-row mt-75">
+                        <div class="col-md-12">
+                            <a href="{{ route('production.actualLoading.index') }}" class="btn btn-light">Back</a>
+                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave" >Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+@endsection
+@section('styles')
+<style>
+    textarea {
+        resize: none;
+    }
+
+    .mb-03{
+        margin-bottom: 0.3rem;
+    }
+    
+    label.titik-dua::after{
+        content : ":"; 
+        position : absolute;
+        right : 1px;
+    }
+
+    td.isian{
+        padding-right:10px;
+        padding-left:10px;
+    }
+
+    td.isian-satu{
+        padding-right:5px;
+        padding-left:15px;
+        width: 25%;border-top: 1px solid #ffffff !important;
+        border-bottom: 1px solid #ffffff !important;
+        border-left: 1px solid #ffffff !important;
+    }
+
+    td.disabled{
+        background-color:#f8f8f8;
+        color:black;
+    }
+
+    label.tanpa-padding{
+        padding-top: 5px;
+        padding-bottom: 0px;
+    }
+
+
+</style>
+@endsection
+@section('scripts')
+@include('production.actualLoading.addArticle')
+<script type="text/javascript">
+    const dWosNumber=$('#wosNumber');
+    const dWosDate=$('#wosDate');
+    const dShift=$('#shift');
+    const dGroup=$('#group');
+    const dWosTime=$('#wosTime');
+    const dWorkingHour=$('#workingHour');
+    const dEfficiency=$('#efficiency');
+    const dNote=$('#note');
+    
+
+    $(document).ready(function(){           
+        validateFormToast("frmAdd");
+    });   
+
+    dWosNumber.change(function(){
+        let value= $(this).val();
+        dWosDate.val($(this).find(":selected").data("date"));
+        dShift.val($(this).find(":selected").data("shift"));
+        dGroup.val($(this).find(":selected").data("group"));
+        dWosTime.val($(this).find(":selected").data("start-time"));
+        dWorkingHour.val($(this).find(":selected").data("working-hour"));
+        dEfficiency.val($(this).find(":selected").data("efficiency"));
+        dNote.val($(this).find(":selected").data("note"));
+        sprayBooth.val($(this).find(":selected").data("spray-booth")).trigger('change');
+        sumData();
+        let dariExcel ='false';
+
+        $.ajax({
+            url:"{{ route('production.actualLoading.wos.detail') }}",
+            method:"GET",
+            data:{
+                wosNumber:value,
+                dariExcel:dariExcel
+            },
+            success:function(result){                
+                if(result.length > 0 ){
+                    for(let i=0;i< result.length;i++){
+                        let soCode = result[i].so_code;
+                        let articleId= result[i].article_code;
+                        let articleCode = result[i].article;
+                        let articleRm = result[i].article_rm_code;
+                        let qtySo = result[i].so_qty; //belum ada
+                        let uom = 'PCS';
+                        let planQtyFresh = result[i].plan_qty_fresh || 0;
+                        let planQtyRepaint = result[i].plan_qty_repaint || 0;
+                        let planTime = result[i].plan_time;
+                        let planTag = result[i].plan_tag || 0;
+                        let originTag = result[i].origin_tag;
+                        let tone = result[i].tone;
+                        add_new_row(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone);
+                    }
+                }
+            },
+            error: function (response) {
+                Swal.fire("Warning","Get detail PO failed","warning");
+            }
+        })
+
+    });
+
+    $("#cmdDownloadTemplate").click(function(){
+        let id = dWosNumber.val();
+        if(id){
+            let url = "{{ route('actualLoading.export.excel', ['wos_number'=>':id']) }}";
+            url = url.replace('%3Aid', id);
+            window.location.href = url;
+        }else{
+            Swal.fire("Warning","Pilih dulu WOS number","warning");
+        }
+
+    });
+
+    $("#uploadExcel").click(function(){
+        if (!$("#frmExcel")[0].checkValidity()){
+            $("#frmExcel").submit();
+        }else{
+            $(".loading-spinner-container").addClass("-show");
+            $("#uploadExcel").attr('disabled','disabled');
+            $('.disabled-el').removeAttr('disabled');
+            $("#frmExcel").submit();
+        }
+    });
+
+    $('#frmExcel').on('submit', function(event){
+        $('#message').html('');
+        $('#article_row').empty();
+        event.preventDefault();
+        $('#aWosNumber').val($('#wosNumber').val());       
+        $.ajax({
+            url:"{{ route('actualLoading.import.excel') }}",
+            method:"POST",
+            data: new FormData(this),
+            dataType:"json",
+            contentType:false,
+            cache:false,
+            processData:false,
+            beforeSend:function(){
+                $('#uploadExcel').attr('disabled','disabled');
+            },
+            success:function(data){
+                // console.log(data.dataDetail);
+                // console.log(data.status);
+                if(data.status == 1){
+                    Swal.fire({
+                        title: "Proses validasi...",
+                        icon: "warning",
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        },
+                    })
+
+                    let timerId = setInterval(() => checkVariable(), 1000);
+                    function checkVariable() {
+                        if (data.dataDetail.length > 0) {
+                            clearInterval(timerId);
+                            for(let i=0;i<data.dataDetail.length;i++){
+                                soCode = data.dataDetail[i].so_code;
+                                articleId= data.dataDetail[i].article_code;
+                                articleCode = data.dataDetail[i].article;
+                                articleRm = data.dataDetail[i].article_rm_code;
+                                qtySo = data.dataDetail[i].so_qty; //belum ada
+                                uom = 'PCS';
+                                planQtyFresh = data.dataDetail[i].qty_fresh_x;
+                                planQtyRepaint = data.dataDetail[i].qty_repaint_x;
+                                planTime = data.dataDetail[i].act_time;
+                                // planTag = data.dataDetail[i].qty_tag_x;
+                                planTag = 0;
+                                originTag = data.dataDetail[i].origin_tag;
+                                tone = data.dataDetail[i].tone;
+                                urutan = data.dataDetail[i].urutan;
+                                
+                                if(soCode == 'other'){
+                                    planQtyRepaint = 0;
+                                    planTag = 0;
+                                }
+
+                                add_new_row_edit_import(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone,urutan);
+                                if (i==(data.dataDetail.length-1)){
+                                        $("#uploadExcel").removeAttr('disabled');
+                                        show_msg(data.title, data.message, data.alert);
+                                        $(".loading-spinner-container").removeClass("-show");
+                                        swal.close();
+                                        sumData();
+                                }
+                            }
+                        }else{
+                            swal.fire("warning","Data Kosong","warning");
+                            $(".loading-spinner-container").removeClass("-show");        
+                        }
+                    }
+
+                }
+
+                if(data.status == 0){
+                    for(let i = 0; i < data.message.length; i++) {
+                        show_msg(data.title, data.message[i], data.alert);
+                    }
+                    swal.fire("warning",data.pesan,"warning");
+                    $(".loading-spinner-container").removeClass("-show");
+                }
+            },
+            error: function(xhr, status, error) {
+                let err = JSON.parse(xhr.responseText);
+                // Swal.fire('Error..',err.errors.file[0],'error');
+                Swal.fire('Error..',err.message,'error');
+                $(".loading-spinner-container").removeClass("-show");
+            }
+        })
+    });
+
+    isiDariExcel=()=>{
+        let awosNumber= dWosNumber.val();
+        let dariExcel ='true';
+        $.ajax({
+            url:"{{ route('production.actualLoading.wos.detail') }}",
+            method:"GET",
+            data:{
+                wosNumber:awosNumber,
+                dariExcel:dariExcel
+            },
+            success:function(result){                
+                if(result.length > 0 ){
+                    for(let i=0;i< detail.length;i++){
+                        soCode = detail[i].so_code;
+                        articleId= detail[i].article_code;
+                        articleCode = detail[i].article;
+                        articleRm = detail[i].article_rm_code;
+                        qtySo = detail[i].so_qty; //belum ada
+                        uom = 'PCS';
+                        planQtyFresh = detail[i].act_qty_fresh;
+                        planQtyRepaint = detail[i].act_qty_repaint;
+                        planTime = detail[i].act_time;
+                        planTag = detail[i].act_tag;
+                        originTag = detail[i].origin_tag;
+                        tone = detail[i].tone;
+                        add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone);
+                    }
+                }
+            },
+            error: function (response) {
+                Swal.fire("Warning","Get detail PO failed","warning");
+            }
+        })
+    }
+
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
+</script>
+@endsection
