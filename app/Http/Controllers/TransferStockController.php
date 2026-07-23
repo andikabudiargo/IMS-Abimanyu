@@ -22,6 +22,32 @@ namespace App\Http\Controllers;
 
         Simplifikasi Transfer In dan Out jadi Transfer Stock
 
+        =====================================================
+        CATATAN REVISI MOVEMENT LOG (baca ini dulu sebelum ubah alur edit/delete)
+        =====================================================
+        Masalah lama: setiap update() SELALU reverse (insert baris CANCEL TRANSFER)
+        lalu processPosting() lagi (insert baris baru), walau transfer masih status
+        NEW/VALIDATE/APPROVED (belum pernah "resmi" diposting user lain). Akibatnya
+        history warehouse_movement numpuk 3x tiap kali diedit, dan running balance
+        (get_last_qty_new) jadi lompat-lompat karena baca banyak baris net-zero.
+
+        Aturan baru:
+        - Status 1/2/3 (NEW/VALIDATE/APPROVED) = masih draft, belum resmi.
+          -> Edit: koreksi stok langsung (silentReverseStock) TANPA insert baris
+             reversal, lalu hapus & tulis ulang movement transfer ini saja
+             (purgeMovement + processPosting). Hasilnya cuma 1 set baris movement
+             yang mencerminkan kondisi TERAKHIR, tidak ada jejak bolak-balik.
+          -> Delete: silentReverseStock + purgeMovement + hard delete baris
+             header/detail. Karena belum pernah resmi, tidak perlu status CANCELED,
+             cukup hilang beneran.
+        - Status 4 (POSTED) = sudah resmi.
+          -> TIDAK bisa ganti tanggal, lokasi, atau menambah baris artikel baru.
+          -> Hanya bisa adjust qty artikel yang SUDAH ada, lewat updatePostedQty().
+             Perubahan itu dicatat sebagai selisih (delta) saja dengan tipe
+             'ADJUSTMENT TRANSFER', bukan reverse+repost qty penuh.
+          -> Delete tetap full reverse + log resmi + status -> CANCELED (5), karena
+             ini pembatalan transaksi yang sudah pernah dianggap final.
+        - Status 5 (CANCELED) = final, tidak bisa diapa-apakan lagi.
         */
 
         class TransferStockController extends Controller
@@ -251,7 +277,7 @@ namespace App\Http\Controllers;
         $locationTo   = $hdrQ->location_to;
         $trType       = ($hdrQ->tr_type === 'SUPPLY') ? 'SUPPLY' : 'TRANSFER';
 
-        $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
+        $seq             = $this->nextMovementSeq();
         $dataSetMovement = [];
 
         // ===== KELUAR dari gudang asal =====
@@ -384,38 +410,6 @@ namespace App\Http\Controllers;
         } else {
             $trType = 'TRANSFER';
         }
-        // ---- Validasi stok ----
-            // Hanya gudang Consumable (006) yang divalidasi ketat, gudang lain boleh over-stock
-        //  $strictStockLocation = '006';
-
-            //$overStock = [];
-            //foreach ($articles as $val) {
-            //  $onhand = DB::table('warehouse_stock')
-                //    ->where('article_code', $val->article_code)
-                //  ->where('location_number', $locationCode)
-                    //->sum('article_qty');
-
-                //$reserved = DB::table('transfer_stock_det as d')
-                //  ->join('transfer_stock_hdr as h','h.tr_number','=','d.tr_number')
-                // ->where('d.article_code', $val->article_code)
-                // ->where('h.location_from', $locationCode)
-                    //->whereIn('h.status', ['1','2','3'])
-                // ->sum(DB::raw("d.qty * coalesce(uom_conversion(d.uom,(select uom from article where article_code = d.article_code)),1)"));
-
-                //$available = $onhand - $reserved;
-
-                //$qtyBase = DB::selectOne(
-                //  "select ? * coalesce(uom_conversion(?, (select uom from article where article_code = ?)),1) as q",
-                // [$val->qty, $val->uom, $val->article_code]
-                //)->q;
-
-                //if ($locationCode === $strictStockLocation && $qtyBase > $available) {
-                //  $overStock[] = "Qty {$val->article_code} ($qtyBase) melebihi stok available ($available) di gudang $locationCode";
-                //}
-            //}
-            //if ($overStock) {
-            //  return response()->json(['status'=>0,'title'=>$title,'message'=>$overStock,'alert'=>'error']);
-            //}
 
             // ---- Snapshot dept approver ----
             $approveDept = DB::table('stock_location_master')
@@ -591,7 +585,7 @@ namespace App\Http\Controllers;
         $trType       = 'CANCEL ' . $baseType;
         $reason       = "($reasonLabel by $username)";
 
-        $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
+        $seq             = $this->nextMovementSeq();
         $dataSetMovement = [];
 
         // ===== Tarik balik dari gudang tujuan =====
@@ -627,6 +621,48 @@ namespace App\Http\Controllers;
         }
 
         return ['success' => true, 'message' => "Stock $trNumber berhasil di-reverse"];
+    }
+
+        /**
+         * Reverse stok saja TANPA insert baris movement.
+         * Dipakai untuk koreksi/hapus transfer yang masih DRAFT (status 1/2/3) —
+         * karena belum pernah "resmi" diposting user lain, tidak perlu jejak
+         * reversal di warehouse_movement, cukup stok dikembalikan.
+         */
+        private function silentReverseStock(object $hdrQ): void
+    {
+        $lines = $this->resolveTransferLines($hdrQ);
+
+        // Tarik balik dari gudang tujuan
+        foreach ($lines['in'] as $line) {
+            $this->kurangiStock($line['article_code'], $hdrQ->location_to,
+                                $line['article_type'], $line['uom'], $line['qty']);
+        }
+
+        // Kembalikan ke gudang asal
+        foreach ($lines['out'] as $line) {
+            $this->tambahStockTanpaAvg($line['article_code'], $hdrQ->location_from,
+                                       $line['article_type'], $line['uom'], $line['qty']);
+        }
+    }
+
+        /**
+         * Hapus seluruh baris warehouse_movement milik satu transfer.
+         * Dipakai saat draft (status 1/2/3) dikoreksi/dihapus, karena movement-nya
+         * belum pernah "resmi" — jadi ditulis ulang bersih, bukan ditumpuk.
+         */
+        private function purgeMovement(string $trNumber): void
+    {
+        DB::table('warehouse_movement')->where('movement_transnno', $trNumber)->delete();
+    }
+
+        /**
+         * Ambil nomor movement_code berikutnya secara aman dari race condition
+         * (kunci baris tertinggi selama transaksi berjalan).
+         */
+        private function nextMovementSeq(): int
+    {
+        return (int) DB::table('warehouse_movement')->lockForUpdate()->max('movement_code');
     }
 
         // ===== HELPER METHODS =====
@@ -929,6 +965,8 @@ namespace App\Http\Controllers;
             $statusTr         = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
             $data['statusTr'] = $statusTr[$data['header']->status - 1];
             $data['editReason'] = $editReason;          // ← TAMBAH
+            // ← TAMBAH: dipakai view untuk kunci field tanggal/lokasi & sembunyikan "tambah baris" saat POSTED
+            $data['isPosted']   = ($data['header']->status == '4');
 
             return view("transfer/transferStock.edit", $data);
         }
@@ -1001,6 +1039,11 @@ namespace App\Http\Controllers;
         ];
     }
 
+            /**
+             * Edit PENUH: tanggal, lokasi, tambah/hapus baris artikel.
+             * HANYA boleh selama transfer masih DRAFT (status 1/2/3).
+             * Kalau status sudah POSTED (4), pakai updatePostedQty() saja.
+             */
             public function update(Request $request)
         {
             $user         = Auth::user();
@@ -1024,6 +1067,12 @@ namespace App\Http\Controllers;
             if ($hdr->status == '5') {
                 return response()->json(['status'=>0,'title'=>$title,'message'=>['Transfer sudah dicancel, tidak bisa diedit.'],'alert'=>'error']);
             }
+            if ($hdr->status == '4') {
+                // Sudah resmi POSTED: tanggal/lokasi/baris tidak boleh diubah lagi lewat sini.
+                return response()->json(['status'=>0,'title'=>$title,
+                    'message'=>['Transfer sudah POSTED. Tanggal, lokasi, dan baris artikel tidak bisa diubah. Gunakan menu "Adjust Qty" untuk mengoreksi jumlah.'],
+                    'alert'=>'error']);
+            }
 
             // ===== Validasi dasar =====
             $errors = [];
@@ -1046,14 +1095,13 @@ namespace App\Http\Controllers;
             DB::beginTransaction();
             try {
 
-             // ===== 0) Snapshot kondisi lama =====
-            $rev = $this->snapshotHistory($hdr, $username, $editReason);
-                // ===== 1) Reverse posting lama (kalau sudah POSTED) =====
-            $reverse = $this->reverseStock($hdr, $username, 'Edit');
-                if (!$reverse['success']) {
-                    DB::rollBack();
-                    return response()->json(['status'=>0,'title'=>$title,'message'=>(array) $reverse['message'],'alert'=>'error']);
-                }
+                // ===== 0) Snapshot kondisi lama (tetap dicatat sebagai riwayat draft) =====
+                $rev = $this->snapshotHistory($hdr, $username, $editReason);
+
+                // ===== 1) Koreksi stok dari kondisi lama TANPA insert baris reversal =====
+                // (status masih draft → belum pernah "resmi", jadi tidak perlu jejak CANCEL)
+                $this->silentReverseStock($hdr);
+                $this->purgeMovement($trNumber);
 
                 // ===== 2) Update header (status di-reset dulu ke 1, nanti processPosting jadikan 4) =====
                 DB::table('transfer_stock_hdr')
@@ -1078,18 +1126,13 @@ namespace App\Http\Controllers;
                     ->where('module_number', $trNumber)
                     ->delete();
 
-                // ===== 4) Sinkron detail =====
-                $keep = [];
-                foreach ($articles as $val) {
-                    $keep[] = $trNumber . $val->article_code;
-                }
-            // ===== 4) Sinkron detail =====
-    DB::table('transfer_stock_det')
-        ->where('tr_number', $trNumber)
-        ->delete();
+                // ===== 4) Sinkron detail: hapus semua lalu tulis ulang sesuai input =====
+                DB::table('transfer_stock_det')
+                    ->where('tr_number', $trNumber)
+                    ->delete();
 
-    foreach ($articles as $val) {
-        DB::table('transfer_stock_det')->insert([
+                foreach ($articles as $val) {
+                    DB::table('transfer_stock_det')->insert([
                         'tr_number'   => $trNumber,
                         'article_code'=> $val->article_code,
                         'qty'         => $val->qty,
@@ -1102,7 +1145,8 @@ namespace App\Http\Controllers;
                         'updated_at'  => date('Y-m-d H:i:s'),
                     ]);
                 }
-                // ===== 5) Posting ulang (validasi stok ada di dalam processPosting) =====
+
+                // ===== 5) Posting ulang dengan kondisi baru (1 set movement bersih) =====
                 $postResult = $this->processPosting($trNumber, $username);
                 if (!$postResult['success']) {
                     DB::rollBack();
@@ -1127,6 +1171,144 @@ namespace App\Http\Controllers;
                 $message = "$title $trNumber is failed to update";
                 \LogActivity::addToLog($title, "username: $username Status $message - ".$e->getMessage());
                 return response()->json(['status'=>0,'title'=>$title,'message'=>[$message],'alert'=>'error']);
+            }
+        }
+
+        /**
+         * Adjust QTY khusus transfer yang sudah POSTED (status 4).
+         * - Tidak bisa ganti tr_date, location_from, location_to.
+         * - Tidak bisa menambah artikel baru (hanya artikel yang sudah ada di transfer ini).
+         * - Hanya selisih (delta) qty yang diproses ke stok & dicatat sebagai movement
+         *   bertipe 'ADJUSTMENT TRANSFER', bukan reverse+repost qty penuh.
+         *
+         * Payload: trNumber, editReason, articles: [{article_code, qty}, ...]
+         * (qty di sini adalah qty BARU untuk artikel tsb, bukan delta)
+         */
+        public function updatePostedQty(Request $request)
+        {
+            $user       = Auth::user();
+            $username   = $user->username;
+            $trNumber   = $request->trNumber;
+            $editReason = $request->editReason;
+            $articles   = json_decode($request->articles);
+            $title      = "Adjust Qty $this->title";
+
+            $hdr = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->first();
+            if (!$hdr) {
+                return response()->json(['status'=>0,'title'=>$title,'message'=>['Data tidak ditemukan'],'alert'=>'error']);
+            }
+            if ($hdr->status != '4') {
+                return response()->json(['status'=>0,'title'=>$title,'message'=>['Transfer bukan status POSTED, gunakan menu Edit biasa.'],'alert'=>'error']);
+            }
+            if (!$editReason) {
+                return response()->json(['status'=>0,'title'=>$title,'message'=>['Alasan penyesuaian harus diisi'],'alert'=>'error']);
+            }
+            if (empty($articles)) {
+                return response()->json(['status'=>0,'title'=>$title,'message'=>['Artikel harus diisi'],'alert'=>'error']);
+            }
+
+            $existing = DB::table('transfer_stock_det')
+                ->where('tr_number', $trNumber)
+                ->get()
+                ->keyBy('article_code');
+
+            // Tidak boleh menambah artikel baru pada transfer yang sudah POSTED
+            $notFound = [];
+            foreach ($articles as $a) {
+                if (!$existing->has($a->article_code)) {
+                    $notFound[] = $a->article_code;
+                }
+            }
+            if ($notFound) {
+                return response()->json(['status'=>0,'title'=>$title,
+                    'message'=>['Tidak bisa menambah artikel baru pada transfer yang sudah POSTED: '.implode(', ', $notFound)],
+                    'alert'=>'error']);
+            }
+
+            DB::beginTransaction();
+            try {
+                $rev = $this->snapshotHistory($hdr, $username, $editReason);
+                $seq = $this->nextMovementSeq();
+                $todayDate = date('Y-m-d');
+                $adjustedAny = false;
+
+                foreach ($articles as $a) {
+                    $old   = $existing[$a->article_code];
+                    $qtyNew = (float) $a->qty;
+                    $qtyOld = (float) $old->qty;
+                    $delta  = $qtyNew - $qtyOld;
+
+                    if (abs($delta) < 0.0000001) {
+                        continue; // tidak berubah, skip
+                    }
+                    $adjustedAny = true;
+
+                    $artType = DB::table('article')->where('article_code', $a->article_code)->value('article_type');
+                    $uom     = $old->uom;
+                    $qtyAbs  = abs($delta);
+
+                    if ($delta > 0) {
+                        // qty transfer nambah: tambah pengurangan di lokasi asal, tambah penambahan di lokasi tujuan
+                        $price = $this->getAvgPrice($a->article_code, $hdr->location_from);
+                        $this->kurangiStock($a->article_code, $hdr->location_from, $artType, $uom, $qtyAbs);
+                        $this->tambahStock($a->article_code, $hdr->location_to, $artType, $uom, $qtyAbs, $price);
+                    } else {
+                        // qty transfer berkurang: kembalikan sebagian dari tujuan ke asal
+                        $this->kurangiStock($a->article_code, $hdr->location_to, $artType, $uom, $qtyAbs);
+                        $this->tambahStockTanpaAvg($a->article_code, $hdr->location_from, $artType, $uom, $qtyAbs);
+                    }
+
+                    DB::table('transfer_stock_det')
+                        ->where('tr_number', $trNumber)
+                        ->where('article_code', $a->article_code)
+                        ->update([
+                            'qty'        => $qtyNew,
+                            'updated_by' => $username,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]);
+
+                    $price = $this->getAvgPrice($a->article_code, $hdr->location_from);
+                    $desc  = "Adjust qty $qtyOld -> $qtyNew (rev $rev, alasan: $editReason)";
+                    $line  = ['article_code'=>$a->article_code,'article_desc'=>$old->note ?? '','qty'=>$qtyAbs,'uom'=>$uom];
+
+                    // Baris keluar dari lokasi asal
+                    DB::table('warehouse_movement')->insert($this->buildMovement(
+                        ++$seq, $hdr, $line, 'ADJUSTMENT TRANSFER', 'min',
+                        $hdr->location_from, $hdr->location_from, $hdr->location_to,
+                        $price, $desc, $username, $todayDate
+                    ));
+
+                    // Baris masuk ke lokasi tujuan
+                    DB::table('warehouse_movement')->insert($this->buildMovement(
+                        ++$seq, $hdr, $line, 'ADJUSTMENT TRANSFER', 'plus',
+                        $hdr->location_to, $hdr->location_from, $hdr->location_to,
+                        $price, $desc, $username, $todayDate
+                    ));
+                }
+
+                if (!$adjustedAny) {
+                    DB::rollBack();
+                    return response()->json(['status'=>0,'title'=>$title,'message'=>['Tidak ada perubahan qty'],'alert'=>'warning']);
+                }
+
+                DB::table('transfer_stock_hdr')
+                    ->where('tr_number', $trNumber)
+                    ->update([
+                        'num_revision' => $rev,
+                        'updated_by'   => $username,
+                        'updated_at'   => date('Y-m-d H:i:s'),
+                    ]);
+
+                DB::commit();
+                $message = "$title $trNumber berhasil disesuaikan";
+                \LogActivity::addToLog($title, "username: $username Status $message");
+                return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','trNumber'=>$trNumber]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $message = "$title $trNumber gagal disesuaikan";
+                \LogActivity::addToLog($title, "username: $username Status $message - ".$e->getMessage());
+                return response()->json(['status'=>0,'title'=>$title,'message'=>[$message.': '.$e->getMessage()],'alert'=>'error']);
             }
         }
 
@@ -1182,7 +1364,6 @@ namespace App\Http\Controllers;
 
             // ===== Validasi stok (available = onhand - reserved, kecuali transfer ini) =====
             // Hanya gudang Consumable (006) yang divalidasi ketat, gudang lain boleh over-stock
-            // ← disamakan dengan aturan di store()
             $strictStockLocation = '006';
 
             $overStock = [];
@@ -1335,6 +1516,13 @@ namespace App\Http\Controllers;
                 }
             }
 
+            /**
+             * Hapus transfer.
+             * - Status 1/2/3 (DRAFT, belum resmi): koreksi stok TANPA jejak reversal,
+             *   hapus movement transfer ini, lalu HARD DELETE header & detail.
+             * - Status 4 (POSTED, sudah resmi): tetap full reverse + log resmi,
+             *   status diubah jadi CANCELED (5), data tetap ada untuk audit.
+             */
             public function destroy(Request $request)
         {
             $user     = Auth::user();
@@ -1353,8 +1541,6 @@ namespace App\Http\Controllers;
             $trNumber  = $hdrQ->tr_number;
             $isCreator = ($hdrQ->created_by === $username);
 
-            // Karena store langsung menjalankan stok/movement, SEMUA status (1..4)
-            // sudah punya efek stok → selalu perlu reverse.
             // Status 4 butuh otoritas super/acc; status 1/2/3 cukup pembuat atau super/acc.
             if ($hdrQ->status == '4') {
                 if (!($user->hasAnyRole(['Superuser','accounting']) || $user->can('transferOut-posting'))) {
@@ -1366,18 +1552,35 @@ namespace App\Http\Controllers;
                 }
             }
 
-            $reason = "(Delete by $username)";
-
             DB::beginTransaction();
             try {
-                // ===== Reverse stok & movement (untuk SEMUA status non-cancel) =====
+                if (in_array($hdrQ->status, ['1', '2', '3'])) {
+                    // ===== DRAFT: belum pernah resmi -> koreksi stok tanpa jejak, hapus beneran =====
+                    $this->silentReverseStock($hdrQ);
+                    $this->purgeMovement($trNumber);
+
+                    DB::table('approval_history')
+                        ->where('module_code', $this->moduleCode)
+                        ->where('module_number', $trNumber)
+                        ->delete();
+
+                    DB::table('transfer_stock_det')->where('tr_number', $trNumber)->delete();
+                    DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->delete();
+
+                    DB::commit();
+                    $message = "$title $trNumber Successfully Deleted";
+                    \LogActivity::addToLog($title, "username: $username Status $message");
+                    return redirect()->back()->with(['title'=>$title,'alert'=>'success','message'=>$message]);
+                }
+
+                // ===== POSTED: sudah resmi -> full reverse + log resmi + status CANCELED =====
+                $reason  = "(Delete by $username)";
                 $reverse = $this->reverseStock($hdrQ, $username, 'Delete');
                 if (!$reverse['success']) {
                     DB::rollBack();
                     return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>implode(' | ', (array) $reverse['message'])]);
                 }
 
-                // ===== Set status → CANCELED (5), data tetap ada =====
                 DB::table('transfer_stock_hdr')
                     ->where('tr_number', $trNumber)
                     ->update([
@@ -1504,23 +1707,7 @@ namespace App\Http\Controllers;
                                 <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a>';
                 $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
 
-                // APPROVE: status 1/2, BUKAN pembuat, dan (dept tujuan atau super/acc)
-            // if (in_array($st, ['1','2']) && !$isCreator && ($isDestDept || $isSuperAcc)) {
-                //   $buttons .= '<a href="'. route('transferOut.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                //                 <i data-feather="file-text"></i><span>'. __("Approve") .'</span></a>';
-                //}
-
-                // POSTING: status 3
-                //if ($st == '3' && Auth::user()->can('transferOut-posting')) {
-                //  $buttons .= "<a href='javascript:;' class='dropdown-item' data-size='sm' data-ajax-delete='true'
-                    //    data-confirm='Are You Sure want to post This number?'
-                    //  data-confirm-yes='document.getElementById(\"delete-form-".$data->id."\").submit();'
-                        //data-modal-id='".$data->id."'
-                        //data-url='". route('transferOut.posting', ['id'=>Crypt::encryptString($data->id)]) ."'>
-                        //<i data-feather='check' class='feather-14-red'></i><span>". __('Posting') ."</span></a>";
-                //}
-
-                // POSTING: status 3
+                // POSTING: status 1/2
                 if (in_array($st, ['1','2']) && ($isDestDept || $isSuperAcc)) {
                     $buttons .= "<a href='javascript:;' class='dropdown-item' data-size='sm' data-ajax-delete='true'
                         data-confirm='Are You Sure want to post This number?'
@@ -1530,12 +1717,19 @@ namespace App\Http\Controllers;
                         <i data-feather='check' class='feather-14-red'></i><span>". __('Posting') ."</span></a>";
                 }
 
-          // EDIT
-            if ($canEditDelete) {
+          // EDIT (penuh, hanya untuk draft 1/2/3)
+            if ($canEditDelete && $st != '4') {
                 $buttons .= "<a href='javascript:;' class='dropdown-item edit-with-reason'
                                 data-href='". route('transferStock.edit', ['id'=>Crypt::encryptString($data->id)]) ."'>
                                 <i data-feather='file-text'></i><span>". __('Edit') ."</span></a>";
             }
+
+                // ADJUST QTY: status 4 (posted) -> hanya super/acc, buka form khusus qty saja
+                if ($st == '4' && $isSuperAcc) {
+                    $buttons .= "<a href='javascript:;' class='dropdown-item edit-with-reason'
+                                    data-href='". route('transferStock.edit', ['id'=>Crypt::encryptString($data->id)]) ."'>
+                                    <i data-feather='sliders'></i><span>". __('Adjust Qty') ."</span></a>";
+                }
 
                 // CANCEL: status 4 (posted) -> hanya super/acc
                 if ($st == '4' && $isSuperAcc) {
@@ -1886,158 +2080,6 @@ namespace App\Http\Controllers;
                 return Excel::download(new TransferOutExport, 'transfer_out_template.xls');
             }
 
-
-            // public function posting(Request $request)
-            // {
-            //     // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
-            //     $username =  Auth::user()->username;
-            //     $id=Crypt::decryptString($request->id);
-            //     // $trNumber = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->value('tr_number');
-            //     $hdrQ = DB::table('transfer_hdr')->where('id',$id)->where('status','3')->first();
-            //     $trNumber = $hdrQ->tr_number;
-            //     $lastStatus = $hdrQ->status;    
-            //     $trType = $this->moduleCode;
-            //     $siteCode = 'HO';
-            //     $location ='WH';
-            //     $status = '4';
-            //     $todayDate = date('Y-m-d');
-            //     // $movementDate = date("d-m-Y");
-
-            //     if ($lastStatus!=4){
-            //         if ($trNumber){
-            //             $data = DB::table('transfer_det')
-            //             ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
-            //             ->leftJoin('article','article.article_code','transfer_det.article_code')
-            //             ->where('transfer_det.tr_number',$trNumber)
-            //             // ->where('transfer_hdr.status','3')
-            //             ->select('transfer_det.*','article.article_type','article.uom as uom_article',
-            //                 DB::RAW("transfer_det.qty*coalesce(uom_conversion(transfer_det.uom,article.uom),1) as total_qty")
-            //             )
-            //             ->get();
-
-            //             foreach($data as $val){
-            //                 //insert article code kalo belum ada di tabel item_stock
-            //                 DB::table('article_stock')
-            //                 ->updateOrInsert(
-            //                     [ 'site_code' =>$siteCode,
-            //                         'article_code' => $val->article_code,
-            //                         'location_number'=>$location
-            //                     ],
-            //                     [
-            //                         'dept_code'=>$val->article_type,
-            //                         'uom'=>$val->uom_article
-            //                     ]
-            //                 );
-
-            //                 //update qty nya ditambahkan dengan qty baru
-            //                 DB::table('article_stock')
-            //                 ->where('site_code',$siteCode)
-            //                 ->where('article_code',$val->article_code)
-            //                 ->where('location_number',$location)
-            //                 ->update([
-            //                     'article_qty' => DB::raw('coalesce(article_qty,0) - '.$val->total_qty)
-            //                 ]);
-
-            //                 //update qty nya ditambahkan dengan qty baru
-            //                 // $rowAffected = DB::table('article_stock')
-            //                 // ->where('site_code',$siteCode)
-            //                 // ->where('article_code',$val->article_code)
-            //                 // ->decrement('article_qty', $val->total_qty);
-            //             }
-                                
-                        
-            //             $rowAffected = DB::table('transfer_hdr')
-            //             ->where('tr_number',$trNumber)
-            //             ->update(
-            //                 [   
-            //                     'status' => $status,
-            //                     'updated_by' => Auth::user()->username,
-            //                     'updated_at' => date('Y-m-d H:i:s')
-            //                 ]
-            //             );
-                        
-            //             if ($rowAffected > 0){
-
-            //                 /*
-            //                     CR dari abimnanyu
-            //                     perubahan, untuk movement date mengikuti tanggald dari tr_date bukan current date
-            //                 */
-
-            //                 $movements = DB::table('transfer_det')
-            //                 ->leftJoin('transfer_hdr','transfer_hdr.tr_number','transfer_det.tr_number')
-            //                 ->leftJoin('article','article.article_code','transfer_det.article_code')
-            //                 ->where('transfer_det.tr_number',$trNumber)
-            //                 ->where('transfer_hdr.status','4')
-            //                 ->where('qty', '<>', 0)
-            //                 ->select(
-            //                     // DB::RAW("now()::timestamp::date as movement_date" )
-            //                     'transfer_hdr.tr_date as movement_date'
-            //                     // DB::RAW("'$movementDate' as movement_date")
-            //                     ,'transfer_det.article_code'
-            //                     ,'article.article_desc'
-            //                     ,DB::raw("0 as movement_plus")
-            //                     ,DB::RAW("coalesce((uom_conversion(transfer_det.uom,article.uom)*transfer_det.qty),1) as movement_min")
-            //                     ,DB::raw(" 0 as movement_price ")
-            //                     ,'transfer_hdr.tr_number as movement_transnno'
-            //                     ,DB::raw("'$trType' as movement_type")
-            //                     ,'transfer_hdr.note as movement_desc'
-            //                 )
-            //                 ->get();
-                            
-            //                 $dataSetMovement = [];
-            //                 foreach ($movements as $val) {
-            //                     $dataSetMovement[] = [
-            //                         'movement_date' => $val->movement_date,
-            //                         'artikel_code' => $val->article_code,
-            //                         'artikel_desc' => $val->article_desc,
-            //                         'movement_min' => $val->movement_min,
-            //                         'movement_plus' => $val->movement_plus,
-            //                         'movement_price' => $val->movement_price,
-            //                         'movement_transnno' => $val->movement_transnno,
-            //                         'movement_type' => $val->movement_type,
-            //                         'movement_desc' => $val->movement_desc,
-            //                         'created_by' => Auth::user()->username,
-            //                         'created_at' => date('Y-m-d H:i:s'),
-            //                         'site_code' => $siteCode,
-            //                         'location_number' => $location,
-            //                         'last_qty' => DB::raw("get_last_qty('$val->article_code','$todayDate','$siteCode','$location') - ($val->movement_min+$val->movement_plus)")
-            //                     ];
-            //                 }
-
-            //                 DB::table('movement')->insert($dataSetMovement);
-
-            //                 DB::commit();
-            //                 $title ="Posting $this->title";
-            //                 $alert  ="success";
-            //                 $message  = "$title $trNumber Successfully Posted";
-            //                 \LogActivity::addToLog($title,"username: $username Status $message");
-            //                 return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-            //                 // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
-            //             }else{
-            //                 $title ="Posting $this->title";
-            //                 $alert  ="warning";
-            //                 $message  = "$title $trNumber Failed to Posting";
-            //                 \LogActivity::addToLog($title,"username: $username Status $message");
-            //                 return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-            //                 // return response()->json(array('statusRec' => $statusRec,'status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'trNumber'=>$trNumber));
-            //             }
-            //         }else{
-            //             $title ="Posting $this->title";
-            //             $alert  ="warning";
-            //             $message  = "$title $trNumber Failed to Posting";
-            //             \LogActivity::addToLog($title,"username: $username Status $message");
-            //             return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-            //         }
-            //     }else{
-            //         $title ="Posting $this->title";
-            //         $alert  ="warning";
-            //         $message  = "$title $trNumber Failed to Posting, Already posted";
-            //         \LogActivity::addToLog($title,"username: $username Status $message");
-            //         return redirect()->back()->with(['title' => $title,'alert'=>$alert,'message'=> $message]);
-            //     }
-            // }
-
-
             public function articleByLocation(Request $r){
             return DB::table('stock as s')
                 ->join('uom_con_v2 as u', 's.article_code', '=', 'u.article_code')
@@ -2285,7 +2327,6 @@ namespace App\Http\Controllers;
                 'qty'          => $d->qty,
                 'uom'          => $d->uom,
                 'note'         => $d->note,
-                'fg_target'    => $d->fg_target ?? null,
             ];
         }
         if ($rows) DB::table('transfer_stock_det_hist')->insert($rows);
@@ -2294,4 +2335,3 @@ namespace App\Http\Controllers;
     }
 
         }
-

@@ -953,6 +953,7 @@
    $bind = [
     'art' => $articleCode, 'site' => $siteCode, 'from' => $fromDate, 'to' => $toDate,
     'art_dir' => $articleCode, 'art_qty' => $articleCode,
+     'art_excl' => $articleCode,
 ];
     $whereLoc = '';
     if (!$isGlobal) { $whereLoc = "and m.location_number = :loc"; $bind['loc'] = $location; }
@@ -965,42 +966,101 @@
     if ($inout === 'out') $inoutFilter = "and (b.movement_min  > 0 or b.adj_direction = '-')";
 
     $sqlku = "
-    WITH base AS (
-        SELECT m.*,
-           (case when m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT') then (
-                select det.direction from stock_adjustment_det det
-                where det.adj_code = m.movement_transnno
-                  and det.article_code = :art_dir
-                limit 1
-            ) end) as adj_direction,
-            (case when m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT') then (
-                select det.qty_adjustment from stock_adjustment_det det
-                where det.adj_code = m.movement_transnno
-                  and det.article_code = :art_qty
-                limit 1
-            ) end) as adj_qty,
-            $saldoAwal + SUM(m.movement_plus - m.movement_min) OVER (
-                ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
-            ) as balanceqty_calc,
-            $saldoAwal + SUM(m.movement_plus - m.movement_min) OVER (
-                ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
-            ) - (m.movement_plus - m.movement_min) as last_qty_calc
-        FROM warehouse_movement m
-        WHERE m.artikel_code = :art
-          and m.site_code = :site
-          $whereLoc
-          and TO_DATE(m.movement_date,'dd-mm-yyyy')
-              between TO_DATE(:from,'dd-mm-yyyy') and TO_DATE(:to,'dd-mm-yyyy')
-          and not (
-              m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT')
-              and exists (
-                  select 1 from stock_adjustment_hdr h
-                  where h.adj_code = m.movement_transnno
-                    and h.adj_type = 'OPENING BALANCE'
-                     and h.status != '5'      
-              )
+   WITH movement_net AS (
+    SELECT wm.movement_code, wm.movement_transnno, wm.artikel_code,
+           wm.location_number, wm.site_code, wm.movement_type,
+           CASE
+               WHEN wm.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                    AND wm.movement_plus = 0 AND wm.movement_min = 0
+               THEN (
+                   SELECT CASE WHEN det.direction = '-' THEN -det.qty_adjustment ELSE det.qty_adjustment END
+                   FROM stock_adjustment_det det
+                   WHERE det.adj_code = wm.movement_transnno AND det.article_code = wm.artikel_code
+                   LIMIT 1
+               ) * CASE WHEN wm.movement_type = 'CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
+               ELSE (wm.movement_plus - wm.movement_min)
+           END AS net_value,
+           wm.created_at
+    FROM warehouse_movement wm
+    WHERE wm.artikel_code = :art_excl        -- filter duluan, jangan scan seluruh tabel
+),
+orig AS (
+    SELECT movement_code, movement_transnno, artikel_code, location_number, site_code,
+           movement_type, net_value,
+           ROW_NUMBER() OVER (
+               PARTITION BY movement_transnno, artikel_code, location_number, site_code,
+                            movement_type, net_value
+               ORDER BY created_at, movement_code
+           ) AS rn
+    FROM movement_net
+    WHERE movement_type NOT LIKE 'CANCEL %'
+),
+cancl AS (
+    SELECT movement_code, movement_transnno, artikel_code, location_number, site_code,
+           regexp_replace(movement_type, '^CANCEL ', '') AS base_type,
+           net_value,
+           ROW_NUMBER() OVER (
+               PARTITION BY movement_transnno, artikel_code, location_number, site_code,
+                            regexp_replace(movement_type, '^CANCEL ', ''), -net_value
+               ORDER BY created_at, movement_code
+           ) AS rn
+    FROM movement_net
+    WHERE movement_type LIKE 'CANCEL %'
+),
+excluded_pairs AS (
+    SELECT o.movement_code AS orig_code, c.movement_code AS cancel_code
+    FROM orig o
+    JOIN cancl c
+      ON c.movement_transnno = o.movement_transnno
+     AND c.artikel_code      = o.artikel_code
+     AND c.location_number   = o.location_number
+     AND c.site_code         = o.site_code
+     AND c.base_type         = o.movement_type
+     AND c.net_value         = -o.net_value
+     AND c.rn                = o.rn          -- ← ini yang bikin pairing 1-ke-1
+),
+excluded_codes AS (
+    SELECT orig_code AS movement_code FROM excluded_pairs
+    UNION
+    SELECT cancel_code AS movement_code FROM excluded_pairs
+),
+base AS (
+    SELECT m.*,
+       (case when m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT') then (
+            select det.direction from stock_adjustment_det det
+            where det.adj_code = m.movement_transnno
+              and det.article_code = :art_dir
+            limit 1
+        ) end) as adj_direction,
+        (case when m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT') then (
+            select det.qty_adjustment from stock_adjustment_det det
+            where det.adj_code = m.movement_transnno
+              and det.article_code = :art_qty
+            limit 1
+        ) end) as adj_qty,
+        $saldoAwal + SUM(m.movement_plus - m.movement_min) OVER (
+            ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
+        ) as balanceqty_calc,
+        $saldoAwal + SUM(m.movement_plus - m.movement_min) OVER (
+            ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
+        ) - (m.movement_plus - m.movement_min) as last_qty_calc
+    FROM warehouse_movement m
+    WHERE m.artikel_code = :art
+      and m.site_code = :site
+      $whereLoc
+      and TO_DATE(m.movement_date,'dd-mm-yyyy')
+          between TO_DATE(:from,'dd-mm-yyyy') and TO_DATE(:to,'dd-mm-yyyy')
+      and m.movement_code NOT IN (SELECT movement_code FROM excluded_codes)
+      and not (
+          m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT')
+          and exists (
+              select 1 from stock_adjustment_hdr h
+              where h.adj_code = m.movement_transnno
+                and h.adj_type = 'OPENING BALANCE'
+                 and h.status != '5'      
           )
-    )
+      )
+)
     SELECT
         b.movement_code, b.artikel_code, b.artikel_desc,
         b.movement_plus - b.movement_min as qty,
