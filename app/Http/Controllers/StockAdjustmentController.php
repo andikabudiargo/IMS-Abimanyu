@@ -1683,12 +1683,23 @@ class StockAdjustmentController extends Controller
             ->whereNotIn('article_code', $newDets->keys()->all())
             ->delete();
 
-        foreach ($newDets as $code => $val) {
-            DB::table('stock_adjustment_det')->updateOrInsert(
-                ['adj_code' => $adjCode, 'article_code' => $code],
-                $this->detRow($adjCode, $val, $username, false)
-            );
-        }
+       foreach ($newDets as $code => $val) {
+
+    $exists = DB::table('stock_adjustment_det')
+        ->where('adj_code', $adjCode)
+        ->where('article_code', $code)
+        ->exists();
+
+    if ($exists) {
+        DB::table('stock_adjustment_det')
+            ->where('adj_code', $adjCode)
+            ->where('article_code', $code)
+            ->update($this->detRow($adjCode, $val, $username, false));
+    } else {
+        DB::table('stock_adjustment_det')
+            ->insert($this->detRow($adjCode, $val, $username, true));
+    }
+}
     }
 
     private function detRow(string $adjCode, object $v, string $username, bool $isInsert): array
