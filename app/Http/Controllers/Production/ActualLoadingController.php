@@ -270,7 +270,7 @@ public function articleBySprayBooth(Request $request)
         group by article_code
     ) ws on ws.article_code = br2.article_code
     where br2.bom_code = bh.bom_code
-) as stock_rm_fresh")
+) as stock_rm_fresh"),
            DB::raw("(
     select coalesce(sum(greatest(t.qty,0)),0)
     from (
