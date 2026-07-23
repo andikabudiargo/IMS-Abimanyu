@@ -2,42 +2,27 @@
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <div class="form-row d-flex align-items-center">
-            <div class="col-md-4 col-12">
+            <div class="col-md-5 col-12">
                 <div class="form-group margin-nol">
                     <label for="articleId" class="d-block d-md-none">Article Code</label>
                     <select class="form-control" id="articleId" name="articleId[]" data-dependent="articleId" disabled></select>
                 </div>
             </div>
             <div class="col-md-1 col-12">
-    <div class="form-group margin-nol">
-        <label for="stockFresh" class="d-block d-md-none">RM Fresh</label>
-        <div class="input-group">
-            <input type="text" class="form-control text-right font-weight-bold"
-                id="stockFresh" name="stockFresh[]" readonly tabindex="-1" />
-            <div class="input-group-append">
-                <a href="javascript:;" class="btn btn-outline-secondary btn-info-rm" 
-                   tabindex="-1" title="Cek detail stock RM vs kebutuhan BOM">
-                    <i data-feather="info" style="width:14px;height:14px;"></i>
-                </a>
+                <div class="form-group margin-nol">
+                    <label for="maxFg" class="d-block d-md-none">Max FG</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control text-right font-weight-bold"
+                            id="maxFg" name="maxFg[]" readonly tabindex="-1" />
+                        <div class="input-group-append">
+                            <a href="javascript:;" class="btn btn-outline-secondary btn-info-fg"
+                               tabindex="-1" title="Cek detail: kebutuhan BOM vs stock RM, dan stock FG di gudang WIP">
+                                <i data-feather="info" style="width:14px;height:14px;"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-</div>
-            <div class="col-md-1 col-12">
-    <div class="form-group margin-nol">
-        <label for="stockRepaint" class="d-block d-md-none">RM Repaint</label>
-        <div class="input-group">
-            <input type="text" class="form-control text-right font-weight-bold"
-                id="stockRepaint" name="stockRepaint[]" readonly tabindex="-1" />
-            <div class="input-group-append">
-                <a href="javascript:;" class="btn btn-outline-secondary btn-info-repaint"
-                   tabindex="-1" title="Cek detail stock Repaint per gudang">
-                    <i data-feather="info" style="width:14px;height:14px;"></i>
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="qty" class="d-block d-md-none">QTY</label>
@@ -61,10 +46,16 @@
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol text-center">
-                   <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();sumData();applyArticleAvailability();">
+                    <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();sumData();">
                         <i data-feather="trash-2" class="remove_button feather-24"></i>
                     </a>
                 </div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="col-12 fg-warning text-danger d-none" style="font-size:11.5px;">
+                <i data-feather="alert-triangle" style="width:12px;height:12px;vertical-align:-1px;"></i>
+                <span class="fg-warning-text"></span>
             </div>
         </div>
     </div>
@@ -75,6 +66,14 @@
     .mb-03{ margin-bottom: 0.3rem; }
     label.titik-dua::after{ content: ":"; position: absolute; right: 1px; }
     .margin-nol{ margin-bottom: 0.5rem; }
+
+    /* qty melebihi Max FG */
+    .qty-error{
+        background-color:#f8d7da !important;
+        border-color:#f5c2c7 !important;
+        color:#842029 !important;
+        font-weight:600;
+    }
 
     @media screen and (min-device-width: 1200px) and (max-device-width: 1600px) and (-webkit-min-device-pixel-ratio: 1) {
         .lebar-list-item{ width: 100%; }
@@ -117,6 +116,7 @@ function isiArticleBySprayBooth(locationCode) {
                 options += `<option value="${val.article_code}"
                                 data-uom="${val.uom}"
                                 data-uom-member="${val.uom_member ?? ''}"
+                                data-max-fg="${val.max_fg ?? 0}"
                                 data-stock-fresh="${val.stock_rm_fresh ?? 0}"
                                 data-stock-repaint="${val.stock_fg_repaint ?? 0}">
                                 ${val.article_alternative_code} — ${val.article_desc}
@@ -146,100 +146,48 @@ $("#cmdCancel,#cmdNew").click(function(){
     reloadPage();
 });
 
+// ============================================================
+// ISI MAX FG SAAT ARTICLE DIPILIH (delegated)
+// ============================================================
 $(document).on('change', '#article_row select[name="articleId[]"]', function(){
-    let $this = $(this);
-    let val   = $this.val();
-
-    // ── Cegah artikel yang sama dipilih di baris berbeda ──
-    if (val) {
-        let duplicate = false;
-        $('#article_row select[name="articleId[]"]').each(function(){
-            if (this !== $this[0] && $(this).val() === val) duplicate = true;
-        });
-        if (duplicate) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Article sudah dipilih',
-                text: 'Article ini sudah ada di baris lain. Silakan pilih article yang berbeda, atau ubah qty di baris yang sudah ada.'
-            });
-            $this.val('').trigger('change.select2');
-            applyArticleAvailability();
-            sumData();
-            return;
-        }
-    }
-
-    let objArticle      = $('#article_row select[name="articleId[]"]');
-    let objStockFresh   = $('#article_row input[name="stockFresh[]"]');
-    let objStockRepaint = $('#article_row input[name="stockRepaint[]"]');
-    let objUom          = $('#article_row select[name="uom[]"]');
-
-    let idx  = objArticle.index(this);
+    let $row = $(this).closest('.tanda-baris');
     let $opt = $(this).find(':selected');
 
-    objStockFresh.eq(idx).val(formatStock($opt.data('stock-fresh') || 0));
-    objStockRepaint.eq(idx).val(formatStock($opt.data('stock-repaint') || 0));
+    $row.find('input[name="maxFg[]"]').val(formatStock($opt.data('max-fg') || 0));
 
     let uom = $opt.data('uom');
     if (uom) {
-        objUom.eq(idx).html(`<option>${uom}</option>`).val(uom).trigger('change');
+        $row.find('select[name="uom[]"]').html(`<option>${uom}</option>`).val(uom).trigger('change');
     }
-
-    applyArticleAvailability();
+    checkQtyRow($row);
 });
 
 // ============================================================
-// ISI STOCK FRESH/REPAINT SAAT ARTICLE DIPILIH (delegated)
+// VALIDASI QTY vs MAX FG
 // ============================================================
-$(document).on('change', '#article_row select[name="articleId[]"]', function(){
-    let objArticle      = $('#article_row select[name="articleId[]"]');
-    let objStockFresh   = $('#article_row input[name="stockFresh[]"]');
-    let objStockRepaint = $('#article_row input[name="stockRepaint[]"]');
-    let objUom          = $('#article_row select[name="uom[]"]');
+function checkQtyRow($row){
+    let maxFg = parseFloat(String($row.find('input[name="maxFg[]"]').val() || '0').replace(/,/g,'')) || 0;
+    let $qty  = $row.find('input[name="qty[]"]');
+    let qty   = parseFloat(String($qty.val() || '0').replace(/,/g,'')) || 0;
 
-    let idx  = objArticle.index(this);
-    let $opt = $(this).find(':selected');
+    let over = qty > maxFg;
+    $qty.toggleClass('qty-error', over);
 
-    objStockFresh.eq(idx).val(formatStock($opt.data('stock-fresh') || 0));
-    objStockRepaint.eq(idx).val(formatStock($opt.data('stock-repaint') || 0));
-
-    let uom = $opt.data('uom');
-    if (uom) {
-        objUom.eq(idx).html(`<option>${uom}</option>`).val(uom).trigger('change');
+    let $warn = $row.find('.fg-warning');
+    if (over) {
+        $warn.removeClass('d-none')
+             .find('.fg-warning-text')
+             .text(' QTY melebihi kapasitas Max FG (maks ' + formatStock(maxFg) + ')');
+        if (typeof feather !== 'undefined') feather.replace();
+    } else {
+        $warn.addClass('d-none');
     }
-});
-
-// ============================================================
-// CEGAH DUPLIKAT ARTICLE ANTAR BARIS
-// ============================================================
-
-/**
- * Disable opsi article yang sudah dipakai di baris lain, di semua dropdown.
- * Dipanggil tiap kali: baris ditambah, baris dihapus, atau pilihan berubah.
- */
-function applyArticleAvailability(){
-    let $selects = $('#article_row select[name="articleId[]"]');
-    let allUsed  = $selects.map(function(){ return $(this).val(); }).get().filter(v => v);
-
-    $selects.each(function(){
-        let $s    = $(this);
-        let myVal = $s.val();
-        let changedAny = false;
-
-        $s.find('option').each(function(){
-            let v = $(this).val();
-            if (!v) return;
-            let shouldDisable = (v !== myVal && allUsed.includes(v));
-            if ($(this).prop('disabled') !== shouldDisable) changedAny = true;
-            $(this).prop('disabled', shouldDisable);
-        });
-
-        // select2 merender opsi disabled hanya kalau instance-nya di-refresh
-        if (changedAny && $s.hasClass('select2-hidden-accessible')) {
-            $s.select2('destroy').select2();
-        }
-    });
+    return over;
 }
+
+$(document).on('input', '#article_row input[name="qty[]"]', function(){
+    checkQtyRow($(this).closest('.tanda-baris'));
+});
 
 // ============================================================
 // GRAND TOTAL
@@ -261,8 +209,7 @@ function appendRow(){
     let idx = cloneCount;
     $("#article_row").find('#baru').attr('id', 'new_row' + idx);
     $("#new_row"+idx).find('#articleId').attr('id', 'articleId'+idx);
-    $("#new_row"+idx).find('#stockFresh').attr('id', 'stockFresh'+idx);
-    $("#new_row"+idx).find('#stockRepaint').attr('id', 'stockRepaint'+idx);
+    $("#new_row"+idx).find('#maxFg').attr('id', 'maxFg'+idx);
     $("#new_row"+idx).find('#qty').attr('id', 'qty'+idx);
     $("#new_row"+idx).find('#uom').attr('id', 'uom'+idx);
     $("#new_row"+idx).find('#note').attr('id', 'note'+idx);
@@ -275,13 +222,12 @@ function add_new_row() {
     $('#remove_button').tooltip();
     sumData();
     mask_thousand_digit(numberOfDecimalDigit);
-    applyArticleAvailability();
 }
 
 // ============================================================
-// TOMBOL INFO: CEK DETAIL STOCK RM VS KEBUTUHAN BOM
+// TOMBOL INFO: DETAIL RM (BOM) + STOCK FG DI GUDANG WIP
 // ============================================================
-$(document).on('click', '#article_row .btn-info-rm', function(){
+$(document).on('click', '#article_row .btn-info-fg', function(){
     let $row         = $(this).closest('.tanda-baris');
     let $selectArt   = $row.find('select[name="articleId[]"]');
     let articleCode  = $selectArt.val();
@@ -301,69 +247,103 @@ $(document).on('click', '#article_row .btn-info-rm', function(){
         method: "GET",
         data: { location_code: locationCode, article_code: articleCode },
         success: function (res) {
-            renderRmDetailModal(res, $selectArt.find(':selected').text(), $('#sprayBooth option:selected').text());
+            renderFgDetailModal(res, $selectArt.find(':selected').text(), $('#sprayBooth option:selected').text());
         },
         error: function () {
-            Swal.fire("Warning", "Gagal mengambil detail stock RM.", "warning");
+            Swal.fire("Warning", "Gagal mengambil detail stock.", "warning");
         }
     });
 });
 
-function renderRmDetailModal(res, articleLabel, boothLabel){
-    if (!res.rows || res.rows.length === 0) {
-        Swal.fire("Info", "Tidak ada data BOM/RM untuk article ini.", "info");
+function renderFgDetailModal(res, articleLabel, boothLabel){
+    let rows     = res.rows      || [];
+    let wipRows  = res.wip_rows  || [];
+    let fresh    = parseFloat(res.max_fg_fresh) || 0;
+    let wipTotal = parseFloat(res.wip_total)    || 0;
+    let total    = parseFloat(res.max_fg_total) || 0;
+
+    if (rows.length === 0 && wipRows.length === 0) {
+        Swal.fire("Info", "Tidak ada data BOM/RM maupun stock WIP untuk article ini.", "info");
         return;
     }
 
-    let bottleneckCount = res.rows.filter(r => r.is_bottleneck).length;
+    // ── Tabel RM ──
+    let rmHtml = '';
+    if (rows.length === 0) {
+        rmHtml = `<tr><td colspan="6" class="text-center text-muted py-2">
+                    Tidak ada komponen RM (BOM aktif) untuk article ini.
+                  </td></tr>`;
+    } else {
+        rows.forEach(function(r){
+            let rowStyle = r.is_critical ? 'style="background-color:#fdecea;"' : '';
 
-    let rowsHtml = '';
-    res.rows.forEach(function(r){
-        let rowClass = r.is_bottleneck ? 'style="background-color:#fdecea;"' : '';
+            let statusBadge;
+            if (r.is_critical) {
+                statusBadge = `<span class="badge badge-danger" style="font-size:11px;">
+                                 <i data-feather="alert-triangle" style="width:11px;height:11px;vertical-align:-1px;"></i>
+                                 ${fresh > 0 ? 'Penghambat' : 'Stock kurang'}
+                               </span>`;
+            } else if (r.is_limiting) {
+                statusBadge = `<span class="badge badge-info" style="font-size:11px;">
+                                 <i data-feather="minimize-2" style="width:11px;height:11px;vertical-align:-1px;"></i>
+                                 Penentu batas
+                               </span>`;
+            } else {
+                statusBadge = `<span class="badge badge-success" style="font-size:11px;">
+                                 <i data-feather="check" style="width:11px;height:11px;vertical-align:-1px;"></i>
+                                 Cukup
+                               </span>`;
+            }
 
-        let statusBadge = r.is_bottleneck
-            ? `<span class="badge badge-danger" style="font-size:11px;">
-                 <i data-feather="alert-triangle" style="width:11px;height:11px;vertical-align:-1px;"></i>
-                 Bottleneck
-               </span>`
-            : `<span class="badge badge-success" style="font-size:11px;">
-                 <i data-feather="check" style="width:11px;height:11px;vertical-align:-1px;"></i>
-                 Cukup
-               </span>`;
+            let selisih;
+            if (r.deficit_qty !== null && r.deficit_qty !== undefined) {
+                selisih = `<span class="text-danger font-weight-bold">− ${formatStock(r.deficit_fg)} FG</span>
+                           <div class="text-muted" style="font-size:11px;">butuh +${formatStock(r.deficit_qty)} ${r.uom}</div>`;
+            } else {
+                selisih = `<span class="text-success font-weight-bold">sisa ${formatStock(r.surplus_qty)} ${r.uom}</span>`;
+            }
 
-        let selisih = r.is_bottleneck
-            ? `<span class="text-danger font-weight-bold">
-                 − ${formatStock(r.deficit_fg)} FG
-               </span>
-               <div class="text-muted" style="font-size:11px;">butuh +${formatStock(r.deficit_qty)} ${r.uom}</div>`
-            : `<span class="text-success font-weight-bold">
-                 sisa ${formatStock(r.surplus_qty)} ${r.uom}
-               </span>`;
+            rmHtml += `
+                <tr ${rowStyle}>
+                    <td class="text-left align-middle">
+                        <div class="font-weight-bold">${r.article_alternative_code}</div>
+                        <div class="text-muted" style="font-size:11.5px;">${r.article_desc}</div>
+                    </td>
+                    <td class="text-right align-middle">${formatStock(r.qty_per_fg)} ${r.uom}</td>
+                    <td class="text-right align-middle">${formatStock(r.stock_qty)} ${r.uom}</td>
+                    <td class="text-right align-middle font-weight-bold">${formatStock(r.max_fg)}</td>
+                    <td class="text-center align-middle">${statusBadge}</td>
+                    <td class="text-left align-middle">${selisih}</td>
+                </tr>`;
+        });
+    }
 
-        // progress bar kecil: stock vs kebutuhan utk max_fg keseluruhan
-        let pct = r.qty_per_fg > 0
-            ? Math.min(100, (r.stock_qty / (r.qty_per_fg * (bottleneckCount ? Math.max(res.max_fg,1) : res.max_fg || 1))) * 100)
-            : 0;
+    // ── Tabel WIP ──
+    let wipHtml = '';
+    if (wipRows.length === 0) {
+        wipHtml = `<tr><td colspan="2" class="text-center text-muted py-2">
+                     Tidak ada stock FG di gudang WIP.
+                   </td></tr>`;
+    } else {
+        wipRows.forEach(function(r){
+            wipHtml += `
+                <tr>
+                    <td class="text-left align-middle">
+                        <div class="font-weight-bold">${r.location_name ?? r.location_code}</div>
+                        <div class="text-muted" style="font-size:11.5px;">${r.location_code}</div>
+                    </td>
+                    <td class="text-right align-middle font-weight-bold">${formatStock(r.qty)} ${r.uom ?? ''}</td>
+                </tr>`;
+        });
+    }
 
-        rowsHtml += `
-            <tr ${rowClass}>
-                <td class="text-left align-middle">
-                    <div class="font-weight-bold">${r.article_alternative_code}</div>
-                    <div class="text-muted" style="font-size:11.5px;">${r.article_desc}</div>
-                </td>
-                <td class="text-right align-middle">${formatStock(r.qty_per_fg)} ${r.uom}</td>
-                <td class="text-right align-middle">${formatStock(r.stock_qty)} ${r.uom}</td>
-                <td class="text-right align-middle font-weight-bold">${formatStock(r.max_fg)}</td>
-                <td class="text-center align-middle">${statusBadge}</td>
-                <td class="text-left align-middle">${selisih}</td>
-            </tr>`;
-    });
-
-    let summaryAlertClass = res.max_fg > 0 ? 'alert-success' : 'alert-danger';
-    let summaryIcon       = res.max_fg > 0 ? 'check-circle' : 'x-circle';
-    let summaryText       = res.max_fg > 0
-        ? `Bisa dibuat <b>${formatStock(res.max_fg)} FG</b> dengan stock RM saat ini`
-        : `<b>Belum bisa</b> membuat 1 FG pun dengan stock RM saat ini`;
+    let summaryClass = total > 0 ? 'alert-success' : 'alert-danger';
+    let summaryIcon  = total > 0 ? 'check-circle' : 'x-circle';
+    let summaryText  = total > 0
+        ? `Bisa dibuat <b>${formatStock(total)} FG</b> &mdash;
+           <b>${formatStock(fresh)}</b> dari RM fresh di booth +
+           <b>${formatStock(wipTotal)}</b> dari FG di gudang WIP (repaint)`
+        : `<b>Belum bisa</b> membuat 1 FG pun: RM fresh maupun stock WIP tidak mencukupi`;
 
     let html = `
         <div class="text-left">
@@ -379,28 +359,46 @@ function renderRmDetailModal(res, articleLabel, boothLabel){
                 </div>
             </div>
 
-            <div class="alert ${summaryAlertClass} d-flex align-items-center py-2 px-3 mb-2" style="font-size:14px;">
+            <div class="alert ${summaryClass} d-flex align-items-center py-2 px-3 mb-2" style="font-size:14px;">
                 <i data-feather="${summaryIcon}" class="mr-1" style="width:18px;height:18px;flex-shrink:0;"></i>
-                <div>${summaryText}${bottleneckCount > 0 ? ` &mdash; dibatasi oleh <b>${bottleneckCount}</b> RM di bawah` : ''}</div>
+                <div>${summaryText}</div>
             </div>
 
+            <div class="font-weight-bold text-muted mb-1" style="font-size:12px;">
+                A. KEBUTUHAN RM (FRESH) &mdash; kapasitas ${formatStock(fresh)} FG
+            </div>
             <table class="table table-sm table-hover mb-2" style="font-size:13px;">
                 <thead style="background-color:#f8f9fa;">
                     <tr>
-                        <th class="text-left" style="width:26%;">Raw Material</th>
+                        <th class="text-left"  style="width:26%;">Raw Material</th>
                         <th class="text-right" style="width:14%;">Butuh / FG</th>
                         <th class="text-right" style="width:14%;">Stock Booth</th>
                         <th class="text-right" style="width:10%;">Max FG</th>
-                        <th class="text-center" style="width:14%;">Status</th>
-                        <th class="text-left" style="width:22%;">Selisih</th>
+                        <th class="text-center"style="width:14%;">Status</th>
+                        <th class="text-left"  style="width:22%;">Selisih</th>
                     </tr>
                 </thead>
-                <tbody>${rowsHtml}</tbody>
+                <tbody>${rmHtml}</tbody>
+            </table>
+
+            <div class="font-weight-bold text-muted mb-1 mt-2" style="font-size:12px;">
+                B. STOCK FG DI GUDANG WIP (REPAINT) &mdash; total ${formatStock(wipTotal)}
+            </div>
+            <table class="table table-sm table-hover mb-2" style="font-size:13px;">
+                <thead style="background-color:#f8f9fa;">
+                    <tr>
+                        <th class="text-left"  style="width:70%;">Gudang (WIP)</th>
+                        <th class="text-right" style="width:30%;">Qty</th>
+                    </tr>
+                </thead>
+                <tbody>${wipHtml}</tbody>
             </table>
 
             <div class="text-muted" style="font-size:11.5px;">
                 <i data-feather="info" style="width:12px;height:12px;vertical-align:-1px;"></i>
-                Baris merah = RM yang jadi <b>batasan utama</b> (paling sedikit stoknya relatif terhadap kebutuhan BOM).
+                <b>Max FG = kapasitas RM fresh + stock FG di WIP.</b>
+                Saat disimpan, sistem pakai RM fresh dulu, sisanya baru diambil dari gudang WIP (repaint).
+                Baris merah = RM yang menahan kapasitas fresh dibanding RM lain.
             </div>
         </div>
     `;
@@ -409,97 +407,6 @@ function renderRmDetailModal(res, articleLabel, boothLabel){
         title: false,
         html: html,
         width: 900,
-        showConfirmButton: true,
-        confirmButtonText: 'Tutup',
-        didOpen: () => {
-            if (typeof feather !== 'undefined') feather.replace();
-        }
-    });
-}
-
-// ============================================================
-// TOMBOL INFO REPAINT: BREAKDOWN STOCK FG PER GUDANG WIP
-// ============================================================
-$(document).on('click', '#article_row .btn-info-repaint', function(){
-    let $row        = $(this).closest('.tanda-baris');
-    let $selectArt  = $row.find('select[name="articleId[]"]');
-    let articleCode = $selectArt.val();
-
-    if (!articleCode) {
-        Swal.fire("Info", "Silakan pilih Article terlebih dahulu.", "info");
-        return;
-    }
-
-    $.ajax({
-        url: "{{ route('production.actualLoading.repaintDetailByArticle') }}",
-        method: "GET",
-        data: { article_code: articleCode },
-        success: function (res) {
-            renderRepaintDetailModal(res, $selectArt.find(':selected').text());
-        },
-        error: function () {
-            Swal.fire("Warning", "Gagal mengambil detail stock Repaint.", "warning");
-        }
-    });
-});
-
-function renderRepaintDetailModal(res, articleLabel){
-    if (!res.rows || res.rows.length === 0) {
-        Swal.fire("Info", "Tidak ada stock RM Repaint di lokasi WIP untuk article ini.", "info");
-        return;
-    }
-
-    let rowsHtml = '';
-    res.rows.forEach(function(r){
-        rowsHtml += `
-            <tr>
-                <td class="text-left align-middle">
-                    <div class="font-weight-bold">${r.location_name ?? r.location_code}</div>
-                    <div class="text-muted" style="font-size:11.5px;">${r.location_code}</div>
-                </td>
-                <td class="text-right align-middle font-weight-bold">
-                    ${formatStock(r.qty)} ${r.uom ?? ''}
-                </td>
-            </tr>`;
-    });
-
-    let html = `
-        <div class="text-left">
-            <div class="mb-2 pb-2" style="border-bottom:1px solid #e9ecef;">
-                <div class="text-muted" style="font-size:12px;">ARTICLE FG</div>
-                <div class="font-weight-bold" style="font-size:15px;">${articleLabel}</div>
-            </div>
-
-            <div class="alert alert-info d-flex align-items-center py-2 px-3 mb-2" style="font-size:14px;">
-                <i data-feather="layers" class="mr-1" style="width:18px;height:18px;flex-shrink:0;"></i>
-                <div>
-                    Total stock Repaint: <b>${formatStock(res.total)}</b>
-                    tersebar di <b>${res.rows.length}</b> gudang
-                </div>
-            </div>
-
-            <table class="table table-sm table-hover mb-2" style="font-size:13px;">
-                <thead style="background-color:#f8f9fa;">
-                    <tr>
-                        <th class="text-left" style="width:70%;">Gudang (WIP)</th>
-                        <th class="text-right" style="width:30%;">Qty</th>
-                    </tr>
-                </thead>
-                <tbody>${rowsHtml}</tbody>
-            </table>
-
-            <div class="text-muted" style="font-size:11.5px;">
-                <i data-feather="info" style="width:12px;height:12px;vertical-align:-1px;"></i>
-                Stock FG jadi (siap di-repaint) yang ada di gudang ber-type WIP,
-                dijumlahkan dari semua lokasi terlepas dari Spray Booth yang dipilih.
-            </div>
-        </div>
-    `;
-
-    Swal.fire({
-        title: false,
-        html: html,
-        width: 600,
         showConfirmButton: true,
         confirmButtonText: 'Tutup',
         didOpen: () => {
@@ -525,31 +432,36 @@ $('#cmdSave').on('click', function(){
     if (!sprayBooth)  { Swal.fire("Info", "Spray Booth wajib dipilih.", "info"); return; }
     if (!loadingDate) { Swal.fire("Info", "Tanggal wajib diisi.", "info"); return; }
 
-    let articles = [];
-    let invalid  = false;
+    let articles  = [];
+    let invalid   = false;
+    let anyOver   = false;
 
     $rows.each(function(){
-        let $r           = $(this);
-        let articleCode  = $r.find('select[name="articleId[]"]').val();
-        let uom          = $r.find('select[name="uom[]"]').val();
-        let qty          = parseFloat(String($r.find('input[name="qty[]"]').val()          || '0').replace(/,/g,'')) || 0;
-        let stockFresh   = parseFloat(String($r.find('input[name="stockFresh[]"]').val()   || '0').replace(/,/g,'')) || 0;
-        let stockRepaint = parseFloat(String($r.find('input[name="stockRepaint[]"]').val() || '0').replace(/,/g,'')) || 0;
-        let note         = $r.find('input[name="note[]"]').val();
+        let $r          = $(this);
+        if (checkQtyRow($r)) anyOver = true;
+
+        let articleCode = $r.find('select[name="articleId[]"]').val();
+        let uom         = $r.find('select[name="uom[]"]').val();
+        let qty         = parseFloat(String($r.find('input[name="qty[]"]').val()   || '0').replace(/,/g,'')) || 0;
+        let maxFg       = parseFloat(String($r.find('input[name="maxFg[]"]').val() || '0').replace(/,/g,'')) || 0;
+        let note        = $r.find('input[name="note[]"]').val();
 
         if (!articleCode) { invalid = true; return; }
         if (qty <= 0)     { invalid = true; return; }
 
-       articles.push({
-    article_code : articleCode,
-    uom          : uom,
-    qty          : qty,            // total; backend yg pecah fresh->repaint
-    stock_fresh  : stockFresh,     // info snapshot (max FG dari RM fresh)
-    stock_repaint: stockRepaint,   // info snapshot (FG di WIP)
-    note         : note
-});
+        articles.push({
+            article_code : articleCode,
+            uom          : uom,
+            qty          : qty,      // total; backend yg pecah fresh->repaint
+            max_fg       : maxFg,    // info snapshot kapasitas saat input
+            note         : note
+        });
     });
 
+    if (anyOver) {
+        Swal.fire("Tidak bisa disimpan", "Ada baris dengan QTY melebihi Max FG (kolom merah). Perbaiki dulu.", "error");
+        return;
+    }
     if (invalid) {
         Swal.fire("Info", "Ada baris tanpa Article atau QTY ≤ 0. Lengkapi dulu.", "info");
         return;
@@ -559,38 +471,38 @@ $('#cmdSave').on('click', function(){
         return;
     }
 
-    let $btn      = $(this);
-let originalHtml = $btn.html();
+    let $btn         = $(this);
+    let originalHtml = $btn.html();
 
-$btn.prop('disabled', true)
-    .html('<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Saving...');
+    $btn.prop('disabled', true)
+        .html('<span class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>Saving...');
 
-$.ajax({
-    url: "{{ route('production.actualLoading.store') }}",
-    method: "POST",
-    data: {
-        articles   : JSON.stringify(articles),
-        loadingDate: loadingDate,
-        sprayBooth : sprayBooth,
-        note       : headerNote
-    },
-    success: function(res){
-        if (res.status == 1) {
-            Swal.fire({ icon:'success', title: res.title, text: res.message })
-                .then(() => reloadPage());   // halaman reload, tombol ga perlu dibalikin
-        } else {
-            let msg = Array.isArray(res.message) ? res.message.flat().join('<br>') : res.message;
-            Swal.fire({ icon:'error', title: res.title || 'Error', html: msg });
+    $.ajax({
+        url: "{{ route('production.actualLoading.store') }}",
+        method: "POST",
+        data: {
+            articles   : JSON.stringify(articles),
+            loadingDate: loadingDate,
+            sprayBooth : sprayBooth,
+            reference  : $('#reference').val(),
+            note       : headerNote
+        },
+        success: function(res){
+            if (res.status == 1) {
+                Swal.fire({ icon:'success', title: res.title, text: res.message })
+                    .then(() => reloadPage());
+            } else {
+                let msg = Array.isArray(res.message) ? res.message.flat().join('<br>') : res.message;
+                Swal.fire({ icon:'error', title: res.title || 'Error', html: msg });
+            }
+        },
+        error: function(xhr){
+            Swal.fire("Error", "Gagal menyimpan. " + (xhr.responseJSON?.message || xhr.statusText || ''), "error");
+        },
+        complete: function(){
+            $btn.prop('disabled', false).html(originalHtml);
         }
-    },
-    error: function(xhr){
-        Swal.fire("Error", "Gagal menyimpan. " + (xhr.responseJSON?.message || xhr.statusText || ''), "error");
-    },
-    complete: function(){
-        // balikin tombol HANYA kalau ga sukses (kalau sukses halaman udah reload)
-        $btn.prop('disabled', false).html(originalHtml);
-    }
-});
+    });
 });
 
 $.ajaxSetup({

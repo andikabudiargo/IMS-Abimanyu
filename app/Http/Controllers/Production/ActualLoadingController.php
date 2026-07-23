@@ -219,23 +219,23 @@ private function toRomanMonth(int $month): string
 public function articleBySprayBooth(Request $request)
 {
     $locationCode = $request->location_code;
-
+ 
     $isBooth = DB::table('stock_location_master')
         ->where('location_code', $locationCode)
         ->where('location_type', 'booth')
         ->exists();
-
+ 
     if (!$isBooth) {
         return response()->json([]);
     }
-
+ 
     $fgList = DB::table('bom_hdr as bh')
         ->join('bom_rm as br', 'br.bom_code', '=', 'bh.bom_code')
         ->join('article as arm', 'arm.article_code', '=', 'br.article_code')
         ->join('article as afg', 'afg.article_code', '=', 'bh.article_code')
         ->where('bh.status', '3')
         ->whereIn('arm.article_type', ['RMP', 'RMNP'])
-        // ── Munculkan FG hanya jika minimal ADA salah satu RM komponennya yang stock > 0 di booth ini ──
+        // Munculkan FG hanya jika minimal ADA salah satu RM komponennya yang stock > 0 di booth ini
         ->whereExists(function ($q) use ($locationCode) {
             $q->select(DB::raw(1))
               ->from('bom_rm as br3')
@@ -247,9 +247,9 @@ public function articleBySprayBooth(Request $request)
                       select sum(article_qty)
                       from warehouse_stock
                       where article_code = br3.article_code
-                        and location_number = '$locationCode'
+                        and location_number = ?
                   ), 0) > 0
-              ");
+              ", [$locationCode]);
         })
         ->select(
             'afg.article_code',
@@ -282,20 +282,55 @@ public function articleBySprayBooth(Request $request)
         ->distinct()
         ->orderBy('afg.article_alternative_code')
         ->get();
-
+ 
+    // ── Gabung jadi satu angka: Max FG ──
+    $fgList = $fgList->map(function ($r) {
+        $fresh   = (float) ($r->stock_rm_fresh   ?? 0);
+        $repaint = (float) ($r->stock_fg_repaint ?? 0);
+        $r->max_fg = $fresh + $repaint;
+        return $r;
+    })->values();
+ 
     return response()->json($fgList);
 }
-
+ 
 /**
- * Detail breakdown stock RM vs kebutuhan BOM untuk 1 FG tertentu,
- * di lokasi spray booth yang dipilih. Dipakai untuk tombol "info"
- * di kolom stock_rm_fresh pada grid.
+ * Detail 1 FG di spray booth terpilih:
+ *  - breakdown RM (kebutuhan BOM vs stock di booth)
+ *  - breakdown stok FG jadi di gudang ber-type WIP (sumber repaint)
+ *
+ * Catatan logika status:
+ *  - is_limiting : RM ini yang jadi batas kapasitas fresh (max_fg == kapasitas keseluruhan).
+ *                  Kalau RM cuma 1, dia OTOMATIS limiting — itu wajar, bukan masalah.
+ *  - is_critical : baru dianggap masalah kalau kapasitas 0, ATAU dia limiting
+ *                  SEKALIGUS ada RM lain yang kapasitasnya lebih tinggi.
+ *                  Ini yang bikin baris jadi merah di popup.
  */
 public function rmDetailBySprayBooth(Request $request)
 {
     $locationCode = $request->location_code;
     $articleCode  = $request->article_code; // kode article FG
-
+ 
+    // ── 1. Stok FG jadi di gudang WIP (buat repaint) ──
+    $wipRows = DB::table('warehouse_stock as ws')
+        ->join('stock_location_master as slm', 'slm.location_code', '=', 'ws.location_number')
+        ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+        ->where('ws.article_code', $articleCode)
+        ->where('slm.location_type', 'wip')
+        ->select(
+            'slm.location_code',
+            'slm.location_name',
+            'a.uom',
+            DB::raw('sum(ws.article_qty) as qty')
+        )
+        ->groupBy('slm.location_code', 'slm.location_name', 'a.uom')
+        ->havingRaw('sum(ws.article_qty) <> 0')
+        ->orderBy('slm.location_name')
+        ->get();
+ 
+    $wipTotal = (float) $wipRows->sum('qty');
+ 
+    // ── 2. Breakdown RM dari BOM aktif ──
     $rows = DB::table('bom_hdr as bh')
         ->join('bom_rm as br', 'br.bom_code', '=', 'bh.bom_code')
         ->join('article as arm', 'arm.article_code', '=', 'br.article_code')
@@ -312,93 +347,76 @@ public function rmDetailBySprayBooth(Request $request)
                 select sum(ws.article_qty)
                 from warehouse_stock ws
                 where ws.article_code = arm.article_code
-                  and ws.location_number = '$locationCode'
+                  and ws.location_number = ?
             ),0) as stock_qty")
         )
+        ->addBinding($locationCode, 'select')
         ->get();
-
+ 
+    // FG tanpa BOM RM: kapasitas fresh 0, tapi stok WIP tetap ditampilkan
     if ($rows->isEmpty()) {
-        return response()->json(['rows' => [], 'max_fg' => 0]);
+        return response()->json([
+            'rows'         => [],
+            'max_fg_fresh' => 0,
+            'wip_rows'     => $wipRows,
+            'wip_total'    => $wipTotal,
+            'max_fg_total' => $wipTotal,
+        ]);
     }
-
-    // hitung max FG yang bisa dibuat per RM (kalau cuma RM ini yang jadi batasan)
+ 
     $rows = $rows->map(function ($r) {
-        $r->max_fg = $r->qty_per_fg > 0 ? floor($r->stock_qty / $r->qty_per_fg) : 0;
+        $perFg      = (float) $r->qty_per_fg;
+        $r->max_fg  = $perFg > 0 ? floor(((float) $r->stock_qty) / $perFg) : 0;
         return $r;
     });
-
-    $overallAchievable = $rows->min('max_fg'); // ini yang tampil di grid utama (bottleneck)
-    $bestCapacity       = $rows->max('max_fg'); // potensi tertinggi andai RM lain tak terbatas
-
-    $result = $rows->map(function ($r) use ($overallAchievable, $bestCapacity) {
-        $isBottleneck = ((float) $r->max_fg === (float) $overallAchievable);
-
-        $surplusQty = null;
+ 
+    $overall = (float) $rows->min('max_fg'); // kapasitas fresh sebenarnya (bottleneck)
+    $best    = (float) $rows->max('max_fg'); // kapasitas tertinggi andai RM lain tak terbatas
+ 
+    // ada variasi kapasitas antar-RM? kalau tidak, tidak ada yg pantas disebut "penghambat"
+    $adaVariasi = ($best > $overall);
+ 
+    $result = $rows->map(function ($r) use ($overall, $best, $adaVariasi) {
+        $perFg   = (float) $r->qty_per_fg;
+        $stock   = (float) $r->stock_qty;
+        $maxFg   = (float) $r->max_fg;
+ 
+        $isLimiting = ($maxFg === $overall);
+        $isCritical = ($overall <= 0) || ($isLimiting && $adaVariasi);
+ 
+        // sisa stock setelah dipakai bikin $overall FG (selalu >= 0)
+        $surplusQty = $stock - ($overall * $perFg);
+ 
+        // kekurangan hanya relevan kalau memang ada RM lain yg bisa lebih banyak
         $deficitQty = null;
         $deficitFg  = null;
-
-        if ($isBottleneck) {
-            $deficitFg  = $bestCapacity - $r->max_fg;
-            $deficitQty = ($bestCapacity * $r->qty_per_fg) - $r->stock_qty;
-        } else {
-            $surplusQty = $r->stock_qty - ($overallAchievable * $r->qty_per_fg);
+        if ($isLimiting && $adaVariasi) {
+            $deficitFg  = $best - $maxFg;
+            $deficitQty = ($best * $perFg) - $stock;
         }
-
+ 
         return [
             'article_code'             => $r->article_code,
             'article_alternative_code' => $r->article_alternative_code,
             'article_desc'             => $r->article_desc,
             'uom'                      => $r->uom,
-            'qty_per_fg'               => $r->qty_per_fg,
-            'stock_qty'                => $r->stock_qty,
-            'max_fg'                   => $r->max_fg,
-            'is_bottleneck'            => $isBottleneck,
+            'qty_per_fg'               => $perFg,
+            'stock_qty'                => $stock,
+            'max_fg'                   => $maxFg,
+            'is_limiting'              => $isLimiting,
+            'is_critical'              => $isCritical,
             'surplus_qty'              => $surplusQty,
             'deficit_qty'              => $deficitQty,
             'deficit_fg'               => $deficitFg,
         ];
     });
-
+ 
     return response()->json([
-        'rows'   => $result,
-        'max_fg' => $overallAchievable,
-    ]);
-}
-
-/**
- * Breakdown stock Repaint (FG yang ada di gudang ber-type 'wip')
- * per lokasi gudang, untuk 1 FG tertentu.
- * Dipakai tombol "info" di kolom stock_fg_repaint (RM Repaint) pada grid.
- *
- * NOTE: total di sini HARUS sama dengan subquery stock_fg_repaint
- *       di articleBySprayBooth() -> sum(article_qty) where location_type='wip'.
- *       Ga difilter by spray booth karena repaint bisa dari WIP mana aja.
- */
-public function repaintDetailByArticle(Request $request)
-{
-    $articleCode = $request->article_code; // kode article FG
-
-    $rows = DB::table('warehouse_stock as ws')
-        ->join('stock_location_master as slm', 'slm.location_code', '=', 'ws.location_number')
-        ->join('article as a', 'a.article_code', '=', 'ws.article_code')
-        ->where('ws.article_code', $articleCode)
-        ->where('slm.location_type', 'wip')
-        ->select(
-            'slm.location_code',
-            'slm.location_name',
-            'a.uom',
-            DB::raw('sum(ws.article_qty) as qty')
-        )
-        ->groupBy('slm.location_code', 'slm.location_name', 'a.uom')
-        ->havingRaw('sum(ws.article_qty) <> 0') // sembunyikan gudang qty 0, total ga berubah
-        ->orderBy('slm.location_name')
-        ->get();
-
-    $total = $rows->sum('qty');
-
-    return response()->json([
-        'rows'  => $rows,
-        'total' => $total,
+        'rows'         => $result,
+        'max_fg_fresh' => $overall,
+        'wip_rows'     => $wipRows,
+        'wip_total'    => $wipTotal,
+        'max_fg_total' => $overall + $wipTotal,
     ]);
 }
 
