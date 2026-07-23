@@ -247,7 +247,15 @@
     // ─── On Ready ─────────────────────────────────────────────────────────────────
     $(document).ready(function() {
         validateFormToast('frmAdd');
-        $('#deliveryDate').val("{{ $currentDate }}");
+      $('#deliveryDate').val("{{ $currentDate }}");
+
+// ── Override khusus halaman ini: kunci maxDate = hari ini ──
+// Reuse initDatePicker global (biar year-dropdown & format tetap konsisten),
+// tapi destroy dulu instance lama supaya tidak dobel-attach.
+if ($('#deliveryDate')[0] && $('#deliveryDate')[0]._flatpickr) {
+    $('#deliveryDate')[0]._flatpickr.destroy();
+}
+initDatePicker('#deliveryDate', { maxDate: "today" });
 
         // ── Type change: rebuild dropdown customer + reset artikel ──
         $('#type').on('change', function() {
