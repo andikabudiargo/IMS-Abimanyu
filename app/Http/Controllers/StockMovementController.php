@@ -118,10 +118,10 @@ class StockMovementController extends Controller
                       BETWEEN TO_DATE(?, 'dd-mm-yyyy') AND TO_DATE(?, 'dd-mm-yyyy')";
         $bind = [$this->siteCode, $request->fromDate, $request->toDate];
 
-        if ($location) {
-            $where .= " AND (m.movement_from = ? OR m.movement_to = ? OR m.location_number = ?)";
-            array_push($bind, $location, $location, $location);
-        }
+       if ($location) {
+    $where .= " AND m.location_number = ?";
+    $bind[] = $location;
+}
 
         if ($type = $request->type) {
             $where .= " AND a.article_type = ?";
@@ -169,20 +169,20 @@ class StockMovementController extends Controller
         }
 
         /* ---- Mode lokasi: IN = barang masuk ke lokasi, OUT = keluar dari lokasi ---- */
-        if ($location) {
-            switch ($inout) {
-                case 'in':
-                    return [' AND m.movement_to = ?', [$location]];
-                case 'out':
-                    return [' AND m.movement_from = ?', [$location]];
-                case 'transfer':
-                    return [" AND m.movement_type = 'TRANSFER'", []];
-                case 'supply':
-                    return [" AND m.movement_type = 'SUPPLY'", []];
-                default:
-                    return ['', []];
-            }
-        }
+       if ($location) {
+    switch ($inout) {
+        case 'in':
+            return [' AND m.movement_plus > 0', []];
+        case 'out':
+            return [' AND m.movement_min > 0', []];
+        case 'transfer':
+            return [" AND m.movement_type = 'TRANSFER'", []];
+        case 'supply':
+            return [" AND m.movement_type = 'SUPPLY'", []];
+        default:
+            return ['', []];
+    }
+}
 
         /* ---- Mode global: arah dari jenis dokumen ---- */
         $excludeI = $this->quote(array_merge(self::TYPE_OUT, self::TYPE_ADJ, self::TYPE_MOVE));
@@ -280,27 +280,27 @@ class StockMovementController extends Controller
      * $location == null -> perspektif global (jenis dokumen).
      */
     private function labelInout($row, ?string $location = null): string
-    {
-        $type = strtoupper($row->movement_type);
+{
+    $type = strtoupper($row->movement_type);
 
-        if (in_array($type, self::TYPE_ADJ, true)) return 'ADJUSTMENT';
+    if (in_array($type, self::TYPE_ADJ, true)) return 'ADJUSTMENT';
 
-        // Perspektif lokasi: yang menentukan adalah arah barang, bukan nama dokumen.
-        if ($location) {
-            if ($row->movement_to === $location)   return 'IN';
-            if ($row->movement_from === $location) return 'OUT';
-            // location_number cocok tapi from/to tidak -> fallback tanda qty
-            return $row->movement_plus > 0 ? 'IN' : ($row->movement_min > 0 ? 'OUT' : '-');
-        }
-
-        if (in_array($type, self::TYPE_OUT, true))  return 'OUT';
-        if (in_array($type, self::TYPE_IN, true))   return 'IN';
-        if (in_array($type, self::TYPE_MOVE, true)) return $type;
+    // Perspektif lokasi: location_number sudah pasti milik baris ini,
+    // jadi arah cukup dilihat dari tanda qty.
+    if ($location) {
         if ($row->movement_plus > 0) return 'IN';
         if ($row->movement_min > 0)  return 'OUT';
-
         return '-';
     }
+
+    if (in_array($type, self::TYPE_OUT, true))  return 'OUT';
+    if (in_array($type, self::TYPE_IN, true))   return 'IN';
+    if (in_array($type, self::TYPE_MOVE, true)) return $type;
+    if ($row->movement_plus > 0) return 'IN';
+    if ($row->movement_min > 0)  return 'OUT';
+
+    return '-';
+}
 
     /** Pecah qty jadi in/out. Salah satu selalu 0.00. */
     private function splitQty($row, ?string $location = null): array
