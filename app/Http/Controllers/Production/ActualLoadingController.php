@@ -826,14 +826,14 @@ class ActualLoadingController extends Controller
         }
         $tupleSql = implode(',', $tuples);
 
+        // warehouse_movement memakai movement_code sebagai PK, bukan id
         DB::statement("
             WITH rekalk AS (
-                SELECT id,
+                SELECT movement_code,
                        SUM(movement_plus - movement_min) OVER (
                            PARTITION BY site_code, artikel_code, location_number
                            ORDER BY TO_DATE(movement_date, 'dd-mm-yyyy'),
-                                    movement_code,
-                                    id
+                                    movement_code
                            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
                        ) AS saldo
                 FROM warehouse_movement
@@ -842,7 +842,7 @@ class ActualLoadingController extends Controller
             UPDATE warehouse_movement wm
             SET    last_qty = r.saldo
             FROM   rekalk r
-            WHERE  wm.id = r.id
+            WHERE  wm.movement_code = r.movement_code
         ", $bindings);
     }
 
@@ -1036,7 +1036,7 @@ class ActualLoadingController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            \LogActivity::addToLog($title, "username: $username Status GAGAL: ".$e->getMessage());
+            \LogActivity::addToLog($title, substr("username: $username Status GAGAL: ".$e->getMessage(), 0, 250));
             return redirect()->back()->with(['title'=>$title, 'alert'=>'warning', 'message'=>$e->getMessage()]);
         }
     }
@@ -1248,46 +1248,46 @@ class ActualLoadingController extends Controller
      * Stok tetap dikembalikan dulu supaya tidak ada saldo menggantung.
      */
     public function destroy(Request $request)
-{
-    $username = Auth::user()->username;
-    $id       = Crypt::decryptString($request->id);
-    $title    = "Delete $this->title";
+    {
+        $username = Auth::user()->username;
+        $id       = Crypt::decryptString($request->id);
+        $title    = "Delete $this->title";
 
-    DB::beginTransaction();
-    try {
-        $hdr = DB::table('actual_loading_hdr')   // ← tabel benar
-            ->where('id', $id)
-            ->lockForUpdate()
-            ->first();
+        DB::beginTransaction();
+        try {
+            $hdr = DB::table('actual_loading_hdr')
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->first();
 
-        if (!$hdr) {
-            throw new \Exception("Dokumen tidak ditemukan.");
+            if (!$hdr) {
+                throw new \Exception("Dokumen tidak ditemukan.");
+            }
+            if ((int) $hdr->status !== 1) {
+                throw new \Exception("Hanya dokumen berstatus NEW yang bisa dihapus. Gunakan Cancel untuk dokumen lain.");
+            }
+
+            $prdNumber = $hdr->prod_code;
+
+            // balikin stok + hapus movement + recalc
+            $this->unPosting($prdNumber, $username, true);
+
+            DB::table('actual_loading_det')->where('prod_code', $prdNumber)->delete();
+            DB::table('actual_loading_log')->where('prod_code', $prdNumber)->delete();
+            DB::table('actual_loading_hdr')->where('id', $id)->delete();
+
+            DB::commit();
+
+            $message = "$title $prdNumber Successfully Deleted";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['title'=>$title, 'alert'=>'success', 'message'=>$message]);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \LogActivity::addToLog($title, substr("username: $username Status GAGAL: ".$e->getMessage(), 0, 250));
+            return redirect()->back()->with(['title'=>$title, 'alert'=>'warning', 'message'=>$e->getMessage()]);
         }
-        if ((int) $hdr->status !== 1) {
-            throw new \Exception("Hanya dokumen berstatus NEW yang bisa dihapus.");
-        }
-
-        $prdNumber = $hdr->prod_code;
-
-        // balikin stok + hapus movement + recalc
-       $this->unPosting($prdNumber, $username, true, false);  // false = skip cek stok
-
-        DB::table('actual_loading_det')->where('prod_code', $prdNumber)->delete();
-        DB::table('actual_loading_log')->where('prod_code', $prdNumber)->delete();
-        DB::table('actual_loading_hdr')->where('id', $id)->delete();
-
-        DB::commit();
-
-        $message = "$title $prdNumber Successfully Deleted";
-        \LogActivity::addToLog($title, "username: $username Status $message");
-        return redirect()->back()->with(['title'=>$title, 'alert'=>'success', 'message'=>$message]);
-
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        \LogActivity::addToLog($title, "username: $username Status GAGAL: ".$e->getMessage());
-        return redirect()->back()->with(['title'=>$title, 'alert'=>'warning', 'message'=>$e->getMessage()]);
     }
-}
 
     // =========================================================================
     // LIST
@@ -1561,7 +1561,7 @@ class ActualLoadingController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            \LogActivity::addToLog($title, "username: $username Status GAGAL: ".$e->getMessage());
+            \LogActivity::addToLog($title, substr("username: $username Status GAGAL: ".$e->getMessage(), 0, 250));
             return response()->json(['status'=>0,'title'=>$title,'message'=>$e->getMessage(),'alert'=>'warning','prdNumber'=>$prdNumber]);
         }
     }
