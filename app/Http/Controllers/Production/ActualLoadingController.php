@@ -1378,7 +1378,7 @@ class ActualLoadingController extends Controller
                             </a>';
 
                 // ── CANCEL: semua status kecuali yang sudah CANCELED ──
-                if (Auth::user()->can('actualLoading-delete') && $data->status == '5') {
+                if (Auth::user()->can('actualLoading-delete') && $data->status == '4') {
                     $buttons .= "<a href='javascript:;'
                         class='dropdown-item'
                         data-size='sm'
