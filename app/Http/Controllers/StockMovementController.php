@@ -233,61 +233,14 @@ class StockMovementController extends Controller
                 ON a.article_code = m.artikel_code
             $where
         ),
-        orig AS (
-            SELECT movement_code, movement_transnno, artikel_code, location_number,
-                   site_code, movement_type, movement_plus, movement_min,
-                   ROW_NUMBER() OVER (
-                       PARTITION BY movement_transnno, artikel_code, location_number,
-                                    site_code, movement_type, movement_plus, movement_min
-                       ORDER BY created_at, movement_code
-                   ) AS rn
-            FROM base
-            WHERE movement_type NOT LIKE 'CANCEL %'
-        ),
-        cancl AS (
-            SELECT movement_code, movement_transnno, artikel_code, location_number,
-                   site_code, regexp_replace(movement_type, '^CANCEL ', '') AS base_type,
-                   movement_plus, movement_min,
-                   ROW_NUMBER() OVER (
-                       PARTITION BY movement_transnno, artikel_code, location_number,
-                                    site_code, regexp_replace(movement_type, '^CANCEL ', ''),
-                                    movement_plus, movement_min
-                       ORDER BY created_at, movement_code
-                   ) AS rn
-            FROM base
-            WHERE movement_type LIKE 'CANCEL %'
-        ),
-        excluded_pairs AS (
-            SELECT o.movement_code AS orig_code, c.movement_code AS cancel_code
-            FROM orig o
-            JOIN cancl c
-              ON c.movement_transnno = o.movement_transnno
-             AND c.artikel_code      = o.artikel_code
-             AND c.location_number   = o.location_number
-             AND c.site_code         = o.site_code
-             AND c.base_type         = o.movement_type
-             AND c.movement_plus     = o.movement_plus
-             AND c.movement_min      = o.movement_min
-             AND c.rn                = o.rn
-        ),
-        excluded_codes AS (
-            SELECT orig_code AS movement_code FROM excluded_pairs
-            UNION
-            SELECT cancel_code AS movement_code FROM excluded_pairs
-        ),
         filtered AS (
             SELECT b.*,
-                CASE
-                    WHEN b.movement_type IN ('DELIVERY','REVISI DELIVERY')
-                    THEN ROW_NUMBER() OVER (
-                        PARTITION BY b.movement_transnno, b.artikel_code
-                        ORDER BY b.created_at DESC, b.movement_code DESC
-                    )
-                    ELSE 1
-                END AS rn
+                ROW_NUMBER() OVER (
+                    PARTITION BY b.artikel_code, b.movement_transnno, b.location_number
+                    ORDER BY b.created_at DESC, b.movement_code DESC
+                ) AS rn
             FROM base b
-            WHERE b.movement_code NOT IN (SELECT movement_code FROM excluded_codes)
-              AND b.movement_type NOT LIKE 'CANCEL %'
+            WHERE b.movement_type NOT LIKE 'CANCEL %'
         )
         SELECT
             f.movement_code,
