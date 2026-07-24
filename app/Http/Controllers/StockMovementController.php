@@ -205,8 +205,9 @@ class StockMovementController extends Controller
     }
 
     private function baseSql(string $where, string $orderBy): string
-    {
-        return "
+{
+    return "
+        WITH filtered AS (
             SELECT
                 m.movement_code,
                 m.artikel_code,
@@ -225,47 +226,76 @@ class StockMovementController extends Controller
                 m.location_number,
                 m.movement_from,
                 m.movement_to,
-
-                CASE WHEN m.partner_type = 'SUPP'
-                    THEN (SELECT nama FROM third_party WHERE kode = m.movement_from)
-                    ELSE (SELECT location_name FROM stock_location_master WHERE location_code = m.movement_from)
-                END AS mv_from,
-
-                CASE WHEN m.partner_type = 'CUST'
-                    THEN (SELECT nama FROM third_party WHERE kode = m.movement_to)
-                    ELSE (SELECT location_name FROM stock_location_master WHERE location_code = m.movement_to)
-                END AS mv_to,
-
-                COALESCE(rec.status, trf.status, del.status, ret.status,
-                         rep.status, adj.status, tdn.status, dng.status) AS trx_status,
-
                 m.site_code,
-                m.created_at
-
+                m.created_at,
+                CASE
+                    WHEN m.movement_type IN ('DELIVERY','REVISI DELIVERY')
+                    THEN ROW_NUMBER() OVER (
+                        PARTITION BY m.movement_transnno, m.artikel_code
+                        ORDER BY m.created_at DESC, m.movement_code DESC
+                    )
+                    ELSE 1
+                END AS rn
             FROM warehouse_movement m
             LEFT JOIN article a
                 ON a.article_code = m.artikel_code
-            LEFT JOIN receiving_hdr rec
-                ON rec.rec_number = m.movement_transnno AND m.movement_type = 'RECEIVING'
-            LEFT JOIN transfer_stock_hdr trf
-                ON trf.tr_number = m.movement_transnno AND m.movement_type IN ('TRANSFER','SUPPLY')
-            LEFT JOIN delivery_hdr del
-                ON del.delivery_number = m.movement_transnno AND m.movement_type IN ('DELIVERY','REVISI DELIVERY','CANCEL DELIVERY')
-            LEFT JOIN dn_return_hdr ret
-                ON ret.return_number = m.movement_transnno AND m.movement_type = 'RETURN'
-            LEFT JOIN dn_replace_hdr rep
-                ON rep.replace_number = m.movement_transnno AND m.movement_type = 'REPLACEMENT'
-            LEFT JOIN stock_adjustment_hdr adj
-                ON adj.adj_code = m.movement_transnno AND m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
-            LEFT JOIN temporary_dn_hdr tdn
-                ON tdn.tdn_number = m.movement_transnno AND m.movement_type = 'DN SEMENTARA'
-            LEFT JOIN dn_general_hdr dng
-                ON dng.tdn_number = m.movement_transnno AND m.movement_type = 'DN UMUM'
-
             $where
-            $orderBy
-        ";
-    }
+            AND m.movement_type NOT LIKE 'CANCEL %'
+        )
+        SELECT
+            f.movement_code,
+            f.artikel_code,
+            f.code,
+            f.artikel_desc,
+            f.article_type,
+            f.qty,
+            f.movement_price,
+            f.movement_date,
+            f.movement_desc,
+            f.movement_type,
+            f.movement_min,
+            f.movement_plus,
+            f.movement_transnno,
+            f.partner_type,
+            f.location_number,
+
+            CASE WHEN f.partner_type = 'SUPP'
+                THEN (SELECT nama FROM third_party WHERE kode = f.movement_from)
+                ELSE (SELECT location_name FROM stock_location_master WHERE location_code = f.movement_from)
+            END AS mv_from,
+
+            CASE WHEN f.partner_type = 'CUST'
+                THEN (SELECT nama FROM third_party WHERE kode = f.movement_to)
+                ELSE (SELECT location_name FROM stock_location_master WHERE location_code = f.movement_to)
+            END AS mv_to,
+
+            COALESCE(rec.status, trf.status, del.status, ret.status,
+                     rep.status, adj.status, tdn.status, dng.status) AS trx_status,
+
+            f.site_code,
+            f.created_at
+
+        FROM filtered f
+        LEFT JOIN receiving_hdr rec
+            ON rec.rec_number = f.movement_transnno AND f.movement_type = 'RECEIVING'
+        LEFT JOIN transfer_stock_hdr trf
+            ON trf.tr_number = f.movement_transnno AND f.movement_type IN ('TRANSFER','SUPPLY')
+        LEFT JOIN delivery_hdr del
+            ON del.delivery_number = f.movement_transnno AND f.movement_type IN ('DELIVERY','REVISI DELIVERY','CANCEL DELIVERY')
+        LEFT JOIN dn_return_hdr ret
+            ON ret.return_number = f.movement_transnno AND f.movement_type = 'RETURN'
+        LEFT JOIN dn_replace_hdr rep
+            ON rep.replace_number = f.movement_transnno AND f.movement_type = 'REPLACEMENT'
+        LEFT JOIN stock_adjustment_hdr adj
+            ON adj.adj_code = f.movement_transnno AND f.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+        LEFT JOIN temporary_dn_hdr tdn
+            ON tdn.tdn_number = f.movement_transnno AND f.movement_type = 'DN SEMENTARA'
+        LEFT JOIN dn_general_hdr dng
+            ON dng.tdn_number = f.movement_transnno AND f.movement_type = 'DN UMUM'
+        WHERE f.rn = 1
+        $orderBy
+    ";
+}
 
     private function fetch(array $filter, string $orderBy): array
     {
@@ -356,7 +386,7 @@ class StockMovementController extends Controller
         $loc  = $filter['location'];
         $rows = $this->fetch(
             $filter,
-            "ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy') DESC, m.movement_code DESC"
+           "ORDER BY TO_DATE(f.movement_date,'dd-mm-yyyy') DESC, f.movement_code DESC"
         );
 
         $n = count($rows);
@@ -475,7 +505,7 @@ class StockMovementController extends Controller
         $loc  = $filter['location'];
         $rows = $this->fetch(
             $filter,
-            "ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy') ASC, m.movement_code ASC"
+            "ORDER BY TO_DATE(f.movement_date,'dd-mm-yyyy') ASC, f.movement_code ASC"
         );
 
         $spreadsheet = new Spreadsheet();
@@ -530,92 +560,156 @@ $this->applyQtyColor($sheet, "K{$r}", $q['out'], 'C00000'); // merah
 
     /** Header article + detail + SUB TOTAL per article. Tanpa grand total. */
     private function exportGrouped(Request $request, array $filter)
-    {
-        $loc  = $filter['location'];
-        $rows = $this->fetch(
-            $filter,
-            "ORDER BY a.article_alternative_code ASC,
-                      TO_DATE(m.movement_date,'dd-mm-yyyy') ASC,
-                      m.movement_code ASC"
-        );
+{
+    $loc  = $filter['location'];
+    $rows = $this->fetch(
+        $filter,
+        "ORDER BY f.code ASC, TO_DATE(f.movement_date,'dd-mm-yyyy') ASC, f.movement_code ASC"
+    );
 
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Summary');
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('Summary');
 
-        $headers = ['Date', 'From', 'To', 'Transaction', 'Type', 'Ref', 'Status', 'Qty In', 'Qty Out', 'Created At'];
-        $last = 'J';
+    $headers = ['Date', 'From', 'To', 'Transaction', 'Type', 'Ref', 'Status', 'Qty In', 'Qty Out', 'Balance', 'Created At'];
+    $last = 'K';
 
-        $r = $this->writeTitle($sheet, $request, $filter, 'STOCK MOVEMENT — SUMMARY PER ARTICLE', $last);
+    $r = $this->writeTitle($sheet, $request, $filter, 'STOCK MOVEMENT — SUMMARY PER ARTICLE', $last);
 
-        $current = null;
-        $subIn   = 0.0;
-        $subOut  = 0.0;
+    $current = null;
+    $subIn   = 0.0;
+    $subOut  = 0.0;
+    $balance = 0.0;
 
-        $writeSubtotal = function () use ($sheet, &$r, &$subIn, &$subOut, $last) {
-            $sheet->setCellValue("G{$r}", 'SUB TOTAL');
-            $sheet->setCellValue("H{$r}", round($subIn, 2));
-            $sheet->setCellValue("I{$r}", round($subOut, 2));
-            $sheet->getStyle("A{$r}:{$last}{$r}")->getFont()->setBold(true);
-            $sheet->getStyle("H{$r}:I{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet->getStyle("A{$r}:{$last}{$r}")->getFill()
-                  ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F2F2F2');
-            $r += 2;
-            $subIn = $subOut = 0.0;
-        };
+    $writeClosing = function () use ($sheet, &$r, &$balance, $last) {
+        $sheet->setCellValue("G{$r}", 'SALDO AKHIR');
+        $sheet->setCellValue("J{$r}", round($balance, 2));
+        $sheet->getStyle("A{$r}:{$last}{$r}")->getFont()->setBold(true)->setItalic(true);
+        $sheet->getStyle("J{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $r++;
+    };
 
-        foreach ($rows as $row) {
-            if ($current !== $row->artikel_code) {
-                if ($current !== null) {
-                    $writeSubtotal();
-                }
+    $writeSubtotal = function () use ($sheet, &$r, &$subIn, &$subOut, $last) {
+        $sheet->setCellValue("G{$r}", 'SUB TOTAL');
+        $sheet->setCellValue("H{$r}", round($subIn, 2));
+        $sheet->setCellValue("I{$r}", round($subOut, 2));
+        $sheet->getStyle("A{$r}:{$last}{$r}")->getFont()->setBold(true);
+        $sheet->getStyle("H{$r}:I{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle("A{$r}:{$last}{$r}")->getFill()
+              ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F2F2F2');
+        $r += 2;
+        $subIn = $subOut = 0.0;
+    };
 
-                // Header article
-                $sheet->setCellValue("A{$r}", trim($row->code . ' — ' . $row->artikel_desc));
-                $sheet->mergeCells("A{$r}:{$last}{$r}");
-                $this->styleHeader($sheet, $r, $last);
-                $r++;
-
-                // Header kolom
-                $sheet->fromArray($headers, null, "A{$r}");
-                $sheet->getStyle("A{$r}:{$last}{$r}")->getFont()->setBold(true);
-                $sheet->getStyle("A{$r}:{$last}{$r}")->getFill()
-                      ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('D9E1F2');
-                $r++;
-
-                $current = $row->artikel_code;
+    foreach ($rows as $row) {
+        if ($current !== $row->artikel_code) {
+            if ($current !== null) {
+                $writeClosing();
+                $writeSubtotal();
             }
 
-            $q = $this->splitQty($row, $loc);
-
-            $sheet->setCellValue("A{$r}", $row->movement_date);
-            $sheet->setCellValue("B{$r}", $row->mv_from);
-            $sheet->setCellValue("C{$r}", $row->mv_to);
-            $sheet->setCellValue("D{$r}", $this->labelInout($row, $loc));
-            $sheet->setCellValue("E{$r}", $row->movement_type);
-            $sheet->setCellValueExplicit("F{$r}", (string) $row->movement_transnno, DataType::TYPE_STRING);
-            $sheet->setCellValue("G{$r}", $this->labelStatus($row->trx_status));
-          $sheet->setCellValue("H{$r}", round($q['in'], 2));
-$sheet->setCellValue("I{$r}", round($q['out'], 2));
-$this->applyQtyColor($sheet, "H{$r}", $q['in'],  '00B050');
-$this->applyQtyColor($sheet, "I{$r}", $q['out'], 'C00000');
-            $sheet->setCellValue("J{$r}", $row->created_at);
-
-            $sheet->getStyle("H{$r}:I{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
-        
-            $subIn  += $q['in'];
-            $subOut += $q['out'];
+            // Header article
+            $sheet->setCellValue("A{$r}", trim($row->code . ' — ' . $row->artikel_desc));
+            $sheet->mergeCells("A{$r}:{$last}{$r}");
+            $this->styleHeader($sheet, $r, $last);
             $r++;
+
+            // Header kolom
+            $sheet->fromArray($headers, null, "A{$r}");
+            $sheet->getStyle("A{$r}:{$last}{$r}")->getFont()->setBold(true);
+            $sheet->getStyle("A{$r}:{$last}{$r}")->getFill()
+                  ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('D9E1F2');
+            $r++;
+
+            // Saldo awal
+            $opening = $this->resolveOpeningBalance($row->artikel_code, $loc, $request->fromDate);
+            $balance = $opening['qty'];
+
+            $sheet->setCellValue("G{$r}", 'SALDO AWAL');
+            $sheet->setCellValue("J{$r}", round($balance, 2));
+            $sheet->getStyle("A{$r}:{$last}{$r}")->getFont()->setItalic(true);
+            $sheet->getStyle("J{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $r++;
+
+            $current = $row->artikel_code;
         }
 
-        if ($current !== null) {
-            $writeSubtotal();
-        } else {
-            $sheet->setCellValue("A{$r}", 'Tidak ada data untuk filter yang dipilih.');
-        }
+        $q = $this->splitQty($row, $loc);
+        $balance += $q['in'] - $q['out'];
 
-        $this->autoSize($sheet, $last);
+        $sheet->setCellValue("A{$r}", $row->movement_date);
+        $sheet->setCellValue("B{$r}", $row->mv_from);
+        $sheet->setCellValue("C{$r}", $row->mv_to);
+        $sheet->setCellValue("D{$r}", $this->labelInout($row, $loc));
+        $sheet->setCellValue("E{$r}", $row->movement_type);
+        $sheet->setCellValueExplicit("F{$r}", (string) $row->movement_transnno, DataType::TYPE_STRING);
+        $sheet->setCellValue("G{$r}", $this->labelStatus($row->trx_status));
+        $sheet->setCellValue("H{$r}", round($q['in'], 2));
+        $sheet->setCellValue("I{$r}", round($q['out'], 2));
+        $sheet->setCellValue("J{$r}", round($balance, 2));
+        $this->applyQtyColor($sheet, "H{$r}", $q['in'],  '00B050');
+        $this->applyQtyColor($sheet, "I{$r}", $q['out'], 'C00000');
+        $sheet->setCellValue("K{$r}", $row->created_at);
 
-        return $this->streamXlsx($spreadsheet, 'stock_movement_summary');
+        $sheet->getStyle("H{$r}:J{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+
+        $subIn  += $q['in'];
+        $subOut += $q['out'];
+        $r++;
     }
+
+    if ($current !== null) {
+        $writeClosing();
+        $writeSubtotal();
+    } else {
+        $sheet->setCellValue("A{$r}", 'Tidak ada data untuk filter yang dipilih.');
+    }
+
+    $this->autoSize($sheet, $last);
+
+    return $this->streamXlsx($spreadsheet, 'stock_movement_summary');
+}
+
+    private function resolveOpeningBalance(string $articleCode, ?string $location, string $fromDate): array
+{
+    $parts = explode('-', $fromDate);
+    $bulan = isset($parts[1]) ? (int) $parts[1] : (int) date('m');
+    $tahun = isset($parts[2]) ? (int) $parts[2] : (int) date('Y');
+
+    $periode = $bulan - 1;
+    $tahunOpening = $tahun;
+    if ($periode < 1) { $periode = 12; $tahunOpening = $tahun - 1; }
+
+    $out = ['qty' => 0.0];
+
+    if (!$location) {
+        $sql = "SELECT COALESCE(SUM(det.stock_after),0) AS saldo_awal
+                FROM stock_adjustment_hdr hdr
+                JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
+                WHERE hdr.adj_type = 'OPENING BALANCE'
+                  AND hdr.status != '5'
+                  AND hdr.periode = :periode
+                  AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date,'dd-mm-yyyy')) = :tahun
+                  AND det.article_code = :art";
+        $r = DB::select($sql, ['periode' => $periode, 'tahun' => $tahunOpening, 'art' => $articleCode]);
+        $out['qty'] = isset($r[0]) ? (float) $r[0]->saldo_awal : 0.0;
+        return $out;
+    }
+
+    $sql = "SELECT det.stock_after AS saldo_awal
+            FROM stock_adjustment_hdr hdr
+            JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
+            WHERE hdr.adj_type = 'OPENING BALANCE'
+              AND hdr.status != '5'
+              AND hdr.periode = :periode
+              AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date,'dd-mm-yyyy')) = :tahun
+              AND det.article_code = :art
+              AND hdr.location_code = :loc
+            LIMIT 1";
+    $r = DB::select($sql, ['periode' => $periode, 'tahun' => $tahunOpening, 'art' => $articleCode, 'loc' => $location]);
+    $out['qty'] = isset($r[0]) ? (float) $r[0]->saldo_awal : 0.0;
+
+    return $out;
+}
+
 }
