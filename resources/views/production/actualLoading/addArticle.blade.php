@@ -5,7 +5,7 @@
             <div class="col-md-5 col-12">
                 <div class="form-group margin-nol">
                     <label for="articleId" class="d-block d-md-none">Article Code</label>
-                    <select class="form-control" id="articleId" name="articleId[]" data-dependent="articleId" disabled></select>
+                    <select class="form-control" data-placeholder="-- Choose Article --" id="articleId" name="articleId[]" data-dependent="articleId" disabled></select>
                 </div>
             </div>
             <div class="col-md-1 col-12">

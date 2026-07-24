@@ -34,7 +34,7 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="sprayBooth">Spray Booth*</label>
-                                        <select class="select2 form-control" id="sprayBooth" name="sprayBooth" placeholder="Select Spray Booth" required>
+                                        <select class="select2 form-control" id="sprayBooth" name="sprayBooth" data-placeholder="-- Select Spray Booth --" required>
                                             <option value=""></option>
                                             @foreach($sprayBooths as $val)
                                             <option value="{{ $val->location_code }}">{{ $val->location_name }}</option>
@@ -138,40 +138,53 @@ const loadingDate = $('#loadingDate');
 const reference = $('#reference');   // ⬅ NEW
 
 if (loadingDate.length) {
-    loadingDate.flatpickr({ dateFormat: "d-m-Y" });
+    loadingDate.flatpickr({
+        dateFormat: "d-m-Y",
+        maxDate: "today"   // ⬅ NEW: tidak bisa pilih tanggal maju
+    });
 }
 
 if (reference.length) {              // ⬅ NEW
-    reference.flatpickr({ dateFormat: "d-m-Y" });
+    reference.flatpickr({
+        dateFormat: "d-m-Y",
+        maxDate: "today"   // ⬅ NEW: tidak bisa pilih tanggal maju
+    });
 }
 
-    function toggleArticleSection(enable){
-        const disabled = !enable;
-        $('#addNewRow').prop('disabled', disabled);
-        $('#cmdSave').prop('disabled', disabled);
-        $('#articleLockMsg').toggleClass('d-none', enable);
-    }
+function toggleArticleSection(enable){
+    const disabled = !enable;
+    $('#addNewRow').prop('disabled', disabled);
+    $('#cmdSave').prop('disabled', disabled);
+    $('#articleLockMsg').toggleClass('d-none', enable);
+}
 
-    function resetArticleRows(){
-        $('#article_row').html('<input type="text" id="last_row_number" class="d-none" value="0">');
-        if (typeof sumData === 'function') sumData();
-    }
+function resetArticleRows(){
+    $('#article_row').html('<input type="text" id="last_row_number" class="d-none" value="0">');
+    if (typeof sumData === 'function') sumData();
+}
 
-    $(document).ready(function(){
-        validateFormToast("frmAdd");
-        loadingDate.val(currentDate);
-        toggleArticleSection(false); // terkunci di awal
+$(document).ready(function(){
+    validateFormToast("frmAdd");
+    loadingDate.val(currentDate);
+    toggleArticleSection(false); // terkunci di awal
+
+    // ⬅ NEW: pastikan placeholder Select2 muncul meski select2 di-init global di file lain
+    $('#sprayBooth').select2({
+        placeholder: $('#sprayBooth').data('placeholder') || 'Select Spray Booth',
+        allowClear: true,
+        width: '100%'
     });
+});
 
-    $('#sprayBooth').on('change', function () {
-        let loc = $(this).val();
-        resetArticleRows();
-        toggleArticleSection(!!loc);
-        isiArticleBySprayBooth(loc);
-    });
+$('#sprayBooth').on('change', function () {
+    let loc = $(this).val();
+    resetArticleRows();
+    toggleArticleSection(!!loc);
+    isiArticleBySprayBooth(loc);
+});
 
-    $.ajaxSetup({
-        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-    });
+$.ajaxSetup({
+    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+});
 </script>
 @endsection
