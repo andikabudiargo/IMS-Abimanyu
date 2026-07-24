@@ -26,6 +26,7 @@
         '-' => ['icon' => 'trending-down', 'cls' => 'badge-light-danger',  'text' => 'Stock Out (−)'],
     ];
     $dirLabel = isset($dirMap[$header->direction]) ? $dirMap[$header->direction] : ['icon' => 'shuffle', 'cls' => 'badge-light-warning', 'text' => 'Mixed'];
+    $totalActualBalance = $details->sum('stock_after');
 @endphp
 
 <section id="adj-show">
@@ -239,18 +240,28 @@
 
                     <hr>
 
-                    {{-- Totals --}}
-                    <div class="row mb-75">
-                        <div class="col-md-4">
-                            <div class="form-group row mb-03">
-                                <label class="col-sm-4 col-form-label titik-dua">Row(s)</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold"
-                                        value="{{ $details->count() }}" disabled />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                  {{-- Totals --}}
+<div class="row mb-75">
+    <div class="col-md-8">
+        <div class="form-row">
+            <div class="form-group row col-md-6 mb-03">
+                <label class="col-sm-6 col-form-label titik-dua">Row(s)</label>
+                <div class="col-sm-6">
+                    <input type="text" class="form-control text-right font-weight-bold"
+                        value="{{ $details->count() }}" disabled />
+                </div>
+            </div>
+            <div class="form-group row col-md-6 mb-03">
+                <label class="col-sm-6 col-form-label titik-dua">Total Actual Balance</label>
+                <div class="col-sm-6">
+                    <input type="text"
+                        class="form-control text-right font-weight-bold {{ $totalActualBalance < 0 ? 'text-danger' : '' }}"
+                        value="{{ number_format($totalActualBalance, 2) }}" disabled />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
                     <hr>
 
