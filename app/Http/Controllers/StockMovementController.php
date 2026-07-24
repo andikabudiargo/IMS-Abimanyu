@@ -207,7 +207,7 @@ class StockMovementController extends Controller
     private function baseSql(string $where, string $orderBy): string
 {
     return "
-        WITH filtered AS (
+        WITH base AS (
             SELECT
                 m.movement_code,
                 m.artikel_code,
@@ -227,20 +227,67 @@ class StockMovementController extends Controller
                 m.movement_from,
                 m.movement_to,
                 m.site_code,
-                m.created_at,
-                CASE
-                    WHEN m.movement_type IN ('DELIVERY','REVISI DELIVERY')
-                    THEN ROW_NUMBER() OVER (
-                        PARTITION BY m.movement_transnno, m.artikel_code
-                        ORDER BY m.created_at DESC, m.movement_code DESC
-                    )
-                    ELSE 1
-                END AS rn
+                m.created_at
             FROM warehouse_movement m
             LEFT JOIN article a
                 ON a.article_code = m.artikel_code
             $where
-            AND m.movement_type NOT LIKE 'CANCEL %'
+        ),
+        orig AS (
+            SELECT movement_code, movement_transnno, artikel_code, location_number,
+                   site_code, movement_type, movement_plus, movement_min,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY movement_transnno, artikel_code, location_number,
+                                    site_code, movement_type, movement_plus, movement_min
+                       ORDER BY created_at, movement_code
+                   ) AS rn
+            FROM base
+            WHERE movement_type NOT LIKE 'CANCEL %'
+        ),
+        cancl AS (
+            SELECT movement_code, movement_transnno, artikel_code, location_number,
+                   site_code, regexp_replace(movement_type, '^CANCEL ', '') AS base_type,
+                   movement_plus, movement_min,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY movement_transnno, artikel_code, location_number,
+                                    site_code, regexp_replace(movement_type, '^CANCEL ', ''),
+                                    movement_plus, movement_min
+                       ORDER BY created_at, movement_code
+                   ) AS rn
+            FROM base
+            WHERE movement_type LIKE 'CANCEL %'
+        ),
+        excluded_pairs AS (
+            SELECT o.movement_code AS orig_code, c.movement_code AS cancel_code
+            FROM orig o
+            JOIN cancl c
+              ON c.movement_transnno = o.movement_transnno
+             AND c.artikel_code      = o.artikel_code
+             AND c.location_number   = o.location_number
+             AND c.site_code         = o.site_code
+             AND c.base_type         = o.movement_type
+             AND c.movement_plus     = o.movement_plus
+             AND c.movement_min      = o.movement_min
+             AND c.rn                = o.rn
+        ),
+        excluded_codes AS (
+            SELECT orig_code AS movement_code FROM excluded_pairs
+            UNION
+            SELECT cancel_code AS movement_code FROM excluded_pairs
+        ),
+        filtered AS (
+            SELECT b.*,
+                CASE
+                    WHEN b.movement_type IN ('DELIVERY','REVISI DELIVERY')
+                    THEN ROW_NUMBER() OVER (
+                        PARTITION BY b.movement_transnno, b.artikel_code
+                        ORDER BY b.created_at DESC, b.movement_code DESC
+                    )
+                    ELSE 1
+                END AS rn
+            FROM base b
+            WHERE b.movement_code NOT IN (SELECT movement_code FROM excluded_codes)
+              AND b.movement_type NOT LIKE 'CANCEL %'
         )
         SELECT
             f.movement_code,
