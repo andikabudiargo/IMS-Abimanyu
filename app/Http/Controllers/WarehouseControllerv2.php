@@ -1219,10 +1219,13 @@ public function getTableColoumnMovementGlobal()
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
-            $buttons .= "<a href='javascript:;' onclick='movement(\"".$data->art_code."\",\"".$data->code."\",\"".preg_replace('/\'/', '', $data->desc)."\")' class='dropdown-item'>
-                            <i data-feather='activity'></i>
-                            Movement
-                        </a>";
+           $buttons .= "<a href='javascript:;' onclick='movement("
+    . json_encode($data->art_code) . ","
+    . json_encode($data->code) . ","
+    . json_encode($data->desc) . ")' class='dropdown-item'>
+                <i data-feather='activity'></i>
+                Movement
+            </a>";
             $buttons .= '</div></div>';
             return $buttons;
         })
