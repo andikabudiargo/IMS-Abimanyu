@@ -31,25 +31,37 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="col-md-3">
+                                <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="loadingCode">Actual Loading*</label>
-                                        <select class="select2 form-control" id="loadingCode" name="loadingCode" required>
+                                        <select class="select2 form-control" id="loadingCode" name="loadingCode" data-paceholder="-- List Actual Loading --" required>
                                             <option value=""></option>
-                                            @foreach($listLoading as $val)
-                                                <option value="{{ $val->prod_code }}"
-                                                        data-reference="{{ $val->wos_reference }}"
-                                                        data-date="{{ $val->loading_date_fmt }}">
-                                                    {{ $val->prod_code }}@if($val->wos_reference) ({{ $val->wos_reference }})@endif
-                                                </option>
-                                            @endforeach
+                                @foreach($listLoading as $val)
+    @php
+        $labelParts = [];
+
+        if (!empty($val->spray_booth_name)) {
+            $labelParts[] = $val->spray_booth_name;
+        }
+
+        // note + (wos_reference) digabung jadi satu bagian
+        $noteWithRef = $val->note ?? '';
+        if (!empty($val->wos_reference)) {
+            $noteWithRef = trim($noteWithRef . ' (' . $val->wos_reference . ')');
+        }
+        if (!empty($noteWithRef)) {
+            $labelParts[] = $noteWithRef;
+        }
+
+        $optionLabel = implode(' - ', $labelParts);
+    @endphp
+    <option value="{{ $val->prod_code }}"
+            data-reference="{{ $val->wos_reference }}"
+            data-date="{{ $val->loading_date_fmt }}">
+        {{ $optionLabel }}
+    </option>
+@endforeach
                                         </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="reference">Referensi WOS</label>
-                                        <input type="text" class="form-control" id="reference" name="reference" placeholder="-" readonly tabindex="-1" />
                                     </div>
                                 </div>
                             </div>
