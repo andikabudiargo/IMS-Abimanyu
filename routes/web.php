@@ -612,6 +612,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('actualLoading/list/detail',['as'=>'production.actualLoading.list.detail','uses'=>'Production\ActualLoadingController@listDetail']);
 	Route::get('actualLoading/show',['as'=>'production.actualLoading.show','uses'=>'Production\ActualLoadingController@show']);
 	Route::get('actualLoading/edit',['as'=>'production.actualLoading.edit','uses'=>'Production\ActualLoadingController@edit','middleware' => ['permission:actualLoading-edit']]);
+	Route::get('production/actual-loading/cancel',['as' =>'production.actualLoading.cancel', 'uses'=>'Production\ActualLoadingController@cancel']);
 	Route::post('actualLoading/update',['as'=>'production.actualLoading.update','uses'=>'Production\ActualLoadingController@update']);
 	Route::post('actualLoading/delete',['as'=>'production.actualLoading.destroy','uses'=>'Production\ActualLoadingController@destroy']);
 	Route::get('actualLoading/code/create',['as'=>'production.actualLoading.code.create','uses'=>'Production\ActualLoadingController@articleCodeCreate']);
