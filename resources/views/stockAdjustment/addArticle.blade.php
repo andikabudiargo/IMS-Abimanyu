@@ -550,6 +550,9 @@ function recomputeAllRows() { rowIds().forEach(recomputeRow); }
 
 function hitungGrandTotal() {
     $('#totalRow').val($('#article_row .tanda-baris').length);
+
+    const totalBalance = rowIds().reduce((sum, n) => sum + getBalance(n), 0);
+    $('#totalActualBalance').val(humanizeNumber(roundQty(totalBalance)));
 }
 
 

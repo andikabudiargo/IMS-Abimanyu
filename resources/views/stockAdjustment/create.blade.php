@@ -165,18 +165,27 @@
                             </button>
                         </div>
 
-                        {{-- Totals --}}
-                        <div class="d-flex justify-content-between align-items-end mt-75">
-                            <div class="col-md-4">
-                                <div class="form-group row mb-03">
-                                    <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
-                                    <div class="col-sm-3">
-                                        <input type="text" class="form-control text-right font-weight-bold"
-                                            id="totalRow" disabled />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                       {{-- Totals --}}
+<div class="d-flex justify-content-between align-items-end mt-75">
+    <div class="col-md-8">
+        <div class="form-row">
+            <div class="form-group row col-md-6 mb-03">
+                <label for="totalRow" class="col-sm-6 col-form-label titik-dua">Row(s)</label>
+                <div class="col-sm-6">
+                    <input type="text" class="form-control text-right font-weight-bold"
+                        id="totalRow" disabled />
+                </div>
+            </div>
+            <div class="form-group row col-md-6 mb-03">
+                <label for="totalActualBalance" class="col-sm-6 col-form-label titik-dua">Total Actual Balance</label>
+                <div class="col-sm-6">
+                    <input type="text" class="form-control text-right font-weight-bold"
+                        id="totalActualBalance" disabled />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
                         <hr>
 
