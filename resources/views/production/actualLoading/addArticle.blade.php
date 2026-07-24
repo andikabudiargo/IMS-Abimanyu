@@ -371,7 +371,7 @@ function renderFgDetailModal(res, articleLabel, boothLabel){
                 <thead style="background-color:#f8f9fa;">
                     <tr>
                         <th class="text-left"  style="width:26%;">Raw Material</th>
-                        <th class="text-right" style="width:14%;">Butuh / FG</th>
+                        <th class="text-right" style="width:14%;">Qty BOM</th>
                         <th class="text-right" style="width:14%;">Stock Booth</th>
                         <th class="text-right" style="width:10%;">Max FG</th>
                         <th class="text-center"style="width:14%;">Status</th>
