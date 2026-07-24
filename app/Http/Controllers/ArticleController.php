@@ -953,11 +953,19 @@
    $bind = [
     'art' => $articleCode, 'site' => $siteCode, 'from' => $fromDate, 'to' => $toDate,
     'art_dir' => $articleCode, 'art_qty' => $articleCode,
-     'art_excl' => $articleCode,
+    'art_excl' => $articleCode,
+    'periodeOpening' => $periodeOpening,
+    'tahunOpening'   => $tahunOpening,
 ];
-    $whereLoc = '';
-    if (!$isGlobal) { $whereLoc = "and m.location_number = :loc"; $bind['loc'] = $location; }
-    $locationCol = $isGlobal ? "'ALL'" : "b.location_number";
+$whereLoc = '';
+if (!$isGlobal) { $whereLoc = "and m.location_number = :loc"; $bind['loc'] = $location; }
+$locationCol = $isGlobal ? "'ALL'" : "b.location_number";
+
+$whereLocOpening = '';
+if (!$isGlobal) {
+    $whereLocOpening = "and h.location_code = :locOpening";
+    $bind['locOpening'] = $location;
+}
 
     // Filter IN/OUT: adjustment kadang tidak mengisi movement_plus/min,
     // jadi ikut lihat direction dari stock_adjustment_det.
@@ -1051,15 +1059,18 @@ base AS (
       and TO_DATE(m.movement_date,'dd-mm-yyyy')
           between TO_DATE(:from,'dd-mm-yyyy') and TO_DATE(:to,'dd-mm-yyyy')
       and m.movement_code NOT IN (SELECT movement_code FROM excluded_codes)
-      and not (
-          m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT')
-          and exists (
-              select 1 from stock_adjustment_hdr h
-              where h.adj_code = m.movement_transnno
-                and h.adj_type = 'OPENING BALANCE'
-                 and h.status != '5'      
-          )
-      )
+     and not (
+    m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT')
+    and exists (
+        select 1 from stock_adjustment_hdr h
+        where h.adj_code = m.movement_transnno
+          and h.adj_type = 'OPENING BALANCE'
+          and h.status != '5'
+          and h.periode = :periodeOpening
+          and EXTRACT(YEAR FROM TO_DATE(h.adj_date,'dd-mm-yyyy')) = :tahunOpening
+          $whereLocOpening
+    )
+)
 )
     SELECT
         b.movement_code, b.artikel_code, b.artikel_desc,
