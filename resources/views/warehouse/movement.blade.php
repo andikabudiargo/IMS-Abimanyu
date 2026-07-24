@@ -76,27 +76,28 @@
 
             <hr>
 
-            <div class="form-row">
-              <div class="col-12">
-                <button type="button" class="btn btn-primary" id="btnSearch" disabled>
-                  <i data-feather="search" class="mr-50"></i> Search
-                </button>
+          <div class="form-row">
+  <div class="col-12 d-flex align-items-center">
+    <button type="button" class="btn btn-primary" id="btnSearch" disabled>
+      <i data-feather="search" class="mr-50"></i> Search
+    </button>
 
-                <div class="btn-group ml-1" role="group">
-                  <button type="button" class="btn btn-success dropdown-toggle" id="btnExport"
-                          data-toggle="dropdown" aria-expanded="false" disabled>
-                    <i data-feather="download" class="mr-50"></i> Report
-                  </button>
-                  <div class="dropdown-menu" aria-labelledby="btnExport">
-                    <a class="dropdown-item" href="#" id="btnExportRaw">
-                      <i data-feather="file-text" class="mr-50"></i> Detail Report
-                    </a>
-                    <a class="dropdown-item" href="#" id="btnExportGrouped">
-                      <i data-feather="pie-chart" class="mr-50"></i>  Summary Report
-                    </a>
-                  </div>
-                </div>
-
+    <div class="btn-group ml-1" role="group">
+      <button type="button" class="btn btn-success dropdown-toggle" id="btnExport"
+              data-toggle="dropdown" aria-expanded="false" disabled>
+        <i data-feather="download" class="mr-50"></i> Report
+      </button>
+      <div class="dropdown-menu" aria-labelledby="btnExport">
+        <a class="dropdown-item" href="#" id="btnExportRaw">
+          <i data-feather="file-text" class="mr-50"></i> Detail Report
+        </a>
+        <a class="dropdown-item" href="#" id="btnExportGrouped">
+          <i data-feather="pie-chart" class="mr-50"></i> Summary Report
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
                 <small class="text-muted ml-1" id="dateHint">Pilih Range Date dulu untuk mengaktifkan Search.</small>
               </div>
             </div>

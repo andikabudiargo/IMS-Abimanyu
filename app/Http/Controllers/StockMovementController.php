@@ -581,32 +581,26 @@ $this->applyQtyColor($sheet, "K{$r}", $q['out'], 'C00000'); // merah
     $subOut  = 0.0;
     $balance = 0.0;
 
-    $writeClosing = function () use ($sheet, &$r, &$balance, $last) {
-        $sheet->setCellValue("G{$r}", 'SALDO AKHIR');
-        $sheet->setCellValue("J{$r}", round($balance, 2));
-        $sheet->getStyle("A{$r}:{$last}{$r}")->getFont()->setBold(true)->setItalic(true);
-        $sheet->getStyle("J{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
-        $r++;
-    };
-
-    $writeSubtotal = function () use ($sheet, &$r, &$subIn, &$subOut, $last) {
-        $sheet->setCellValue("G{$r}", 'SUB TOTAL');
-        $sheet->setCellValue("H{$r}", round($subIn, 2));
-        $sheet->setCellValue("I{$r}", round($subOut, 2));
-        $sheet->getStyle("A{$r}:{$last}{$r}")->getFont()->setBold(true);
-        $sheet->getStyle("H{$r}:I{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
-        $sheet->getStyle("A{$r}:{$last}{$r}")->getFill()
-              ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F2F2F2');
-        $r += 2;
-        $subIn = $subOut = 0.0;
-    };
+    $writeClosing = function () use ($sheet, &$r, &$balance, &$subIn, &$subOut, $last) {
+    $sheet->setCellValue("G{$r}", 'SALDO AKHIR');
+    $sheet->setCellValue("H{$r}", round($subIn, 2));
+    $sheet->setCellValue("I{$r}", round($subOut, 2));
+    $sheet->setCellValue("J{$r}", round($balance, 2));
+    $sheet->getStyle("A{$r}:{$last}{$r}")->getFont()->setBold(true)->setItalic(true);
+    $sheet->getStyle("H{$r}:J{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+    $sheet->getStyle("A{$r}:{$last}{$r}")->getFill()
+          ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F2F2F2');
+    $r += 2;
+    $subIn = $subOut = 0.0;
+};
 
     foreach ($rows as $row) {
         if ($current !== $row->artikel_code) {
-            if ($current !== null) {
-                $writeClosing();
-                $writeSubtotal();
-            }
+           if ($current !== null) {
+    $writeClosing();   // hapus baris $writeSubtotal(); yang sebelumnya ada di sini
+} else {
+    $sheet->setCellValue("A{$r}", 'Tidak ada data untuk filter yang dipilih.');
+}
 
             // Header article
             $sheet->setCellValue("A{$r}", trim($row->code . ' — ' . $row->artikel_desc));
