@@ -596,11 +596,9 @@ $this->applyQtyColor($sheet, "K{$r}", $q['out'], 'C00000'); // merah
 
     foreach ($rows as $row) {
         if ($current !== $row->artikel_code) {
-           if ($current !== null) {
-    $writeClosing();   // hapus baris $writeSubtotal(); yang sebelumnya ada di sini
-} else {
-    $sheet->setCellValue("A{$r}", 'Tidak ada data untuk filter yang dipilih.');
-}
+            if ($current !== null) {
+                $writeClosing();
+            }
 
             // Header article
             $sheet->setCellValue("A{$r}", trim($row->code . ' — ' . $row->artikel_desc));
@@ -652,12 +650,11 @@ $this->applyQtyColor($sheet, "K{$r}", $q['out'], 'C00000'); // merah
         $r++;
     }
 
-    if ($current !== null) {
-        $writeClosing();
-        $writeSubtotal();
-    } else {
-        $sheet->setCellValue("A{$r}", 'Tidak ada data untuk filter yang dipilih.');
-    }
+   if ($current !== null) {
+    $writeClosing();   // hapus baris $writeSubtotal(); yang sebelumnya ada di sini
+} else {
+    $sheet->setCellValue("A{$r}", 'Tidak ada data untuk filter yang dipilih.');
+}
 
     $this->autoSize($sheet, $last);
 
