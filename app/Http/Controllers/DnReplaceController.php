@@ -121,24 +121,26 @@ class DnReplaceController extends Controller
     }
 
     public function getTableColoumnDetail(){
-        $kolom=
-        [
+    $kolom=
+    [
     ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'],
     ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
-    ['data'=>'tanggal_return','name'=>'tanggal_return','title'=>'Return Date'], // baru
+    ['data'=>'tanggal_return','name'=>'tanggal_return','title'=>'Return Date'],
     ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
     ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
     ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
     ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
     ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
-    ['data'=>'qty','name'=>'qty','title'=>'Qty'],
+    ['data'=>'qty_return','name'=>'qty_return','title'=>'Qty Return'],      // <-- tambah
+    ['data'=>'qty','name'=>'qty','title'=>'Qty Replace'],                   // <-- label diperjelaskan
+    ['data'=>'sisa_qty_return','name'=>'sisa_qty_return','title'=>'Sisa Qty Return'], // <-- tambah
     ['data'=>'uom','name'=>'uom','title'=>'UOM'],
     ['data'=>'note','name'=>'note','title'=>'Note'],
     ['data'=>'created_by_1','name'=>'created_by_1','title'=>'Created By'],
     ['data'=>'created_at_1','name'=>'created_at_1','title'=>'Created At'],
 ];
-        return json_encode($kolom, true);
-    }
+    return json_encode($kolom, true);
+}
 
     public function index(Request $request)
     {
@@ -1573,7 +1575,7 @@ class DnReplaceController extends Controller
         })
         ->where('dn_replace_det.qty','>',0)
         ->whereNotIn('dn_replace_hdr.status',['3'])
-       ->select(
+      ->select(
     'dn_replace_det.replace_number',
     'dn_replace_det.return_number',
     'dn_replace_det.article_code',
@@ -1588,7 +1590,25 @@ class DnReplaceController extends Controller
     'dn_replace_hdr.created_at as created_at_1',
     'dn_return_hdr.id as return_id',
     'article.article_alternative_code',
-    DB::raw("article.article_desc as article_desc"),  // <-- eksplisit alias
+    DB::raw("article.article_desc as article_desc"),
+    // qty return dari dn_return_det untuk artikel ini
+    DB::raw("(SELECT qty FROM dn_return_det 
+              WHERE return_number = dn_replace_det.return_number 
+              AND article_code = dn_replace_det.article_code 
+              LIMIT 1) as qty_return"),
+    // sisa = qty_return - total qty replace aktif untuk artikel ini
+    DB::raw("(SELECT qty FROM dn_return_det 
+              WHERE return_number = dn_replace_det.return_number 
+              AND article_code = dn_replace_det.article_code 
+              LIMIT 1) 
+             - COALESCE((
+                SELECT SUM(d.qty) 
+                FROM dn_replace_det d
+                JOIN dn_replace_hdr h ON h.replace_number = d.replace_number
+                WHERE d.return_number = dn_replace_det.return_number
+                AND d.article_code = dn_replace_det.article_code
+                AND h.status <> '3'
+             ), 0) as sisa_qty_return"),
     DB::raw("(select nama from third_party where kode = dn_replace_hdr.customer_id limit 1) as customer_name"),
     DB::raw("to_char(to_date(dn_replace_hdr.replace_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_replace"),
     DB::raw("to_char(to_date(dn_return_hdr.return_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_return")
