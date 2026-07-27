@@ -1579,7 +1579,7 @@ class DnReplaceController extends Controller
     'dn_replace_det.article_code',
     'dn_replace_det.qty',
     'dn_replace_det.uom',
-    'dn_replace_det.note',                          // <-- pakai det.note, bukan hdr.note
+    'dn_replace_hdr.note',                          // <-- pakai det.note, bukan hdr.note
     'dn_replace_hdr.customer_id',
     'dn_replace_hdr.replace_date',
     'dn_replace_hdr.status',
