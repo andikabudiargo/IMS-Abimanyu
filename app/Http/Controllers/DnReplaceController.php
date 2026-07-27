@@ -1580,6 +1580,7 @@ class DnReplaceController extends Controller
     'dn_replace_hdr.created_at as created_at_1',
     'article_alternative_code',
     'article_desc',
+     'dn_return_hdr.id as return_id',   // <-- tambahkan ini
     DB::raw("(select nama from third_party where kode = dn_replace_hdr.customer_id limit 1) as customer_name"),
     DB::raw("to_char(to_date(dn_replace_hdr.replace_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_replace"),
     DB::raw("to_char(to_date(dn_return_hdr.return_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_return")
