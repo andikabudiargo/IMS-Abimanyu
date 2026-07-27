@@ -1573,14 +1573,22 @@ class DnReplaceController extends Controller
         })
         ->where('dn_replace_det.qty','>',0)
         ->whereNotIn('dn_replace_hdr.status',['3'])
-        ->select(
-    'dn_replace_det.*',
-    'dn_replace_hdr.*',
+       ->select(
+    'dn_replace_det.replace_number',
+    'dn_replace_det.return_number',
+    'dn_replace_det.article_code',
+    'dn_replace_det.qty',
+    'dn_replace_det.uom',
+    'dn_replace_det.note',                          // <-- pakai det.note, bukan hdr.note
+    'dn_replace_hdr.customer_id',
+    'dn_replace_hdr.replace_date',
+    'dn_replace_hdr.status',
+    'dn_replace_hdr.id',
     'dn_replace_hdr.created_by as created_by_1',
     'dn_replace_hdr.created_at as created_at_1',
-    'article_alternative_code',
-    'article_desc',
-     'dn_return_hdr.id as return_id',   // <-- tambahkan ini
+    'dn_return_hdr.id as return_id',               // <-- dari fix sebelumnya
+    'article.article_alternative_code',
+    'article.article_desc',
     DB::raw("(select nama from third_party where kode = dn_replace_hdr.customer_id limit 1) as customer_name"),
     DB::raw("to_char(to_date(dn_replace_hdr.replace_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_replace"),
     DB::raw("to_char(to_date(dn_return_hdr.return_date,'DD-MM-YYYY'),'DD-MM-YYYY') as tanggal_return")
