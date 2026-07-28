@@ -62,7 +62,6 @@ class DnReturnController extends Controller
             ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'], //0
             ['data'=>'dn_number','name'=>'dn_number','title'=>'Customer DN Number'], //1
             ['data'=>'return_date','name'=>'return_date','title'=>'Return Date'],
-            ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'], //2
             ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'], //4
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'], //5
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'], //6
