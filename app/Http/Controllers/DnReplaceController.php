@@ -1566,13 +1566,13 @@ class DnReplaceController extends Controller
     'dn_replace_det.return_number'
 )
         ->leftJoin('article','article.article_code','dn_replace_det.article_code')
-        ->where(function ($query) use ($searchReplace,$searchReturn,$searchCustomer,$searchStatus,$replaceDate,$fromDate,$toDate) {
-            $searchReturn ? $query->where('dn_replace_det.return_number','ilike','%'.$searchReturn.'%') : '';
-            $searchCustomer ? $query->where('customer_id','ilike','%'.$searchCustomer.'%') : '';
-            $searchReplace ? $query->where('dn_replace_det.replace_number','ilike','%'.$searchReplace.'%') : '';
-            $searchStatus ? $query->where('dn_replace_hdr.status',$searchStatus) : '';
-            $replaceDate ? $query->whereBetween(DB::raw("to_date(replace_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-        })
+       ->where(function ($query) use ($searchReplace,$searchReturn,$searchCustomer,$searchStatus,$replaceDate,$fromDate,$toDate) {
+    $searchReturn ? $query->where('dn_replace_hdr.return_number','ilike','%'.$searchReturn.'%') : '';
+    $searchCustomer ? $query->where('dn_replace_hdr.customer_id','ilike','%'.$searchCustomer.'%') : '';
+    $searchReplace ? $query->where('dn_replace_hdr.replace_number','ilike','%'.$searchReplace.'%') : '';
+    $searchStatus ? $query->where('dn_replace_hdr.status', $searchStatus) : '';
+    $replaceDate ? $query->whereBetween(DB::raw("to_date(dn_replace_hdr.replace_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+})
         ->where('dn_replace_det.qty','>',0)
         ->whereNotIn('dn_replace_hdr.status',['3'])
       ->select(
