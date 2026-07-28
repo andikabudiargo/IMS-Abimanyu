@@ -40,11 +40,12 @@ class DnReturnController extends Controller
         ['data'=>'action','name'=>'action','title'=>'Action','orderable'=>false,'searchable'=>false],
         ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
         ['data'=>'dn_number','name'=>'dn_number','title'=>'Customer DN Number'],
+        ['data'=>'return_date','name'=>'return_date','title'=>'Return Date'],
         ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'],
-        ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
-        ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
         ['data'=>'status','name'=>'status','title'=>'Status'],
         ['data'=>'reconciliation','name'=>'reconciliation','title'=>'Reconciliation','orderable'=>false,'searchable'=>false],
+        ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
+        ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
         ['data'=>'note','name'=>'note','title'=>'Note'],
         ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
         ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
@@ -60,6 +61,7 @@ class DnReturnController extends Controller
         [
             ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'], //0
             ['data'=>'dn_number','name'=>'dn_number','title'=>'Customer DN Number'], //1
+            ['data'=>'return_date','name'=>'return_date','title'=>'Return Date'],
             ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'], //2
             ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'], //4
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'], //5
