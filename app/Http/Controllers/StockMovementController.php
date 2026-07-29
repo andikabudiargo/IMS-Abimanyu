@@ -233,15 +233,43 @@ class StockMovementController extends Controller
                 ON a.article_code = m.artikel_code
             $where
         ),
-        filtered AS (
-            SELECT b.*,
-                ROW_NUMBER() OVER (
-                    PARTITION BY b.artikel_code, b.movement_transnno, b.location_number
-                    ORDER BY b.created_at DESC, b.movement_code DESC
-                ) AS rn
-            FROM base b
-            WHERE b.movement_type NOT LIKE 'CANCEL %'
-        )
+       filtered AS (
+    SELECT b.*,
+        ROW_NUMBER() OVER (
+            PARTITION BY b.artikel_code, b.movement_transnno, b.location_number
+            ORDER BY b.created_at DESC, b.movement_code DESC
+        ) AS rn
+    FROM base b
+    WHERE b.movement_type NOT LIKE 'CANCEL %'
+      AND b.movement_type NOT LIKE 'DELETE%'
+      AND b.movement_type NOT LIKE 'REVISI %'
+      AND b.movement_type != 'RETURN-CANCEL'
+      AND b.movement_type != 'RETURN-REVERSE'
+      AND NOT (b.movement_type = 'RECEIVING'
+               AND EXISTS (SELECT 1 FROM receiving_hdr r
+                           WHERE r.rec_number = b.movement_transnno AND r.status = '5'))
+      AND NOT (b.movement_type IN ('TRANSFER','SUPPLY')
+               AND EXISTS (SELECT 1 FROM transfer_stock_hdr t
+                           WHERE t.tr_number = b.movement_transnno AND t.status = '5'))
+      AND NOT (b.movement_type IN ('DELIVERY', 'Delivery')
+               AND EXISTS (SELECT 1 FROM delivery_hdr d
+                           WHERE d.delivery_number = b.movement_transnno AND d.status = '5'))
+      AND NOT (b.movement_type = 'REPLACEMENT'
+               AND EXISTS (SELECT 1 FROM dn_replace_hdr rp
+                           WHERE rp.replace_number = b.movement_transnno AND rp.status = '5'))
+      AND NOT (b.movement_type = 'RETURN'
+               AND EXISTS (SELECT 1 FROM dn_return_hdr rt
+                           WHERE rt.return_number = b.movement_transnno AND rt.status = '5'))
+      AND NOT (b.movement_type = 'ADJUSTMENT'
+               AND EXISTS (SELECT 1 FROM stock_adjustment_hdr a
+                           WHERE a.adj_code = b.movement_transnno AND a.status = '5'))
+      AND NOT (b.movement_type = 'DN SEMENTARA'
+               AND EXISTS (SELECT 1 FROM temporary_dn_hdr tdn
+                           WHERE tdn.tdn_number = b.movement_transnno AND tdn.status = '5'))
+      AND NOT (b.movement_type IN ('DN UMUM','SURAT JALAN UMUM')
+               AND EXISTS (SELECT 1 FROM dn_general_hdr dng
+                           WHERE dng.tdn_number = b.movement_transnno AND dng.status = '5'))
+)
         SELECT
             f.movement_code,
             f.artikel_code,
