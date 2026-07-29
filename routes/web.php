@@ -797,7 +797,7 @@ Route::get('stockTakingOrder/{id}/edit',['as'=>'stockTakingOrder.edit',       'u
 Route::post('stockTakingOrder/update',  ['as'=>'stockTakingOrder.update',     'uses'=>'StockTakingOrderController@update']);
 Route::post('stockTakingOrder/cancel/{id}', ['as'=>'stockTakingOrder.cancel', 'uses'=>'StockTakingOrderController@cancel']);
 Route::get('stockTakingOrder/getPartners', ['as'=>'stockTakingOrder.getPartners', 'uses'=>'StockTakingOrderController@getPartners']);
-Route::get('stockTakingOrder/getMappings', ['as'=>'stockTakingOrder.getMappings', 'uses'=>'StockTake\StockTakingOrderController@getMappings']);
+Route::get('stockTakingOrder/getMappings', ['as'=>'stockTakingOrder.getMappings', 'uses'=>'StockTakingOrderController@getMappings']);
 
 Route::get('stockCount',                  ['as'=>'stockCount.index',       'uses'=>'StockCountController@index']);
 Route::get('stockCount/{id}/create',      ['as'=>'stockCount.create',      'uses'=>'StockCountController@create']);

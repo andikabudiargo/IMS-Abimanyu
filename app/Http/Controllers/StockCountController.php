@@ -131,20 +131,19 @@ class StockCountController extends Controller
         ]);
     }
 
-     public function updateLine(Request $request, $dtlId)
-    {
-        $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-        if (!$dtl) {
-            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Baris tidak ditemukan.'],'alert'=>'error']);
-        }
- 
-        $userId = Auth::id();
-        $isC1 = $dtl->counter1_user == $userId;
-        $isC2 = $dtl->counter2_user == $userId;
- 
-        if (!$isC1 && !$isC2) {
-            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Anda tidak berwenang mengedit baris ini.'],'alert'=>'error']);
-        }
+    public function updateLine(Request $request, $dtlId)
+{
+    $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+    if (!$dtl) {
+        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Baris tidak ditemukan.'],'alert'=>'error']);
+    }
+
+    $userId = Auth::id();
+
+    $role = $this->resolveCounterRole($dtl, $userId);
+    if (!$role) {
+        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Anda tidak berwenang mengedit baris ini.'],'alert'=>'error']);
+    }
  
         $stoHdr = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
         if (!$stoHdr || $stoHdr->status != 1) {
@@ -175,8 +174,8 @@ class StockCountController extends Controller
             return response()->json(['status'=>0,'title'=>'Warning','message'=>['Artikel ini sudah ada di baris lain pada sheet yang sama.'],'alert'=>'warning']);
         }
  
-        $field = $isC1 ? 'qty_counter1' : 'qty_counter2';
-        $now   = date('Y-m-d H:i:s');
+       $field = "qty_{$role}";   // ← ganti
+    $now   = date('Y-m-d H:i:s');
  
         DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
             'article_code' => $article,
@@ -201,7 +200,7 @@ class StockCountController extends Controller
  
         $this->recalcMappingProgress($stoHdr->mapping_id);
         $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc');
-        $myQty = $isC1 ? $dtl->qty_counter1 : $dtl->qty_counter2;
+         $myQty = $dtl->{$field};   // ← ganti, di bagian akhir sebelum return
  
         return response()->json([
             'status'  => 1,
@@ -400,19 +399,21 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
         }
  
         // ── target ini SUDAH selesai → boleh lihat read-only kapan saja, tanpa syarat tanggal ──
-        if ($m->finish_time) {
-            if ($m->counter1_user == $userId) return ['ok' => true, 'role' => 'counter1', 'mapping' => $m];
-            if ($m->counter2_user == $userId) return ['ok' => true, 'role' => 'counter2', 'mapping' => $m];
-            return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk target ini.'];
-        }
+       if ($m->finish_time) {
+    if ($m->counter1_user == $userId) return ['ok' => true, 'role' => 'counter1', 'mapping' => $m];
+    if ($m->counter2_user == $userId) return ['ok' => true, 'role' => 'counter2', 'mapping' => $m];
+    if (($m->counter3_user ?? null) == $userId) return ['ok' => true, 'role' => 'counter3', 'mapping' => $m];
+    return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk target ini.'];
+}
  
         // ── belum selesai → aturan lama: harus tanggal STO hari ini ──
         if ($m->sto_date !== $today) {
             return ['ok' => false, 'message' => "Hari ini bukan tanggal STO untuk target ini ($m->sto_date)."];
         }
         if ($m->counter1_user == $userId) return ['ok' => true, 'role' => 'counter1', 'mapping' => $m];
-        if ($m->counter2_user == $userId) return ['ok' => true, 'role' => 'counter2', 'mapping' => $m];
-        return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk target ini.'];
+if ($m->counter2_user == $userId) return ['ok' => true, 'role' => 'counter2', 'mapping' => $m];
+if (($m->counter3_user ?? null) == $userId) return ['ok' => true, 'role' => 'counter3', 'mapping' => $m];
+return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk target ini.'];
     }
 
     private function resolveLocationName($code)
@@ -420,6 +421,14 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
         if (!$code) return null;
         return DB::table('stock_location_master')->where('location_code', $code)->value('location_name') ?? $code;
     }
+
+    private function resolveCounterRole($record, $userId)
+{
+    if ($record->counter1_user == $userId) return 'counter1';
+    if ($record->counter2_user == $userId) return 'counter2';
+    if (($record->counter3_user ?? null) == $userId) return 'counter3';
+    return null;
+}
 
     // ══════════════════════════════════════════════
     // CREATE — tampilkan halaman input counting
@@ -461,14 +470,15 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
                 ->orderBy('d.dtl_id')
                 ->select('d.*', 'l.location_name')
                 ->get()
-                ->map(function ($l) use ($access) {
-                    $userId = Auth::id();
-                    $l->my_qty = null;
-                    if ($access['role'] === 'accounting')        $l->my_qty = $l->qty_counter1;
-                    elseif ($l->counter1_user == $userId)        $l->my_qty = $l->qty_counter1;
-                    elseif ($l->counter2_user == $userId)        $l->my_qty = $l->qty_counter2;
-                    return $l;
-                });
+               ->map(function ($l) use ($access) {
+    $userId = Auth::id();
+    $l->my_qty = null;
+    if ($access['role'] === 'accounting')             $l->my_qty = $l->qty_counter1;
+    elseif ($l->counter1_user == $userId)             $l->my_qty = $l->qty_counter1;
+    elseif ($l->counter2_user == $userId)             $l->my_qty = $l->qty_counter2;
+    elseif (($l->counter3_user ?? null) == $userId)   $l->my_qty = $l->qty_counter3;
+    return $l;
+});
 
             $sheets->push([
                 'hdr'   => $hdr,
@@ -664,24 +674,21 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
                     'updated_at'  => $now,
                 ], 'sto_id');
 
-                $dtlId = DB::table('sto_dtl')->insertGetId([
-                    'sto_id'          => $stoId,
-                    'article_code'    => $article,
-                    'article_desc'    => $request->article_desc,
-                    'is_manual'       => $isManual,
-                    'uom'             => $request->uom,
-                    'min_package'     => $request->min_package ?: null,
-                    'location_number' => $locationNumber,
-                    'qty_counter1'    => $access['role'] === 'counter1' ? $qty : null,
-                    'qty_counter2'    => $access['role'] === 'counter2' ? $qty : null,
-                    'counter1_user'   => $access['role'] === 'counter1' ? $userId : null,
-                    'counter2_user'   => $access['role'] === 'counter2' ? $userId : null,
-                    'counter1_at'     => $access['role'] === 'counter1' ? $now : null,
-                    'counter2_at'     => $access['role'] === 'counter2' ? $now : null,
-                    'note'            => $request->note,
-                    'created_at'      => $now,
-                    'updated_at'      => $now,
-                ], 'dtl_id');
+               $dtlId = DB::table('sto_dtl')->insertGetId([
+    'sto_id'          => $stoId,
+    'article_code'    => $article,
+    'article_desc'    => $request->article_desc,
+    'is_manual'       => $isManual,
+    'uom'             => $request->uom,
+    'min_package'     => $request->min_package ?: null,
+    'location_number' => $locationNumber,
+    "qty_{$access['role']}"      => $qty,
+    "{$access['role']}_user"     => $userId,
+    "{$access['role']}_at"       => $now,
+    'note'            => $request->note,
+    'created_at'      => $now,
+    'updated_at'      => $now,
+], 'dtl_id');
 
                 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
                 [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
@@ -694,7 +701,7 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
                 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
                 $this->recalcMappingProgress($mappingId);
                 $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
-                $myQty = $access['role'] === 'counter1' ? $dtl->qty_counter1 : $dtl->qty_counter2;
+               $myQty = $dtl->{"qty_{$access['role']}"};
 
                 return response()->json([
                     'status'         => 1,
@@ -724,10 +731,10 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
                 return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Sheet artikel ini sudah dikunci.'],'alert'=>'error']);
             }
 
-            $field     = $access['role'] === 'counter1' ? 'qty_counter1'  : 'qty_counter2';
-            $userField = $access['role'] === 'counter1' ? 'counter1_user' : 'counter2_user';
-            $atField   = $access['role'] === 'counter1' ? 'counter1_at'   : 'counter2_at';
-            $ownerId   = $existingDtl->{$userField};
+           $field     = "qty_{$access['role']}";
+$userField = "{$access['role']}_user";
+$atField   = "{$access['role']}_at";
+$ownerId   = $existingDtl->{$userField} ?? null;
 
             if ($ownerId && $ownerId != $userId) {
                 return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Slot counter ini sudah diisi user lain.'],'alert'=>'error']);
@@ -764,7 +771,7 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
             $dtl = DB::table('sto_dtl')->where('dtl_id', $dtl->dtl_id)->first();
             $this->recalcMappingProgress($mappingId);
             $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
-            $myQty = $access['role'] === 'counter1' ? $dtl->qty_counter1 : $dtl->qty_counter2;
+           $myQty = $dtl->{"qty_{$access['role']}"};
 
             return response()->json([
                 'status'         => 1,
@@ -892,24 +899,21 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
                 $article  = $isManual ? null : ($l['article'] ?? null);
                 $qty      = (float) str_replace(',', '', $l['qty']);
  
-                $dtlId = DB::table('sto_dtl')->insertGetId([
-                    'sto_id'          => $stoId,
-                    'article_code'    => $article,
-                    'article_desc'    => $l['article_desc'] ?? null,
-                    'is_manual'       => $isManual,
-                    'uom'             => $l['uom'] ?? null,
-                    'min_package'     => $l['min_package'] ?: null,
-                    'location_number' => $locationNumber,
-                    'qty_counter1'    => $access['role'] === 'counter1' ? $qty : null,
-                    'qty_counter2'    => $access['role'] === 'counter2' ? $qty : null,
-                    'counter1_user'   => $access['role'] === 'counter1' ? $userId : null,
-                    'counter2_user'   => $access['role'] === 'counter2' ? $userId : null,
-                    'counter1_at'     => $access['role'] === 'counter1' ? $now : null,
-                    'counter2_at'     => $access['role'] === 'counter2' ? $now : null,
-                    'note'            => $l['note'] ?? null,
-                    'created_at'      => $now,
-                    'updated_at'      => $now,
-                ], 'dtl_id');
+               $dtlId = DB::table('sto_dtl')->insertGetId([
+    'sto_id'          => $stoId,
+    'article_code'    => $article,
+    'article_desc'    => $l['article_desc'] ?? null,
+    'is_manual'       => $isManual,
+    'uom'             => $l['uom'] ?? null,
+    'min_package'     => $l['min_package'] ?: null,
+    'location_number' => $locationNumber,
+    "qty_{$access['role']}"  => $qty,
+    "{$access['role']}_user" => $userId,
+    "{$access['role']}_at"   => $now,
+    'note'            => $l['note'] ?? null,
+    'created_at'      => $now,
+    'updated_at'      => $now,
+], 'dtl_id');
  
                 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
                 [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
@@ -917,7 +921,7 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
                     'count_status' => $status, 'qty_system' => $qtySystem, 'qty_variance' => $variance, 'updated_at' => $now,
                 ]);
                 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-                $myQty = $access['role'] === 'counter1' ? $dtl->qty_counter1 : $dtl->qty_counter2;
+               $myQty = $dtl->{"qty_{$access['role']}"};
  
                 $savedLines[] = [
                     'dtl_id'         => $dtl->dtl_id,
@@ -953,16 +957,29 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
     // resolveStatus, compareToSystem, getLastQty
     // ══════════════════════════════════════════════
     private function resolveStatus($dtl, $mapping)
-    {
-        $singleCounter = empty($mapping->counter2_user);
-        if ($singleCounter) {
-            if (is_null($dtl->qty_counter1)) return ['INCOMPLETE', null, null];
-            return $this->compareToSystem($dtl->qty_counter1, $dtl, $mapping);
-        }
-        if (is_null($dtl->qty_counter1) || is_null($dtl->qty_counter2)) return ['INCOMPLETE', null, null];
-        if ((float)$dtl->qty_counter1 != (float)$dtl->qty_counter2) return ['NOT MATCH', null, null];
-        return $this->compareToSystem($dtl->qty_counter1, $dtl, $mapping);
+{
+    // NON-BLIND: counter menghitung artikel berbeda (parsial) → tidak perlu saling cocok
+    if (!($mapping->is_blind ?? true)) {
+        $qty = $dtl->qty_counter1 ?? $dtl->qty_counter2 ?? ($dtl->qty_counter3 ?? null);
+        if (is_null($qty)) return ['INCOMPLETE', null, null];
+        return $this->compareToSystem($qty, $dtl, $mapping);
     }
+
+    // BLIND: semua counter yang terdaftar di mapping wajib isi qty yang sama utk artikel ini
+    $activeQty = [];
+    if (!empty($mapping->counter1_user)) $activeQty[] = $dtl->qty_counter1;
+    if (!empty($mapping->counter2_user)) $activeQty[] = $dtl->qty_counter2;
+    if (!empty($mapping->counter3_user)) $activeQty[] = $dtl->qty_counter3 ?? null;
+
+    foreach ($activeQty as $q) {
+        if (is_null($q)) return ['INCOMPLETE', null, null];
+    }
+
+    $unique = array_unique(array_map('floatval', $activeQty));
+    if (count($unique) > 1) return ['NOT MATCH', null, null];
+
+    return $this->compareToSystem($activeQty[0], $dtl, $mapping);
+}
 
     private function compareToSystem($qty, $dtl, $mapping)
     {
@@ -986,23 +1003,28 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
     // DELETE LINE
     // ══════════════════════════════════════════════
     public function deleteLine(Request $request, $dtlId)
-    {
-        $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-        if (!$dtl) return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Baris tidak ditemukan.'],'alert'=>'error']);
+{
+    $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+    if (!$dtl) return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Baris tidak ditemukan.'],'alert'=>'error']);
 
-        $userId = Auth::id();
-        $isC1   = $dtl->counter1_user == $userId;
-        $isC2   = $dtl->counter2_user == $userId;
+    $userId = Auth::id();
 
-        if (!$isC1 && !$isC2) {
-            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Anda tidak berwenang menghapus baris ini.'],'alert'=>'error']);
-        }
+    $role = $this->resolveCounterRole($dtl, $userId);
+    if (!$role) {
+        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Anda tidak berwenang menghapus baris ini.'],'alert'=>'error']);
+    }
 
-        $otherFilled = $isC1 ? !is_null($dtl->qty_counter2) : !is_null($dtl->qty_counter1);
-        $now         = date('Y-m-d H:i:s');
-        $stoHdr      = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
+    // cek apakah ADA slot counter LAIN (selain milik saya) yang sudah terisi
+    $otherFilled = false;
+    foreach (['counter1', 'counter2', 'counter3'] as $r) {
+        if ($r === $role) continue;
+        if (!is_null($dtl->{"qty_{$r}"} ?? null)) { $otherFilled = true; break; }
+    }
 
-        if (!$otherFilled) {
+    $now    = date('Y-m-d H:i:s');
+    $stoHdr = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
+
+    if (!$otherFilled) {
             DB::table('sto_dtl')->where('dtl_id', $dtlId)->delete();
 
             // kalau hdr ini sudah tidak punya dtl lagi → hapus hdr juga & rollback no_current
@@ -1032,15 +1054,16 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
             ]);
         }
 
-        $field     = $isC1 ? 'qty_counter1'  : 'qty_counter2';
-        $userField = $isC1 ? 'counter1_user' : 'counter2_user';
-        $atField   = $isC1 ? 'counter1_at'   : 'counter2_at';
+         $field     = "qty_{$role}";
+    $userField = "{$role}_user";
+    $atField   = "{$role}_at";
 
-        DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
-            $field => null, $userField => null, $atField => null,
-            'count_status' => 'INCOMPLETE', 'qty_system' => null, 'qty_variance' => null,
-            'updated_at'   => $now,
-        ]);
+        
+    DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
+        $field => null, $userField => null, $atField => null,
+        'count_status' => 'INCOMPLETE', 'qty_system' => null, 'qty_variance' => null,
+        'updated_at'   => $now,
+    ]);
 
         if ($stoHdr) {
             $this->recalcMappingProgress($stoHdr->mapping_id);

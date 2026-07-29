@@ -191,7 +191,7 @@
                 </div>
             </div>
             {{-- Counter 1 --}}
-            <div class="col-md-2 col-12">
+            <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label class="d-block d-md-none font-weight-bold">Counter 1*</label>
                     <select class="form-control sel-counter1" name="counter1[]">
@@ -203,7 +203,7 @@
                 </div>
             </div>
             {{-- Counter 2 --}}
-            <div class="col-md-2 col-12">
+            <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label class="d-block d-md-none font-weight-bold">Counter 2 <small>(opsional)</small></label>
                     <select class="form-control sel-counter2" name="counter2[]">
@@ -214,6 +214,17 @@
                     </select>
                 </div>
             </div>
+            <div class="col-md-1 col-12">
+    <div class="form-group margin-nol">
+        <label class="d-block d-md-none font-weight-bold">Counter 3 <small>(opsional)</small></label>
+        <select class="form-control sel-counter3" name="counter3[]">
+            <option value=""></option>
+            @foreach($users as $u)
+                <option value="{{ $u->id }}">{{ $u->name }}</option>
+            @endforeach
+        </select>
+    </div>
+</div>
             {{-- Target % --}}
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
@@ -228,6 +239,15 @@
                     </div>
                 </div>
             </div>
+            <div class="col-md-1 col-12">
+    <div class="form-group margin-nol text-center">
+        <label class="d-block d-md-none font-weight-bold">Blind Count?</label>
+        <div class="custom-control custom-checkbox mt-50">
+            <input type="checkbox" class="custom-control-input chk-blind" checked>
+            <label class="custom-control-label">&nbsp;</label>
+        </div>
+    </div>
+</div>
             {{-- Hapus --}}
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol text-center">
@@ -330,7 +350,7 @@ function placeholderForType(type) {
 // ADD ROW
 // ══════════════════════════════════════════════
 // tambah parameter noDari, noSampai
-function addMappingRow(type, ref, stoDate, c1, c2, tp, noDari, noSampai) {
+function addMappingRow(type, ref, stoDate, c1, c2, tp, noDari, noSampai, c3, isBlind) {
     const $clone = $('#new_row > .tanda-baris').clone();
     cloneCount++;
 
@@ -345,6 +365,8 @@ function addMappingRow(type, ref, stoDate, c1, c2, tp, noDari, noSampai) {
     $row.find('.sel-target').select2({ width:'100%', placeholder: placeholderForType(initType), allowClear:true });
     $row.find('.sel-counter1').select2({ width:'100%', placeholder:'- Counter 1 -', allowClear:true });
     $row.find('.sel-counter2').select2({ width:'100%', placeholder:'- Counter 2 (opsional) -', allowClear:true });
+     $row.find('.sel-counter3').select2({ width:'100%', placeholder:'- Counter 3 (opsional) -', allowClear:true });
+    $row.find('.chk-blind').prop('checked', isBlind === undefined ? true : !!isBlind);
 
     $row.find('.sto-date-input').flatpickr({ dateFormat:'d-m-Y' });
 
@@ -360,6 +382,7 @@ function addMappingRow(type, ref, stoDate, c1, c2, tp, noDari, noSampai) {
     if (stoDate) $row.find('.sto-date-input').val(stoDate);
     if (c1)      $row.find('.sel-counter1').val(c1).trigger('change');
     if (c2)      $row.find('.sel-counter2').val(c2).trigger('change');
+    if (c3) $row.find('.sel-counter3').val(c3).trigger('change');
     //if (tp   !== undefined && tp   !== null) $row.find('.target-plan-input').val(tp);
     const tpValue = (tp !== undefined && tp !== null) ? tp : getGlobalTarget();
 $row.find('.target-plan-input').val(tpValue);
@@ -431,6 +454,8 @@ function collectMappings() {
         const noSampai = $row.find('input[name="noSampai[]"]').val();
         const c1     = $row.find('select[name="counter1[]"]').val();
         const c2     = $row.find('select[name="counter2[]"]').val();
+        const c3   = $row.find('select[name="counter3[]"]').val();
+        const blind = $row.find('.chk-blind').is(':checked');
         const tp     = $row.find('input[name="targetPlan[]"]').val();
         const tpF    = parseFloat(tp);
         const tLabel = type === 'LOCATION' ? 'Lokasi' : (type === 'SUPPLIER' ? 'Supplier' : 'Customer');
@@ -446,6 +471,8 @@ function collectMappings() {
         }
         if (!c1) { pesan.push(`Baris ${rowNo}: Counter 1 wajib dipilih.`); flag = 1; }
         if (c2 && c1 && c2 === c1) { pesan.push(`Baris ${rowNo}: Counter 2 tidak boleh sama dengan Counter 1.`); flag = 1; }
+        if (c3 && c1 && c3 === c1) { pesan.push(`Baris ${rowNo}: Counter 3 tidak boleh sama dengan Counter 1.`); flag = 1; }
+        if (c3 && c2 && c3 === c2) { pesan.push(`Baris ${rowNo}: Counter 3 tidak boleh sama dengan Counter 2.`); flag = 1; }
         if (tp === '' || isNaN(tpF)) { pesan.push(`Baris ${rowNo}: Target Akurasi wajib diisi.`); flag = 1; }
         else if (tpF < 0 || tpF > 100) { pesan.push(`Baris ${rowNo}: Target Akurasi harus 0–100.`); flag = 1; }
 
@@ -467,16 +494,18 @@ function collectMappings() {
             rangesSeen.push({ rowNo, dari: noDariI, sampai: noSampaiI });
         }
 
-        mappings.push({
-            target_type : type,
-            target_ref  : ref    || '',
-            sto_date    : sdate  || '',
-            no_dari     : isNaN(noDariI)   ? 0 : noDariI,
-            no_sampai   : isNaN(noSampaiI) ? 0 : noSampaiI,
-            counter1    : c1     || '',
-            counter2    : c2     || '',
-            target_plan : isNaN(tpF) ? 0 : tpF,
-        });
+       mappings.push({
+    target_type : type,
+    target_ref  : ref    || '',
+    sto_date    : sdate  || '',
+    no_dari     : isNaN(noDariI)   ? 0 : noDariI,
+    no_sampai   : isNaN(noSampaiI) ? 0 : noSampaiI,
+    counter1    : c1     || '',
+    counter2    : c2     || '',
+    counter3    : c3     || '',
+    is_blind    : blind,
+    target_plan : isNaN(tpF) ? 0 : tpF,
+});
     });
 
     if (flag) { Swal.fire({ title:'Warning', html:pesan.join('<br>'), icon:'warning' }); return null; }
@@ -549,11 +578,11 @@ function loadExistingMappings() {
     $.get("{{ route('stockTakingOrder.getMappings') }}", { config_id: configId },
     function (data) {
         if (!data.length) { addMappingRow(); return; }
-        data.forEach(m => addMappingRow(
-            m.target_type, m.target_ref, m.sto_date,
-            m.counter1_user, m.counter2_user, m.target_plan_loc,
-            m.no_dari, m.no_sampai
-        ));
+       data.forEach(m => addMappingRow(
+    m.target_type, m.target_ref, m.sto_date,
+    m.counter1_user, m.counter2_user, m.target_plan_loc,
+    m.no_dari, m.no_sampai, m.counter3_user, m.is_blind
+));
         recalcGlobal();
         isLoadingMappings = false; // ← matikan setelah selesai
     }, 'json');

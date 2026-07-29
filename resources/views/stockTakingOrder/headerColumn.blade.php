@@ -15,10 +15,10 @@
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group"><label class="d-none d-md-block font-weight-bold">No. Sampai*</label></div>
     </div>
-    <div class="col-md-2 col-12 d-none d-md-block">
+    <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group"><label class="d-none d-md-block font-weight-bold">Counter 1*</label></div>
     </div>
-    <div class="col-md-2 col-12 d-none d-md-block">
+    <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block font-weight-bold">
                 Counter 2
@@ -26,7 +26,21 @@
         </div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">
+        <div class="form-group">
+            <label class="d-none d-md-block font-weight-bold">
+                Counter 3
+            </label>
+        </div>
+    </div>
+    <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group"><label class="d-none d-md-block font-weight-bold">Akurasi %*</label></div>
+    </div>
+     <div class="col-md-1 col-12 d-none d-md-block">
+        <div class="form-group">
+            <label class="d-none d-md-block font-weight-bold">
+             Blind Count?
+            </label>
+        </div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group"><label class="d-none d-md-block font-weight-bold text-center">-</label></div>

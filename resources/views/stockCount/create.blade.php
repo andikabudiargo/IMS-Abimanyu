@@ -42,7 +42,11 @@
                 </div>
                 <div class="text-right">
                     <div class="text-muted" style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;">Peran Saya</div>
-                    <div class="font-weight-bold">{{ $roleLabel }}</div>
+                    <div class="font-weight-bold">{{ $roleLabel }}</div>]@if($mapping->is_blind)
+    <span class="badge badge-light-primary">Blind Count</span>
+@else
+    <span class="badge badge-light-info">Parsial (Non-Blind)</span>
+@endif
                 </div>
             </div>
 

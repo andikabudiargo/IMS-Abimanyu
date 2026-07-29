@@ -397,7 +397,12 @@ class StockTakingOrderController extends Controller
                 if (empty($m['counter1'])) { $pesan[] = "Counter 1 baris $rowNo wajib dipilih."; $flag = 1; }
                 if (!empty($m['counter2']) && !empty($m['counter1']) && $m['counter1'] == $m['counter2']) {
                     $pesan[] = "Counter 1 dan Counter 2 baris $rowNo tidak boleh sama."; $flag = 1;
-                }
+                } if (!empty($m['counter3']) && !empty($m['counter1']) && $m['counter1'] == $m['counter3']) {
+    $pesan[] = "Counter 1 dan Counter 3 baris $rowNo tidak boleh sama."; $flag = 1;
+}
+if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['counter3']) {
+    $pesan[] = "Counter 2 dan Counter 3 baris $rowNo tidak boleh sama."; $flag = 1;
+}
                 // dedup: kombinasi type+ref (lokasi & partner boleh sama kode tapi beda tipe)
                 if (!empty($m['target_ref'])) {
                     $key = $ttype . '|' . $m['target_ref'];
@@ -446,6 +451,8 @@ class StockTakingOrderController extends Controller
     'finish_time'     => null,
     'counter1_user'   => $m['counter1'],
     'counter2_user'   => !empty($m['counter2']) ? $m['counter2'] : null,
+    'counter3_user'   => !empty($m['counter3']) ? $m['counter3'] : null,
+'is_blind'        => filter_var($m['is_blind'] ?? true, FILTER_VALIDATE_BOOLEAN),
     'target_plan_loc' => (float)($m['target_plan'] ?? 0),
     'target_act_loc'  => 0,
     'notes'           => $m['note'] ?? null,
@@ -869,6 +876,8 @@ class StockTakingOrderController extends Controller
     'm.no_sampai',      // ← tambah
     'm.counter1_user',
     'm.counter2_user',
+    'm.counter3_user',
+'m.is_blind',
     'm.target_plan_loc',
     'l.location_name',
     'tp.third_party_name',
