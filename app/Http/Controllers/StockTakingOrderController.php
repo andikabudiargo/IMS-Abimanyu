@@ -863,7 +863,7 @@ if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['co
                   ->where('m.target_type', '=', 'LOCATION');
             })
             ->leftJoin('third_party as tp', function ($j) {
-                $j->on('tp.third_party_code', '=', 'm.target_ref')
+                $j->on('tp.kode', '=', 'm.target_ref')
                   ->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
             })
             ->where('m.config_id', $configId)
@@ -880,11 +880,11 @@ if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['co
 'm.is_blind',
     'm.target_plan_loc',
     'l.location_name',
-    'tp.third_party_name',
+    'tp.nama',
 ]);
  
         $mappings = $mappings->map(function ($m) {
-            $m->label = $m->location_name ?? $m->third_party_name ?? $m->target_ref;
+            $m->label = $m->location_name ?? $m->nama ?? $m->target_ref;
             return $m;
         });
  

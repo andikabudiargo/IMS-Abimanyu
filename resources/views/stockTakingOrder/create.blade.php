@@ -239,12 +239,12 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-1 col-12">
+   <div class="col-md-1 col-12">
     <div class="form-group margin-nol text-center">
         <label class="d-block d-md-none font-weight-bold">Blind Count?</label>
         <div class="custom-control custom-checkbox mt-50">
             <input type="checkbox" class="custom-control-input chk-blind" checked>
-            <label class="custom-control-label">&nbsp;</label>
+            <label class="custom-control-label lbl-blind">&nbsp;</label>
         </div>
     </div>
 </div>
@@ -356,6 +356,12 @@ function addMappingRow(type, ref, stoDate, c1, c2, tp, noDari, noSampai, c3, isB
 
     $('#mapping_row').append($clone);
     const $row = $('#mapping_row .tanda-baris').last();
+
+
+    // ── FIX: hubungkan checkbox blind dengan label via id/for unik ──
+    const blindId = `chkBlind_${cloneCount}`;
+    $row.find('.chk-blind').attr('id', blindId);
+    $row.find('.lbl-blind').attr('for', blindId);
 
     const initType = type || 'LOCATION';
     $row.find('.sel-type').val(initType);

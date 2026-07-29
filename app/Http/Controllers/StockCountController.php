@@ -561,28 +561,16 @@ return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk 
 {
     // Cross-reference: SUPP ↔ CUST (hanya beda suffix belakang)
     // Contoh: API000001SUPP ↔ API000001CUST
-    $partnerCodes = [$partnerCode];
-
-    $suffix     = strtoupper(substr($partnerCode, -4));   // 'SUPP' atau 'CUST'
-    $baseCode   = substr($partnerCode, 0, -4);            // 'API000001'
-
-    if ($suffix === 'SUPP') {
-        $counterCode = $baseCode . 'CUST';
-    } elseif ($suffix === 'CUST') {
-        $counterCode = $baseCode . 'SUPP';
-    } else {
-        $counterCode = null;
-    }
-
-    // Alternatif: pakai preg_replace jika suffix bisa SUPPLIER/CUSTOMER/dll
     $counterCode = preg_replace('/(SUPP)$/i', 'CUST', $partnerCode);
-        if ($counterCode === $partnerCode) {
-    $counterCode = preg_replace('/(CUST)$/i', 'SUPP', $partnerCode);
+    if ($counterCode === $partnerCode) {
+        $counterCode = preg_replace('/(CUST)$/i', 'SUPP', $partnerCode);
     }
+
+    $partnerCodes = array_unique(array_filter([$partnerCode, $counterCode]));
 
     $rows = DB::table('article as a')
         ->whereIn('a.third_party', $partnerCodes)
-        ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 
+        ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package',
                  'a.article_type', 'a.third_party')
         ->orderBy('a.third_party')   // grouping visual: CUST dulu / SUPP dulu
         ->orderBy('a.article_desc')
