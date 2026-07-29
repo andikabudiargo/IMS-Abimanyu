@@ -30,7 +30,7 @@
           <a class="d-flex align-items-center" href="{{ route('home') }}">
             <i data-feather="globe">
             </i>
-            <span class="menu-title text-truncate" data-i18n="Dashboards">Dashboards</span>
+            <span class="menu-title text-truncate" data-i18n="Dashboards">Dashboard</span>
           </a>
         </li>
         <li class=" navigation-header"><span data-i18n="Inventory">Inventory</span><i data-feather="more-horizontal"></i>
@@ -240,13 +240,42 @@
           </ul>
         </li>
         
-        <li class=" navigation-header"><span data-i18n="Logistic">Logistic</span><i data-feather="more-horizontal"></i>
+        <li class=" navigation-header"><span data-i18n="Logistic">PPIC</span><i data-feather="more-horizontal"></i>
+        </li>
+
+          <li class=" {{ in_array(\Request::segment(1), ['workingOrders','workOrderSheet','deliveryPlan','wosMixing']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather='calendar'></i>
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Planning
+            </span>
+          </a>
+          <ul class="menu-content">
+                        
+            @can('workingOrder-index')
+            <li class="{{ in_array(\Request::segment(1),['workOrderSheet','workOrderSheet/create','workOrderSheet/edit']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('workingOrderSheets.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Work Order Sheet</span>
+              </a>
+            </li>
+            @endcan           
+
+            @can('wosMixing-index')
+            <li class="{{ \Request::segment(1) == 'wosMixing' ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('wosMixing.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">WOS Mixing</span>
+              </a>
+            </li>
+            @endcan
+
+          </ul>
         </li>
         
         <li class=" {{ in_array(\Request::segment(1), ['receivings','receivingsRm']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='package'></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">Receiving
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Logistic
             </span>
           </a>
           <ul class="menu-content">
@@ -298,7 +327,7 @@
               </a>
             </li>
             @endcan
-             --}}
+           
              
 @if(auth()->user()->hasAnyRole(['Superuser', 'accounting']))
   @can('transferIn-index')
@@ -312,7 +341,7 @@
 @endif
           
 
-            {{--
+           
             @can('transferOut-index')
             <li class="{{ \Request::is(['transferOutV1','transferOutV1/create','transferOutV1/show','transferOutV1/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('transferOutV1.index') }}">
@@ -321,7 +350,7 @@
               </a>
             </li>
             @endcan
-             --}}
+             
 
             @if(auth()->user()->hasAnyRole(['Superuser', 'accounting']))
               @can('transferOut-index')
@@ -333,6 +362,8 @@
             </li>
              @endcan
              @endif
+             --}}
+
               <li class="{{ \Request::is(['stockMovement','stockMovement/create','stockMovement/show','stockMovement/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('stockMovement.index') }}">
                 <i data-feather="circle"></i>
@@ -345,12 +376,32 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Stock Transfer</span>
               </a>
             </li>
-             <li class="{{ \Request::is(['stockAdjustment','stockAdjustment/create','stockAdjustment/show','stockAdjustment/edit']) ? 'active' : '' }}">
+             <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Report">Stock Taking Order</span></a>
+                <ul class="menu-content">
+                
+              <li class="{{ \Request::segment(1) == 'stockCount'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('stockCount.index') }}">
+                  <span class="menu-item text-truncate" data-i18n="Input">Count (E-STO)</span>
+                </a>
+              </li>
+            
+
+              
+              <li class="{{ \Request::segment(1) == 'stockTakingOrder'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('stockTakingOrder.index') }}">
+                  <span class="menu-item text-truncate" data-i18n="Input">Configuration</span>
+                </a>
+              </li>
+
+              <li class="{{ \Request::is(['stockAdjustment','stockAdjustment/create','stockAdjustment/show','stockAdjustment/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('stockAdjustment.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Stock Adjustment</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Adjustment</span>
               </a>
             </li>
+
+                </ul>
+              </li>
+             
              {{--<li class="{{ \Request::is(['stocReconciliation','stockReconciliation/create','stockReconciliation/show','stockReconciliation/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('stockReconciliation.index') }}">
                 <i data-feather="circle"></i>
@@ -371,8 +422,6 @@
             @can('delivery-index')
               <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Return&Replace">Return & Replace</span></a>
                 <ul class="menu-content">
-                    <li class="{{ \Request::segment(1) == 'temporaryDn'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('suratJalanSementara.index') }}"><span class="menu-item text-truncate" data-i18n="Temporary DN">Temporary DN</span></a>
-                    </li>
                     <li class="{{ \Request::segment(1) == 'dnReturn'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReturn.index') }}"><span class="menu-item text-truncate" data-i18n="DN Return">DN Return</span></a>
                     </li>
                     <li class="{{ \Request::segment(1) == 'dnReplace'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReplace.index') }}"><span class="menu-item text-truncate" data-i18n="DN Replace">DN Replace</span></a>
@@ -395,7 +444,16 @@
             <li class="{{ \Request::segment(1) == 'dnGeneral' ? 'active' : '' }} " >
               <a class="d-flex align-items-center" href="{{ route('dnGeneral.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Delivery Note">DN General</span>
+                <span class="menu-item text-truncate" data-i18n="DN Umum">DN General</span>
+              </a>
+            </li>
+            @endcan
+
+              @can('delivery-index')
+            <li class="{{ \Request::segment(1) == 'temporaryDn' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('suratJalanSementara.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Temporary DN">DN Temporary</span>
               </a>
             </li>
             @endcan
@@ -453,38 +511,6 @@
   </ul>
 </li>
 
-        <li class=" navigation-header"><span data-i18n="PPIC">PPIC</span><i data-feather="more-horizontal"></i>
-        </li>
-
-        <li class=" {{ in_array(\Request::segment(1), ['workingOrders','workOrderSheet','deliveryPlan','wosMixing']) ? 'active' : '' }} nav-item">
-          <a class="d-flex align-items-center" href="javascript:void(0);">
-            <i data-feather='calendar'></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">PPIC
-            </span>
-          </a>
-          <ul class="menu-content">
-                        
-            @can('workingOrder-index')
-            <li class="{{ in_array(\Request::segment(1),['workOrderSheet','workOrderSheet/create','workOrderSheet/edit']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('workingOrderSheets.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Work Order Sheet</span>
-              </a>
-            </li>
-            @endcan           
-
-            @can('wosMixing-index')
-            <li class="{{ \Request::segment(1) == 'wosMixing' ? 'active' : '' }}" >
-              <a class="d-flex align-items-center" href="{{ route('wosMixing.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">WOS Mixing</span>
-              </a>
-            </li>
-            @endcan
-
-          </ul>
-        </li>
-
         <li class=" navigation-header"><span data-i18n="Production">Production</span><i data-feather="more-horizontal"></i>
         </li>
 
@@ -518,12 +544,12 @@
         </li>
 
         @can('accounting-menu')
-          <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance Accounting</span><i data-feather="more-horizontal"></i>
+          <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance, Accounting & Tax</span><i data-feather="more-horizontal"></i>
           </li>
           <li class=" {{ in_array(\Request::segment(1), ['aps','balanceSheet','labaRugi','trialBalance','invoice','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc','jurnalUmum','accountPayable','debitnote']) ? 'active' : '' }} nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
               <i data-feather="dollar-sign"></i>
-              <span class="menu-title text-truncate" data-i18n="Form Elements">Finance & acc
+              <span class="menu-title text-truncate" data-i18n="Form Elements">Finance
               </span>
             </a>
             <ul class="menu-content">
@@ -531,11 +557,11 @@
               @can('ap-index')
                 <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Invoice">Invoice</span></a>
                   <ul class="menu-content">
-                      <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountPayable.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier V2</span></a>
+                      <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountPayable.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier (AP)</span></a>
                       </li>
                       {{-- <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('aps.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier</span></a>
                       </li> --}}
-                      <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('invoice.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Invoice Customer</span></a>
+                      <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('invoice.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Invoice Customer (AR)</span></a>
                       </li>
                       <li class="{{ \Request::segment(1) == 'debitnote' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('debitNote.index') }}"><span class="menu-item text-truncate" data-i18n="Debit Note">Debit Note</span></a>
                       </li>
@@ -565,7 +591,43 @@
                 </li>
               @endcan
 
-              <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Report">Report</span></a>
+               <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Report">Financial Statement</span></a>
+                <ul class="menu-content">
+                 @can('ap-index')
+              <li class="{{ \Request::segment(1) == 'bukuBesar'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('bukuBesar.index') }}">
+                  <span class="menu-item text-truncate" data-i18n="Input">Buku Besar</span>
+                </a>
+              </li>
+              @endcan
+
+              @can('ap-index')
+              <li class="{{ \Request::segment(1) == 'balanceSheet'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('balanceSheet.index') }}">
+                  <span class="menu-item text-truncate" data-i18n="Input">Neraca</span>
+                </a>
+              </li>
+              @endcan
+
+              @can('ap-index')
+              <li class="{{ \Request::segment(1) == 'labaRugi'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('labaRugi.index') }}">
+                  <span class="menu-item text-truncate" data-i18n="Input">Laba Rugi</span>
+                </a>
+              </li>
+              @endcan
+
+              @can('ap-index')
+              <li class="{{ \Request::segment(1) == 'trialBalance'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('trialBalance.index') }}">
+                  <span class="menu-item text-truncate" data-i18n="Input">Trial Balance</span>
+                </a>
+              </li>
+              @endcan
+                </ul>
+              </li>
+
+                <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Report">Additional Report</span></a>
                 <ul class="menu-content">
                   @can('delivery-report-acc')
                     <li class="{{ \Request::is(['deliveryReportAcc'])  ? 'active' : '' }}">
@@ -594,57 +656,14 @@
                 </li>
               @endcan
               
-              @can('ap-index')
-              <li class="{{ \Request::segment(1) == 'bukuBesar'  ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('bukuBesar.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Buku Besar</span>
-                </a>
-              </li>
-              @endcan
-
-               @can('accType-index')
-              <li class="{{ \Request::segment(1) == 'asset'  ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('asset.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Assets</span>
-                </a>
-              </li>
-              @endcan
-
-              @can('ap-index')
-              <li class="{{ \Request::segment(1) == 'balanceSheet'  ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('balanceSheet.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Neraca</span>
-                </a>
-              </li>
-              @endcan
-
-              @can('ap-index')
-              <li class="{{ \Request::segment(1) == 'labaRugi'  ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('labaRugi.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Laba Rugi</span>
-                </a>
-              </li>
-              @endcan
-
-              @can('ap-index')
-              <li class="{{ \Request::segment(1) == 'trialBalance'  ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('trialBalance.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Trial Balance</span>
-                </a>
-              </li>
-              @endcan
+              
 
             </ul>
           </li>
           <li class=" {{ in_array(\Request::segment(1), ['accounts','groups','accTypes','account','asset']) ? 'active' : '' }} nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
               <i data-feather="book"></i>
-              <span class="menu-title text-truncate" data-i18n="Form Elements">COA
+              <span class="menu-title text-truncate" data-i18n="Form Elements">Accounting
               </span>
             </a>
             <ul class="menu-content">
@@ -653,7 +672,25 @@
               <li class="{{ \Request::segment(1) == 'accounts'  ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('accounts.index') }}">
                   <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Account</span>
+                  <span class="menu-item text-truncate" data-i18n="Input">Chart of Account</span>
+                </a>
+              </li>
+              @endcan
+
+                @can('accType-index')
+              <li class="{{ \Request::segment(1) == 'asset'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('asset.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Assets</span>
+                </a>
+              </li>
+              @endcan
+
+                @can('accType-index')
+              <li class="{{ \Request::segment(1) == 'asset'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('asset.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Inventory Valuation</span>
                 </a>
               </li>
               @endcan
@@ -671,12 +708,12 @@
           </li>
         @endcan
 
-        <li class=" navigation-header"><span data-i18n="hrm">HRM</span><i data-feather="more-horizontal"></i>
+        <li class=" navigation-header"><span data-i18n="hrm">ENVIRONMENT</span><i data-feather="more-horizontal"></i>
         </li>
         <li class=" {{ in_array(\Request::segment(1), ['employees','jobPositions','depts']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='users'></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">HRD
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Preferences
             </span>
           </a>
           <ul class="menu-content">
@@ -689,6 +726,17 @@
               </a>
             </li>
             @endcan
+
+             
+           
+              <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Form">Form</span></a>
+                <ul class="menu-content">
+                    <li class="{{ \Request::segment(1) == 'perubahanData'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="#"><span class="menu-item text-truncate" data-i18n="PerubahanData">Perubahan Data</span></a>
+                    </li>
+                    
+                </ul>
+              </li>
+           
 
           </ul>
         </li>

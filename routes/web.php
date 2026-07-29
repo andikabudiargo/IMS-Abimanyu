@@ -787,6 +787,29 @@ Route::post('stockAdjustment/posting',['as'=>'stockAdjustment.posting','uses'=>'
 Route::post('stockAdjustment/cancel',['as'=>'stockAdjustment.cancel','uses'=>'StockAdjustmentController@cancel']);
 Route::get('stockAdjustment/revisionHistory', ['as'=>'stockAdjustment.revisionHistory','uses'=>'StockAdjustmentController@revisionHistory']);
 
+Route::get('stockTakingOrder',          ['as'=>'stockTakingOrder.index',      'uses'=>'StockTakingOrderController@index']);
+Route::get('stockTakingOrder/list',     ['as'=>'stockTakingOrder.list',       'uses'=>'StockTakingOrderController@list']);
+Route::get('stockTakingOrder/listDetail',['as'=>'stockTakingOrder.list.detail','uses'=>'StockTakingOrderController@listDetail']);
+Route::get('stockTakingOrder/create',   ['as'=>'stockTakingOrder.create',     'uses'=>'StockTakingOrderController@create']);
+Route::post('stockTakingOrder/store',   ['as'=>'stockTakingOrder.store',      'uses'=>'StockTakingOrderController@store']);
+Route::get('stockTakingOrder/{id}/show',['as'=>'stockTakingOrder.show',       'uses'=>'StockTakingOrderController@show']);
+Route::get('stockTakingOrder/{id}/edit',['as'=>'stockTakingOrder.edit',       'uses'=>'StockTakingOrderController@edit']);
+Route::post('stockTakingOrder/update',  ['as'=>'stockTakingOrder.update',     'uses'=>'StockTakingOrderController@update']);
+Route::post('stockTakingOrder/cancel/{id}', ['as'=>'stockTakingOrder.cancel', 'uses'=>'StockTakingOrderController@cancel']);
+Route::get('stockTakingOrder/getPartners', ['as'=>'stockTakingOrder.getPartners', 'uses'=>'StockTakingOrderController@getPartners']);
+Route::get('stockTakingOrder/getMappings', ['as'=>'stockTakingOrder.getMappings', 'uses'=>'StockTake\StockTakingOrderController@getMappings']);
+
+Route::get('stockCount',                  ['as'=>'stockCount.index',       'uses'=>'StockCountController@index']);
+Route::get('stockCount/{id}/create',      ['as'=>'stockCount.create',      'uses'=>'StockCountController@create']);
+Route::get('stockCount/getArticles',      ['as'=>'stockCount.getArticles', 'uses'=>'StockCountController@getArticles']);
+Route::post('stockCount/storeLine',       ['as'=>'stockCount.storeLine',   'uses'=>'StockCountController@storeLine']);
+Route::delete('stockCount/line/{dtlId}',  ['as'=>'stockCount.deleteLine',  'uses'=>'StockCountController@deleteLine']);
+Route::post('stockCount/finish',          ['as'=>'stockCount.finish',      'uses'=>'StockCountController@finish']);
+Route::get('stockCount/auditList', ['as'=>'stockCount.auditList', 'uses'=>'StockCountController@auditList']);
+Route::post('stock-count/store-sheet', ['as'=>'stockCount.storeSheet', 'uses'=>'StockCountController@storeSheet']);
+Route::get('stockCount/getAvailableNumbers', ['as'=>'stockCount.getAvailableNumbers', 'uses'=>'StockCountController@getAvailableNumbers']);
+Route::put('stockCount/line/{dtlId}', ['as'=>'stockCount.updateLine', 'uses'=>'StockCountController@updateLine']);
+
 Route::get('stockReconciliation',['as'=>'stockReconciliation.index','uses'=>'StockReconciliationController@index','middleware' => ['permission:transferOut-index']]);
 Route::get('stockReconciliation/list',['as'=>'stockReconciliation.list','uses'=>'StockReconciliationController@list']);
 Route::get('stockReconciliation/list/detail',['as'=>'stockReconciliation.list.detail','uses'=>'StockReconciliationController@listDetail']);
