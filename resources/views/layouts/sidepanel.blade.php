@@ -288,6 +288,16 @@
               </a>
             </li>
             @endcan
+
+             <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Return&Replace">Return & Replace</span></a>
+                <ul class="menu-content">
+                    <li class="{{ \Request::segment(1) == 'dnReturn'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReturn.index') }}"><span class="menu-item text-truncate" data-i18n="DN Return">Supplier Return</span></a>
+                    </li>
+                    <li class="{{ \Request::segment(1) == 'dnReplace'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReplace.index') }}"><span class="menu-item text-truncate" data-i18n="DN Replace">Supplier Replace</span></a>
+                    </li>
+                    
+                </ul>
+              </li>
         
           </ul>
         </li>
@@ -349,20 +359,21 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Transfer out V1</span>
               </a>
             </li>
-            @endcan
+            @endcan --}}
              
 
-            @if(auth()->user()->hasAnyRole(['Superuser', 'accounting']))
-              @can('transferOut-index')
-              <li class="{{ \Request::is(['transferOut','transferOut/create','transferOut/show','transferOut/edit']) ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('transferOut.index') }}">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Transfer out</span>
-                </a>
-            </li>
-             @endcan
-             @endif
-             --}}
+         @if(
+    auth()->user()->hasAnyRole(['Superuser', 'accounting']) ||
+    auth()->user()->can('transferOut-index') ||
+    in_array(auth()->user()->username, ['masrur'])
+)
+    <li class="{{ \Request::is(['transferOut','transferOut/create','transferOut/show','transferOut/edit']) ? 'active' : '' }}">
+        <a class="d-flex align-items-center" href="{{ route('transferOut.index') }}">
+            <i data-feather="circle"></i>
+            <span class="menu-item text-truncate">Transfer out</span>
+        </a>
+    </li>
+@endif
 
               <li class="{{ \Request::is(['stockMovement','stockMovement/create','stockMovement/show','stockMovement/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('stockMovement.index') }}">
@@ -396,6 +407,12 @@
               <li class="{{ \Request::is(['stockAdjustment','stockAdjustment/create','stockAdjustment/show','stockAdjustment/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('stockAdjustment.index') }}">
                 <span class="menu-item text-truncate" data-i18n="Input">Adjustment</span>
+              </a>
+            </li>
+
+             <li class="{{ \Request::is(['stockAdjustment','stockAdjustment/create','stockAdjustment/show','stockAdjustment/edit']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('stockAdjustment.index') }}">
+                <span class="menu-item text-truncate" data-i18n="Input">Report</span>
               </a>
             </li>
 
@@ -539,6 +556,37 @@
               </a>
             </li>
             @endcan
+
+          </ul>
+        </li>
+
+        <li class=" navigation-header"><span data-i18n="Production">Maintenance</span><i data-feather="more-horizontal"></i>
+        </li>
+
+        <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather='sliders'></i>
+            <span class="menu-title text-truncate" data-i18n="Production">Maintenance
+            </span>
+          </a>
+          <ul class="menu-content">
+
+           
+            <li class="{{ \Request::is(['actualLoading','actualLoading/create','actualLoading/edit','actualLoading/show']) ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('production.actualLoading.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Actual Loading">Scrap Material</span>
+              </a>
+            </li>
+           
+
+            
+            <li class="{{ \Request::is(['actualFinishGoods','actualFinishGoods/edit','actualFinishGoods/show']) ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('production.actualFinishGoods.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Actual Loading">Project</span>
+              </a>
+            </li>
 
           </ul>
         </li>
