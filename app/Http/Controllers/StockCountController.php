@@ -979,14 +979,10 @@ $ownerId   = $existingDtl->{$userField} ?? null;
 
     private function getLastQty($article, $location, $stoDate)
 {
-    // sto_date disimpan format DD-MM-YYYY, function butuh format YYYY-MM-DD
-    $movementDate = \DateTime::createFromFormat('d-m-Y', $stoDate)->format('Y-m-d');
-
-    $row = DB::selectOne(
-        "SELECT get_last_qty_new(?, ?, ?, ?) AS qty",
-        [$article, $movementDate, 'HO', $location]
-    );
-    return $row->qty ?? 0;
+   return (float) DB::table('warehouse_stock')
+        ->where('article_code', $article)
+        ->where('location_number', $location)
+        ->value('article_qty');
 }
 
     // ══════════════════════════════════════════════
