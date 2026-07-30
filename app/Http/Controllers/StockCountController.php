@@ -979,10 +979,16 @@ $ownerId   = $existingDtl->{$userField} ?? null;
     }
 
     private function getLastQty($article, $location, $stoDate)
-    {
-        $row = DB::selectOne("SELECT get_last_qty_new(?, ?, ?) AS qty", [$article, $location, $stoDate]);
-        return $row->qty ?? 0;
-    }
+{
+    // sto_date disimpan format DD-MM-YYYY, function butuh format YYYY-MM-DD
+    $movementDate = \DateTime::createFromFormat('d-m-Y', $stoDate)->format('Y-m-d');
+
+    $row = DB::selectOne(
+        "SELECT get_last_qty_new(?, ?, ?, ?) AS qty",
+        [$article, $movementDate, 'HO', $location]
+    );
+    return $row->qty ?? 0;
+}
 
     // ══════════════════════════════════════════════
     // DELETE LINE
