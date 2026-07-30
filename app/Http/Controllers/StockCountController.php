@@ -979,10 +979,11 @@ $ownerId   = $existingDtl->{$userField} ?? null;
 
     private function getLastQty($article, $location, $stoDate)
 {
-   return (float) DB::table('warehouse_stock')
-        ->where('article_code', $article)
-        ->where('location_number', $location)
-        ->value('article_qty');
+    return (float) (DB::table('warehouse_stock as ws')
+        ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+        ->where('a.article_alternative_code', $article)
+        ->where('ws.location_number', $location)
+        ->value('ws.article_qty') ?? 0);
 }
 
     // ══════════════════════════════════════════════
