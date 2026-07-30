@@ -139,11 +139,6 @@ class StockCountController extends Controller
     }
 
     $userId = Auth::id();
-
-    $role = $this->resolveCounterRole($dtl, $userId);
-    if (!$role) {
-        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Anda tidak berwenang mengedit baris ini.'],'alert'=>'error']);
-    }
  
         $stoHdr = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
         if (!$stoHdr || $stoHdr->status != 1) {
