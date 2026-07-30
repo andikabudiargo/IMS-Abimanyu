@@ -1694,97 +1694,117 @@ private function getArticleDesc(string $articleCode): string
             }
         }
         
-             public function list(Request $request)
-    {
-        $query = DB::table('sto_config as h')
-            ->leftJoin('users as uc', 'uc.username', '=', 'h.created_by')
-            ->leftJoin('users as uu', 'uu.username', '=', 'h.updated_by')
-            ->select([
-                'h.config_id',
-                'h.sto_code',
-                'h.sto_type',
-                'h.periode',
-                'h.target_plan',
-                'h.target_act',
-                'h.status',
-                'h.finish_time',
-                'h.notes',
-                'h.created_by',
-                'h.created_at',
-                'h.updated_by',
-                'h.updated_at',
-            ]);
- 
-        if ($request->filled('searchCode')) {
-            $query->where('h.sto_code', 'ilike', '%' . $request->searchCode . '%');
+            public function list(Request $request)
+{
+    $user       = Auth::user();
+    $username   = $user->username;
+    $userDepts  = DB::table('user_dept')->where('username', $username)->pluck('dept')->toArray();
+    $privileged = $user->hasAnyRole(['Superuser', 'accounting', 'finance']);
+    $canPosting = $user->hasAnyRole(['Superuser', 'accounting']) || $user->can('transferOut-posting');
+
+    $searchTr     = strtolower((string) $request->searchTr);
+    $searchStatus = $request->searchStatus;
+    $searchType   = $request->searchType;
+    $trDate       = $request->trDate;
+    $transferFrom = $request->transferFrom;
+    $transferTo   = $request->transferTo;
+
+    // Format tanggal dd-mm-yyyy (sama seperti listDetail)
+    $fromDate = "";
+    $toDate   = "";
+    if ($trDate) {
+        $date = explode("to", $trDate);
+        if (count($date) > 1) {
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = implode("/", array_reverse(explode("-", trim($date[1]))));
+        } else {
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = $fromDate;
         }
-        if ($request->filled('searchPeriode')) {
-            $query->where('h.periode', $request->searchPeriode);
-        }
-        if ($request->filled('searchStatus')) {
-            $query->where('h.status', $request->searchStatus);
-        }
-        if ($request->filled('searchStoType')) {
-            $query->where('h.sto_type', $request->searchStoType);
-        }
-        if ($request->filled('searchDate')) {
-            $parts = explode(' to ', $request->searchDate);
-            $from  = trim($parts[0] ?? '');
-            $to    = trim($parts[1] ?? $from);
-            if ($from && $to) {
-                $query->whereExists(function ($q) use ($from, $to) {
-                    $q->select(DB::raw(1))
-                      ->from('sto_config_mapping as mm')
-                      ->whereColumn('mm.config_id', 'h.config_id')
-                      ->whereRaw("TO_DATE(mm.sto_date,'DD-MM-YYYY') BETWEEN TO_DATE(?, 'DD-MM-YYYY') AND TO_DATE(?, 'DD-MM-YYYY')", [$from, $to]);
-                });
-            }
-        }
- 
-        return DataTables::of($query)
-            ->addColumn('action', function ($row) {
-                $encId  = Crypt::encryptString($row->config_id);
-                $isAcct = Auth::user()->hasAnyRole(['Superuser', 'accounting']);
-                $st     = $row->status;
- 
-                $buttons  = '<div class="d-inline-flex">
-                                <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a>';
-                $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
- 
-                // DETAIL (selalu)
-                $buttons .= '<a href="' . route('stockTakingOrder.show', ['id'=>$encId]) . '" class="dropdown-item">
-                                <i data-feather="eye"></i><span>' . __('Detail') . '</span></a>';
- 
-                // EDIT — hanya saat SCHEDULED/ONGOING
-                if (in_array($st, [1, 2])) {
-                    $buttons .= '<a href="' . route('stockTakingOrder.edit', ['id'=>$encId]) . '" class="dropdown-item">
-                                    <i data-feather="edit-2"></i><span>' . __('Edit') . '</span></a>';
-                }
- 
-                // CANCEL — hanya saat SCHEDULED/ONGOING, dan hanya accounting/superuser
-                if (in_array($st, [1, 2]) && $isAcct) {
-                    $buttons .= "<a href='javascript:;' class='dropdown-item' data-size='sm' data-ajax-delete='true'
-                                    data-confirm='Batalkan STO ini?|STO akan dibatalkan dan tidak bisa digunakan lagi.'
-                                    data-confirm-yes='document.getElementById(\"delete-form-{$row->config_id}\").submit();'
-                                    data-modal-id='{$row->config_id}'
-                                    data-url='" . route('stockTakingOrder.cancel', ['id'=>$encId]) . "'>
-                                    <i data-feather='x-circle' class='feather-14-red'></i><span>" . __('Cancel') . "</span></a>";
-                }
- 
-                $buttons .= '</div></div>';
-                return $buttons;
-            })
-            ->editColumn('sto_type', function ($row) {
-                $map = $this->stoTypeList();
-                return $map[$row->sto_type] ?? $row->sto_type;
-            })
-            ->editColumn('status', fn($row) => $this->statusBadge($row->status))
-            ->editColumn('target_plan', fn($row) => $row->target_plan !== null ? number_format($row->target_plan, 2) . '%' : '-')
-            ->editColumn('target_act',  fn($row) => $row->target_act  !== null ? number_format($row->target_act, 2) . '%'  : '-')
-            ->editColumn('finish_time', fn($row) => $row->finish_time ?? '-')
-            ->rawColumns(['action', 'status'])
-            ->make(true);
     }
+
+    $query = DB::table('transfer_stock_hdr')
+        ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
+        ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to')
+        ->where(function ($q) use ($searchTr, $searchStatus, $searchType, $trDate, $fromDate, $toDate, $transferFrom, $transferTo) {
+            $searchTr     ? $q->where('transfer_stock_hdr.tr_number', 'ilike', '%' . $searchTr . '%') : '';
+            $searchStatus ? $q->where('transfer_stock_hdr.status', $searchStatus) : '';
+            $searchType   ? $q->where('transfer_stock_hdr.tr_type', $searchType) : '';
+            $trDate       ? $q->whereBetween(DB::raw("to_date(transfer_stock_hdr.tr_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $transferFrom ? $q->where('transfer_stock_hdr.location_from', $transferFrom) : '';
+            $transferTo   ? $q->where('transfer_stock_hdr.location_to', $transferTo) : '';
+        });
+
+    // Visibilitas: privileged lihat semua, selain itu hanya yg terkait dept/creator
+    if (!$privileged) {
+        $query->where(function ($q) use ($userDepts, $username) {
+            $q->whereIn('locFrom.dept_code', $userDepts)
+              ->orWhereIn('transfer_stock_hdr.approve_dept', $userDepts)
+              ->orWhere('transfer_stock_hdr.created_by', $username);
+        });
+    }
+
+    $query->select(
+        'transfer_stock_hdr.id',
+        'transfer_stock_hdr.tr_number',
+        'transfer_stock_hdr.tr_date',
+        'transfer_stock_hdr.tr_type',
+        'transfer_stock_hdr.status',
+        'transfer_stock_hdr.note',
+        'transfer_stock_hdr.created_by',
+        'transfer_stock_hdr.created_at',
+        'transfer_stock_hdr.updated_by',
+        'transfer_stock_hdr.updated_at',
+        'locFrom.location_name as location_name',
+        'locTo.location_name as location_name_to'
+    )->orderBy('transfer_stock_hdr.created_at', 'desc');
+
+    return DataTables::of($query)
+        ->addColumn('action', function ($row) use ($username, $canPosting) {
+            $encId     = Crypt::encryptString($row->id);
+            $isCreator = ($row->created_by === $username);
+            $st        = $row->status;
+
+            $buttons  = '<div class="d-inline-flex">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a>';
+            $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
+
+            // DETAIL — selalu
+            $buttons .= '<a href="' . route('transferStock.show', ['id' => $encId]) . '" class="dropdown-item">
+                            <i data-feather="eye"></i><span>' . __('Detail') . '</span></a>';
+
+            // EDIT — belum posted/canceled
+            if (!in_array($st, ['4', '5'])) {
+                $buttons .= '<a href="' . route('transferStock.edit', ['id' => $encId]) . '" class="dropdown-item">
+                                <i data-feather="edit-2"></i><span>' . __('Edit') . '</span></a>';
+            }
+
+            // CANCEL — status 4 butuh otoritas khusus, selain itu cukup creator/privileged
+            if ($st != '5' && ($isCreator || $canPosting)) {
+                $buttons .= "<a href='javascript:;' class='dropdown-item' data-size='sm' data-ajax-delete='true'
+                                data-confirm='Batalkan Transfer ini?|Stok yang sudah dipindahkan akan dikembalikan.'
+                                data-confirm-yes='document.getElementById(\"delete-form-{$row->id}\").submit();'
+                                data-modal-id='{$row->id}'
+                                data-url='" . route('transferStock.cancel', ['id' => $encId]) . "'>
+                                <i data-feather='x-circle' class='feather-14-red'></i><span>" . __('Cancel') . "</span></a>";
+            }
+
+            // PRINT
+            $buttons .= '<a href="' . route('transferStock.print', ['id' => $encId]) . '" target="_blank" class="dropdown-item">
+                            <i data-feather="printer"></i><span>' . __('Print') . '</span></a>';
+
+            $buttons .= '</div></div>';
+            return $buttons;
+        })
+        ->editColumn('status', function ($row) {
+            $badges   = ['badge-primary', 'badge-info', 'badge-warning', 'badge-success', 'badge-danger'];
+            $statusTr = ['NEW', 'VALIDATED', 'APPROVED', 'POSTED', 'CANCELED'];
+            $idx      = $row->status - 1;
+            return "<div class='badge {$badges[$idx]}'>{$statusTr[$idx]}</div>";
+        })
+        ->rawColumns(['action', 'status'])
+        ->make(true);
+}
 
             public function listDetail(Request $request)
         {
