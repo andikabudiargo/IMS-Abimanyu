@@ -1001,7 +1001,8 @@ function deleteLine(dtlId, el) {
     }).then(r => {
         if (!r.isConfirmed) return;
         $.ajax({
-            url: "{{ url('stock-count/line') }}/" + dtlId, method: 'DELETE',
+            url: "{{ route('stockCount.deleteLine', ['dtlId' => '__ID__']) }}".replace('__ID__', dtlId),
+method: 'DELETE',
             data: { _token: "{{ csrf_token() }}" },
             success: function(res) {
                 if (res.status == 1) {
@@ -1187,25 +1188,25 @@ function editLine(dtlId, el) {
     }).then(result => {
         if (!result.isConfirmed || !result.value) return;
  
-        $.ajax({
-            url: "{{ url('stock-count/line') }}/" + dtlId,
-            method: 'PUT',
-            data: Object.assign({ _token: "{{ csrf_token() }}" }, result.value),
-            dataType: 'json',
-            success: function(res) {
-                if (res.status == 1) {
-                    renderRowToSheet(res.row, res.row.sto_number);
-                    updateRealisasi(res.target_act_loc);
-                    updateStatusStats();
-                    show_msg(res.title, res.message, res.alert);
-                } else {
-                    (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
-                }
-            },
-            error: function() {
-                show_msg('Error', 'Terjadi kesalahan, cek console.', 'error');
-            }
-        });
+      $.ajax({
+    url: "{{ route('stockCount.updateLine', ['dtlId' => '__ID__']) }}".replace('__ID__', dtlId),
+    method: 'PUT',
+    data: Object.assign({ _token: "{{ csrf_token() }}" }, result.value),
+    dataType: 'json',
+    success: function(res) {
+        if (res.status == 1) {
+            renderRowToSheet(res.row, res.row.sto_number);
+            updateRealisasi(res.target_act_loc);
+            updateStatusStats();
+            show_msg(res.title, res.message, res.alert);
+        } else {
+            (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
+        }
+    },
+    error: function() {
+        show_msg('Error', 'Terjadi kesalahan, cek console.', 'error');
+    }
+});
     });
 }
 
