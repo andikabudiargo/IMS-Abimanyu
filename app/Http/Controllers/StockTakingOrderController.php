@@ -606,41 +606,75 @@ if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['co
             ->first();
  
         if (!$hdr) {
-            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Hanya STO SCHEDULED/ONGOING yang bisa diedit.'],'alert'=>'error']);
+    return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Hanya STO SCHEDULED/ONGOING yang bisa diedit.'],'alert'=>'error']);
+}
+
+$flag = 0; $pesan = []; $refSeen = [];
+
+// ── validasi standar per baris ──
+if (is_array($mappings)) {
+    foreach ($mappings as $i => $m) {
+        $rowNo = $i + 1;
+        $ttype = $this->normalizeTargetType($m['target_type'] ?? '');
+        if (empty($m['target_ref'])) {
+            $label = $ttype === 'LOCATION' ? 'Lokasi' : 'Partner';
+            $pesan[] = "$label baris $rowNo wajib dipilih."; $flag = 1;
         }
- 
-        $flag = 0; $pesan = []; $refSeen = [];
-        if (is_array($mappings)) {
-            foreach ($mappings as $i => $m) {
-                $rowNo = $i + 1;
-                $ttype = $this->normalizeTargetType($m['target_type'] ?? '');
-                if (empty($m['target_ref'])) {
-                    $label = $ttype === 'LOCATION' ? 'Lokasi' : 'Partner';
-                    $pesan[] = "$label baris $rowNo wajib dipilih."; $flag = 1;
-                }
-                if (empty($m['sto_date'])) { $pesan[] = "STO Date baris $rowNo wajib diisi."; $flag = 1; }
-                if (empty($m['counter1'])) { $pesan[] = "Counter 1 baris $rowNo wajib dipilih."; $flag = 1; }
-                if (!empty($m['counter2']) && !empty($m['counter1']) && $m['counter1'] == $m['counter2']) {
-                    $pesan[] = "Counter 1 dan Counter 2 baris $rowNo tidak boleh sama."; $flag = 1;
-                }
-                if (!empty($m['target_ref'])) {
-                    $key = $ttype . '|' . $m['target_ref'];
-                    if (in_array($key, $refSeen)) { $pesan[] = "Target baris $rowNo duplikat."; $flag = 1; }
-                    $refSeen[] = $key;
-                }
-                $tp = isset($m['target_plan']) ? (float)$m['target_plan'] : 0;
-                if ($tp < 0 || $tp > 100) { $pesan[] = "Target Akurasi baris $rowNo harus 0–100."; $flag = 1; }
-            }
-        } else {
-            $pesan[] = "Mapping tidak valid."; $flag = 1;
+        if (empty($m['sto_date'])) { $pesan[] = "STO Date baris $rowNo wajib diisi."; $flag = 1; }
+        if (empty($m['counter1'])) { $pesan[] = "Counter 1 baris $rowNo wajib dipilih."; $flag = 1; }
+        if (!empty($m['counter2']) && !empty($m['counter1']) && $m['counter1'] == $m['counter2']) {
+            $pesan[] = "Counter 1 dan Counter 2 baris $rowNo tidak boleh sama."; $flag = 1;
         }
- 
-        if ($flag == 1) {
-            return response()->json(['status'=>0,'title'=>'Validasi Gagal','message'=>$pesan,'alert'=>'warning']);
+        if (!empty($m['target_ref'])) {
+            $key = $ttype . '|' . $m['target_ref'];
+            if (in_array($key, $refSeen)) { $pesan[] = "Target baris $rowNo duplikat."; $flag = 1; }
+            $refSeen[] = $key;
         }
- 
-        DB::beginTransaction();
-        try {
+        $tp = isset($m['target_plan']) ? (float)$m['target_plan'] : 0;
+        if ($tp < 0 || $tp > 100) { $pesan[] = "Target Akurasi baris $rowNo harus 0–100."; $flag = 1; }
+    }
+} else {
+    $pesan[] = "Mapping tidak valid."; $flag = 1;
+}
+
+// ── guard: baris yang sudah punya progress counting tidak boleh ganti tipe/target ──
+$progressCombos = DB::table('sto_hdr')
+    ->where('config_id', $configId)
+    ->select('target_type', 'target_ref')
+    ->distinct()
+    ->get()
+    ->map(fn($r) => $r->target_type . '|' . $r->target_ref)
+    ->toArray();
+
+$existingRows = DB::table('sto_config_mapping')
+    ->where('config_id', $configId)
+    ->get()
+    ->keyBy('mapping_id');
+
+if (is_array($mappings)) {
+    foreach ($mappings as $i => $m) {
+        $mappingId = !empty($m['mapping_id']) ? (int)$m['mapping_id'] : null;
+        if (!$mappingId || !isset($existingRows[$mappingId])) continue;
+
+        $old    = $existingRows[$mappingId];
+        $oldKey = $old->target_type . '|' . $old->target_ref;
+        $ttype  = $this->normalizeTargetType($m['target_type'] ?? '');
+
+        if (in_array($oldKey, $progressCombos)
+            && ($old->target_type !== $ttype || $old->target_ref !== $m['target_ref'])) {
+            $rowNo = $i + 1;
+            $pesan[] = "Baris $rowNo: target sudah punya progress counting, tipe/targetnya tidak bisa diubah.";
+            $flag = 1;
+        }
+    }
+}
+
+if ($flag == 1) {
+    return response()->json(['status'=>0,'title'=>'Validasi Gagal','message'=>$pesan,'alert'=>'warning']);
+}
+
+DB::beginTransaction();
+try {
             $targetPlanGlobal = round(collect($mappings)->avg(fn($m) => (float)($m['target_plan'] ?? 0)), 2);
  
             DB::table('sto_config')
@@ -652,28 +686,59 @@ if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['co
                     'updated_at'  => date('Y-m-d H:i:s'),
                 ]);
  
-            DB::table('sto_config_mapping')->where('config_id', $configId)->delete();
- 
-            foreach ($mappings as $m) {
-                $ttype = $this->normalizeTargetType($m['target_type'] ?? '');
-                DB::table('sto_config_mapping')->insert([
-                    'config_id'       => $configId,
-                    'target_type'     => $ttype,
-                    'target_ref'      => $m['target_ref'],
-                    'location_number' => $ttype === 'LOCATION' ? $m['target_ref'] : null,
-                    'sto_date'        => $m['sto_date'],
-                    'no_dari'         => $m['no_dari'],       // ← tambah
-                    'no_sampai'       => $m['no_sampai'],     // ← tambah
-                    'finish_time'     => null,
-                    'counter1_user'   => $m['counter1'],
-                    'counter2_user'   => !empty($m['counter2']) ? $m['counter2'] : null,
-                    'target_plan_loc' => (float)($m['target_plan'] ?? 0),
-                    'target_act_loc'  => 0,
-                    'notes'           => $m['note'] ?? null,
-                    'updated_by'      => Auth::user()->username,
-                    'updated_at'      => date('Y-m-d H:i:s'),
-                ]);
-            }
+           $existingIds  = DB::table('sto_config_mapping')
+    ->where('config_id', $configId)
+    ->pluck('mapping_id')
+    ->toArray();
+
+$submittedIds = [];
+
+foreach ($mappings as $m) {
+    $ttype = $this->normalizeTargetType($m['target_type'] ?? '');
+
+    $payload = [
+        'target_type'     => $ttype,
+        'target_ref'      => $m['target_ref'],
+        'location_number' => $ttype === 'LOCATION' ? $m['target_ref'] : null,
+        'sto_date'        => $m['sto_date'],
+        'no_dari'         => $m['no_dari'],
+        'no_sampai'       => $m['no_sampai'],
+        'counter1_user'   => $m['counter1'],
+        'counter2_user'   => !empty($m['counter2']) ? $m['counter2'] : null,
+        'counter3_user'   => !empty($m['counter3']) ? $m['counter3'] : null,
+        'is_blind'        => filter_var($m['is_blind'] ?? true, FILTER_VALIDATE_BOOLEAN),
+        'target_plan_loc' => (float)($m['target_plan'] ?? 0),
+        'notes'           => $m['note'] ?? null,
+        'updated_by'      => Auth::user()->username,
+        'updated_at'      => date('Y-m-d H:i:s'),
+    ];
+
+    $mappingId = !empty($m['mapping_id']) ? (int)$m['mapping_id'] : null;
+
+    if ($mappingId && in_array($mappingId, $existingIds)) {
+        // baris lama → UPDATE saja, finish_time & target_act_loc tetap terjaga
+        DB::table('sto_config_mapping')
+            ->where('mapping_id', $mappingId)
+            ->where('config_id', $configId) // guard: pastikan milik config ini
+            ->update($payload);
+        $submittedIds[] = $mappingId;
+    } else {
+        // baris baru → INSERT
+        $payload['config_id']      = $configId;
+        $payload['finish_time']    = null;
+        $payload['target_act_loc'] = 0;
+        $submittedIds[] = DB::table('sto_config_mapping')->insertGetId($payload, 'mapping_id');
+    }
+}
+
+// baris yang dihapus user dari form → DELETE
+$toDelete = array_diff($existingIds, $submittedIds);
+if (!empty($toDelete)) {
+    DB::table('sto_config_mapping')
+        ->where('config_id', $configId)
+        ->whereIn('mapping_id', $toDelete)
+        ->delete();
+}
  
             DB::commit();
  
@@ -854,40 +919,51 @@ if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['co
     }
 
    public function getMappings(Request $request)
-    {
-        $configId = Crypt::decryptString($request->config_id);
- 
-        $mappings = DB::table('sto_config_mapping as m')
-            ->leftJoin('stock_location_master as l', function ($j) {
-                $j->on('l.location_code', '=', 'm.target_ref')
-                  ->where('m.target_type', '=', 'LOCATION');
-            })
-            ->leftJoin('third_party as tp', function ($j) {
-                $j->on('tp.kode', '=', 'm.target_ref')
-                  ->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
-            })
-            ->where('m.config_id', $configId)
-            ->orderBy('m.mapping_id')
-           ->get([
-    'm.target_type',
-    'm.target_ref',
-    'm.sto_date',
-    'm.no_dari',        // ← tambah
-    'm.no_sampai',      // ← tambah
-    'm.counter1_user',
-    'm.counter2_user',
-    'm.counter3_user',
-'m.is_blind',
-    'm.target_plan_loc',
-    'l.location_name',
-    'tp.nama',
-]);
- 
-        $mappings = $mappings->map(function ($m) {
-            $m->label = $m->location_name ?? $m->nama ?? $m->target_ref;
-            return $m;
-        });
- 
-        return response()->json($mappings);
-    }
+{
+    $configId = Crypt::decryptString($request->config_id);
+
+    $mappings = DB::table('sto_config_mapping as m')
+        ->leftJoin('stock_location_master as l', function ($j) {
+            $j->on('l.location_code', '=', 'm.target_ref')
+              ->where('m.target_type', '=', 'LOCATION');
+        })
+        ->leftJoin('third_party as tp', function ($j) {
+            $j->on('tp.kode', '=', 'm.target_ref')
+              ->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
+        })
+        ->where('m.config_id', $configId)
+        ->orderBy('m.mapping_id')
+        ->select([
+            'm.mapping_id',
+            'm.target_type',
+            'm.target_ref',
+            'm.sto_date',
+            'm.no_dari',
+            'm.no_sampai',
+            'm.counter1_user',
+            'm.counter2_user',
+            'm.counter3_user',
+            'm.is_blind',
+            'm.target_plan_loc',
+            'm.finish_time',
+            'l.location_name',
+            'tp.nama',
+            DB::raw("EXISTS (
+                SELECT 1 FROM sto_hdr sh
+                WHERE sh.config_id = m.config_id
+                  AND sh.target_type = m.target_type
+                  AND sh.target_ref = m.target_ref
+            ) as has_progress"),
+        ])
+        ->get();
+
+    $mappings = $mappings->map(function ($m) {
+        $m->label        = $m->location_name ?? $m->nama ?? $m->target_ref;
+        $m->is_blind     = in_array($m->is_blind, [true, 1, '1', 't', 'true'], true);
+        $m->has_progress = in_array($m->has_progress, [true, 1, '1', 't', 'true'], true);
+        return $m;
+    });
+
+    return response()->json($mappings);
+}
 }

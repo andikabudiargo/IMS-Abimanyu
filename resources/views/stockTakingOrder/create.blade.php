@@ -145,6 +145,7 @@
 
 <div id="new_row" class="d-none">
     <div class="tanda-baris">
+        <input type="hidden" class="row-mapping-id" value="">
         <div class="form-row d-flex align-items-center">
             {{-- Tipe --}}
             <div class="col-md-1 col-12">
@@ -350,12 +351,14 @@ function placeholderForType(type) {
 // ADD ROW
 // ══════════════════════════════════════════════
 // tambah parameter noDari, noSampai
-function addMappingRow(type, ref, stoDate, c1, c2, tp, noDari, noSampai, c3, isBlind) {
+function addMappingRow(type, ref, stoDate, c1, c2, tp, noDari, noSampai, c3, isBlind, mappingId, hasProgress) {
     const $clone = $('#new_row > .tanda-baris').clone();
     cloneCount++;
-
     $('#mapping_row').append($clone);
     const $row = $('#mapping_row .tanda-baris').last();
+
+    if (mappingId) $row.find('.row-mapping-id').val(mappingId);
+    $row.attr('data-has-progress', hasProgress ? '1' : '0');
 
 
     // ── FIX: hubungkan checkbox blind dengan label via id/for unik ──
@@ -405,6 +408,23 @@ $row.find('.target-plan-input').val(tpValue);
             $row.find('.no-sampai-input').removeClass('is-invalid');
         }
     });
+
+     if (hasProgress) {
+        $row.find('.sel-type, .sel-target').prop('disabled', true).trigger('change.select2');
+        $row.find('a[onclick="removeRow(this);"]')
+            .removeAttr('onclick')
+            .off('click')
+            .on('click', function () {
+                show_msg('Warning', 'Baris ini sudah punya progress counting dan tidak bisa dihapus.', 'warning');
+            })
+            .css('opacity', 0.4);
+        $row.prepend(
+            '<div class="col-12"><small class="text-warning">' +
+            '<i data-feather="lock" style="width:12px;height:12px;"></i> ' +
+            'Sudah ada progress counting — Tipe &amp; Target terkunci' +
+            '</small></div>'
+        );
+    }
 
     updateRowCount();
     recalcGlobal();
@@ -467,6 +487,7 @@ function collectMappings() {
         const tLabel = type === 'LOCATION' ? 'Lokasi' : (type === 'SUPPLIER' ? 'Supplier' : 'Customer');
         const noDariI   = parseInt(noDari);
         const noSampaiI = parseInt(noSampai);
+        const mappingId = $row.find('.row-mapping-id').val() || null;
 
         if (!ref)   { pesan.push(`Baris ${rowNo}: ${tLabel} wajib dipilih.`); flag = 1; }
         if (!sdate) { pesan.push(`Baris ${rowNo}: STO Date wajib diisi.`); flag = 1; }
@@ -501,6 +522,7 @@ function collectMappings() {
         }
 
        mappings.push({
+    mapping_id  : mappingId,
     target_type : type,
     target_ref  : ref    || '',
     sto_date    : sdate  || '',
@@ -580,17 +602,30 @@ function simpanData() {
 function loadExistingMappings() {
     $('#mapping_row').empty();
     cloneCount = 0;
-    isLoadingMappings = true; // ← aktifkan guard
+    isLoadingMappings = true;
+
     $.get("{{ route('stockTakingOrder.getMappings') }}", { config_id: configId },
     function (data) {
-        if (!data.length) { addMappingRow(); return; }
-       data.forEach(m => addMappingRow(
-    m.target_type, m.target_ref, m.sto_date,
-    m.counter1_user, m.counter2_user, m.target_plan_loc,
-    m.no_dari, m.no_sampai, m.counter3_user, m.is_blind
-));
+
+        data.forEach(m => {
+    addMappingRow(
+        m.target_type,
+        m.target_ref,
+        m.sto_date,
+        m.counter1_user,
+        m.counter2_user,
+        m.target_plan_loc,
+        m.no_dari,
+        m.no_sampai,
+        m.counter3_user,
+        m.is_blind,
+        m.mapping_id,
+        m.has_progress   // ← tambah
+    );
+});
+
         recalcGlobal();
-        isLoadingMappings = false; // ← matikan setelah selesai
+        isLoadingMappings = false;
     }, 'json');
 }
 

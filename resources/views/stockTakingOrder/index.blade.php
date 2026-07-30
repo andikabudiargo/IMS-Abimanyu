@@ -8,67 +8,6 @@
 @endphp
 
 {{-- ════════════════════════════════════════════════
-     BANNER STATUS STO AKTIF
-     Ambil dari sto_config (header), bukan mapping.
-     STO Date dicek per-baris mapping (bisa beda-beda tanggal).
-════════════════════════════════════════════════ --}}
-@php
-    $today = date('d-m-Y');
-
-    $activeSto = DB::table('sto_config')
-        ->whereIn('status', [1, 2])
-        ->orderByDesc('config_id')
-        ->first();
-
-    // ambil ringkasan tanggal dari mapping (bisa beda2 per baris)
-    $activeMappingDates = [];
-    $isTodaySto = false;
-    if ($activeSto) {
-        $activeMappingDates = DB::table('sto_config_mapping')
-            ->where('config_id', $activeSto->config_id)
-            ->pluck('sto_date')
-            ->unique()
-            ->values();
-        $isTodaySto = $activeMappingDates->contains($today);
-    }
-@endphp
-
-@if($activeSto)
-  @if($activeSto->status == 2)
-  <div class="alert alert-primary d-flex align-items-center mb-1" style="border-left:4px solid #5a6acf;border-radius:6px;">
-      <i data-feather="activity" class="mr-75" style="width:20px;height:20px;flex-shrink:0;"></i>
-      <div>
-          <strong>STO Berjalan:</strong>
-          {{ $activeSto->sto_code }} &mdash; Periode <strong>{{ $activeSto->periode }}</strong>,
-          Tanggal: <strong>{{ $activeMappingDates->implode(', ') ?: '-' }}</strong>.
-          Target Plan <strong>{{ number_format($activeSto->target_plan, 2) }}%</strong>,
-          Realisasi <strong>{{ number_format($activeSto->target_act, 2) }}%</strong>.
-          @unless($isTodaySto)
-          <span class="text-danger" style="font-size:.8rem;">&nbsp;(Hari ini bukan tanggal STO untuk target manapun — hanya Accounting yang bisa input.)</span>
-          @endunless
-      </div>
-  </div>
-  @else
-  <div class="alert alert-info d-flex align-items-center mb-1" style="border-left:4px solid #1382a5;border-radius:6px;">
-      <i data-feather="calendar" class="mr-75" style="width:20px;height:20px;flex-shrink:0;"></i>
-      <div>
-          <strong>STO Terjadwal:</strong>
-          {{ $activeSto->sto_code }} &mdash; periode {{ $activeSto->periode }},
-          tanggal: <strong>{{ $activeMappingDates->implode(', ') ?: '-' }}</strong>.
-      </div>
-  </div>
-  @endif
-@else
-  <div class="alert alert-warning d-flex align-items-center mb-1" style="border-left:4px solid #d98a0b;border-radius:6px;">
-      <i data-feather="alert-triangle" class="mr-75" style="width:20px;height:20px;flex-shrink:0;"></i>
-      <div>
-          <strong>Tidak ada STO aktif.</strong>
-          Buat STO baru untuk menjadwalkan stock count.
-      </div>
-  </div>
-@endif
-
-{{-- ════════════════════════════════════════════════
      FILTER
 ════════════════════════════════════════════════ --}}
 <section id="sto-index">
