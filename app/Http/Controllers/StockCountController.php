@@ -943,14 +943,12 @@ $ownerId   = $existingDtl->{$userField} ?? null;
     // ══════════════════════════════════════════════
     private function resolveStatus($dtl, $mapping)
 {
-    // NON-BLIND: counter menghitung artikel berbeda (parsial) → tidak perlu saling cocok
     if (!($mapping->is_blind ?? true)) {
         $qty = $dtl->qty_counter1 ?? $dtl->qty_counter2 ?? ($dtl->qty_counter3 ?? null);
         if (is_null($qty)) return ['INCOMPLETE', null, null];
         return $this->compareToSystem($qty, $dtl, $mapping);
     }
 
-    // BLIND: semua counter yang terdaftar di mapping wajib isi qty yang sama utk artikel ini
     $activeQty = [];
     if (!empty($mapping->counter1_user)) $activeQty[] = $dtl->qty_counter1;
     if (!empty($mapping->counter2_user)) $activeQty[] = $dtl->qty_counter2;
@@ -960,23 +958,24 @@ $ownerId   = $existingDtl->{$userField} ?? null;
         if (is_null($q)) return ['INCOMPLETE', null, null];
     }
 
-    $unique = array_unique(array_map('floatval', $activeQty));
+    // ── bulatkan ke 2 desimal sebelum dibandingkan, hindari false-mismatch akibat floating point ──
+    $unique = array_unique(array_map(fn($q) => round((float) $q, 2), $activeQty));
     if (count($unique) > 1) return ['NOT MATCH', null, null];
 
     return $this->compareToSystem($activeQty[0], $dtl, $mapping);
 }
 
     private function compareToSystem($qty, $dtl, $mapping)
-    {
-        if ($dtl->is_manual || is_null($dtl->article_code)) return ['MATCH', null, 0];
-        if (empty($dtl->location_number)) {
-            $variance = (float)$qty - 0;
-            return [($variance == 0 ? 'MATCH' : 'RECOUNT'), 0, $variance];
-        }
-        $qtySystem = (float) $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
-        $variance  = (float)$qty - $qtySystem;
-        return [($variance == 0 ? 'MATCH' : 'RECOUNT'), $qtySystem, $variance];
+{
+    if ($dtl->is_manual || is_null($dtl->article_code)) return ['MATCH', null, 0];
+    if (empty($dtl->location_number)) {
+        $variance = round((float)$qty - 0, 2);
+        return [($variance == 0 ? 'MATCH' : 'RECOUNT'), 0, $variance];
     }
+    $qtySystem = (float) $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
+    $variance  = round((float)$qty - $qtySystem, 2);
+    return [($variance == 0 ? 'MATCH' : 'RECOUNT'), $qtySystem, $variance];
+}
 
     private function getLastQty($article, $location, $stoDate)
 {
