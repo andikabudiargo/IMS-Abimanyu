@@ -525,13 +525,10 @@
     </li>
     @endcan
 
-  </ul>
+     </ul>
 </li>
 
-        <li class=" navigation-header"><span data-i18n="Production">Production</span><i data-feather="more-horizontal"></i>
-        </li>
-
-        <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods']) ? 'active' : '' }} nav-item">
+     <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='repeat'></i>
             <span class="menu-title text-truncate" data-i18n="Production">Production
@@ -560,10 +557,7 @@
           </ul>
         </li>
 
-        <li class=" navigation-header"><span data-i18n="Production">Quality</span><i data-feather="more-horizontal"></i>
-        </li>
-
-        <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods']) ? 'active' : '' }} nav-item">
+         <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='zoom-in'></i>
             <span class="menu-title text-truncate" data-i18n="Production">Quality Control
