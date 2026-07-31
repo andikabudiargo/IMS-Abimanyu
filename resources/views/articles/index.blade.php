@@ -106,71 +106,85 @@
   </section>
 
   {{-- 3 STAT CARDS --}}
-  <section id="section-stats">
-      <div class="row">
+{{-- STATS + PIE CHART --}}
+<section id="section-stats">
+    <div class="row match-height">
 
-          {{-- Total --}}
-          <div class="col-lg-4 col-md-4 col-sm-12">
-              <div class="card stat-card cursor-pointer" id="cardTotal" data-filter="">
-                  <div class="card-body d-flex align-items-center justify-content-between py-1">
-                      <div>
-                          <h6 class="text-muted mb-25">Total Article</h6>
-                          <h2 class="font-weight-bolder mb-0" id="statTotal">-</h2>
-                      </div>
-                      <div class="avatar bg-light-primary p-50">
-                          <span class="avatar-content">
-                              <i data-feather="layers" class="font-medium-5"></i>
-                          </span>
-                      </div>
-                  </div>
-                  <div class="card-footer py-50 bg-light-primary" style="border-radius:0 0 .357rem .357rem">
-                      <small class="text-primary">Klik untuk tampilkan semua</small>
-                  </div>
-              </div>
-          </div>
+        {{-- KIRI: 3 card vertikal --}}
+        <div class="col-lg-6 col-md-6 col-sm-12">
+            <div class="d-flex flex-column h-100" style="gap: 1rem;">
 
-          {{-- Active --}}
-          <div class="col-lg-4 col-md-4 col-sm-12">
-              <div class="card stat-card cursor-pointer" id="cardActive" data-filter="1">
-                  <div class="card-body d-flex align-items-center justify-content-between py-1">
-                      <div>
-                          <h6 class="text-muted mb-25">Active</h6>
-                          <h2 class="font-weight-bolder mb-0" id="statActive">-</h2>
-                      </div>
-                      <div class="avatar bg-light-success p-50">
-                          <span class="avatar-content">
-                              <i data-feather="check-circle" class="font-medium-5"></i>
-                          </span>
-                      </div>
-                  </div>
-                  <div class="card-footer py-50 bg-light-success" style="border-radius:0 0 .357rem .357rem">
-                      <small class="text-success">Klik untuk filter Active</small>
-                  </div>
-              </div>
-          </div>
+                <div class="card stat-card cursor-pointer mb-0 flex-fill" id="cardTotal" data-filter="">
+                    <div class="card-body d-flex align-items-center justify-content-between py-1">
+                        <div>
+                            <h6 class="text-muted mb-25">Total Article</h6>
+                            <h2 class="font-weight-bolder mb-0" id="statTotal">-</h2>
+                        </div>
+                        <div class="avatar bg-light-primary p-50">
+                            <span class="avatar-content">
+                                <i data-feather="layers" class="font-medium-5"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-footer py-50 bg-light-primary" style="border-radius:0 0 .357rem .357rem">
+                        <small class="text-primary">Klik untuk tampilkan semua</small>
+                    </div>
+                </div>
 
-          {{-- Freeze --}}
-          <div class="col-lg-4 col-md-4 col-sm-12">
-              <div class="card stat-card cursor-pointer" id="cardFreeze" data-filter="0">
-                  <div class="card-body d-flex align-items-center justify-content-between py-1">
-                      <div>
-                          <h6 class="text-muted mb-25">Freeze</h6>
-                          <h2 class="font-weight-bolder mb-0" id="statFreeze">-</h2>
-                      </div>
-                      <div class="avatar bg-light-danger p-50">
-                          <span class="avatar-content">
-                              <i data-feather="slash" class="font-medium-5"></i>
-                          </span>
-                      </div>
-                  </div>
-                  <div class="card-footer py-50 bg-light-danger" style="border-radius:0 0 .357rem .357rem">
-                      <small class="text-danger">Klik untuk filter Freeze</small>
-                  </div>
-              </div>
-          </div>
+                <div class="card stat-card cursor-pointer mb-0 flex-fill" id="cardActive" data-filter="1">
+                    <div class="card-body d-flex align-items-center justify-content-between py-1">
+                        <div>
+                            <h6 class="text-muted mb-25">Active</h6>
+                            <h2 class="font-weight-bolder mb-0" id="statActive">-</h2>
+                        </div>
+                        <div class="avatar bg-light-success p-50">
+                            <span class="avatar-content">
+                                <i data-feather="check-circle" class="font-medium-5"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-footer py-50 bg-light-success" style="border-radius:0 0 .357rem .357rem">
+                        <small class="text-success">Klik untuk filter Active</small>
+                    </div>
+                </div>
 
-      </div>
-  </section>
+                <div class="card stat-card cursor-pointer mb-0 flex-fill" id="cardFreeze" data-filter="0">
+                    <div class="card-body d-flex align-items-center justify-content-between py-1">
+                        <div>
+                            <h6 class="text-muted mb-25">Freeze</h6>
+                            <h2 class="font-weight-bolder mb-0" id="statFreeze">-</h2>
+                        </div>
+                        <div class="avatar bg-light-danger p-50">
+                            <span class="avatar-content">
+                                <i data-feather="slash" class="font-medium-5"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-footer py-50 bg-light-danger" style="border-radius:0 0 .357rem .357rem">
+                        <small class="text-danger">Klik untuk filter Freeze</small>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        {{-- KANAN: Pie Chart --}}
+<div class="col-lg-6 col-md-6 col-sm-12">
+    <div class="card h-100 mb-0">
+        <div class="card-header pb-0">
+            <h6 class="text-muted mb-25" style="padding-left: 1rem;">QTY BASED ON ARTICLE TYPE</h6>
+        </div>
+        <div class="card-body" style="padding: 2rem;">
+            <div style="position: relative; height: 270px; width: 100%;">
+                <canvas id="pieArticleType"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+        </div>
+
+    </div>
+</section>
 
   {{-- TABLE --}}
   <section id="table-article">
@@ -236,11 +250,78 @@
       border: 2px solid #7367f0;
   }
   .cursor-pointer { cursor: pointer; }
+
+  #section-stats .stat-card {
+    height: 100%;
+}
+.card-header .heading-elements a {
+    color: #667085;
+    transition: color 0.15s ease;
+}
+.card-header .heading-elements a:hover {
+    color: #344054;
+}
+#section-stats .row.match-height {
+    align-items: stretch;
+}
+/* Jarak konsisten antar section */
+#section-safety-stock,
+#section-stats,
+#table-article {
+    margin-bottom: 1.5rem;
+}
+
+/* Biar row di dalam section gak nempel juga */
+#section-stats .row {
+    margin-bottom: 0;
+}
+
+#section-stats .card,
+#section-safety-stock .card,
+#table-article .card {
+    border: 1px solid #e4e7ec;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+    border-radius: 8px;
+}
+
+/* card-header lebih formal: border bawah tipis, bukan cuma padding */
+#section-stats .card-header,
+#table-article .card-header {
+    padding: 1rem 1.25rem;
+}
+
+#section-stats .card-header .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1d2939;
+    margin-bottom: 0;
+}
+
+.stat-card .avatar {
+    border-radius: 8px;   /* kotak rounded, bukan bulat penuh - kesan lebih enterprise */
+}
+
+.stat-card h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #101828;
+}
+
+.stat-card h6 {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #667085;
+}
 </style>
 @endsection
 
 @section('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script type="text/javascript">
+    
 
   // ── state filter status dari card ──────────────────────────
   let activeStatusFilter = '';   // '' = semua, '1' = active, '0' = freeze
@@ -338,6 +419,7 @@
   $(document).ready(function(){
 
       loadStats();   // load angka cards saat halaman dibuka
+      loadPieChartByType();
 
       $(document).on('click', '#deleteButton', function(event) {
           event.preventDefault();
@@ -433,6 +515,139 @@ updateDataSafetyStock = (file, type) => {
         }
     });
 };
+
+let pieChartInstance = null;
+
+const pieColors = [
+    '#4C6FFF', '#00A76F', '#F04438', '#F79009',
+    '#0BA5EC', '#667085', '#7A5AF8', '#36BFFA',
+    '#FF6B6B', '#12B76A'
+];
+
+// Plugin custom untuk nulis teks di tengah doughnut
+const centerTextPlugin = {
+    id: 'centerText',
+    afterDraw: (chart) => {
+        const { ctx, chartArea: { width, height, left, top } } = chart;
+        const active = chart.getActiveElements();
+
+        ctx.save();
+        const centerX = left + width / 2;
+        const centerY = top + height / 2;
+
+        if (active.length > 0) {
+            const idx = active[0].index;
+            const label = chart.data.labels[idx];
+            const value = chart.data.datasets[0].data[idx];
+            const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            const pct = ((value / total) * 100).toFixed(1);
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.font = '600 11px Inter, sans-serif';
+            ctx.fillStyle = '#475467';
+            ctx.fillText(label, centerX, centerY - 12);
+
+            ctx.font = '700 18px Inter, sans-serif';
+            ctx.fillStyle = '#101828';
+            ctx.fillText(value.toLocaleString('id-ID'), centerX, centerY + 6);
+
+            ctx.font = '500 10px Inter, sans-serif';
+            ctx.fillStyle = '#667085';
+            ctx.fillText(`${pct}%`, centerX, centerY + 22);
+        } else {
+            const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.font = '600 10px Inter, sans-serif';
+            ctx.fillStyle = '#667085';
+            ctx.fillText('TOTAL', centerX, centerY - 10);
+
+            ctx.font = '700 20px Inter, sans-serif';
+            ctx.fillStyle = '#101828';
+            ctx.fillText(total.toLocaleString('id-ID'), centerX, centerY + 10);
+        }
+        ctx.restore();
+    }
+};
+
+function loadPieChartByType() {
+    $.get("{{ route('article.statsByType') }}", function(res) {
+        const ctx = document.getElementById('pieArticleType').getContext('2d');
+
+        if (pieChartInstance) {
+            pieChartInstance.destroy();
+        }
+
+        const total = res.values.reduce((a, b) => a + b, 0);
+
+        pieChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: res.labels,
+                datasets: [{
+                    data: res.values,
+                    backgroundColor: pieColors,
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                    hoverOffset: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,   // ⬅️ KUNCI UTAMA — chart tidak dipaksa persegi
+                cutout: '65%',
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 800,
+                    easing: 'easeOutQuart'
+                },
+                onHover: (event, activeElements, chart) => {
+                    chart.draw();
+                },
+                plugins: {
+                    legend: {
+                        position: 'left',
+                        align: 'center',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 8,          // ⬅️ dot lebih kecil
+                            boxHeight: 8,
+                            padding: 10,          // ⬅️ jarak antar item lebih rapat
+                            font: { size: 11, weight: '500', family: "'Inter', sans-serif" },
+                            color: '#667085',
+
+                            generateLabels: function(chart) {
+    const dataset = chart.data.datasets[0];
+    return chart.data.labels.map((code, i) => {
+        const value = dataset.data[i];
+        const name = res.names[i] || '';
+
+        return {
+            text: `${code} - ${name} (${value.toLocaleString('id-ID')})`,
+            fillStyle: dataset.backgroundColor[i],
+            strokeStyle: dataset.borderColor,
+            lineWidth: 1,
+            pointStyle: 'circle',
+            index: i
+        };
+    });
+}
+                        }
+                    },
+                    tooltip: { enabled: false },
+                    datalabels: { display: false }
+                }
+            },
+            plugins: [ChartDataLabels, centerTextPlugin]
+        });
+    });
+}
 
   $.ajaxSetup({
       headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }

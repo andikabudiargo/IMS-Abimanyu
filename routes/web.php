@@ -214,6 +214,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('articles/movement2',['as'=>'article.movement2','uses'=>'ArticleController@movement2']);
 	Route::get('article/stats', ['as'=>'article.stats','uses'=>'ArticleController@getStats']);
 	Route::get('article/request/stats', ['as'=>'article.request.stats','uses'=>'ArticleController@getStatsRequest']);
+	Route::get('article/stats-by-type', ['as'=>'article.statsByType','uses'=>'ArticleController@getStatsByType']);
 
 	Route::get('articles/request',['as'=>'article.request','uses'=>'ArticleController@requestIndex']);
 	Route::get('articles/request/list',['as'=>'article.request.list','uses'=>'ArticleController@requestList']);

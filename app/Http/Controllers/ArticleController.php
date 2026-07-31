@@ -2312,5 +2312,25 @@ private function buildSummaryRow(array $p)
                 return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert));
             }
         }
+
+        public function getStatsByType(Request $request)
+{
+    $data = DB::table('article')
+        ->leftJoin('article_types', 'article_types.code', '=', 'article.article_type')
+        ->select(
+            'article.article_type as code',
+            DB::raw("COALESCE(article_types.name, 'Unknown') as type_name"),
+            DB::raw('count(*) as total_qty')
+        )
+        ->groupBy('article.article_type', 'article_types.name')
+        ->orderBy('article.article_type')
+        ->get();
+
+    return response()->json([
+        'labels' => $data->pluck('code'),
+        'names'  => $data->pluck('type_name'),   // ⬅️ tambahan baru
+        'values' => $data->pluck('total_qty'),
+    ]);
+}
         
     }
