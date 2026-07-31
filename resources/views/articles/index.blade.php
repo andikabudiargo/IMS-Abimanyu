@@ -346,92 +346,93 @@
       });
 
       $('#frmExcel').on('submit', function(event){
-          event.preventDefault();
-          $.ajax({
-              url: "{{ route('articles.safetyStock.import.excel') }}",
-              method: "POST",
-              data: new FormData(this),
-              dataType: "json",
-              contentType: false,
-              cache: false,
-              processData: false,
-              beforeSend: function(){
-                  $('#uploadExcel').attr('disabled','disabled');
-              },
-             success: function(data){
-    $('#file').val(null);
-    $('#uploadExcel').removeAttr('disabled');
+    event.preventDefault();
+    $.ajax({
+        url: "{{ route('articles.safetyStock.import.excel') }}",
+        method: "POST",
+        data: new FormData(this),
+        dataType: "json",
+        contentType: false,
+        cache: false,
+        processData: false,
+        beforeSend: function(){
+            $('#uploadExcel').attr('disabled','disabled');
+        },
+        success: function(data){
+            $('#file').val(null);
+            $('#uploadExcel').removeAttr('disabled');
 
-    if(data.status == 1){
-        Swal.fire({
-            title: "Proses validasi...",
-            icon: "warning",
-            showConfirmButton: false,
-            didOpen: () => { Swal.showLoading(); },
-        });
-
-        let timerId = setInterval(() => checkVariable(), 1000);
-        function checkVariable() {
-            if (data.dataDetail.length > 0) {
-                clearInterval(timerId);
-                $(".loading-spinner-container").removeClass("-show");
+            if(data.status == 1){
                 Swal.fire({
-                    title: `Yakin akan proses update sejumlah ${data.JumlahData} data?`,
-                    showDenyButton: true,
-                    confirmButtonText: 'Yes',
-                    denyButtonText: 'Cancel',
-                    customClass: {
-                        actions: 'my-actions',
-                        cancelButton: 'order-1 right-gap',
-                        confirmButton: 'order-2',
-                        denyButton: 'order-3',
-                    },
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        updateDataSafetyStock(data.namaFile, 'update');
-                    } else if (result.isDenied) {
-                        updateDataSafetyStock(data.namaFile, 'cancel');
+                    title: "Proses validasi...",
+                    icon: "warning",
+                    showConfirmButton: false,
+                    didOpen: () => { Swal.showLoading(); },
+                });
+
+                let timerId = setInterval(() => checkVariable(), 1000);
+                function checkVariable() {
+                    if (data.dataDetail.length > 0) {
+                        clearInterval(timerId);
+                        $(".loading-spinner-container").removeClass("-show");
+                        Swal.fire({
+                            title: `Yakin akan proses update sejumlah ${data.JumlahData} data?`,
+                            showDenyButton: true,
+                            confirmButtonText: 'Yes',
+                            denyButtonText: 'Cancel',
+                            customClass: {
+                                actions: 'my-actions',
+                                cancelButton: 'order-1 right-gap',
+                                confirmButton: 'order-2',
+                                denyButton: 'order-3',
+                            },
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                updateDataSafetyStock(data.namaFile, 'update');
+                            } else if (result.isDenied) {
+                                updateDataSafetyStock(data.namaFile, 'cancel');
+                            }
+                        });
                     }
+                }
+            } else {
+                $(".loading-spinner-container").removeClass("-show");
+
+                let errorList = Array.isArray(data.message)
+                    ? data.message.map(m => Array.isArray(m) ? m[0] : m).join('<br>')
+                    : data.message;
+
+                Swal.fire({
+                    title: data.title,
+                    html: (data.pesan ? data.pesan + '<br><br>' : '') + errorList,
+                    icon: 'error'
                 });
             }
+        },
+        error: function(xhr) {
+            let err = JSON.parse(xhr.responseText);
+            Swal.fire('Error..', err.message, 'error');
+            $(".loading-spinner-container").removeClass("-show");
+            $('#uploadExcel').removeAttr('disabled');
         }
-    } else {
-        // Validasi gagal (status == 0) - tampilkan error ke user
-        $(".loading-spinner-container").removeClass("-show");
+    });   // ⬅️ TUTUP $.ajax({...})
+});       // ⬅️ TUTUP .on('submit', function(event){...})
 
-        let errorList = Array.isArray(data.message)
-            ? data.message.map(m => Array.isArray(m) ? m[0] : m).join('<br>')
-            : data.message;
-
-        Swal.fire({
-            title: data.title,
-            html: (data.pesan ? data.pesan + '<br><br>' : '') + errorList,
-            icon: 'error'
-        });
-    }
-},
-error: function(xhr) {
-    let err = JSON.parse(xhr.responseText);
-    Swal.fire('Error..', err.message, 'error');
-    $(".loading-spinner-container").removeClass("-show");
-    $('#uploadExcel').removeAttr('disabled');
-}
-
-  updateDataSafetyStock = (file, type) => {
-      $.ajax({
-          url: "{{ route('articles.safetyStock.update') }}",
-          method: "POST",
-          data: { file: file, type: type },
-          dataType: "json",
-          success: function(data){
-              show_msg(data.title, data.message, data.alert);
-              loadStats();   // refresh angka cards setelah update
-          },
-          error: function(){
-              Swal.fire('Error..','Error','error');
-          }
-      });
-  };
+updateDataSafetyStock = (file, type) => {
+    $.ajax({
+        url: "{{ route('articles.safetyStock.update') }}",
+        method: "POST",
+        data: { file: file, type: type },
+        dataType: "json",
+        success: function(data){
+            show_msg(data.title, data.message, data.alert);
+            loadStats();
+        },
+        error: function(){
+            Swal.fire('Error..','Error','error');
+        }
+    });
+};
 
   $.ajaxSetup({
       headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
