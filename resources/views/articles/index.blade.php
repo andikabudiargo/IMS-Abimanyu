@@ -86,10 +86,10 @@
                     </div>
                 </div>
                 <div class="col-lg-6 col-md-12">
-                    <button type="button" class="btn btn-primary">
-                        <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
-                        <span class="align-middle d-sm-inline-block d-none" id="uploadExcel">Upload Excel</span>
-                    </button>
+                    <button type="submit" class="btn btn-primary">
+    <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+    <span class="align-middle d-sm-inline-block d-none" id="uploadExcel">Upload Excel</span>
+</button>
                 </div>
             </div>
             <div class="form-row">
@@ -358,51 +358,64 @@
               beforeSend: function(){
                   $('#uploadExcel').attr('disabled','disabled');
               },
-              success: function(data){
-                  $('#file').val(null);
-                  if(data.status == 1){
-                      Swal.fire({
-                          title: "Proses validasi...",
-                          icon: "warning",
-                          showConfirmButton: false,
-                          didOpen: () => { Swal.showLoading(); },
-                      });
+             success: function(data){
+    $('#file').val(null);
+    $('#uploadExcel').removeAttr('disabled');
 
-                      let timerId = setInterval(() => checkVariable(), 1000);
-                      function checkVariable() {
-                          if (data.dataDetail.length > 0) {
-                              clearInterval(timerId);
-                              $(".loading-spinner-container").removeClass("-show");
-                              Swal.fire({
-                                  title: `Yakin akan proses update sejumlah ${data.JumlahData} data?`,
-                                  showDenyButton: true,
-                                  confirmButtonText: 'Yes',
-                                  denyButtonText: 'Cancel',
-                                  customClass: {
-                                      actions: 'my-actions',
-                                      cancelButton: 'order-1 right-gap',
-                                      confirmButton: 'order-2',
-                                      denyButton: 'order-3',
-                                  },
-                              }).then((result) => {
-                                  if (result.isConfirmed) {
-                                      updateDataSafetyStock(data.namaFile, 'update');
-                                  } else if (result.isDenied) {
-                                      updateDataSafetyStock(data.namaFile, 'cancel');
-                                  }
-                              });
-                          }
-                      }
-                  }
-              },
-              error: function(xhr) {
-                  let err = JSON.parse(xhr.responseText);
-                  Swal.fire('Error..', err.message, 'error');
-                  $(".loading-spinner-container").removeClass("-show");
-              }
-          });
-      });
-  });
+    if(data.status == 1){
+        Swal.fire({
+            title: "Proses validasi...",
+            icon: "warning",
+            showConfirmButton: false,
+            didOpen: () => { Swal.showLoading(); },
+        });
+
+        let timerId = setInterval(() => checkVariable(), 1000);
+        function checkVariable() {
+            if (data.dataDetail.length > 0) {
+                clearInterval(timerId);
+                $(".loading-spinner-container").removeClass("-show");
+                Swal.fire({
+                    title: `Yakin akan proses update sejumlah ${data.JumlahData} data?`,
+                    showDenyButton: true,
+                    confirmButtonText: 'Yes',
+                    denyButtonText: 'Cancel',
+                    customClass: {
+                        actions: 'my-actions',
+                        cancelButton: 'order-1 right-gap',
+                        confirmButton: 'order-2',
+                        denyButton: 'order-3',
+                    },
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        updateDataSafetyStock(data.namaFile, 'update');
+                    } else if (result.isDenied) {
+                        updateDataSafetyStock(data.namaFile, 'cancel');
+                    }
+                });
+            }
+        }
+    } else {
+        // Validasi gagal (status == 0) - tampilkan error ke user
+        $(".loading-spinner-container").removeClass("-show");
+
+        let errorList = Array.isArray(data.message)
+            ? data.message.map(m => Array.isArray(m) ? m[0] : m).join('<br>')
+            : data.message;
+
+        Swal.fire({
+            title: data.title,
+            html: (data.pesan ? data.pesan + '<br><br>' : '') + errorList,
+            icon: 'error'
+        });
+    }
+},
+error: function(xhr) {
+    let err = JSON.parse(xhr.responseText);
+    Swal.fire('Error..', err.message, 'error');
+    $(".loading-spinner-container").removeClass("-show");
+    $('#uploadExcel').removeAttr('disabled');
+}
 
   updateDataSafetyStock = (file, type) => {
       $.ajax({
