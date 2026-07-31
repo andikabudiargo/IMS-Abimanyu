@@ -327,6 +327,9 @@
                                           data-min-package="{{ $l->min_package }}"
                                           data-my-qty="{{ $l->my_qty }}"
                                           data-note="{{ $l->note }}"
+                                          data-qty-counter1="{{ $l->qty_counter1 }}"
+data-qty-counter2="{{ $l->qty_counter2 }}"
+data-qty-counter3="{{ $l->qty_counter3 }}"
                                           data-location-number="{{ $l->location_number }}"
                                           data-location-name="{{ $l->location_name }}">
                                         <td class="scc-idx text-muted">{{ $li + 1 }}</td>
@@ -492,6 +495,7 @@
 const encMappingId  = "{{ $encMappingId }}";
 const IS_AUTO       = {{ $isAuto ? 'true' : 'false' }};
 const IS_PARTNER    = {{ $isPartner ? 'true' : 'false' }};
+const IS_ACCOUNTING = {{ $accessRole == 'accounting' ? 'true' : 'false' }};
 const MANUAL_PREFIX = 'MANUAL::';
 // dipakai untuk isi ulang dropdown Lokasi di modal Edit (select2 butuh option di-generate manual)
 const LOCATIONS_DATA = {!! json_encode($isPartner ? $locations->map(fn($l) => ['code' => $l->location_code, 'name' => $l->location_name])->values() : []) !!};
@@ -951,6 +955,9 @@ function renderRowToSheet(r, stoNumber) {
           data-uom="${r.uom ?? ''}"
           data-min-package="${r.min_package ?? ''}"
           data-my-qty="${r.my_qty ?? ''}"
+          data-qty-counter1="${r.qty_counter1 ?? ''}"
+data-qty-counter2="${r.qty_counter2 ?? ''}"
+data-qty-counter3="${r.qty_counter3 ?? ''}"
           data-note="${r.note ?? ''}"
           data-location-number="${r.location_number ?? ''}"
           data-location-name="${r.location_name ?? ''}">
@@ -1046,7 +1053,8 @@ function renderRowToSheet(r, stoNumber) {
 // ════════════════════════════════════════════════
 function deleteLine(dtlId, el) {
     Swal.fire({
-        title: 'Hapus Baris Ini?', icon: 'warning',
+        title: IS_ACCOUNTING ? 'Hapus Baris Ini? (semua qty 3 counter ikut hilang)' : 'Hapus Baris Ini?',
+        icon: 'warning',
         showCancelButton: true, confirmButtonText: 'Hapus'
     }).then(r => {
         if (!r.isConfirmed) return;
@@ -1094,18 +1102,41 @@ method: 'DELETE',
 // ════════════════════════════════════════════════
 function editLine(dtlId, el) {
     const $row = $(el).closest('tr.sto-line');
- 
+
     const curArticleCode = $row.data('article-code') || '';
     const curArticleDesc = ($row.data('article-desc') || '').toString();
     const curIsManual    = $row.data('is-manual') == '1' || $row.data('is-manual') === 1;
     const curUom         = ($row.data('uom') || '').toString();
     const curMinPkg      = $row.data('min-package');
     const curQty         = $row.data('my-qty');
+    const curQtyC1       = $row.data('qty-counter1');
+    const curQtyC2       = $row.data('qty-counter2');
+    const curQtyC3       = $row.data('qty-counter3');
     const curNote        = ($row.data('note') || '').toString();
     const curLocation    = ($row.data('location-number') || '').toString();
- 
+
+    const qtyBlock = IS_ACCOUNTING ? `
+        <div class="form-row mt-50">
+            <div class="col-4">
+                <label class="scc-field-label">Qty C1</label>
+                <input type="text" id="editQtyC1" class="form-control text-right" value="${curQtyC1 ?? ''}">
+            </div>
+            <div class="col-4">
+                <label class="scc-field-label">Qty C2</label>
+                <input type="text" id="editQtyC2" class="form-control text-right" value="${curQtyC2 ?? ''}">
+            </div>
+            <div class="col-4">
+                <label class="scc-field-label">Qty C3</label>
+                <input type="text" id="editQtyC3" class="form-control text-right" value="${curQtyC3 ?? ''}">
+            </div>
+        </div>` : `
+        <div class="col-4">
+            <label class="scc-field-label">QTY*</label>
+            <input type="text" id="editQty" class="form-control text-right" value="${curQty ?? ''}">
+        </div>`;
+
     Swal.fire({
-        title: 'Edit Baris',
+        title: IS_ACCOUNTING ? 'Edit Baris (Leo — 3 Qty Counter)' : 'Edit Baris',
         html: `
             <div class="text-left">
                 ${IS_PARTNER ? `
@@ -1118,19 +1149,17 @@ function editLine(dtlId, el) {
                     <select id="editArticleSelect" class="form-control" style="width:100%"></select>
                 </div>
                 <div class="form-row">
-                    <div class="col-4">
+                    <div class="col-${IS_ACCOUNTING ? '6' : '4'}">
                         <label class="scc-field-label">UOM</label>
                         <div id="editUomWrap"><select id="editUomSelect" class="form-control"></select></div>
                     </div>
-                    <div class="col-4">
+                    <div class="col-${IS_ACCOUNTING ? '6' : '4'}">
                         <label class="scc-field-label">Min Pkg</label>
                         <input type="text" id="editMinPkg" class="form-control text-right" readonly>
                     </div>
-                    <div class="col-4">
-                        <label class="scc-field-label">QTY*</label>
-                        <input type="text" id="editQty" class="form-control text-right" value="${curQty ?? ''}">
-                    </div>
+                    ${IS_ACCOUNTING ? '' : qtyBlock}
                 </div>
+                ${IS_ACCOUNTING ? qtyBlock : ''}
                 <div class="form-group mt-50 mb-0">
                     <label class="scc-field-label">Note</label>
                     <input type="text" id="editNote" class="form-control" value="${curNote}">
@@ -1228,56 +1257,70 @@ function editLine(dtlId, el) {
         },
         preConfirm: () => {
             const val = $('#editArticleSelect').val();
-            const qty = ($('#editQty').val() || '').replace(/,/g, '');
- 
             if (!val) { Swal.showValidationMessage('Pilih atau ketik artikel dulu.'); return false; }
-            if (!qty || parseFloat(qty) <= 0) { Swal.showValidationMessage('QTY harus lebih dari 0.'); return false; }
 
             const locationVal = IS_PARTNER ? ($('#editLocationSelect').val() || '') : '';
             if (IS_PARTNER && !locationVal) { Swal.showValidationMessage('Lokasi wajib dipilih.'); return false; }
- 
+
             const manual = !!val && val.indexOf(MANUAL_PREFIX) === 0;
             const article = manual ? '' : val;
             const articleDesc = manual
                 ? val.substring(MANUAL_PREFIX.length)
                 : ($('#editArticleSelect').find(':selected').data('desc') || $('#editArticleSelect').find(':selected').text().split(' - ').slice(1).join(' - ') || '');
             const uomVal = ($('#editUomSelect').val() || '').trim();
- 
+
             if (manual && !uomVal) { Swal.showValidationMessage('UOM wajib diisi untuk artikel manual.'); return false; }
- 
-            return {
+
+            const payload = {
                 is_manual: manual ? 1 : 0,
                 article: article,
                 article_desc: articleDesc,
                 uom: uomVal,
                 min_package: $('#editMinPkg').val(),
-                qty: qty,
                 note: $('#editNote').val(),
                 location_number: locationVal,
             };
+
+            if (IS_ACCOUNTING) {
+                const c1 = ($('#editQtyC1').val() || '').replace(/,/g,'');
+                const c2 = ($('#editQtyC2').val() || '').replace(/,/g,'');
+                const c3 = ($('#editQtyC3').val() || '').replace(/,/g,'');
+                if (![c1,c2,c3].some(v => v !== '' && parseFloat(v) > 0)) {
+                    Swal.showValidationMessage('Minimal salah satu QTY counter harus > 0.'); return false;
+                }
+                payload.qty_counter1 = c1;
+                payload.qty_counter2 = c2;
+                payload.qty_counter3 = c3;
+            } else {
+                const qty = ($('#editQty').val() || '').replace(/,/g, '');
+                if (!qty || parseFloat(qty) <= 0) { Swal.showValidationMessage('QTY harus lebih dari 0.'); return false; }
+                payload.qty = qty;
+            }
+
+            return payload;
         }
     }).then(result => {
         if (!result.isConfirmed || !result.value) return;
- 
-      $.ajax({
-    url: "{{ route('stockCount.updateLine', ['dtlId' => '__ID__']) }}".replace('__ID__', dtlId),
-    method: 'PUT',
-    data: Object.assign({ _token: "{{ csrf_token() }}" }, result.value),
-    dataType: 'json',
-    success: function(res) {
-        if (res.status == 1) {
-            renderRowToSheet(res.row, res.row.sto_number);
-            updateRealisasi(res.target_act_loc);
-            updateStatusStats();
-            show_msg(res.title, res.message, res.alert);
-        } else {
-            (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
-        }
-    },
-    error: function() {
-        show_msg('Error', 'Terjadi kesalahan, cek console.', 'error');
-    }
-});
+
+        $.ajax({
+            url: "{{ route('stockCount.updateLine', ['dtlId' => '__ID__']) }}".replace('__ID__', dtlId),
+            method: 'PUT',
+            data: Object.assign({ _token: "{{ csrf_token() }}" }, result.value),
+            dataType: 'json',
+            success: function(res) {
+                if (res.status == 1) {
+                    renderRowToSheet(res.row, res.row.sto_number);
+                    updateRealisasi(res.target_act_loc);
+                    updateStatusStats();
+                    show_msg(res.title, res.message, res.alert);
+                } else {
+                    (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
+                }
+            },
+            error: function() {
+                show_msg('Error', 'Terjadi kesalahan, cek console.', 'error');
+            }
+        });
     });
 }
 
