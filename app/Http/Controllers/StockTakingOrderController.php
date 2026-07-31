@@ -91,23 +91,24 @@ class StockTakingOrderController extends Controller
     // KOLOM TABLE DETAIL — tambah 'target_type'
     // ══════════════════════════════════════════════
     public function getTableColoumnDetail()
-    {
-        $kolom =
-        [
-            ['data'=>'target_type','name'=>'target_type','title'=>'Tipe'],
-            ['data'=>'date','name'=>'date','title'=>'STO Date'],
-            ['data'=>'periode','name'=>'periode','title'=>'Periode'],
-            ['data'=>'location','name'=>'location','title'=>'Target'],
-            ['data'=>'counter_user_1','name'=>'counter_user_1','title'=>'Counter 1'],
-            ['data'=>'counter_user_2','name'=>'counter_user_2','title'=>'Counter 2'],
-            ['data'=>'target_plan_loc','name'=>'target_plan_loc','title'=>'Target Plan'],
-            ['data'=>'target_act_loc','name'=>'target_act_loc','title'=>'Target Act'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated by'],
-            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated at'],
-        ];
-        return json_encode($kolom, true);
-    }
+{
+    $kolom =
+    [
+        ['data'=>'target_type','name'=>'target_type','title'=>'Tipe'],
+        ['data'=>'date','name'=>'date','title'=>'STO Date'],
+        ['data'=>'periode','name'=>'periode','title'=>'Periode'],
+        ['data'=>'location','name'=>'location','title'=>'Target'],
+        ['data'=>'counter_user_1','name'=>'counter_user_1','title'=>'Counter 1'],
+        ['data'=>'counter_user_2','name'=>'counter_user_2','title'=>'Counter 2'],
+        ['data'=>'counter_user_3','name'=>'counter_user_3','title'=>'Counter 3'],
+        ['data'=>'target_plan_loc','name'=>'target_plan_loc','title'=>'Akurasi Plan'],
+        ['data'=>'target_act_loc','name'=>'target_act_loc','title'=>'Akurasi Act'],
+        ['data'=>'note','name'=>'note','title'=>'Note'],
+        ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated by'],
+        ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated at'],
+    ];
+    return json_encode($kolom, true);
+}
 
     // ══════════════════════════════════════════════
     // GENERATE CODE (pola master_code)
@@ -281,58 +282,60 @@ class StockTakingOrderController extends Controller
     // date range & sto_type filter ditambahkan; target_type disertakan
     // ══════════════════════════════════════════════
     public function listDetail(Request $request)
-    {
-        $query = DB::table('sto_config_mapping as m')
-            ->join('sto_config as h', 'h.config_id', '=', 'm.config_id')
-            ->leftJoin('stock_location_master as l', function ($j) {
-                $j->on('l.location_code', '=', 'm.target_ref')
-                  ->where('m.target_type', '=', 'LOCATION');
-            })
-            ->leftJoin('third_party as tp', function ($j) {
-                $j->on('tp.third_party_code', '=', 'm.target_ref')
-                  ->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
-            })
-            ->leftJoin('users as u1', 'u1.id', '=', 'm.counter1_user')
-            ->leftJoin('users as u2', 'u2.id', '=', 'm.counter2_user')
-            ->select([
-                'm.target_type',
-                'm.sto_date as date',
-                'h.periode',
-                DB::raw("COALESCE(l.location_name, tp.third_party_name, m.target_ref) as location"),
-                'u1.name as counter_user_1',
-                'u2.name as counter_user_2',
-                'm.target_plan_loc',
-                'm.target_act_loc',
-                'm.finish_time',
-                'm.notes as note',
-                'm.updated_by',
-                'm.updated_at',
-            ]);
- 
-        if ($request->filled('searchCode'))    $query->where('h.sto_code', 'ilike', '%' . $request->searchCode . '%');
-        if ($request->filled('searchPeriode')) $query->where('h.periode', $request->searchPeriode);
-        if ($request->filled('searchStatus'))  $query->where('h.status', $request->searchStatus);
-        if ($request->filled('searchStoType')) $query->where('h.sto_type', $request->searchStoType);
- 
-        if ($request->filled('searchDate')) {
-            $parts = explode(' to ', $request->searchDate);
-            $from  = trim($parts[0] ?? '');
-            $to    = trim($parts[1] ?? $from);
-            if ($from && $to) {
-                $query->whereRaw("TO_DATE(m.sto_date,'DD-MM-YYYY') BETWEEN TO_DATE(?, 'DD-MM-YYYY') AND TO_DATE(?, 'DD-MM-YYYY')", [$from, $to]);
-            }
+{
+    $query = DB::table('sto_config_mapping as m')
+        ->join('sto_config as h', 'h.config_id', '=', 'm.config_id')
+        ->leftJoin('stock_location_master as l', function ($j) {
+            $j->on('l.location_code', '=', 'm.target_ref')
+              ->where('m.target_type', '=', 'LOCATION');
+        })
+        ->leftJoin('third_party as tp', function ($j) {
+            $j->on('tp.kode', '=', 'm.target_ref')
+              ->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
+        })
+        ->leftJoin('users as u1', 'u1.id', '=', 'm.counter1_user')
+        ->leftJoin('users as u2', 'u2.id', '=', 'm.counter2_user')
+        ->leftJoin('users as u3', 'u3.id', '=', 'm.counter3_user')
+        ->select([
+            'm.target_type',
+            'm.sto_date as date',
+            'h.periode',
+            DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as location"),
+            'u1.name as counter_user_1',
+            'u2.name as counter_user_2',
+            'u3.name as counter_user_3',
+            'm.target_plan_loc',
+            'm.target_act_loc',
+            'm.finish_time',
+            'm.notes as note',
+            'm.updated_by',
+            'm.updated_at',
+        ]);
+
+    if ($request->filled('searchCode'))    $query->where('h.sto_code', 'ilike', '%' . $request->searchCode . '%');
+    if ($request->filled('searchPeriode')) $query->where('h.periode', $request->searchPeriode);
+    if ($request->filled('searchStatus'))  $query->where('h.status', $request->searchStatus);
+    if ($request->filled('searchStoType')) $query->where('h.sto_type', $request->searchStoType);
+
+    if ($request->filled('searchDate')) {
+        $parts = explode(' to ', $request->searchDate);
+        $from  = trim($parts[0] ?? '');
+        $to    = trim($parts[1] ?? $from);
+        if ($from && $to) {
+            $query->whereRaw("TO_DATE(m.sto_date,'DD-MM-YYYY') BETWEEN TO_DATE(?, 'DD-MM-YYYY') AND TO_DATE(?, 'DD-MM-YYYY')", [$from, $to]);
         }
- 
-        return DataTables::of($query)
-            ->editColumn('target_type', function ($row) {
-                $map = ['LOCATION'=>'Lokasi','SUPPLIER'=>'Supplier','CUSTOMER'=>'Customer'];
-                return $map[$row->target_type] ?? $row->target_type;
-            })
-            ->editColumn('target_plan_loc', fn($row) => $row->target_plan_loc !== null ? number_format($row->target_plan_loc, 2) . '%' : '-')
-            ->editColumn('target_act_loc',  fn($row) => $row->target_act_loc  !== null ? number_format($row->target_act_loc, 2) . '%'  : '-')
-            ->editColumn('finish_time',     fn($row) => $row->finish_time ?? '-')
-            ->make(true);
     }
+
+    return DataTables::of($query)
+        ->editColumn('target_type', function ($row) {
+            $map = ['LOCATION'=>'Lokasi','SUPPLIER'=>'Supplier','CUSTOMER'=>'Customer'];
+            return $map[$row->target_type] ?? $row->target_type;
+        })
+        ->editColumn('target_plan_loc', fn($row) => $row->target_plan_loc !== null ? number_format($row->target_plan_loc, 2) . '%' : '-')
+        ->editColumn('target_act_loc',  fn($row) => $row->target_act_loc  !== null ? number_format($row->target_act_loc, 2) . '%'  : '-')
+        ->editColumn('finish_time',     fn($row) => $row->finish_time ?? '-')
+        ->make(true);
+}
 
     // ══════════════════════════════════════════════
     // CREATE
@@ -481,89 +484,90 @@ if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['co
     // SHOW
     // ══════════════════════════════════════════════
      public function show($id)
-    {
-        $configId = Crypt::decryptString($id);
- 
-        $hdr = DB::table('sto_config as h')
-            ->leftJoin('users as uc', 'uc.username', '=', 'h.created_by')
-            ->select('h.*', 'uc.name as created_name')
-            ->where('h.config_id', $configId)
-            ->first();
- 
-        if (!$hdr) abort(404);
- 
-        $mappings = DB::table('sto_config_mapping as m')
-            ->leftJoin('stock_location_master as l', function ($j) {
-                $j->on('l.location_code', '=', 'm.target_ref')
-                  ->where('m.target_type', '=', 'LOCATION');
-            })
-            ->leftJoin('third_party as tp', function ($j) {
-                $j->on('tp.kode', '=', 'm.target_ref')
-                  ->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
-            })
-            ->leftJoin('users as u1', 'u1.id', '=', 'm.counter1_user')
-            ->leftJoin('users as u2', 'u2.id', '=', 'm.counter2_user')
-            ->select(
-                'm.mapping_id',
-                'm.target_type',
-                'm.target_ref',
-                'm.sto_date',
-                'm.finish_time',
-                'm.target_plan_loc',
-                'm.target_act_loc',
-                'm.notes',
-                'u1.name as counter1_name',
-                'u2.name as counter2_name',
-                DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name"),
- 
-                // progress count per baris (cocok lewat target_type + target_ref)
-                DB::raw("(
-                    SELECT COUNT(*) FROM sto_dtl d
-                    JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                    WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                      AND sh.config_id = m.config_id
-                ) as total_lines"),
-                DB::raw("(
-                    SELECT COUNT(*) FROM sto_dtl d
-                    JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                    WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                      AND sh.config_id = m.config_id AND d.count_status = 'MATCH'
-                ) as match_lines"),
-                DB::raw("(
-                    SELECT COUNT(*) FROM sto_dtl d
-                    JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                    WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                      AND sh.config_id = m.config_id AND d.count_status = 'NOT MATCH'
-                ) as notmatch_lines"),
-                DB::raw("(
-                    SELECT COUNT(*) FROM sto_dtl d
-                    JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                    WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                      AND sh.config_id = m.config_id AND d.count_status = 'RECOUNT'
-                ) as recount_lines"),
-                DB::raw("(
-                    SELECT COUNT(*) FROM sto_dtl d
-                    JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                    WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                      AND sh.config_id = m.config_id AND d.count_status = 'INCOMPLETE'
-                ) as incomplete_lines")
-            )
-            ->where('m.config_id', $configId)
-            ->orderBy('m.sto_date')
-            ->orderBy('target_name')
-            ->get();
- 
-        $data = [
-            'title'      => $this->title,
-            'subtitle'   => "Detail $this->title",
-            'hdr'        => $hdr,
-            'mappings'   => $mappings,
-            'status'     => $this->statusList(),
-            'stoTypes'   => $this->stoTypeList(),
-        ];
- 
-        return view("stockTakingOrder.show", $data);
-    }
+{
+    $configId = Crypt::decryptString($id);
+
+    $hdr = DB::table('sto_config as h')
+        ->leftJoin('users as uc', 'uc.username', '=', 'h.created_by')
+        ->select('h.*', 'uc.name as created_name')
+        ->where('h.config_id', $configId)
+        ->first();
+
+    if (!$hdr) abort(404);
+
+    $mappings = DB::table('sto_config_mapping as m')
+        ->leftJoin('stock_location_master as l', function ($j) {
+            $j->on('l.location_code', '=', 'm.target_ref')
+              ->where('m.target_type', '=', 'LOCATION');
+        })
+        ->leftJoin('third_party as tp', function ($j) {
+            $j->on('tp.kode', '=', 'm.target_ref')
+              ->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
+        })
+        ->leftJoin('users as u1', 'u1.id', '=', 'm.counter1_user')
+        ->leftJoin('users as u2', 'u2.id', '=', 'm.counter2_user')
+        ->leftJoin('users as u3', 'u3.id', '=', 'm.counter3_user')
+        ->select(
+            'm.mapping_id',
+            'm.target_type',
+            'm.target_ref',
+            'm.sto_date',
+            'm.finish_time',
+            'm.target_plan_loc',
+            'm.target_act_loc',
+            'm.notes',
+            'u1.name as counter1_name',
+            'u2.name as counter2_name',
+            'u3.name as counter3_name',
+            DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name"),
+
+            DB::raw("(
+                SELECT COUNT(*) FROM sto_dtl d
+                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+                  AND sh.config_id = m.config_id
+            ) as total_lines"),
+            DB::raw("(
+                SELECT COUNT(*) FROM sto_dtl d
+                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+                  AND sh.config_id = m.config_id AND d.count_status = 'MATCH'
+            ) as match_lines"),
+            DB::raw("(
+                SELECT COUNT(*) FROM sto_dtl d
+                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+                  AND sh.config_id = m.config_id AND d.count_status = 'NOT MATCH'
+            ) as notmatch_lines"),
+            DB::raw("(
+                SELECT COUNT(*) FROM sto_dtl d
+                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+                  AND sh.config_id = m.config_id AND d.count_status = 'RECOUNT'
+            ) as recount_lines"),
+            DB::raw("(
+                SELECT COUNT(*) FROM sto_dtl d
+                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+                  AND sh.config_id = m.config_id AND d.count_status = 'INCOMPLETE'
+            ) as incomplete_lines")
+        )
+        ->where('m.config_id', $configId)
+        ->orderBy('m.sto_date')
+        ->orderBy('target_name')
+        ->get();
+
+    $data = [
+        'title'    => $this->title,
+        'subtitle' => "Detail $this->title",
+        'hdr'      => $hdr,
+        'mappings' => $mappings,
+        'status'   => $this->statusList(),
+        'stoTypes' => $this->stoTypeList(),
+    ];
+
+    return view("stockTakingOrder.show", $data);
+}
 
     // ══════════════════════════════════════════════
     // EDIT

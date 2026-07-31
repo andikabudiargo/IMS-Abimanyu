@@ -4,7 +4,7 @@
 @include('layouts.breadcrumb')
 
 @php
-    $roleLabel = ['counter1'=>'Counter 1','counter2'=>'Counter 2','accounting'=>'Accounting (Override)'][$accessRole] ?? $accessRole;
+    $roleLabel = ['counter1'=>'Counter 1','counter2'=>'Counter 2','counter3'=>'Counter 3','accounting'=>'Accounting (Override)'][$accessRole] ?? $accessRole;
     $typeLabel = ['LOCATION'=>'Lokasi','SUPPLIER'=>'Supplier','CUSTOMER'=>'Customer'][$mapping->target_type] ?? $mapping->target_type;
     $typeBadge = ['LOCATION'=>'badge-light-primary','SUPPLIER'=>'badge-light-warning','CUSTOMER'=>'badge-light-info'][$mapping->target_type] ?? 'badge-light-secondary';
     $badgeMap  = ['INCOMPLETE'=>'badge-secondary','NOT MATCH'=>'badge-danger','RECOUNT'=>'badge-warning','MATCH'=>'badge-success'];
@@ -119,22 +119,22 @@
     @if(!$mapping->finish_time || $accessRole == 'accounting')
 
     @if($isAuto)
-    {{-- ── MODE AUTO (005/006/042): input per artikel ── --}}
+    {{-- ── MODE AUTO (005/006/042/049): input per artikel ── --}}
     <div class="card">
         <div class="card-header"><h4 class="card-title">Input Artikel</h4></div>
         <div class="card-body">
-           <div class="form-row d-flex align-items-end">
-    @if($isPartner)
-    <div class="form-group col-md-2 col-6">
-        <label>Lokasi*</label>
-        <select class="form-control" id="inLocation" style="width:100%">
-            <option value="">- Pilih -</option>
-            @foreach($locations as $loc)
-                <option value="{{ $loc->location_code }}">{{ $loc->location_name }}</option>
-            @endforeach
-        </select>
-    </div>
-    @endif
+            <div class="form-row d-flex align-items-end">
+                @if($isPartner)
+                <div class="form-group col-md-2 col-6">
+                    <label>Lokasi*</label>
+                    <select class="form-control" id="inLocation" style="width:100%">
+                        <option value="">- Pilih -</option>
+                        @foreach($locations as $loc)
+                            <option value="{{ $loc->location_code }}">{{ $loc->location_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif
                 <div class="form-group col-md-4 col-12">
                     <label>Article</label>
                     <select class="form-control" id="inArticle" style="width:100%"></select>
@@ -191,18 +191,18 @@
                 @for($i = 0; $i < 7; $i++)
                   <div class="scc-sheet-row-card" data-row="{{ $i }}">
                     <div class="scc-sheet-row-num">{{ $i + 1 }}</div>
-                   <div class="form-row">
-    @if($isPartner)
-    <div class="form-group col-md-2 col-6">
-        <label class="scc-field-label">Lokasi*</label>
-        <select class="form-control sheet-location" style="width:100%">
-            <option value="">- Pilih -</option>
-            @foreach($locations as $loc)
-                <option value="{{ $loc->location_code }}">{{ $loc->location_name }}</option>
-            @endforeach
-        </select>
-    </div>
-    @endif
+                    <div class="form-row">
+                        @if($isPartner)
+                        <div class="form-group col-md-2 col-6">
+                            <label class="scc-field-label">Lokasi*</label>
+                            <select class="form-control sheet-location" style="width:100%">
+                                <option value="">- Pilih -</option>
+                                @foreach($locations as $loc)
+                                    <option value="{{ $loc->location_code }}">{{ $loc->location_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
                         <div class="form-group col-md-4 col-12">
                             <label class="scc-field-label">Article*</label>
                             <select class="form-control sheet-article" style="width:100%"></select>
@@ -326,7 +326,9 @@
                                           data-uom="{{ $l->uom }}"
                                           data-min-package="{{ $l->min_package }}"
                                           data-my-qty="{{ $l->my_qty }}"
-                                          data-note="{{ $l->note }}">
+                                          data-note="{{ $l->note }}"
+                                          data-location-number="{{ $l->location_number }}"
+                                          data-location-name="{{ $l->location_name }}">
                                         <td class="scc-idx text-muted">{{ $li + 1 }}</td>
                                         <td class="font-weight-bold">{{ $l->article_code ?? 'OTHER' }}</td>
                                         <td>{{ $l->article_desc }}</td>
@@ -487,10 +489,12 @@
 
 @section('scripts')
 <script>
-const encMappingId = "{{ $encMappingId }}";
-const IS_AUTO      = {{ $isAuto ? 'true' : 'false' }};
-const IS_PARTNER   = {{ $isPartner ? 'true' : 'false' }};
+const encMappingId  = "{{ $encMappingId }}";
+const IS_AUTO       = {{ $isAuto ? 'true' : 'false' }};
+const IS_PARTNER    = {{ $isPartner ? 'true' : 'false' }};
 const MANUAL_PREFIX = 'MANUAL::';
+// dipakai untuk isi ulang dropdown Lokasi di modal Edit (select2 butuh option di-generate manual)
+const LOCATIONS_DATA = {!! json_encode($isPartner ? $locations->map(fn($l) => ['code' => $l->location_code, 'name' => $l->location_name])->values() : []) !!};
 
 // ── helpers ──
 function statusBadge(st) {
@@ -555,6 +559,13 @@ function initArticleSelect2($el) {
             return (data.id && data.id.indexOf(MANUAL_PREFIX) === 0) ? 'OTHER - ' + data.text : data.text;
         }
     });
+}
+
+// ── init select2 untuk 1 elemen lokasi ──
+function initLocationSelect2($el, dropdownParent) {
+    const opts = { width: '100%', placeholder: '- Pilih Lokasi -', allowClear: true };
+    if (dropdownParent) opts.dropdownParent = dropdownParent;
+    $el.select2(opts);
 }
 
 // ── load artikel ke select ──
@@ -631,6 +642,12 @@ function updateStoNumberFilterOptions() {
 
 $(document).ready(function () {
 
+    // ════ SELECT2 UNTUK DROPDOWN LOKASI (partner) ════
+    if (IS_PARTNER) {
+        if ($('#inLocation').length) initLocationSelect2($('#inLocation'));
+        $('.sheet-location').each(function () { initLocationSelect2($(this)); });
+    }
+
     // ════ MODE AUTO ════
     if (IS_AUTO) {
         getArticleOptions(function(data) {
@@ -669,7 +686,7 @@ $(document).ready(function () {
             });
         });
  
-        loadAvailableNumbers();   // ← BARU: isi dropdown Nomor STO
+        loadAvailableNumbers();   // ← isi dropdown Nomor STO
 
         // update uom & minpkg saat artikel dipilih di tiap baris sheet
          $(document).on('change', '.sheet-article', function() {
@@ -704,7 +721,7 @@ $(document).ready(function () {
         $('#btnSaveSheet').on('click', submitSheet);
     }
 
-    updateStoNumberFilterOptions();   // ← BARU: isi dropdown filter dari kartu yang sudah ada (server-rendered)
+    updateStoNumberFilterOptions();   // ← isi dropdown filter dari kartu yang sudah ada (server-rendered)
 
     // ════ FILTER GABUNGAN: Nomor STO + Status + Cari Artikel ════
     // Satu kartu ditampilkan HANYA kalau:
@@ -778,7 +795,7 @@ function submitLineAuto(confirmAccumulate) {
     }
 
     const locationNumber = IS_PARTNER ? $('#inLocation').val() : '';
-if (IS_PARTNER && !locationNumber) { Swal.fire('Warning','Pilih lokasi dulu.','warning'); return; }
+    if (IS_PARTNER && !locationNumber) { Swal.fire('Warning','Pilih lokasi dulu.','warning'); return; }
 
    const $btn = $('#btnAddLine');
     $btn.data('original-html', $btn.html())
@@ -795,6 +812,7 @@ if (IS_PARTNER && !locationNumber) { Swal.fire('Warning','Pilih lokasi dulu.','w
         min_package: $('#inMinPkg').val(),
         qty: qty,
         note: $('#inNote').val(),
+        location_number: locationNumber,
         confirm_accumulate: confirmAccumulate ? 1 : 0,
     }, function(res) {
         $btn.prop('disabled', false).html($btn.data('original-html'));
@@ -815,6 +833,7 @@ if (IS_PARTNER && !locationNumber) { Swal.fire('Warning','Pilih lokasi dulu.','w
             // reset input
             $('#inArticle').val(null).trigger('change');
             $('#inQty, #inNote, #inMinPkg').val('');
+            if (IS_PARTNER) $('#inLocation').val(null).trigger('change');
             if ($('#inUom').is('select')) $('#inUom').html('');
         } else {
             (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
@@ -858,15 +877,15 @@ function submitSheet() {
         }
 
         const locationNumber = IS_PARTNER ? $(this).find('.sheet-location').val() : '';
-    if (val && IS_PARTNER && !locationNumber) { show_msg('Warning',`Pilih lokasi untuk artikel: ${articleDesc}`,'warning'); valid=false; return false; }
+        if (val && IS_PARTNER && !locationNumber) { show_msg('Warning',`Pilih lokasi untuk artikel: ${articleDesc}`,'warning'); valid=false; return false; }
  
         const key = manual ? ('MANUAL::'+articleDesc.toUpperCase()) : article;
 
         if (articlesSeen.includes(key)) { show_msg('Warning',`Artikel duplikat: ${articleDesc}`,'warning'); valid=false; return false; }
         articlesSeen.push(key);
 
-          lines.push({ is_manual: manual?1:0, article, article_desc: articleDesc, uom, min_package: minpkg, qty, note, location_number: locationNumber });
-});
+        lines.push({ is_manual: manual?1:0, article, article_desc: articleDesc, uom, min_package: minpkg, qty, note, location_number: locationNumber });
+    });
 
     if (!valid) return;
     if (lines.length === 0) { show_msg('Warning','Minimal 1 baris harus diisi beserta QTY-nya.','warning'); return; }
@@ -894,7 +913,7 @@ function submitSheet() {
             updateRealisasi(res.target_act_loc);
             Swal.fire({ toast:true, position:'top-end', icon:'success', title:`Nomor STO ${res.sto_number} tersimpan`, showConfirmButton:false, timer:2500 });
             resetSheetInput();
-            if (!IS_AUTO) loadAvailableNumbers();   // ← BARU: refresh dropdown, nomor terpakai hilang
+            if (!IS_AUTO) loadAvailableNumbers();   // ← refresh dropdown, nomor terpakai hilang
         } else {
             (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
         }
@@ -911,6 +930,7 @@ function resetSheetInput() {
         $(this).find('.sheet-minpkg').val('');
         $(this).find('.sheet-qty').val('');
         $(this).find('.sheet-note').val('');
+        if (IS_PARTNER) $(this).find('.sheet-location').val(null).trigger('change');
     });
 }
 
@@ -931,7 +951,9 @@ function renderRowToSheet(r, stoNumber) {
           data-uom="${r.uom ?? ''}"
           data-min-package="${r.min_package ?? ''}"
           data-my-qty="${r.my_qty ?? ''}"
-          data-note="${r.note ?? ''}">
+          data-note="${r.note ?? ''}"
+          data-location-number="${r.location_number ?? ''}"
+          data-location-name="${r.location_name ?? ''}">
         <td class="scc-idx text-muted"></td>
         <td class="font-weight-bold">${r.article_code}</td>
         <td>${r.article_desc}</td>
@@ -1047,7 +1069,7 @@ method: 'DELETE',
                        // kalau sheet kosong → hapus accordion card
                         if (remaining === 0) {
                             $card.remove();
-                            updateStoNumberFilterOptions();   // ← BARU
+                            updateStoNumberFilterOptions();   // ← refresh filter
                         }
                     } else {
                         renderRowToSheet(res.row, res.row.sto_number);
@@ -1067,7 +1089,7 @@ method: 'DELETE',
 }
 
 // ════════════════════════════════════════════════
-// EDIT LINE — ubah artikel/qty/uom/note TANPA hapus baris
+// EDIT LINE — ubah artikel/qty/uom/note/lokasi TANPA hapus baris
 // (nomor STO tetap terpakai, tidak perlu nomor baru)
 // ════════════════════════════════════════════════
 function editLine(dtlId, el) {
@@ -1080,11 +1102,17 @@ function editLine(dtlId, el) {
     const curMinPkg      = $row.data('min-package');
     const curQty         = $row.data('my-qty');
     const curNote        = ($row.data('note') || '').toString();
+    const curLocation    = ($row.data('location-number') || '').toString();
  
     Swal.fire({
         title: 'Edit Baris',
         html: `
             <div class="text-left">
+                ${IS_PARTNER ? `
+                <div class="form-group mb-50">
+                    <label class="scc-field-label">Lokasi*</label>
+                    <select id="editLocationSelect" class="form-control" style="width:100%"></select>
+                </div>` : ''}
                 <div class="form-group mb-50">
                     <label class="scc-field-label">Article</label>
                     <select id="editArticleSelect" class="form-control" style="width:100%"></select>
@@ -1115,6 +1143,17 @@ function editLine(dtlId, el) {
         cancelButtonText: 'Batal',
         focusConfirm: false,
         didOpen: () => {
+            // ── Lokasi (khusus partner) ──
+            if (IS_PARTNER) {
+                let locOpt = '<option value=""></option>';
+                LOCATIONS_DATA.forEach(l => {
+                    locOpt += `<option value="${l.code}">${l.name}</option>`;
+                });
+                $('#editLocationSelect').html(locOpt);
+                initLocationSelect2($('#editLocationSelect'), Swal.getPopup());
+                if (curLocation) $('#editLocationSelect').val(curLocation).trigger('change');
+            }
+
             // isi dropdown artikel dari cache yang sudah pernah dimuat
             getArticleOptions(function(data) {
                 loadArticlesInto($('#editArticleSelect'), data);
@@ -1193,6 +1232,9 @@ function editLine(dtlId, el) {
  
             if (!val) { Swal.showValidationMessage('Pilih atau ketik artikel dulu.'); return false; }
             if (!qty || parseFloat(qty) <= 0) { Swal.showValidationMessage('QTY harus lebih dari 0.'); return false; }
+
+            const locationVal = IS_PARTNER ? ($('#editLocationSelect').val() || '') : '';
+            if (IS_PARTNER && !locationVal) { Swal.showValidationMessage('Lokasi wajib dipilih.'); return false; }
  
             const manual = !!val && val.indexOf(MANUAL_PREFIX) === 0;
             const article = manual ? '' : val;
@@ -1211,6 +1253,7 @@ function editLine(dtlId, el) {
                 min_package: $('#editMinPkg').val(),
                 qty: qty,
                 note: $('#editNote').val(),
+                location_number: locationVal,
             };
         }
     }).then(result => {
