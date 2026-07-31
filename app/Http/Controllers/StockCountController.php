@@ -871,9 +871,6 @@ class StockCountController extends Controller
         if (!$access['ok']) {
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$access['message']],'alert'=>'error']);
         }
-        if ($access['role'] === 'accounting') {
-            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Accounting tidak melakukan input counting.'],'alert'=>'warning']);
-        }
  
         $m      = $access['mapping'];
         $userId = Auth::id();
