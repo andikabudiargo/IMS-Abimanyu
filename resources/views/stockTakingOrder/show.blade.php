@@ -169,11 +169,11 @@
                 <div class="info-value">{{ $stoTypes[$hdr->sto_type] ?? $hdr->sto_type }}</div>
             </div>
             <div class="info-cell">
-                <div class="info-label">Target Plan</div>
+                <div class="info-label">Akurasi Plan</div>
                 <div class="info-value">{{ number_format($hdr->target_plan, 2) }}%</div>
             </div>
             <div class="info-cell">
-                <div class="info-label">Target Act</div>
+                <div class="info-label">Akurasi Act</div>
                 <div class="info-value">{{ number_format($hdr->target_act, 2) }}%</div>
             </div>
             <div class="info-cell">

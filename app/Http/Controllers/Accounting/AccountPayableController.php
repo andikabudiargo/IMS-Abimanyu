@@ -2178,6 +2178,222 @@ class AccountPayableController extends Controller
     }
 
     public function list(Request $request)
+{
+    $searchPo = $request->searchPo;
+    $searchAp = $request->searchAp;
+    $searchSupplier = $request->searchSupplier;
+    $searchStatus = $request->searchStatus;
+    $apDate = $request->apDate;
+    $fromDate = "";
+    $toDate = "";
+    $apPeriod1 = $request->apPeriod1;
+    $apPeriod2 = $request->apPeriod2;
+
+    if ($apDate) {
+        $date = explode("to", $apDate);
+        if (count($date) > 1) {
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+        } else {
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = $fromDate;
+        }
+    }
+
+    // === PERUBAHAN UTAMA: jangan ->get() di sini, biarkan Query Builder ===
+    $query = DB::table('ap_invoice')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
+        ->leftJoin(DB::raw("(
+            select kd.reference, kd.account, kd.voucher_number, kd.debit as voucher_amount,
+                   kh.id as voucher_hdr_id, kh.voucher_date
+            from kas_det kd
+            left join kas_hdr kh on kd.voucher_number = kh.voucher_number
+            where kh.status not in ('5','6')
+        ) as vch"), function ($join) {
+            $join->on('vch.reference', '=', 'ap_invoice.inv_number')
+                 ->on('vch.account', '=', 'third_party.account');
+        })
+        // subquery untuk id PO (dipakai hyperlink) - sesuaikan nama tabel/kolom kalau beda
+        ->leftJoin(DB::raw("(
+            select id as po_id, po_number from purchase_order_hdr
+        ) as po"), 'po.po_number', '=', 'ap_invoice.po_number')
+        ->where(function ($q) use ($searchAp, $searchPo, $searchSupplier, $searchStatus, $apDate, $fromDate, $toDate, $apPeriod1, $apPeriod2) {
+            $searchPo ? $q->where('po_number', 'ilike', '%' . $searchPo . '%') : '';
+            $searchAp ? $q->where('ap_number', 'ilike', '%' . $searchAp . '%') : '';
+            $searchSupplier ? $q->where('supplier_id', 'ilike', '%' . $searchSupplier . '%') : '';
+            $searchStatus ? $q->where('ap_invoice.status', '=', $searchStatus) : '';
+            $apDate ? $q->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            $apPeriod1 ? $q->whereBetween(DB::raw("period::integer"), [$apPeriod1, $apPeriod2]) : '';
+        })
+        ->whereNotIn('ap_invoice.status', ['5'])
+        ->select(
+            'ap_invoice.*',
+            'third_party.kode',
+            'po.po_id',
+            DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as ap_date"),
+            DB::raw("ap_invoice.inv_date as ap_date_1"),
+            DB::raw("ap_invoice.inv_date as ap_date_2"),
+            DB::raw("(select STRING_AGG(a.rec_number,',' ORDER BY a.id) from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec"),
+            // id + rec_number dipasangkan supaya bisa di-link satu-satu di addColumn
+            DB::raw("(select STRING_AGG(rh.id::text || '::' || a.rec_number, ',' ORDER BY a.id)
+                      from ap_invoice_detail a
+                      left join receiving_hdr rh on rh.rec_number = a.rec_number
+                      where a.ap_number = ap_invoice.ap_number) as list_rec_with_id"),
+            'third_party.nama as supplier_name',
+            DB::raw("(select (select name from users where username = z.username) from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_by"),
+            DB::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = ap_invoice.ap_number order by approval_order desc limit 1) as approval_at"),
+            DB::raw("case when pph23_type = 'PPH21' then pph23 else 0 end as pph21"),
+            DB::raw("case when pph23_type = 'PPH23' then pph23 else 0 end as pph23"),
+            DB::raw("case when pph23_type = 'PPH42' then pph23 else 0 end as pph42"),
+            DB::raw("case when ap_invoice.status = '6' then vch.voucher_date else '' end as voucher_date"),
+            DB::raw("case when ap_invoice.status = '6' then vch.voucher_number else '' end as voucher_number"),
+            DB::raw("case when ap_invoice.status = '6' then vch.voucher_hdr_id else null end as voucher_hdr_id"),
+            DB::raw("case when ap_invoice.status = '6' then vch.voucher_amount else 0 end as voucher_amount"),
+            DB::raw("grand_total - coalesce(case when ap_invoice.status = '6' then vch.voucher_amount else 0 end, 0) as balance"),
+            DB::raw("to_char(to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * top_batas_1), 'DD/MM/YYYY') as due_date")
+        )
+        ->orderBy('ap_invoice.id');
+
+    $lockDateToDate = date('Y-m-d', strtotime($this->lockDate));
+    $bisaEdit = Auth::user()->can('ap-edit');
+    $bisaDelete = Auth::user()->can('ap-delete');
+
+    return Datatables::of($query)
+        ->addColumn('action', function ($data) use ($lockDateToDate, $bisaEdit, $bisaDelete) {
+            $buttons = '<div class="d-inline-flex">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                                <i data-feather="menu"></i>
+                            </a>';
+            $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
+
+            if ($data->status == '2' or $data->status == '1') {
+                $buttons .= '<a href="' . route('accountPayable.edit', ['id' => Crypt::encryptString($data->id)]) . '" class="dropdown-item">
+                                <i data-feather="check"></i>
+                                <span>' . __("Approve") . '</span>
+                            </a>';
+            }
+
+            if ($data->status != '5') {
+                $apDate = date('Y-m-d', strtotime($data->ap_date_2));
+                if ($apDate >= $lockDateToDate) {
+                    if ($bisaEdit) {
+                        $buttons .= '<a href="' . route('accountPayable.edit', ['id' => Crypt::encryptString($data->id)]) . '" class="dropdown-item">
+                                        <i data-feather="file-text"></i>
+                                        <span>' . __("Edit") . '</span>
+                                    </a>';
+                    }
+                }
+            }
+
+            $buttons .= '<a href="' . route('accountPayable.show', ['id' => Crypt::encryptString($data->id)]) . '" class="dropdown-item">
+                            <i data-feather="list"></i>
+                            <span>' . __("Detail") . '</span>
+                        </a>';
+
+            $buttons .= '<a href="' . route('accountPayable.print', ['id' => Crypt::encryptString($data->id)]) . '" target="_blank" class="dropdown-item">
+                            <i data-feather="printer"></i>
+                            <span>' . __("Print") . '</span>
+                        </a>';
+
+            $buttons .= '<a href="' . route('accountPayable.print.slip.pembayaran', ['id' => Crypt::encryptString($data->id)]) . '" target="_blank" class="dropdown-item">
+                            <i data-feather="printer"></i>
+                            <span>' . __("Print Slip") . '</span>
+                        </a>';
+
+            if ($data->status != '7') {
+                $apDate = date('Y-m-d', strtotime($data->ap_date_2));
+                if ($apDate >= $lockDateToDate) {
+                    if ($bisaDelete) {
+                        $buttons .= "<a href='javascript:;'
+                                        id='deleteButton'
+                                        class='dropdown-item'
+                                        data-toggle='modal'
+                                        data-target='#smallModal'
+                                        data-href='" . route("accountPayable.destroy", ["id" => Crypt::encryptString($data->id)]) . "'>
+                                        <i data-feather='trash-2' class='feather-14-red'></i>
+                                        Delete
+                                    </a>";
+                    }
+                }
+            }
+
+            $buttons .= '</div></div>';
+
+            return $buttons;
+        })
+
+        ->addColumn('ap_number', function ($data) {
+            return '<a href="' . route('accountPayable.print', ['id' => Crypt::encryptString($data->id)]) . '" target="_blank" class="dropdown-item" style="padding:0px">
+                ' . $data->ap_number . '
+            </a>';
+        })
+
+        // === BARU: hyperlink PO Number ===
+        ->addColumn('po_number', function ($data) {
+            if (empty($data->po_number)) {
+                return '-';
+            }
+            if (empty($data->po_id)) {
+                return $data->po_number; // fallback kalau id tidak ketemu
+            }
+            return '<a href="' . route('purchaseOrder.show', ['id' => Crypt::encryptString($data->po_id)]) . '" target="_blank">
+                ' . $data->po_number . '
+            </a>';
+        })
+
+        // === BARU: hyperlink tiap Rec Number (list_rec bisa lebih dari satu) ===
+        ->addColumn('list_rec', function ($data) {
+            if (empty($data->list_rec_with_id)) {
+                return '-';
+            }
+            $pairs = explode(',', $data->list_rec_with_id);
+            $links = [];
+            foreach ($pairs as $pair) {
+                [$recId, $recNumber] = array_pad(explode('::', $pair), 2, '');
+                if ($recId === '' || $recId === null) {
+                    $links[] = $recNumber; // fallback tanpa link
+                } else {
+                    $links[] = '<a href="' . route('receiving.show', ['id' => Crypt::encryptString($recId)]) . '" target="_blank">'
+                              . $recNumber . '</a>';
+                }
+            }
+            return implode(', ', $links);
+        })
+
+        ->addColumn('status', function ($data) {
+            $badges = ['badge-light-primary','badge-light-info','badge-light-success','badge-light-warning','badge-light-danger','badge-light-dark','badge-light-secondary','badge-light-danger'];
+            $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
+            return "<div class='badge badge-pill " . $badges[$data->status - 1] . "'>" . $statusCode[$data->status - 1] . "</div>";
+        })
+
+        ->addColumn('voucher_number', function ($data) {
+            $voucherNumber = (string) ($data->voucher_number ?? '');
+            if ($voucherNumber === '') {
+                return '-';
+            }
+
+            if (strpos($voucherNumber, 'KK') === 0) {
+                $routeName = 'kasKeluar.show';
+            } elseif (strpos($voucherNumber, 'BK') === 0) {
+                $routeName = 'bankKeluar.show';
+            } else {
+                return $voucherNumber;
+            }
+
+            if (empty($data->voucher_hdr_id)) {
+                return $voucherNumber;
+            }
+
+            return '<a href="' . route($routeName, ['id' => Crypt::encryptString($data->voucher_hdr_id)]) . '" target="_blank">
+                        ' . $voucherNumber . '
+                    </a>';
+        })
+
+        ->rawColumns(['action', 'status', 'ap_number', 'voucher_number', 'po_number', 'list_rec'])
+        ->make(true);
+}
+
+    public function listOld(Request $request)
     {
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
@@ -2273,6 +2489,7 @@ class AccountPayableController extends Controller
             ,db::raw("case when pph23_type = 'PPH42' then pph23 else 0 end as pph42")
             ,db::raw("case when ap_invoice.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account)) else '' end as voucher_date")
             ,db::raw("case when ap_invoice.status = '6' then (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else '' end as voucher_number")
+            ,db::raw("case when ap_invoice.status = '6' then (select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else null end as voucher_hdr_id")
             ,db::raw("case when ap_invoice.status = '6' then (select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else 0 end as voucher_amount")
             ,db::raw("grand_total-coalesce(case when ap_invoice.status = '6' then (select debit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = ap_invoice.inv_number and account = third_party.account) else 0 end,0) as balance")            
             ,db::raw("to_char(to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * top_batas_1), 'DD/MM/YYYY')  as due_date")
@@ -2420,7 +2637,29 @@ class AccountPayableController extends Controller
             $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
             return "<div class='badge badge-pill ".$badges[$data->status - 1]."'>".$statusCode[$data->status - 1]."</div>";
         })
-        ->rawColumns(['action','status','ap_number'])
+    ->addColumn('voucher_number', function ($data) {
+    $voucherNumber = (string) ($data->voucher_number ?? '');
+    if ($voucherNumber === '') {
+        return '-';
+    }
+
+    if (strpos($voucherNumber, 'KK') === 0) {
+        $routeName = 'kasKeluar.show';
+    } elseif (strpos($voucherNumber, 'BK') === 0) {
+        $routeName = 'bankKeluar.show';
+    } else {
+        return $voucherNumber;
+    }
+
+    if (empty($data->voucher_hdr_id)) {
+        return $voucherNumber;
+    }
+
+    return '<a href="'. route($routeName, ['id' => Crypt::encryptString($data->voucher_hdr_id)]) .'" target="_blank">
+                '.$voucherNumber.'
+            </a>';
+})
+        ->rawColumns(['action','status','ap_number','voucher_number'])
         ->make(true);
     }
 
