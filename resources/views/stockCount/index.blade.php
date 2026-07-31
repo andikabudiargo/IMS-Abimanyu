@@ -104,7 +104,7 @@
                 <div class="form-row">
                     <div class="form-group col-md-3">
                         <label for="auditStoCode">STO Code</label>
-                        <select class="select2 form-control" id="auditStoCode">
+                        <select class="form-control" id="auditStoCode">
                             <option value="">All</option>
                             @foreach($stoCodesForFilter as $c)
                                 <option value="{{ $c->sto_code }}">{{ $c->sto_code }}</option>
@@ -121,7 +121,7 @@
                     </div>
                     <div class="form-group col-md-3">
                         <label for="auditStatus">Status</label>
-                        <select class="select2 form-control" id="auditStatus">
+                        <select class="form-control" id="auditStatus">
                             <option value="">All</option>
                             <option value="MATCH">MATCH</option>
                             <option value="NOT MATCH">NOT MATCH</option>
@@ -141,7 +141,7 @@
                     </div>
                     <div class="form-group col-md-3">
     <label for="auditTarget">Lokasi / Partner</label>
-    <select class="select2 form-control" id="auditTarget">
+    <select class="form-control" id="auditTarget">
         <option value="">All</option>
         @php
             $grouped = $targetsForFilter->groupBy('target_type');
@@ -260,7 +260,7 @@ $(document).ready(function () {
                 searchStoNumber   : $('#auditStoNumber').val(),
                  searchTarget      : $('#auditTarget').val(), 
             },
-            orderColumn   : [[10, 'desc']],
+            orderColumn   : [[11, 'desc']],
             excelFileName : 'stock_count_audit',
             initComplete  : function () {
                 $(".loading-spinner-container").removeClass("-show");

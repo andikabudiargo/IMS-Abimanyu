@@ -51,6 +51,7 @@ private function dbRole($role)
     private function getTableColoumnAudit()
     {
         $kolom = [
+            ['data'=>'sto_code',      'name'=>'c.sto_code',    'title'=>'STO Code'],
             ['data'=>'location',      'name'=>'target_name',   'title'=>'Lokasi/Partner'],
             ['data'=>'article_code',  'name'=>'article_code',  'title'=>'Article Code'],
             ['data'=>'article_desc',  'name'=>'article_desc',  'title'=>'Article Desc'],
@@ -429,16 +430,18 @@ private function dbRole($role)
             ->leftJoin('users as u1', 'u1.id', '=', 'd.counter1_user')
             ->leftJoin('users as u2', 'u2.id', '=', 'd.counter2_user')
             ->leftJoin('users as u3', 'u3.id', '=', 'd.counter3_user')
-            ->select([
-                'd.dtl_id', 'm.target_type',
-                DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name"),
-                'd.article_code', 'd.article_desc', 'd.min_package', 'd.uom',
-                'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3', 'd.qty_system', 'd.qty_variance',
-                'd.count_status', 'h.sto_number',
-                'u1.name as counter1_name', 'd.counter1_at',
-                'u2.name as counter2_name', 'd.counter2_at',
-                'u3.name as counter3_name', 'd.counter3_at',
-            ]);
+           ->select([
+    'd.dtl_id', 'm.target_type',
+    DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name"),
+    'c.sto_code', 'c.config_id',      // ← config_id untuk link show
+    'd.article_code', 'd.article_desc', 'd.min_package', 'd.uom',
+    'd.location_number',              // ← untuk filter lokasi di halaman stock
+    'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3', 'd.qty_system', 'd.qty_variance',
+    'd.count_status', 'h.sto_number',
+    'u1.name as counter1_name', 'd.counter1_at',
+    'u2.name as counter2_name', 'd.counter2_at',
+    'u3.name as counter3_name', 'd.counter3_at',
+]);
  
         if ($request->filled('searchStoCode'))    $query->where('c.sto_code', $request->searchStoCode);
         if ($request->filled('searchPeriode'))    $query->where('c.periode', $request->searchPeriode);
@@ -460,12 +463,30 @@ private function dbRole($role)
         }
  
         return DataTables::of($query)
+        ->editColumn('sto_code', function ($row) {
+    if (empty($row->sto_code)) return '-';
+    $url = route('stockTakingOrder.show', ['id' => $row->config_id]);
+    return '<a href="'.$url.'" target="_blank">'.e($row->sto_code).'</a>';
+})
             ->addColumn('location', fn($row) => $row->target_name)
             ->editColumn('article_code', fn($row) => $row->article_code ?? 'OTHER')
             ->editColumn('qty_counter1', fn($row) => $row->qty_counter1 !== null ? number_format((float)$row->qty_counter1, 2) : '-')
             ->editColumn('qty_counter2', fn($row) => $row->qty_counter2 !== null ? number_format((float)$row->qty_counter2, 2) : '-')
             ->editColumn('qty_counter3', fn($row) => $row->qty_counter3 !== null ? number_format((float)$row->qty_counter3, 2) : '-')
-            ->editColumn('qty_system',   fn($row) => $row->qty_system   !== null ? number_format((float)$row->qty_system,   2) : '-')
+            ->editColumn('min_package', fn($row) => $row->min_package !== null ? number_format((float)$row->min_package, 2) : '-')
+           ->editColumn('qty_system', function ($row) {
+    if ($row->qty_system === null) return '-';
+    $val = number_format((float) $row->qty_system, 2);
+
+    // manual / tanpa article_code → tak bisa difilter di halaman stock
+    if (empty($row->article_code)) return $val;
+
+    $url = route('warehouse.articlev2', [
+        'code'     => $row->article_code,       // = alternative_code, cocok dengan filter 'code'
+        'location' => $row->location_number,    // location_number, mis. '042'
+    ]);
+    return '<a href="'.$url.'" target="_blank">'.$val.'</a>';
+})
             ->editColumn('qty_variance', function ($row) {
                 if ($row->qty_variance === null) return '-';
                 $val = number_format((float)$row->qty_variance, 2);
@@ -483,7 +504,7 @@ private function dbRole($role)
             ->editColumn('counter1_at', fn($row) => $row->counter1_at ? date('d-m-Y H:i', strtotime($row->counter1_at)) : '-')
             ->editColumn('counter2_at', fn($row) => $row->counter2_at ? date('d-m-Y H:i', strtotime($row->counter2_at)) : '-')
             ->editColumn('counter3_at', fn($row) => $row->counter3_at ? date('d-m-Y H:i', strtotime($row->counter3_at)) : '-')
-            ->rawColumns(['location', 'qty_variance', 'count_status'])
+           ->rawColumns(['location', 'sto_code', 'qty_system', 'qty_variance', 'count_status'])
             ->make(true);
     }
  
@@ -1066,40 +1087,50 @@ private function dbRole($role)
     // resolveStatus, compareToSystem, getLastQty
     // ══════════════════════════════════════════════
     private function resolveStatus($dtl, $mapping)
-    {
-        if (!($mapping->is_blind ?? true)) {
-            $qty = $dtl->qty_counter1 ?? $dtl->qty_counter2 ?? ($dtl->qty_counter3 ?? null);
-            if (is_null($qty)) return ['INCOMPLETE', null, null];
-            return $this->compareToSystem($qty, $dtl, $mapping);
-        }
- 
-        $activeQty = [];
-        if (!empty($mapping->counter1_user)) $activeQty[] = $dtl->qty_counter1;
-        if (!empty($mapping->counter2_user)) $activeQty[] = $dtl->qty_counter2;
-        if (!empty($mapping->counter3_user)) $activeQty[] = $dtl->qty_counter3 ?? null;
- 
-        foreach ($activeQty as $q) {
-            if (is_null($q)) return ['INCOMPLETE', null, null];
-        }
- 
-        // ── bulatkan ke 2 desimal sebelum dibandingkan, hindari false-mismatch akibat floating point ──
-        $unique = array_unique(array_map(fn($q) => round((float) $q, 2), $activeQty));
-        if (count($unique) > 1) return ['NOT MATCH', null, null];
- 
-        return $this->compareToSystem($activeQty[0], $dtl, $mapping);
+{
+    // qty_system selalu dihitung, apa pun statusnya (kecuali manual/tanpa artikel)
+    $qtySystem = $this->resolveQtySystem($dtl, $mapping);
+
+    if (!($mapping->is_blind ?? true)) {
+        $qty = $dtl->qty_counter1 ?? $dtl->qty_counter2 ?? ($dtl->qty_counter3 ?? null);
+        if (is_null($qty)) return ['INCOMPLETE', $qtySystem, null];
+        return $this->compareToSystem($qty, $dtl, $mapping, $qtySystem);
     }
- 
-    private function compareToSystem($qty, $dtl, $mapping)
-    {
-        if ($dtl->is_manual || is_null($dtl->article_code)) return ['MATCH', null, 0];
-        if (empty($dtl->location_number)) {
-            $variance = round((float)$qty - 0, 2);
-            return [($variance == 0 ? 'MATCH' : 'RECOUNT'), 0, $variance];
-        }
-        $qtySystem = (float) $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
-        $variance  = round((float)$qty - $qtySystem, 2);
-        return [($variance == 0 ? 'MATCH' : 'RECOUNT'), $qtySystem, $variance];
+
+    $activeQty = [];
+    if (!empty($mapping->counter1_user)) $activeQty[] = $dtl->qty_counter1;
+    if (!empty($mapping->counter2_user)) $activeQty[] = $dtl->qty_counter2;
+    if (!empty($mapping->counter3_user)) $activeQty[] = $dtl->qty_counter3 ?? null;
+
+    foreach ($activeQty as $q) {
+        if (is_null($q)) return ['INCOMPLETE', $qtySystem, null];
     }
+
+    $unique = array_unique(array_map(fn($q) => round((float) $q, 2), $activeQty));
+    if (count($unique) > 1) return ['NOT MATCH', $qtySystem, null];
+
+    return $this->compareToSystem($activeQty[0], $dtl, $mapping, $qtySystem);
+}
+
+// hitung qty_system tanpa membandingkan qty counter
+private function resolveQtySystem($dtl, $mapping)
+{
+    if ($dtl->is_manual || is_null($dtl->article_code)) return null;
+    if (empty($dtl->location_number)) return 0;
+    return (float) $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
+}
+ 
+    private function compareToSystem($qty, $dtl, $mapping, $qtySystem = null)
+{
+    if ($dtl->is_manual || is_null($dtl->article_code)) return ['MATCH', null, 0];
+
+    if ($qtySystem === null) {
+        $qtySystem = $this->resolveQtySystem($dtl, $mapping);
+    }
+
+    $variance = round((float) $qty - (float) $qtySystem, 2);
+    return [($variance == 0 ? 'MATCH' : 'RECOUNT'), $qtySystem, $variance];
+}
  
     private function getLastQty($article, $location, $stoDate)
     {

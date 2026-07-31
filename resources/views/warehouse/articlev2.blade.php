@@ -335,6 +335,34 @@
         $('#modalConfirmation').attr("action", href);
     });
     mask_thousand_digit(numberOfDecimalDigit);
+
+    // ── auto-filter dari query string (mis. link dari halaman STO audit) ──
+(function applyUrlFilters() {
+    const params = new URLSearchParams(window.location.search);
+    const urlCode     = params.get('code');
+    const urlLocation = params.get('location');
+
+    let hasFilter = false;
+
+    if (urlCode) {
+        $('#seachCode').val(urlCode.toUpperCase());
+        hasFilter = true;
+    }
+
+    if (urlLocation) {
+        // #searchLoc pakai select2 → set value lalu trigger change
+        $('#searchLoc').val(urlLocation).trigger('change');
+        hasFilter = true;
+    }
+
+    // kalau ada filter dari URL, langsung jalankan search
+    if (hasFilter) {
+        // beri jeda kecil supaya select2 & mask sudah siap
+        setTimeout(function () {
+            $('#btnSearch').click();
+        }, 150);
+    }
+})();
   });
 
  let hideEmptyState = false;   // <-- state persisten toggle
