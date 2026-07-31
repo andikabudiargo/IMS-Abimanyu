@@ -363,7 +363,7 @@
              
 
          @if(
-    auth()->user()->hasAnyRole(['Superuser', 'accounting']) ||
+    auth()->user()->hasAnyRole(['accounting']) ||
     auth()->user()->can('transferOut-index') ||
     in_array(auth()->user()->username, ['masrur'])
 )
@@ -553,6 +553,38 @@
               <a class="d-flex align-items-center" href="{{ route('production.actualFinishGoods.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Actual Loading">Actual Finish Goods</span>
+              </a>
+            </li>
+            @endcan
+
+          </ul>
+        </li>
+
+        <li class=" navigation-header"><span data-i18n="Production">Quality</span><i data-feather="more-horizontal"></i>
+        </li>
+
+        <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather='zoom-in'></i>
+            <span class="menu-title text-truncate" data-i18n="Production">Quality Control
+            </span>
+          </a>
+          <ul class="menu-content">
+
+            @can('actualLoading-index')
+            <li class="{{ \Request::is(['actualLoading','actualLoading/create','actualLoading/edit','actualLoading/show']) ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('production.actualLoading.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Actual Loading">Inspection Order</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('actualLoading-index')
+            <li class="{{ \Request::is(['actualFinishGoods','actualFinishGoods/edit','actualFinishGoods/show']) ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('production.actualFinishGoods.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Actual Loading">Defects</span>
               </a>
             </li>
             @endcan

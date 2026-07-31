@@ -13,16 +13,21 @@ class StockCountController extends Controller
 {
     private $moduleCode = 'COUNT';
 
-    // Lokasi yang generate sto_number otomatis per artikel
-    private $autoNumberLocations = ['005', '006', '042'];
+    // Lokasi yang generate sto_number otomatis per artikel (1 artikel = 1 sto_hdr),
+    // SEKALIGUS wajib unik artikel secara GLOBAL per mapping (lintas nomor STO).
+    // 005=Chemical, 006=Consumable, 042=Dead Stock Chemical, 049=Expired Consumable
+    private $autoNumberLocations = ['005', '006', '042', '049'];
 
     private $locationArticleTypeMap = [
-    '042' => ['CM1'],
-    '009' => ['RMP', 'RMNP'],
-    '007' => ['FG'],
-    '006' => ['CM2', 'CM3'],
-    '005' => ['CM1'],
-];
+        '042' => ['CM1'],
+        '009' => ['RMP', 'RMNP'],
+        '007' => ['FG'],
+        '008' => ['008'],
+        '006' => ['CM2', 'CM3'],
+        '005' => ['CM1'],
+        '042' => ['CM1'],
+        '049' => ['CM1'],
+    ];
 
     private function isAutoNumber($targetRef)
     {
@@ -55,53 +60,100 @@ class StockCountController extends Controller
     // GENERATE STO NUMBER — ambil no_current mapping,
     // increment, lalu format periode/nomor
     // ══════════════════════════════════════════════
-     private function generateStoNumber($mappingId)
+    private function generateStoNumber($mappingId)
     {
         $m = DB::table('sto_config_mapping')
             ->where('mapping_id', $mappingId)
             ->lockForUpdate()
             ->first();
- 
+
         $config = DB::table('sto_config')->where('config_id', $m->config_id)->first();
- 
+
         $noDari   = $m->no_dari   ?? 1;
         $noSampai = $m->no_sampai ?? 9999;
         $current  = (int) ($m->no_current ?? 0);
- 
+
         // kalau belum pernah dipakai / masih di bawah no_dari, mulai dari no_dari
         $nextNo = ($current < $noDari) ? $noDari : $current + 1;
- 
+
         if ($nextNo > $noSampai) {
             abort(422, "Nomor STO untuk target ini sudah mencapai batas maksimum ({$noSampai}). Hubungi Accounting untuk perluas range.");
         }
- 
+
         DB::table('sto_config_mapping')
             ->where('mapping_id', $mappingId)
             ->update(['no_current' => $nextNo, 'updated_at' => date('Y-m-d H:i:s')]);
- 
+
         $periode = str_replace('-', '/', substr($config->periode, 0, 7));
         return $periode . '/' . str_pad($nextNo, 4, '0', STR_PAD_LEFT);
     }
- 
+
+    // ══════════════════════════════════════════════
+    // CEK DUPLIKASI ARTIKEL — scope beda per tipe target:
+    //  - LOCATION yang masuk $autoNumberLocations (005/006/042/049):
+    //      unik GLOBAL per mapping (lintas nomor STO)
+    //  - LOCATION lain:
+    //      unik hanya dalam SATU sto_id (nomor STO) yang sama
+    //  - PARTNER (SUPPLIER/CUSTOMER):
+    //      unik per location_number yang sama (lintas nomor STO)
+    // ══════════════════════════════════════════════
+    private function isDuplicateArticle($m, $mappingId, $stoId, $article, $isManual, $articleDesc, $locationNumber = null, $excludeDtlId = null)
+    {
+        $query = DB::table('sto_dtl as d')->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id');
+
+        if ($m->target_type === 'LOCATION' && $this->isAutoNumber($m->target_ref)) {
+            $query->where('h.mapping_id', $mappingId);
+        } elseif ($m->target_type === 'LOCATION') {
+            if (!$stoId) return false; // sto baru dibuat, belum ada baris apa pun di dalamnya
+            $query->where('d.sto_id', $stoId);
+        } else {
+            // partner: dedup per lokasi yang sama; tanpa lokasi tidak bisa dedup dengan aman
+            if (!$locationNumber) return false;
+            $query->where('h.mapping_id', $mappingId)
+                  ->where('d.location_number', $locationNumber);
+        }
+
+        if ($excludeDtlId) $query->where('d.dtl_id', '!=', $excludeDtlId);
+
+        if ($isManual) {
+            $query->whereNull('d.article_code')->whereRaw('UPPER(d.article_desc) = ?', [strtoupper(trim($articleDesc ?? ''))]);
+        } else {
+            $query->where('d.article_code', $article);
+        }
+
+        return $query->exists();
+    }
+
+    private function duplicateArticleMessage($m, $label)
+    {
+        if ($m->target_type === 'LOCATION' && $this->isAutoNumber($m->target_ref)) {
+            return "Artikel {$label} sudah pernah diinput untuk gudang ini (berlaku lintas nomor STO).";
+        }
+        if ($m->target_type === 'LOCATION') {
+            return "Artikel {$label} sudah ada di baris lain pada sheet yang sama.";
+        }
+        return "Artikel {$label} sudah pernah diinput untuk lokasi ini (partner sama).";
+    }
+
     // ══════════════════════════════════════════════
     // GET AVAILABLE NUMBERS (mode NON-AUTO / non-consumable)
     // ══════════════════════════════════════════════
-     public function getAvailableNumbers(Request $request)
+    public function getAvailableNumbers(Request $request)
     {
         $mappingId = Crypt::decryptString($request->mapping_id);
- 
+
         $m = DB::table('sto_config_mapping as m')
             ->join('sto_config as c', 'c.config_id', '=', 'm.config_id')
             ->where('m.mapping_id', $mappingId)
             ->select('m.*', 'c.periode')
             ->first();
- 
+
         if (!$m) return response()->json(['available' => []]);
- 
+
         $noDari   = $m->no_dari   ?? 1;
         $noSampai = $m->no_sampai ?? 9999;
         $periodeDisplay = str_replace('-', '/', substr($m->periode, 0, 7));
- 
+
         $usedNumbers = DB::table('sto_hdr')
             ->where('mapping_id', $mappingId)
             ->pluck('sto_number')
@@ -110,7 +162,7 @@ class StockCountController extends Controller
                 return (int) end($parts);
             })
             ->toArray();
- 
+
         $available = [];
         for ($n = $noDari; $n <= $noSampai; $n++) {
             if (!in_array($n, $usedNumbers)) {
@@ -120,7 +172,7 @@ class StockCountController extends Controller
                 ];
             }
         }
- 
+
         return response()->json([
             'available'       => $available,
             'no_dari'         => $noDari,
@@ -131,58 +183,77 @@ class StockCountController extends Controller
         ]);
     }
 
+    // ══════════════════════════════════════════════
+    // UPDATE LINE
+    // ══════════════════════════════════════════════
     public function updateLine(Request $request, $dtlId)
-{
-    $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-    if (!$dtl) {
-        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Baris tidak ditemukan.'],'alert'=>'error']);
-    }
+    {
+        $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+        if (!$dtl) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Baris tidak ditemukan.'],'alert'=>'error']);
+        }
 
-    $userId = Auth::id();
- 
+        $userId = Auth::id();
+
         $stoHdr = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
         if (!$stoHdr || $stoHdr->status != 1) {
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Sheet ini sudah dikunci, tidak bisa diedit.'],'alert'=>'error']);
         }
- 
+
         $m = DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->first();
- 
+
+        // role dipakai untuk tentukan kolom qty_/user_/at_ yang diupdate
+        // (bug lama: $role tidak pernah didefinisikan sebelum dipakai jadi $field)
+        $role = $this->resolveCounterRole($dtl, $userId);
+        if (!$role) {
+            $access = $this->checkAccess($stoHdr->mapping_id);
+            if (!$access['ok']) {
+                return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$access['message']],'alert'=>'error']);
+            }
+            $role = $access['role'];
+        }
+
+        // ── FIX: $isManual & $article sebelumnya tidak pernah didefinisikan di sini,
+        // sehingga setiap edit baris diam-diam menimpa article_code/is_manual jadi NULL ──
         $isManual = filter_var($request->is_manual, FILTER_VALIDATE_BOOLEAN);
         $article  = $isManual ? null : $request->article;
         $qty      = (float) str_replace(',', '', $request->qty);
- 
+
         if ($qty <= 0) {
             return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY harus lebih dari 0.'],'alert'=>'warning']);
         }
         if ($isManual && trim((string) $request->uom) === '') {
             return response()->json(['status'=>0,'title'=>'Warning','message'=>['UOM wajib diisi untuk artikel manual.'],'alert'=>'warning']);
         }
- 
-        // ── cek duplikat: artikel yang sama sudah dipakai baris LAIN (bukan baris ini) di sheet yang sama ──
-        $dupQuery = DB::table('sto_dtl')->where('sto_id', $dtl->sto_id)->where('dtl_id', '!=', $dtlId);
-        if ($isManual) {
-            $dupQuery->whereNull('article_code')->whereRaw('UPPER(article_desc) = ?', [strtoupper(trim($request->article_desc))]);
-        } else {
-            $dupQuery->where('article_code', $article);
+
+        $lineLocationNumber = $m->target_type === 'LOCATION'
+            ? $m->target_ref
+            : ($request->location_number ?: $dtl->location_number);
+
+        if ($m->target_type !== 'LOCATION' && !$lineLocationNumber) {
+            return response()->json(['status'=>0,'title'=>'Warning','message'=>['Lokasi wajib dipilih untuk partner.'],'alert'=>'warning']);
         }
-        if ($dupQuery->exists()) {
-            return response()->json(['status'=>0,'title'=>'Warning','message'=>['Artikel ini sudah ada di baris lain pada sheet yang sama.'],'alert'=>'warning']);
+
+        if ($this->isDuplicateArticle($m, $stoHdr->mapping_id, $dtl->sto_id, $article, $isManual, $request->article_desc, $lineLocationNumber, $dtlId)) {
+            $label = $article ?: $request->article_desc;
+            return response()->json(['status'=>0,'title'=>'Warning','message'=>[$this->duplicateArticleMessage($m, $label)],'alert'=>'warning']);
         }
- 
-       $field = "qty_{$role}";   // ← ganti
-    $now   = date('Y-m-d H:i:s');
- 
+
+        $field = "qty_{$role}";
+        $now   = date('Y-m-d H:i:s');
+
         DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
-            'article_code' => $article,
-            'article_desc' => $request->article_desc,
-            'is_manual'    => $isManual,
-            'uom'          => $request->uom,
-            'min_package'  => $request->min_package !== '' && $request->min_package !== null ? $request->min_package : 0,
-            $field         => $qty,
-            'note'         => $request->note,
-            'updated_at'   => $now,
+            'article_code'    => $article,
+            'article_desc'    => $request->article_desc,
+            'is_manual'       => $isManual,
+            'uom'             => $request->uom,
+            'min_package'     => $request->min_package !== '' && $request->min_package !== null ? $request->min_package : 0,
+            'location_number' => $lineLocationNumber,
+            $field            => $qty,
+            'note'            => $request->note,
+            'updated_at'      => $now,
         ]);
- 
+
         $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
         [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
         DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
@@ -192,11 +263,11 @@ class StockCountController extends Controller
             'updated_at'   => $now,
         ]);
         $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
- 
+
         $this->recalcMappingProgress($stoHdr->mapping_id);
         $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc');
-         $myQty = $dtl->{$field};   // ← ganti, di bagian akhir sebelum return
- 
+        $myQty = $dtl->{$field};
+
         return response()->json([
             'status'  => 1,
             'title'   => 'Berhasil',
@@ -222,13 +293,13 @@ class StockCountController extends Controller
     // ══════════════════════════════════════════════
     // INDEX
     // ══════════════════════════════════════════════
-      public function index(Request $request)
+    public function index(Request $request)
     {
         $userId = Auth::id();
         $allowedUserIds = [58, 75, 23, 163, 176];
         $isAcct = in_array($userId, $allowedUserIds);
         $today  = date('d-m-Y');
- 
+
         $query = DB::table('sto_config_mapping as m')
             ->join('sto_config as h', 'h.config_id', '=', 'm.config_id')
             ->leftJoin('stock_location_master as l', function ($j) {
@@ -247,7 +318,7 @@ class StockCountController extends Controller
                 'h.sto_code', 'h.periode', 'h.status as config_status',
                 DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name")
             );
- 
+
         if (!$isAcct) {
             // non-accounting: hanya tampil kalau TANGGAL cocok hari ini
             // (terlepas dari sudah finish_time atau belum — aturan cuma tanggal)
@@ -256,29 +327,29 @@ class StockCountController extends Controller
                       $q->where('m.counter1_user', $userId)->orWhere('m.counter2_user', $userId);
                   });
         }
- 
+
         $rows = $query->orderBy('m.sto_date')->orderBy('target_name')->get();
- 
+
         $stoCodesForFilter = collect();
         $targetsForFilter  = collect();
         if ($isAcct) {
             $stoCodesForFilter = DB::table('sto_config')
                 ->select('sto_code')->orderByDesc('config_id')->get();
- 
+
             $locations = DB::table('stock_location_master')
                 ->select(DB::raw("'LOCATION' as target_type"), 'location_code as target_ref', 'location_name as target_name')
                 ->orderBy('location_name')->get();
- 
+
             $thirdParties = DB::table('third_party')
                 ->whereIn('third_party_type', ['supp', 'cust'])
                 ->select(
                     DB::raw("CASE WHEN third_party_type = 'supp' THEN 'SUPPLIER' ELSE 'CUSTOMER' END as target_type"),
                     'kode as target_ref', 'nama as target_name'
                 )->orderBy('nama')->get();
- 
+
             $targetsForFilter = $locations->concat($thirdParties);
         }
- 
+
         return view('stockCount.index', [
             'title'             => 'Stock Count',
             'rows'              => $rows,
@@ -297,9 +368,9 @@ class StockCountController extends Controller
     {
         $allowedUserIds = [58, 75, 23, 163, 176]; // ← isi sesuai kebutuhan
 
-if (!in_array(Auth::id(), $allowedUserIds)) {
-    abort(403, 'Anda tidak memiliki akses ke halaman ini.');
-}
+        if (!in_array(Auth::id(), $allowedUserIds)) {
+            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
+        }
 
         $query = DB::table('sto_dtl as d')
             ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
@@ -370,45 +441,45 @@ if (!in_array(Auth::id(), $allowedUserIds)) {
     // ══════════════════════════════════════════════
     // GUARD
     // ══════════════════════════════════════════════
-     private function checkAccess($mappingId)
+    private function checkAccess($mappingId)
     {
         $userId = Auth::id();
         $isAcct = Auth::user()->hasRole('accounting');
         $today  = date('d-m-Y');
- 
+
         $m = DB::table('sto_config_mapping as m')
             ->join('sto_config as h', 'h.config_id', '=', 'm.config_id')
             ->where('m.mapping_id', $mappingId)
             ->select('m.*', 'h.status as config_status', 'h.sto_code', 'h.periode')
             ->first();
- 
+
         if (!$m) return ['ok' => false, 'message' => 'Target STO tidak ditemukan.'];
- 
+
         // hanya CANCELED yang benar-benar diblokir total; SCHEDULED/ONGOING/COMPLETED tetap lolos
         if ($m->config_status == 5) {
             return ['ok' => false, 'message' => 'STO ini sudah dibatalkan (CANCELED).'];
         }
- 
+
         if ($isAcct) {
             return ['ok' => true, 'role' => 'accounting', 'mapping' => $m];
         }
- 
+
         // ── target ini SUDAH selesai → boleh lihat read-only kapan saja, tanpa syarat tanggal ──
-       if ($m->finish_time) {
-    if ($m->counter1_user == $userId) return ['ok' => true, 'role' => 'counter1', 'mapping' => $m];
-    if ($m->counter2_user == $userId) return ['ok' => true, 'role' => 'counter2', 'mapping' => $m];
-    if (($m->counter3_user ?? null) == $userId) return ['ok' => true, 'role' => 'counter3', 'mapping' => $m];
-    return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk target ini.'];
-}
- 
+        if ($m->finish_time) {
+            if ($m->counter1_user == $userId) return ['ok' => true, 'role' => 'counter1', 'mapping' => $m];
+            if ($m->counter2_user == $userId) return ['ok' => true, 'role' => 'counter2', 'mapping' => $m];
+            if (($m->counter3_user ?? null) == $userId) return ['ok' => true, 'role' => 'counter3', 'mapping' => $m];
+            return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk target ini.'];
+        }
+
         // ── belum selesai → aturan lama: harus tanggal STO hari ini ──
         if ($m->sto_date !== $today) {
             return ['ok' => false, 'message' => "Hari ini bukan tanggal STO untuk target ini ($m->sto_date)."];
         }
         if ($m->counter1_user == $userId) return ['ok' => true, 'role' => 'counter1', 'mapping' => $m];
-if ($m->counter2_user == $userId) return ['ok' => true, 'role' => 'counter2', 'mapping' => $m];
-if (($m->counter3_user ?? null) == $userId) return ['ok' => true, 'role' => 'counter3', 'mapping' => $m];
-return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk target ini.'];
+        if ($m->counter2_user == $userId) return ['ok' => true, 'role' => 'counter2', 'mapping' => $m];
+        if (($m->counter3_user ?? null) == $userId) return ['ok' => true, 'role' => 'counter3', 'mapping' => $m];
+        return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk target ini.'];
     }
 
     private function resolveLocationName($code)
@@ -418,12 +489,12 @@ return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk 
     }
 
     private function resolveCounterRole($record, $userId)
-{
-    if ($record->counter1_user == $userId) return 'counter1';
-    if ($record->counter2_user == $userId) return 'counter2';
-    if (($record->counter3_user ?? null) == $userId) return 'counter3';
-    return null;
-}
+    {
+        if ($record->counter1_user == $userId) return 'counter1';
+        if ($record->counter2_user == $userId) return 'counter2';
+        if (($record->counter3_user ?? null) == $userId) return 'counter3';
+        return null;
+    }
 
     // ══════════════════════════════════════════════
     // CREATE — tampilkan halaman input counting
@@ -436,7 +507,7 @@ return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk 
 
         $m         = $access['mapping'];
         $isPartner = in_array($m->target_type, ['SUPPLIER', 'CUSTOMER']);
-        $isAuto    = $this->isAutoNumber($m->target_ref); // 005/006/042
+        $isAuto    = $this->isAutoNumber($m->target_ref); // 005/006/042/049
 
         $targetName = DB::table('sto_config_mapping as mm')
             ->leftJoin('stock_location_master as l', function ($j) {
@@ -465,15 +536,15 @@ return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk 
                 ->orderBy('d.dtl_id')
                 ->select('d.*', 'l.location_name')
                 ->get()
-               ->map(function ($l) use ($access) {
-    $userId = Auth::id();
-    $l->my_qty = null;
-    if ($access['role'] === 'accounting')             $l->my_qty = $l->qty_counter1;
-    elseif ($l->counter1_user == $userId)             $l->my_qty = $l->qty_counter1;
-    elseif ($l->counter2_user == $userId)             $l->my_qty = $l->qty_counter2;
-    elseif (($l->counter3_user ?? null) == $userId)   $l->my_qty = $l->qty_counter3;
-    return $l;
-});
+                ->map(function ($l) use ($access) {
+                    $userId = Auth::id();
+                    $l->my_qty = null;
+                    if ($access['role'] === 'accounting')             $l->my_qty = $l->qty_counter1;
+                    elseif ($l->counter1_user == $userId)             $l->my_qty = $l->qty_counter1;
+                    elseif ($l->counter2_user == $userId)             $l->my_qty = $l->qty_counter2;
+                    elseif (($l->counter3_user ?? null) == $userId)   $l->my_qty = $l->qty_counter3;
+                    return $l;
+                });
 
             $sheets->push([
                 'hdr'   => $hdr,
@@ -524,58 +595,58 @@ return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk 
     }
 
     private function articlesByLocation($locationCode)
-{
-    $types = $this->locationArticleTypeMap[$locationCode] ?? null;
+    {
+        $types = $this->locationArticleTypeMap[$locationCode] ?? null;
 
-    $query = DB::table('warehouse_stock as ws')
-        ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
-        ->where('ws.location_number', $locationCode)
-        ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 'a.article_type');
+        $query = DB::table('warehouse_stock as ws')
+            ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
+            ->where('ws.location_number', $locationCode)
+            ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 'a.article_type');
 
-    if ($types) {
-        $query->whereIn('a.article_type', $types);
+        if ($types) {
+            $query->whereIn('a.article_type', $types);
+        }
+
+        $inStock = $query->orderBy('a.article_desc')->get();
+        $inStockCodes = $inStock->pluck('article_alternative_code');
+
+        $othersQuery = DB::table('article as a')
+            ->whereNotIn('a.article_alternative_code', $inStockCodes)
+            ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 'a.article_type');
+
+        if ($types) {
+            $othersQuery->whereIn('a.article_type', $types);
+        }
+
+        $others = $othersQuery->orderBy('a.article_desc')->get();
+
+        return ['in_stock' => $inStock, 'others' => $others];
     }
-
-    $inStock = $query->orderBy('a.article_desc')->get();
-    $inStockCodes = $inStock->pluck('article_alternative_code');
-
-    $othersQuery = DB::table('article as a')
-        ->whereNotIn('a.article_alternative_code', $inStockCodes)
-        ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 'a.article_type');
-
-    if ($types) {
-        $othersQuery->whereIn('a.article_type', $types);
-    }
-
-    $others = $othersQuery->orderBy('a.article_desc')->get();
-
-    return ['in_stock' => $inStock, 'others' => $others];
-}
 
     private function resolveArticlesForPartner($partnerCode, $partnerType)
-{
-    // Cross-reference: SUPP ↔ CUST (hanya beda suffix belakang)
-    // Contoh: API000001SUPP ↔ API000001CUST
-    $counterCode = preg_replace('/(SUPP)$/i', 'CUST', $partnerCode);
-    if ($counterCode === $partnerCode) {
-        $counterCode = preg_replace('/(CUST)$/i', 'SUPP', $partnerCode);
+    {
+        // Cross-reference: SUPP ↔ CUST (hanya beda suffix belakang)
+        // Contoh: API000001SUPP ↔ API000001CUST
+        $counterCode = preg_replace('/(SUPP)$/i', 'CUST', $partnerCode);
+        if ($counterCode === $partnerCode) {
+            $counterCode = preg_replace('/(CUST)$/i', 'SUPP', $partnerCode);
+        }
+
+        $partnerCodes = array_unique(array_filter([$partnerCode, $counterCode]));
+
+        $rows = DB::table('article as a')
+            ->whereIn('a.third_party', $partnerCodes)
+            ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package',
+                     'a.article_type', 'a.third_party')
+            ->orderBy('a.third_party')   // grouping visual: CUST dulu / SUPP dulu
+            ->orderBy('a.article_desc')
+            ->get();
+
+        return ['in_stock' => $rows, 'others' => collect()];
     }
 
-    $partnerCodes = array_unique(array_filter([$partnerCode, $counterCode]));
-
-    $rows = DB::table('article as a')
-        ->whereIn('a.third_party', $partnerCodes)
-        ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package',
-                 'a.article_type', 'a.third_party')
-        ->orderBy('a.third_party')   // grouping visual: CUST dulu / SUPP dulu
-        ->orderBy('a.article_desc')
-        ->get();
-
-    return ['in_stock' => $rows, 'others' => collect()];
-}
-
     // ══════════════════════════════════════════════
-    // STORE LINE — auto number (005/006/042)
+    // STORE LINE — auto number (005/006/042/049)
     // 1 artikel = 1 sto_hdr = 1 sto_number
     // ══════════════════════════════════════════════
     public function storeLine(Request $request)
@@ -593,6 +664,10 @@ return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk 
         $locationNumber = $m->target_type === 'LOCATION'
             ? $m->target_ref
             : ($request->location_number ?: null);
+
+        if ($m->target_type !== 'LOCATION' && !$locationNumber) {
+            return response()->json(['status'=>0,'title'=>'Warning','message'=>['Lokasi wajib dipilih untuk partner.'],'alert'=>'warning']);
+        }
 
         $isManual = filter_var($request->is_manual, FILTER_VALIDATE_BOOLEAN);
         $article  = $isManual ? null : $request->article;
@@ -617,10 +692,8 @@ return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk 
     {
         return DB::transaction(function () use ($mappingId, $m, $access, $userId, $locationNumber, $isManual, $article, $request, $qty, $confirmAccumulate, $now) {
 
-            // cari sto_hdr untuk artikel ini (1 artikel = 1 hdr)
-            $hdrQuery = DB::table('sto_hdr')->where('mapping_id', $mappingId);
+            // cari sto_hdr untuk artikel ini (1 artikel = 1 hdr, dedup global per mapping)
             if ($isManual) {
-                // untuk manual cek via dtl
                 $existingDtl = DB::table('sto_dtl as d')
                     ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
                     ->where('h.mapping_id', $mappingId)
@@ -654,21 +727,21 @@ return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk 
                     'updated_at'  => $now,
                 ], 'sto_id');
 
-               $dtlId = DB::table('sto_dtl')->insertGetId([
-    'sto_id'          => $stoId,
-    'article_code'    => $article,
-    'article_desc'    => $request->article_desc,
-    'is_manual'       => $isManual,
-    'uom'             => $request->uom,
-    'min_package'     => $request->min_package ?: null,
-    'location_number' => $locationNumber,
-    "qty_{$access['role']}"      => $qty,
-    "{$access['role']}_user"     => $userId,
-    "{$access['role']}_at"       => $now,
-    'note'            => $request->note,
-    'created_at'      => $now,
-    'updated_at'      => $now,
-], 'dtl_id');
+                $dtlId = DB::table('sto_dtl')->insertGetId([
+                    'sto_id'                  => $stoId,
+                    'article_code'            => $article,
+                    'article_desc'            => $request->article_desc,
+                    'is_manual'               => $isManual,
+                    'uom'                     => $request->uom,
+                    'min_package'             => $request->min_package ?: null,
+                    'location_number'         => $locationNumber,
+                    "qty_{$access['role']}"   => $qty,
+                    "{$access['role']}_user"  => $userId,
+                    "{$access['role']}_at"    => $now,
+                    'note'                    => $request->note,
+                    'created_at'              => $now,
+                    'updated_at'              => $now,
+                ], 'dtl_id');
 
                 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
                 [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
@@ -681,7 +754,7 @@ return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk 
                 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
                 $this->recalcMappingProgress($mappingId);
                 $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
-               $myQty = $dtl->{"qty_{$access['role']}"};
+                $myQty = $dtl->{"qty_{$access['role']}"};
 
                 return response()->json([
                     'status'         => 1,
@@ -711,10 +784,10 @@ return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk 
                 return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Sheet artikel ini sudah dikunci.'],'alert'=>'error']);
             }
 
-           $field     = "qty_{$access['role']}";
-$userField = "{$access['role']}_user";
-$atField   = "{$access['role']}_at";
-$ownerId   = $existingDtl->{$userField} ?? null;
+            $field     = "qty_{$access['role']}";
+            $userField = "{$access['role']}_user";
+            $atField   = "{$access['role']}_at";
+            $ownerId   = $existingDtl->{$userField} ?? null;
 
             if ($ownerId && $ownerId != $userId) {
                 return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Slot counter ini sudah diisi user lain.'],'alert'=>'error']);
@@ -751,7 +824,7 @@ $ownerId   = $existingDtl->{$userField} ?? null;
             $dtl = DB::table('sto_dtl')->where('dtl_id', $dtl->dtl_id)->first();
             $this->recalcMappingProgress($mappingId);
             $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
-           $myQty = $dtl->{"qty_{$access['role']}"};
+            $myQty = $dtl->{"qty_{$access['role']}"};
 
             return response()->json([
                 'status'         => 1,
@@ -780,7 +853,7 @@ $ownerId   = $existingDtl->{$userField} ?? null;
     // ══════════════════════════════════════════════
     // STORE SHEET — non-auto, max 7 baris per sheet
     // ══════════════════════════════════════════════
-     public function storeSheet(Request $request)
+    public function storeSheet(Request $request)
     {
         $mappingId = Crypt::decryptString($request->mapping_id);
         $access    = $this->checkAccess($mappingId);
@@ -790,12 +863,12 @@ $ownerId   = $existingDtl->{$userField} ?? null;
         if ($access['role'] === 'accounting') {
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Accounting tidak melakukan input counting.'],'alert'=>'warning']);
         }
- 
+
         $m      = $access['mapping'];
         $userId = Auth::id();
         $lines  = $request->lines ?? [];
         $isAuto = $this->isAutoNumber($m->target_ref);
- 
+
         $filled = array_filter($lines, fn($l) => !empty($l['article'] ?? $l['article_desc'] ?? '') && isset($l['qty']) && (float)str_replace(',','',$l['qty']) > 0);
         if (count($filled) === 0) {
             return response()->json(['status'=>0,'title'=>'Warning','message'=>['Minimal 1 baris harus diisi beserta QTY-nya.'],'alert'=>'warning']);
@@ -803,7 +876,7 @@ $ownerId   = $existingDtl->{$userField} ?? null;
         if (count($filled) > 7) {
             return response()->json(['status'=>0,'title'=>'Warning','message'=>['Maksimal 7 baris per sheet.'],'alert'=>'warning']);
         }
- 
+
         // ── WAJIB pilih nomor manual untuk non-auto ──
         $selectedNo = null;
         if (!$isAuto) {
@@ -812,7 +885,8 @@ $ownerId   = $existingDtl->{$userField} ?? null;
                 return response()->json(['status'=>0,'title'=>'Warning','message'=>['Pilih Nomor STO terlebih dahulu.'],'alert'=>'warning']);
             }
         }
- 
+
+        // ── duplikat DALAM sheet yang sama ──
         $articlesSeen = [];
         foreach ($filled as $l) {
             $key = !empty($l['article']) ? $l['article'] : ('MANUAL::'.strtoupper(trim($l['article_desc'] ?? '')));
@@ -821,43 +895,54 @@ $ownerId   = $existingDtl->{$userField} ?? null;
             }
             $articlesSeen[] = $key;
         }
- 
-        $existingArticles = DB::table('sto_dtl as d')
-            ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
-            ->where('h.mapping_id', $mappingId)
-            ->pluck('d.article_code')->filter()->toArray();
- 
+
+        // ── duplikat TERHADAP data tersimpan sebelumnya (scope tergantung tipe target) ──
         foreach ($filled as $l) {
-            if (!empty($l['article']) && in_array($l['article'], $existingArticles)) {
-                return response()->json(['status'=>0,'title'=>'Warning','message'=>["Artikel {$l['article']} sudah ada di sheet sebelumnya."],'alert'=>'warning']);
+            $isManualLine = filter_var($l['is_manual'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $articleLine  = $isManualLine ? null : ($l['article'] ?? null);
+            $descLine     = $l['article_desc'] ?? '';
+            // partner: lokasi per baris dari form; LOCATION: pakai target_ref langsung
+            $lineLocationNumber = $m->target_type === 'LOCATION' ? $m->target_ref : ($l['location_number'] ?? null);
+
+            if ($m->target_type !== 'LOCATION' && !$lineLocationNumber) {
+                $label = $articleLine ?: $descLine;
+                return response()->json(['status'=>0,'title'=>'Warning','message'=>["Lokasi wajib dipilih untuk artikel: {$label}"],'alert'=>'warning']);
+            }
+
+            if ($this->isDuplicateArticle($m, $mappingId, null, $articleLine, $isManualLine, $descLine, $lineLocationNumber)) {
+                $label = $articleLine ?: $descLine;
+                return response()->json(['status'=>0,'title'=>'Warning','message'=>[$this->duplicateArticleMessage($m, $label)],'alert'=>'warning']);
             }
         }
- 
+
         return DB::transaction(function () use ($mappingId, $m, $access, $userId, $filled, $isAuto, $selectedNo) {
             $now = date('Y-m-d H:i:s');
- 
+
             if ($isAuto) {
                 $stoNumber = $this->generateStoNumber($mappingId);
             } else {
                 // ── lock mapping row, validasi nomor pilihan user ──
+                // FIX: kolom sebenarnya no_dari/no_sampai (sama seperti dipakai generateStoNumber()
+                // & getAvailableNumbers()) — sebelumnya salah baca no_start/no_end yang tidak ada
+                // di tabel, sehingga validasi range selalu fallback ke 1-9999 (tidak berfungsi).
                 $mLock = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->lockForUpdate()->first();
-                $noStart = $mLock->no_start ?? 1;
-                $noEnd   = $mLock->no_end   ?? 9999;
- 
-                if ($selectedNo < $noStart || $selectedNo > $noEnd) {
-                    return response()->json(['status'=>0,'title'=>'Warning','message'=>["Nomor harus antara {$noStart}-{$noEnd}."],'alert'=>'warning']);
+                $noDari   = $mLock->no_dari   ?? 1;
+                $noSampai = $mLock->no_sampai ?? 9999;
+
+                if ($selectedNo < $noDari || $selectedNo > $noSampai) {
+                    return response()->json(['status'=>0,'title'=>'Warning','message'=>["Nomor harus antara {$noDari}-{$noSampai}."],'alert'=>'warning']);
                 }
- 
+
                 $config  = DB::table('sto_config')->where('config_id', $m->config_id)->first();
                 $periode = str_replace('-', '/', substr($config->periode, 0, 7));
                 $stoNumber = $periode . '/' . str_pad($selectedNo, 4, '0', STR_PAD_LEFT);
- 
+
                 $exists = DB::table('sto_hdr')->where('mapping_id', $mappingId)->where('sto_number', $stoNumber)->exists();
                 if ($exists) {
                     return response()->json(['status'=>0,'title'=>'Warning','message'=>['Nomor ini baru saja dipakai user lain, silakan pilih nomor lain.'],'alert'=>'warning']);
                 }
             }
- 
+
             $stoId = DB::table('sto_hdr')->insertGetId([
                 'sto_number'  => $stoNumber,
                 'mapping_id'  => $mappingId,
@@ -870,39 +955,40 @@ $ownerId   = $existingDtl->{$userField} ?? null;
                 'updated_by'  => Auth::user()->username,
                 'updated_at'  => $now,
             ], 'sto_id');
- 
-            $locationNumber = $m->target_type === 'LOCATION' ? $m->target_ref : null;
-            $savedLines     = [];
- 
+
+            $savedLines = [];
+
             foreach ($filled as $l) {
                 $isManual = filter_var($l['is_manual'] ?? false, FILTER_VALIDATE_BOOLEAN);
                 $article  = $isManual ? null : ($l['article'] ?? null);
                 $qty      = (float) str_replace(',', '', $l['qty']);
- 
-               $dtlId = DB::table('sto_dtl')->insertGetId([
-    'sto_id'          => $stoId,
-    'article_code'    => $article,
-    'article_desc'    => $l['article_desc'] ?? null,
-    'is_manual'       => $isManual,
-    'uom'             => $l['uom'] ?? null,
-    'min_package'     => $l['min_package'] ?: null,
-    'location_number' => $locationNumber,
-    "qty_{$access['role']}"  => $qty,
-    "{$access['role']}_user" => $userId,
-    "{$access['role']}_at"   => $now,
-    'note'            => $l['note'] ?? null,
-    'created_at'      => $now,
-    'updated_at'      => $now,
-], 'dtl_id');
- 
+                // partner: location_number per baris; LOCATION: target_ref
+                $locationNumber = $m->target_type === 'LOCATION' ? $m->target_ref : ($l['location_number'] ?? null);
+
+                $dtlId = DB::table('sto_dtl')->insertGetId([
+                    'sto_id'                  => $stoId,
+                    'article_code'            => $article,
+                    'article_desc'            => $l['article_desc'] ?? null,
+                    'is_manual'               => $isManual,
+                    'uom'                     => $l['uom'] ?? null,
+                    'min_package'             => $l['min_package'] ?: null,
+                    'location_number'         => $locationNumber,
+                    "qty_{$access['role']}"   => $qty,
+                    "{$access['role']}_user"  => $userId,
+                    "{$access['role']}_at"    => $now,
+                    'note'                    => $l['note'] ?? null,
+                    'created_at'              => $now,
+                    'updated_at'              => $now,
+                ], 'dtl_id');
+
                 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
                 [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
                 DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
                     'count_status' => $status, 'qty_system' => $qtySystem, 'qty_variance' => $variance, 'updated_at' => $now,
                 ]);
                 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-               $myQty = $dtl->{"qty_{$access['role']}"};
- 
+                $myQty = $dtl->{"qty_{$access['role']}"};
+
                 $savedLines[] = [
                     'dtl_id'         => $dtl->dtl_id,
                     'sto_number'     => $stoNumber,
@@ -917,10 +1003,10 @@ $ownerId   = $existingDtl->{$userField} ?? null;
                     'location_name'  => $this->resolveLocationName($dtl->location_number),
                 ];
             }
- 
+
             $this->recalcMappingProgress($mappingId);
             $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
- 
+
             return response()->json([
                 'status'         => 1,
                 'title'          => 'Berhasil',
@@ -937,76 +1023,76 @@ $ownerId   = $existingDtl->{$userField} ?? null;
     // resolveStatus, compareToSystem, getLastQty
     // ══════════════════════════════════════════════
     private function resolveStatus($dtl, $mapping)
-{
-    if (!($mapping->is_blind ?? true)) {
-        $qty = $dtl->qty_counter1 ?? $dtl->qty_counter2 ?? ($dtl->qty_counter3 ?? null);
-        if (is_null($qty)) return ['INCOMPLETE', null, null];
-        return $this->compareToSystem($qty, $dtl, $mapping);
+    {
+        if (!($mapping->is_blind ?? true)) {
+            $qty = $dtl->qty_counter1 ?? $dtl->qty_counter2 ?? ($dtl->qty_counter3 ?? null);
+            if (is_null($qty)) return ['INCOMPLETE', null, null];
+            return $this->compareToSystem($qty, $dtl, $mapping);
+        }
+
+        $activeQty = [];
+        if (!empty($mapping->counter1_user)) $activeQty[] = $dtl->qty_counter1;
+        if (!empty($mapping->counter2_user)) $activeQty[] = $dtl->qty_counter2;
+        if (!empty($mapping->counter3_user)) $activeQty[] = $dtl->qty_counter3 ?? null;
+
+        foreach ($activeQty as $q) {
+            if (is_null($q)) return ['INCOMPLETE', null, null];
+        }
+
+        // ── bulatkan ke 2 desimal sebelum dibandingkan, hindari false-mismatch akibat floating point ──
+        $unique = array_unique(array_map(fn($q) => round((float) $q, 2), $activeQty));
+        if (count($unique) > 1) return ['NOT MATCH', null, null];
+
+        return $this->compareToSystem($activeQty[0], $dtl, $mapping);
     }
-
-    $activeQty = [];
-    if (!empty($mapping->counter1_user)) $activeQty[] = $dtl->qty_counter1;
-    if (!empty($mapping->counter2_user)) $activeQty[] = $dtl->qty_counter2;
-    if (!empty($mapping->counter3_user)) $activeQty[] = $dtl->qty_counter3 ?? null;
-
-    foreach ($activeQty as $q) {
-        if (is_null($q)) return ['INCOMPLETE', null, null];
-    }
-
-    // ── bulatkan ke 2 desimal sebelum dibandingkan, hindari false-mismatch akibat floating point ──
-    $unique = array_unique(array_map(fn($q) => round((float) $q, 2), $activeQty));
-    if (count($unique) > 1) return ['NOT MATCH', null, null];
-
-    return $this->compareToSystem($activeQty[0], $dtl, $mapping);
-}
 
     private function compareToSystem($qty, $dtl, $mapping)
-{
-    if ($dtl->is_manual || is_null($dtl->article_code)) return ['MATCH', null, 0];
-    if (empty($dtl->location_number)) {
-        $variance = round((float)$qty - 0, 2);
-        return [($variance == 0 ? 'MATCH' : 'RECOUNT'), 0, $variance];
+    {
+        if ($dtl->is_manual || is_null($dtl->article_code)) return ['MATCH', null, 0];
+        if (empty($dtl->location_number)) {
+            $variance = round((float)$qty - 0, 2);
+            return [($variance == 0 ? 'MATCH' : 'RECOUNT'), 0, $variance];
+        }
+        $qtySystem = (float) $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
+        $variance  = round((float)$qty - $qtySystem, 2);
+        return [($variance == 0 ? 'MATCH' : 'RECOUNT'), $qtySystem, $variance];
     }
-    $qtySystem = (float) $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
-    $variance  = round((float)$qty - $qtySystem, 2);
-    return [($variance == 0 ? 'MATCH' : 'RECOUNT'), $qtySystem, $variance];
-}
 
     private function getLastQty($article, $location, $stoDate)
-{
-    return (float) (DB::table('warehouse_stock as ws')
-        ->join('article as a', 'a.article_code', '=', 'ws.article_code')
-        ->where('a.article_alternative_code', $article)
-        ->where('ws.location_number', $location)
-        ->value('ws.article_qty') ?? 0);
-}
+    {
+        return (float) (DB::table('warehouse_stock as ws')
+            ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+            ->where('a.article_alternative_code', $article)
+            ->where('ws.location_number', $location)
+            ->value('ws.article_qty') ?? 0);
+    }
 
     // ══════════════════════════════════════════════
     // DELETE LINE
     // ══════════════════════════════════════════════
     public function deleteLine(Request $request, $dtlId)
-{
-    $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-    if (!$dtl) return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Baris tidak ditemukan.'],'alert'=>'error']);
+    {
+        $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+        if (!$dtl) return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Baris tidak ditemukan.'],'alert'=>'error']);
 
-    $userId = Auth::id();
+        $userId = Auth::id();
 
-    $role = $this->resolveCounterRole($dtl, $userId);
-    if (!$role) {
-        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Anda tidak berwenang menghapus baris ini.'],'alert'=>'error']);
-    }
+        $role = $this->resolveCounterRole($dtl, $userId);
+        if (!$role) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Anda tidak berwenang menghapus baris ini.'],'alert'=>'error']);
+        }
 
-    // cek apakah ADA slot counter LAIN (selain milik saya) yang sudah terisi
-    $otherFilled = false;
-    foreach (['counter1', 'counter2', 'counter3'] as $r) {
-        if ($r === $role) continue;
-        if (!is_null($dtl->{"qty_{$r}"} ?? null)) { $otherFilled = true; break; }
-    }
+        // cek apakah ADA slot counter LAIN (selain milik saya) yang sudah terisi
+        $otherFilled = false;
+        foreach (['counter1', 'counter2', 'counter3'] as $r) {
+            if ($r === $role) continue;
+            if (!is_null($dtl->{"qty_{$r}"} ?? null)) { $otherFilled = true; break; }
+        }
 
-    $now    = date('Y-m-d H:i:s');
-    $stoHdr = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
+        $now    = date('Y-m-d H:i:s');
+        $stoHdr = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
 
-    if (!$otherFilled) {
+        if (!$otherFilled) {
             DB::table('sto_dtl')->where('dtl_id', $dtlId)->delete();
 
             // kalau hdr ini sudah tidak punya dtl lagi → hapus hdr juga & rollback no_current
@@ -1036,16 +1122,15 @@ $ownerId   = $existingDtl->{$userField} ?? null;
             ]);
         }
 
-         $field     = "qty_{$role}";
-    $userField = "{$role}_user";
-    $atField   = "{$role}_at";
+        $field     = "qty_{$role}";
+        $userField = "{$role}_user";
+        $atField   = "{$role}_at";
 
-        
-    DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
-        $field => null, $userField => null, $atField => null,
-        'count_status' => 'INCOMPLETE', 'qty_system' => null, 'qty_variance' => null,
-        'updated_at'   => $now,
-    ]);
+        DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
+            $field => null, $userField => null, $atField => null,
+            'count_status' => 'INCOMPLETE', 'qty_system' => null, 'qty_variance' => null,
+            'updated_at'   => $now,
+        ]);
 
         if ($stoHdr) {
             $this->recalcMappingProgress($stoHdr->mapping_id);

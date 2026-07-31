@@ -123,7 +123,18 @@
     <div class="card">
         <div class="card-header"><h4 class="card-title">Input Artikel</h4></div>
         <div class="card-body">
-            <div class="form-row d-flex align-items-end">
+           <div class="form-row d-flex align-items-end">
+    @if($isPartner)
+    <div class="form-group col-md-2 col-6">
+        <label>Lokasi*</label>
+        <select class="form-control" id="inLocation" style="width:100%">
+            <option value="">- Pilih -</option>
+            @foreach($locations as $loc)
+                <option value="{{ $loc->location_code }}">{{ $loc->location_name }}</option>
+            @endforeach
+        </select>
+    </div>
+    @endif
                 <div class="form-group col-md-4 col-12">
                     <label>Article</label>
                     <select class="form-control" id="inArticle" style="width:100%"></select>
@@ -180,16 +191,27 @@
                 @for($i = 0; $i < 7; $i++)
                   <div class="scc-sheet-row-card" data-row="{{ $i }}">
                     <div class="scc-sheet-row-num">{{ $i + 1 }}</div>
-                    <div class="form-row">
+                   <div class="form-row">
+    @if($isPartner)
+    <div class="form-group col-md-2 col-6">
+        <label class="scc-field-label">Lokasi*</label>
+        <select class="form-control sheet-location" style="width:100%">
+            <option value="">- Pilih -</option>
+            @foreach($locations as $loc)
+                <option value="{{ $loc->location_code }}">{{ $loc->location_name }}</option>
+            @endforeach
+        </select>
+    </div>
+    @endif
                         <div class="form-group col-md-4 col-12">
                             <label class="scc-field-label">Article*</label>
                             <select class="form-control sheet-article" style="width:100%"></select>
                         </div>
-                        <div class="form-group col-md-2 col-6">
+                        <div class="form-group col-md-1 col-6">
                             <label class="scc-field-label">UOM</label>
                             <select class="form-control sheet-uom"></select>
                         </div>
-                        <div class="form-group col-md-2 col-6">
+                        <div class="form-group col-md-1 col-6">
                             <label class="scc-field-label">Min Packing</label>
                             <input type="text" class="form-control text-right sheet-minpkg" readonly tabindex="-1"/>
                         </div>
@@ -755,6 +777,9 @@ function submitLineAuto(confirmAccumulate) {
         return;
     }
 
+    const locationNumber = IS_PARTNER ? $('#inLocation').val() : '';
+if (IS_PARTNER && !locationNumber) { Swal.fire('Warning','Pilih lokasi dulu.','warning'); return; }
+
    const $btn = $('#btnAddLine');
     $btn.data('original-html', $btn.html())
         .prop('disabled', true)
@@ -831,14 +856,17 @@ function submitSheet() {
             show_msg('Warning', `UOM wajib diisi untuk artikel manual: ${articleDesc}`, 'warning');
             valid = false; return false;
         }
+
+        const locationNumber = IS_PARTNER ? $(this).find('.sheet-location').val() : '';
+    if (val && IS_PARTNER && !locationNumber) { show_msg('Warning',`Pilih lokasi untuk artikel: ${articleDesc}`,'warning'); valid=false; return false; }
  
         const key = manual ? ('MANUAL::'+articleDesc.toUpperCase()) : article;
 
         if (articlesSeen.includes(key)) { show_msg('Warning',`Artikel duplikat: ${articleDesc}`,'warning'); valid=false; return false; }
         articlesSeen.push(key);
 
-        lines.push({ is_manual: manual?1:0, article, article_desc: articleDesc, uom, min_package: minpkg, qty, note });
-    });
+          lines.push({ is_manual: manual?1:0, article, article_desc: articleDesc, uom, min_package: minpkg, qty, note, location_number: locationNumber });
+});
 
     if (!valid) return;
     if (lines.length === 0) { show_msg('Warning','Minimal 1 baris harus diisi beserta QTY-nya.','warning'); return; }
