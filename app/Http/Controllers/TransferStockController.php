@@ -1010,7 +1010,7 @@ public function update(Request $request)
  
     // ── Validasi dasar ────────────────────────────────────────
     $errors = [];
-    if (!$editReason)   $errors[] = "Alasan edit harus diisi";
+    //if (!$editReason)   $errors[] = "Alasan edit harus diisi";
     if (!$trDate)       $errors[] = "Transfer Date harus diisi";
     if (!$locationCode) $errors[] = "Location From harus dipilih";
     if (!$locationTo)   $errors[] = "Location To harus dipilih";
