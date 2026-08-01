@@ -129,11 +129,6 @@ private function dbRole($role)
         } elseif ($m->target_type === 'LOCATION') {
             if (!$stoId) return false; // sto baru dibuat, belum ada baris apa pun di dalamnya
             $query->where('d.sto_id', $stoId);
-        } else {
-            // partner: dedup per lokasi yang sama; tanpa lokasi tidak bisa dedup dengan aman
-            if (!$locationNumber) return false;
-            $query->where('h.mapping_id', $mappingId)
-                  ->where('d.location_number', $locationNumber);
         }
  
         if ($excludeDtlId) $query->where('d.dtl_id', '!=', $excludeDtlId);
@@ -149,9 +144,6 @@ private function dbRole($role)
  
     private function duplicateArticleMessage($m, $label)
     {
-        if ($m->target_type === 'LOCATION' && $this->isAutoNumber($m->target_ref)) {
-            return "Artikel {$label} sudah pernah diinput untuk gudang ini (berlaku lintas nomor STO).";
-        }
         if ($m->target_type === 'LOCATION') {
             return "Artikel {$label} sudah ada di baris lain pada sheet yang sama.";
         }
