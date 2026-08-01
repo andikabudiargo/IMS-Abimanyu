@@ -120,30 +120,38 @@ private function dbRole($role)
     //  - PARTNER (SUPPLIER/CUSTOMER):
     //      unik per location_number yang sama (lintas nomor STO)
     // ══════════════════════════════════════════════
-    private function isDuplicateArticle($m, $mappingId, $stoId, $article, $isManual, $articleDesc, $locationNumber = null, $excludeDtlId = null)
-    {
-        $query = DB::table('sto_dtl as d')->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id');
- 
-        if ($m->target_type === 'LOCATION' && $this->isAutoNumber($m->target_ref)) {
-            $query->where('h.mapping_id', $mappingId);
-        } elseif ($m->target_type === 'LOCATION') {
-            if (!$stoId) return false; // sto baru dibuat, belum ada baris apa pun di dalamnya
-            $query->where('d.sto_id', $stoId);
-        }
- 
-        if ($excludeDtlId) $query->where('d.dtl_id', '!=', $excludeDtlId);
- 
-        if ($isManual) {
-            $query->whereNull('d.article_code')->whereRaw('UPPER(d.article_desc) = ?', [strtoupper(trim($articleDesc ?? ''))]);
-        } else {
-            $query->where('d.article_code', $article);
-        }
- 
-        return $query->exists();
+  private function isDuplicateArticle($m, $mappingId, $stoId, $article, $isManual, $articleDesc, $locationNumber = null, $excludeDtlId = null)
+{
+    $query = DB::table('sto_dtl as d')->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id');
+
+    if ($m->target_type === 'LOCATION' && $this->isAutoNumber($m->target_ref)) {
+        $query->where('h.mapping_id', $mappingId);
+    } elseif ($m->target_type === 'LOCATION') {
+        if (!$stoId) return false; // sto baru dibuat, belum ada baris apa pun di dalamnya
+        $query->where('d.sto_id', $stoId);
+    } else {
+        // SUPPLIER/CUSTOMER: hanya dicek dalam kartu (sto) yang sama.
+        // STO number beda meski lokasi sama → dianggap kartu berbeda, boleh input.
+        if (!$stoId) return false;
+        $query->where('d.sto_id', $stoId);
     }
+
+    if ($excludeDtlId) $query->where('d.dtl_id', '!=', $excludeDtlId);
+
+    if ($isManual) {
+        $query->whereNull('d.article_code')->whereRaw('UPPER(d.article_desc) = ?', [strtoupper(trim($articleDesc ?? ''))]);
+    } else {
+        $query->where('d.article_code', $article);
+    }
+
+    return $query->exists();
+}
  
     private function duplicateArticleMessage($m, $label)
     {
+        if ($m->target_type === 'LOCATION' && $this->isAutoNumber($m->target_ref)) {
+            return "Artikel {$label} sudah pernah diinput untuk gudang ini (berlaku lintas nomor STO).";
+        }
         if ($m->target_type === 'LOCATION') {
             return "Artikel {$label} sudah ada di baris lain pada sheet yang sama.";
         }
