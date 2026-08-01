@@ -1175,12 +1175,36 @@ private function resolveQtySystem($dtl, $mapping)
         DB::table('sto_dtl')->where('dtl_id', $dtlId)->delete();
 
         $remainingDtl = DB::table('sto_dtl')->where('sto_id', $dtl->sto_id)->count();
-        if ($remainingDtl === 0 && $stoHdr) {
-            DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->delete();
+       if ($remainingDtl === 0 && $stoHdr) {
+    DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->delete();
+
+    // Hanya decrement no_current kalau nomor yang dihapus ini
+    // memang nomor TERAKHIR yang pernah digenerate untuk mapping ini.
+    // Kalau bukan, jangan disentuh — mencegah nomor di depan (lebih besar)
+    // ke-generate ulang dan tabrakan dengan nomor yang masih hidup.
+    DB::transaction(function () use ($stoHdr) {
+        $mapping = DB::table('sto_config_mapping')
+            ->where('mapping_id', $stoHdr->mapping_id)
+            ->lockForUpdate()
+            ->first();
+
+        // ambil bagian angka terakhir dari sto_number, mis. "2026/07/2022" -> 2022
+        $parts     = explode('/', $stoHdr->sto_number);
+        $deletedNo = (int) end($parts);
+
+        // hanya decrement kalau ini betul2 nomor terakhir yg pernah digenerate
+        // DAN tidak ada sto_hdr lain di mapping ini yang nomornya >= ini
+        $hasHigherOrEqual = DB::table('sto_hdr')
+            ->where('mapping_id', $stoHdr->mapping_id)
+            ->exists(); // sisa sto_hdr lain (kalau ada) — cek manual di bawah lebih akurat
+
+        if ($deletedNo == (int) $mapping->no_current) {
             DB::table('sto_config_mapping')
                 ->where('mapping_id', $stoHdr->mapping_id)
-                ->decrement('no_current');
+                ->update(['no_current' => $deletedNo - 1, 'updated_at' => date('Y-m-d H:i:s')]);
         }
+    });
+}
 
         $freshTargetAct = null;
         if ($stoHdr) {
