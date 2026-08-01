@@ -1299,25 +1299,19 @@ DB::table('warehouse_movement')
  */
 private function recalculateMovementAndStock(string $articleCode, string $location, string $fromDate): void
 {
-    // 1) Hitung balance SEBELUM fromDate
-    //    Pakai get_last_qty_new() dengan tanggal = fromDate - 1 hari
-    //    tapi EXCLUDE movement dari tr_number ini (sudah diupdate di atas)
-    //    Karena get_last_qty_new() baca semua movement s/d tanggal,
-    //    kita ambil balance s/d (fromDate - 1) saja → tidak ada overlap
- 
+    // $fromDate format DD-MM-YYYY (sesuai tr_date & movement_date di DB)
+
     $balanceBefore = (float) DB::selectOne(
-        "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'YYYY-MM-DD') - INTERVAL '1 day', 'YYYY-MM-DD'), ?, ?) AS bal",
+        "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'DD-MM-YYYY') - INTERVAL '1 day', 'DD-MM-YYYY'), ?, ?) AS bal",
         [$articleCode, $fromDate, $this->siteCode, $location]
     )->bal;
- 
-    // 2) Ambil semua movement artikel+lokasi ini mulai dari fromDate,
-    //    urut sama persis dengan get_last_qty_new(): date ASC, movement_code ASC
+
     $movements = DB::table('warehouse_movement')
         ->where('artikel_code', $articleCode)
         ->where('location_number', $location)
         ->where('site_code', $this->siteCode)
         ->where(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), '>=',
-            DB::raw("TO_DATE('$fromDate', 'YYYY-MM-DD')"))
+            DB::raw("TO_DATE('$fromDate', 'DD-MM-YYYY')"))
         ->orderBy(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), 'asc')
         ->orderBy('movement_code', 'asc')
         ->select('movement_code', 'movement_min', 'movement_plus')
