@@ -1317,6 +1317,9 @@ public function runCheck(Request $request)
 
         Artisan::call('stock:check-anomaly', $params);
 
+        // DEBUG: tangkap output command asli
+        $artisanOutput = Artisan::output();
+
         $anomalies = DB::table('stock_anomaly_log as l')
             ->leftJoin('article as a', 'a.article_code', '=', 'l.article_id')
             ->leftJoin('stock_location_master as loc', 'loc.location_code', '=', 'l.location_number')
@@ -1330,12 +1333,21 @@ public function runCheck(Request $request)
             ->get();
 
         return response()->json([
-            'success' => true, 'data' => $anomalies,
+            'success' => true,
+            'data' => $anomalies,
             'checked_at' => now()->format('d-m-Y H:i'),
+            'debug_artisan_output' => $artisanOutput,   // <-- DEBUG, hapus nanti
+            'debug_params_sent' => $params,               // <-- DEBUG, hapus nanti
         ]);
     } catch (\Exception $e) {
         \LogActivity::addToLog('Gagal cek stock anomaly: ' . substr($e->getMessage(), 0, 200));
-        return response()->json(['success' => false, 'message' => 'Terjadi kesalahan.'], 500);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan.',
+            'debug_error' => $e->getMessage(),              // <-- DEBUG, hapus nanti
+            'debug_file'  => $e->getFile() . ':' . $e->getLine(), // <-- DEBUG, hapus nanti
+        ], 500);
     }
 }
 
