@@ -2474,8 +2474,8 @@ private function getArticleDesc(string $articleCode): string
      * Simpan kondisi dokumen saat ini ke tabel history sebelum diubah.
      * Return nomor revisi yang baru dipakai.
      */
-    private function snapshotHistory($hdr, string $username, string $reason): int
-    {
+    private function snapshotHistory($hdr, string $username, ?string $reason = null): int
+{
         $rev = (int) ($hdr->num_revision ?? 0) + 1;
 
         DB::table('transfer_stock_hdr_hist')->insert([
@@ -2489,7 +2489,7 @@ private function getArticleDesc(string $articleCode): string
             'location_from' => $hdr->location_from,
             'location_to'   => $hdr->location_to,
             'approve_dept'  => $hdr->approve_dept,
-            'edit_reason'   => $reason,
+            'edit_reason'   => $reason ?? '-',
             'revised_by'    => $username,
             'revised_at'    => date('Y-m-d H:i:s'),
         ]);
