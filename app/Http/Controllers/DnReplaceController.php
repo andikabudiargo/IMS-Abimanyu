@@ -1590,7 +1590,7 @@ class DnReplaceController extends Controller
     'dn_replace_hdr.created_by as created_by_1',
     'dn_replace_hdr.created_at as created_at_1',
     'dn_return_hdr.id as return_id',
-    'dn_return_hdr.dn_return as dn_return',
+    'dn_return_hdr.dn_number as dn_return',
     'article.article_alternative_code',
     DB::raw("article.article_desc as article_desc"),
     // qty return dari dn_return_det untuk artikel ini
