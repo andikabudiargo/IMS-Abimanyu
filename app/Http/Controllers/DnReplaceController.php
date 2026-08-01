@@ -125,6 +125,7 @@ class DnReplaceController extends Controller
     [
     ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'],
     ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
+    ['data'=>'dn_return','name'=>'dn_return','title'=>'Customer Return Number'],
     ['data'=>'tanggal_return','name'=>'tanggal_return','title'=>'Return Date'],
     ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
     ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
@@ -1589,6 +1590,7 @@ class DnReplaceController extends Controller
     'dn_replace_hdr.created_by as created_by_1',
     'dn_replace_hdr.created_at as created_at_1',
     'dn_return_hdr.id as return_id',
+    'dn_return_hdr.dn_return as dn_return',
     'article.article_alternative_code',
     DB::raw("article.article_desc as article_desc"),
     // qty return dari dn_return_det untuk artikel ini
