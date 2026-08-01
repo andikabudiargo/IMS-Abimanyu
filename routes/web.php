@@ -699,6 +699,8 @@ Route::post('production/actual-finish-goods/cancel',
 	Route::get('warehouse/stock-movement',['as'=>'stockMovement.index','uses'=>'StockMovementController@index']);
 	Route::get('warehouse/stock-movement/list',['as'=>'stockMovement.list','uses'=>'StockMovementController@list']);
 	Route::get('stock-movement/export-grouped', ['as' => 'stockMovement.export', 'uses' => 'StockMovementController@export']);
+	Route::post('warehouse/article/check-anomaly', ['as' => 'stock.anomaly.check', 'uses' => 'WarehouseControllerv2@runCheck']);
+	Route::get('warehouse/article/check-anomaly/export', ['as' => 'stock.anomaly.export', 'uses' => 'WarehouseControllerv2@exportAnomaly']);
 
 
 

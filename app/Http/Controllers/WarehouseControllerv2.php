@@ -14,6 +14,9 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use Artisan;
+use Excel;
+use App\Exports\StockAnomalyExport;
 
 class WarehouseControllerv2 extends Controller
 {
@@ -1293,6 +1296,52 @@ public function summary(Request $request)
     $empty    = (clone $base)->where('stock.article_qty', '<=', 0)->count();
 
     return response()->json(compact('total','save','critical','empty'));
+}
+
+public function runCheck(Request $request)
+{
+    $threshold = (float) $request->input('threshold', 0.01);
+    $location  = $request->input('location');
+    $code      = $request->input('code');
+    $name      = $request->input('name');
+    $type      = $request->input('type');
+    $supp      = $request->input('supp');
+
+    try {
+        $params = ['--threshold' => $threshold];
+        if ($location) $params['--location'] = $location;
+        if ($code)     $params['--code']     = $code;
+        if ($name)     $params['--name']     = $name;
+        if ($type)     $params['--type']     = $type;
+        if ($supp)     $params['--supp']     = $supp;
+
+        Artisan::call('stock:check-anomaly', $params);
+
+        $anomalies = DB::table('stock_anomaly_log as l')
+            ->leftJoin('article as a', 'a.article_code', '=', 'l.article_id')
+            ->leftJoin('stock_location_master as loc', 'loc.location_code', '=', 'l.location_number')
+            ->where('l.status', 'OPEN')
+            ->when($location, fn($q) => $q->where('l.location_number', $location))
+            ->when($code, fn($q) => $q->where('a.article_alternative_code', 'ilike', "%$code%"))
+            ->when($name, fn($q) => $q->where('a.article_desc', 'ilike', "%$name%"))
+            ->orderByDesc('l.diff')
+            ->select('l.*', 'a.article_alternative_code', 'a.article_desc',
+                DB::raw("coalesce(loc.location_name, l.location_number) as location_name"))
+            ->get();
+
+        return response()->json([
+            'success' => true, 'data' => $anomalies,
+            'checked_at' => now()->format('d-m-Y H:i'),
+        ]);
+    } catch (\Exception $e) {
+        \LogActivity::addToLog('Gagal cek stock anomaly: ' . substr($e->getMessage(), 0, 200));
+        return response()->json(['success' => false, 'message' => 'Terjadi kesalahan.'], 500);
+    }
+}
+
+public function exportAnomaly()
+{
+    return Excel::download(new StockAnomalyExport, 'stock_anomaly_' . date('YmdHis') . '.xlsx');
 }
 
 }

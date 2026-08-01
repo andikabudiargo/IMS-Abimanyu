@@ -105,20 +105,62 @@
                 <hr>
                 
                 <div class="form-row">
-                  <div class="col-12">
-                    <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-    {{--<button type="button" class="btn btn-outline-primary" id="btnAnalytics">
-      <i data-feather="bar-chart-2"></i> Analytics
-    </button>--}}
-                      {{--<a href="#" class="btn btn-info"><i class="fa fa-download"></i> Downlod  All Stock</a>--}}
-                  </div>
-              </div>
+  <div class="col-12">
+    <button type="button" class="btn btn-primary" id="btnSearch" name="btnSearch">Search</button>
+    <button type="button" class="btn btn-outline-danger" id="btnCheckAnomaly">
+      <i data-feather="alert-triangle"></i> Abnormality
+    </button>
+  </div>
+</div>
             </form>
           </div>
         </div>
       </div>
     </div>
 </section>
+
+<!-- Anomaly Result Section -->
+<section id="anomaly-result" style="display:none;">
+  <div class="card border-danger">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h4 class="card-title mb-0">
+        <i data-feather="alert-triangle" class="text-danger mr-50"></i>
+        Hasil Analisa Abnormality Stock
+        <span class="badge badge-danger ml-1" id="anomalyCount">0</span>
+      </h4>
+      <div>
+        <small class="text-muted mr-1" id="anomalyLastCheck"></small>
+        <button type="button" class="btn btn-sm btn-outline-success" id="btnExportAnomaly">
+          <i data-feather="download"></i> Export
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCloseAnomaly">
+          <i data-feather="x"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="anomalyTable" class="table table-sm table-striped">
+          <thead class="thead-light">
+            <tr>
+              <th>Article</th>
+              <th>Location</th>
+              <th class="text-right">Qty Movement</th>
+              <th class="text-right">Qty Stock</th>
+              <th class="text-right">Variance</th>
+              <th>Detected At</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="anomalyEmpty" class="text-center text-muted py-2" style="display:none;">
+        Tidak ada abnormality ditemukan. Data stock konsisten.
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="stock-summary">
   <div class="row">
     <div class="col-lg-3 col-6">
@@ -637,6 +679,82 @@ const loadMovement = () => {
         mergeMovementSummaryRows(typeIdx, qtyIdx, balIdx);
     }, 300);
 };
+
+$('#btnCheckAnomaly').on('click', function () {
+    let btn = $(this);
+    const f = getFilters(); // sudah ada di file kamu — name, code, type, supp, location, dll
+
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Memproses...');
+
+    $.ajax({
+        url: "{{ route('stock.anomaly.check') }}",
+        method: "POST",
+        data: {
+            threshold: 0.01,
+            location: f.location,
+            code: f.code,
+            name: f.name,
+            type: f.type,
+            supp: f.supp
+        },
+        success: function (res) {
+            renderAnomalyResult(res);
+        },
+        error: function () {
+            Swal.fire('Error', 'Gagal menjalankan pengecekan abnormality.', 'error');
+        },
+        complete: function () {
+            btn.prop('disabled', false).html('<i data-feather="alert-triangle"></i> Abnormality');
+            if (window.feather) feather.replace();
+        }
+    });
+});
+
+function renderAnomalyResult(res) {
+    const data = res.data || [];
+    const $tbody = $('#anomalyTable tbody');
+    $tbody.empty();
+
+    $('#anomalyCount').text(data.length);
+    $('#anomalyLastCheck').text('Terakhir dicek: ' + (res.checked_at || '-'));
+
+    if (data.length === 0) {
+        $('#anomalyTable').hide();
+        $('#anomalyEmpty').show();
+    } else {
+        $('#anomalyTable').show();
+        $('#anomalyEmpty').hide();
+       data.forEach(function (row) {
+    const diffClass = row.diff > 0 ? 'text-success' : 'text-danger';
+    const articleLabel = row.article_alternative_code
+        ? `${row.article_alternative_code} - ${row.article_desc ?? ''}`
+        : row.article_id;
+    const locationLabel = row.location_name || row.location_number;
+
+    $tbody.append(`
+        <tr>
+            <td>${articleLabel}</td>
+            <td>${locationLabel}</td>
+            <td class="text-right">${Number(row.qty_ledger).toLocaleString()}</td>
+            <td class="text-right">${Number(row.qty_snapshot).toLocaleString()}</td>
+            <td class="text-right ${diffClass} font-weight-bold">${Number(row.diff).toLocaleString()}</td>
+            <td>${row.detected_at}</td>
+        </tr>
+    `);
+});
+    }
+
+    $('#anomaly-result').slideDown();
+    if (window.feather) feather.replace();
+}
+
+$('#btnCloseAnomaly').on('click', function () {
+    $('#anomaly-result').slideUp();
+});
+
+$('#btnExportAnomaly').on('click', function () {
+    window.location.href = "{{ route('stock.anomaly.export') }}";
+});
 
   $.ajaxSetup({
     headers: {
