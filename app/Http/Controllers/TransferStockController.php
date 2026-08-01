@@ -80,76 +80,98 @@ namespace App\Http\Controllers;
         }
 
         public function getLastCode($key, $trDate = null, $username = null)
-    {
-        // Jika dipanggil dari Artisan tidak ada Auth::user()
-        $username = $username ?? optional(Auth::user())->username ?? 'system-migration';
+{
+    $username = $username ?? optional(Auth::user())->username ?? 'system-migration';
+    $months   = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
 
-        DB::table('master_code')
-            ->where('code_key', $key)
-            ->update([
-                'code_number' => DB::raw('code_number + 1'),
-                'updated_by'  => $username,
-                'updated_at'  => now()
-            ]);
-
-        $newCode = DB::table('master_code')
-            ->where('code_key', $key)
-            ->value('code_number');
-
-        $months = [
-            'I', 'II', 'III', 'IV', 'V', 'VI',
-            'VII', 'VIII', 'IX', 'X', 'XI', 'XII'
-        ];
-
-        // ==========================
-        // Parsing tanggal
-        // ==========================
-        if (empty($trDate)) {
-
-            $refDate = now();
-
-        } else {
-
-            try {
-
-                // Format dari database: 2026-07-07
-                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trDate)) {
-
-                    $refDate = \Carbon\Carbon::createFromFormat('Y-m-d', $trDate);
-
-                }
-                // Format dari form: 07-07-2026
-                elseif (preg_match('/^\d{2}-\d{2}-\d{4}$/', $trDate)) {
-
-                    $refDate = \Carbon\Carbon::createFromFormat('d-m-Y', $trDate);
-
-                }
-                // Format lain
-                else {
-
-                    $refDate = \Carbon\Carbon::parse($trDate);
-
-                }
-
-            } catch (\Exception $e) {
-
-                $refDate = now();
-
+    // ── Parse trDate → refDate ──
+    if (empty($trDate)) {
+        $refDate = now();
+    } else {
+        try {
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trDate)) {
+                $refDate = \Carbon\Carbon::createFromFormat('Y-m-d', $trDate);
+            } elseif (preg_match('/^\d{2}-\d{2}-\d{4}$/', $trDate)) {
+                $refDate = \Carbon\Carbon::createFromFormat('d-m-Y', $trDate);
+            } else {
+                $refDate = \Carbon\Carbon::parse($trDate);
             }
+        } catch (\Exception $e) {
+            $refDate = now();
         }
-
-        $month = $months[$refDate->month - 1];
-        $year  = $refDate->year;
-
-        return sprintf(
-            '%s/%s/%s/%04d',
-            $key,
-            $year,
-            $month,
-            $newCode
-        );
     }
 
+    $year  = $refDate->year;
+    $month = $refDate->month;
+
+    $isCurrentPeriod = ($year === now()->year && $month === now()->month);
+
+    if ($isCurrentPeriod) {
+        // ── Bulan berjalan → pakai counter master_code seperti biasa (atomik) ──
+        $newCode = DB::selectOne("
+            UPDATE master_code
+               SET code_number = code_number + 1, updated_by = ?, updated_at = now()
+             WHERE code_key = ?
+         RETURNING code_number
+        ", [$username, $key])->code_number;
+    } else {
+        // ── BACKDATE lintas bulan → hitung dari dokumen bulan itu, JANGAN sentuh counter ──
+        // Ambil nomor tertinggi TRF untuk tahun+bulan tsb, +1.
+        $prefixLike = sprintf('%s/%d/%s/%%', $key, $year, $months[$month - 1]);
+
+        $maxSeq = (int) DB::selectOne("
+            SELECT COALESCE(MAX( (split_part(tr_number, '/', 4))::int ), 0) AS mx
+              FROM transfer_stock_hdr
+             WHERE tr_number LIKE ?
+        ", [$prefixLike])->mx;
+
+        $newCode = $maxSeq + 1;
+    }
+
+    return sprintf('%s/%s/%s/%04d', $key, $year, $months[$month - 1], $newCode);
+}
+
+private function lockMovementSequence(): void
+{
+    // Key WAJIB sama persis di semua controller yang insert warehouse_movement.
+    DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
+}
+
+private function recalculateAvgPrice(string $articleCode, string $location): void
+{
+    $movements = DB::table('warehouse_movement')
+        ->where('artikel_code', $articleCode)
+        ->where('location_number', $location)
+        ->where('site_code', $this->siteCode)
+        ->orderBy(DB::raw("TO_DATE(movement_date,'DD-MM-YYYY')"), 'asc')
+        ->orderBy('movement_code', 'asc')
+        ->select('movement_min', 'movement_plus', 'movement_price')
+        ->get();
+
+    $qty = 0.0;
+    $avg = 0.0;
+
+    foreach ($movements as $m) {
+        $plus = (float) $m->movement_plus;
+        $min  = (float) $m->movement_min;
+
+        if ($plus > 0) {
+            $price  = (float) $m->movement_price;
+            $newQty = $qty + $plus;
+            $avg    = $newQty > 0 ? (($qty * $avg) + ($plus * $price)) / $newQty : $avg;
+            $qty    = $newQty;
+        }
+        if ($min > 0) {
+            $qty -= $min; // keluar tidak mengubah avg
+        }
+    }
+
+    DB::table('warehouse_stock')
+        ->where('site_code', $this->siteCode)
+        ->where('article_code', $articleCode)
+        ->where('location_number', $location)
+        ->update(['avg_price' => $avg]);
+}
             public function index(Request $request)
         {
             $user      = Auth::user();
@@ -250,7 +272,7 @@ namespace App\Http\Controllers;
         $locationFrom = $hdrQ->location_from;
         $locationTo   = $hdrQ->location_to;
         $trType       = ($hdrQ->tr_type === 'SUPPLY') ? 'SUPPLY' : 'TRANSFER';
-
+        $this->lockMovementSequence();  
         $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
         $dataSetMovement = [];
 
@@ -422,15 +444,19 @@ namespace App\Http\Controllers;
                 ->where('location_code', $locationTo)
                 ->value('dept_code');
 
+
+            DB::beginTransaction();
+
+            try {
+                   DB::select("SELECT pg_advisory_xact_lock(hashtext(?))", [$poLeadCode]);
+            
             $hasilUpdate = AppHelpers::resetCode($poLeadCode);
         $trNumber = $this->getLastCode(
         $poLeadCode,
         $trDate,
         Auth::user()->username
     );
-
-            DB::beginTransaction();
-            try {
+    
                 DB::table('transfer_stock_hdr')->insert([
                     'tr_number'    => $trNumber,
                     'ref_number'   => '',
@@ -484,49 +510,6 @@ namespace App\Http\Controllers;
                 \LogActivity::addToLog($title, "username: $username Status $message - ".$e->getMessage());
                 return response()->json(['status'=>0,'title'=>$title,'message'=>[$message],'alert'=>'error']);
             }
-        }
-
-        public function postingNew(Request $request)
-        {
-            $user     = Auth::user();
-            $username = $user->username;
-            $id       = Crypt::decryptString($request->id);
-            $title    = "Posting $this->title";
-
-            $hdrQ = DB::table('transfer_stock_hdr')->where('id', $id)->first();
-
-            if (!$hdrQ) {
-                return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Data tidak ditemukan']);
-            }
-            if ($hdrQ->status == '4') {
-                return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => "$title gagal: sudah diposting"]);
-            }
-            if ($hdrQ->status == '5') {
-                return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => "$title gagal: sudah dicancel"]);
-            }
-            if (!($user->hasAnyRole(['Superuser', 'accounting']) || $user->can('transferOut-posting'))) {
-                return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Anda tidak berwenang posting']);
-            }
-
-            $trNumber = $hdrQ->tr_number;
-
-            $rowAffected = DB::table('transfer_stock_hdr')
-                ->where('tr_number', $trNumber)
-                ->update([
-                    'status'     => '4',
-                    'updated_by' => $username,
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-
-            if ($rowAffected) {
-                $message = "$title $trNumber Successfully Posted";
-                \LogActivity::addToLog($title, "username: $username Status $message");
-                return redirect()->back()->with(['title' => $title, 'alert' => 'success', 'message' => $message]);
-            }
-
-            $message = "$title $trNumber Failed to Posted";
-            \LogActivity::addToLog($title, "username: $username Status $message");
-            return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => $message]);
         }
 
 
@@ -604,11 +587,11 @@ namespace App\Http\Controllers;
     }
 
     foreach ($affected as $a) {
-        $this->recalculateMovementAndStock(
-            $a['article_code'],
-            $a['location'],
-            date('Y-m-d', strtotime($hdrQ->tr_date))
-        );
+       $this->recalculateMovementAndStock(
+    $a['article_code'],
+    $a['location'],
+    $hdrQ->tr_date   // sudah DD-MM-YYYY, JANGAN dikonversi
+);
     }
 
     return ['success' => true, 'message' => "Stock $trNumber berhasil di-reverse"];
@@ -630,10 +613,22 @@ namespace App\Http\Controllers;
      */
     private function ensureStockRow(string $articleCode, string $location, ?string $deptCode, ?string $uom): void
 {
-    DB::table('warehouse_stock')->updateOrInsert(
-        ['site_code' => $this->siteCode, 'article_code' => $articleCode, 'location_number' => $location],
-        ['dept_code' => $deptCode ?? '', 'uom' => $uom ?? 'PCS']
-    );
+    $exists = DB::table('warehouse_stock')
+        ->where('site_code', $this->siteCode)
+        ->where('article_code', $articleCode)
+        ->where('location_number', $location)
+        ->exists();
+
+    if (!$exists) {
+        DB::table('warehouse_stock')->insert([
+            'site_code'       => $this->siteCode,
+            'article_code'    => $articleCode,
+            'location_number' => $location,
+            'dept_code'       => $deptCode ?? '',
+            'uom'             => $uom ?? 'PCS',
+            'article_qty'     => 0,
+        ]);
+    }
 }
 
     private function stockQuery(string $articleCode, string $location)
@@ -726,14 +721,16 @@ namespace App\Http\Controllers;
             return response()->json(['status'=>0,'title'=>$title,'message'=>(array) $reverse['message'],'alert'=>'warning']);
         }
 
-        DB::table('transfer_stock_hdr')
-            ->where('tr_number', $trNumber)
-            ->update([
-                'status'     => '5',
-                'note'       => DB::raw("CONCAT(note,';','$reason')"),
-                'updated_by' => $username,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+        $newNote = trim(($hdrQ->note ?? '') . ';' . $reason);
+
+    DB::table('transfer_stock_hdr')
+        ->where('tr_number', $trNumber)
+        ->update([
+            'status'     => '5',
+            'note'       => $newNote,          // ← aman, tanpa DB::raw/interpolasi
+            'updated_by' => $username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
 
         DB::commit();
         $message = "$title $trNumber Successfully Canceled";
@@ -996,21 +993,29 @@ public function update(Request $request)
     $locationCode = $request->locationFrom;
     $locationTo   = $request->locationTo;
     $editReason   = $request->editReason;
- 
+
     $title = "Save $this->title";
- 
-    // ── Ambil header lama ──────────────────────────────────────
+
+    // ── Ambil header lama ──
     $hdr = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->first();
     if (!$hdr) {
         return response()->json(['status'=>0,'title'=>$title,'message'=>['Data tidak ditemukan'],'alert'=>'error']);
     }
-    if ($hdr->status == '5') {
-        return response()->json(['status'=>0,'title'=>$title,'message'=>['Transfer sudah dicancel, tidak bisa diedit.'],'alert'=>'error']);
+
+    // ── GUARD: hanya NEW yang boleh diedit. POSTED harus Cancel. ──
+    if ($hdr->status != '1') {
+        $map = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        $st  = $map[$hdr->status] ?? $hdr->status;
+        $extra = ($hdr->status == '4') ? ' Lakukan Cancel dulu untuk mengoreksi.' : '';
+        return response()->json([
+            'status'=>0,'title'=>$title,
+            'message'=>["Transfer berstatus $st, hanya dokumen NEW yang bisa diedit.$extra"],
+            'alert'=>'error',
+        ]);
     }
- 
-    // ── Validasi dasar ────────────────────────────────────────
+
+    // ── Validasi dasar ──
     $errors = [];
-    //if (!$editReason)   $errors[] = "Alasan edit harus diisi";
     if (!$trDate)       $errors[] = "Transfer Date harus diisi";
     if (!$locationCode) $errors[] = "Location From harus dipilih";
     if (!$locationTo)   $errors[] = "Location To harus dipilih";
@@ -1020,216 +1025,32 @@ public function update(Request $request)
     if ($errors) {
         return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
     }
- 
-    // ── tr_type & approver ────────────────────────────────────
+
+    // ── tr_type & approver (dihitung dari tujuan baru) ──
     $locToType   = DB::table('stock_location_master')->where('location_code', $locationTo)->value('location_type');
     $trType      = ($locToType === 'booth') ? 'SUPPLY' : 'TRANSFER';
     $approveDept = DB::table('stock_location_master')->where('location_code', $locationTo)->value('dept_code');
- 
+
     DB::beginTransaction();
     try {
-        // ── 0) Snapshot history sebelum diubah ───────────────
+        // ── 0) Snapshot history sebelum diubah ──
         $rev = $this->snapshotHistory($hdr, $username, $editReason);
- 
-        // ── 1) Hitung diff artikel lama vs baru ──────────────
-        $oldDetails = DB::table('transfer_stock_det')
-            ->where('tr_number', $trNumber)
-            ->get()
-            ->keyBy('article_code');
- 
-        $newDetails = collect($articles)->keyBy('article_code');
- 
-        // Kategori diff
-        $removed = $oldDetails->filter(fn($o) => !$newDetails->has($o->article_code));
-        $added   = $newDetails->filter(fn($n) => !$oldDetails->has($n->article_code));
-        $changed = $newDetails->filter(function($n) use ($oldDetails) {
-            if (!$oldDetails->has($n->article_code)) return false;
-            $o = $oldDetails[$n->article_code];
-            return (float)$o->qty !== (float)$n->qty || $o->uom !== $n->uom;
-        });
-        $same = $newDetails->filter(function($n) use ($oldDetails, $changed) {
-            return $oldDetails->has($n->article_code) && !$changed->has($n->article_code);
-        });
- 
-        // Tanggal movement (format dd-mm-yyyy untuk warehouse_movement)
-        $movementDate = date('d-m-Y', strtotime($hdr->tr_date));
- 
-        // Artikel yang perlu direcalculate (kumpulkan dulu, eksekusi di akhir)
-        // format: [['article_code'=>..., 'location'=>...], ...]
-        $toRecalc = [];
- 
-        // ── 2) REMOVED: update movement → artikel pengganti pertama yg added
-        //    Kalau tidak ada pengganti, update qty jadi 0 (movement tetap ada)
-        //    Logika: pakai artikel pertama dari $added sebagai pengganti movement lama,
-        //    sisanya ($added lebih dari 1) akan INSERT movement baru
-        $addedList  = $added->values();   // re-index
-        $addedUsed  = collect();           // track added yg sudah dipakai sebagai pengganti
- 
-        foreach ($removed as $oldArt) {
-            $pengganti = $addedList->first(fn($a) => !$addedUsed->contains('article_code', $a->article_code));
- 
-            if ($pengganti) {
-                // Resolusi lines untuk artikel pengganti
-                $fakeHdr = (object)[
-                    'tr_number'   => $trNumber,
-                    'location_from' => $locationCode,
-                    'location_to'   => $locationTo,
-                    'tr_type'       => $trType,
-                    'note'          => $note,
-                ];
-                $newQtyBase = $this->toBaseQty($pengganti->article_code, $pengganti->qty, $pengganti->uom);
-                $oldQtyBase = $this->toBaseQty($oldArt->article_code, $oldArt->qty, $oldArt->uom);
- 
-               // Update movement MIN (location_from) → ganti article + qty
-DB::table('warehouse_movement')
-    ->where('movement_transnno', $trNumber)
-    ->where('artikel_code', $oldArt->article_code)
-    ->where('location_number', $locationCode)
-    ->where('movement_min', '>', 0)
-    ->where('movement_type', $trType)   // ← TAMBAH
-    ->update([
-        'artikel_code'  => $pengganti->article_code,
-        'artikel_desc'  => $this->getArticleDesc($pengganti->article_code),
-        'movement_min'  => $newQtyBase,
-        'movement_desc' => $note ?? '',
-    ]);
 
-// Update movement PLUS (location_to) → ganti article + qty
-DB::table('warehouse_movement')
-    ->where('movement_transnno', $trNumber)
-    ->where('artikel_code', $oldArt->article_code)
-    ->where('location_number', $locationTo)
-    ->where('movement_plus', '>', 0)
-    ->where('movement_type', $trType)   // ← TAMBAH
-    ->update([
-        'artikel_code'  => $pengganti->article_code,
-        'artikel_desc'  => $this->getArticleDesc($pengganti->article_code),
-        'movement_plus' => $newQtyBase,
-        'movement_desc' => $note ?? '',
-    ]);
- 
-                // Tandai added ini sudah dipakai
-                $addedUsed->push(['article_code' => $pengganti->article_code]);
- 
-                // Recalculate: artikel lama (dikembalikan) + artikel baru (dikurangi)
-                $toRecalc[] = ['article_code' => $oldArt->article_code,    'location' => $locationCode];
-                $toRecalc[] = ['article_code' => $oldArt->article_code,    'location' => $locationTo];
-                $toRecalc[] = ['article_code' => $pengganti->article_code, 'location' => $locationCode];
-                $toRecalc[] = ['article_code' => $pengganti->article_code, 'location' => $locationTo];
- 
-            } else {
-                // Tidak ada pengganti → set qty movement jadi 0
-                // (stok dikembalikan via recalculate)
-               DB::table('warehouse_movement')
-    ->where('movement_transnno', $trNumber)
-    ->where('artikel_code', $oldArt->article_code)
-    ->whereIn('location_number', [$locationCode, $locationTo])
-    ->where('movement_type', $trType)
-    ->delete();
- 
-                $toRecalc[] = ['article_code' => $oldArt->article_code, 'location' => $locationCode];
-                $toRecalc[] = ['article_code' => $oldArt->article_code, 'location' => $locationTo];
-            }
+        // ── 1) REVERSE dulu, MASIH pakai header LAMA (tr_date & lokasi lama) ──
+        //    Ini membersihkan seluruh movement dokumen + recalc dari tanggal LAMA.
+        $reverse = $this->reverseStock($hdr, $username, 'Edit');
+        if (!$reverse['success']) {
+            DB::rollBack();
+            return response()->json(['status'=>0,'title'=>$title,'message'=>(array)$reverse['message'],'alert'=>'error']);
         }
- 
-        // ── 3) ADDED yang belum dipakai sebagai pengganti → INSERT movement baru ──
-        $seq = (int) DB::table('warehouse_movement')->max('movement_code');
- 
-        $remainingAdded = $addedList->filter(
-            fn($a) => !$addedUsed->contains('article_code', $a->article_code)
-        );
- 
-        foreach ($remainingAdded as $newArt) {
-            $qtyBase  = $this->toBaseQty($newArt->article_code, $newArt->qty, $newArt->uom);
-            $artType  = DB::table('article')->where('article_code', $newArt->article_code)->value('article_type');
-            $artDesc  = $this->getArticleDesc($newArt->article_code);
-            $price    = $this->getAvgPrice($newArt->article_code, $locationCode);
- 
-            $lineArr = [
-                'article_code' => $newArt->article_code,
-                'article_type' => $artType,
-                'article_desc' => $artDesc,
-                'uom'          => $newArt->uom,
-                'qty'          => $qtyBase,
-                'notes'        => [],
-            ];
- 
-            // Movement MIN (location_from)
-            DB::table('warehouse_movement')->insert(
-                $this->buildMovement(
-                    ++$seq, $hdr, $lineArr, $trType, 'min',
-                    $locationCode, $locationCode, $locationTo,
-                    $price, $note ?? '', $username,
-                    date('Y-m-d', strtotime($hdr->tr_date))
-                )
-            );
- 
-            // Movement PLUS (location_to)
-            $priceIn = $this->getAvgPrice($newArt->article_code, $locationCode);
-            DB::table('warehouse_movement')->insert(
-                $this->buildMovement(
-                    ++$seq, $hdr, $lineArr, $trType, 'plus',
-                    $locationTo, $locationCode, $locationTo,
-                    $priceIn, $note ?? '', $username,
-                    date('Y-m-d', strtotime($hdr->tr_date))
-                )
-            );
- 
-            $toRecalc[] = ['article_code' => $newArt->article_code, 'location' => $locationCode];
-            $toRecalc[] = ['article_code' => $newArt->article_code, 'location' => $locationTo];
-        }
- 
-        // ── 4) CHANGED: update qty di movement yang sudah ada ──────────────────
-       foreach ($changed as $newArt) {
-    $newQtyBase = $this->toBaseQty($newArt->article_code, $newArt->qty, $newArt->uom);
 
-    DB::table('warehouse_movement')
-        ->where('movement_transnno', $trNumber)
-        ->where('artikel_code', $newArt->article_code)
-        ->where('location_number', $locationCode)
-        ->where('movement_min', '>', 0)
-        ->where('movement_type', $trType)   // ← TAMBAH
-        ->update([
-            'movement_min'  => $newQtyBase,
-            'movement_desc' => $note ?? '',
-        ]);
-
-    DB::table('warehouse_movement')
-        ->where('movement_transnno', $trNumber)
-        ->where('artikel_code', $newArt->article_code)
-        ->where('location_number', $locationTo)
-        ->where('movement_plus', '>', 0)
-        ->where('movement_type', $trType)   // ← TAMBAH
-        ->update([
-            'movement_plus' => $newQtyBase,
-            'movement_desc' => $note ?? '',
-        ]);
-
-    $toRecalc[] = ['article_code' => $newArt->article_code, 'location' => $locationCode];
-    $toRecalc[] = ['article_code' => $newArt->article_code, 'location' => $locationTo];
-}
- 
-        // ── 5) Recalculate last_qty movement + warehouse_stock ─────────────────
-        // Deduplicate toRecalc sebelum eksekusi
-        $toRecalcUnique = collect($toRecalc)
-            ->unique(fn($r) => $r['article_code'] . '|' . $r['location'])
-            ->values();
- 
-        foreach ($toRecalcUnique as $item) {
-            $this->recalculateMovementAndStock(
-                $item['article_code'],
-                $item['location'],
-                $hdr->tr_date   // tanggal mulai recalculate (format Y-m-d)
-            );
-        }
- 
-        // ── 6) Sinkron transfer_stock_det ─────────────────────────────────────
+        // ── 2) Sinkron detail (hapus-insert) ──
         DB::table('transfer_stock_det')->where('tr_number', $trNumber)->delete();
         foreach ($articles as $val) {
             DB::table('transfer_stock_det')->insert([
                 'tr_number'    => $trNumber,
                 'article_code' => $val->article_code,
-                'qty'          => $val->qty,
+                'qty'          => $val->qty,          // qty MENTAH (sesuai keputusanmu)
                 'uom'          => $val->uom,
                 'note'         => $val->note ?? null,
                 'fg_target'    => $val->fg_target ?? null,
@@ -1239,31 +1060,38 @@ DB::table('warehouse_movement')
                 'updated_at'   => date('Y-m-d H:i:s'),
             ]);
         }
- 
-        // ── 7) Update header ──────────────────────────────────────────────────
+
+        // ── 3) Update header. Status TETAP NEW. Tanpa authorized_*. ──
         DB::table('transfer_stock_hdr')
             ->where('tr_number', $trNumber)
             ->update([
-                'tr_date'        => $trDate,
-                'tr_type'        => $trType,
-                'status'         => '4',        // tetap POSTED
-                'num_revision'   => $rev,
-                'note'           => $note,
-                'penerima'       => $penerima,
-                'location_from'  => $locationCode,
-                'location_to'    => $locationTo,
-                'approve_dept'   => $approveDept,
-                'authorized_by'  => $username,
-                'authorized_at'  => date('Y-m-d H:i:s'),
-                'updated_by'     => $username,
-                'updated_at'     => date('Y-m-d H:i:s'),
+                'tr_date'       => $trDate,
+                'tr_type'       => $trType,
+                'status'        => '1',           // ← tetap NEW
+                'num_revision'  => $rev,
+                'note'          => $note,
+                'penerima'      => $penerima,
+                'location_from' => $locationCode,
+                'location_to'   => $locationTo,
+                'approve_dept'  => $approveDept,
+                'updated_by'    => $username,
+                'updated_at'    => date('Y-m-d H:i:s'),
             ]);
- 
+
+        // ── 4) REPOST via jalur yang SAMA dengan store() (tr_date BARU) ──
+        //    processPosting membaca header fresh → resolveTransferLines (FG→037),
+        //    movementDesc, harga terkini — semua konsisten dengan store.
+        $postResult = $this->processPosting($trNumber, $username);
+        if (!$postResult['success']) {
+            DB::rollBack();
+            return response()->json(['status'=>0,'title'=>$title,'message'=>(array)$postResult['message'],'alert'=>'error']);
+        }
+
         DB::commit();
- 
+
         $message = "$title $trNumber is successfully updated";
         \LogActivity::addToLog($title, "username: $username Status $message");
- 
+
         return response()->json([
             'status'       => 1,
             'title'        => $title,
@@ -1273,7 +1101,7 @@ DB::table('warehouse_movement')
             'oEdit'        => true,
             'redirect_url' => route('transferStock.show', ['id' => Crypt::encryptString($hdr->id)]),
         ]);
- 
+
     } catch (\Exception $e) {
         DB::rollBack();
         $message = "$title $trNumber is failed to update";
@@ -1320,6 +1148,7 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
     if ($movements->isEmpty()) {
         // Tidak ada movement setelah fromDate → update warehouse_stock ke balanceBefore
         $this->updateWarehouseStock($articleCode, $location, $balanceBefore);
+         $this->recalculateAvgPrice($articleCode, $location);   // ← TAMBAH
         return;
     }
  
@@ -1345,6 +1174,7 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
         ->value('last_qty');
  
     $this->updateWarehouseStock($articleCode, $location, $latestLastQty);
+    $this->recalculateAvgPrice($articleCode, $location);   // ← TAMBAH
 }
  
  
@@ -1390,158 +1220,6 @@ private function getArticleDesc(string $articleCode): string
         ->value('article_desc');
 }
 
-
-        public function updateNew(Request $request)
-        {
-            $user         = Auth::user();
-            $username     = $user->username;
-            $articles     = json_decode($request->articles);
-            $trNumber     = $request->trNumber;
-            $trDate       = $request->trDate;
-            $note         = $request->note;
-            $status       = '1'; // edit selalu reset ke NEW
-            $locationCode = $request->locationFrom;
-            $locationTo   = $request->locationTo;
-
-            $title = "Save $this->title";
-
-            // ===== Ambil header & cek status boleh edit =====
-            $hdr = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->first();
-
-            if (!$hdr) {
-                return response()->json(['status'=>0,'title'=>$title,'message'=>['Data tidak ditemukan'],'alert'=>'error']);
-            }
-
-            // status 4 (POSTED) / 5 (CANCELED) tidak boleh diedit
-            if (in_array($hdr->status, ['4', '5'])) {
-                $msg = $hdr->status == '4'
-                    ? 'Transfer sudah diposting, tidak bisa diedit. Lakukan cancel terlebih dahulu.'
-                    : 'Transfer sudah dicancel, tidak bisa diedit.';
-                return response()->json(['status'=>0,'title'=>$title,'message'=>[$msg],'alert'=>'error']);
-            }
-
-            // ===== Validasi dasar (sama seperti store) =====
-            $errors = [];
-            if (!$trDate)        $errors[] = "Transfer Date harus diisi";
-            if (!$locationCode)  $errors[] = "Location From harus dipilih";
-            if (!$locationTo)    $errors[] = "Location To harus dipilih";
-            if ($locationTo && $locationCode && $locationTo === $locationCode)
-                                $errors[] = "Location From dan Location To tidak boleh sama";
-            if (empty($articles)) $errors[] = "Artikel harus diisi";
-
-            if ($errors) {
-                return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
-            }
-
-            // ===== Tentukan tr_type berdasarkan location tujuan =====
-            $locToType = DB::table('stock_location_master')
-                ->where('location_code', $locationTo)
-                ->value('location_type');
-
-            $trType = ($locToType === 'booth') ? 'SUPPLY' : 'TRANSFER';
-
-            // ===== Validasi stok (available = onhand - reserved, kecuali transfer ini) =====
-            // Hanya gudang Consumable (006) yang divalidasi ketat, gudang lain boleh over-stock
-            // ← disamakan dengan aturan di store()
-            $strictStockLocation = '006';
-
-            $overStock = [];
-            foreach ($articles as $val) {
-                $onhand = DB::table('warehouse_stock')
-                    ->where('article_code', $val->article_code)
-                    ->where('location_number', $locationCode)
-                    ->sum('article_qty');
-
-                $reserved = DB::table('transfer_stock_det as d')
-                    ->join('transfer_stock_hdr as h','h.tr_number','=','d.tr_number')
-                    ->where('d.article_code', $val->article_code)
-                    ->where('h.location_from', $locationCode)
-                    ->where('h.tr_number', '<>', $trNumber)
-                    ->whereIn('h.status', ['1','2','3'])
-                    ->sum(DB::raw("d.qty * coalesce(uom_conversion(d.uom,(select uom from article where article_code = d.article_code)),1)"));
-
-                $available = $onhand - $reserved;
-
-                $qtyBase = DB::selectOne(
-                    "select ? * coalesce(uom_conversion(?, (select uom from article where article_code = ?)),1) as q",
-                    [$val->qty, $val->uom, $val->article_code]
-                )->q;
-
-                if ($locationCode === $strictStockLocation && $qtyBase > $available) {
-                    $overStock[] = "Qty {$val->article_code} ($qtyBase) melebihi stok available ($available) di gudang $locationCode";
-                }
-            }
-            if ($overStock) {
-                return response()->json(['status'=>0,'title'=>$title,'message'=>$overStock,'alert'=>'error']);
-            }
-
-            // ===== Snapshot dept approver (gudang tujuan) =====
-            $approveDept = DB::table('stock_location_master')
-                ->where('location_code', $locationTo)
-                ->value('dept_code');
-
-            DB::beginTransaction();
-            try {
-                // ----- Update header -----
-                DB::table('transfer_stock_hdr')
-                    ->where('tr_number', $trNumber)
-                    ->update([
-                        'tr_date'       => $trDate,
-                        'tr_type'       => $trType,
-                        'status'        => $status,
-                        'note'          => $note,
-                        'location_from' => $locationCode,
-                        'location_to'   => $locationTo,
-                        'approve_dept'  => $approveDept,
-                        'updated_by'    => $username,
-                        'updated_at'    => date('Y-m-d H:i:s'),
-                    ]);
-
-                // ----- Reset approval history (isi dokumen berubah) -----
-                DB::table('approval_history')
-                    ->where('module_code', $this->moduleCode)
-                    ->where('module_number', $trNumber)
-                    ->delete();
-
-                // ----- Sinkronkan detail: hapus yang tidak ada di input -----
-                $keep = [];
-                foreach ($articles as $val) {
-                    $keep[] = $trNumber . $val->article_code;
-                }
-
-                DB::table('transfer_stock_det')
-                    ->whereNotIn(DB::raw("CONCAT(tr_number, article_code)"), $keep)
-                    ->where('tr_number', $trNumber)
-                    ->delete();
-
-                // ----- Upsert detail (termasuk fg_target) -----
-                foreach ($articles as $val) {
-                    DB::table('transfer_stock_det')->updateOrInsert(
-                        ['tr_number' => $trNumber, 'article_code' => $val->article_code],
-                        [
-                            'qty'        => $val->qty,
-                            'uom'        => $val->uom,
-                            'note'       => $val->note ?? null,
-                            'fg_target'  => $val->fg_target ?? null,
-                            'updated_by' => $username,
-                            'updated_at' => date('Y-m-d H:i:s'),
-                        ]
-                    );
-                }
-
-                DB::commit();
-
-                $message = "$title $trNumber is successfully updated";
-                \LogActivity::addToLog($title, "username: $username Status $message");
-                return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','trNumber'=>$trNumber,'oEdit'=>true]);
-
-            } catch (\Exception $e) {
-                DB::rollBack();
-                $message = "$title $trNumber is failed to update";
-                \LogActivity::addToLog($title, "username: $username Status $message - ".$e->getMessage());
-                return response()->json(['status'=>0,'title'=>$title,'message'=>[$message],'alert'=>'error']);
-            }
-        }
 
             public function approve(Request $request)
             {
@@ -1638,14 +1316,16 @@ private function getArticleDesc(string $articleCode): string
                 }
 
                 // ===== Set status → CANCELED (5), data tetap ada =====
-                DB::table('transfer_stock_hdr')
-                    ->where('tr_number', $trNumber)
-                    ->update([
-                        'status'     => '5',
-                        'note'       => DB::raw("CONCAT(note,';','$reason')"),
-                        'updated_by' => $username,
-                        'updated_at' => date('Y-m-d H:i:s'),
-                    ]);
+              $newNote = trim(($hdrQ->note ?? '') . ';' . $reason);
+
+    DB::table('transfer_stock_hdr')
+        ->where('tr_number', $trNumber)
+        ->update([
+            'status'     => '5',
+            'note'       => $newNote,          // ← aman
+            'updated_by' => $username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
 
                 DB::commit();
                 $message = "$title $trNumber Successfully Canceled";
@@ -1660,34 +1340,7 @@ private function getArticleDesc(string $articleCode): string
             }
         }
 
-            public function destroyOld(Request $request)
-        {
-            $username = Auth::user()->username;
-            $id = Crypt::decryptString($request->id);
-
-            $trNumber = DB::table('transfer_stock_hdr')->where('id', $id)
-                ->where('status', '<>', '4')
-                ->where('status', '<>', '5')
-                ->value('tr_number');
-
-            $rowAffected = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->delete();
-
-            if ($rowAffected > 0) {
-                DB::table('transfer_stock_det')->where('tr_number', $trNumber)->delete();
-                $title   = "Delete $this->title";
-                $alert   = "success";
-                $message = "$title $trNumber Successfully Deleted";
-                \LogActivity::addToLog($title, "username: $username Status $message");
-                return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
-            } else {
-                $title   = "Delete $this->title";
-                $alert   = "warning";
-                $message = "$title $trNumber Failed to Delete";
-                \LogActivity::addToLog($title, "username: $username Status $message");
-                return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
-            }
-        }
-        
+            
             public function list(Request $request)
 {
     $user       = Auth::user();
