@@ -23,11 +23,16 @@ class StockCountController extends Controller
         '009' => ['RMP', 'RMNP'],
         '007' => ['FG'],
         '008' => ['FG'],
-        '006' => ['CM2', 'CM3'],
+        '006' => ['CM2', 'CM3', 'RMP', 'RMNP'],
         '005' => ['CM1'],
         '042' => ['CM1'],
         '049' => ['CM1'],
     ];
+
+    // lokasi yang juga harus include CPA berdasarkan group_of_material
+private $locationGroupOfMaterialMap = [
+    '006' => ['CPA'],
+];
 
    
     private function isAutoNumber($targetRef)
