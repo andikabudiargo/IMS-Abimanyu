@@ -1269,7 +1269,13 @@ private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGl
     $out['qty']  = $basis + $netParsial;
     $out['note'] = $ob['found']
         ? ($netParsial != 0.0 ? 'OB + mutasi awal bulan' : ($ob['note'] ?: 'Opening balance'))
-        : 'Saldo akhir periode sebelumnya (carry-forward)';
+        : 'Saldo akhir periode sebelumnya';
+
+    if ($netParsial != 0.0 || !$ob['found']) {
+    $out['adj_code'] = null;
+    $out['adj_id']   = null;
+}
+
     return $out;
 }
 
