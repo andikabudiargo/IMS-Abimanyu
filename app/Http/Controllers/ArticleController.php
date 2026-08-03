@@ -929,6 +929,8 @@
             ->make(true);
         }
 
+        private const RETURN_LOCS = ['049', '042', '009', '006', '005'];
+
        public function movement2(Request $request)
 {
     $articleCode = $request->articleCode;
@@ -939,170 +941,118 @@
     $inout       = $request->inout;
     $isGlobal    = empty($location);
 
-    // Periode opening = bulan SEBELUM fromDate
-    $parts = explode('-', $fromDate);
-    $bulan = isset($parts[1]) ? (int) $parts[1] : (int) date('m');
-    $tahun = isset($parts[2]) ? (int) $parts[2] : (int) date('Y');
-    $periodeOpening = $bulan - 1;
-    $tahunOpening   = $tahun;
-    if ($periodeOpening < 1) { $periodeOpening = 12; $tahunOpening = $tahun - 1; }
-
-    $opening   = $this->resolveOpeningBalance($articleCode, $location, $periodeOpening, $tahunOpening, $isGlobal);
+    // Saldo awal = carry-forward dari periode sebelumnya, Juni 2026 dikecualikan
+    $opening   = $this->resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal);
     $saldoAwal = $opening['qty'];
 
-   $bind = [
-    'art' => $articleCode, 'site' => $siteCode, 'from' => $fromDate, 'to' => $toDate,
-    'art_dir' => $articleCode, 'art_qty' => $articleCode,
-    'art_excl' => $articleCode,
-    'periodeOpening' => $periodeOpening,
-    'tahunOpening'   => $tahunOpening,
-];
-$whereLoc = '';
-if (!$isGlobal) { $whereLoc = "and m.location_number = :loc"; $bind['loc'] = $location; }
-$locationCol = $isGlobal ? "'ALL'" : "b.location_number";
+    $bind = ['art' => $articleCode, 'site' => $siteCode, 'from' => $fromDate, 'to' => $toDate,
+             'art_dir' => $articleCode, 'art_qty' => $articleCode];
 
-$whereLocOpening = '';
-if (!$isGlobal) {
-    $whereLocOpening = "and h.location_code = :locOpening";
-    $bind['locOpening'] = $location;
-}
+    $whereLoc = '';
+    if (!$isGlobal) { $whereLoc = "AND m.location_number = :loc"; $bind['loc'] = $location; }
+    $locationCol = $isGlobal ? "'ALL'" : "b.location_number";
 
-    // Filter IN/OUT: adjustment kadang tidak mengisi movement_plus/min,
-    // jadi ikut lihat direction dari stock_adjustment_det.
     $inoutFilter = '';
-    if ($inout === 'in')  $inoutFilter = "and (b.movement_plus > 0 or b.adj_direction = '+')";
-    if ($inout === 'out') $inoutFilter = "and (b.movement_min  > 0 or b.adj_direction = '-')";
+    if ($inout === 'in')  $inoutFilter = "AND (b.movement_plus > 0 OR b.adj_direction = '+')";
+    if ($inout === 'out') $inoutFilter = "AND (b.movement_min  > 0 OR b.adj_direction = '-')";
 
     $sqlku = "
-   WITH movement_net AS (
-    SELECT wm.movement_code, wm.movement_transnno, wm.artikel_code,
-           wm.location_number, wm.site_code, wm.movement_type,
-           CASE
-               WHEN wm.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
-                    AND wm.movement_plus = 0 AND wm.movement_min = 0
-               THEN (
-                   SELECT CASE WHEN det.direction = '-' THEN -det.qty_adjustment ELSE det.qty_adjustment END
-                   FROM stock_adjustment_det det
-                   WHERE det.adj_code = wm.movement_transnno AND det.article_code = wm.artikel_code
-                   LIMIT 1
-               ) * CASE WHEN wm.movement_type = 'CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
-               ELSE (wm.movement_plus - wm.movement_min)
-           END AS net_value,
-           wm.created_at
-    FROM warehouse_movement wm
-    WHERE wm.artikel_code = :art_excl        -- filter duluan, jangan scan seluruh tabel
-),
-orig AS (
-    SELECT movement_code, movement_transnno, artikel_code, location_number, site_code,
-           movement_type, net_value,
-           ROW_NUMBER() OVER (
-               PARTITION BY movement_transnno, artikel_code, location_number, site_code,
-                            movement_type, net_value
-               ORDER BY created_at, movement_code
-           ) AS rn
-    FROM movement_net
-    WHERE movement_type NOT LIKE 'CANCEL %'
-),
-cancl AS (
-    SELECT movement_code, movement_transnno, artikel_code, location_number, site_code,
-           regexp_replace(movement_type, '^CANCEL ', '') AS base_type,
-           net_value,
-           ROW_NUMBER() OVER (
-               PARTITION BY movement_transnno, artikel_code, location_number, site_code,
-                            regexp_replace(movement_type, '^CANCEL ', ''), -net_value
-               ORDER BY created_at, movement_code
-           ) AS rn
-    FROM movement_net
-    WHERE movement_type LIKE 'CANCEL %'
-),
-excluded_pairs AS (
-    SELECT o.movement_code AS orig_code, c.movement_code AS cancel_code
-    FROM orig o
-    JOIN cancl c
-      ON c.movement_transnno = o.movement_transnno
-     AND c.artikel_code      = o.artikel_code
-     AND c.location_number   = o.location_number
-     AND c.site_code         = o.site_code
-     AND c.base_type         = o.movement_type
-     AND c.net_value         = -o.net_value
-     AND c.rn                = o.rn          -- ← ini yang bikin pairing 1-ke-1
-),
-excluded_codes AS (
-    SELECT orig_code AS movement_code FROM excluded_pairs
-    UNION
-    SELECT cancel_code AS movement_code FROM excluded_pairs
-),
-base AS (
-    SELECT m.*,
-       (case when m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT') then (
-            select det.direction from stock_adjustment_det det
-            where det.adj_code = m.movement_transnno
-              and det.article_code = :art_dir
-            limit 1
-        ) end) as adj_direction,
-        (case when m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT') then (
-            select det.qty_adjustment from stock_adjustment_det det
-            where det.adj_code = m.movement_transnno
-              and det.article_code = :art_qty
-            limit 1
-        ) end) as adj_qty,
-        $saldoAwal + SUM(m.movement_plus - m.movement_min) OVER (
-            ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
-        ) as balanceqty_calc,
-        $saldoAwal + SUM(m.movement_plus - m.movement_min) OVER (
-            ORDER BY TO_DATE(m.movement_date,'dd-mm-yyyy'), m.movement_code
-        ) - (m.movement_plus - m.movement_min) as last_qty_calc
-    FROM warehouse_movement m
-    WHERE m.artikel_code = :art
-      and m.site_code = :site
-      $whereLoc
-      and TO_DATE(m.movement_date,'dd-mm-yyyy')
-          between TO_DATE(:from,'dd-mm-yyyy') and TO_DATE(:to,'dd-mm-yyyy')
-      and m.movement_code NOT IN (SELECT movement_code FROM excluded_codes)
-     and not (
-    m.movement_type in ('ADJUSTMENT','CANCEL ADJUSTMENT')
-    and exists (
-        select 1 from stock_adjustment_hdr h
-        where h.adj_code = m.movement_transnno
-          and h.adj_type = 'OPENING BALANCE'
-          and h.status != '5'
-          and h.periode = :periodeOpening
-          and EXTRACT(YEAR FROM TO_DATE(h.adj_date,'dd-mm-yyyy')) = :tahunOpening
-          $whereLocOpening
+    WITH ledger AS (
+        SELECT m.*,
+            -- status header dokumen (dipakai untuk: exclude cancel=5, hide NEW=1, badge status)
+            CASE m.movement_type
+                WHEN 'RECEIVING'    THEN (SELECT status FROM receiving_hdr        WHERE rec_number      = m.movement_transnno LIMIT 1)
+                WHEN 'TRANSFER'     THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = m.movement_transnno LIMIT 1)
+                WHEN 'SUPPLY'       THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = m.movement_transnno LIMIT 1)
+                WHEN 'DELIVERY'     THEN (SELECT status FROM delivery_hdr         WHERE delivery_number = m.movement_transnno LIMIT 1)
+                WHEN 'RETURN'       THEN (SELECT status FROM dn_return_hdr        WHERE return_number   = m.movement_transnno LIMIT 1)
+                WHEN 'REPLACEMENT'  THEN (SELECT status FROM dn_replace_hdr       WHERE replace_number  = m.movement_transnno LIMIT 1)
+                WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
+                WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                ELSE NULL
+            END AS hdr_status,
+
+            (CASE WHEN m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT') THEN
+                (SELECT det.direction FROM stock_adjustment_det det
+                 WHERE det.adj_code = m.movement_transnno AND det.article_code = :art_dir LIMIT 1)
+            END) AS adj_direction,
+            (CASE WHEN m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT') THEN
+                (SELECT det.qty_adjustment FROM stock_adjustment_det det
+                 WHERE det.adj_code = m.movement_transnno AND det.article_code = :art_qty LIMIT 1)
+            END) AS adj_qty,
+
+            -- net adj-aware (Bug #1): plus=min=0 & adjustment -> ambil dari det
+            CASE
+                WHEN m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                     AND m.movement_plus = 0 AND m.movement_min = 0
+                THEN (SELECT CASE WHEN det.direction = '-' THEN -det.qty_adjustment ELSE det.qty_adjustment END
+                      FROM stock_adjustment_det det
+                      WHERE det.adj_code = m.movement_transnno AND det.article_code = m.artikel_code LIMIT 1)
+                     * CASE WHEN m.movement_type = 'CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
+                ELSE (m.movement_plus - m.movement_min)
+            END AS net_value
+        FROM warehouse_movement m
+        WHERE m.artikel_code = :art
+          AND m.site_code = :site
+          $whereLoc
+          AND TO_DATE(m.movement_date,'dd-mm-yyyy')
+              BETWEEN TO_DATE(:from,'dd-mm-yyyy') AND TO_DATE(:to,'dd-mm-yyyy')
+          AND m.movement_type NOT LIKE 'CANCEL %'
+          AND m.movement_type NOT LIKE 'DELETE%'
+          AND m.movement_type NOT LIKE 'REVISI %'
+          AND m.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
+          AND NOT (m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                   AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h
+                               WHERE h.adj_code = m.movement_transnno AND h.adj_type = 'OPENING BALANCE'))
+    ),
+    dedup AS (
+        SELECT l.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY l.artikel_code, l.movement_transnno, l.location_number
+                ORDER BY l.created_at DESC, l.movement_code DESC
+            ) AS rn
+        FROM ledger l
+        WHERE l.hdr_status IS DISTINCT FROM '5'      -- CANCEL: buang semua baris dokumen status 5
+    ),
+    kept AS (
+        SELECT d.*,
+            CASE WHEN d.hdr_status = '1' THEN 0 ELSE d.net_value END AS counted_net  -- NEW: tampil tapi 0
+        FROM dedup d
+        WHERE d.rn = 1                                -- REVISI: hanya baris terbaru
+    ),
+    base AS (
+        SELECT k.*,
+            $saldoAwal + SUM(k.counted_net) OVER (
+                ORDER BY TO_DATE(k.movement_date,'dd-mm-yyyy'), k.movement_code
+            ) AS balanceqty_calc,
+            $saldoAwal + SUM(k.counted_net) OVER (
+                ORDER BY TO_DATE(k.movement_date,'dd-mm-yyyy'), k.movement_code
+            ) - k.counted_net AS last_qty_calc
+        FROM kept k
     )
-)
-)
     SELECT
         b.movement_code, b.artikel_code, b.artikel_desc,
-        b.movement_plus - b.movement_min as qty,
+        b.movement_plus - b.movement_min AS qty,
         b.movement_price, b.movement_date, b.movement_desc, b.movement_type,
         b.movement_min, b.movement_plus, b.movement_transnno, b.partner_type,
-        b.adj_direction, b.adj_qty,
-        $locationCol as location_number,
-        case
-            when b.movement_type = 'TRF' then (select location_name from stock_location_master where location_code = b.movement_from)
-            when b.partner_type = 'SUPP' then (select nama from third_party where kode = b.movement_from)
-            else (select location_name from stock_location_master where location_code = b.movement_from)
-        end as mv_from,
-        case
-            when b.movement_type = 'TRF' then (select location_name from stock_location_master where location_code = b.movement_to)
-            when b.partner_type = 'CUST' then (select nama from third_party where kode = b.movement_to)
-            else (select location_name from stock_location_master where location_code = b.movement_to)
-        end as mv_to,
-        b.balanceqty_calc as balanceqty,
-        b.last_qty_calc   as last_qty,
-        ROW_NUMBER() OVER (ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy') DESC, b.movement_code DESC) as urutan,
+        b.adj_direction, b.adj_qty, b.hdr_status,
+        b.movement_to AS dest_code,
+        $locationCol AS location_number,
+        CASE
+            WHEN b.partner_type = 'SUPP' THEN (SELECT nama FROM third_party WHERE kode = b.movement_from)
+            ELSE (SELECT location_name FROM stock_location_master WHERE location_code = b.movement_from)
+        END AS mv_from,
+        CASE
+            WHEN b.partner_type = 'CUST' THEN (SELECT nama FROM third_party WHERE kode = b.movement_to)
+            ELSE (SELECT location_name FROM stock_location_master WHERE location_code = b.movement_to)
+        END AS mv_to,
+        b.balanceqty_calc AS balanceqty,
+        b.last_qty_calc   AS last_qty,
+        ROW_NUMBER() OVER (ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy') DESC, b.movement_code DESC) AS urutan,
         b.site_code, b.created_at,
-        COALESCE(rec.status, trf.status, del.status, ret.status, rep.status, adj.status, tdn.status, dng.status) as trx_status
+        b.hdr_status AS trx_status
     FROM base b
-    LEFT JOIN receiving_hdr rec        ON rec.rec_number = b.movement_transnno AND b.movement_type = 'RECEIVING'
-    LEFT JOIN transfer_stock_hdr trf   ON trf.tr_number = b.movement_transnno AND b.movement_type IN ('TRANSFER','SUPPLY')
-    LEFT JOIN delivery_hdr del         ON del.delivery_number = b.movement_transnno AND b.movement_type IN ('DELIVERY','REVISI DELIVERY','CANCEL DELIVERY')
-    LEFT JOIN dn_return_hdr ret        ON ret.return_number = b.movement_transnno AND b.movement_type = 'RETURN'
-    LEFT JOIN dn_replace_hdr rep       ON rep.replace_number = b.movement_transnno AND b.movement_type = 'REPLACEMENT'
-    LEFT JOIN stock_adjustment_hdr adj ON adj.adj_code = b.movement_transnno AND b.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
-    LEFT JOIN temporary_dn_hdr tdn     ON tdn.tdn_number = b.movement_transnno AND b.movement_type = 'DN SEMENTARA'
-    LEFT JOIN dn_general_hdr dng       ON dng.tdn_number = b.movement_transnno AND b.movement_type = 'DN UMUM'
     WHERE 1=1
     $inoutFilter
     ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy'), b.movement_code";
@@ -1120,16 +1070,16 @@ base AS (
     $saldoAkhir = $lastRow ? (float) $lastRow->balanceqty : $saldoAwal;
 
     $totalIn = 0.0; $totalOut = 0.0;
-foreach ($data as $d) {
-    [$in, $out] = $this->splitQty($d);
-    $totalIn  += $in;
-    $totalOut += $out;
-}
+    foreach ($data as $d) {
+        [$in, $out] = $this->splitQty($d);   // NEW otomatis 0 (lihat splitQty)
+        $totalIn  += $in;
+        $totalOut += $out;
+    }
 
     $rowAwal = $this->buildSummaryRow([
         'artikel_code'    => $articleCode,
         'artikel_desc'    => $artikelDesc,
-        'movement_desc'   => $opening['note'] ?: 'Saldo Awal Hasil STO',
+        'movement_desc'   => $opening['note'] ?: 'Saldo Awal',
         'movement_type'   => 'OPENING',
         'location_number' => $isGlobal ? 'ALL' : $location,
         'balanceqty'      => $saldoAwal,
@@ -1140,49 +1090,49 @@ foreach ($data as $d) {
         'site_code'       => $siteCode,
     ]);
 
-   $rowAkhir = $this->buildSummaryRow([
-    'artikel_code'    => $articleCode,
-    'artikel_desc'    => $artikelDesc,
-    'movement_desc'   => 'Saldo Akhir ('.$toDate.')',
-    'movement_type'   => 'CLOSING',
-    'location_number' => $isGlobal ? 'ALL' : $location,
-    'last_qty'      => $saldoAwal,    // <-- kolom "Opening"
-    'movement_plus'   => $totalIn,    // <-- akumulasi IN
-    'movement_min'    => $totalOut,   // <-- akumulasi OUT
-    'balanceqty'      => $saldoAkhir,
-    'urutan'          => -1,
-    'site_code'       => $siteCode,
-]);
+    $rowAkhir = $this->buildSummaryRow([
+        'artikel_code'    => $articleCode,
+        'artikel_desc'    => $artikelDesc,
+        'movement_desc'   => 'Saldo Akhir ('.$toDate.')',
+        'movement_type'   => 'CLOSING',
+        'location_number' => $isGlobal ? 'ALL' : $location,
+        'last_qty'        => $saldoAwal,
+        'movement_plus'   => $totalIn,
+        'movement_min'    => $totalOut,
+        'balanceqty'      => $saldoAkhir,
+        'urutan'          => -1,
+        'site_code'       => $siteCode,
+    ]);
 
     $dataFinal = array_merge([$rowAwal], $data, [$rowAkhir]);
 
     return Datatables::of($dataFinal)
-     ->addColumn('qty_in', function ($d) {
-    if (!empty($d->is_summary)) {
-        if ($d->movement_type !== 'CLOSING') return '';
-        return "<div class='mv-balance text-hijau'>".number_format((float) $d->movement_plus, 2)."</div>";
-    }
-    [$in, ] = $this->splitQty($d);
-    $v = number_format($in, 2);
-    return $in > 0 ? "<div class='text-hijau'>$v</div>" : "<div class='text-muted'>$v</div>";
-})
-->addColumn('qty_out', function ($d) {
-    if (!empty($d->is_summary)) {
-        if ($d->movement_type !== 'CLOSING') return '';
-        return "<div class='mv-balance text-red'>".number_format((float) $d->movement_min, 2)."</div>";
-    }
-    [, $out] = $this->splitQty($d);
-    $v = number_format($out, 2);
-    return $out > 0 ? "<div class='text-red'>$v</div>" : "<div class='text-muted'>$v</div>";
-})
-       ->addColumn('last_qty', function ($d) {
-    if (!empty($d->is_summary)) {
-        if ($d->movement_type !== 'CLOSING') return '';
-        return "<div class='mv-balance'>".number_format((float) $d->last_qty, 2)."</div>";
-    }
-    if ($d->last_qty === null) return '';
-    return "<div class='text-hitam'>".number_format((float) $d->last_qty, 2)."</div>";
-})
+        ->addColumn('qty_in', function ($d) {
+            if (!empty($d->is_summary)) {
+                if ($d->movement_type !== 'CLOSING') return '';
+                return "<div class='mv-balance text-hijau'>".number_format((float) $d->movement_plus, 2)."</div>";
+            }
+            [$in, ] = $this->splitQty($d);
+            $v = number_format($in, 2);
+            return $in > 0 ? "<div class='text-hijau'>$v</div>" : "<div class='text-muted'>$v</div>";
+        })
+        ->addColumn('qty_out', function ($d) {
+            if (!empty($d->is_summary)) {
+                if ($d->movement_type !== 'CLOSING') return '';
+                return "<div class='mv-balance text-red'>".number_format((float) $d->movement_min, 2)."</div>";
+            }
+            [, $out] = $this->splitQty($d);
+            $v = number_format($out, 2);
+            return $out > 0 ? "<div class='text-red'>$v</div>" : "<div class='text-muted'>$v</div>";
+        })
+        ->addColumn('last_qty', function ($d) {
+            if (!empty($d->is_summary)) {
+                if ($d->movement_type !== 'CLOSING') return '';
+                return "<div class='mv-balance'>".number_format((float) $d->last_qty, 2)."</div>";
+            }
+            if ($d->last_qty === null) return '';
+            return "<div class='text-hitam'>".number_format((float) $d->last_qty, 2)."</div>";
+        })
         ->addColumn('balanceqty', function ($d) {
             $v = number_format((float) $d->balanceqty, 2);
             if (!empty($d->is_summary)) return "<div class='mv-balance'>$v</div>";
@@ -1197,16 +1147,25 @@ foreach ($data as $d) {
             }
             return $this->renderRefLink($d->movement_type, $d->movement_transnno);
         })
-        ->addColumn('inout', function ($d) use ($isGlobal) {
-            if (!empty($d->is_summary)) return '';
-            if ($isGlobal && $d->movement_type === 'TRF') {
-                return "<span class='badge badge-pill badge-light-info'><i data-feather='repeat' class='font-small-3'></i> TRANSFER</span>";
-            }
-            [$in, $out] = $this->splitQty($d);
-            if ($in  > 0) return "<span class='badge badge-pill badge-light-success'><i data-feather='arrow-down-circle' class='font-small-3'></i> IN</span>";
-            if ($out > 0) return "<span class='badge badge-pill badge-light-danger'><i data-feather='arrow-up-circle' class='font-small-3'></i> OUT</span>";
-            return "<span class='badge badge-pill badge-light-secondary'>-</span>";
-        })
+        ->addColumn('inout', function ($d) {
+    if (!empty($d->is_summary)) return '';
+    [$in, $out] = $this->splitQty($d);
+    if ($in  > 0) return "<span class='badge badge-pill badge-light-success'><i data-feather='arrow-down-circle' class='font-small-3'></i> IN</span>";
+    if ($out > 0) return "<span class='badge badge-pill badge-light-danger'><i data-feather='arrow-up-circle' class='font-small-3'></i> OUT</span>";
+    return "<span class='badge badge-pill badge-light-secondary'>-</span>";
+})
+
+->editColumn('movement_type', function ($d) {
+    if (!empty($d->is_summary)) return '';
+    if (in_array($d->movement_type, ['TRANSFER','SUPPLY'], true)) {
+        if ((float) ($d->movement_min ?? 0) > 0) return 'SUPPLY';
+        $dest = (string) ($d->dest_code ?? '');
+        return in_array($dest, self::RETURN_LOCS, true) ? 'RETURN' : 'TRANSFER';
+    }
+    if ($d->movement_type === 'RETURN')      return 'DN RETURN';
+    if ($d->movement_type === 'REPLACEMENT') return 'DN REPLACEMENT';
+    return $d->movement_type;
+})
         ->addColumn('trx_status', function ($d) {
             if (!empty($d->is_summary)) return '';
             $st = $d->trx_status;
@@ -1227,7 +1186,7 @@ foreach ($data as $d) {
             $text   = $isOpen ? 'SALDO AWAL' : 'SALDO AKHIR';
             return "<span class='mv-summary-badge'><i data-feather='$icon'></i>$text</span>";
         })
-        ->rawColumns(['qty_in','qty_out','last_qty','balanceqty','movement_transnno','inout','trx_status','summary_label'])
+        ->rawColumns(['qty_in','qty_out','last_qty','balanceqty','movement_transnno','inout','trx_status','summary_label','movement_type'])
         ->make(true);
 }
 
@@ -1237,12 +1196,9 @@ private array $refMap = [
     'TRANSFER'          => ['transfer_stock_hdr', 'tr_number',       'transferStock.show'],
     'SUPPLY'            => ['transfer_stock_hdr', 'tr_number',       'transferStock.show'],
     'DELIVERY'          => ['delivery_hdr',       'delivery_number', 'delivery.show'],
-    'REVISI DELIVERY'   => ['delivery_hdr',       'delivery_number', 'delivery.show'],
-    'CANCEL DELIVERY'   => ['delivery_hdr',       'delivery_number', 'delivery.show'],
     'RETURN'            => ['dn_return_hdr',      'return_number',   'dnReturn.show'],
     'REPLACEMENT'       => ['dn_replace_hdr',     'replace_number',  'dnReplace.show'],
     'ADJUSTMENT'        => ['stock_adjustment_hdr','adj_code',       'stockAdjustment.show'],
-    'CANCEL ADJUSTMENT' => ['stock_adjustment_hdr','adj_code',       'stockAdjustment.show'],
     'DN SEMENTARA'      => ['temporary_dn_hdr',   'tdn_number',      'temporaryDn.show'],
     'DN UMUM'           => ['dn_general_hdr',     'tdn_number',      'dnGeneral.show'],
 ];
@@ -1262,48 +1218,112 @@ private function renderRefLink($type, $ref)
     return '<a href="'.$url.'" target="_blank" class="text-primary">'.e($ref).'</a>';
 }
 
-private function resolveOpeningBalance($articleCode, $location, $periode, $tahun, $isGlobal)
+private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal)
 {
-    $out = ['qty'=>0.0, 'adj_code'=>null, 'adj_id'=>null, 'note'=>null, 'authorized_at'=>null];
+    $out   = ['qty'=>0.0,'adj_code'=>null,'adj_id'=>null,'note'=>null,'authorized_at'=>null];
+    $floor = '01-07-2026'; // Juni 2026 & sebelumnya TIDAK dihitung
 
+    // 1) Anchor: OB adjustment aktif terakhir, efektif < fromDate dan >= floor
     if ($isGlobal) {
-        $sql = "SELECT COALESCE(SUM(det.stock_after),0) AS saldo_awal,
-                       MAX(hdr.authorized_at) AS authorized_at
-                FROM stock_adjustment_hdr hdr
-                JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
-                WHERE hdr.adj_type = 'OPENING BALANCE'
-                  AND hdr.status != '5'
-                  AND hdr.periode = :periode
-                  AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date,'dd-mm-yyyy')) = :tahun
-                  AND det.article_code = :art";
-        $r = DB::select($sql, ['periode'=>$periode, 'tahun'=>$tahun, 'art'=>$articleCode]);
-        $out['qty']           = isset($r[0]) ? (float) $r[0]->saldo_awal : 0.0;
-        $out['authorized_at'] = $r[0]->authorized_at ?? null;
-        $out['note']          = 'Gabungan opening balance semua gudang';
-        return $out;
-    }
-
-    $sql = "SELECT hdr.id, hdr.adj_code, hdr.description, hdr.authorized_at,
-                   det.stock_after AS saldo_awal
+        $anchorSql = "
+            SELECT NULL::int AS id, hdr.adj_code, hdr.adj_date, NULL::text AS description,
+                   MAX(hdr.authorized_at) AS authorized_at, SUM(det.stock_after) AS anchor_qty
             FROM stock_adjustment_hdr hdr
             JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
-            WHERE hdr.adj_type = 'OPENING BALANCE'
-              AND hdr.status != '5'
-              AND hdr.periode = :periode
-              AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date,'dd-mm-yyyy')) = :tahun
+            WHERE hdr.adj_type='OPENING BALANCE' AND hdr.status!='5'
               AND det.article_code = :art
-              AND hdr.location_code = :loc
+              AND TO_DATE(hdr.adj_date,'dd-mm-yyyy') <  TO_DATE(:fromDate,'dd-mm-yyyy')
+              AND TO_DATE(hdr.adj_date,'dd-mm-yyyy') >= TO_DATE(:floor,'dd-mm-yyyy')
+            GROUP BY hdr.adj_code, hdr.adj_date
+            ORDER BY TO_DATE(hdr.adj_date,'dd-mm-yyyy') DESC
             LIMIT 1";
-    $r = DB::select($sql, ['periode'=>$periode,'tahun'=>$tahun,'art'=>$articleCode,'loc'=>$location]);
+        $bind = ['art'=>$articleCode,'fromDate'=>$fromDate,'floor'=>$floor];
+    } else {
+        $anchorSql = "
+            SELECT hdr.id, hdr.adj_code, hdr.adj_date, hdr.description,
+                   hdr.authorized_at, det.stock_after AS anchor_qty
+            FROM stock_adjustment_hdr hdr
+            JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
+            WHERE hdr.adj_type='OPENING BALANCE' AND hdr.status!='5'
+              AND det.article_code = :art AND hdr.location_code = :loc
+              AND TO_DATE(hdr.adj_date,'dd-mm-yyyy') <  TO_DATE(:fromDate,'dd-mm-yyyy')
+              AND TO_DATE(hdr.adj_date,'dd-mm-yyyy') >= TO_DATE(:floor,'dd-mm-yyyy')
+            ORDER BY TO_DATE(hdr.adj_date,'dd-mm-yyyy') DESC
+            LIMIT 1";
+        $bind = ['art'=>$articleCode,'loc'=>$location,'fromDate'=>$fromDate,'floor'=>$floor];
+    }
+    $anchor = DB::select($anchorSql, $bind);
 
-    if (isset($r[0])) {
-        $out = [
-            'qty'           => (float) $r[0]->saldo_awal,
-            'adj_code'      => $r[0]->adj_code,
-            'adj_id'        => $r[0]->id,
-            'note'          => $r[0]->description,
-            'authorized_at' => $r[0]->authorized_at,
-        ];
+    $anchorQty  = 0.0;
+    $anchorDate = $floor; // tanpa OB: akumulasi mulai 01-07-2026 (Juni terbuang)
+    if (isset($anchor[0]) && $anchor[0]->anchor_qty !== null) {
+        $anchorQty            = (float) $anchor[0]->anchor_qty;
+        $anchorDate           = $anchor[0]->adj_date;   // akumulasi mulai SETELAH tanggal ini
+        $out['adj_code']      = $anchor[0]->adj_code;
+        $out['adj_id']        = $anchor[0]->id;
+        $out['note']          = $anchor[0]->description ?: 'Opening balance';
+        $out['authorized_at'] = $anchor[0]->authorized_at;
+    }
+
+    // 2) Akumulasi net movement (skip cancel/revisi, skip status 5 & 1, skip OB, dedup revisi)
+    $whereLoc = $isGlobal ? '' : 'AND m.location_number = :loc2';
+    $accSql = "
+      WITH acc AS (
+        SELECT m.location_number, m.movement_code, m.created_at,
+            CASE m.movement_type
+                WHEN 'RECEIVING'    THEN (SELECT status FROM receiving_hdr        WHERE rec_number      = m.movement_transnno LIMIT 1)
+                WHEN 'TRANSFER'     THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = m.movement_transnno LIMIT 1)
+                WHEN 'SUPPLY'       THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = m.movement_transnno LIMIT 1)
+                WHEN 'DELIVERY'     THEN (SELECT status FROM delivery_hdr         WHERE delivery_number = m.movement_transnno LIMIT 1)
+                WHEN 'RETURN'       THEN (SELECT status FROM dn_return_hdr        WHERE return_number   = m.movement_transnno LIMIT 1)
+                WHEN 'REPLACEMENT'  THEN (SELECT status FROM dn_replace_hdr       WHERE replace_number  = m.movement_transnno LIMIT 1)
+                WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
+                WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                ELSE NULL
+            END AS hdr_status,
+            CASE
+                WHEN m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                     AND m.movement_plus=0 AND m.movement_min=0
+                THEN (SELECT CASE WHEN det.direction='-' THEN -det.qty_adjustment ELSE det.qty_adjustment END
+                      FROM stock_adjustment_det det
+                      WHERE det.adj_code=m.movement_transnno AND det.article_code=m.artikel_code LIMIT 1)
+                     * CASE WHEN m.movement_type='CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
+                ELSE (m.movement_plus - m.movement_min)
+            END AS net_value,
+            ROW_NUMBER() OVER (
+                PARTITION BY m.artikel_code, m.movement_transnno, m.location_number
+                ORDER BY m.created_at DESC, m.movement_code DESC
+            ) AS rn
+        FROM warehouse_movement m
+        WHERE m.artikel_code = :art AND m.site_code='HO'
+          $whereLoc
+          AND TO_DATE(m.movement_date,'dd-mm-yyyy') >  TO_DATE(:anchorDate,'dd-mm-yyyy')
+          AND TO_DATE(m.movement_date,'dd-mm-yyyy') <  TO_DATE(:fromDate,'dd-mm-yyyy')
+          AND m.movement_type NOT LIKE 'CANCEL %'
+          AND m.movement_type NOT LIKE 'DELETE%'
+          AND m.movement_type NOT LIKE 'REVISI %'
+          AND m.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
+          AND NOT (m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                   AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h
+                               WHERE h.adj_code=m.movement_transnno AND h.adj_type='OPENING BALANCE'))
+      )
+      SELECT COALESCE(SUM(net_value),0) AS acc
+      FROM acc
+      WHERE rn = 1
+        AND hdr_status IS DISTINCT FROM '5'
+        AND hdr_status IS DISTINCT FROM '1'";
+    $accBind = ['art'=>$articleCode,'anchorDate'=>$anchorDate,'fromDate'=>$fromDate];
+    if (!$isGlobal) $accBind['loc2'] = $location;
+
+    $acc    = DB::select($accSql, $accBind);
+    $accQty = isset($acc[0]) ? (float) $acc[0]->acc : 0.0;
+
+    $out['qty'] = $anchorQty + $accQty;
+    if ($out['note'] === null) {
+        $out['note'] = ($out['qty'] != 0.0)
+            ? 'Saldo akhir periode sebelumnya (carry-forward)'
+            : 'Saldo awal 0';
     }
     return $out;
 }
@@ -1317,6 +1337,11 @@ private function resolveOpeningBalance($articleCode, $location, $periode, $tahun
  */
 private function splitQty($d): array
 {
+    // NEW/DRAFT (status 1) -> tampil tapi qty 0, tidak masuk balance
+    if (($d->hdr_status ?? null) === '1') {
+        return [0.0, 0.0];
+    }
+
     $plus = (float) ($d->movement_plus ?? 0);
     $min  = (float) ($d->movement_min  ?? 0);
 
@@ -1327,8 +1352,6 @@ private function splitQty($d): array
     if (!empty($d->adj_direction)) {
         $qty = abs((float) ($d->adj_qty ?? 0));
         $dir = trim($d->adj_direction);
-
-        // CANCEL ADJUSTMENT = kebalikan dari adjustment aslinya
         if (($d->movement_type ?? '') === 'CANCEL ADJUSTMENT') {
             $dir = ($dir === '-') ? '+' : '-';
         }
@@ -1346,7 +1369,7 @@ private function buildSummaryRow(array $p)
         'partner_type'=>null, 'mv_from'=>null, 'mv_to'=>null, 'last_qty'=>null,
         'location_number'=>null, 'site_code'=>null, 'created_at'=>null, 'trx_status'=>null,
         'adj_code'=>null, 'adj_id'=>null, 'adj_direction'=>null, 'adj_qty'=>0,
-        'is_summary'=>true, 'qty'=>0,
+        'is_summary'=>true, 'qty'=>0, 'hdr_status'=>null,
     ], $p);
 }
 
