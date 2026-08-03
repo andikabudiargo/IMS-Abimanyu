@@ -2083,7 +2083,7 @@ private function getArticleDesc(string $articleCode): string
 
     return [
                 'movement_code'     => $seq,
-                'movement_date'     => date('d-m-Y', strtotime($hdrQ->tr_date)),
+                'movement_date' => \Carbon\Carbon::createFromFormat('d-m-Y', $hdrQ->tr_date)->format('d-m-Y'),
                 'artikel_code'      => $line['article_code'],
                 'artikel_desc'      => $line['article_desc'],
                 'movement_min'      => ($direction === 'min')  ? $qty : 0,
