@@ -219,11 +219,6 @@ private function dbRole($role)
     $userId       = Auth::id();
     $isAccounting = $this->isAccountingUser();
 
-    $stoHdr = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
-    if (!$stoHdr || $stoHdr->status != 1) {
-        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Sheet ini sudah dikunci, tidak bisa diedit.'],'alert'=>'error']);
-    }
-
     $m = DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->first();
 
     $role = null;
