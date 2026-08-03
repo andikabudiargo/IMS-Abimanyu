@@ -966,10 +966,6 @@ private function storeLineInline($mappingId, $m, $access, $userId, $locationNumb
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Nomor STO tidak ditemukan atau bukan milik target ini.'],'alert'=>'error']);
         }
 
-        if ($stoHdr->status != 1) {
-            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Sheet ini sudah dikunci, tidak bisa ditambah baris.'],'alert'=>'error']);
-        }
-
         // ── cek max 7 baris per sheet ──
         $currentCount = DB::table('sto_dtl')->where('sto_id', $stoHdr->sto_id)->count();
         if ($currentCount >= 7) {
