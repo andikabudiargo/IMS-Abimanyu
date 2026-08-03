@@ -216,6 +216,13 @@ private function dbRole($role)
         return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Baris tidak ditemukan.'],'alert'=>'error']);
     }
 
+
+    // ✅ FIX: fetch stoHdr dari sto_id milik dtl
+    $stoHdr = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
+    if (!$stoHdr) {
+        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Header STO tidak ditemukan.'],'alert'=>'error']);
+    }
+
     $userId       = Auth::id();
     $isAccounting = $this->isAccountingUser();
 
