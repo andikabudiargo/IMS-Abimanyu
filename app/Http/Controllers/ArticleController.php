@@ -1218,51 +1218,58 @@ private function renderRefLink($type, $ref)
     return '<a href="'.$url.'" target="_blank" class="text-primary">'.e($ref).'</a>';
 }
 
-private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal)
+private function netMovementBulan($articleCode, $location, $periode, $tahun, $isGlobal): float
 {
-    $out = ['qty'=>0.0,'adj_code'=>null,'adj_id'=>null,'note'=>null,'authorized_at'=>null];
+    $from = sprintf('01-%02d-%04d', $periode, $tahun);
+    $to   = date('t-m-Y', mktime(0,0,0,$periode,1,$tahun));  // hari terakhir bulan itu
 
-    $parts = explode('-', $fromDate);
-    $bulan = isset($parts[1]) ? (int) $parts[1] : (int) date('m');
-    $tahun = isset($parts[2]) ? (int) $parts[2] : (int) date('Y');
-
-    $periodeOB = $bulan - 1;
-    $tahunOB   = $tahun;
-    if ($periodeOB < 1) { $periodeOB = 12; $tahunOB = $tahun - 1; }
-
-    $floor = '01-07-2026'; // Juni 2026 & sebelumnya dibuang
-
-    // ── 1) EXACT: OB tepat periode (bulan-1). Kalau ada, ini saldo awal final. ──
-    $exact = $this->fetchOBByPeriode($articleCode, $location, $periodeOB, $tahunOB, $isGlobal);
-    if ($exact['found']) {
-        return [
-            'qty'           => $exact['qty'],
-            'adj_code'      => $exact['adj_code'],
-            'adj_id'        => $exact['adj_id'],
-            'note'          => $exact['note'] ?: 'Opening balance periode '.$periodeOB,
-            'authorized_at' => $exact['authorized_at'],
-        ];
-    }
-
-    // ── 2) FALLBACK: tidak ada OB periode itu → saldo akhir bulan sebelumnya. ──
-    //    = OB terakhir yang efektif < fromDate (>= floor) + akumulasi movement setelahnya.
-    $anchor = $this->fetchLatestOBBefore($articleCode, $location, $fromDate, $floor, $isGlobal);
-
-    $anchorQty  = $anchor['found'] ? $anchor['qty'] : 0.0;
-    $anchorDate = $anchor['found'] ? $anchor['adj_date'] : $floor; // akumulasi mulai SETELAH ini
-    if ($anchor['found']) {
-        $out['adj_code']      = $anchor['adj_code'];
-        $out['adj_id']        = $anchor['adj_id'];
-        $out['authorized_at'] = $anchor['authorized_at'];
-    }
-
-    $accQty = $this->accumulateNet($articleCode, $location, $anchorDate, $fromDate, $isGlobal);
-
-    $out['qty']  = $anchorQty + $accQty;
-    $out['note'] = ($out['qty'] != 0.0)
-        ? 'Saldo akhir periode sebelumnya (carry-forward)'
-        : 'Saldo awal 0';
-    return $out;
+    $whereLoc = $isGlobal ? '' : 'AND m.location_number = :loc2';
+    $sql = "
+      WITH acc AS (
+        SELECT m.movement_code, m.created_at,
+            CASE m.movement_type
+                WHEN 'RECEIVING'    THEN (SELECT status FROM receiving_hdr        WHERE rec_number      = m.movement_transnno LIMIT 1)
+                WHEN 'TRANSFER'     THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = m.movement_transnno LIMIT 1)
+                WHEN 'SUPPLY'       THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = m.movement_transnno LIMIT 1)
+                WHEN 'DELIVERY'     THEN (SELECT status FROM delivery_hdr         WHERE delivery_number = m.movement_transnno LIMIT 1)
+                WHEN 'RETURN'       THEN (SELECT status FROM dn_return_hdr        WHERE return_number   = m.movement_transnno LIMIT 1)
+                WHEN 'REPLACEMENT'  THEN (SELECT status FROM dn_replace_hdr       WHERE replace_number  = m.movement_transnno LIMIT 1)
+                WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
+                WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                ELSE NULL
+            END AS hdr_status,
+            CASE
+                WHEN m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                     AND m.movement_plus=0 AND m.movement_min=0
+                THEN (SELECT CASE WHEN det.direction='-' THEN -det.qty_adjustment ELSE det.qty_adjustment END
+                      FROM stock_adjustment_det det
+                      WHERE det.adj_code=m.movement_transnno AND det.article_code=m.artikel_code LIMIT 1)
+                     * CASE WHEN m.movement_type='CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
+                ELSE (m.movement_plus - m.movement_min)
+            END AS net_value,
+            ROW_NUMBER() OVER (
+                PARTITION BY m.artikel_code, m.movement_transnno, m.location_number
+                ORDER BY m.created_at DESC, m.movement_code DESC
+            ) AS rn
+        FROM warehouse_movement m
+        WHERE m.artikel_code = :art AND m.site_code='HO'
+          $whereLoc
+          AND TO_DATE(m.movement_date,'dd-mm-yyyy') BETWEEN TO_DATE(:from,'dd-mm-yyyy') AND TO_DATE(:to,'dd-mm-yyyy')
+          AND m.movement_type NOT LIKE 'CANCEL %'
+          AND m.movement_type NOT LIKE 'DELETE%'
+          AND m.movement_type NOT LIKE 'REVISI %'
+          AND m.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
+          AND NOT (m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                   AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h
+                               WHERE h.adj_code=m.movement_transnno AND h.adj_type='OPENING BALANCE'))
+      )
+      SELECT COALESCE(SUM(net_value),0) AS net
+      FROM acc WHERE rn=1 AND hdr_status IS DISTINCT FROM '5' AND hdr_status IS DISTINCT FROM '1'";
+    $bind = ['art'=>$articleCode,'from'=>$from,'to'=>$to];
+    if (!$isGlobal) $bind['loc2'] = $location;
+    $r = DB::select($sql, $bind);
+    return isset($r[0]) ? (float) $r[0]->net : 0.0;
 }
 
 /** OB tepat pada periode+tahun tertentu. */
