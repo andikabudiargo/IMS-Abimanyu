@@ -1317,9 +1317,10 @@ function editLine(dtlId, el) {
                     (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
                 }
             },
-            error: function() {
-                show_msg('Error', 'Terjadi kesalahan, cek console.', 'error');
-            }
+           error: function(xhr) {
+    console.log('Status :', xhr.status);
+    console.log('Response :', xhr.responseText);
+}
         });
     });
 }
