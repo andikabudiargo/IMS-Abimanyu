@@ -1218,6 +1218,46 @@ private function renderRefLink($type, $ref)
     return '<a href="'.$url.'" target="_blank" class="text-primary">'.e($ref).'</a>';
 }
 
+private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal)
+{
+    $out = ['qty'=>0.0,'adj_code'=>null,'adj_id'=>null,'note'=>null,'authorized_at'=>null];
+
+    $parts = explode('-', $fromDate);
+    $bulan = isset($parts[1]) ? (int) $parts[1] : (int) date('m');
+    $tahun = isset($parts[2]) ? (int) $parts[2] : (int) date('Y');
+
+    $periodeOB = $bulan - 1;               // OB yang jadi opening bulan ini
+    $tahunOB   = $tahun;
+    if ($periodeOB < 1) { $periodeOB = 12; $tahunOB = $tahun - 1; }
+
+    // ── 1) EXACT: OB tepat periode (bulan-1). Ada -> final. ──
+    $exact = $this->fetchOBByPeriode($articleCode, $location, $periodeOB, $tahunOB, $isGlobal);
+    if ($exact['found']) {
+        return [
+            'qty'           => $exact['qty'],
+            'adj_code'      => $exact['adj_code'],
+            'adj_id'        => $exact['adj_id'],
+            'note'          => $exact['note'] ?: 'Opening balance periode '.$periodeOB,
+            'authorized_at' => $exact['authorized_at'],
+        ];
+    }
+
+    // ── 2) FALLBACK: OB bulan ini belum dibuat -> saldo AKHIR bulan sebelumnya. ──
+    //    = OB periode (bulan-2) + net movement BULAN PENUH (bulan-1).
+    //    Rekursif satu tingkat: saldo AWAL (bulan-1) + net movement (bulan-1).
+    $awalPrev = $this->resolveOpeningBalance(
+        $articleCode, $location,
+        sprintf('01-%02d-%04d', $periodeOB, $tahunOB),   // fromDate = 01 (bulan-1)
+        $isGlobal
+    );
+
+    $netPrev = $this->netMovementBulan($articleCode, $location, $periodeOB, $tahunOB, $isGlobal);
+
+    $out['qty']  = $awalPrev['qty'] + $netPrev;
+    $out['note'] = 'Saldo akhir periode sebelumnya (carry-forward)';
+    return $out;
+}
+
 private function netMovementBulan($articleCode, $location, $periode, $tahun, $isGlobal): float
 {
     $from = sprintf('01-%02d-%04d', $periode, $tahun);
