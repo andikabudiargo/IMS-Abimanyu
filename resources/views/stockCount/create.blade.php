@@ -13,7 +13,7 @@
     $totalLines = $sheets->sum(fn($s) => $s['lines']->count());
     $totalMatch = $sheets->sum(fn($s) => $s['lines']->where('count_status','MATCH')->count());
     $latestHdrStatus = $sheets->last()['hdr']->status ?? 1;
- 
+
     $allLinesFlat = $sheets->flatMap(fn($s) => $s['lines']);
     $statusStats = collect(['INCOMPLETE','RECOUNT','NOT MATCH','MATCH'])->mapWithKeys(function ($st) use ($allLinesFlat) {
         $lines = $allLinesFlat->where('count_status', $st);
@@ -42,11 +42,12 @@
                 </div>
                 <div class="text-right">
                     <div class="text-muted" style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;">Peran Saya</div>
-                    <div class="font-weight-bold">{{ $roleLabel }}</div>]@if($mapping->is_blind)
-    <span class="badge badge-light-primary">Blind Count</span>
-@else
-    <span class="badge badge-light-info">Parsial (Non-Blind)</span>
-@endif
+                    <div class="font-weight-bold">{{ $roleLabel }}</div>
+                    @if($mapping->is_blind)
+                        <span class="badge badge-light-primary">Blind Count</span>
+                    @else
+                        <span class="badge badge-light-info">Parsial (Non-Blind)</span>
+                    @endif
                 </div>
             </div>
 
@@ -74,7 +75,7 @@
                     <div class="scc-meta-value" id="totalSheetMeta">{{ $sheets->count() }} / <span id="totalLinesMeta">{{ $totalLines }}</span></div>
                 </div>
             </div>
- 
+
             <div class="row scc-status-cards">
                 <div class="col-6 col-md-3">
                     <div class="scc-stat-card scc-stat-incomplete">
@@ -105,7 +106,7 @@
                     </div>
                 </div>
             </div>
- 
+
             @if($accessRole == 'accounting')
             <div class="alert alert-warning mt-1 mb-0 py-50 px-1" style="font-size:.8rem;">
                 <i data-feather="alert-triangle" style="width:14px;height:14px;" class="align-middle mr-25"></i>
@@ -174,7 +175,7 @@
             </div>
         </div>
         <div class="card-body">
- 
+
             {{-- ── Nomor STO manual (dropdown, hilang otomatis kalau sudah dipakai) ── --}}
             <div class="form-row">
                 <div class="form-group col-md-3 col-12">
@@ -184,9 +185,9 @@
                     </select>
                 </div>
             </div>
- 
+
             <hr class="my-75">
- 
+
             <div id="sheetInputBody">
                 @for($i = 0; $i < 7; $i++)
                   <div class="scc-sheet-row-card" data-row="{{ $i }}">
@@ -227,7 +228,7 @@
                 </div>
                 @endfor
             </div>
- 
+
             <button type="button" class="btn btn-success mt-75" id="btnSaveSheet">
                 <i data-feather="save" class="align-middle mr-25"></i> Simpan Kartu STO
             </button>
@@ -243,7 +244,7 @@
             <h4 class="card-title mb-0">List Kartu STO Tersimpan</h4>
             <small>Review terlebih dahulu sebelum tandai selesai</small>
         </div>
- 
+
         <div class="scc-filter-bar">
             <div class="scc-filter-item">
                 <label class="scc-filter-label">Nomor STO</label>
@@ -318,7 +319,7 @@
                                 </thead>
                                 <tbody class="sheet-tbody" id="sheetBody{{ $hdr->sto_id }}">
                                     @foreach($sheetLines as $li => $l)
-                                           <tr class="sto-line" data-id="{{ $l->dtl_id }}" data-sto-id="{{ $hdr->sto_id }}"
+                                       <tr class="sto-line" data-id="{{ $l->dtl_id }}" data-sto-id="{{ $hdr->sto_id }}"
                                           data-status="{{ $l->count_status }}"
                                           data-article-code="{{ $l->article_code }}"
                                           data-article-desc="{{ $l->article_desc }}"
@@ -328,8 +329,8 @@
                                           data-my-qty="{{ $l->my_qty }}"
                                           data-note="{{ $l->note }}"
                                           data-qty-counter1="{{ $l->qty_counter1 }}"
-data-qty-counter2="{{ $l->qty_counter2 }}"
-data-qty-counter3="{{ $l->qty_counter3 }}"
+                                          data-qty-counter2="{{ $l->qty_counter2 }}"
+                                          data-qty-counter3="{{ $l->qty_counter3 }}"
                                           data-location-number="{{ $l->location_number }}"
                                           data-location-name="{{ $l->location_name }}">
                                         <td class="scc-idx text-muted">{{ $li + 1 }}</td>
@@ -357,8 +358,20 @@ data-qty-counter3="{{ $l->qty_counter3 }}"
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>{{-- /table-responsive --}}
+
+                        {{-- ── tombol tambah artikel ke sheet ini (buka modal) ── --}}
+                        @if(!$mapping->finish_time || $accessRole == 'accounting')
+                        <div class="scc-inline-add">
+                            <button type="button" class="btn btn-sm btn-outline-success scc-btn-add-article"
+                                    data-sto-id="{{ $hdr->sto_id }}"
+                                    data-sto-number="{{ $hdr->sto_number }}">
+                                <i data-feather="plus-circle" style="width:14px;height:14px;" class="align-middle mr-25"></i>
+                                Tambah Artikel ke {{ $hdr->sto_number }}
+                            </button>
                         </div>
-                    </div>
+                        @endif
+                    </div>{{-- /sheetCollapse --}}
                 </div>
                 @empty
                 <div class="text-center text-muted py-2" id="emptySheetMsg">Belum ada kartu sto tersimpan.</div>
@@ -384,7 +397,7 @@ data-qty-counter3="{{ $l->qty_counter3 }}"
     .scc-meta-item   { margin-bottom: .6rem; }
     .scc-meta-label  { font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8892a3;display:flex;align-items:center;gap:4px;margin-bottom:2px; }
     .scc-meta-value  { font-size:1rem;font-weight:700;color:#2a3342; }
- 
+
     /* ── kartu per baris input sheet (mode non-auto) ── */
     .scc-sheet-row-card{
         position:relative; border:1px solid #e5e8ee; border-radius:6px;
@@ -399,6 +412,17 @@ data-qty-counter3="{{ $l->qty_counter3 }}"
       .scc-field-label{
         font-size:.68rem; font-weight:600; color:#8892a3; margin-bottom:.2rem;
         text-transform:uppercase; letter-spacing:.03em; display:block;
+    }
+
+    /* ══ INLINE ADD — tombol per sheet (buka modal) ══ */
+    .scc-inline-add {
+        padding: .65rem .85rem;
+        border-top: 1px dashed #e5e8ee;
+        background: #f7fbf8;
+    }
+    .scc-btn-add-article {
+        font-size: .78rem;
+        padding: .3rem .75rem;
     }
 
     /* ══════════════════════════════════════════════
@@ -423,7 +447,7 @@ data-qty-counter3="{{ $l->qty_counter3 }}"
     @media (max-width:575px){
         .scc-filter-bar{ padding:.75rem; }
     }
- 
+
     /* ══════════════════════════════════════════════
        ACCORDION SHEET TERSIMPAN — clean & rapi
     ══════════════════════════════════════════════ */
@@ -439,17 +463,17 @@ data-qty-counter3="{{ $l->qty_counter3 }}"
         box-shadow: 0 1px 2px rgba(20,25,35,.04);
     }
     .scc-sheet-card:last-child{ margin-bottom: 0 !important; }
- 
+
     .scc-sheet-card > .card-header{
         background: #f7f9fc;
         border-bottom: 1px solid #e5e8ee;
         padding: .65rem .85rem !important;
     }
     .scc-sheet-card > .card-header:hover{ background: #eef1f8; }
- 
+
     .scc-chevron{ transition: transform .2s; color:#8892a3; }
     .scc-sheet-card > .card-header[aria-expanded="true"] .scc-chevron{ transform: rotate(180deg); }
- 
+
     /* ── tabel di dalam sheet: zebra-stripe + rapat tapi jelas ── */
     .scc-lines-table{ margin-bottom: 0 !important; }
     .scc-lines-table thead th{
@@ -464,9 +488,12 @@ data-qty-counter3="{{ $l->qty_counter3 }}"
     .scc-lines-table tbody tr:nth-child(even){ background: #fafbfc; }
     .scc-lines-table tbody tr:hover{ background: #eef2ff; }
     .scc-idx{ color:#8892a3; font-weight:700; }
- 
+
     /* ── dropdown Nomor STO biar tidak terlalu sempit ── */
     #inSelectedNumber{ font-weight: 600; }
+
+    /* ── select2 di dalam modal tampil di atas backdrop ── */
+    .select2-container--open{ z-index: 9999; }
 
     /* ══════════════════════════════════════════════
        4 KARTU STATUS (Incomplete / Recount / Not Match / Match)
@@ -482,7 +509,7 @@ data-qty-counter3="{{ $l->qty_counter3 }}"
     }
     .scc-stat-count{ font-size:1.35rem; font-weight:800; line-height:1.1; }
     .scc-stat-qty{ font-size:.72rem; font-weight:600; opacity:.85; margin-top:.15rem; }
- 
+
     .scc-stat-incomplete{ background:#f1f2f5; border-color:#e2e4e9; color:#5b6472; }
     .scc-stat-recount    { background:#fdf4e3; border-color:#f3e2c4; color:#8a5a08; }
     .scc-stat-notmatch   { background:#fbeae8; border-color:#f5c2c7; color:#8a1f18; }
@@ -526,17 +553,17 @@ function updateStatusStats() {
         'NOT MATCH':  { key: 'NotMatch',   count: 0, qty: 0 },
         'MATCH':      { key: 'Match',      count: 0, qty: 0 },
     };
- 
+
     $('#accordionSheets tr.sto-line').each(function() {
         const status = $(this).data('status');
         if (!stats[status]) return;
         stats[status].count++;
- 
+
         const qtyText = $(this).find('.qty-cell').text().replace(/,/g, '').trim();
         const qtyVal  = parseFloat(qtyText);
         if (!isNaN(qtyVal)) stats[status].qty += qtyVal;
     });
- 
+
     Object.values(stats).forEach(s => {
         $(`#statCount${s.key}`).text(s.count);
         $(`#statQty${s.key}`).text(s.qty.toFixed(2));
@@ -606,9 +633,9 @@ function getArticleOptions(cb) {
 function loadAvailableNumbers() {
     $.get("{{ route('stockCount.getAvailableNumbers') }}", { mapping_id: encMappingId }, function(res) {
         const $sel = $('#inSelectedNumber');
- 
+
         if ($sel.data('select2')) $sel.select2('destroy');
- 
+
         $sel.html('<option value="">- Pilih Nomor -</option>');
         (res.available || []).forEach(item => {
             $sel.append(`<option value="${item.no}">${item.label}</option>`);
@@ -617,7 +644,7 @@ function loadAvailableNumbers() {
         if (!res.available.length) {
             $sel.html('<option value="">Nomor habis — hubungi Accounting</option>');
         }
- 
+
         $sel.select2({ width: '100%', placeholder: '- Pilih Nomor -', allowClear: true });
     }, 'json');
 }
@@ -626,21 +653,21 @@ function updateStoNumberFilterOptions() {
     const $filter  = $('#searchStoNumber');
     const current  = $filter.val(); // pertahankan pilihan user kalau masih ada
     const numbers  = [];
- 
+
     $('#accordionSheets .scc-sheet-card').each(function () {
         const no = $(this).data('sto-number');
         if (no && !numbers.includes(no)) numbers.push(no);
     });
     numbers.sort();
- 
+
     if ($filter.data('select2')) $filter.select2('destroy');
- 
+
     let html = '<option value="">Semua Nomor STO</option>';
     numbers.forEach(no => html += `<option value="${no}">${no}</option>`);
     $filter.html(html);
- 
+
     if (numbers.includes(current)) $filter.val(current);
- 
+
     $filter.select2({ width: '100%', placeholder: 'Semua Nomor STO', allowClear: true });
 }
 
@@ -689,7 +716,7 @@ $(document).ready(function () {
                 initArticleSelect2($(this));
             });
         });
- 
+
         loadAvailableNumbers();   // ← isi dropdown Nomor STO
 
         // update uom & minpkg saat artikel dipilih di tiap baris sheet
@@ -698,7 +725,7 @@ $(document).ready(function () {
             const val   = $(this).val();
             let $uom    = $row.find('.sheet-uom');
             const $pkg  = $row.find('.sheet-minpkg');
- 
+
             if (isManualValue(val)) {
                 if ($uom.is('select')) {
                     $uom.replaceWith('<input type="text" class="form-control sheet-uom" placeholder="UOM* (wajib diisi)">');
@@ -706,7 +733,7 @@ $(document).ready(function () {
                 $pkg.val('0');
                 return;
             }
- 
+
             if ($uom.is('input')) {
                 $uom.replaceWith('<select class="form-control sheet-uom"></select>');
                 $uom = $row.find('.sheet-uom'); // ambil ulang elemen setelah replaceWith
@@ -728,36 +755,29 @@ $(document).ready(function () {
     updateStoNumberFilterOptions();   // ← isi dropdown filter dari kartu yang sudah ada (server-rendered)
 
     // ════ FILTER GABUNGAN: Nomor STO + Status + Cari Artikel ════
-    // Satu kartu ditampilkan HANYA kalau:
-    //  - nomor cocok (atau "Semua Nomor")
-    //  - status cocok (kartu punya ≥1 baris status itu, atau "Semua Status")
-    //  - artikel cocok (kartu punya ≥1 baris yang teksnya match, atau pencarian kosong)
-    // Baris di dalam kartu yang TIDAK match teks pencarian disembunyikan;
-    // kartu yang SEMUA barisnya tidak match ikut disembunyikan total.
     function applyAllFilters() {
         const selectedNo     = $('#searchStoNumber').val();
         const selectedStatus = $('#filterStatus').val();
         const term           = ($('#searchLine').val() || '').toLowerCase().trim();
- 
+
         $('#accordionSheets .scc-sheet-card').each(function() {
             const $card = $(this);
             const stoNumber = ($card.data('sto-number') || '').toString();
- 
+
             const matchNumber = !selectedNo || stoNumber === selectedNo;
             const matchStatus = !selectedStatus || $card.find(`tr.sto-line[data-status="${selectedStatus}"]`).length > 0;
- 
-            // toggle tiap baris sesuai teks pencarian, sambil cek apakah ada yg cocok
+
             let anyRowMatchesText = term === '';
             $card.find('tr.sto-line').each(function() {
                 const rowMatches = term === '' || $(this).text().toLowerCase().includes(term);
                 $(this).toggle(rowMatches);
                 if (rowMatches) anyRowMatchesText = true;
             });
- 
+
             $card.toggle(matchNumber && matchStatus && anyRowMatchesText);
         });
     }
- 
+
     $('#searchStoNumber').on('change', applyAllFilters);
     $('#filterStatus').on('change', applyAllFilters);
     $('#searchLine').on('input', applyAllFilters);
@@ -776,6 +796,9 @@ $(document).ready(function () {
             }, 'json');
         });
     });
+
+    // ════ INIT MODAL TAMBAH ARTIKEL ════
+    initModalAddArticle();
 });
 
 // ════════════════════════════════════════════════
@@ -786,13 +809,13 @@ function submitLineAuto(confirmAccumulate) {
     const qty = ($('#inQty').val() || '').replace(/,/g, '');
     if (!val)  { Swal.fire('Warning','Pilih atau ketik artikel dulu.','warning'); return; }
     if (!qty || parseFloat(qty) <= 0) { Swal.fire('Warning','QTY harus lebih dari 0.','warning'); return; }
- 
+
     const manual      = isManualValue(val);
     const article     = manual ? '' : val;
     const articleDesc = manual
         ? val.substring(MANUAL_PREFIX.length)
         : ($('#inArticle').find(':selected').data('desc') || '');
- 
+
     if (manual && !($('#inUom').val() || '').trim()) {
         Swal.fire('Warning', 'UOM wajib diisi untuk artikel manual.', 'warning');
         return;
@@ -805,7 +828,7 @@ function submitLineAuto(confirmAccumulate) {
     $btn.data('original-html', $btn.html())
         .prop('disabled', true)
         .html('<span class="spinner-border spinner-border-sm mr-50" role="status"></span>Menyimpan...');
- 
+
     $.post("{{ route('stockCount.storeLine') }}", {
         _token: "{{ csrf_token() }}",
         mapping_id: encMappingId,
@@ -832,9 +855,7 @@ function submitLineAuto(confirmAccumulate) {
         if (res.status == 1) {
             renderRowToSheet(res.row, res.sto_number);
             updateRealisasi(res.target_act_loc);
-            // toast nomor
             Swal.fire({ toast:true, position:'top-end', icon:'success', title: `Tersimpan: ${res.sto_number}`, showConfirmButton:false, timer:2000 });
-            // reset input
             $('#inArticle').val(null).trigger('change');
             $('#inQty, #inNote, #inMinPkg').val('');
             if (IS_PARTNER) $('#inLocation').val(null).trigger('change');
@@ -874,7 +895,7 @@ function submitSheet() {
         const articleDesc = manual
             ? val.substring(MANUAL_PREFIX.length)
             : ($(this).find('.sheet-article').find(':selected').data('desc') || '');
- 
+
         if (manual && !(uom || '').trim()) {
             show_msg('Warning', `UOM wajib diisi untuk artikel manual: ${articleDesc}`, 'warning');
             valid = false; return false;
@@ -882,7 +903,7 @@ function submitSheet() {
 
         const locationNumber = IS_PARTNER ? $(this).find('.sheet-location').val() : '';
         if (val && IS_PARTNER && !locationNumber) { show_msg('Warning',`Pilih lokasi untuk artikel: ${articleDesc}`,'warning'); valid=false; return false; }
- 
+
         const key = manual ? ('MANUAL::'+articleDesc.toUpperCase()) : article;
 
         if (articlesSeen.includes(key)) { show_msg('Warning',`Artikel duplikat: ${articleDesc}`,'warning'); valid=false; return false; }
@@ -898,12 +919,12 @@ function submitSheet() {
         const selNo = $('#inSelectedNumber').val();
         if (!selNo) { show_msg('Warning', 'Pilih Nomor STO terlebih dahulu.', 'warning'); return; }
     }
- 
+
      const $btn = $('#btnSaveSheet');
     $btn.data('original-html', $btn.html())
         .prop('disabled', true)
         .html('<span class="spinner-border spinner-border-sm mr-50" role="status"></span>Menyimpan...');
- 
+
     $.post("{{ route('stockCount.storeSheet') }}", {
         _token: "{{ csrf_token() }}",
         mapping_id: encMappingId,
@@ -948,7 +969,7 @@ function renderRowToSheet(r, stoNumber) {
 
      const isManualRow = !r.article_code || r.article_code === 'OTHER';
     const rowHtml = `
-      <tr class="sto-line" data-id="${r.dtl_id}" data-status="${r.count_status}"
+      <tr class="sto-line" data-id="${r.dtl_id}" data-sto-id="${r.sto_id ?? ''}" data-status="${r.count_status}"
           data-article-code="${isManualRow ? '' : r.article_code}"
           data-article-desc="${r.article_desc ?? ''}"
           data-is-manual="${isManualRow ? '1' : '0'}"
@@ -956,8 +977,8 @@ function renderRowToSheet(r, stoNumber) {
           data-min-package="${r.min_package ?? ''}"
           data-my-qty="${r.my_qty ?? ''}"
           data-qty-counter1="${r.qty_counter1 ?? ''}"
-data-qty-counter2="${r.qty_counter2 ?? ''}"
-data-qty-counter3="${r.qty_counter3 ?? ''}"
+          data-qty-counter2="${r.qty_counter2 ?? ''}"
+          data-qty-counter3="${r.qty_counter3 ?? ''}"
           data-note="${r.note ?? ''}"
           data-location-number="${r.location_number ?? ''}"
           data-location-name="${r.location_name ?? ''}">
@@ -1019,12 +1040,20 @@ data-qty-counter3="${r.qty_counter3 ?? ''}"
                   <tbody class="sheet-tbody"></tbody>
                 </table>
               </div>
+              ${(IS_ACCOUNTING || true) ? `
+              <div class="scc-inline-add">
+                <button type="button" class="btn btn-sm btn-outline-success scc-btn-add-article"
+                        data-sto-id="${stoId ?? ''}" data-sto-number="${stoNumber}">
+                  <i data-feather="plus-circle" style="width:14px;height:14px;" class="align-middle mr-25"></i>
+                  Tambah Artikel ke ${stoNumber}
+                </button>
+              </div>` : ''}
             </div>
           </div>`;
 
         $('#accordionSheets').append(sheetHtml);
         $('#emptySheetMsg').remove();
-        updateStoNumberFilterOptions(); 
+        updateStoNumberFilterOptions();
         $tbody = $(`#accordionSheets .scc-sheet-card[data-sto-number="${stoNumber}"] .sheet-tbody`);
     }
 
@@ -1060,7 +1089,7 @@ function deleteLine(dtlId, el) {
         if (!r.isConfirmed) return;
         $.ajax({
             url: "{{ route('stockCount.deleteLine', ['dtlId' => '__ID__']) }}".replace('__ID__', dtlId),
-method: 'DELETE',
+            method: 'DELETE',
             data: { _token: "{{ csrf_token() }}" },
             success: function(res) {
                 if (res.status == 1) {
@@ -1070,14 +1099,12 @@ method: 'DELETE',
 
                     if (res.whole_deleted) {
                         $row.remove();
-                        // renumber
                         $tbody.find('tr').each(function(i) { $(this).find('.scc-idx').text(i + 1); });
                         const remaining = $tbody.find('tr').length;
                         $card.find('.sheet-count-badge').text(`${remaining} baris`);
-                       // kalau sheet kosong → hapus accordion card
                         if (remaining === 0) {
                             $card.remove();
-                            updateStoNumberFilterOptions();   // ← refresh filter
+                            updateStoNumberFilterOptions();
                         }
                     } else {
                         renderRowToSheet(res.row, res.row.sto_number);
@@ -1098,7 +1125,6 @@ method: 'DELETE',
 
 // ════════════════════════════════════════════════
 // EDIT LINE — ubah artikel/qty/uom/note/lokasi TANPA hapus baris
-// (nomor STO tetap terpakai, tidak perlu nomor baru)
 // ════════════════════════════════════════════════
 function editLine(dtlId, el) {
     const $row = $(el).closest('tr.sto-line');
@@ -1136,7 +1162,7 @@ function editLine(dtlId, el) {
         </div>`;
 
     Swal.fire({
-        title: IS_ACCOUNTING ? 'Edit Baris (Leo — 3 Qty Counter)' : 'Edit Baris',
+        title: IS_ACCOUNTING ? 'Edit Baris (3 Qty Counter)' : 'Edit Baris',
         html: `
             <div class="text-left">
                 ${IS_PARTNER ? `
@@ -1172,7 +1198,6 @@ function editLine(dtlId, el) {
         cancelButtonText: 'Batal',
         focusConfirm: false,
         didOpen: () => {
-            // ── Lokasi (khusus partner) ──
             if (IS_PARTNER) {
                 let locOpt = '<option value=""></option>';
                 LOCATIONS_DATA.forEach(l => {
@@ -1183,7 +1208,6 @@ function editLine(dtlId, el) {
                 if (curLocation) $('#editLocationSelect').val(curLocation).trigger('change');
             }
 
-            // isi dropdown artikel dari cache yang sudah pernah dimuat
             getArticleOptions(function(data) {
                 loadArticlesInto($('#editArticleSelect'), data);
                 $('#editArticleSelect').select2({
@@ -1205,8 +1229,7 @@ function editLine(dtlId, el) {
                         return (d.id && d.id.indexOf(MANUAL_PREFIX) === 0) ? 'OTHER - ' + d.text : d.text;
                     }
                 });
- 
-                // prefill: kalau manual, buat opsi manual dulu supaya bisa dipilih
+
                 if (curIsManual) {
                     const manualVal = MANUAL_PREFIX + curArticleDesc;
                     if ($('#editArticleSelect').find(`option[value="${manualVal}"]`).length === 0) {
@@ -1217,7 +1240,6 @@ function editLine(dtlId, el) {
                     $('#editMinPkg').val(curMinPkg ?? '0');
                 } else {
                     $('#editArticleSelect').val(curArticleCode).trigger('change');
-                    // set UOM & min pkg dari data artikel yg cocok (kalau ada di list)
                     const $opt = $('#editArticleSelect').find(`option[value="${curArticleCode}"]`);
                     let uomOpt = '';
                     const uomMember = $opt.data('uom-member');
@@ -1228,8 +1250,7 @@ function editLine(dtlId, el) {
                     $('#editUomSelect').html(uomOpt);
                     $('#editMinPkg').val(curMinPkg ?? $opt.data('min-pkg') ?? '');
                 }
- 
-                // ── kalau user ganti artikel di dalam modal, refresh UOM/MinPkg ──
+
                 $('#editArticleSelect').off('change.editform').on('change.editform', function() {
                     const val = $(this).val();
                     const isManual = !!val && val.indexOf(MANUAL_PREFIX) === 0;
@@ -1317,11 +1338,179 @@ function editLine(dtlId, el) {
                     (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
                 }
             },
-           error: function(xhr) {
-    console.log('Status :', xhr.status);
-    console.log('Response :', xhr.responseText);
-}
+            error: function(xhr) {
+                console.log('Status :', xhr.status);
+                console.log('Response :', xhr.responseText);
+            }
         });
+    });
+}
+
+// ════════════════════════════════════════════════
+// TAMBAH ARTIKEL KE SHEET — pakai SweetAlert
+// ════════════════════════════════════════════════
+function initModalAddArticle() { /* no-op, dibiarkan supaya panggilan di ready() aman */ }
+
+$(document).on('click', '.scc-btn-add-article', function () {
+    const stoId     = $(this).data('sto-id');
+    const stoNumber = $(this).data('sto-number');
+
+    Swal.fire({
+        title: `Tambah Artikel ke ${stoNumber}`,
+        html: `
+            <div class="text-left">
+                ${IS_PARTNER ? `
+                <div class="form-group mb-50">
+                    <label class="scc-field-label">Lokasi*</label>
+                    <select id="maLocation" class="form-control" style="width:100%"></select>
+                </div>` : ''}
+                <div class="form-group mb-50">
+                    <label class="scc-field-label">Article*</label>
+                    <select id="maArticle" class="form-control" style="width:100%"></select>
+                </div>
+                <div class="form-row">
+                    <div class="col-4">
+                        <label class="scc-field-label">UOM</label>
+                        <div id="maUomWrap"><select id="maUom" class="form-control"></select></div>
+                    </div>
+                    <div class="col-4">
+                        <label class="scc-field-label">Min Pkg</label>
+                        <input type="text" id="maMinPkg" class="form-control text-right" readonly>
+                    </div>
+                    <div class="col-4">
+                        <label class="scc-field-label">QTY*</label>
+                        <input type="text" id="maQty" class="form-control text-right">
+                    </div>
+                </div>
+                <div class="form-group mt-50 mb-0">
+                    <label class="scc-field-label">Note</label>
+                    <input type="text" id="maNote" class="form-control" maxlength="150">
+                </div>
+            </div>
+        `,
+        width: 560,
+        showCancelButton: true,
+        confirmButtonText: 'Simpan',
+        cancelButtonText: 'Batal',
+        focusConfirm: false,
+        didOpen: () => {
+            // ── Lokasi (partner) ──
+            if (IS_PARTNER) {
+                let locOpt = '<option value=""></option>';
+                LOCATIONS_DATA.forEach(l => { locOpt += `<option value="${l.code}">${l.name}</option>`; });
+                $('#maLocation').html(locOpt);
+                initLocationSelect2($('#maLocation'), Swal.getPopup());
+            }
+
+            // ── Article ──
+            getArticleOptions(function (data) {
+                loadArticlesInto($('#maArticle'), data);
+                $('#maArticle').select2({
+                    width: '100%',
+                    dropdownParent: Swal.getPopup(),
+                    placeholder: '- Pilih atau ketik Article -',
+                    allowClear: true,
+                    tags: true,
+                    createTag: function (params) {
+                        const term = $.trim(params.term);
+                        if (!term) return null;
+                        return { id: MANUAL_PREFIX + term, text: term, newOption: true };
+                    },
+                    templateResult: function (d) {
+                        if (d.newOption) return $(`<span><span class="badge badge-light-warning mr-50">OTHER</span>${d.text}</span>`);
+                        return d.text;
+                    },
+                    templateSelection: function (d) {
+                        return (d.id && d.id.indexOf(MANUAL_PREFIX) === 0) ? 'OTHER - ' + d.text : d.text;
+                    }
+                });
+
+                // ganti artikel → refresh UOM & MinPkg
+                $('#maArticle').on('change', function () {
+                    const val = $(this).val();
+                    if (isManualValue(val)) {
+                        if ($('#maUom').is('select')) {
+                            $('#maUomWrap').html('<input type="text" id="maUom" class="form-control" placeholder="UOM* (wajib diisi)">');
+                        }
+                        $('#maMinPkg').val('0');
+                        return;
+                    }
+                    if ($('#maUom').is('input')) {
+                        $('#maUomWrap').html('<select id="maUom" class="form-control"></select>');
+                    }
+                    const opt = $(this).find(':selected');
+                    const uomMember = opt.data('uom-member');
+                    const uom = opt.data('uom');
+                    let uomOpt = '';
+                    if (uomMember) String(uomMember).split(',').forEach(u => uomOpt += `<option>${u}</option>`);
+                    else if (uom) uomOpt = `<option>${uom}</option>`;
+                    $('#maUom').html(uomOpt);
+                    const mp = opt.data('min-pkg');
+                    $('#maMinPkg').val((mp === undefined || mp === null || mp === '') ? '0' : mp);
+                });
+            });
+        },
+        preConfirm: () => {
+            const val = $('#maArticle').val();
+            if (!val) { Swal.showValidationMessage('Pilih atau ketik artikel dulu.'); return false; }
+
+            const qty = ($('#maQty').val() || '').replace(/,/g, '');
+            if (!qty || parseFloat(qty) <= 0) { Swal.showValidationMessage('QTY harus lebih dari 0.'); return false; }
+
+            const locationVal = IS_PARTNER ? ($('#maLocation').val() || '') : '';
+            if (IS_PARTNER && !locationVal) { Swal.showValidationMessage('Lokasi wajib dipilih.'); return false; }
+
+            const manual = isManualValue(val);
+            const articleDesc = manual
+                ? val.substring(MANUAL_PREFIX.length)
+                : ($('#maArticle').find(':selected').data('desc') || '');
+            const uomVal = ($('#maUom').val() || '').trim();
+
+            if (manual && !uomVal) { Swal.showValidationMessage('UOM wajib diisi untuk artikel manual.'); return false; }
+
+            return {
+                is_manual: manual ? 1 : 0,
+                article: manual ? '' : val,
+                article_desc: articleDesc,
+                uom: uomVal,
+                min_package: $('#maMinPkg').val(),
+                qty: qty,
+                note: $('#maNote').val(),
+                location_number: locationVal,
+            };
+        }
+    }).then(result => {
+        if (!result.isConfirmed || !result.value) return;
+        postAddArticle(stoNumber, result.value, false);
+    });
+});
+
+function postAddArticle(stoNumber, payload, confirmAccumulate) {
+    $.post("{{ route('stockCount.storeLine') }}", Object.assign({
+        _token: "{{ csrf_token() }}",
+        mapping_id: encMappingId,
+        selected_number: stoNumber,
+        confirm_accumulate: confirmAccumulate ? 1 : 0,
+    }, payload), function (res) {
+
+        if (res.confirm_required) {
+            Swal.fire({
+                title: res.title, text: res.message, icon: 'question',
+                showCancelButton: true, confirmButtonText: 'Ya, Tambahkan', cancelButtonText: 'Batal',
+            }).then(r => { if (r.isConfirmed) postAddArticle(stoNumber, payload, true); });
+            return;
+        }
+
+        if (res.status == 1) {
+            renderRowToSheet(res.row, res.sto_number);
+            updateRealisasi(res.target_act_loc);
+            updateStatusStats();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Tersimpan di ${stoNumber}`, showConfirmButton: false, timer: 2000 });
+        } else {
+            (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
+        }
+    }, 'json').fail(() => {
+        show_msg('Error', 'Terjadi kesalahan, cek console.', 'error');
     });
 }
 

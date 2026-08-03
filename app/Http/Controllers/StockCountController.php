@@ -42,9 +42,13 @@ private $locationGroupOfMaterialMap = [
 
     private $accountingUsername = 'leo';
 
+// SESUDAH
+// SESUDAH — pakai Spatie
 private function isAccountingUser()
 {
-    return Auth::user()->username === $this->accountingUsername;
+    $user = Auth::user();
+    return $user->username === $this->accountingUsername
+        || $user->hasRole('Superuser');
 }
 
 // role 'accounting' saat INPUT baris baru diarahkan ke slot DB counter1
@@ -754,11 +758,19 @@ private function dbRole($role)
  
         $now = date('Y-m-d H:i:s');
  
-        if ($isAuto) {
-            return $this->storeLineAuto($mappingId, $m, $access, $userId, $locationNumber, $isManual, $article, $request, $qty, $confirmAccumulate, $now);
-        }
+       // SESUDAH
+if ($isAuto) {
+    return $this->storeLineAuto($mappingId, $m, $access, $userId, $locationNumber, $isManual, $article, $request, $qty, $confirmAccumulate, $now);
+}
+
+// ── MODE SHEET: inline add artikel ke nomor STO yang sudah ada ──
+$selectedNumber = $request->selected_number ?? null;
+if (!$selectedNumber) {
+    return response()->json(['status'=>0,'title'=>'Warning','message'=>['Nomor STO wajib diisi untuk mode sheet.'],'alert'=>'warning']);
+}
+
+return $this->storeLineInline($mappingId, $m, $access, $userId, $locationNumber, $isManual, $article, $request, $qty, $now, $selectedNumber);
  
-        return response()->json(['status'=>0,'title'=>'Error','message'=>['Gunakan storeSheet untuk gudang ini.'],'alert'=>'error']);
     }
  
     // ── AUTO: 1 artikel = 1 sto_hdr ──
@@ -924,6 +936,112 @@ private function dbRole($role)
                 'note'           => $dtl->note,
                 'location_number'=> $dtl->location_number,
                 'location_name'  => $this->resolveLocationName($dtl->location_number),
+            ],
+        ]);
+    });
+}
+
+// ══════════════════════════════════════════════
+// STORE LINE INLINE — tambah artikel ke sheet
+// (nomor STO) yang sudah ada (non-auto)
+// ══════════════════════════════════════════════
+private function storeLineInline($mappingId, $m, $access, $userId, $locationNumber, $isManual, $article, $request, $qty, $now, $selectedNumber)
+{
+    return DB::transaction(function () use ($mappingId, $m, $access, $userId, $locationNumber, $isManual, $article, $request, $qty, $now, $selectedNumber) {
+
+        $dbRole = $this->dbRole($access['role']);
+
+        // ── resolve sto_number dari selected_number (int atau string penuh) ──
+        // Frontend kirim string penuh mis. "2026/07/0001"
+        $stoNumber = $selectedNumber;
+
+        // cari sto_hdr yang matching
+        $stoHdr = DB::table('sto_hdr')
+            ->where('mapping_id', $mappingId)
+            ->where('sto_number', $stoNumber)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$stoHdr) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Nomor STO tidak ditemukan atau bukan milik target ini.'],'alert'=>'error']);
+        }
+
+        if ($stoHdr->status != 1) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Sheet ini sudah dikunci, tidak bisa ditambah baris.'],'alert'=>'error']);
+        }
+
+        // ── cek max 7 baris per sheet ──
+        $currentCount = DB::table('sto_dtl')->where('sto_id', $stoHdr->sto_id)->count();
+        if ($currentCount >= 7) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Sheet ini sudah mencapai batas 7 baris.'],'alert'=>'warning']);
+        }
+
+        // ── cek duplikat dalam sheet ini ──
+        if ($this->isDuplicateArticle($m, $mappingId, $stoHdr->sto_id, $article, $isManual, $request->article_desc, $locationNumber)) {
+            $label = $article ?: $request->article_desc;
+            return response()->json(['status'=>0,'title'=>'Warning','message'=>[$this->duplicateArticleMessage($m, $label)],'alert'=>'warning']);
+        }
+
+        // ── validasi UOM untuk manual ──
+        if ($isManual && trim((string) $request->uom) === '') {
+            return response()->json(['status'=>0,'title'=>'Warning','message'=>['UOM wajib diisi untuk artikel manual.'],'alert'=>'warning']);
+        }
+
+        // ── insert baris baru ──
+        $dtlId = DB::table('sto_dtl')->insertGetId([
+            'sto_id'          => $stoHdr->sto_id,
+            'article_code'    => $article,
+            'article_desc'    => $request->article_desc,
+            'is_manual'       => $isManual,
+            'uom'             => $request->uom,
+            'min_package'     => $request->min_package ?: null,
+            'location_number' => $locationNumber,
+            "qty_{$dbRole}"   => $qty,
+            "{$dbRole}_user"  => $userId,
+            "{$dbRole}_at"    => $now,
+            'note'            => $request->note,
+            'created_at'      => $now,
+            'updated_at'      => $now,
+        ], 'dtl_id');
+
+        $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+        [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
+        DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
+            'count_status' => $status,
+            'qty_system'   => $qtySystem,
+            'qty_variance' => $variance,
+            'updated_at'   => $now,
+        ]);
+        $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+
+        $this->recalcMappingProgress($mappingId);
+        $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
+
+        $myQty = $dtl->{"qty_{$dbRole}"};
+
+        return response()->json([
+            'status'         => 1,
+            'title'          => 'Berhasil',
+            'message'        => "Artikel ditambahkan ke sheet {$stoNumber}.",
+            'alert'          => 'success',
+            'sto_number'     => $stoNumber,
+            'target_act_loc' => (float) $freshTargetAct,
+            'row' => [
+                'dtl_id'          => $dtl->dtl_id,
+                'sto_id'          => $stoHdr->sto_id,
+                'sto_number'      => $stoNumber,
+                'article_code'    => $dtl->article_code ?? 'OTHER',
+                'article_desc'    => $dtl->article_desc,
+                'uom'             => $dtl->uom,
+                'min_package'     => $dtl->min_package,
+                'my_qty'          => $myQty !== null ? number_format((float)$myQty, 2) : null,
+                'qty_counter1'    => $dtl->qty_counter1,
+                'qty_counter2'    => $dtl->qty_counter2,
+                'qty_counter3'    => $dtl->qty_counter3,
+                'count_status'    => $dtl->count_status,
+                'note'            => $dtl->note,
+                'location_number' => $dtl->location_number,
+                'location_name'   => $this->resolveLocationName($dtl->location_number),
             ],
         ]);
     });
