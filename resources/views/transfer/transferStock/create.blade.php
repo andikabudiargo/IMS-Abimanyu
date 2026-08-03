@@ -213,13 +213,27 @@
 
     $(document).ready(function () {
 
-
-locationTo.on('change', function() {
-    checkAndSetBoothFlag($(this).val());
-});
+        locationTo.on('change', function() {
+            checkAndSetBoothFlag($(this).val());
+        });
         validateFormToast("frmAdd");
         $('#trDate').val(currentDate);
         objTsoBox.hide();
+
+        // ---- Flatpickr trDate: tidak boleh pilih tanggal setelah hari ini ----
+        flatpickr('#trDate', {
+            dateFormat: "d-m-Y",
+            allowInput: true,
+            maxDate: "today",     // kunci: tanggal maksimal = hari ini
+            defaultDate: currentDate,
+            disableMobile: true,
+            onReady: function () {
+                // pastikan value awal tetap terisi hari ini
+                if (!$('#trDate').val()) {
+                    $('#trDate').val(currentDate);
+                }
+            }
+        });
 
         // ---- Inisialisasi select2 untuk Location From & To ----
         $('#locationFrom, #locationTo').select2({
