@@ -552,6 +552,17 @@ if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['co
                 WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
                   AND sh.config_id = m.config_id AND d.count_status = 'RECOUNT'
             ) as recount_lines"),
+            // ── BARU: dari total recount_lines, berapa yang masuk toleransi (dianggap akurat) ──
+            DB::raw("(
+                SELECT COUNT(*) FROM sto_dtl d
+                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+                  AND sh.config_id = m.config_id AND d.count_status = 'RECOUNT'
+                  AND d.qty_system IS NOT NULL AND d.qty_system <> 0
+                  AND ABS(d.qty_variance) / ABS(d.qty_system) * 100 <=
+                      CASE WHEN m.target_plan_loc > 0 AND m.target_plan_loc < 100
+                           THEN 100 - m.target_plan_loc ELSE 0 END
+            ) as recount_in_tolerance"),
             DB::raw("(
                 SELECT COUNT(*) FROM sto_dtl d
                 JOIN sto_hdr sh ON sh.sto_id = d.sto_id

@@ -212,24 +212,37 @@
             </div>
         @else
 
-        @php
-            $totalLines      = collect($mappings)->sum('total_lines');
-            $totalMatch      = collect($mappings)->sum('match_lines');
-            $totalNotMatch   = collect($mappings)->sum('notmatch_lines');
-            $totalRecount    = collect($mappings)->sum('recount_lines');
-            $totalIncomplete = collect($mappings)->sum('incomplete_lines');
-            $pctDone = $totalLines > 0 ? round(($totalMatch / $totalLines) * 100) : 0;
-        @endphp
+       @php
+    $totalLines      = collect($mappings)->sum('total_lines');
+    $totalMatch      = collect($mappings)->sum('match_lines');
+    $totalNotMatch   = collect($mappings)->sum('notmatch_lines');
+    $totalRecount    = collect($mappings)->sum('recount_lines');
+    $totalRecountTol = collect($mappings)->sum('recount_in_tolerance');
+    $totalIncomplete = collect($mappings)->sum('incomplete_lines');
+    // pakai target_act (global, sudah termasuk toleransi) sebagai sumber % utama
+    $pctDone = (float) $hdr->target_act;
+@endphp
 
         {{-- metric strip --}}
         <div class="metric-wrap">
             <div class="row">
-                <div class="col-lg-4 col-md-6 mb-1 mb-lg-0">
-                    <div class="metric-card m-total">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <span class="m-label">Total Baris</span>
-                            <span class="m-value">{{ $totalLines }}</span>
-                        </div>
+               <div class="col-lg-4 col-md-6 mb-1 mb-lg-0">
+    <div class="metric-card m-total">
+        <div class="d-flex justify-content-between align-items-start">
+            <span class="m-label">Total Baris</span>
+            <span class="m-value">{{ $totalLines }}</span>
+        </div>
+        <div class="progress mt-1" style="height:6px;border-radius:6px;">
+            <div class="progress-bar bg-success" style="width:{{ $pctDone }}%"></div>
+        </div>
+        <div style="font-size:.7rem;color:#9aa0ab;margin-top:5px;font-weight:600;">
+            {{ number_format($pctDone, 2) }}% AKURAT
+            <i class="ml-25" data-toggle="tooltip" data-html="true"
+               title="Match murni: {{ $totalMatch }} baris<br>Recount masuk toleransi: {{ $totalRecountTol }} baris<br><b>Total akurat: {{ $totalMatch + $totalRecountTol }} / {{ $totalLines }}</b>"
+               data-feather="info" style="width:11px;height:11px;cursor:help;vertical-align:-1px;"></i>
+        </div>
+    </div>
+</div>
                         <div class="progress mt-1" style="height:6px;border-radius:6px;">
                             <div class="progress-bar bg-success" style="width:{{ $pctDone }}%"></div>
                         </div>
@@ -284,51 +297,66 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($mappings as $i => $m)
-                        @php
-                            $pct = $m->total_lines > 0 ? round(($m->match_lines / $m->total_lines) * 100) : 0;
-                            $barColor = $pct == 100 ? 'bg-success' : ($pct >= 50 ? 'bg-warning' : 'bg-danger');
-                            $tb = $typeBadge[$m->target_type] ?? ['label'=>$m->target_type,'class'=>'badge-light-secondary'];
-                            $counter3Name = $m->counter3_name ?? null;
-                        @endphp
-                        <tr>
-                            <td class="text-muted">{{ $i + 1 }}</td>
-                            <td><span class="badge {{ $tb['class'] }}">{{ $tb['label'] }}</span></td>
-                            <td class="font-weight-bold">{{ $m->target_name }}</td>
-                            <td>{{ $m->sto_date }}</td>
-                            <td>
-                                <div class="d-flex flex-column" style="gap:.35rem;">
-                                    <span class="counter-chip c1"><span class="chip-badge">1</span>{{ $m->counter1_name }}</span>
-                                    @if($m->counter2_name)
-                                        <span class="counter-chip c2"><span class="chip-badge">2</span>{{ $m->counter2_name }}</span>
-                                    @endif
-                                    @if($counter3Name)
-                                        <span class="counter-chip c3"><span class="chip-badge">3</span>{{ $counter3Name }}</span>
-                                    @endif
-                                </div>
-                            </td>
-                            <td class="text-center font-weight-bold">{{ $m->total_lines }}</td>
-                            <td class="text-center text-success font-weight-bold">{{ $m->match_lines }}</td>
-                            <td class="text-center text-danger font-weight-bold">{{ $m->notmatch_lines }}</td>
-                            <td class="text-center text-warning font-weight-bold">{{ $m->recount_lines }}</td>
-                            <td class="text-center text-secondary">{{ $m->incomplete_lines }}</td>
-                            <td class="progress-cell">
-                                <div class="d-flex align-items-center" style="gap:.5rem;">
-                                    <div class="progress flex-grow-1" style="height:7px;border-radius:6px;">
-                                        <div class="progress-bar {{ $barColor }}" style="width:{{ $pct }}%"></div>
-                                    </div>
-                                    <small class="text-muted">{{ $pct }}%</small>
-                                </div>
-                            </td>
-                            <td>
-                                @if($m->finish_time)
-                                    <span class="text-success">{{ $m->finish_time }}</span>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforeach
+                      @foreach($mappings as $i => $m)
+@php
+    $pct = (float) $m->target_act_loc; // sudah termasuk toleransi, sumber tunggal kebenaran
+    $barColor = $pct >= 98 ? 'bg-success' : ($pct >= 50 ? 'bg-warning' : 'bg-danger');
+    $tb = $typeBadge[$m->target_type] ?? ['label'=>$m->target_type,'class'=>'badge-light-secondary'];
+    $counter3Name = $m->counter3_name ?? null;
+    $accurateLines = $m->match_lines + $m->recount_in_tolerance;
+@endphp
+<tr>
+    <td class="text-muted">{{ $i + 1 }}</td>
+    <td><span class="badge {{ $tb['class'] }}">{{ $tb['label'] }}</span></td>
+    <td class="font-weight-bold">{{ $m->target_name }}</td>
+    <td>{{ $m->sto_date }}</td>
+    <td>
+        <div class="d-flex flex-column" style="gap:.35rem;">
+            <span class="counter-chip c1"><span class="chip-badge">1</span>{{ $m->counter1_name }}</span>
+            @if($m->counter2_name)
+                <span class="counter-chip c2"><span class="chip-badge">2</span>{{ $m->counter2_name }}</span>
+            @endif
+            @if($counter3Name)
+                <span class="counter-chip c3"><span class="chip-badge">3</span>{{ $counter3Name }}</span>
+            @endif
+        </div>
+    </td>
+    <td class="text-center font-weight-bold">{{ $m->total_lines }}</td>
+    <td class="text-center text-success font-weight-bold">
+        {{ $m->match_lines }}
+        @if($m->recount_in_tolerance > 0)
+            <i data-toggle="tooltip" data-html="true"
+               title="Match murni: {{ $m->match_lines }}<br>Recount masuk toleransi ({{ number_format(100 - $m->target_plan_loc, 2) }}%): {{ $m->recount_in_tolerance }}<br><b>Total akurat: {{ $accurateLines }}</b>"
+               data-feather="info" class="text-muted ml-25" style="width:11px;height:11px;cursor:help;vertical-align:-1px;"></i>
+        @endif
+    </td>
+    <td class="text-center text-danger font-weight-bold">{{ $m->notmatch_lines }}</td>
+    <td class="text-center text-warning font-weight-bold">
+        {{ $m->recount_lines }}
+        @if($m->recount_in_tolerance > 0)
+            <div style="font-size:.68rem;color:#9aa0ab;font-weight:600;">
+                ({{ $m->recount_in_tolerance }} toleransi)
+            </div>
+        @endif
+    </td>
+    <td class="text-center text-secondary">{{ $m->incomplete_lines }}</td>
+    <td class="progress-cell">
+        <div class="d-flex align-items-center" style="gap:.5rem;">
+            <div class="progress flex-grow-1" style="height:7px;border-radius:6px;">
+                <div class="progress-bar {{ $barColor }}" style="width:{{ $pct }}%"></div>
+            </div>
+            <small class="text-muted">{{ number_format($pct, 1) }}%</small>
+        </div>
+    </td>
+    <td>
+        @if($m->finish_time)
+            <span class="text-success">{{ $m->finish_time }}</span>
+        @else
+            <span class="text-muted">-</span>
+        @endif
+    </td>
+</tr>
+@endforeach
                     </tbody>
                 </table>
             </div>
@@ -355,6 +383,11 @@
 
 @section('scripts')
 <script>
+    $(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+    if (window.feather) feather.replace();
+});
+
 $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
 </script>
 @endsection
