@@ -381,8 +381,12 @@
     // ── auto-filter dari query string (mis. link dari halaman STO audit) ──
 (function applyUrlFilters() {
     const params = new URLSearchParams(window.location.search);
-    const urlCode     = params.get('code');
-    const urlLocation = params.get('location');
+    const urlCode         = params.get('code');
+    const urlLocation     = params.get('location');
+    const urlOpenMovement = params.get('open_movement');
+    const urlDateFrom     = params.get('date_from');
+    const urlDateTo       = params.get('date_to');
+    const urlDesc         = params.get('desc');
 
     let hasFilter = false;
 
@@ -392,18 +396,28 @@
     }
 
     if (urlLocation) {
-        // #searchLoc pakai select2 → set value lalu trigger change
         $('#searchLoc').val(urlLocation).trigger('change');
         hasFilter = true;
     }
 
-    // kalau ada filter dari URL, langsung jalankan search
-    if (hasFilter) {
-        // beri jeda kecil supaya select2 & mask sudah siap
-        setTimeout(function () {
-            $('#btnSearch').click();
-        }, 150);
-    }
+    if (!hasFilter) return;
+
+    // jalankan search list dulu biar konsisten sama halaman biasa
+    setTimeout(function () {
+        $('#btnSearch').click();
+
+        // kalau minta buka movement langsung, tembak modal-nya
+        if (urlOpenMovement === '1' && urlCode && urlLocation) {
+            setTimeout(function () {
+                movement(
+                    urlCode.toUpperCase(),
+                    urlCode.toUpperCase(),
+                    urlDesc || '',
+                    { from: urlDateFrom || null, to: urlDateTo || null }
+                );
+            }, 400); // jeda supaya select2 lokasi & tabel sudah settle
+        }
+    }, 150);
 })();
   });
 
@@ -527,24 +541,35 @@ $('#btnAnalytics').on('click', function () {
 let curArt  = { code:'', altcode:'', desc:'' };
 let mvPicker = null;
 
-const movement = (artCode, artikelAlternativeCode, artDesc) => {
+const movement = (artCode, artikelAlternativeCode, artDesc, dateRange) => {
     curArt = { code: artCode, altcode: artikelAlternativeCode, desc: artDesc };
     $('#mdlartikel').text(' | ' + artikelAlternativeCode + ' - ' + artDesc);
 
-    // reset filter tiap modal dibuka
     $('#mvInout').val('');
 
-    // default range: tanggal 1 bulan berjalan s/d hari ini
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const defaultRange = [firstDayOfMonth, today];
+    // parse string 'dd-mm-yyyy' -> Date object
+    const parseDMY = (s) => {
+        const [d, m, y] = s.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    };
+
+    let defaultRange;
+    if (dateRange && dateRange.from && dateRange.to) {
+        // range dari luar (mis. link dari halaman Audit STO)
+        defaultRange = [parseDMY(dateRange.from), parseDMY(dateRange.to)];
+    } else {
+        // default lama: tgl 1 bulan berjalan s/d hari ini
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        defaultRange = [firstDayOfMonth, today];
+    }
 
     if (mvPicker) {
         mvPicker.setDate(defaultRange, false);
     } else {
         mvPicker = $('#mvDateRange').flatpickr({
             mode: 'range',
-            dateFormat: 'd-m-Y',                       // cocok dgn movement_date 'dd-mm-yyyy'
+            dateFormat: 'd-m-Y',
             defaultDate: defaultRange,
             onClose: function (sel) {
                 if (sel.length === 0 || sel.length === 2) loadMovement();
@@ -553,7 +578,6 @@ const movement = (artCode, artikelAlternativeCode, artDesc) => {
     }
     $('#mvInout').off('change.mv').on('change.mv', loadMovement);
     $('#mvReset').off('click.mv').on('click.mv', function () {
-        // reset ke default (tgl 1 bulan berjalan - hari ini), bukan kosong
         const t = new Date();
         const f = new Date(t.getFullYear(), t.getMonth(), 1);
         if (mvPicker) mvPicker.setDate([f, t], false);
