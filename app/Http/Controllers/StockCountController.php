@@ -530,7 +530,7 @@ private function getTableColoumnAuditDetail()
 
     [$dateFrom, $dateTo] = $this->resolveMovementDateRange($row->sto_date);
 
-    $url = route('warehouse.article.index', [
+    $url = route('warehouse.articlev2', [
         'code'          => $row->article_code,   // alternative code, buat filter tampilan list
         'real_code'     => $realCode,             // article_code asli, buat filter movement
         'location'      => $row->location_number,
