@@ -27,6 +27,13 @@ class StockTakingOrderController extends Controller
         $this->moduleCode = "STO";
     }
 
+    private function resolveTolerancePercent($targetPlanLoc)
+{
+    $target = (float) ($targetPlanLoc ?? 0);
+    if ($target <= 0 || $target >= 100) return 0;
+    return round(100 - $target, 2);
+}
+
     // ══════════════════════════════════════════════
     // STATUS  (Opsi B)
     // 1 = SCHEDULED | 2 = ONGOING | 3 = COMPLETED | 5 = CANCELED
@@ -828,38 +835,51 @@ if (!empty($toDelete)) {
      * Dipanggil setiap kali ada perubahan di sto_dtl.
      */
    public function recalcTargetAct($configId)
-    {
-        $mappings = DB::table('sto_config_mapping')
-            ->where('config_id', $configId)
-            ->get();
- 
-        foreach ($mappings as $m) {
-            // header stock count dicocokkan lewat target_type + target_ref
-            $base = DB::table('sto_dtl as d')
-                ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
-                ->where('h.config_id', $configId)
-                ->where('h.target_type', $m->target_type)
-                ->where('h.target_ref', $m->target_ref);
- 
-            $total = (clone $base)->count();
-            $match = (clone $base)->where('d.count_status', 'MATCH')->count();
- 
-            $actLoc = $total > 0 ? round(($match / $total) * 100, 2) : 0;
- 
-            DB::table('sto_config_mapping')
-                ->where('mapping_id', $m->mapping_id)
-                ->update(['target_act_loc' => $actLoc, 'updated_at' => date('Y-m-d H:i:s')]);
-        }
- 
-        // global = AVG(target_act_loc)
-        $actGlobal = DB::table('sto_config_mapping')
-            ->where('config_id', $configId)
-            ->avg('target_act_loc');
- 
-        DB::table('sto_config')
-            ->where('config_id', $configId)
-            ->update(['target_act' => round($actGlobal ?? 0, 2), 'updated_at' => date('Y-m-d H:i:s')]);
+{
+    $mappings = DB::table('sto_config_mapping')
+        ->where('config_id', $configId)
+        ->get();
+
+    foreach ($mappings as $m) {
+        $tolerance = $this->resolveTolerancePercent($m->target_plan_loc);
+
+        $base = DB::table('sto_dtl as d')
+            ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
+            ->where('h.config_id', $configId)
+            ->where('h.target_type', $m->target_type)
+            ->where('h.target_ref', $m->target_ref);
+
+        $total = (clone $base)->count();
+
+        $accurate = (clone $base)
+            ->where(function ($q) use ($tolerance) {
+                $q->where('d.count_status', 'MATCH');
+                if ($tolerance > 0) {
+                    $q->orWhere(function ($q2) use ($tolerance) {
+                        $q2->where('d.count_status', 'RECOUNT')
+                           ->whereNotNull('d.qty_system')
+                           ->where('d.qty_system', '<>', 0)
+                           ->whereRaw('ABS(d.qty_variance) / ABS(d.qty_system) * 100 <= ?', [$tolerance]);
+                    });
+                }
+            })
+            ->count();
+
+        $actLoc = $total > 0 ? round(($accurate / $total) * 100, 2) : 0;
+
+        DB::table('sto_config_mapping')
+            ->where('mapping_id', $m->mapping_id)
+            ->update(['target_act_loc' => $actLoc, 'updated_at' => date('Y-m-d H:i:s')]);
     }
+
+    $actGlobal = DB::table('sto_config_mapping')
+        ->where('config_id', $configId)
+        ->avg('target_act_loc');
+
+    DB::table('sto_config')
+        ->where('config_id', $configId)
+        ->update(['target_act' => round($actGlobal ?? 0, 2), 'updated_at' => date('Y-m-d H:i:s')]);
+}
 
       public function markMappingFinished($mappingId)
     {

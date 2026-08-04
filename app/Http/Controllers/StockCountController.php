@@ -1324,6 +1324,13 @@ private function resolveQtySystem($dtl, $mapping)
     if (empty($dtl->location_number)) return 0;
     return (float) $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
 }
+
+private function resolveTolerancePercent($targetPlanLoc)
+{
+    $target = (float) ($targetPlanLoc ?? 0);
+    if ($target <= 0 || $target >= 100) return 0;
+    return round(100 - $target, 2);
+}
  
     private function compareToSystem($qty, $dtl, $mapping, $qtySystem = null)
 {
@@ -1471,23 +1478,41 @@ private function resolveQtySystem($dtl, $mapping)
     // RECALC PROGRESS
     // ══════════════════════════════════════════════
     private function recalcMappingProgress($mappingId)
-    {
-        $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->first();
-        if (!$m) return;
- 
-        // hitung dari semua hdr milik mapping ini
-        $stoIds = DB::table('sto_hdr')->where('mapping_id', $mappingId)->pluck('sto_id');
-        $total  = DB::table('sto_dtl')->whereIn('sto_id', $stoIds)->count();
-        $match  = DB::table('sto_dtl')->whereIn('sto_id', $stoIds)->where('count_status', 'MATCH')->count();
-        $actLoc = $total > 0 ? round(($match / $total) * 100, 2) : 0;
- 
-        DB::table('sto_config_mapping')->where('mapping_id', $mappingId)
-            ->update(['target_act_loc' => $actLoc, 'updated_at' => date('Y-m-d H:i:s')]);
- 
-        $actGlobal = DB::table('sto_config_mapping')->where('config_id', $m->config_id)->avg('target_act_loc');
-        DB::table('sto_config')->where('config_id', $m->config_id)
-            ->update(['target_act' => round($actGlobal ?? 0, 2), 'updated_at' => date('Y-m-d H:i:s')]);
-    }
+{
+    $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->first();
+    if (!$m) return;
+
+    $tolerance = $this->resolveTolerancePercent($m->target_plan_loc);
+
+    $stoIds = DB::table('sto_hdr')->where('mapping_id', $mappingId)->pluck('sto_id');
+    $total  = DB::table('sto_dtl')->whereIn('sto_id', $stoIds)->count();
+
+    // "Akurat" = MATCH murni, ATAU RECOUNT tapi selisihnya masih dalam toleransi
+    // (toleransi diturunkan dari target_plan_loc mapping ini)
+    $accurate = DB::table('sto_dtl')
+        ->whereIn('sto_id', $stoIds)
+        ->where(function ($q) use ($tolerance) {
+            $q->where('count_status', 'MATCH');
+            if ($tolerance > 0) {
+                $q->orWhere(function ($q2) use ($tolerance) {
+                    $q2->where('count_status', 'RECOUNT')
+                       ->whereNotNull('qty_system')
+                       ->where('qty_system', '<>', 0)
+                       ->whereRaw('ABS(qty_variance) / ABS(qty_system) * 100 <= ?', [$tolerance]);
+                });
+            }
+        })
+        ->count();
+
+    $actLoc = $total > 0 ? round(($accurate / $total) * 100, 2) : 0;
+
+    DB::table('sto_config_mapping')->where('mapping_id', $mappingId)
+        ->update(['target_act_loc' => $actLoc, 'updated_at' => date('Y-m-d H:i:s')]);
+
+    $actGlobal = DB::table('sto_config_mapping')->where('config_id', $m->config_id)->avg('target_act_loc');
+    DB::table('sto_config')->where('config_id', $m->config_id)
+        ->update(['target_act' => round($actGlobal ?? 0, 2), 'updated_at' => date('Y-m-d H:i:s')]);
+}
  
     // ══════════════════════════════════════════════
     // FINISH
