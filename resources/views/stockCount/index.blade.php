@@ -188,6 +188,16 @@
         </div>
         <div class="card-content collapse show">
             <div class="card-body">
+                <button type="button" class="btn btn-primary d-none" id="btnAuditDetail" name="btnAuditDetail"
+                        data-toggle="tooltip" data-placement="right"
+                        title="Tekan tombol untuk melihat data detail (mentah per baris, tanpa akumulasi)">
+                    Detail
+                </button>
+                <button type="button" class="btn btn-primary d-none" id="btnAuditSummary" name="btnAuditSummary"
+                        data-toggle="tooltip" data-placement="right"
+                        title="Tekan tombol untuk melihat data summary (akumulasi per artikel per lokasi)">
+                    Summary
+                </button>
                 <div class="row">
                     <div class="col-sm-12">
                         <div class="card-datatable table-responsive pt-0">
@@ -209,8 +219,12 @@
 <script type="text/javascript">
 @if($isAcct)
 
+let auditMode = 'summary'; // mode aktif saat ini
+let btnAuditSummary = $('#btnAuditSummary');
+let btnAuditDetail  = $('#btnAuditDetail');
+
 $(document).ready(function () {
-   $('#auditStoCode, #auditStatus, #auditTarget').select2({ width: '100%' });
+    $('#auditStoCode, #auditStatus, #auditTarget').select2({ width: '100%' });
     initDatePicker(document.querySelector('#auditDate'), {
         minDate: "01/01/2010",
         maxDate: "31/12/2030",
@@ -218,12 +232,12 @@ $(document).ready(function () {
         mode: "range"
     });
 
-     $('#auditDate').val('{{ $today }}');
+    $('#auditDate').val('{{ $today }}');
 
-    loadAuditTable();
+    dataSearchAudit('summary');
 
     $('#btnAuditSearch').on('click', function () {
-        loadAuditTable();
+        dataSearchAudit(auditMode);
     });
 
     $('#btnAuditReset').on('click', function () {
@@ -234,35 +248,95 @@ $(document).ready(function () {
         $('#auditArticleCode').val('');
         $('#auditStoNumber').val('');
         $('#auditTarget').val('').trigger('change');
-        loadAuditTable();
+        dataSearchAudit(auditMode);
     });
 
     $('#reloadAuditTable').on('click', function () {
-        loadAuditTable();
+        dataSearchAudit(auditMode);
     });
 
-    function loadAuditTable() {
+    btnAuditDetail.click(function () {
+        dataSearchAudit('detail');
+    });
+
+    btnAuditSummary.click(function () {
+        dataSearchAudit('summary');
+    });
+
+    function dataSearchAudit(mode) {
+        btnAuditSummary.addClass('d-none');
+        btnAuditDetail.addClass('d-none');
+        $(".loading-spinner-container").addClass("-show");
+
+        if (mode === 'detail') {
+            loadAuditTableDetail();
+        } else {
+            loadAuditTableSummary();
+        }
+    }
+
+    function destroyAuditTable() {
         if ($('#auditDtlTable tr').length > 0) {
             let t = $('#auditDtlTable').DataTable();
             t.destroy();
             $('#auditDtlTable tbody > tr, #auditDtlTable thead > tr').remove();
         }
+    }
+
+    function auditSearchPayload() {
+        return {
+            searchStoCode     : $('#auditStoCode').val(),
+            searchPeriode     : $('#auditPeriode').val(),
+            searchDate        : $('#auditDate').val(),
+            searchStatus      : $('#auditStatus').val(),
+            searchArticleCode : $('#auditArticleCode').val(),
+            searchStoNumber   : $('#auditStoNumber').val(),
+            searchTarget      : $('#auditTarget').val(),
+        };
+    }
+
+    // ══ SUMMARY — akumulasi per artikel/lokasi, ada system/variance/status ══
+    function loadAuditTableSummary() {
+        destroyAuditTable();
+        auditMode = 'summary';
+
         showDataTables({
             tableId       : "auditDtlTable",
             route         : "{{ route('stockCount.auditList') }}",
             kolom         : {!! $kolomAudit !!},
-            dataSearch    : {
-                searchStoCode     : $('#auditStoCode').val(),
-                searchPeriode     : $('#auditPeriode').val(),
-                searchDate        : $('#auditDate').val(),
-                searchStatus      : $('#auditStatus').val(),
-                searchArticleCode : $('#auditArticleCode').val(),
-                searchStoNumber   : $('#auditStoNumber').val(),
-                 searchTarget      : $('#auditTarget').val(), 
-            },
+            dataSearch    : auditSearchPayload(),
             orderColumn   : [[11, 'desc']],
-            excelFileName : 'stock_count_audit',
+            excelFileName : 'stock_count_audit_summary',
             initComplete  : function () {
+                let api = this.api();
+                if (api.data().length > 0) {
+                    btnAuditDetail.removeClass('d-none');
+                    btnAuditSummary.addClass('d-none');
+                }
+                $(".loading-spinner-container").removeClass("-show");
+                if (typeof feather !== 'undefined') feather.replace();
+            }
+        });
+    }
+
+    // ══ DETAIL — mentah per baris, tanpa system/variance/status ══
+    function loadAuditTableDetail() {
+        destroyAuditTable();
+        auditMode = 'detail';
+
+        showDataTables({
+            tableId       : "auditDtlTable",
+            route         : "{{ route('stockCount.auditListDetail') }}",
+            kolom         : {!! $kolomAuditDetail !!},
+            dataSearch    : auditSearchPayload(),
+            orderColumn   : [[1, 'asc']],
+            excelFileName : 'stock_count_audit_detail',
+            initComplete  : function () {
+                let api = this.api();
+                if (api.data().length > 0) {
+                    btnAuditSummary.removeClass('d-none');
+                    btnAuditDetail.addClass('d-none');
+                }
                 $(".loading-spinner-container").removeClass("-show");
                 if (typeof feather !== 'undefined') feather.replace();
             }

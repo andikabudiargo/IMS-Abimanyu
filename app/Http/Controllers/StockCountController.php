@@ -58,30 +58,50 @@ private function dbRole($role)
 }
  
     private function getTableColoumnAudit()
-    {
-        $kolom = [
-            ['data'=>'sto_code',      'name'=>'c.sto_code',    'title'=>'STO Code'],
-            ['data'=>'location',      'name'=>'target_name',   'title'=>'Lokasi/Partner'],
-            ['data'=>'article_code',  'name'=>'article_code',  'title'=>'Article Code'],
-            ['data'=>'article_desc',  'name'=>'article_desc',  'title'=>'Article Desc'],
-            ['data'=>'min_package',   'name'=>'min_package',   'title'=>'Packing'],
-            ['data'=>'qty_counter1',  'name'=>'qty_counter1',  'title'=>'Qty C1'],
-            ['data'=>'qty_counter2',  'name'=>'qty_counter2',  'title'=>'Qty C2'],
-            ['data'=>'qty_counter3',  'name'=>'qty_counter3',  'title'=>'Qty C3'],
-            ['data'=>'qty_system',    'name'=>'qty_system',    'title'=>'Stock System'],
-            ['data'=>'qty_variance',  'name'=>'qty_variance',  'title'=>'Variance'],
-            ['data'=>'uom',           'name'=>'uom',           'title'=>'UOM'],
-            ['data'=>'count_status',  'name'=>'count_status',  'title'=>'Status'],
-            ['data'=>'sto_number',    'name'=>'sto_number',    'title'=>'STO Number'],
-            ['data'=>'counter1_name', 'name'=>'counter1_name', 'title'=>'Counter 1'],
-            ['data'=>'counter1_at',   'name'=>'counter1_at',   'title'=>'Counter 1 At'],
-            ['data'=>'counter2_name', 'name'=>'counter2_name', 'title'=>'Counter 2'],
-            ['data'=>'counter2_at',   'name'=>'counter2_at',   'title'=>'Counter 2 At'],
-            ['data'=>'counter3_name', 'name'=>'counter3_name', 'title'=>'Counter 3'],
-            ['data'=>'counter3_at',   'name'=>'counter3_at',   'title'=>'Counter 3 At'],
-        ];
-        return json_encode($kolom, true);
-    }
+{
+    $kolom = [
+        ['data'=>'location',          'name'=>'target_name',        'title'=>'Lokasi/Partner'],
+        ['data'=>'article_code',      'name'=>'article_code',       'title'=>'Article Code'],
+        ['data'=>'article_desc',      'name'=>'article_desc',       'title'=>'Article Desc'],
+        ['data'=>'min_package',       'name'=>'min_package',        'title'=>'Packing'],
+        ['data'=>'qty_system',        'name'=>'qty_system',         'title'=>'Stock System'],
+        ['data'=>'qty_counter1',      'name'=>'qty_counter1',       'title'=>'Qty C1'],
+        ['data'=>'qty_counter2',      'name'=>'qty_counter2',       'title'=>'Qty C2'],
+        ['data'=>'qty_counter3',      'name'=>'qty_counter3',       'title'=>'Qty C3'],
+        ['data'=>'qty_variance',      'name'=>'qty_variance',       'title'=>'Variance'],
+        ['data'=>'uom',               'name'=>'uom',                'title'=>'UOM'],
+        ['data'=>'count_status',      'name'=>'count_status',       'title'=>'Status'],
+        ['data'=>'sto_numbers_label', 'name'=>'sto_numbers_label',  'title'=>'STO Number'],
+        ['data'=>'accordion',         'name'=>'accordion',          'title'=>'Rincian', 'orderable'=>false, 'searchable'=>false],
+    ];
+    return json_encode($kolom, true);
+}
+
+ // ══════════════════════════════════════════════
+// KOLOM AUDIT DETAIL (mentah — tanpa system/variance/status)
+// ══════════════════════════════════════════════
+private function getTableColoumnAuditDetail()
+{
+    $kolom = [
+        ['data'=>'sto_code',      'name'=>'c.sto_code',    'title'=>'STO Code'],
+        ['data'=>'location',      'name'=>'target_name',   'title'=>'Lokasi/Partner'],
+        ['data'=>'article_code',  'name'=>'article_code',  'title'=>'Article Code'],
+        ['data'=>'article_desc',  'name'=>'article_desc',  'title'=>'Article Desc'],
+        ['data'=>'min_package',   'name'=>'min_package',   'title'=>'Packing'],
+        ['data'=>'qty_counter1',  'name'=>'qty_counter1',  'title'=>'Qty C1'],
+        ['data'=>'qty_counter2',  'name'=>'qty_counter2',  'title'=>'Qty C2'],
+        ['data'=>'qty_counter3',  'name'=>'qty_counter3',  'title'=>'Qty C3'],
+        ['data'=>'uom',           'name'=>'uom',           'title'=>'UOM'],
+        ['data'=>'sto_number',    'name'=>'h.sto_number',  'title'=>'STO Number'],
+        ['data'=>'counter1_name', 'name'=>'counter1_name', 'title'=>'Counter 1'],
+        ['data'=>'counter1_at',   'name'=>'counter1_at',   'title'=>'Counter 1 At'],
+        ['data'=>'counter2_name', 'name'=>'counter2_name', 'title'=>'Counter 2'],
+        ['data'=>'counter2_at',   'name'=>'counter2_at',   'title'=>'Counter 2 At'],
+        ['data'=>'counter3_name', 'name'=>'counter3_name', 'title'=>'Counter 3'],
+        ['data'=>'counter3_at',   'name'=>'counter3_at',   'title'=>'Counter 3 At'],
+    ];
+    return json_encode($kolom, true);
+}
  
     // ══════════════════════════════════════════════
     // GENERATE STO NUMBER — ambil no_current mapping,
@@ -406,118 +426,142 @@ private function dbRole($role)
             $targetsForFilter = $locations->concat($thirdParties);
         }
  
-        return view('stockCount.index', [
-            'title'             => 'Stock Count',
-            'rows'              => $rows,
-            'isAcct'            => $isAcct,
-            'today'             => $today,
-            'kolomAudit'        => $isAcct ? $this->getTableColoumnAudit() : null,
-            'stoCodesForFilter' => $stoCodesForFilter,
-            'targetsForFilter'  => $targetsForFilter,
-        ]);
+       return view('stockCount.index', [
+    'title'             => 'Stock Count',
+    'rows'              => $rows,
+    'isAcct'            => $isAcct,
+    'today'             => $today,
+    'kolomAudit'        => $isAcct ? $this->getTableColoumnAudit() : null,
+    'kolomAuditDetail'  => $isAcct ? $this->getTableColoumnAuditDetail() : null, // ← tambahkan ini
+    'stoCodesForFilter' => $stoCodesForFilter,
+    'targetsForFilter'  => $targetsForFilter,
+]);
     }
  
     // ══════════════════════════════════════════════
     // AUDIT LIST
     // ══════════════════════════════════════════════
     public function auditList(Request $request)
-    {
-        $allowedUserIds = [58, 75, 23, 163, 176]; // ← isi sesuai kebutuhan
- 
-        if (!in_array(Auth::id(), $allowedUserIds)) {
-            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
-        }
- 
-        $query = DB::table('sto_dtl as d')
-            ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
-            ->join('sto_config_mapping as m', 'm.mapping_id', '=', 'h.mapping_id')
-            ->join('sto_config as c', 'c.config_id', '=', 'm.config_id')
-            ->leftJoin('stock_location_master as l', function ($j) {
-                $j->on('l.location_code', '=', 'm.target_ref')->where('m.target_type', '=', 'LOCATION');
-            })
-            ->leftJoin('third_party as tp', function ($j) {
-                $j->on('tp.kode', '=', 'm.target_ref')->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
-            })
-            ->leftJoin('users as u1', 'u1.id', '=', 'd.counter1_user')
-            ->leftJoin('users as u2', 'u2.id', '=', 'd.counter2_user')
-            ->leftJoin('users as u3', 'u3.id', '=', 'd.counter3_user')
-           ->select([
-    'd.dtl_id', 'm.target_type',
-    DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name"),
-    'c.sto_code', 'c.config_id',      // ← config_id untuk link show
-    'd.article_code', 'd.article_desc', 'd.min_package', 'd.uom',
-    'd.location_number',              // ← untuk filter lokasi di halaman stock
-    'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3', 'd.qty_system', 'd.qty_variance',
-    'd.count_status', 'h.sto_number',
-    'u1.name as counter1_name', 'd.counter1_at',
-    'u2.name as counter2_name', 'd.counter2_at',
-    'u3.name as counter3_name', 'd.counter3_at',
-]);
- 
-        if ($request->filled('searchStoCode'))    $query->where('c.sto_code', $request->searchStoCode);
-        if ($request->filled('searchPeriode'))    $query->where('c.periode', $request->searchPeriode);
-        if ($request->filled('searchTarget'))     $query->where('m.target_ref', $request->searchTarget);
-        if ($request->filled('searchStatus'))     $query->where('d.count_status', $request->searchStatus);
-        if ($request->filled('searchArticleCode')) $query->where('d.article_code', 'ilike', '%'.$request->searchArticleCode.'%');
-        if ($request->filled('searchStoNumber'))  $query->where('h.sto_number', 'ilike', '%'.$request->searchStoNumber.'%');
- 
-        if ($request->filled('searchDate')) {
-            $parts = explode(' to ', $request->searchDate);
-            $from  = trim($parts[0] ?? '');
-            $to    = trim($parts[1] ?? $from);
-            if ($from && $to) {
-                $query->whereRaw(
-                    "TO_DATE(m.sto_date,'DD-MM-YYYY') BETWEEN TO_DATE(?,'DD-MM-YYYY') AND TO_DATE(?,'DD-MM-YYYY')",
-                    [$from, $to]
-                );
-            }
-        }
- 
-        return DataTables::of($query)
-        ->editColumn('sto_code', function ($row) {
+{
+    $allowedUserIds = [58, 75, 23, 163, 176];
+    if (!in_array(Auth::id(), $allowedUserIds)) {
+        abort(403, 'Anda tidak memiliki akses ke halaman ini.');
+    }
+
+    $rawRows = $this->buildAuditRawRows($request);
+
+    $grouped = $rawRows->groupBy(function ($row) {
+        $key = $row->article_code ?: ('MANUAL-' . $row->dtl_id);
+        return $row->location_number . '|' . $key;
+    });
+
+    $result = collect();
+    foreach ($grouped as $items) {
+        $first = $items->first();
+        [$status, $qtySystem, $variance] = $this->resolveGroupStatus($items);
+
+        $realItems = $items->filter(fn($r) => !$this->isPhantomRow($r));
+
+        $result->push((object) [
+            'location_number' => $first->location_number,
+            'target_name'     => $first->target_name,
+            'article_code'    => $first->article_code,
+            'article_desc'    => $first->article_desc,
+            'uom'             => $first->uom,
+            'min_package'     => $first->min_package,
+            'qty_counter1'    => $realItems->isEmpty() ? (float) $first->qty_counter1 : $realItems->sum('qty_counter1'),
+            'qty_counter2'    => $realItems->isEmpty() ? (float) $first->qty_counter2 : $realItems->sum('qty_counter2'),
+            'qty_counter3'    => $realItems->isEmpty() ? (float) $first->qty_counter3 : $realItems->sum('qty_counter3'),
+            'qty_system'      => $qtySystem,
+            'qty_variance'    => $variance,
+            'count_status'    => $status,
+            'sto_numbers'     => $items->pluck('sto_number')->filter()->unique()->values()->all(),
+            // detail kontribusi per sto_number, dipakai utk accordion/child-row
+            'contributors'    => $realItems->map(fn($r) => [
+                'sto_number'    => $r->sto_number,
+                'qty_counter1'  => $r->qty_counter1,
+                'qty_counter2'  => $r->qty_counter2,
+                'qty_counter3'  => $r->qty_counter3,
+                'counter1_name' => $r->counter1_name,
+                'counter2_name' => $r->counter2_name,
+                'counter3_name' => $r->counter3_name,
+            ])->values()->all(),
+        ]);
+    }
+
+    if ($request->filled('searchStatus')) {
+        $result = $result->where('count_status', $request->searchStatus)->values();
+    }
+
+    return DataTables::of($result)
+        ->addColumn('location', fn($row) => $row->target_name)
+        ->editColumn('article_code', fn($row) => $row->article_code ?? 'OTHER')
+        ->editColumn('qty_counter1', fn($row) => $row->qty_counter1 !== null ? number_format((float) $row->qty_counter1, 2) : '-')
+        ->editColumn('qty_counter2', fn($row) => $row->qty_counter2 !== null ? number_format((float) $row->qty_counter2, 2) : '-')
+        ->editColumn('qty_counter3', fn($row) => $row->qty_counter3 !== null ? number_format((float) $row->qty_counter3, 2) : '-')
+        ->editColumn('min_package', fn($row) => $row->min_package !== null ? number_format((float) $row->min_package, 2) : '-')
+        ->editColumn('qty_system', fn($row) => $row->qty_system !== null ? number_format((float) $row->qty_system, 2) : '-')
+        ->editColumn('qty_variance', function ($row) {
+            if ($row->qty_variance === null) return '-';
+            $val = number_format((float) $row->qty_variance, 2);
+            $cls = (float) $row->qty_variance > 0 ? 'text-success' : ((float) $row->qty_variance < 0 ? 'text-danger' : '');
+            return "<span class='{$cls}'>{$val}</span>";
+        })
+        ->editColumn('count_status', function ($row) {
+            $map = ['INCOMPLETE' => 'badge-secondary', 'NOT MATCH' => 'badge-danger', 'RECOUNT' => 'badge-warning', 'MATCH' => 'badge-success'];
+            $cls = $map[$row->count_status] ?? 'badge-secondary';
+            return '<span class="badge ' . $cls . '">' . $row->count_status . '</span>';
+        })
+        ->addColumn('sto_numbers_label', fn($row) => count($row->sto_numbers) ? implode(', ', $row->sto_numbers) : '-')
+        // konten child-row accordion: rincian per sto_number penyumbang qty
+        ->addColumn('accordion', function ($row) {
+            if (empty($row->contributors)) return '';
+            $body = collect($row->contributors)->map(function ($c) {
+                return '<tr><td>' . e($c['sto_number']) . '</td>'
+                    . '<td>' . ($c['qty_counter1'] ?? '-') . '</td>'
+                    . '<td>' . ($c['qty_counter2'] ?? '-') . '</td>'
+                    . '<td>' . ($c['qty_counter3'] ?? '-') . '</td></tr>';
+            })->implode('');
+            return '<table class="table table-sm mb-0"><thead><tr><th>STO Number</th><th>C1</th><th>C2</th><th>C3</th></tr></thead><tbody>' . $body . '</tbody></table>';
+        })
+        ->rawColumns(['location', 'qty_variance', 'count_status', 'accordion'])
+        ->make(true);
+}
+
+// ══════════════════════════════════════════════
+// AUDIT LIST DETAIL — mentah per baris, TANPA stock system/variance/status
+// ══════════════════════════════════════════════
+public function auditListDetail(Request $request)
+{
+    $allowedUserIds = [58, 75, 23, 163, 176];
+    if (!in_array(Auth::id(), $allowedUserIds)) {
+        abort(403, 'Anda tidak memiliki akses ke halaman ini.');
+    }
+
+    $rows = $this->buildAuditRawRows($request);
+
+    return DataTables::of($rows)
+      ->editColumn('sto_code', function ($row) {
     if (empty($row->sto_code)) return '-';
-    $url = route('stockTakingOrder.show', ['id' => $row->config_id]);
+    $url = route('stockTakingOrder.show', ['id' => Crypt::encryptString($row->config_id)]);
     return '<a href="'.$url.'" target="_blank">'.e($row->sto_code).'</a>';
 })
-            ->addColumn('location', fn($row) => $row->target_name)
-            ->editColumn('article_code', fn($row) => $row->article_code ?? 'OTHER')
-            ->editColumn('qty_counter1', fn($row) => $row->qty_counter1 !== null ? number_format((float)$row->qty_counter1, 2) : '-')
-            ->editColumn('qty_counter2', fn($row) => $row->qty_counter2 !== null ? number_format((float)$row->qty_counter2, 2) : '-')
-            ->editColumn('qty_counter3', fn($row) => $row->qty_counter3 !== null ? number_format((float)$row->qty_counter3, 2) : '-')
-            ->editColumn('min_package', fn($row) => $row->min_package !== null ? number_format((float)$row->min_package, 2) : '-')
-           ->editColumn('qty_system', function ($row) {
-    if ($row->qty_system === null) return '-';
-    $val = number_format((float) $row->qty_system, 2);
-
-    // manual / tanpa article_code → tak bisa difilter di halaman stock
-    if (empty($row->article_code)) return $val;
-
-    $url = route('warehouse.articlev2', [
-        'code'     => $row->article_code,       // = alternative_code, cocok dengan filter 'code'
-        'location' => $row->location_number,    // location_number, mis. '042'
-    ]);
-    return '<a href="'.$url.'" target="_blank">'.$val.'</a>';
-})
-            ->editColumn('qty_variance', function ($row) {
-                if ($row->qty_variance === null) return '-';
-                $val = number_format((float)$row->qty_variance, 2);
-                $cls = (float)$row->qty_variance > 0 ? 'text-success' : ((float)$row->qty_variance < 0 ? 'text-danger' : '');
-                return "<span class='{$cls}'>{$val}</span>";
-            })
-            ->editColumn('count_status', function ($row) {
-                $map = ['INCOMPLETE'=>'badge-secondary','NOT MATCH'=>'badge-danger','RECOUNT'=>'badge-warning','MATCH'=>'badge-success'];
-                $cls = $map[$row->count_status] ?? 'badge-secondary';
-                return '<span class="badge '.$cls.'">'.$row->count_status.'</span>';
-            })
-            ->editColumn('counter1_name', fn($row) => $row->counter1_name ?? '-')
-            ->editColumn('counter2_name', fn($row) => $row->counter2_name ?? '-')
-            ->editColumn('counter3_name', fn($row) => $row->counter3_name ?? '-')
-            ->editColumn('counter1_at', fn($row) => $row->counter1_at ? date('d-m-Y H:i', strtotime($row->counter1_at)) : '-')
-            ->editColumn('counter2_at', fn($row) => $row->counter2_at ? date('d-m-Y H:i', strtotime($row->counter2_at)) : '-')
-            ->editColumn('counter3_at', fn($row) => $row->counter3_at ? date('d-m-Y H:i', strtotime($row->counter3_at)) : '-')
-           ->rawColumns(['location', 'sto_code', 'qty_system', 'qty_variance', 'count_status'])
-            ->make(true);
-    }
+        ->editColumn('sto_number', fn($row) => $row->sto_number ?? '-')
+        ->addColumn('location', fn($row) => $row->target_name)
+        ->editColumn('article_code', fn($row) => $row->article_code ?? 'OTHER')
+        ->editColumn('qty_counter1', fn($row) => $row->qty_counter1 !== null ? number_format((float) $row->qty_counter1, 2) : '-')
+        ->editColumn('qty_counter2', fn($row) => $row->qty_counter2 !== null ? number_format((float) $row->qty_counter2, 2) : '-')
+        ->editColumn('qty_counter3', fn($row) => $row->qty_counter3 !== null ? number_format((float) $row->qty_counter3, 2) : '-')
+        ->editColumn('min_package', fn($row) => $row->min_package !== null ? number_format((float) $row->min_package, 2) : '-')
+        ->editColumn('counter1_name', fn($row) => $row->counter1_name ?? '-')
+        ->editColumn('counter2_name', fn($row) => $row->counter2_name ?? '-')
+        ->editColumn('counter3_name', fn($row) => $row->counter3_name ?? '-')
+        ->editColumn('counter1_at', fn($row) => $row->counter1_at ? date('d-m-Y H:i', strtotime($row->counter1_at)) : '-')
+        ->editColumn('counter2_at', fn($row) => $row->counter2_at ? date('d-m-Y H:i', strtotime($row->counter2_at)) : '-')
+        ->editColumn('counter3_at', fn($row) => $row->counter3_at ? date('d-m-Y H:i', strtotime($row->counter3_at)) : '-')
+        ->rawColumns(['location', 'sto_code'])
+        ->make(true);
+}
  
     // ══════════════════════════════════════════════
     // GUARD
@@ -1444,4 +1488,214 @@ private function resolveQtySystem($dtl, $mapping)
  
         return response()->json(['status'=>1,'title'=>'Berhasil','message'=>'Target ditandai selesai.','alert'=>'success','redirect_url'=>route('stockCount.index')]);
     }
+
+   
+
+// ══════════════════════════════════════════════
+// BASE QUERY MENTAH (dipakai auditList & auditListDetail)
+// ══════════════════════════════════════════════
+private function applyAuditFilters($query, Request $request)
+{
+    if ($request->filled('searchStoCode'))     $query->where('c.sto_code', $request->searchStoCode);
+    if ($request->filled('searchPeriode'))     $query->where('c.periode', $request->searchPeriode);
+    if ($request->filled('searchTarget'))      $query->where('m.target_ref', $request->searchTarget);
+    if ($request->filled('searchArticleCode')) $query->where('d.article_code', 'ilike', '%'.$request->searchArticleCode.'%');
+    if ($request->filled('searchStoNumber'))   $query->where('h.sto_number', 'ilike', '%'.$request->searchStoNumber.'%');
+
+    if ($request->filled('searchDate')) {
+        $parts = explode(' to ', $request->searchDate);
+        $from  = trim($parts[0] ?? '');
+        $to    = trim($parts[1] ?? $from);
+        if ($from && $to) {
+            $query->whereRaw(
+                "TO_DATE(m.sto_date,'DD-MM-YYYY') BETWEEN TO_DATE(?,'DD-MM-YYYY') AND TO_DATE(?,'DD-MM-YYYY')",
+                [$from, $to]
+            );
+        }
+    }
+    // NOTE: searchStatus TIDAK difilter di sini — status baru ada setelah
+    // diakumulasi (lihat auditList()), jadi difilter belakangan di PHP.
+}
+
+private function buildAuditRawRows(Request $request)
+{
+    $query = DB::table('sto_dtl as d')
+        ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
+        ->join('sto_config_mapping as m', 'm.mapping_id', '=', 'h.mapping_id')
+        ->join('sto_config as c', 'c.config_id', '=', 'm.config_id')
+        ->leftJoin('stock_location_master as l', function ($j) {
+            $j->on('l.location_code', '=', 'm.target_ref')->where('m.target_type', '=', 'LOCATION');
+        })
+        ->leftJoin('third_party as tp', function ($j) {
+            $j->on('tp.kode', '=', 'm.target_ref')->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
+        })
+        ->leftJoin('users as u1', 'u1.id', '=', 'd.counter1_user')
+        ->leftJoin('users as u2', 'u2.id', '=', 'd.counter2_user')
+        ->leftJoin('users as u3', 'u3.id', '=', 'd.counter3_user')
+        ->select([
+            'd.dtl_id', 'm.target_type', 'm.target_ref',
+            'm.is_blind',
+            'm.counter1_user as map_counter1_user',
+            'm.counter2_user as map_counter2_user',
+            'm.counter3_user as map_counter3_user',
+            DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name"),
+            'c.sto_code', 'c.config_id', 'c.periode',
+            'd.article_code', 'd.article_desc', 'd.min_package', 'd.uom',
+            'd.location_number',
+            'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3',
+            'h.sto_number',
+            'u1.name as counter1_name', 'd.counter1_at',
+            'u2.name as counter2_name', 'd.counter2_at',
+            'u3.name as counter3_name', 'd.counter3_at',
+        ]);
+
+    $this->applyAuditFilters($query, $request);
+
+    $rows = $query->get();
+
+    // Enrich dengan artikel yang punya stok di lokasi tapi belum pernah diinput STO.
+    // Hanya jalan kalau filter searchTarget diisi & itu target_type LOCATION,
+    // karena konsep "stok di lokasi" hanya berlaku untuk lokasi fisik.
+    if ($request->filled('searchTarget')) {
+        $rows = $this->appendPhantomArticles($rows, $request->searchTarget);
+    }
+
+    return $rows;
+}
+
+// ══════════════════════════════════════════════
+// PHANTOM ROWS — artikel ada stok di lokasi, belum ada input STO sama sekali
+// ══════════════════════════════════════════════
+private function appendPhantomArticles($rows, $targetRef)
+{
+    $m = DB::table('sto_config_mapping')
+        ->where('target_ref', $targetRef)
+        ->where('target_type', 'LOCATION')
+        ->first();
+
+    if (!$m) return $rows; // bukan target lokasi, skip
+
+    $locationName = $this->resolveLocationName($targetRef);
+    $types      = $this->locationArticleTypeMap[$targetRef] ?? null;
+    $groupTypes = $this->locationGroupOfMaterialMap[$targetRef] ?? null;
+
+    $stockQuery = DB::table('warehouse_stock as ws')
+        ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
+        ->where('ws.location_number', $targetRef)
+        ->where('ws.article_qty', '<>', 0)
+        ->select(
+            'a.article_alternative_code as article_code',
+            'a.article_desc', 'a.uom', 'a.min_package',
+            'ws.article_qty as stock_qty'
+        );
+
+    if ($types || $groupTypes) {
+        $stockQuery->where(function ($q) use ($types, $groupTypes) {
+            if ($types)      $q->orWhereIn('a.article_type', $types);
+            if ($groupTypes) $q->orWhereIn('a.group_of_material', $groupTypes);
+        });
+    }
+
+    $stockArticles = $stockQuery->get();
+
+    // artikel yang sudah pernah masuk STO (dalam hasil $rows yang sudah difilter)
+    $countedCodes = $rows->pluck('article_code')->filter()
+        ->map(fn($c) => strtoupper($c))->unique()->all();
+
+    $phantoms = collect();
+    foreach ($stockArticles as $sa) {
+        if (in_array(strtoupper($sa->article_code), $countedCodes)) continue;
+
+        $phantoms->push((object) [
+            'dtl_id'          => 'phantom-'.$sa->article_code,
+            'target_type'     => 'LOCATION',
+            'target_ref'      => $targetRef,
+            'is_blind'        => $m->is_blind ?? true,
+            'map_counter1_user' => $m->counter1_user,
+            'map_counter2_user' => $m->counter2_user,
+            'map_counter3_user' => $m->counter3_user ?? null,
+            'target_name'     => $locationName,
+            'sto_code'        => null,
+            'config_id'       => null,
+            'periode'         => null,
+            'article_code'    => $sa->article_code,
+            'article_desc'    => $sa->article_desc,
+            'min_package'     => $sa->min_package,
+            'uom'             => $sa->uom,
+            'location_number' => $targetRef,
+            // belum pernah dihitung → tampilkan 0, bukan null/'-'
+            'qty_counter1'    => 0,
+            'qty_counter2'    => 0,
+            'qty_counter3'    => 0,
+            'sto_number'      => null,
+            'counter1_name'   => null, 'counter1_at' => null,
+            'counter2_name'   => null, 'counter2_at' => null,
+            'counter3_name'   => null, 'counter3_at' => null,
+            'stock_qty'       => (float) $sa->stock_qty,
+        ]);
+    }
+
+    return $rows->concat($phantoms);
+}
+
+// ══════════════════════════════════════════════
+// STATUS UTK GRUP (dipakai auditList, setelah akumulasi per lokasi+artikel)
+// ══════════════════════════════════════════════
+private function isPhantomRow($row)
+{
+    return is_string($row->dtl_id) && str_starts_with($row->dtl_id, 'phantom-');
+}
+
+private function resolveGroupStatus($items)
+{
+    $first = $items->first();
+
+    if (empty($first->article_code)) {
+        // artikel manual, tidak dibandingkan ke stock system
+        return ['MATCH', null, null];
+    }
+
+    $qtySystem = isset($first->stock_qty)
+        ? (float) $first->stock_qty
+        : (float) $this->getLastQty($first->article_code, $first->location_number, date('d-m-Y'));
+
+    $realItems = $items->filter(fn($r) => !$this->isPhantomRow($r));
+
+    if ($realItems->isEmpty()) {
+        // murni artikel yang belum pernah diinput
+        return ['INCOMPLETE', $qtySystem, null];
+    }
+
+    $isBlind = $first->is_blind ?? true;
+
+    if (!$isBlind) {
+        $sum = $realItems->sum(fn($r) => (float) ($r->qty_counter1 ?? $r->qty_counter2 ?? $r->qty_counter3 ?? 0));
+        $anyFilled = $realItems->contains(fn($r) => $r->qty_counter1 !== null || $r->qty_counter2 !== null || $r->qty_counter3 !== null);
+        if (!$anyFilled) return ['INCOMPLETE', $qtySystem, null];
+        $variance = round($sum - $qtySystem, 2);
+        return [$variance == 0 ? 'MATCH' : 'RECOUNT', $qtySystem, $variance];
+    }
+
+    $activeSlots = [];
+    foreach (['1', '2', '3'] as $n) {
+        if (!empty($first->{"map_counter{$n}_user"})) $activeSlots[] = $n;
+    }
+    if (empty($activeSlots)) $activeSlots = ['1', '2', '3'];
+
+    $totals = [];
+    foreach ($activeSlots as $n) {
+        $field  = "qty_counter{$n}";
+        $hasAny = $realItems->contains(fn($r) => $r->{$field} !== null);
+        if (!$hasAny) return ['INCOMPLETE', $qtySystem, null];
+        $totals[$n] = (float) $realItems->sum($field);
+    }
+
+    $unique = array_unique(array_map(fn($v) => round($v, 2), $totals));
+    if (count($unique) > 1) return ['NOT MATCH', $qtySystem, null];
+
+    $counted  = array_values($totals)[0];
+    $variance = round($counted - $qtySystem, 2);
+    return [$variance == 0 ? 'MATCH' : 'RECOUNT', $qtySystem, $variance];
+}
+
 }
