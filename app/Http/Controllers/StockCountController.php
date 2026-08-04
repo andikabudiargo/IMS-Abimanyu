@@ -1517,7 +1517,7 @@ private function recalcMappingProgress($mappingId)
     // belum diinput STO sama sekali. Dihitung sebagai TIDAK AKURAT (0), tapi TETAP
     // masuk total — supaya skor tidak bisa dikerek dengan cuma menghitung artikel
     // yang gampang/kebetulan sudah pas. ──
-    if ($m->target_type === 'LOCATION') {
+   if ($m->target_type === 'LOCATION') {
         $countedCodes = $grouped->keys()
             ->map(fn($k) => explode('|', $k, 2)[1] ?? $k)
             ->reject(fn($k) => str_starts_with($k, 'MANUAL-'))
@@ -1529,7 +1529,21 @@ private function recalcMappingProgress($mappingId)
         $periode = $periode ? substr($periode, 0, 7) : null;
 
         $phantoms = $this->buildPhantomArticlesForLocation($m, $countedCodes, $periode);
-        $total += $phantoms->count(); // tiap phantom = 1 unit, otomatis dihitung gagal
+
+        // Phantom dievaluasi satu per satu:
+        // kalau qty_system = 0 → dianggap MATCH (accurate),
+        // kalau qty_system > 0 → belum diinput = INCOMPLETE (tidak accurate).
+        foreach ($phantoms as $phantom) {
+            $phantomQtySystem = (float) $this->getLastQty(
+                $phantom->article_code,
+                $phantom->location_number,
+                $m->sto_date
+            );
+            $total++;
+            if ($phantomQtySystem == 0) {
+                $accurate++;
+            }
+        }
     }
 
     $actLoc = $total > 0 ? round(($accurate / $total) * 100, 2) : 0;
@@ -1836,7 +1850,6 @@ private function resolveGroupStatus($items)
     $first = $items->first();
 
     if (empty($first->article_code)) {
-        // artikel manual, tidak dibandingkan ke stock system
         return ['MATCH', null, null];
     }
 
@@ -1847,9 +1860,14 @@ private function resolveGroupStatus($items)
     $realItems = $items->filter(fn($r) => !$this->isPhantomRow($r));
 
     if ($realItems->isEmpty()) {
-        // murni artikel yang belum pernah diinput
+        // Phantom: belum pernah diinput STO.
+        // Kalau stock system juga 0 → tidak ada yang perlu dihitung → MATCH.
+        if ($qtySystem == 0) {
+            return ['MATCH', $qtySystem, 0];
+        }
         return ['INCOMPLETE', $qtySystem, null];
     }
+
 
     $isBlind = $first->is_blind ?? true;
 

@@ -851,6 +851,9 @@ if (!empty($toDelete)) {
         ->where('config_id', $configId)
         ->get();
 
+    $periode = DB::table('sto_config')->where('config_id', $configId)->value('periode');
+    $periode = $periode ? substr($periode, 0, 7) : null;
+
     foreach ($mappings as $m) {
         $tolerance = $this->resolveTolerancePercent($m->target_plan_loc);
 
@@ -860,8 +863,7 @@ if (!empty($toDelete)) {
             ->where('h.target_type', $m->target_type)
             ->where('h.target_ref', $m->target_ref);
 
-        $total = (clone $base)->count();
-
+        $total    = (clone $base)->count();
         $accurate = (clone $base)
             ->where(function ($q) use ($tolerance) {
                 $q->where('d.count_status', 'MATCH');
@@ -875,6 +877,55 @@ if (!empty($toDelete)) {
                 }
             })
             ->count();
+
+        // ── Phantom: artikel ada movement di lokasi ini tapi belum diinput STO ──
+        if ($m->target_type === 'LOCATION') {
+            $countedCodes = DB::table('sto_dtl as d')
+                ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
+                ->where('h.config_id', $configId)
+                ->where('h.target_type', $m->target_type)
+                ->where('h.target_ref', $m->target_ref)
+                ->whereNotNull('d.article_code')
+                ->pluck('d.article_code')
+                ->map(fn($c) => strtoupper($c))
+                ->unique()
+                ->all();
+
+            $phantomQuery = DB::table('warehouse_movement as wm')
+                ->join('article as a', 'a.article_code', '=', 'wm.artikel_code')
+                ->where('wm.location_number', $m->target_ref)
+                ->where('wm.movement_type', 'not ilike', 'CANCEL %')
+                ->select('a.article_alternative_code', 'a.article_code as real_code')
+                ->distinct();
+
+            if ($periode) {
+                $phantomQuery->whereRaw(
+                    "TO_CHAR(TO_DATE(wm.movement_date,'DD-MM-YYYY'), 'YYYY-MM') = ?",
+                    [$periode]
+                );
+            }
+
+            $phantomArticles = $phantomQuery->get();
+
+            foreach ($phantomArticles as $pa) {
+                if (!$pa->article_alternative_code) continue;
+                if (in_array(strtoupper($pa->article_alternative_code), $countedCodes)) continue;
+
+                // Phantom: belum diinput STO sama sekali
+                $total++;
+
+                $qtySystem = (float) DB::table('warehouse_stock as ws')
+                    ->where('ws.article_code', $pa->real_code)
+                    ->where('ws.location_number', $m->target_ref)
+                    ->value('ws.article_qty') ?? 0;
+
+                // Kalau stock system juga 0 → tidak ada yang perlu dihitung → MATCH
+                if ($qtySystem == 0) {
+                    $accurate++;
+                }
+                // else: INCOMPLETE, gagal di skor (tidak di-accurate++)
+            }
+        }
 
         $actLoc = $total > 0 ? round(($accurate / $total) * 100, 2) : 0;
 
