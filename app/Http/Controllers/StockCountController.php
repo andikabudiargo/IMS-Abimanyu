@@ -1615,14 +1615,10 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
     $targetRef    = $m->target_ref;
     $locationName = $this->resolveLocationName($targetRef);
 
-    // ── Ambil SEMUA artikel yang punya movement di lokasi ini pada periode STO,
-    // bukan dari snapshot warehouse_stock (rawan mismatch format / sudah 0). ──
+    // ── 1) Ambil kode artikel (unik) yang punya movement di lokasi ini pada periode STO ──
     $movementQuery = DB::table('warehouse_movement as wm')
-        ->join('article as a', 'a.article_code', '=', 'wm.artikel_code')
         ->where('wm.location_number', $targetRef)
-        ->where('wm.movement_type', 'not ilike', 'CANCEL %')
-        ->select('a.article_code', 'a.article_desc', 'a.uom', 'a.min_package')
-        ->distinct();
+        ->where('wm.movement_type', 'not ilike', 'CANCEL %');
 
     if ($periode) {
         // periode format 'YYYY-MM' (dari sto_config.periode)
@@ -1632,7 +1628,24 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
         );
     }
 
-    $movedArticles = $movementQuery->get();
+    $movedArticleCodes = $movementQuery
+        ->select('wm.artikel_code')
+        ->distinct()
+        ->pluck('artikel_code');
+
+    if ($movedArticleCodes->isEmpty()) {
+        return collect();
+    }
+
+    // ── 2) Ambil detail master artikel — article_code dipakai HANYA untuk join/filter,
+    //     bukan untuk ikut menentukan jumlah baris. DISTINCT ON (article_code)
+    //     menjamin 1 baris per article_code, jadi article_alternative_code (atau
+    //     kolom lain yang bisa punya banyak varian) tidak pernah bikin duplikat. ──
+    $movedArticles = DB::table('article as a')
+        ->whereIn('a.article_code', $movedArticleCodes)
+        ->selectRaw('DISTINCT ON (a.article_code) a.article_code, a.article_desc, a.uom, a.min_package')
+        ->orderBy('a.article_code')
+        ->get();
 
     $phantoms = collect();
     foreach ($movedArticles as $sa) {
