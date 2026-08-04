@@ -89,6 +89,33 @@
     @include('layouts.footer')
 
     <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
+    <script>
+// ══════════════════════════════════════════════
+// PATCH GLOBAL: feather.replace() milik vendor bundle ini kadang throw
+// "Failed to execute 'replaceChild'" saat dipanggil dalam kondisi tertentu
+// (mis. ada <i data-feather> yang sudah ter-replace/berubah state duluan).
+// Tanpa patch ini, error tsb UNCAUGHT dan bisa menghentikan proses JS lain
+// yang berjalan di call-stack yang sama. Patch ini membungkus SEMUA
+// pemanggilan feather.replace() di SELURUH halaman, dari sumber manapun,
+// supaya selalu aman — ditaruh di layout (bukan per-halaman) supaya
+// berlaku global dan dijamin sudah aktif SEBELUM ada kode lain yang
+// sempat memanggil feather.replace() (termasuk $(window).on('load', ...)
+// di bawah ini).
+// ══════════════════════════════════════════════
+(function () {
+    if (typeof feather === 'undefined' || !feather.replace) return;
+    if (feather.__patchedSafeReplace) return;
+    var originalReplace = feather.replace.bind(feather);
+    feather.replace = function () {
+        try {
+            return originalReplace.apply(feather, arguments);
+        } catch (e) {
+            console.warn('feather.replace() gagal, diabaikan (patched):', e);
+        }
+    };
+    feather.__patchedSafeReplace = true;
+})();
+</script>
     <script src="{{ asset('app-assets/vendors/js/forms/select/select2.full.min.js') }}"></script>
     <script src="{{ asset('app-assets/vendors/js/extensions/sweetalert2.all.min.js') }}"></script>
     <script src="{{ asset('app-assets/vendors/js/extensions/polyfill.min.js') }}"></script>

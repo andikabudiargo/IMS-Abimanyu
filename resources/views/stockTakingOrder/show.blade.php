@@ -379,16 +379,7 @@
 <script>
 $(function () {
     $('[data-toggle="tooltip"]').tooltip();
-
-    // Bungkus try/catch: feather.replace() bisa gagal kalau ada proses replace lain
-    // (mis. dari layout global) yang jalan hampir bersamaan dan sudah mengganti
-    // sebagian <i data-feather> jadi <svg> duluan. Tanpa try/catch, error ini
-    // menghentikan SEMUA script setelahnya di halaman → efeknya kelihatan "loading terus".
-    try {
-        if (window.feather) feather.replace();
-    } catch (e) {
-        console.warn('feather.replace() gagal, diabaikan:', e);
-    }
+    if (window.feather) feather.replace();
 });
 
 $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
