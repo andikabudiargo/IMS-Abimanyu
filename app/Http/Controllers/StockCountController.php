@@ -1615,40 +1615,31 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
     $targetRef    = $m->target_ref;
     $locationName = $this->resolveLocationName($targetRef);
 
-    // ── 1) Ambil kode artikel (unik) yang punya movement di lokasi ini pada periode STO ──
     $movementQuery = DB::table('warehouse_movement as wm')
+        ->join('article as a', 'a.article_code', '=', 'wm.artikel_code') // join tetap pakai article_code
         ->where('wm.location_number', $targetRef)
-        ->where('wm.movement_type', 'not ilike', 'CANCEL %');
+        ->where('wm.movement_type', 'not ilike', 'CANCEL %')
+        // hanya article_alternative_code yang dipakai sebagai identitas artikel di luar join
+        ->select(
+            'a.article_alternative_code as article_code',
+            'a.article_desc',
+            'a.uom',
+            'a.min_package'
+        )
+        ->distinct();
 
     if ($periode) {
-        // periode format 'YYYY-MM' (dari sto_config.periode)
         $movementQuery->whereRaw(
             "TO_CHAR(TO_DATE(wm.movement_date,'DD-MM-YYYY'), 'YYYY-MM') = ?",
             [$periode]
         );
     }
 
-    $movedArticleCodes = $movementQuery
-        ->select('wm.artikel_code')
-        ->distinct()
-        ->pluck('artikel_code');
-
-    if ($movedArticleCodes->isEmpty()) {
-        return collect();
-    }
-
-    // ── 2) Ambil detail master artikel — article_code dipakai HANYA untuk join/filter,
-    //     bukan untuk ikut menentukan jumlah baris. DISTINCT ON (article_code)
-    //     menjamin 1 baris per article_code, jadi article_alternative_code (atau
-    //     kolom lain yang bisa punya banyak varian) tidak pernah bikin duplikat. ──
-    $movedArticles = DB::table('article as a')
-        ->whereIn('a.article_code', $movedArticleCodes)
-        ->selectRaw('DISTINCT ON (a.article_code) a.article_code, a.article_desc, a.uom, a.min_package')
-        ->orderBy('a.article_code')
-        ->get();
+    $movedArticles = $movementQuery->get();
 
     $phantoms = collect();
     foreach ($movedArticles as $sa) {
+        if (!$sa->article_code) continue; // jaga-jaga kalau alternative_code null
         if (in_array(strtoupper($sa->article_code), $countedCodes)) continue;
 
         $phantoms->push((object) [
@@ -1663,7 +1654,7 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
             'sto_code'          => null,
             'config_id'         => null,
             'periode'           => null,
-            'article_code'      => $sa->article_code,
+            'article_code'      => $sa->article_code, // ini sekarang berisi article_alternative_code
             'article_desc'      => $sa->article_desc,
             'min_package'       => $sa->min_package,
             'uom'               => $sa->uom,
@@ -1675,8 +1666,6 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
             'counter1_name' => null, 'counter1_at' => null,
             'counter2_name' => null, 'counter2_at' => null,
             'counter3_name' => null, 'counter3_at' => null,
-            // stock_qty tidak dihitung dari sini lagi — biar resolveGroupStatus()
-            // pakai getLastQty() seperti biasa (running balance real-time)
         ]);
     }
 
