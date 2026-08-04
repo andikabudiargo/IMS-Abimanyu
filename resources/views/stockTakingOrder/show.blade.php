@@ -379,7 +379,16 @@
 <script>
 $(function () {
     $('[data-toggle="tooltip"]').tooltip();
-    // feather.replace() sengaja tidak dipanggil di sini — sudah di-handle oleh layout global
+
+    // Bungkus try/catch: feather.replace() bisa gagal kalau ada proses replace lain
+    // (mis. dari layout global) yang jalan hampir bersamaan dan sudah mengganti
+    // sebagian <i data-feather> jadi <svg> duluan. Tanpa try/catch, error ini
+    // menghentikan SEMUA script setelahnya di halaman → efeknya kelihatan "loading terus".
+    try {
+        if (window.feather) feather.replace();
+    } catch (e) {
+        console.warn('feather.replace() gagal, diabaikan:', e);
+    }
 });
 
 $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
