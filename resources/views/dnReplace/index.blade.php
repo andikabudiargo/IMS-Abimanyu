@@ -114,36 +114,6 @@
         $('#modalReasonCancel').attr("action", href);
     });
 
-    $(document).on('click', '.btn-rincian-sto', function () {
-    let article = $(this).data('article');
-    let contributors = $(this).data('contributors'); // jQuery otomatis parse JSON
-
-    if (!contributors || contributors.length === 0) {
-        Swal.fire('Tidak Ada Rincian', 'Belum ada baris STO yang menyumbang qty ini.', 'info');
-        return;
-    }
-
-    let rows = contributors.map(function (c) {
-        return '<tr>'
-            + '<td>' + (c.sto_number ?? '-') + '</td>'
-            + '<td class="text-right">' + (c.qty_counter1 ?? '-') + '</td>'
-            + '<td class="text-right">' + (c.qty_counter2 ?? '-') + '</td>'
-            + '<td class="text-right">' + (c.qty_counter3 ?? '-') + '</td>'
-            + '</tr>';
-    }).join('');
-
-    Swal.fire({
-        title: 'Rincian Qty — ' + article,
-        html: '<div class="table-responsive text-left">'
-            + '<table class="table table-sm table-bordered mb-0">'
-            + '<thead><tr><th>STO Number</th><th>C1</th><th>C2</th><th>C3</th></tr></thead>'
-            + '<tbody>' + rows + '</tbody>'
-            + '</table></div>',
-        width: 500,
-        confirmButtonText: 'Tutup'
-    });
-});
-
     btnSummary.hide();
     btnDetail.hide();
 
