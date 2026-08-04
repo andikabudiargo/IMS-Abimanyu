@@ -123,18 +123,18 @@ class DnReplaceController extends Controller
     public function getTableColoumnDetail(){
     $kolom=
     [
-    ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'],
-    ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
-    ['data'=>'dn_return','name'=>'dn_return','title'=>'Customer Return Number'],
-    ['data'=>'tanggal_return','name'=>'tanggal_return','title'=>'Return Date'],
-    ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'],
-    ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
-    ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
-    ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'],
-    ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
-    ['data'=>'qty_return','name'=>'qty_return','title'=>'Qty Return'],      // <-- tambah
-    ['data'=>'qty','name'=>'qty','title'=>'Qty Replace'],                   // <-- label diperjelaskan
-    ['data'=>'sisa_qty_return','name'=>'sisa_qty_return','title'=>'Sisa Qty Return'], // <-- tambah
+    ['data'=>'replace_number','name'=>'replace_number','title'=>'Replace Number'], //0
+    ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'], //1
+    ['data'=>'dn_return','name'=>'dn_return','title'=>'Customer Return Number'], //2
+    ['data'=>'tanggal_return','name'=>'tanggal_return','title'=>'Return Date'], //3
+    ['data'=>'tanggal_replace','name'=>'tanggal_replace','title'=>'Replace Date'], //4
+    ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'], //5
+    ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'], //6
+    ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'], //7
+    ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'], //8
+    ['data'=>'qty_return','name'=>'qty_return','title'=>'Qty Return'],      // 9
+    ['data'=>'qty','name'=>'qty','title'=>'Qty Replace'],                   // 10
+    ['data'=>'sisa_qty_return','name'=>'sisa_qty_return','title'=>'Sisa Qty Return'], // 11
     ['data'=>'uom','name'=>'uom','title'=>'UOM'],
     ['data'=>'note','name'=>'note','title'=>'Note'],
     ['data'=>'created_by_1','name'=>'created_by_1','title'=>'Created By'],
