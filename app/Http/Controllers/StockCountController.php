@@ -1575,7 +1575,8 @@ private function appendPhantomArticlesForFilters($rows, Request $request)
         ->join('sto_config as c', 'c.config_id', '=', 'm.config_id')
         ->where('m.target_type', 'LOCATION')
         ->select('m.mapping_id', 'm.target_ref', 'm.is_blind',
-                 'm.counter1_user', 'm.counter2_user', 'm.counter3_user');
+                 'm.counter1_user', 'm.counter2_user', 'm.counter3_user',
+                 'c.periode'); // ← tambahkan periode
 
     if ($request->filled('searchStoCode')) $mapQuery->where('c.sto_code', $request->searchStoCode);
     if ($request->filled('searchPeriode')) $mapQuery->where('c.periode', $request->searchPeriode);
@@ -1592,12 +1593,9 @@ private function appendPhantomArticlesForFilters($rows, Request $request)
         }
     }
 
-    // satu lokasi bisa muncul di banyak periode/cycle — cukup ambil sekali per target_ref
     $locationMappings = $mapQuery->get()->unique('target_ref');
     if ($locationMappings->isEmpty()) return $rows;
 
-    // artikel yang sudah pernah dihitung, dikelompokkan per lokasi
-    // supaya artikel yang sama tidak dobel-muncul sebagai phantom
     $countedByLocation = $rows->groupBy('location_number')
         ->map(fn($items) => $items->pluck('article_code')->filter()
               ->map(fn($c) => strtoupper($c))->unique()->all());
@@ -1605,38 +1603,39 @@ private function appendPhantomArticlesForFilters($rows, Request $request)
     $allPhantoms = collect();
     foreach ($locationMappings as $m) {
         $counted = $countedByLocation->get($m->target_ref, []);
-        $allPhantoms = $allPhantoms->concat($this->buildPhantomArticlesForLocation($m, $counted));
+        $periode = $m->periode ? substr($m->periode, 0, 7) : null; // 'YYYY-MM'
+        $allPhantoms = $allPhantoms->concat($this->buildPhantomArticlesForLocation($m, $counted, $periode));
     }
 
     return $rows->concat($allPhantoms);
 }
 
-private function buildPhantomArticlesForLocation($m, array $countedCodes)
+private function buildPhantomArticlesForLocation($m, array $countedCodes, $periode = null)
 {
     $targetRef    = $m->target_ref;
     $locationName = $this->resolveLocationName($targetRef);
-    $types        = $this->locationArticleTypeMap[$targetRef] ?? null;
-    $groupTypes   = $this->locationGroupOfMaterialMap[$targetRef] ?? null;
 
-    $stockQuery = DB::table('warehouse_stock as ws')
-        ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
-        ->where('ws.location_number', $targetRef)
-        ->where('ws.article_qty', '<>', 0)   // hanya artikel yang ada angkanya
-        ->select(
-            'a.article_alternative_code as article_code',
-            'a.article_desc', 'a.uom', 'a.min_package',
-            'ws.article_qty as stock_qty'
+    // ── Ambil SEMUA artikel yang punya movement di lokasi ini pada periode STO,
+    // bukan dari snapshot warehouse_stock (rawan mismatch format / sudah 0). ──
+    $movementQuery = DB::table('warehouse_movement as wm')
+        ->join('article as a', 'a.article_alternative_code', '=', 'wm.artikel_code')
+        ->where('wm.location_number', $targetRef)
+        ->where('wm.movement_type', 'not ilike', 'CANCEL %')
+        ->select('a.article_alternative_code as article_code', 'a.article_desc', 'a.uom', 'a.min_package')
+        ->distinct();
+
+    if ($periode) {
+        // periode format 'YYYY-MM' (dari sto_config.periode)
+        $movementQuery->whereRaw(
+            "TO_CHAR(TO_DATE(wm.movement_date,'DD-MM-YYYY'), 'YYYY-MM') = ?",
+            [$periode]
         );
-
-    if ($types || $groupTypes) {
-        $stockQuery->where(function ($q) use ($types, $groupTypes) {
-            if ($types)      $q->orWhereIn('a.article_type', $types);
-            if ($groupTypes) $q->orWhereIn('a.group_of_material', $groupTypes);
-        });
     }
 
+    $movedArticles = $movementQuery->get();
+
     $phantoms = collect();
-    foreach ($stockQuery->get() as $sa) {
+    foreach ($movedArticles as $sa) {
         if (in_array(strtoupper($sa->article_code), $countedCodes)) continue;
 
         $phantoms->push((object) [
@@ -1663,7 +1662,8 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes)
             'counter1_name' => null, 'counter1_at' => null,
             'counter2_name' => null, 'counter2_at' => null,
             'counter3_name' => null, 'counter3_at' => null,
-            'stock_qty'         => (float) $sa->stock_qty,
+            // stock_qty tidak dihitung dari sini lagi — biar resolveGroupStatus()
+            // pakai getLastQty() seperti biasa (running balance real-time)
         ]);
     }
 
