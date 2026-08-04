@@ -244,7 +244,7 @@ $(document).ready(function () {
     }
 
     let fmt = function (v) {
-        if (v === null || v === undefined || v === '') return '-';
+        if (v === null || v === undefined || v === '') return '0.00';
         let n = parseFloat(v);
         return isNaN(n) ? '0.00' : n.toFixed(2);
     };
