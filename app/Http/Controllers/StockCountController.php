@@ -524,7 +524,7 @@ private function getTableColoumnAuditDetail()
 
             [$dateFrom, $dateTo] = $this->resolveMovementDateRange($row->sto_date);
 
-            $url = route('warehouse.article.index', [
+            $url = route('warehouse.articlev2', [
                 'code'          => $row->article_code,
                 'location'      => $row->location_number,
                 'open_movement' => 1,
