@@ -60,19 +60,19 @@ private function dbRole($role)
     private function getTableColoumnAudit()
 {
     $kolom = [
-        ['data'=>'location',          'name'=>'target_name',        'title'=>'Lokasi/Partner'],
-        ['data'=>'article_code',      'name'=>'article_code',       'title'=>'Article Code'],
-        ['data'=>'article_desc',      'name'=>'article_desc',       'title'=>'Article Desc'],
-        ['data'=>'min_package',       'name'=>'min_package',        'title'=>'Packing'],
-        ['data'=>'qty_system',        'name'=>'qty_system',         'title'=>'Stock System'],
-        ['data'=>'qty_counter1',      'name'=>'qty_counter1',       'title'=>'Qty C1'],
-        ['data'=>'qty_counter2',      'name'=>'qty_counter2',       'title'=>'Qty C2'],
-        ['data'=>'qty_counter3',      'name'=>'qty_counter3',       'title'=>'Qty C3'],
-        ['data'=>'qty_variance',      'name'=>'qty_variance',       'title'=>'Variance'],
-        ['data'=>'uom',               'name'=>'uom',                'title'=>'UOM'],
-        ['data'=>'count_status',      'name'=>'count_status',       'title'=>'Status'],
-        ['data'=>'sto_numbers_label', 'name'=>'sto_numbers_label',  'title'=>'STO Number'],
-        ['data'=>'accordion',         'name'=>'accordion',          'title'=>'Rincian', 'orderable'=>false, 'searchable'=>false],
+        ['data'=>'location',          'name'=>'target_name',       'title'=>'Lokasi/Partner'],
+        ['data'=>'article_code',      'name'=>'article_code',      'title'=>'Article Code'],
+        ['data'=>'article_desc',      'name'=>'article_desc',      'title'=>'Article Desc'],
+        ['data'=>'min_package',       'name'=>'min_package',       'title'=>'Packing'],
+        ['data'=>'qty_counter1',      'name'=>'qty_counter1',      'title'=>'Qty C1'],
+        ['data'=>'qty_counter2',      'name'=>'qty_counter2',      'title'=>'Qty C2'],
+        ['data'=>'qty_counter3',      'name'=>'qty_counter3',      'title'=>'Qty C3'],
+        ['data'=>'qty_system',        'name'=>'qty_system',        'title'=>'Stock System'],
+        ['data'=>'qty_variance',      'name'=>'qty_variance',      'title'=>'Variance'],
+        ['data'=>'uom',               'name'=>'uom',               'title'=>'UOM'],
+        ['data'=>'count_status',      'name'=>'count_status',      'title'=>'Status'],
+        ['data'=>'sto_numbers_label', 'name'=>'sto_numbers_label', 'title'=>'STO Number'],
+        ['data'=>'rincian',           'name'=>'rincian',           'title'=>'Rincian', 'orderable'=>false, 'searchable'=>false],
     ];
     return json_encode($kolom, true);
 }
@@ -514,17 +514,18 @@ private function getTableColoumnAuditDetail()
         })
         ->addColumn('sto_numbers_label', fn($row) => count($row->sto_numbers) ? implode(', ', $row->sto_numbers) : '-')
         // konten child-row accordion: rincian per sto_number penyumbang qty
-        ->addColumn('accordion', function ($row) {
-            if (empty($row->contributors)) return '';
-            $body = collect($row->contributors)->map(function ($c) {
-                return '<tr><td>' . e($c['sto_number']) . '</td>'
-                    . '<td>' . ($c['qty_counter1'] ?? '-') . '</td>'
-                    . '<td>' . ($c['qty_counter2'] ?? '-') . '</td>'
-                    . '<td>' . ($c['qty_counter3'] ?? '-') . '</td></tr>';
-            })->implode('');
-            return '<table class="table table-sm mb-0"><thead><tr><th>STO Number</th><th>C1</th><th>C2</th><th>C3</th></tr></thead><tbody>' . $body . '</tbody></table>';
-        })
-        ->rawColumns(['location', 'qty_variance', 'count_status', 'accordion'])
+       // SEBELUM: addColumn('accordion', ...) — dihapus, ganti dengan:
+->addColumn('rincian', function ($row) {
+    if (empty($row->contributors)) {
+        return '<button type="button" class="btn btn-sm btn-outline-secondary" disabled>Rincian</button>';
+    }
+    $payload = e(json_encode($row->contributors));
+    $label   = e($row->article_desc);
+    return '<button type="button" class="btn btn-sm btn-outline-primary btn-rincian-sto" '
+         . 'data-article="'.$label.'" data-contributors="'.$payload.'">'
+         . '<i data-feather="list" style="width:12px;height:12px;" class="mr-25"></i>Rincian</button>';
+})
+->rawColumns(['location', 'qty_variance', 'count_status', 'rincian'])
         ->make(true);
 }
 
@@ -1556,9 +1557,7 @@ private function buildAuditRawRows(Request $request)
     // Enrich dengan artikel yang punya stok di lokasi tapi belum pernah diinput STO.
     // Hanya jalan kalau filter searchTarget diisi & itu target_type LOCATION,
     // karena konsep "stok di lokasi" hanya berlaku untuk lokasi fisik.
-    if ($request->filled('searchTarget')) {
-        $rows = $this->appendPhantomArticles($rows, $request->searchTarget);
-    }
+   $rows = $this->appendPhantomArticlesForFilters($rows, $request);
 
     return $rows;
 }
@@ -1566,23 +1565,63 @@ private function buildAuditRawRows(Request $request)
 // ══════════════════════════════════════════════
 // PHANTOM ROWS — artikel ada stok di lokasi, belum ada input STO sama sekali
 // ══════════════════════════════════════════════
-private function appendPhantomArticles($rows, $targetRef)
+// ══════════════════════════════════════════════
+// PHANTOM ROWS — enumerasi SEMUA lokasi yang match filter aktif,
+// lalu munculkan artikel yang PUNYA STOK tapi belum pernah diinput STO
+// ══════════════════════════════════════════════
+private function appendPhantomArticlesForFilters($rows, Request $request)
 {
-    $m = DB::table('sto_config_mapping')
-        ->where('target_ref', $targetRef)
-        ->where('target_type', 'LOCATION')
-        ->first();
+    $mapQuery = DB::table('sto_config_mapping as m')
+        ->join('sto_config as c', 'c.config_id', '=', 'm.config_id')
+        ->where('m.target_type', 'LOCATION')
+        ->select('m.mapping_id', 'm.target_ref', 'm.is_blind',
+                 'm.counter1_user', 'm.counter2_user', 'm.counter3_user');
 
-    if (!$m) return $rows; // bukan target lokasi, skip
+    if ($request->filled('searchStoCode')) $mapQuery->where('c.sto_code', $request->searchStoCode);
+    if ($request->filled('searchPeriode')) $mapQuery->where('c.periode', $request->searchPeriode);
+    if ($request->filled('searchTarget'))  $mapQuery->where('m.target_ref', $request->searchTarget);
+    if ($request->filled('searchDate')) {
+        $parts = explode(' to ', $request->searchDate);
+        $from  = trim($parts[0] ?? '');
+        $to    = trim($parts[1] ?? $from);
+        if ($from && $to) {
+            $mapQuery->whereRaw(
+                "TO_DATE(m.sto_date,'DD-MM-YYYY') BETWEEN TO_DATE(?,'DD-MM-YYYY') AND TO_DATE(?,'DD-MM-YYYY')",
+                [$from, $to]
+            );
+        }
+    }
 
+    // satu lokasi bisa muncul di banyak periode/cycle — cukup ambil sekali per target_ref
+    $locationMappings = $mapQuery->get()->unique('target_ref');
+    if ($locationMappings->isEmpty()) return $rows;
+
+    // artikel yang sudah pernah dihitung, dikelompokkan per lokasi
+    // supaya artikel yang sama tidak dobel-muncul sebagai phantom
+    $countedByLocation = $rows->groupBy('location_number')
+        ->map(fn($items) => $items->pluck('article_code')->filter()
+              ->map(fn($c) => strtoupper($c))->unique()->all());
+
+    $allPhantoms = collect();
+    foreach ($locationMappings as $m) {
+        $counted = $countedByLocation->get($m->target_ref, []);
+        $allPhantoms = $allPhantoms->concat($this->buildPhantomArticlesForLocation($m, $counted));
+    }
+
+    return $rows->concat($allPhantoms);
+}
+
+private function buildPhantomArticlesForLocation($m, array $countedCodes)
+{
+    $targetRef    = $m->target_ref;
     $locationName = $this->resolveLocationName($targetRef);
-    $types      = $this->locationArticleTypeMap[$targetRef] ?? null;
-    $groupTypes = $this->locationGroupOfMaterialMap[$targetRef] ?? null;
+    $types        = $this->locationArticleTypeMap[$targetRef] ?? null;
+    $groupTypes   = $this->locationGroupOfMaterialMap[$targetRef] ?? null;
 
     $stockQuery = DB::table('warehouse_stock as ws')
         ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
         ->where('ws.location_number', $targetRef)
-        ->where('ws.article_qty', '<>', 0)
+        ->where('ws.article_qty', '<>', 0)   // hanya artikel yang ada angkanya
         ->select(
             'a.article_alternative_code as article_code',
             'a.article_desc', 'a.uom', 'a.min_package',
@@ -1596,46 +1635,39 @@ private function appendPhantomArticles($rows, $targetRef)
         });
     }
 
-    $stockArticles = $stockQuery->get();
-
-    // artikel yang sudah pernah masuk STO (dalam hasil $rows yang sudah difilter)
-    $countedCodes = $rows->pluck('article_code')->filter()
-        ->map(fn($c) => strtoupper($c))->unique()->all();
-
     $phantoms = collect();
-    foreach ($stockArticles as $sa) {
+    foreach ($stockQuery->get() as $sa) {
         if (in_array(strtoupper($sa->article_code), $countedCodes)) continue;
 
         $phantoms->push((object) [
-            'dtl_id'          => 'phantom-'.$sa->article_code,
-            'target_type'     => 'LOCATION',
-            'target_ref'      => $targetRef,
-            'is_blind'        => $m->is_blind ?? true,
+            'dtl_id'            => 'phantom-'.$targetRef.'-'.$sa->article_code,
+            'target_type'       => 'LOCATION',
+            'target_ref'        => $targetRef,
+            'is_blind'          => $m->is_blind ?? true,
             'map_counter1_user' => $m->counter1_user,
             'map_counter2_user' => $m->counter2_user,
             'map_counter3_user' => $m->counter3_user ?? null,
-            'target_name'     => $locationName,
-            'sto_code'        => null,
-            'config_id'       => null,
-            'periode'         => null,
-            'article_code'    => $sa->article_code,
-            'article_desc'    => $sa->article_desc,
-            'min_package'     => $sa->min_package,
-            'uom'             => $sa->uom,
-            'location_number' => $targetRef,
-            // belum pernah dihitung → tampilkan 0, bukan null/'-'
-            'qty_counter1'    => 0,
-            'qty_counter2'    => 0,
-            'qty_counter3'    => 0,
-            'sto_number'      => null,
-            'counter1_name'   => null, 'counter1_at' => null,
-            'counter2_name'   => null, 'counter2_at' => null,
-            'counter3_name'   => null, 'counter3_at' => null,
-            'stock_qty'       => (float) $sa->stock_qty,
+            'target_name'       => $locationName,
+            'sto_code'          => null,
+            'config_id'         => null,
+            'periode'           => null,
+            'article_code'      => $sa->article_code,
+            'article_desc'      => $sa->article_desc,
+            'min_package'       => $sa->min_package,
+            'uom'               => $sa->uom,
+            'location_number'   => $targetRef,
+            'qty_counter1'      => 0,
+            'qty_counter2'      => 0,
+            'qty_counter3'      => 0,
+            'sto_number'        => null,
+            'counter1_name' => null, 'counter1_at' => null,
+            'counter2_name' => null, 'counter2_at' => null,
+            'counter3_name' => null, 'counter3_at' => null,
+            'stock_qty'         => (float) $sa->stock_qty,
         ]);
     }
 
-    return $rows->concat($phantoms);
+    return $phantoms;
 }
 
 // ══════════════════════════════════════════════
