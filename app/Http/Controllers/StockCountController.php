@@ -514,27 +514,34 @@ private function getTableColoumnAuditDetail()
         ->editColumn('qty_counter3', fn($row) => $row->qty_counter3 !== null ? number_format((float) $row->qty_counter3, 2) : '-')
         ->editColumn('min_package', fn($row) => $row->min_package !== null ? number_format((float) $row->min_package, 2) : '-')
         // ── qty_system sekarang jadi link yang langsung buka modal Movement ──
-        ->editColumn('qty_system', function ($row) {
-            if ($row->qty_system === null) return '-';
-            $val = number_format((float) $row->qty_system, 2);
+      ->editColumn('qty_system', function ($row) {
+    if ($row->qty_system === null) return '-';
+    $val = number_format((float) $row->qty_system, 2);
 
-            if (empty($row->article_code) || empty($row->location_number)) {
-                return $val; // manual/OTHER, tidak ada movement untuk dilacak
-            }
+    if (empty($row->article_code) || empty($row->location_number)) {
+        return $val;
+    }
 
-            [$dateFrom, $dateTo] = $this->resolveMovementDateRange($row->sto_date);
+    $realCode = $this->resolveRealArticleCode($row->article_code);
+    if (!$realCode) {
+        // artikel tidak ketemu di master, jangan bikin link yang bakal gagal
+        return $val;
+    }
 
-            $url = route('warehouse.articlev2', [
-                'code'          => $row->article_code,
-                'location'      => $row->location_number,
-                'open_movement' => 1,
-                'date_from'     => $dateFrom,
-                'date_to'       => $dateTo,
-                'desc'          => $row->article_desc,
-            ]);
+    [$dateFrom, $dateTo] = $this->resolveMovementDateRange($row->sto_date);
 
-            return '<a href="'.$url.'" target="_blank">'.$val.'</a>';
-        })
+    $url = route('warehouse.article.index', [
+        'code'          => $row->article_code,   // alternative code, buat filter tampilan list
+        'real_code'     => $realCode,             // article_code asli, buat filter movement
+        'location'      => $row->location_number,
+        'open_movement' => 1,
+        'date_from'     => $dateFrom,
+        'date_to'       => $dateTo,
+        'desc'          => $row->article_desc,
+    ]);
+
+    return '<a href="'.$url.'" target="_blank">'.$val.'</a>';
+})
         ->editColumn('qty_variance', function ($row) {
             if ($row->qty_variance === null) return '-';
             $val = number_format((float) $row->qty_variance, 2);
@@ -1623,6 +1630,14 @@ private function appendPhantomArticlesForFilters($rows, Request $request)
     }
 
     return $rows->concat($allPhantoms);
+}
+
+private function resolveRealArticleCode($alternativeCode)
+{
+    if (!$alternativeCode) return null;
+    return DB::table('article')
+        ->where('article_alternative_code', $alternativeCode)
+        ->value('article_code');
 }
 
 private function buildPhantomArticlesForLocation($m, array $countedCodes, $periode = null)

@@ -381,7 +381,8 @@
     // ── auto-filter dari query string (mis. link dari halaman STO audit) ──
 (function applyUrlFilters() {
     const params = new URLSearchParams(window.location.search);
-    const urlCode         = params.get('code');
+    const urlCode         = params.get('code');       // alternative code (buat filter list & label)
+    const urlRealCode     = params.get('real_code');  // article_code asli (buat movement)
     const urlLocation     = params.get('location');
     const urlOpenMovement = params.get('open_movement');
     const urlDateFrom     = params.get('date_from');
@@ -402,20 +403,18 @@
 
     if (!hasFilter) return;
 
-    // jalankan search list dulu biar konsisten sama halaman biasa
     setTimeout(function () {
         $('#btnSearch').click();
 
-        // kalau minta buka movement langsung, tembak modal-nya
-        if (urlOpenMovement === '1' && urlCode && urlLocation) {
+        if (urlOpenMovement === '1' && urlRealCode && urlLocation) {
             setTimeout(function () {
                 movement(
-                    urlCode.toUpperCase(),
-                    urlCode.toUpperCase(),
+                    urlRealCode.toUpperCase(),   // ← article_code ASLI, dipakai buat query movement
+                    urlCode ? urlCode.toUpperCase() : urlRealCode.toUpperCase(), // alternative, buat label tampilan
                     urlDesc || '',
                     { from: urlDateFrom || null, to: urlDateTo || null }
                 );
-            }, 400); // jeda supaya select2 lokasi & tabel sudah settle
+            }, 400);
         }
     }, 150);
 })();
