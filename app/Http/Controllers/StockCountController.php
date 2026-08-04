@@ -1634,11 +1634,27 @@ private function appendPhantomArticlesForFilters($rows, Request $request)
     $mapQuery = DB::table('sto_config_mapping as m')
         ->join('sto_config as c', 'c.config_id', '=', 'm.config_id')
         ->where('m.target_type', 'LOCATION')
-        ->select('m.mapping_id', 'm.target_ref', 'm.is_blind', 'm.sto_date', // ← tambahkan
+        ->select('m.mapping_id', 'm.target_ref', 'm.is_blind', 'm.sto_date',
                  'm.counter1_user', 'm.counter2_user', 'm.counter3_user',
                  'c.periode');
 
-    // ...(filter sama seperti sebelumnya, tidak berubah)...
+    // ── Filter IDENTIK dengan applyAuditFilters(), supaya phantom hanya
+    // dienumerasi untuk lokasi yang benar2 relevan dengan filter aktif. ──
+    if ($request->filled('searchStoCode')) $mapQuery->where('c.sto_code', $request->searchStoCode);
+    if ($request->filled('searchPeriode')) $mapQuery->where('c.periode', $request->searchPeriode);
+    if ($request->filled('searchTarget'))  $mapQuery->where('m.target_ref', $request->searchTarget);
+
+    if ($request->filled('searchDate')) {
+        $parts = explode(' to ', $request->searchDate);
+        $from  = trim($parts[0] ?? '');
+        $to    = trim($parts[1] ?? $from);
+        if ($from && $to) {
+            $mapQuery->whereRaw(
+                "TO_DATE(m.sto_date,'DD-MM-YYYY') BETWEEN TO_DATE(?,'DD-MM-YYYY') AND TO_DATE(?,'DD-MM-YYYY')",
+                [$from, $to]
+            );
+        }
+    }
 
     $locationMappings = $mapQuery->get()->unique('target_ref');
     if ($locationMappings->isEmpty()) return $rows;
