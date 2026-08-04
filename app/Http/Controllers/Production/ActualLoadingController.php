@@ -433,68 +433,63 @@ class ActualLoadingController extends Controller
             $seq = (int) DB::table('warehouse_movement')->max('movement_code');
 
             $urutan = 0;
-            foreach ($articles as $val) {
-                $urutan++;
-                $qtyTotal = (float)($val->qty ?? 0);
-                if ($qtyTotal <= 0) continue;
+          foreach ($articles as $val) {
+    $urutan++;
 
-                // pecah otomatis: fresh dulu, sisanya repaint
-                $freshCapacity = $this->freshCapacity($val->article_code, $sprayBooth);
-                $qtyFresh   = min($qtyTotal, $freshCapacity);
-                $qtyRepaint = $qtyTotal - $qtyFresh;
+    $qtyFresh   = max(0, (float)($val->qty_fresh   ?? 0));
+    $qtyRepaint = max(0, (float)($val->qty_repaint ?? 0));
+    $qtyTotal   = $qtyFresh + $qtyRepaint;
 
-                if ($qtyRepaint > 0) {
-                    $wipAvail = $this->wipAvailable($val->article_code);
-                    if ($wipAvail < $qtyRepaint) {
-                        throw new \Exception(
-                            "Qty {$qtyTotal} untuk {$val->article_code} tidak tercukupi. ".
-                            "Fresh maks {$freshCapacity}, repaint (WIP) maks {$wipAvail}."
-                        );
-                    }
-                }
+    if ($qtyTotal <= 0) continue;
 
-                DB::table('actual_loading_det')->insert([
-                    'prod_code'              => $prdNumber,
-                    'urutan'                 => $urutan,
-                    'article_code'           => $val->article_code,
-                    'uom'                    => $val->uom ?? null,
-                    'qty'                    => $qtyTotal,
-                    'qty_fresh'              => $qtyFresh,
-                    'qty_repaint'            => $qtyRepaint,
-                    'stock_fresh_snapshot'   => (float)($val->stock_fresh   ?? 0),
-                    'stock_repaint_snapshot' => (float)($val->stock_repaint ?? 0),
-                    'note'                   => $val->note ?? null,
-                    'created_by'             => $username,
-                    'updated_by'             => $username,
-                    'created_at'             => $now,
-                    'updated_at'             => $now,
-                ]);
+    // ── TIDAK ADA lagi throw exception untuk over-qty ──
+    // Stok RM di booth / FG di WIP boleh jadi minus.
+    // Kapasitas hanya dicatat sebagai snapshot info, bukan pemblokir.
 
-                // FRESH: RM keluar dari booth, FG masuk ke gudang loading
-                if ($qtyFresh > 0) {
-                    foreach ($this->getBomRm($val->article_code) as $rm) {
-                        $this->postOut(
-                            $seq, $rm->article_code, $qtyFresh * (float)$rm->qty_per_fg,
-                            $sprayBooth, $loadingLocation, $movementType, $prdNumber,
-                            "Fresh RM", $username
-                        );
-                    }
-                    $this->postIn(
-                        $seq, $val->article_code, $val->uom, $qtyFresh,
-                        $loadingLocation, $sprayBooth, $movementType, $prdNumber,
-                        "Fresh RM", $username
-                    );
-                }
+    $freshCapacity = $this->freshCapacity($val->article_code, $sprayBooth);
+    $wipAvail      = $this->wipAvailable($val->article_code);
 
-                // REPAINT: FG dari WIP -> loading. OUT+IN dipasangkan per sumber
-                //          di DALAM moveRepaintFromWip (from = WIP asal, akurat)
-                if ($qtyRepaint > 0) {
-                    $this->moveRepaintFromWip(
-                        $seq, $val->article_code, $val->uom, $qtyRepaint,
-                        $loadingLocation, $movementType, $prdNumber, $username
-                    );
-                }
-            }
+    DB::table('actual_loading_det')->insert([
+        'prod_code'              => $prdNumber,
+        'urutan'                 => $urutan,
+        'article_code'           => $val->article_code,
+        'uom'                    => $val->uom ?? null,
+        'qty'                    => $qtyTotal,
+        'qty_fresh'              => $qtyFresh,
+        'qty_repaint'            => $qtyRepaint,
+        'stock_fresh_snapshot'   => $freshCapacity,   // snapshot kapasitas saat input
+        'stock_repaint_snapshot' => $wipAvail,
+        'note'                   => $val->note ?? null,
+        'created_by'             => $username,
+        'updated_by'             => $username,
+        'created_at'             => $now,
+        'updated_at'             => $now,
+    ]);
+
+    // FRESH: RM keluar dari booth (boleh minus) → FG masuk gudang loading
+    if ($qtyFresh > 0) {
+        foreach ($this->getBomRm($val->article_code) as $rm) {
+            $this->postOut(
+                $seq, $rm->article_code, $qtyFresh * (float)$rm->qty_per_fg,
+                $sprayBooth, $loadingLocation, $movementType, $prdNumber,
+                "Fresh RM", $username
+            );
+        }
+        $this->postIn(
+            $seq, $val->article_code, $val->uom, $qtyFresh,
+            $loadingLocation, $sprayBooth, $movementType, $prdNumber,
+            "Fresh RM", $username
+        );
+    }
+
+    // REPAINT: FG dari WIP → gudang loading
+    if ($qtyRepaint > 0) {
+        $this->moveRepaintFromWipAllowMinus(
+            $seq, $val->article_code, $val->uom, $qtyRepaint,
+            $loadingLocation, $movementType, $prdNumber, $username
+        );
+    }
+}
 
             DB::commit();
             $title   = "Save $this->title";
@@ -571,41 +566,52 @@ class ActualLoadingController extends Controller
      * DAN langsung catat pasangan OUT+IN per sumber supaya
      * movement_from di sisi IN akurat (bukan hardcode 'WIP').
      */
-    private function moveRepaintFromWip(&$seq, $fgArticle, $uom, $qtyNeeded, $toLoc, $movementType, $transno, $username)
-    {
-        $sources = DB::table('warehouse_stock as ws')
-            ->join('stock_location_master as slm','slm.location_code','=','ws.location_number')
-            ->where('ws.article_code', $fgArticle)
-            ->where('slm.location_type','wip')
-            ->where('ws.article_qty','>',0)
-            ->groupBy('ws.location_number','slm.location_name')
-            ->orderBy('slm.location_name')
-            ->select('ws.location_number', DB::raw('sum(ws.article_qty) as qty'))
-            ->get();
+    /**
+ * Versi yang MENGIZINKAN stok WIP minus.
+ * Alokasi greedy dari WIP yang ada; kalau kurang, sisa diambil dari
+ * lokasi WIP pertama (saldonya jadi minus) — tidak throw exception.
+ */
+private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeeded, $toLoc, $movementType, $transno, $username)
+{
+    $sources = DB::table('warehouse_stock as ws')
+        ->join('stock_location_master as slm','slm.location_code','=','ws.location_number')
+        ->where('ws.article_code', $fgArticle)
+        ->where('slm.location_type','wip')
+        ->groupBy('ws.location_number','slm.location_name')
+        ->orderBy('slm.location_name')
+        ->select('ws.location_number', DB::raw('sum(ws.article_qty) as qty'))
+        ->get();
 
-        $remaining = $qtyNeeded;
-        foreach ($sources as $src) {
-            if ($remaining <= 0) break;
-            $take = min($remaining, (float)$src->qty);
-            if ($take <= 0) continue;
+    $remaining = $qtyNeeded;
 
-            $this->postOut(
-                $seq, $fgArticle, $take,
-                $src->location_number, $toLoc, $movementType, $transno,
-                "Repaint dari WIP", $username
-            );
-            $this->postIn(
-                $seq, $fgArticle, $uom, $take,
-                $toLoc, $src->location_number, $movementType, $transno,
-                "FG Repaint", $username
-            );
+    // 1. ambil dari WIP yang masih ada saldo positif
+    foreach ($sources as $src) {
+        if ($remaining <= 0) break;
+        $avail = max(0, (float)$src->qty);
+        if ($avail <= 0) continue;
 
-            $remaining -= $take;
-        }
-        if ($remaining > 0) {
-            throw new \Exception("Alokasi repaint {$fgArticle} tidak cukup (sisa {$remaining}).");
-        }
+        $take = min($remaining, $avail);
+        $this->postOut($seq, $fgArticle, $take, $src->location_number, $toLoc, $movementType, $transno, "Repaint dari WIP", $username);
+        $this->postIn ($seq, $fgArticle, $uom, $take, $toLoc, $src->location_number, $movementType, $transno, "FG Repaint", $username);
+        $remaining -= $take;
     }
+
+    // 2. sisa yang belum tercukupi → paksa dari WIP pertama (jadi minus)
+    if ($remaining > 0) {
+        // pilih lokasi WIP pertama sebagai penampung minus
+        $fallbackLoc = $sources->first()->location_number
+            ?? DB::table('stock_location_master')->where('location_type','wip')->value('location_code');
+
+        if (!$fallbackLoc) {
+            // tidak ada gudang WIP sama sekali — terpaksa tetap catat, saldo minus di lokasi loading source
+            $fallbackLoc = $toLoc;
+        }
+
+        $this->postOut($seq, $fgArticle, $remaining, $fallbackLoc, $toLoc, $movementType, $transno, "Repaint (WIP minus)", $username);
+        $this->postIn ($seq, $fgArticle, $uom, $remaining, $toLoc, $fallbackLoc, $movementType, $transno, "FG Repaint (minus)", $username);
+        $remaining = 0;
+    }
+}
 
     /** Satu baris KELUAR: kurangi warehouse_stock sumber + movement (min) */
     private function postOut(&$seq, $article, $qty, $fromLoc, $toLoc, $movementType, $transno, $desc, $username)

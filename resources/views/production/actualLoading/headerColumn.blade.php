@@ -1,20 +1,11 @@
-<div class="form-row d-flex align-items-end">
-    <div class="col-md-4 col-12 d-none d-md-block">
-        <div class="form-group"><label class="d-none d-md-block font-weight-bold">Article Code</label></div>
-    </div>
-    <div class="col-md-2 col-12 d-none d-md-block">
-        <div class="form-group"><label class="d-none d-md-block font-weight-bold text-right">Max Loading</label></div>
-    </div>
-    <div class="col-md-1 col-12 d-none d-md-block">
-        <div class="form-group"><label class="d-none d-md-block font-weight-bold">QTY</label></div>
-    </div>
-    <div class="col-md-1 col-12 d-none d-md-block">
-        <div class="form-group"><label class="d-none d-md-block font-weight-bold">UOM</label></div>
-    </div>
-    <div class="col-md-2 col-12 d-none d-md-block">
-        <div class="form-group"><label class="d-none d-md-block font-weight-bold">Note</label></div>
-    </div>
-    <div class="col-md-1 col-12 d-none d-md-block">
-        <div class="form-group"><label class="d-none d-md-block font-weight-bold text-center">-</label></div>
-    </div>
+<div class="form-row d-flex align-items-center font-weight-bold text-muted mb-50 d-none d-md-flex"
+     style="font-size:12px; border-bottom:1px solid #e9ecef; padding-bottom:6px;">
+    <div class="col-md-4">Article</div>
+    <div class="col-md-1 text-right pr-4">Max FG</div>
+    <div class="col-md-1 text-right">QTY Fresh</div>
+    <div class="col-md-1 text-right">QTY Repaint</div>
+    <div class="col-md-1 text-right">Total</div>
+    <div class="col-md-1">UOM</div>
+    <div class="col-md-2">Note</div>
+    <div class="col-md-1 text-center">Action</div>
 </div>
