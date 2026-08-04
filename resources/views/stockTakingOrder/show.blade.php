@@ -377,9 +377,9 @@
 
 @section('scripts')
 <script>
-    $(function () {
+$(function () {
     $('[data-toggle="tooltip"]').tooltip();
-    if (window.feather) feather.replace();
+    // feather.replace() sengaja tidak dipanggil di sini — sudah di-handle oleh layout global
 });
 
 $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
