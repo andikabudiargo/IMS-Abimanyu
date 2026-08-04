@@ -234,7 +234,7 @@ $(document).ready(function () {
 
     $('#auditDate').val('{{ $today }}');
 
-    $(document).on('click', '.btn-rincian-sto', function () {
+   $(document).on('click', '.btn-rincian-sto', function () {
     let article = $(this).data('article');
     let contributors = $(this).data('contributors'); // jQuery otomatis parse JSON
 
@@ -243,12 +243,18 @@ $(document).ready(function () {
         return;
     }
 
+    let fmt = function (v) {
+        if (v === null || v === undefined || v === '') return '-';
+        let n = parseFloat(v);
+        return isNaN(n) ? '0.00' : n.toFixed(2);
+    };
+
     let rows = contributors.map(function (c) {
         return '<tr>'
             + '<td>' + (c.sto_number ?? '-') + '</td>'
-            + '<td class="text-right">' + (c.qty_counter1 ?? '-') + '</td>'
-            + '<td class="text-right">' + (c.qty_counter2 ?? '-') + '</td>'
-            + '<td class="text-right">' + (c.qty_counter3 ?? '-') + '</td>'
+            + '<td class="text-right">' + fmt(c.qty_counter1) + '</td>'
+            + '<td class="text-right">' + fmt(c.qty_counter2) + '</td>'
+            + '<td class="text-right">' + fmt(c.qty_counter3) + '</td>'
             + '</tr>';
     }).join('');
 
