@@ -17,7 +17,8 @@ Route::get('/monitoring', function () {
     return redirect()->away(
         'https://docs.google.com/spreadsheets/d/1a7-TJ50WaKe3XMsCwvI4yOCqo68rmebjfOs46HBot8s/edit?usp=sharing'
     );
-	// routes/web.php — tambah sementara
+	});
+	
 Route::get('/tmp-recalc-sto-phantom', function () {
     $configs = DB::table('sto_config')->where('status', '!=', 5)->pluck('config_id');
     $ctrl = app(App\Http\Controllers\StockTakingOrderController::class);
@@ -29,7 +30,7 @@ Route::get('/tmp-recalc-sto-phantom', function () {
 
     echo "Selesai.";
 });
-});
+
 // Route::auth();
 Auth::routes();
 Route::group( ['middleware' => ['auth']], function() {
