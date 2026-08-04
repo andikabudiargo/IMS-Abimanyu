@@ -223,58 +223,52 @@
     $pctDone = (float) $hdr->target_act;
 @endphp
 
-        {{-- metric strip --}}
-        <div class="metric-wrap">
-            <div class="row">
-               <div class="col-lg-4 col-md-6 mb-1 mb-lg-0">
-    <div class="metric-card m-total">
-        <div class="d-flex justify-content-between align-items-start">
-            <span class="m-label">Total Baris</span>
-            <span class="m-value">{{ $totalLines }}</span>
-        </div>
-        <div class="progress mt-1" style="height:6px;border-radius:6px;">
-            <div class="progress-bar bg-success" style="width:{{ $pctDone }}%"></div>
-        </div>
-        <div style="font-size:.7rem;color:#9aa0ab;margin-top:5px;font-weight:600;">
-            {{ number_format($pctDone, 2) }}% AKURAT
-            <i class="ml-25" data-toggle="tooltip" data-html="true"
-               title="Match murni: {{ $totalMatch }} baris<br>Recount masuk toleransi: {{ $totalRecountTol }} baris<br><b>Total akurat: {{ $totalMatch + $totalRecountTol }} / {{ $totalLines }}</b>"
-               data-feather="info" style="width:11px;height:11px;cursor:help;vertical-align:-1px;"></i>
-        </div>
-    </div>
-</div>
-                        <div class="progress mt-1" style="height:6px;border-radius:6px;">
-                            <div class="progress-bar bg-success" style="width:{{ $pctDone }}%"></div>
-                        </div>
-                        <div style="font-size:.7rem;color:#9aa0ab;margin-top:5px;font-weight:600;">{{ $pctDone }}% MATCH</div>
-                    </div>
+      {{-- metric strip --}}
+<div class="metric-wrap">
+    <div class="row">
+        <div class="col-lg-4 col-md-6 mb-1 mb-lg-0">
+            <div class="metric-card m-total">
+                <div class="d-flex justify-content-between align-items-start">
+                    <span class="m-label">Total Baris</span>
+                    <span class="m-value">{{ $totalLines }}</span>
                 </div>
-                <div class="col-lg-2 col-md-6 col-6 mb-1 mb-lg-0">
-                    <div class="metric-card m-accent m-match text-center">
-                        <div class="m-label">Match</div>
-                        <div class="m-value text-success mt-25">{{ $totalMatch }}</div>
-                    </div>
+                <div class="progress mt-1" style="height:6px;border-radius:6px;">
+                    <div class="progress-bar bg-success" style="width:{{ $pctDone }}%"></div>
                 </div>
-                <div class="col-lg-2 col-md-6 col-6 mb-1 mb-lg-0">
-                    <div class="metric-card m-accent m-notmatch text-center">
-                        <div class="m-label">Not Match</div>
-                        <div class="m-value text-danger mt-25">{{ $totalNotMatch }}</div>
-                    </div>
-                </div>
-                <div class="col-lg-2 col-md-6 col-6">
-                    <div class="metric-card m-accent m-recount text-center">
-                        <div class="m-label">Recount</div>
-                        <div class="m-value text-warning mt-25">{{ $totalRecount }}</div>
-                    </div>
-                </div>
-                <div class="col-lg-2 col-md-6 col-6">
-                    <div class="metric-card m-accent m-incomplete text-center">
-                        <div class="m-label">Incomplete</div>
-                        <div class="m-value text-secondary mt-25">{{ $totalIncomplete }}</div>
-                    </div>
+                <div style="font-size:.7rem;color:#9aa0ab;margin-top:5px;font-weight:600;">
+                    {{ number_format($pctDone, 2) }}% AKURAT
+                    <i class="ml-25" data-toggle="tooltip" data-html="true"
+                       title="Match murni: {{ $totalMatch }} baris<br>Recount masuk toleransi: {{ $totalRecountTol }} baris<br><b>Total akurat: {{ $totalMatch + $totalRecountTol }} / {{ $totalLines }}</b>"
+                       data-feather="info" style="width:11px;height:11px;cursor:help;vertical-align:-1px;"></i>
                 </div>
             </div>
         </div>
+        <div class="col-lg-2 col-md-6 col-6 mb-1 mb-lg-0">
+            <div class="metric-card m-accent m-match text-center">
+                <div class="m-label">Match</div>
+                <div class="m-value text-success mt-25">{{ $totalMatch }}</div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-6 col-6 mb-1 mb-lg-0">
+            <div class="metric-card m-accent m-notmatch text-center">
+                <div class="m-label">Not Match</div>
+                <div class="m-value text-danger mt-25">{{ $totalNotMatch }}</div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-6 col-6">
+            <div class="metric-card m-accent m-recount text-center">
+                <div class="m-label">Recount</div>
+                <div class="m-value text-warning mt-25">{{ $totalRecount }}</div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-6 col-6">
+            <div class="metric-card m-accent m-incomplete text-center">
+                <div class="m-label">Incomplete</div>
+                <div class="m-value text-secondary mt-25">{{ $totalIncomplete }}</div>
+            </div>
+        </div>
+    </div>
+</div>
 
         {{-- table --}}
         <div class="table-wrap">
