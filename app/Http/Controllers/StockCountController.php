@@ -1477,7 +1477,10 @@ private function resolveTolerancePercent($targetPlanLoc)
     // ══════════════════════════════════════════════
     // RECALC PROGRESS
     // ══════════════════════════════════════════════
-    private function recalcMappingProgress($mappingId)
+    // ══════════════════════════════════════════════
+// RECALC PROGRESS
+// ══════════════════════════════════════════════
+private function recalcMappingProgress($mappingId)
 {
     $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->first();
     if (!$m) return;
@@ -1485,24 +1488,49 @@ private function resolveTolerancePercent($targetPlanLoc)
     $tolerance = $this->resolveTolerancePercent($m->target_plan_loc);
 
     $stoIds = DB::table('sto_hdr')->where('mapping_id', $mappingId)->pluck('sto_id');
-    $total  = DB::table('sto_dtl')->whereIn('sto_id', $stoIds)->count();
 
-    // "Akurat" = MATCH murni, ATAU RECOUNT tapi selisihnya masih dalam toleransi
-    // (toleransi diturunkan dari target_plan_loc mapping ini)
-    $accurate = DB::table('sto_dtl')
-        ->whereIn('sto_id', $stoIds)
-        ->where(function ($q) use ($tolerance) {
-            $q->where('count_status', 'MATCH');
-            if ($tolerance > 0) {
-                $q->orWhere(function ($q2) use ($tolerance) {
-                    $q2->where('count_status', 'RECOUNT')
-                       ->whereNotNull('qty_system')
-                       ->where('qty_system', '<>', 0)
-                       ->whereRaw('ABS(qty_variance) / ABS(qty_system) * 100 <= ?', [$tolerance]);
-                });
-            }
-        })
-        ->count();
+    $dtlRows = DB::table('sto_dtl as d')
+        ->whereIn('d.sto_id', $stoIds)
+        ->select('d.dtl_id', 'd.article_code', 'd.location_number', 'd.is_manual',
+                 'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3')
+        ->get();
+
+    // ── Group per artikel + lokasi (BUKAN per baris/sto_number). Auto & non-auto
+    // DIPERLAKUKAN SAMA: satu artikel fisik = satu unit penilaian, meski qty-nya
+    // terpecah di beberapa sto_number berbeda (khususnya lokasi non-auto). ──
+    $grouped = $dtlRows->groupBy(function ($row) {
+        $key = $row->article_code ? strtoupper($row->article_code) : ('MANUAL-'.$row->dtl_id);
+        return $row->location_number.'|'.$key;
+    });
+
+    $total    = 0;
+    $accurate = 0;
+
+    foreach ($grouped as $items) {
+        $total++;
+        if ($this->isGroupAccurate($items, $m, $tolerance)) {
+            $accurate++;
+        }
+    }
+
+    // ── PHANTOM: artikel yang punya movement di lokasi+periode ini tapi SAMA SEKALI
+    // belum diinput STO sama sekali. Dihitung sebagai TIDAK AKURAT (0), tapi TETAP
+    // masuk total — supaya skor tidak bisa dikerek dengan cuma menghitung artikel
+    // yang gampang/kebetulan sudah pas. ──
+    if ($m->target_type === 'LOCATION') {
+        $countedCodes = $grouped->keys()
+            ->map(fn($k) => explode('|', $k, 2)[1] ?? $k)
+            ->reject(fn($k) => str_starts_with($k, 'MANUAL-'))
+            ->map(fn($k) => strtoupper($k))
+            ->unique()
+            ->all();
+
+        $periode = DB::table('sto_config')->where('config_id', $m->config_id)->value('periode');
+        $periode = $periode ? substr($periode, 0, 7) : null;
+
+        $phantoms = $this->buildPhantomArticlesForLocation($m, $countedCodes, $periode);
+        $total += $phantoms->count(); // tiap phantom = 1 unit, otomatis dihitung gagal
+    }
 
     $actLoc = $total > 0 ? round(($accurate / $total) * 100, 2) : 0;
 
@@ -1512,6 +1540,63 @@ private function resolveTolerancePercent($targetPlanLoc)
     $actGlobal = DB::table('sto_config_mapping')->where('config_id', $m->config_id)->avg('target_act_loc');
     DB::table('sto_config')->where('config_id', $m->config_id)
         ->update(['target_act' => round($actGlobal ?? 0, 2), 'updated_at' => date('Y-m-d H:i:s')]);
+}
+
+// Tentukan apakah satu grup artikel (gabungan lintas sto_number) AKURAT,
+// dengan toleransi. Qty di-SUM dulu per slot counter, baru dibandingkan —
+// bukan dinilai per baris/sto_number satu-satu.
+private function isGroupAccurate($items, $mapping, $tolerance)
+{
+    $first = $items->first();
+
+    // artikel manual tidak dibandingkan ke stock system → selama sudah
+    // diinput, dianggap akurat (konsisten dengan compareToSystem() lama)
+    if (empty($first->article_code)) {
+        return true;
+    }
+
+    $qtySystem = (float) $this->getLastQty($first->article_code, $first->location_number, $mapping->sto_date);
+
+    if (!($mapping->is_blind ?? true)) {
+        $sum = $items->sum(fn($r) => (float) ($r->qty_counter1 ?? $r->qty_counter2 ?? $r->qty_counter3 ?? 0));
+        $anyFilled = $items->contains(fn($r) => $r->qty_counter1 !== null || $r->qty_counter2 !== null || $r->qty_counter3 !== null);
+        if (!$anyFilled) return false; // INCOMPLETE
+
+        return $this->withinTolerance($sum, $qtySystem, $tolerance);
+    }
+
+    $activeSlots = [];
+    foreach (['1', '2', '3'] as $n) {
+        $userField = "counter{$n}_user";
+        if (!empty($mapping->{$userField})) $activeSlots[] = $n;
+    }
+    if (empty($activeSlots)) $activeSlots = ['1', '2', '3'];
+
+    $totals = [];
+    foreach ($activeSlots as $n) {
+        $field  = "qty_counter{$n}";
+        $hasAny = $items->contains(fn($r) => $r->{$field} !== null);
+        if (!$hasAny) return false; // INCOMPLETE
+        $totals[$n] = (float) $items->sum($field);
+    }
+
+    $unique = array_unique(array_map(fn($v) => round($v, 2), $totals));
+    if (count($unique) > 1) return false; // NOT MATCH — antar counter tidak sepakat
+
+    $counted = array_values($totals)[0];
+    return $this->withinTolerance($counted, $qtySystem, $tolerance);
+}
+
+private function withinTolerance($counted, $qtySystem, $tolerance)
+{
+    $variance = round($counted - $qtySystem, 2);
+    if ($variance == 0) return true; // MATCH persis
+
+    if ($tolerance <= 0) return false;
+    if ($qtySystem == 0) return false; // hindari div-by-zero; variance dari basis 0 dianggap gagal
+
+    $percent = abs($variance) / abs($qtySystem) * 100;
+    return $percent <= $tolerance;
 }
  
     // ══════════════════════════════════════════════
