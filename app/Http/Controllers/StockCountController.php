@@ -1618,10 +1618,10 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
     // ── Ambil SEMUA artikel yang punya movement di lokasi ini pada periode STO,
     // bukan dari snapshot warehouse_stock (rawan mismatch format / sudah 0). ──
     $movementQuery = DB::table('warehouse_movement as wm')
-        ->join('article as a', 'a.article_alternative_code', '=', 'wm.artikel_code')
+        ->join('article as a', 'a.article_code', '=', 'wm.artikel_code')
         ->where('wm.location_number', $targetRef)
         ->where('wm.movement_type', 'not ilike', 'CANCEL %')
-        ->select('a.article_alternative_code as article_code', 'a.article_desc', 'a.uom', 'a.min_package')
+        ->select('a.article_code', 'a.article_desc', 'a.uom', 'a.min_package')
         ->distinct();
 
     if ($periode) {
