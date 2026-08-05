@@ -84,7 +84,6 @@ namespace App\Http\Controllers;
     $username = $username ?? optional(Auth::user())->username ?? 'system-migration';
     $months   = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
 
-    // ── Parse trDate → refDate ──
     if (empty($trDate)) {
         $refDate = now();
     } else {
@@ -103,11 +102,9 @@ namespace App\Http\Controllers;
 
     $year  = $refDate->year;
     $month = $refDate->month;
-
     $isCurrentPeriod = ($year === now()->year && $month === now()->month);
 
     if ($isCurrentPeriod) {
-        // ── Bulan berjalan → pakai counter master_code seperti biasa (atomik) ──
         $newCode = DB::selectOne("
             UPDATE master_code
                SET code_number = code_number + 1, updated_by = ?, updated_at = now()
@@ -115,8 +112,10 @@ namespace App\Http\Controllers;
          RETURNING code_number
         ", [$username, $key])->code_number;
     } else {
-        // ── BACKDATE lintas bulan → hitung dari dokumen bulan itu, JANGAN sentuh counter ──
-        // Ambil nomor tertinggi TRF untuk tahun+bulan tsb, +1.
+        // ── BACKDATE: lock per (key + tahun + bulan) supaya MAX+1 atomik ──
+        $lockKey = sprintf('%s-backdate-%d-%d', $key, $year, $month);
+        DB::select("SELECT pg_advisory_xact_lock(hashtext(?))", [$lockKey]);
+
         $prefixLike = sprintf('%s/%d/%s/%%', $key, $year, $months[$month - 1]);
 
         $maxSeq = (int) DB::selectOne("
@@ -256,60 +255,72 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
         }
 
     private function processPosting(string $trNumber, string $username): array
-    {
-        $hdrQ = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->first();
-        if (!$hdrQ) {
-            return ['success' => false, 'message' => ["Transfer $trNumber tidak ditemukan"]];
-        }
-
-        try {
-            $lines = $this->resolveTransferLines($hdrQ);
-        } catch (\RuntimeException $e) {
-            return ['success' => false, 'message' => [$e->getMessage()]];
-        }
-
-        $todayDate    = date('Y-m-d');
-        $locationFrom = $hdrQ->location_from;
-        $locationTo   = $hdrQ->location_to;
-        $trType       = ($hdrQ->tr_type === 'SUPPLY') ? 'SUPPLY' : 'TRANSFER';
-        $this->lockMovementSequence();  
-        $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
-        $dataSetMovement = [];
-
-        // ===== KELUAR dari gudang asal =====
-        foreach ($lines['out'] as $line) {
-            $price = $this->getAvgPrice($line['article_code'], $locationFrom);
-
-            $this->kurangiStock($line['article_code'], $locationFrom,
-                                $line['article_type'], $line['uom'], $line['qty']);
-
-            $dataSetMovement[] = $this->buildMovement(
-                ++$seq, $hdrQ, $line, $trType, 'min',
-                $locationFrom, $locationFrom, $locationTo,
-                $price, $this->movementDesc($hdrQ->note, $line), $username, $todayDate
-            );
-        }
-
-        // ===== MASUK ke gudang tujuan =====
-        foreach ($lines['in'] as $line) {
-            $price = $this->getAvgPrice($line['article_code'], $locationFrom);
-
-            $this->tambahStock($line['article_code'], $locationTo,
-                               $line['article_type'], $line['uom'], $line['qty'], $price);
-
-            $dataSetMovement[] = $this->buildMovement(
-                ++$seq, $hdrQ, $line, $trType, 'plus',
-                $locationTo, $locationFrom, $locationTo,
-                $price, $this->movementDesc($hdrQ->note, $line), $username, $todayDate
-            );
-        }
-
-        if (!empty($dataSetMovement)) {
-            DB::table('warehouse_movement')->insert($dataSetMovement);
-        }
-
-        return ['success' => true, 'message' => "Transfer $trNumber berhasil diposting"];
+{
+    $hdrQ = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->first();
+    if (!$hdrQ) {
+        return ['success' => false, 'message' => ["Transfer $trNumber tidak ditemukan"]];
     }
+
+    try {
+        $lines = $this->resolveTransferLines($hdrQ);
+    } catch (\RuntimeException $e) {
+        return ['success' => false, 'message' => [$e->getMessage()]];
+    }
+
+    $movementDate = \Carbon\Carbon::createFromFormat('d-m-Y', $hdrQ->tr_date)->format('d-m-Y');
+    $locationFrom = $hdrQ->location_from;
+    $locationTo   = $hdrQ->location_to;
+    $trType       = ($hdrQ->tr_type === 'SUPPLY') ? 'SUPPLY' : 'TRANSFER';
+
+    $this->lockMovementSequence();
+    $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
+    $dataSetMovement = [];
+
+    // ===== KELUAR dari gudang asal =====
+    foreach ($lines['out'] as $line) {
+        $price = $this->getAvgPrice($line['article_code'], $locationFrom);
+
+        $dataSetMovement[] = $this->buildMovement(
+            ++$seq, $hdrQ, $line, $trType, 'min',
+            $locationFrom, $locationFrom, $locationTo,
+            $price, $this->movementDesc($hdrQ->note, $line), $username, $movementDate
+        );
+    }
+
+    // ===== MASUK ke gudang tujuan =====
+    foreach ($lines['in'] as $line) {
+        // #4: FG→RM di gudang NG RM → harga RM diambil dari avg RM (gudang 009),
+        //     bukan dari locationFrom (gudang FG) yang tidak punya RM tsb.
+        $isFgToNgRm = ($locationTo === $this->ngRmLocation);
+        $priceLoc   = $isFgToNgRm ? '009' : $locationFrom;
+        $price      = $this->getAvgPrice($line['article_code'], $priceLoc);
+
+        $dataSetMovement[] = $this->buildMovement(
+            ++$seq, $hdrQ, $line, $trType, 'plus',
+            $locationTo, $locationFrom, $locationTo,
+            $price, $this->movementDesc($hdrQ->note, $line), $username, $movementDate
+        );
+    }
+
+    // #3: insert movement dulu, JANGAN sentuh warehouse_stock manual
+    if (!empty($dataSetMovement)) {
+        DB::table('warehouse_movement')->insert($dataSetMovement);
+    }
+
+    // #1 + #2: recalculate running last_qty + warehouse_stock dari ledger.
+    //   Ini menimpa last_qty sementara di buildMovement dengan nilai final yang benar,
+    //   dan menggeser semua movement setelah tr_date (kasus backdate).
+    $affected = [];
+    foreach (array_merge($lines['out'], $lines['in']) as $line) {
+        $affected[$line['article_code'].'|'.$locationFrom] = ['article' => $line['article_code'], 'loc' => $locationFrom];
+        $affected[$line['article_code'].'|'.$locationTo]   = ['article' => $line['article_code'], 'loc' => $locationTo];
+    }
+    foreach ($affected as $a) {
+        $this->recalculateMovementAndStock($a['article'], $a['loc'], $hdrQ->tr_date);
+    }
+
+    return ['success' => true, 'message' => "Transfer $trNumber berhasil diposting"];
+}
 
         private function formatAging(float $seconds): array
         {
@@ -1127,8 +1138,6 @@ public function update(Request $request)
  */
 private function recalculateMovementAndStock(string $articleCode, string $location, string $fromDate): void
 {
-    // $fromDate format DD-MM-YYYY (sesuai tr_date & movement_date di DB)
-
     $balanceBefore = (float) DB::selectOne(
         "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'DD-MM-YYYY') - INTERVAL '1 day', 'DD-MM-YYYY'), ?, ?) AS bal",
         [$articleCode, $fromDate, $this->siteCode, $location]
@@ -1140,31 +1149,37 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
         ->where('site_code', $this->siteCode)
         ->where(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), '>=',
             DB::raw("TO_DATE('$fromDate', 'DD-MM-YYYY')"))
+        // ── Filter yang sama dengan get_last_qty_new ──
+        ->whereNotIn('movement_type', ['RETURN-CANCEL', 'RETURN-REVERSE'])
+        ->where('movement_type', 'NOT LIKE', 'CANCEL %')
+        ->where('movement_type', 'NOT LIKE', 'DELETE%')
+        ->where('movement_type', 'NOT LIKE', 'REVISI %')
+        // ── Buang OB (sudah dihitung di get_last_qty_new sebagai basis) ──
+        ->whereNotExists(function ($q) {
+            $q->select(DB::raw(1))
+              ->from('stock_adjustment_hdr')
+              ->whereColumn('stock_adjustment_hdr.adj_code', 'warehouse_movement.movement_transnno')
+              ->where('stock_adjustment_hdr.adj_type', 'OPENING BALANCE');
+        })
         ->orderBy(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), 'asc')
         ->orderBy('movement_code', 'asc')
         ->select('movement_code', 'movement_min', 'movement_plus')
         ->get();
- 
+
     if ($movements->isEmpty()) {
-        // Tidak ada movement setelah fromDate → update warehouse_stock ke balanceBefore
         $this->updateWarehouseStock($articleCode, $location, $balanceBefore);
-         $this->recalculateAvgPrice($articleCode, $location);   // ← TAMBAH
+        $this->recalculateAvgPrice($articleCode, $location);
         return;
     }
- 
-    // 3) Hitung ulang running last_qty dan UPDATE tiap baris
+
     $running = $balanceBefore;
     foreach ($movements as $mov) {
         $running = $running - (float)$mov->movement_min + (float)$mov->movement_plus;
- 
         DB::table('warehouse_movement')
             ->where('movement_code', $mov->movement_code)
             ->update(['last_qty' => $running]);
     }
- 
-    // 4) Update warehouse_stock → saldo akhir = last_qty movement terakhir
-    //    Tapi harus ambil last_qty dari movement PALING AKHIR secara keseluruhan
-    //    (bukan hanya yang >= fromDate), karena mungkin ada movement lebih baru
+
     $latestLastQty = (float) DB::table('warehouse_movement')
         ->where('artikel_code', $articleCode)
         ->where('location_number', $location)
@@ -1172,9 +1187,9 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
         ->orderBy(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), 'desc')
         ->orderBy('movement_code', 'desc')
         ->value('last_qty');
- 
+
     $this->updateWarehouseStock($articleCode, $location, $latestLastQty);
-    $this->recalculateAvgPrice($articleCode, $location);   // ← TAMBAH
+    $this->recalculateAvgPrice($articleCode, $location);
 }
  
  
@@ -2067,10 +2082,9 @@ private function getArticleDesc(string $articleCode): string
        private function buildMovement(
     int $seq, $hdrQ, array $line, string $movementType, string $direction,
     string $locationNumber, string $movementFrom, string $movementTo,
-    float $price, string $desc, string $username, string $todayDate
+    float $price, string $desc, string $username, string $movementDate  // ← rename dari $todayDate
 ): array {
 
-    // GUARD: location_number tidak boleh kosong
     if (empty($locationNumber)) {
         throw new \RuntimeException(
             "buildMovement: location_number kosong untuk artikel {$line['article_code']}, "
@@ -2082,28 +2096,29 @@ private function getArticleDesc(string $articleCode): string
     $sign = ($direction === 'plus') ? '+' : '-';
 
     return [
-                'movement_code'     => $seq,
-                'movement_date' => \Carbon\Carbon::createFromFormat('d-m-Y', $hdrQ->tr_date)->format('d-m-Y'),
-                'artikel_code'      => $line['article_code'],
-                'artikel_desc'      => $line['article_desc'],
-                'movement_min'      => ($direction === 'min')  ? $qty : 0,
-                'movement_plus'     => ($direction === 'plus') ? $qty : 0,
-                'movement_price'    => $price,
-                'movement_transnno' => $hdrQ->tr_number,
-                'movement_type'     => $movementType,
-                'movement_desc'     => $desc,
-                'movement_from'     => $movementFrom,
-                'movement_to'       => $movementTo,
-                'partner_type'      => 'LOC',
-                'created_by'        => $username,
-                'created_at'        => date('Y-m-d H:i:s'),
-                'site_code'         => $this->siteCode,
-                'location_number'   => $locationNumber,
-                'last_qty'          => DB::raw(
-                    "get_last_qty_new('{$line['article_code']}','$todayDate','{$this->siteCode}','$locationNumber') $sign $qty"
-                ),
-            ];
-        }
+        'movement_code'     => $seq,
+        'movement_date'     => \Carbon\Carbon::createFromFormat('d-m-Y', $hdrQ->tr_date)->format('d-m-Y'),
+        'artikel_code'      => $line['article_code'],
+        'artikel_desc'      => $line['article_desc'],
+        'movement_min'      => ($direction === 'min')  ? $qty : 0,
+        'movement_plus'     => ($direction === 'plus') ? $qty : 0,
+        'movement_price'    => $price,
+        'movement_transnno' => $hdrQ->tr_number,
+        'movement_type'     => $movementType,
+        'movement_desc'     => $desc,
+        'movement_from'     => $movementFrom,
+        'movement_to'       => $movementTo,
+        'partner_type'      => 'LOC',
+        'created_by'        => $username,
+        'created_at'        => date('Y-m-d H:i:s'),
+        'site_code'         => $this->siteCode,
+        'location_number'   => $locationNumber,
+        // sementara — ditimpa recalculateMovementAndStock; tetap pakai movementDate biar konsisten
+        'last_qty'          => DB::raw(
+            "get_last_qty_new('{$line['article_code']}','$movementDate','{$this->siteCode}','$locationNumber') $sign $qty"
+        ),
+    ];
+}
 
         /**
          * Susun deskripsi movement dari note header + jejak konversi.
