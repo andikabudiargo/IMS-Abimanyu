@@ -16,12 +16,12 @@
       <div class="card-body">
         <form class="needs-validation" novalidate>
             <div class="form-row">
-              <div class="form-group col-md-2"> 
+              <div class="form-group col-md-3"> 
                 <label for="searchPo">PO Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
               </div>
               <div class="form-group col-md-3"> 
-                <label for="searchAp">Ap Number</label>
+                <label for="searchAp">AP Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchAp" name="searchAp" placeholder=""  />
               </div>
               <div class="form-group col-md-3"> 
@@ -39,7 +39,7 @@
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group col-md-2"> 
+              <div class="form-group col-md-3"> 
                 <label class="form-label" for="searchStatus">Invoice Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
@@ -48,7 +48,7 @@
                     @endforeach
                 </select>
               </div>
-              <div class="col-md-1 form-group">
+              <div class="col-md-3 form-group">
                 <label class="form-label" for="apPeriod1">Period Awal</label>
                 <select class="select2 form-control" id="apPeriod1" name="apPeriod1" >
                   <option value=""></option>
@@ -57,7 +57,7 @@
                   @endfor
                 </select>
               </div>
-              <div class="col-md-1 form-group">
+              <div class="col-md-3 form-group">
                 <label class="form-label" for="apPeriod2">Period Akhir</label>
                 <select class="select2 form-control" id="apPeriod2" name="apPeriod2" >
                   <option value=""></option>
@@ -193,26 +193,25 @@
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
-    showDataTables({
-      tableId:"detailedTable",
-      route:"{{ route('accountPayable.list') }}",
-      kolom:{!! $kolom !!},
-      arrColPrint:[1,2,4,5,6,7,8,9,10,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34],
-      columnDefs :[
-        { width: '5%', targets: 0 },
-        {
-          targets: [ 18,19,20,21,22,23,24,25,28,29],
-          render: $.fn.dataTable.render.number(',', '.', 2, ''),
-          className: "text-right"
-        },
-        {
-          targets: [ 12 ],
-          render: function ( data, type, full, meta ) {
-            return '\u200C'+data;
-          }
+   showDataTables({
+    tableId:"detailedTable",
+    route:"{{ route('accountPayable.list') }}",
+    kolom:{!! $kolom !!},
+    arrColPrint:[1,2,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35],
+    columnDefs :[
+      { width: '5%', targets: 0 },
+      {
+        targets: [ 19,20,21,22,23,24,25,26,29,30],
+        render: $.fn.dataTable.render.number(',', '.', 2, ''),
+        className: "text-right"
+      },
+      {
+        targets: [ 13 ],
+        render: function ( data, type, full, meta ) {
+          return '\u200C'+data;
         }
-        
-      ],
+      }
+    ],
       type:"POST",
       excelCustomize:function(xlsx) {
         let sheet = xlsx.xl.worksheets['sheet1.xml'];
@@ -236,7 +235,7 @@
         }
         $(".loading-spinner-container").removeClass("-show");
       },
-      orderColumn:[[ 34, 'desc' ]],
+      orderColumn:[[ 35, 'desc' ]],
       excelFileName:'invoice_supplier'
     });
   }
@@ -249,18 +248,18 @@
         $("#detailedTable thead > tr").remove();
     }
     showDataTables({
-      tableId:"detailedTable",
-      route:"{{ route('accountPayable.list.detail') }}",
-      kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,10,11,12,13,14,15,16,17,18,19,20,21],
-      columnDefs :[
-        { width: '5%', targets: 0 },
-        {
-          targets: [19,20,21],
-          render: $.fn.dataTable.render.number(',', '.', 2, ''),
-          className: "text-right"
-        },
-      ],
+    tableId:"detailedTable",
+    route:"{{ route('accountPayable.list.detail') }}",
+    kolom:{!! $kolomDetail !!},
+    arrColPrint:[0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21],
+    columnDefs :[
+      { width: '5%', targets: 0 },
+      {
+        targets: [19,20,21],
+        render: $.fn.dataTable.render.number(',', '.', 2, ''),
+        className: "text-right"
+      },
+    ],
       type:"POST",
       excelCustomize:function(xlsx) {
         let sheet = xlsx.xl.worksheets['sheet1.xml'];

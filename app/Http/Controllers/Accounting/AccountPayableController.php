@@ -100,78 +100,78 @@ class AccountPayableController extends Controller
     }
 
     public function getTableColoumn()
-    {
-        $kolom=
-        [
-            ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false], //0
-            ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'], //1
-            // ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'], 
-            ['data'=> 'ap_date_1', 'name'=> 'ap_date_1','title'=>'AP Date'],//2
-            ['data'=> 'ap_date_2', 'name'=> 'ap_date_2','title'=>'AP Date','visible'=>false],//3
-            ['data'=> 'period', 'name'=> 'period','title'=>'Period'],//4
-            ['data'=> 'status', 'name'=> 'status','title'=>'Status'],//5
-            ['data'=> 'kode', 'name'=> 'kode','title'=>'Supplier Code'],//6
-            ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier'],//7
-            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'],//8
-            ['data'=> 'list_rec', 'name'=> 'list_rec','title'=>'Rec Number'],//9
-            ['data'=> 'rec_date', 'name'=> 'rec_date','title'=>'Rec Date','visible'=>false],//10
-            ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false],//11
-            ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number'],//12
-            ['data'=> 'proforma_inv_number', 'name'=> 'proforma_inv_number','title'=>'Proforma','visible'=>false],//13
-            ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number'],//14
-            ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date'],//15
-            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'Receive AP'],//16
-            ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date'],//17
-            ['data'=> 'basis_amount', 'name'=> 'basis_amount','title'=>'DPP'],//18
-            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],//19
-            ['data'=> 'vat', 'name'=> 'vat','title'=>'VAT'],//20
-            ['data'=> 'pph21', 'name'=> 'pph21','title'=>'PPH21'],//21
-            ['data'=> 'pph23', 'name'=> 'pph23','title'=>'PPH23'],//22
-            ['data'=> 'pph42', 'name'=> 'pph42','title'=>'PPH4(2)'],//23
-            ['data'=> 'total_discount', 'name'=> 'total_discount','title'=>'Discount'],//24
-            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Grand Total'],//25
-            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'],//26
-            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'],//27
-            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'],//28
-            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'],//29
-            ['data'=> 'note', 'name'=> 'note','title'=>'Note'],//30
-            ['data'=> 'approval_by','name'=> 'approval_by','title'=>'Approved By'],//31
-            ['data'=> 'approval_at','name'=> 'approval_at','title'=>'Approved At'],//32
-            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],//33
-            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']//34
-        ];
-        return json_encode($kolom, true);
-    }
+{
+    $kolom=
+    [
+        ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false], //0
+        ['data'=> 'ap_number', 'name'=> 'ap_invoice.ap_number','title'=>'AP Number'], //1  search+order default OK (real column)
+        ['data'=> 'ap_date_1', 'name'=> 'ap_date_1','title'=>'AP Date','searchable'=>false], //2  order via orderColumn
+        ['data'=> 'ap_date_2', 'name'=> 'ap_date_2','title'=>'AP Date','visible'=>false,'searchable'=>false,'orderable'=>false],//3
+        ['data'=> 'period', 'name'=> 'ap_invoice.period','title'=>'Period'],//4  search+order default OK
+        ['data'=> 'status', 'name'=> 'ap_invoice.status','title'=>'Status'],//5  search+order default OK
+        ['data'=> 'kode', 'name'=> 'third_party.kode','title'=>'Supplier Code'],//6  search+order default OK
+        ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier','searchable'=>false],//7  order via alias OK, search via orderColumn not requested->off
+        ['data'=> 'po_number', 'name'=> 'ap_invoice.po_number','title'=>'PO Number'],//8  search default OK, order not requested
+        ['data'=> 'pr_number', 'name'=> 'pr_number','title'=>'PR Number','searchable'=>true,'orderable'=>false],//9  search via filterColumn
+        ['data'=> 'list_rec', 'name'=> 'list_rec','title'=>'Rec Number','searchable'=>true,'orderable'=>false],//10  search via filterColumn
+        ['data'=> 'rec_date', 'name'=> 'ap_invoice.rec_date','title'=>'Rec Date','visible'=>false],//11  order default OK
+        ['data'=> 'num_revision', 'name'=> 'ap_invoice.num_revision','title'=>'Rev.','visible'=>false],//12  order default OK
+        ['data'=> 'inv_number', 'name'=> 'ap_invoice.inv_number','title'=>'Invoice Number'],//13  search+order default OK
+        ['data'=> 'proforma_inv_number', 'name'=> 'ap_invoice.proforma_inv_number','title'=>'Proforma','visible'=>false],//14  search+order default OK
+        ['data'=> 'tax_inv_number', 'name'=> 'ap_invoice.tax_inv_number','title'=>'Tax Inv Number'],//15  search default OK
+        ['data'=> 'inv_date', 'name'=> 'ap_invoice.inv_date','title'=>'Inv Date'],//16  order default OK
+        ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'Receive AP','searchable'=>false],//17  order via orderColumn (chronological)
+        ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date','searchable'=>false],//18  order via orderColumn
+        ['data'=> 'basis_amount', 'name'=> 'basis_amount','title'=>'DPP'],//19
+        ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],//20
+        ['data'=> 'vat', 'name'=> 'vat','title'=>'VAT'],//21
+        ['data'=> 'pph21', 'name'=> 'pph21','title'=>'PPH21','searchable'=>false,'orderable'=>false],//22
+        ['data'=> 'pph23', 'name'=> 'pph23','title'=>'PPH23','searchable'=>false,'orderable'=>false],//23
+        ['data'=> 'pph42', 'name'=> 'pph42','title'=>'PPH4(2)','searchable'=>false,'orderable'=>false],//24
+        ['data'=> 'total_discount', 'name'=> 'total_discount','title'=>'Discount'],//25
+        ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Grand Total'],//26
+        ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date','searchable'=>false],//27  order via orderColumn
+        ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number','searchable'=>true,'orderable'=>false],//28  search via filterColumn
+        ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid','searchable'=>false,'orderable'=>false],//29
+        ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance','searchable'=>false,'orderable'=>false],//30
+        ['data'=> 'note', 'name'=> 'note','title'=>'Note'],//31
+        ['data'=> 'approval_by','name'=> 'approval_by','title'=>'Approved By','searchable'=>false,'orderable'=>false],//32
+        ['data'=> 'approval_at','name'=> 'approval_at','title'=>'Approved At','searchable'=>false,'orderable'=>false],//33
+        ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],//34
+        ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']//35
+    ];
+    return json_encode($kolom, true);
+}
 
     public function getTableColoumnDetail()
-    {
-        $kolom=
-        [
-            ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number'], //0
-            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date'], //1
-            ['data'=> 'period', 'name'=> 'period','title'=>'Period'], //2
-            ['data'=> 'status', 'name'=> 'status','title'=>'Status'], //3
-            ['data'=> 'kode', 'name'=> 'kode','title'=>'Supplier Code'],//4
-            ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier'], //5
-            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'], //6
-            ['data'=> 'list_rec', 'name'=> 'list_rec','title'=>'Rec Number'], //7
-            ['data'=> 'rec_date', 'name'=>'rec_date','title'=>'Rec Date'], //8
-            ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false], //9
-            ['data'=> 'inv_number', 'name'=> 'inv_number ','title'=>'Invoice Number'], //10
-            ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number'], //11
-            ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date'], //12
-            ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'Receive AP'], //13
-            ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date'], //14
-            ['data'=> 'article', 'name'=> 'article','title'=>'Article Code'], //15
-            ['data'=> 'desc', 'name'=> 'desc','title'=>'Description'], //16
-            ['data'=> 'dept', 'name'=> 'dept','title'=>'Dept'], //17
-            ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'], //18
-            ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'], //19
-            ['data'=> 'price', 'name'=> 'price','title'=>'Price'], //20
-            ['data'=> 'total', 'name'=> 'total','title'=>'Total'], //21
-        ];
-        return json_encode($kolom, true);
-    }
+{
+    $kolom=
+    [
+        ['data'=> 'ap_number', 'name'=> 'ap_number','title'=>'AP Number','searchable'=>false], //0  order via alias OK; search via filterColumn
+        ['data'=> 'ap_date', 'name'=> 'ap_date','title'=>'AP Date','searchable'=>false], //1  order via alias OK
+        ['data'=> 'period', 'name'=> 'period','title'=>'Period','searchable'=>false], //2  order via alias OK
+        ['data'=> 'status', 'name'=> 'status','title'=>'Status','searchable'=>false], //3  order via alias OK
+        ['data'=> 'kode', 'name'=> 'kode','title'=>'Supplier Code','searchable'=>true], //4  search via filterColumn, order via alias OK
+        ['data'=> 'supplier_name', 'name'=> 'supplier_name','title'=>'Supplier','searchable'=>false], //5  order via alias OK
+        ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number','searchable'=>true], //6  search via filterColumn
+        ['data'=> 'pr_number', 'name'=> 'pr_number','title'=>'PR Number','searchable'=>true,'orderable'=>false], //7  BARU, search via filterColumn
+        ['data'=> 'list_rec', 'name'=> 'list_rec','title'=>'Rec Number','searchable'=>true,'orderable'=>false], //8  search via filterColumn
+        ['data'=> 'rec_date', 'name'=>'rec_date','title'=>'Rec Date','searchable'=>false], //9  order via alias OK
+        ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Rev.','visible'=>false,'searchable'=>false], //10  order via alias OK
+        ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number','searchable'=>true], //11  search via filterColumn
+        ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number','searchable'=>true], //12  search via filterColumn
+        ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date','searchable'=>false], //13  order via alias OK
+        ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date','searchable'=>false,'orderable'=>false], //14  tidak ada di query, lihat catatan
+        ['data'=> 'article', 'name'=> 'article','title'=>'Article Code'], //15
+        ['data'=> 'desc', 'name'=> 'desc','title'=>'Description'], //16
+        ['data'=> 'dept', 'name'=> 'dept','title'=>'Dept','searchable'=>false,'orderable'=>false], //17
+        ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'], //18
+        ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'], //19
+        ['data'=> 'price', 'name'=> 'price','title'=>'Price'], //20
+        ['data'=> 'total', 'name'=> 'total','title'=>'Total','searchable'=>false,'orderable'=>false], //21
+    ];
+    return json_encode($kolom, true);
+}
 
     public function index(Request $request)
     {
@@ -2230,6 +2230,10 @@ class AccountPayableController extends Controller
             'ap_invoice.*',
             'third_party.kode',
             'po.po_id',
+             DB::raw("(select STRING_AGG(DISTINCT prh.id::text || '::' || pod.pr_number, ',')
+              from purchase_order_det pod
+              left join purchase_request_hdr prh on prh.pr_number = pod.pr_number
+              where pod.po_number = ap_invoice.po_number) as list_pr_with_id"),
             DB::raw("to_char(to_date(ap_invoice.ap_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as ap_date"),
             DB::raw("ap_invoice.inv_date as ap_date_1"),
             DB::raw("ap_invoice.inv_date as ap_date_2"),
@@ -2252,7 +2256,7 @@ class AccountPayableController extends Controller
             DB::raw("grand_total - coalesce(case when ap_invoice.status = '6' then vch.voucher_amount else 0 end, 0) as balance"),
             DB::raw("to_char(to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * top_batas_1), 'DD/MM/YYYY') as due_date")
         )
-        ->orderBy('ap_invoice.id');
+        ->orderBy('ap_invoice.id', 'DESC');
 
     $lockDateToDate = date('Y-m-d', strtotime($this->lockDate));
     $bisaEdit = Auth::user()->can('ap-edit');
@@ -2328,6 +2332,26 @@ class AccountPayableController extends Controller
             </a>';
         })
 
+        // === BARU: hyperlink tiap PR Number (bisa lebih dari satu per PO) ===
+->addColumn('pr_number', function ($data) {
+    if (empty($data->list_pr_with_id)) {
+        return '-';
+    }
+    $pairs = explode(',', $data->list_pr_with_id);
+    $links = [];
+    foreach ($pairs as $pair) {
+        [$prId, $prNumber] = array_pad(explode('::', $pair), 2, '');
+        if ($prId === '' || $prId === null) {
+            $links[] = $prNumber; // fallback tanpa link
+        } else {
+            $links[] = '<a href="' . route('purchaseRequest.show', ['id' => Crypt::encryptString($prId)]) . '" target="_blank">'
+                      . $prNumber . '</a>';
+        }
+    }
+    return implode(', ', $links);
+})
+
+
         // === BARU: hyperlink PO Number ===
         ->addColumn('po_number', function ($data) {
             if (empty($data->po_number)) {
@@ -2389,8 +2413,47 @@ class AccountPayableController extends Controller
                     </a>';
         })
 
-        ->rawColumns(['action', 'status', 'ap_number', 'voucher_number', 'po_number', 'list_rec'])
-        ->make(true);
+         // === BARU: custom search untuk kolom hasil subquery/raw ===
+    ->filterColumn('pr_number', function ($query, $keyword) {
+        $query->whereExists(function ($q) use ($keyword) {
+            $q->select(DB::raw(1))
+              ->from('purchase_order_det')
+              ->whereColumn('purchase_order_det.po_number', 'ap_invoice.po_number')
+              ->where('purchase_order_det.pr_number', 'ilike', "%{$keyword}%");
+        });
+    })
+    ->filterColumn('list_rec', function ($query, $keyword) {
+        $query->whereExists(function ($q) use ($keyword) {
+            $q->select(DB::raw(1))
+              ->from('ap_invoice_detail')
+              ->whereColumn('ap_invoice_detail.ap_number', 'ap_invoice.ap_number')
+              ->where('ap_invoice_detail.rec_number', 'ilike', "%{$keyword}%");
+        });
+    })
+    ->filterColumn('voucher_number', function ($query, $keyword) {
+        $query->where('vch.voucher_number', 'ilike', "%{$keyword}%");
+    })
+
+    // === BARU: custom order untuk kolom hasil raw/CASE/alias yang tidak punya kolom fisik sama nama ===
+    ->orderColumn('ap_date_1', function ($query, $order) {
+        $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
+        $query->orderByRaw("to_date(ap_invoice.inv_date,'DD-MM-YYYY') $order");
+    })
+    ->orderColumn('ap_date', function ($query, $order) {
+        $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
+        $query->orderByRaw("to_date(ap_invoice.ap_date,'DD-MM-YYYY') $order");
+    })
+    ->orderColumn('due_date', function ($query, $order) {
+        $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
+        $query->orderByRaw("(to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * top_batas_1)) $order");
+    })
+    ->orderColumn('voucher_date', function ($query, $order) {
+        $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
+        $query->orderBy('vch.voucher_date', $order);
+    })
+
+    ->rawColumns(['action', 'status', 'ap_number', 'voucher_number', 'pr_number', 'po_number', 'list_rec'])
+    ->make(true);
 }
 
     public function listOld(Request $request)
@@ -2735,6 +2798,8 @@ class AccountPayableController extends Controller
             ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1) as dept")
             // ,db::raw("(select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) as ap_number")
             // ,db::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)) as ap_date")
+             ,db::raw("(select pod.pr_number from purchase_order_det pod where pod.po_number = receiving_hdr.po_number and pod.article_code = receiving_det.article_code limit 1) as pr_number")
+            ,db::raw("(select prh.id from purchase_request_hdr prh where prh.pr_number = (select pod.pr_number from purchase_order_det pod where pod.po_number = receiving_hdr.po_number and pod.article_code = receiving_det.article_code limit 1) limit 1) as pr_id")
             ,db::raw("max(ap_invoice.inv_number) as inv_number")
             ,db::raw("max(ap_invoice.tax_inv_number) as tax_inv_number")
             ,db::raw("max(ap_invoice.inv_date) as inv_date")
@@ -2755,18 +2820,63 @@ class AccountPayableController extends Controller
         ->groupBy('receiving_det.uom_rec')
         ->groupBy('receiving_det.price')
         ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1)"))
+        ->groupBy(db::raw("(select pod.pr_number from purchase_order_det pod where pod.po_number = receiving_hdr.po_number and pod.article_code = receiving_det.article_code limit 1)"))
+        ->groupBy(db::raw("(select prh.id from purchase_request_hdr prh where prh.pr_number = (select pod.pr_number from purchase_order_det pod where pod.po_number = receiving_hdr.po_number and pod.article_code = receiving_det.article_code limit 1) limit 1)"))
         ->groupBy('ap_invoice.ap_number')
-        // ->groupBy('ap_date')
         ->get();
 
         return Datatables::of($data)
-        ->addColumn('status', function ($data) {
-            // $badges=['badge-light-primary','badge-light-info','badge-light-success','badge-light-warning','badge-light-danger','badge-light-dark','badge-light-secondary','badge-light-danger'];
-            $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
-            return $statusCode[$data->status - 1];
-        })
-        ->rawColumns(['action','status','ap_number'])
-        ->make(true);
+          ->addColumn('pr_number', function ($data) {
+        if (empty($data->pr_number)) {
+            return '-';
+        }
+        if (empty($data->pr_id)) {
+            return $data->pr_number;
+        }
+        return '<a href="' . route('purchaseRequest.show', ['id' => Crypt::encryptString($data->pr_id)]) . '" target="_blank">
+            ' . $data->pr_number . '
+        </a>';
+    })
+         ->addColumn('status', function ($data) {
+        $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
+        return $statusCode[$data->status - 1];
+    })
+
+    // === BARU: custom search untuk kolom hasil max()/subquery ===
+    ->filterColumn('kode', function ($query, $keyword) {
+        $query->where('third_party.kode', 'ilike', "%{$keyword}%");
+    })
+    ->filterColumn('po_number', function ($query, $keyword) {
+        $query->where('ap_invoice.po_number', 'ilike', "%{$keyword}%");
+    })
+    ->filterColumn('inv_number', function ($query, $keyword) {
+        $query->where('ap_invoice.inv_number', 'ilike', "%{$keyword}%");
+    })
+    ->filterColumn('tax_inv_number', function ($query, $keyword) {
+        $query->where('ap_invoice.tax_inv_number', 'ilike', "%{$keyword}%");
+    })
+    ->filterColumn('ap_number', function ($query, $keyword) {
+        $query->where('ap_invoice.ap_number', 'ilike', "%{$keyword}%");
+    })
+    ->filterColumn('pr_number', function ($query, $keyword) {
+        $query->whereExists(function ($q) use ($keyword) {
+            $q->select(DB::raw(1))
+              ->from('purchase_order_det')
+              ->whereColumn('purchase_order_det.po_number', 'ap_invoice.po_number')
+              ->where('purchase_order_det.pr_number', 'ilike', "%{$keyword}%");
+        });
+    })
+    ->filterColumn('list_rec', function ($query, $keyword) {
+        $query->whereExists(function ($q) use ($keyword) {
+            $q->select(DB::raw(1))
+              ->from('ap_invoice_detail as aid_search')
+              ->whereColumn('aid_search.ap_number', 'ap_invoice.ap_number')
+              ->where('aid_search.rec_number', 'ilike', "%{$keyword}%");
+        });
+    })
+
+    ->rawColumns(['action','status','ap_number','pr_number'])
+    ->make(true);
     }
 
     public function print(Request $request)
