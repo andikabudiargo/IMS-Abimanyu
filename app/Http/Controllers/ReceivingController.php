@@ -2436,27 +2436,55 @@ public function unPosting($recNumber)
     }
 
     $query = DB::table('receiving_hdr')
-        ->where(function ($q) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$searchRecType,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
-            $searchPo       ? $q->where('po_number','ilike','%'.$searchPo.'%') : '';
-            $searchInv      ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
-            $searchSupplier ? $q->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
-            $searchRec      ? $q->where('rec_number','ilike','%'.$searchRec.'%') : '';
-            $searchStatus   ? $q->where('status',$searchStatus) : '';
-            $searchRecType  ? $q->where('rec_type',$searchRecType) : '';   // <-- tambahan
-            $recDate        ? $q->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $doDate         ? $q->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
-        })
-        ->whereNotIn('status',['5','7'])
-        ->select('receiving_hdr.*'
-            ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
-            ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
-            ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail
-                        left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number
-                        where ap_invoice_detail.rec_number = receiving_hdr.rec_number
-                        and ap_invoice.status in ('2','3','4','6') limit 1 ) as ap_number")
-            ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) and status in ('4','6') limit 1) as ap_date")
-            ,DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
-        );
+    ->where(function ($q) use (
+        $searchRec,
+        $searchPo,
+        $searchInv,
+        $searchSupplier,
+        $searchStatus,
+        $searchRecType,
+        $recDate,
+        $fromDate,
+        $toDate,
+        $doDate,
+        $fromDateDo,
+        $toDateDo
+    ) {
+        $searchPo       ? $q->where('po_number','ilike','%'.$searchPo.'%') : '';
+        $searchInv      ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
+        $searchSupplier ? $q->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
+        $searchRec      ? $q->where('rec_number','ilike','%'.$searchRec.'%') : '';
+        $searchStatus   ? $q->where('status',$searchStatus) : '';
+        $searchRecType  ? $q->where('rec_type',$searchRecType) : '';
+        $recDate        ? $q->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        $doDate         ? $q->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
+    })
+    ->whereNotIn('status',['5','7'])
+    ->select(
+        'receiving_hdr.*',
+        DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) from approval_history a where module_number = receiving_hdr.rec_number) as approval_by"),
+        DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name"),
+        DB::raw("(select ap_invoice_detail.ap_number
+                    from ap_invoice_detail
+                    left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number
+                    where ap_invoice_detail.rec_number = receiving_hdr.rec_number
+                    and ap_invoice.status in ('2','3','4','6')
+                    limit 1) as ap_number"),
+        DB::raw("(select ap_date
+                    from ap_invoice
+                    where ap_number = (
+                        select ap_number
+                        from ap_invoice_detail
+                        where rec_number = receiving_hdr.rec_number
+                        limit 1
+                    )
+                    and status in ('4','6')
+                    limit 1) as ap_date"),
+        DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
+    )
+   ->orderByRaw("
+    to_date(nullif(do_date, ''), 'DD-MM-YYYY') DESC NULLS LAST
+");
 
     $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
     $bisaEdit    = Auth::user()->can('receiving-edit');
@@ -2901,7 +2929,12 @@ public function unPosting($recNumber)
         ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) and status in('4','6') limit 1) as ap_date")
         ,DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
     )
-    ->orderBy('receiving_det.id');
+    ->orderByRaw("
+    COALESCE(
+        to_date(NULLIF(receiving_hdr.do_date, ''), 'DD-MM-YYYY'),
+        to_date(NULLIF(receiving_hdr.rec_date, ''), 'DD-MM-YYYY')
+    ) DESC
+");
 
     return Datatables::of($query)
         ->addColumn('status', function ($data) {

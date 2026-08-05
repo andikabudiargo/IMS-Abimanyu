@@ -200,7 +200,7 @@
       doDate:doDate,
       recType:recType          // <-- tambahan
     },
-    orderColumn:[[ 2, 'desc' ]],
+    orderColumn:[[ 4, 'desc' ]],
     excelFileName:'receiving'
   });
 }
