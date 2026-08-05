@@ -2822,8 +2822,7 @@ class AccountPayableController extends Controller
         ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1)"))
         ->groupBy(db::raw("(select pod.pr_number from purchase_order_det pod where pod.po_number = receiving_hdr.po_number and pod.article_code = receiving_det.article_code limit 1)"))
         ->groupBy(db::raw("(select prh.id from purchase_request_hdr prh where prh.pr_number = (select pod.pr_number from purchase_order_det pod where pod.po_number = receiving_hdr.po_number and pod.article_code = receiving_det.article_code limit 1) limit 1)"))
-        ->groupBy('ap_invoice.ap_number')
-        ->get();
+        ->groupBy('ap_invoice.ap_number');
 
         return Datatables::of($data)
           ->addColumn('pr_number', function ($data) {
