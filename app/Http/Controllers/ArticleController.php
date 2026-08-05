@@ -1513,10 +1513,9 @@ private function accumulateNet($articleCode, $location, $anchorDate, $fromDate, 
  */
 private function splitQty($d): array
 {
-    // NEW/DRAFT (status 1) -> tampil tapi qty 0, tidak masuk balance
-    if (($d->hdr_status ?? null) === '1') {
-        return [0.0, 0.0];
-    }
+    // NEW/DRAFT (status 1) tetap DITAMPILKAN qty aslinya.
+    // Yang tidak dihitung ke saldo cukup lewat `counted_net = 0` di CTE `kept`,
+    // jadi di sini tidak perlu lagi paksa [0,0].
 
     $plus = (float) ($d->movement_plus ?? 0);
     $min  = (float) ($d->movement_min  ?? 0);
