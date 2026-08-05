@@ -1218,8 +1218,15 @@ private function renderRefLink($type, $ref)
     return '<a href="'.$url.'" target="_blank" class="text-primary">'.e($ref).'</a>';
 }
 
-private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal)
+private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal, $depth = 0)
 {
+    // Safety: batas rekursi maksimal / floor tanggal
+    $floorDate = '30-06-2026'; // atau tanggal go-live sistem
+    if ($depth > 36 || strtotime($fromDate) <= strtotime($floorDate)) {
+        return ['qty' => 0.0, 'adj_code' => null, 'adj_id' => null,
+                'note' => 'Saldo awal diasumsikan 0 (di luar rentang data)', 'authorized_at' => null];
+    }
+
     $out = ['qty'=>0.0,'adj_code'=>null,'adj_id'=>null,'note'=>null,'authorized_at'=>null];
 
     // Saldo awal = saldo akhir SEHARI sebelum fromDate.
@@ -1233,25 +1240,30 @@ private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGl
     if ($periodeOB < 1) { $periodeOB = 12; $tahunOB = $tahun - 1; }
 
     // 1) Basis = OB periode (bulan-1). Kalau tidak ada, mundur rekursif ke saldo akhir bulan sebelumnya.
-    $ob = $this->fetchOBByPeriode($articleCode, $location, $periodeOB, $tahunOB, $isGlobal);
-    if ($ob['found']) {
-        $basis = $ob['qty'];
-        $out['adj_code']      = $ob['adj_code'];
-        $out['adj_id']        = $ob['adj_id'];
-        $out['authorized_at'] = $ob['authorized_at'];
-    } else {
-        // OB bulan-1 belum ada → saldo awal bulan-1 (rekursif) + net bulan-1 penuh
-        $awalPrev = $this->resolveOpeningBalance(
-            $articleCode, $location,
-            sprintf('01-%02d-%04d', $periodeOB, $tahunOB),
-            $isGlobal
-        );
-        $basis = $awalPrev['qty']
-               + $this->netMovementRange($articleCode, $location,
-                   sprintf('01-%02d-%04d', $periodeOB, $tahunOB),
-                   date('t-m-Y', mktime(0,0,0,$periodeOB,1,$tahunOB)),
-                   $isGlobal);
-    }
+  $ob = $this->fetchOBByPeriode($articleCode, $location, $periodeOB, $tahunOB, $isGlobal);
+if ($ob['found']) {
+    $basis = $ob['qty'];
+    $out['adj_code']      = $ob['adj_code'];
+    $out['adj_id']        = $ob['adj_id'];
+    $out['authorized_at'] = $ob['authorized_at'];
+} elseif (strtotime(sprintf('01-%02d-%04d', $periodeOB, $tahunOB)) <= strtotime($floorDate)) {
+    // Sebelum floor (Juni) dan OB Juni tidak ada -> dianggap 0, TIDAK rekursi, TIDAK tambah net bulan sebelumnya
+    $basis = 0.0;
+    $out['note'] = 'OB Juni tidak ditemukan, saldo sebelum periode floor diabaikan';
+} else {
+    // Masih di atas floor, boleh rekursi normal seperti biasa
+    $awalPrev = $this->resolveOpeningBalance(
+        $articleCode, $location,
+        sprintf('01-%02d-%04d', $periodeOB, $tahunOB),
+        $isGlobal,
+        $depth + 1
+    );
+    $basis = $awalPrev['qty']
+           + $this->netMovementRange($articleCode, $location,
+               sprintf('01-%02d-%04d', $periodeOB, $tahunOB),
+               date('t-m-Y', mktime(0,0,0,$periodeOB,1,$tahunOB)),
+               $isGlobal);
+}
 
     // 2) Tambah net movement dari AWAL bulan fromDate s/d SEHARI sebelum fromDate.
     //    Kalau fromDate = tanggal 1, rentang ini kosong → net 0.
