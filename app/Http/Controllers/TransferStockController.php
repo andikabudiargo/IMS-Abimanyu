@@ -255,72 +255,75 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
         }
 
     private function processPosting(string $trNumber, string $username): array
-{
-    $hdrQ = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->first();
-    if (!$hdrQ) {
-        return ['success' => false, 'message' => ["Transfer $trNumber tidak ditemukan"]];
+    {
+        $hdrQ = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->first();
+        if (!$hdrQ) {
+            return ['success' => false, 'message' => ["Transfer $trNumber tidak ditemukan"]];
+        }
+
+        try {
+            $lines = $this->resolveTransferLines($hdrQ);
+        } catch (\RuntimeException $e) {
+            return ['success' => false, 'message' => [$e->getMessage()]];
+        }
+
+        $movementDate = \Carbon\Carbon::createFromFormat('d-m-Y', $hdrQ->tr_date)->format('d-m-Y');
+        $locationFrom = $hdrQ->location_from;   // lokasi FISIK (bisa 010x)
+        $locationTo   = $hdrQ->location_to;     // lokasi FISIK (bisa 010x)
+        $trType       = ($hdrQ->tr_type === 'SUPPLY') ? 'SUPPLY' : 'TRANSFER';
+
+        // ── Resolusi lokasi AKUNTANSI (pool jika lokasi punya parent) ──
+        $stockFrom = $this->getStockLocation($locationFrom);
+        $stockTo   = $this->getStockLocation($locationTo);
+
+        $this->lockMovementSequence();
+        $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
+        $dataSetMovement = [];
+
+        // ===== KELUAR dari gudang asal =====
+        foreach ($lines['out'] as $line) {
+            $price = $this->getAvgPrice($line['article_code'], $stockFrom);
+
+            $dataSetMovement[] = $this->buildMovement(
+                ++$seq, $hdrQ, $line, $trType, 'min',
+                $stockFrom,                 // location_number = POOL (akuntansi)
+                $locationFrom, $locationTo, // movement_from/to = FISIK (audit)
+                $price, $this->movementDesc($hdrQ->note, $line), $username, $movementDate
+            );
+        }
+
+        // ===== MASUK ke gudang tujuan =====
+        foreach ($lines['in'] as $line) {
+            // #4: FG→RM di gudang NG RM → harga RM diambil dari avg RM (gudang 009)
+            $isFgToNgRm = ($locationTo === $this->ngRmLocation);
+            $priceLoc   = $isFgToNgRm ? '009' : $stockFrom;
+            $price      = $this->getAvgPrice($line['article_code'], $priceLoc);
+
+            $dataSetMovement[] = $this->buildMovement(
+                ++$seq, $hdrQ, $line, $trType, 'plus',
+                $stockTo,                   // location_number = POOL (akuntansi)
+                $locationFrom, $locationTo, // movement_from/to = FISIK (audit)
+                $price, $this->movementDesc($hdrQ->note, $line), $username, $movementDate
+            );
+        }
+
+        if (!empty($dataSetMovement)) {
+            DB::table('warehouse_movement')->insert($dataSetMovement);
+        }
+
+        // Recalculate berdasarkan lokasi AKUNTANSI (pool).
+        // Kasus 010A→010B: stockFrom=stockTo=012 → recalc 012 sekali, net zero.
+        $affected = [];
+        foreach (array_merge($lines['out'], $lines['in']) as $line) {
+            $affected[$line['article_code'].'|'.$stockFrom] = ['article' => $line['article_code'], 'loc' => $stockFrom];
+            $affected[$line['article_code'].'|'.$stockTo]   = ['article' => $line['article_code'], 'loc' => $stockTo];
+        }
+        foreach ($affected as $a) {
+            $this->recalculateMovementAndStock($a['article'], $a['loc'], $hdrQ->tr_date);
+        }
+
+        return ['success' => true, 'message' => "Transfer $trNumber berhasil diposting"];
     }
-
-    try {
-        $lines = $this->resolveTransferLines($hdrQ);
-    } catch (\RuntimeException $e) {
-        return ['success' => false, 'message' => [$e->getMessage()]];
-    }
-
-    $movementDate = \Carbon\Carbon::createFromFormat('d-m-Y', $hdrQ->tr_date)->format('d-m-Y');
-    $locationFrom = $hdrQ->location_from;
-    $locationTo   = $hdrQ->location_to;
-    $trType       = ($hdrQ->tr_type === 'SUPPLY') ? 'SUPPLY' : 'TRANSFER';
-
-    $this->lockMovementSequence();
-    $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
-    $dataSetMovement = [];
-
-    // ===== KELUAR dari gudang asal =====
-    foreach ($lines['out'] as $line) {
-        $price = $this->getAvgPrice($line['article_code'], $locationFrom);
-
-        $dataSetMovement[] = $this->buildMovement(
-            ++$seq, $hdrQ, $line, $trType, 'min',
-            $locationFrom, $locationFrom, $locationTo,
-            $price, $this->movementDesc($hdrQ->note, $line), $username, $movementDate
-        );
-    }
-
-    // ===== MASUK ke gudang tujuan =====
-    foreach ($lines['in'] as $line) {
-        // #4: FG→RM di gudang NG RM → harga RM diambil dari avg RM (gudang 009),
-        //     bukan dari locationFrom (gudang FG) yang tidak punya RM tsb.
-        $isFgToNgRm = ($locationTo === $this->ngRmLocation);
-        $priceLoc   = $isFgToNgRm ? '009' : $locationFrom;
-        $price      = $this->getAvgPrice($line['article_code'], $priceLoc);
-
-        $dataSetMovement[] = $this->buildMovement(
-            ++$seq, $hdrQ, $line, $trType, 'plus',
-            $locationTo, $locationFrom, $locationTo,
-            $price, $this->movementDesc($hdrQ->note, $line), $username, $movementDate
-        );
-    }
-
-    // #3: insert movement dulu, JANGAN sentuh warehouse_stock manual
-    if (!empty($dataSetMovement)) {
-        DB::table('warehouse_movement')->insert($dataSetMovement);
-    }
-
-    // #1 + #2: recalculate running last_qty + warehouse_stock dari ledger.
-    //   Ini menimpa last_qty sementara di buildMovement dengan nilai final yang benar,
-    //   dan menggeser semua movement setelah tr_date (kasus backdate).
-    $affected = [];
-    foreach (array_merge($lines['out'], $lines['in']) as $line) {
-        $affected[$line['article_code'].'|'.$locationFrom] = ['article' => $line['article_code'], 'loc' => $locationFrom];
-        $affected[$line['article_code'].'|'.$locationTo]   = ['article' => $line['article_code'], 'loc' => $locationTo];
-    }
-    foreach ($affected as $a) {
-        $this->recalculateMovementAndStock($a['article'], $a['loc'], $hdrQ->tr_date);
-    }
-
-    return ['success' => true, 'message' => "Transfer $trNumber berhasil diposting"];
-}
 
         private function formatAging(float $seconds): array
         {
@@ -570,43 +573,47 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
     }
 
         private function reverseStock(object $hdrQ, string $username, string $reasonLabel): array
-{
-    try {
-        $lines = $this->resolveTransferLines($hdrQ);
-    } catch (\RuntimeException $e) {
-        return ['success' => false, 'message' => [$e->getMessage()]];
+    {
+        try {
+            $lines = $this->resolveTransferLines($hdrQ);
+        } catch (\RuntimeException $e) {
+            return ['success' => false, 'message' => [$e->getMessage()]];
+        }
+
+        $trNumber     = $hdrQ->tr_number;
+        $locationFrom = $hdrQ->location_from;
+        $locationTo   = $hdrQ->location_to;
+        $baseType     = ($hdrQ->tr_type === 'SUPPLY') ? 'SUPPLY' : 'TRANSFER';
+
+        // Resolusi lokasi AKUNTANSI — WAJIB sama persis dengan processPosting
+        $stockFrom = $this->getStockLocation($locationFrom);
+        $stockTo   = $this->getStockLocation($locationTo);
+
+        // Hapus movement asli
+        DB::table('warehouse_movement')
+            ->where('movement_transnno', $trNumber)
+            ->where('movement_type', $baseType)
+            ->delete();
+
+        // Recalculate dari lokasi pool yang benar
+        $affected = [];
+        foreach (array_merge($lines['out'], $lines['in']) as $line) {
+            $affected[$line['article_code'].'|'.$stockFrom] =
+                ['article_code' => $line['article_code'], 'location' => $stockFrom];
+            $affected[$line['article_code'].'|'.$stockTo] =
+                ['article_code' => $line['article_code'], 'location' => $stockTo];
+        }
+
+        foreach ($affected as $a) {
+            $this->recalculateMovementAndStock(
+                $a['article_code'],
+                $a['location'],
+                $hdrQ->tr_date   // sudah DD-MM-YYYY, JANGAN dikonversi
+            );
+        }
+
+        return ['success' => true, 'message' => "Stock $trNumber berhasil di-reverse"];
     }
-
-    $trNumber     = $hdrQ->tr_number;
-    $locationFrom = $hdrQ->location_from;
-    $locationTo   = $hdrQ->location_to;
-    $baseType     = ($hdrQ->tr_type === 'SUPPLY') ? 'SUPPLY' : 'TRANSFER';
-
-    // Hapus movement asli — tidak perlu CANCEL karena movement-nya hilang total
-    DB::table('warehouse_movement')
-        ->where('movement_transnno', $trNumber)
-        ->where('movement_type', $baseType)
-        ->delete();
-
-    // Finalisasi stock via recalculate
-    $affected = [];
-    foreach (array_merge($lines['out'], $lines['in']) as $line) {
-        $affected[$line['article_code'].'|'.$locationFrom] =
-            ['article_code' => $line['article_code'], 'location' => $locationFrom];
-        $affected[$line['article_code'].'|'.$locationTo] =
-            ['article_code' => $line['article_code'], 'location' => $locationTo];
-    }
-
-    foreach ($affected as $a) {
-       $this->recalculateMovementAndStock(
-    $a['article_code'],
-    $a['location'],
-    $hdrQ->tr_date   // sudah DD-MM-YYYY, JANGAN dikonversi
-);
-    }
-
-    return ['success' => true, 'message' => "Stock $trNumber berhasil di-reverse"];
-}
 
        // ===== HELPER METHODS =====
 
@@ -617,6 +624,27 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
             ->where('article_code', $articleCode)
             ->where('location_number', $location)
             ->value('avg_price') ?? 0;
+    }
+
+    // Cache resolusi lokasi dalam satu request
+    private array $stockLocationCache = [];
+
+    /**
+     * Resolusi lokasi stok akuntansi.
+     * Jika lokasi punya parent (mis. 010A parent = 012) → stok bergerak di parent.
+     * Jika tidak → stok bergerak di lokasi itu sendiri.
+     */
+    private function getStockLocation(string $locationCode): string
+    {
+        if (array_key_exists($locationCode, $this->stockLocationCache)) {
+            return $this->stockLocationCache[$locationCode];
+        }
+
+        $parent = DB::table('stock_location_master')
+            ->where('location_code', $locationCode)
+            ->value('parent_location');
+
+        return $this->stockLocationCache[$locationCode] = ($parent ?: $locationCode);
     }
 
     /**

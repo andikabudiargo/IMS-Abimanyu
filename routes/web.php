@@ -18,6 +18,16 @@ Route::get('/monitoring', function () {
         'https://docs.google.com/spreadsheets/d/1a7-TJ50WaKe3XMsCwvI4yOCqo68rmebjfOs46HBot8s/edit?usp=sharing'
     );
 	});
+
+	Route::get('/recalculate-all', function () {
+    set_time_limit(0);
+    ini_set('memory_limit', '512M');
+
+    $exitCode = Artisan::call('movement:recalculate-all');
+    $output   = Artisan::output();
+
+    return response("<pre>{$output}</pre>Exit code: {$exitCode}");
+});
 	
 Route::get('/tmp-recalc-sto-phantom', function () {
     $configs = DB::table('sto_config')->where('status', '!=', 5)->pluck('config_id');
