@@ -26,6 +26,8 @@ class ActualFinishGoodsController extends Controller
 
     private $whLoading, $whFg, $whFgOt, $whWip;
     private $loadingStatusDone;
+    private $whSanding  = '039'; // Gudang Sanding (sumber OT)
+    private $whBuffing  = '038'; // Gudang Buffing (sumber FG, tujuan WIP)
 
     /**
      * Status dokumen:
@@ -148,35 +150,49 @@ class ActualFinishGoodsController extends Controller
     // =========================================================================
 
     public function create(Request $request)
-    {
-        $data['title']    = "Input $this->title";
-        $data['subtitle'] = "Input $this->title";
+{
+    $data['title']    = "Input $this->title";
+    $data['subtitle'] = "Input $this->title";
 
-        // Actual Loading status NEW (1) & belum punya FG aktif
-        $data['listLoading'] = DB::table('actual_loading_hdr as alh')
-            ->leftJoin('stock_location_master as slm', 'slm.location_code', '=', 'alh.spray_booth')
-            ->where('alh.status', 1)
-            ->whereNotExists(function ($q) {
-                $q->select(DB::raw(1))
-                  ->from('actual_finish_goods_hdr as afg')
-                  ->whereColumn('afg.loading_code', 'alh.prod_code')
-                  ->where('afg.status', '<>', 5);
-            })
-            ->orderBy('alh.prod_code', 'desc')
-            ->select(
-                'alh.prod_code',
-                'alh.wos_reference',
-                'alh.note',
-                DB::raw("to_char(alh.loading_date, 'DD-MM-YYYY') as loading_date_fmt"),
-                DB::raw("coalesce(slm.location_name, alh.spray_booth) as spray_booth_name")
-            )
-            ->get();
+    // Actual Loading status NEW (1) & belum punya FG aktif
+    $data['listLoading'] = DB::table('actual_loading_hdr as alh')
+        ->leftJoin('stock_location_master as slm', 'slm.location_code', '=', 'alh.spray_booth')
+        ->where('alh.status', 1)
+        ->whereNotExists(function ($q) {
+            $q->select(DB::raw(1))
+              ->from('actual_finish_goods_hdr as afg')
+              ->whereColumn('afg.loading_code', 'alh.prod_code')
+              ->where('afg.status', '<>', 5);
+        })
+        ->orderBy('alh.prod_code', 'desc')
+        ->select(
+            'alh.prod_code',
+            'alh.wos_reference',
+            'alh.note',
+            DB::raw("to_char(alh.loading_date, 'DD-MM-YYYY') as loading_date_fmt"),
+            DB::raw("coalesce(slm.location_name, alh.spray_booth) as spray_booth_name")
+        )
+        ->get();
 
-        $data['statusPrd'] = 'NEW';
-        $data['oEdit']     = false;
+  $data['listArticleFg'] = DB::table('article')
+    ->where('article_type', 'FG')
+    ->orderBy('article_alternative_code')
+    ->get(['article_code', 'article_alternative_code', 'article_desc', 'uom'])
+    ->map(function($r) {
+        return [
+            'id'       => $r->article_code,
+            'text'     => ($r->article_alternative_code ?: $r->article_code) . ' — ' . $r->article_desc,
+            'alt_code' => $r->article_alternative_code ?: $r->article_code,
+            'desc'     => $r->article_desc,
+            'uom'      => $r->uom,
+        ];
+    })->values();
 
-        return view("production.actualFinishGoods.create", $data);
-    }
+    $data['statusPrd'] = 'NEW';
+    $data['oEdit']     = false;
+
+    return view("production.actualFinishGoods.create", $data);
+}
 
     /** Ambil artikel dari actual_loading_det utk prod_code terpilih */
     public function articleByLoading(Request $request)

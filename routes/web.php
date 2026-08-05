@@ -666,10 +666,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('actualFinishGoods/posting',['as'=>'production.actualFinishGoods.posting','uses'=>'Production\ActualFinishGoodsController@posting']);
 	Route::post('actualFinishGoods/approve',['as'=>'production.actualFinishGoods.approve','uses'=>'Production\ActualFinishGoodsController@approve']);
 	Route::get('actualFinishGoods/revision',['as'=>'production.actualFinishGoods.revision','uses'=>'Production\ActualFinishGoodsController@revision','middleware' => ['permission:actualFinishGoods-revision']]);
-	
-Route::post('production/actual-finish-goods/cancel',
+	Route::get('actual-finish-goods/search-article-fg', ['as' => 'production.actualFinishGoods.searchArticleFg', 'uses' => 'Production\ActualFinishGoodsController@searchArticleFg']);
+	Route::post('production/actual-finish-goods/cancel',
     ['as'=>'production.actualFinishGoods.cancel','uses'=>'Production\ActualFinishGoodsController@cancel']);
-
 	Route::get('actualFinishGood/export-excel',['as'=>'actualFinishGood.export.excel','uses'=>'Production\ActualFinishGoodsController@export']);
 	Route::post('actualFinishGood/import-excel',['as'=>'actualFinishGood.import.excel','uses'=>'Production\ActualFinishGoodsController@importExcel']);
 

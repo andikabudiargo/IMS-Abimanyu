@@ -1,47 +1,33 @@
+{{-- HEADER KOLOM --}}
 <div class="form-row d-flex align-items-end">
-    <div class="col-md-1 col-12 d-none" style="max-width: 5%;">
+    <div class="col-md-5 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block">Urutan</label>
-        </div>
-    </div>
-    <div class="col-md-2 col-12 d-none d-md-block" style="max-width: 15%;">
-        <div class="form-group">
-            <label class="d-none d-md-block">SO Number</label>
-        </div>
-    </div>
-    <div class="col-md-6 col-12 d-none d-md-block">
-        <div class="form-group">
-            <label class="d-none d-md-block">Article Code</label>
+            <label class="d-none d-md-block">Article</label>
         </div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block">Tone</label>
+            <label class="d-none d-md-block text-right">Qty FG</label>
         </div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block text-right">Act. FG</label>
+            <label class="d-none d-md-block text-right">Qty OT</label>
         </div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block text-right">Act.Fresh</label>
+            <label class="d-none d-md-block text-right">Qty WIP</label>
+        </div>
+    </div>
+    <div class="col-md-3 col-12 d-none d-md-block">
+        <div class="form-group">
+            <label class="d-none d-md-block">Note</label>
         </div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block text-right">Act.Repaint</label>
+            <label class="d-none d-md-block">&nbsp;</label>
         </div>
     </div>
-    {{-- <div class="col-md-1 col-12 d-none d-md-block" style="max-width: 5%;">
-        <div class="form-group">
-            <label class="d-none d-md-block text-right">Act.Tag</label>
-        </div>
-    </div>
-    <div class="col-md-2 col-12 d-none d-md-block" style="max-width: 10%;">
-        <div class="form-group">
-            <label class="d-none d-md-block">Act.Jam</label>
-        </div>
-    </div> --}}
 </div>
