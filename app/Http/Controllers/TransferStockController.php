@@ -1166,6 +1166,15 @@ public function update(Request $request)
  */
 private function recalculateMovementAndStock(string $articleCode, string $location, string $fromDate): void
 {
+    // ── Normalisasi $fromDate ke YYYY-MM-DD apapun format masuknya ──
+    if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $fromDate)) {
+        $fromDate = \Carbon\Carbon::createFromFormat('d-m-Y', $fromDate)->format('Y-m-d');
+    } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate)) {
+        // sudah benar
+    } else {
+        $fromDate = \Carbon\Carbon::parse($fromDate)->format('Y-m-d');
+    }
+
     $balanceBefore = (float) DB::selectOne(
         "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'YYYY-MM-DD') - INTERVAL '1 day', 'YYYY-MM-DD'), ?, ?) AS bal",
         [$articleCode, $fromDate, $this->siteCode, $location]
@@ -1176,13 +1185,11 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
         ->where('location_number', $location)
         ->where('site_code', $this->siteCode)
         ->where(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), '>=',
-            DB::raw("TO_DATE('$fromDate', 'DD-MM-YYYY')"))
-        // ── Filter yang sama dengan get_last_qty_new ──
+            DB::raw("TO_DATE('$fromDate', 'YYYY-MM-DD')"))   // ← FIX: dari DD-MM-YYYY jadi YYYY-MM-DD
         ->whereNotIn('movement_type', ['RETURN-CANCEL', 'RETURN-REVERSE'])
         ->where('movement_type', 'NOT LIKE', 'CANCEL %')
         ->where('movement_type', 'NOT LIKE', 'DELETE%')
         ->where('movement_type', 'NOT LIKE', 'REVISI %')
-        // ── Buang OB (sudah dihitung di get_last_qty_new sebagai basis) ──
         ->whereNotExists(function ($q) {
             $q->select(DB::raw(1))
               ->from('stock_adjustment_hdr')
