@@ -18,10 +18,15 @@ class RecalculateAllMovement extends Command
     private string $cutoffDateSql   = '2026-06-30'; // format untuk get_last_qty_new: yyyy-mm-dd
     private string $startDateLedger = '01-07-2026'; // format untuk kolom movement_date: dd-mm-yyyy
 
+    // Hanya lokasi ini yang direcalculate (gudang scrap).
+    private string $targetLocation = '044';
+
     public function handle()
     {
+        // Hanya ambil kombinasi artikel di lokasi 044 (gudang scrap).
         $affected = DB::table('warehouse_movement')
             ->where('site_code', $this->siteCode)
+            ->where('location_number', $this->targetLocation)
             ->select('artikel_code', 'location_number')
             ->distinct()
             ->orderBy('artikel_code')
