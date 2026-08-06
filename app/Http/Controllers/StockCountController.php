@@ -1345,13 +1345,27 @@ private function resolveTolerancePercent($targetPlanLoc)
 }
  
     private function getLastQty($article, $location, $stoDate)
-    {
-        return (float) (DB::table('warehouse_stock as ws')
-            ->join('article as a', 'a.article_code', '=', 'ws.article_code')
-            ->where('a.article_alternative_code', $article)
-            ->where('ws.location_number', $location)
-            ->value('ws.article_qty') ?? 0);
-    }
+{
+    // $article = article_alternative_code (dari sto_dtl)
+    // get_last_qty_new butuh INTERNAL article_code
+    $realCode = DB::table('article')
+        ->where('article_alternative_code', $article)
+        ->value('article_code');
+    if (!$realCode) return 0;
+
+    // sto_date format DD-MM-YYYY → ambil H-1, kirim sebagai yyyy-mm-dd
+    $target = $stoDate
+        ? \DateTime::createFromFormat('d-m-Y', $stoDate)
+        : new \DateTime();
+    if (!$target) return 0;
+    $target->modify('-1 day');
+
+    $row = DB::selectOne(
+        "SELECT get_last_qty_new(?, ?, 'HO', ?) AS q",
+        [$realCode, $target->format('Y-m-d'), $location]
+    );
+    return $row ? (float) $row->q : 0;
+}
  
     // ══════════════════════════════════════════════
     // DELETE LINE
