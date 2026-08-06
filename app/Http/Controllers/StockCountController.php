@@ -1494,7 +1494,7 @@ private function resolveTolerancePercent($targetPlanLoc)
     // ══════════════════════════════════════════════
 // RECALC PROGRESS
 // ══════════════════════════════════════════════
-private function recalcMappingProgress($mappingId)
+public function recalcMappingProgress($mappingId)
 {
     $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->first();
     if (!$m) return;
