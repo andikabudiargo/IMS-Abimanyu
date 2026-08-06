@@ -118,7 +118,6 @@ class RecalculateAllMovement extends Command
         FROM acc
         WHERE rn = 1
           AND hdr_status IS DISTINCT FROM '5'
-          AND hdr_status IS DISTINCT FROM '1'
         ORDER BY TO_DATE(movement_date,'DD-MM-YYYY'), movement_code
     ";
 
