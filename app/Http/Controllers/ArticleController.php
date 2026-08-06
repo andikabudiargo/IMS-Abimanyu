@@ -1017,7 +1017,7 @@
     ),
     kept AS (
         SELECT d.*,
-            CASE WHEN d.hdr_status = '1' THEN 0 ELSE d.net_value END AS counted_net  -- NEW: tampil tapi 0
+            d.net_value AS counted_net
         FROM dedup d
         WHERE d.rn = 1                                -- REVISI: hanya baris terbaru
     ),
@@ -1335,7 +1335,7 @@ private function netMovementRange($articleCode, $location, $from, $to, $isGlobal
                                WHERE h.adj_code=m.movement_transnno AND h.adj_type='OPENING BALANCE'))
       )
       SELECT COALESCE(SUM(net_value),0) AS net
-      FROM acc WHERE rn=1 AND hdr_status IS DISTINCT FROM '5' AND hdr_status IS DISTINCT FROM '1'";
+      FROM acc WHERE rn=1 AND hdr_status IS DISTINCT FROM '5'";
     $bind = ['art'=>$articleCode,'from'=>$from,'to'=>$to];
     if (!$isGlobal) $bind['loc2'] = $location;
     $r = DB::select($sql, $bind);
