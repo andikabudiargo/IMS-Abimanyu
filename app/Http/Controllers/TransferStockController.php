@@ -1167,7 +1167,7 @@ public function update(Request $request)
 private function recalculateMovementAndStock(string $articleCode, string $location, string $fromDate): void
 {
     $balanceBefore = (float) DB::selectOne(
-        "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'DD-MM-YYYY') - INTERVAL '1 day', 'DD-MM-YYYY'), ?, ?) AS bal",
+        "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'YYYY-MM-DD') - INTERVAL '1 day', 'YYYY-MM-DD'), ?, ?) AS bal",
         [$articleCode, $fromDate, $this->siteCode, $location]
     )->bal;
 
