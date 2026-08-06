@@ -19,7 +19,7 @@ class RecalculateAllMovement extends Command
     private string $startDateLedger = '01-07-2026'; // format untuk kolom movement_date: dd-mm-yyyy
 
     // Hanya lokasi ini yang direcalculate (gudang scrap).
-    private string $targetLocation = '042';
+    private string $targetLocation = '049';
 
     public function handle()
     {
