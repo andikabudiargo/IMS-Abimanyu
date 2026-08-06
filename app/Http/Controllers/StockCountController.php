@@ -1869,7 +1869,7 @@ private function resolveGroupStatus($items)
 
     $qtySystem = isset($first->stock_qty)
         ? (float) $first->stock_qty
-        : (float) $this->getLastQty($first->article_code, $first->location_number, date('d-m-Y'));
+        : (float) $this->getLastQty($first->article_code, $first->location_number, $first->sto_date);
 
     $realItems = $items->filter(fn($r) => !$this->isPhantomRow($r));
 
