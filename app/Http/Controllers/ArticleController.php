@@ -801,14 +801,14 @@ public function printLabel(Request $request)
         return response()->json(['status' => 0, 'message' => 'Artikel tidak ditemukan.']);
     }
 
-    if (empty($article->barcode_path) || !\Storage::disk('public')->exists($article->barcode_path)) {
-        return response()->json(['status' => 0, 'message' => 'QR Code belum digenerate untuk artikel ini. Silakan generate QR terlebih dahulu.']);
-    }
+   $qrAbsPath = '/home/abimany1/public_html/storage/app/public/' . $article->barcode_path;
 
-    // Konversi QR PNG ke base64 untuk ZPL
-    $qrAbsPath  = storage_path('app/public/' . $article->barcode_path);
-    $qrBase64   = base64_encode(file_get_contents($qrAbsPath));
-    $qrUrl      = asset('storage/' . $article->barcode_path);
+if (empty($article->barcode_path) || !file_exists($qrAbsPath)) {
+    return response()->json(['status' => 0, 'message' => 'QR Code belum digenerate untuk artikel ini.']);
+}
+
+$qrBase64 = base64_encode(file_get_contents($qrAbsPath));
+$qrUrl    = 'https://abimanyugreats.com/storage/' . $article->barcode_path;
     $printedBy  = Auth::user()->username;
     $printedAt  = now()->format('d/m/Y H:i');
 

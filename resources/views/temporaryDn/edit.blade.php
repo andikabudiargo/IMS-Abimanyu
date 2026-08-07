@@ -211,19 +211,19 @@
                     },
                     dataType: "json",
                     success: function(data) {
-                        if (data.status == 0 ){
-                            let message="";
-                            for(let i = 0; i < data.message.length; i++) {
-                                show_msg(data.title, data.message[i], data.alert);
-                            }
-                            $('#prNumber').attr('disabled','disabled');
-
-                        }else{
-                            show_msg(data.title, data.message, data.alert);
-                            $('#prNumber').attr('disabled','disabled');
-                            $('.disabled-el').attr('disabled','disabled');
-                            // $('#addNewRow').attr('disabled','disabled');                        
-                        }
+                     if (data.status == 0 ){
+    let msgs = Array.isArray(data.message) ? data.message : [data.message];
+    for (let i = 0; i < msgs.length; i++) {
+        // msgs[i] bisa berupa array (dari validator) atau string
+        let m = Array.isArray(msgs[i]) ? msgs[i].join(', ') : msgs[i];
+        show_msg(data.title, m, data.alert);
+    }
+    $('#prNumber').attr('disabled','disabled');
+} else {
+    show_msg(data.title, data.message, data.alert);
+    $('#prNumber').attr('disabled','disabled');
+    $('.disabled-el').attr('disabled','disabled');
+}
                         
                     },
                     error: function(error) {
