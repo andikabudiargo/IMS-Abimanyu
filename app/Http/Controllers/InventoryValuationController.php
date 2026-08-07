@@ -239,7 +239,7 @@ class InventoryValuationController extends Controller
             JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
             WHERE hdr.adj_type = 'OPENING BALANCE'
               AND hdr.status != '5'
-              AND hdr.location_number IN ({$locPlaceholders})
+              AND hdr.location_code IN ({$locPlaceholders})
               AND CAST(hdr.periode AS INTEGER) = ?
               AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date, 'DD-MM-YYYY')) = ?
               AND det.article_code = ?
