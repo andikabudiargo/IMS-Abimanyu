@@ -137,7 +137,7 @@
 <div id="new_row_fg" class="d-none">
     <div class="tanda-baris">
         <div class="form-row d-flex align-items-center">
-            <div class="col-md-5 col-12">
+            <div class="col-md-6 col-12">
                 <div class="form-group margin-nol">
                     <label class="d-block d-md-none">Article</label>
                     <select class="select2-article-fg form-control" name="article_code[]"
@@ -159,13 +159,6 @@
                     <label class="d-block d-md-none">Qty OT</label>
                     <input type="text" class="form-control numeral-mask-digit text-right qty-ot"
                            name="qty_ot[]" maxlength="12" value="0">
-                </div>
-            </div>
-            <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label class="d-block d-md-none">Qty WIP</label>
-                    <input type="text" class="form-control text-right qty-wip"
-                           name="qty_wip[]" value="0" readonly tabindex="-1">
                 </div>
             </div>
             <div class="col-md-3 col-12">
