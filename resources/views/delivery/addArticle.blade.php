@@ -40,7 +40,7 @@
         <table class="table-bordered" id="listData" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
-                   <td class="isian disabled" style="width: 40%">
+                   <td class="isian disabled" style="width: 35%">
     <input type="text" class="form-control-plaintext text-hitam" id="articleId" name="articleId[]" data-code="" data-uom="" data-price="" data-po-number="" disabled>
 </td>
 <td class="isian disabled" style="width: 5%">
@@ -51,6 +51,9 @@
 </td>
 <td class="isian" style="width: 5%">
     <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id="qtyInv" name="qtyInv[]" maxlength="9">
+</td>
+<td class="isian disabled" style="width: 5%">
+    <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id="sisaSo" name="sisaSo[]" disabled>
 </td>
 <td class="isian" style="width: 5%">
     <input type="text" class="form-control-plaintext" id="uom" name="uom[]" disabled>
@@ -172,6 +175,8 @@
     $("#new_row"+ cloneCount).find('#qtySo').attr('id', 'qtySo'+ cloneCount);
     $("#new_row"+ cloneCount).find('#uom').attr('id', 'uom'+ cloneCount);
     $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
+    $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
+    $("#new_row"+ cloneCount).find('#sisaSo').attr('id', 'sisaSo'+ cloneCount);
     $('#articleId'+ cloneCount).attr('data-code', article);
     $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
     $('#articleId'+ cloneCount).attr('data-uom', uom);
@@ -184,6 +189,7 @@
     $('#uom'+ cloneCount).val(uom);
     $('#qtySo'+ cloneCount).val(qtySo);
     $("#new_row"+ cloneCount).find('input[name="qtyStock[]"]').val(stockFg);   // ← set stok FG
+    $('#sisaSo'+ cloneCount).val(humanizeNumber(parseFloat(qtySo) || 0));      // sisa SO awal = qty SO penuh
     tombolPanah('qtyInv');
     mask_thousand();
     mask_thousand_digit(2);
@@ -192,34 +198,37 @@
 }
 
     let cloneCountEdit=0;
-    function add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo) {
-        // console.log(article,articleCode,articleDesc,qtyDel,uomGroup,uom);
-        $("#article_row").append($("#new_row").clone().html());
-        cloneCountEdit++;
-        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
-        $("#new_row"+ cloneCountEdit).find('#qtySo').attr('id', 'qtySo'+ cloneCountEdit);
-        $("#new_row"+ cloneCountEdit).find('#articleId').attr('id', 'articleId'+ cloneCountEdit);
-        $('#articleId'+ cloneCountEdit).attr('data-code', article);
-        $('#articleId'+ cloneCountEdit).attr('data-desc', articleDesc);
-        $('#articleId'+ cloneCountEdit).attr('data-uom', uom);
-        // $('#articleId'+ cloneCountEdit).attr('data-price', price);
-        // $('#articleId'+ cloneCountEdit).attr('data-price-service', priceJasa);
-        $('#articleId'+ cloneCountEdit).attr('data-so-code', soCode);
-        $('#articleId'+ cloneCountEdit).attr('data-po-number', poNumber);
-        $('#articleId'+ cloneCountEdit).attr('data-so-qty', qtySo);
-        $('#articleId'+ cloneCountEdit).val(articleCode+'-'+articleDesc);
+function add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo,stockFg) {
+    // console.log(article,articleCode,articleDesc,qtyDel,uomGroup,uom);
+    $("#article_row").append($("#new_row").clone().html());
+    cloneCountEdit++;
+    $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
+    $("#new_row"+ cloneCountEdit).find('#qtySo').attr('id', 'qtySo'+ cloneCountEdit);
+    $("#new_row"+ cloneCountEdit).find('#articleId').attr('id', 'articleId'+ cloneCountEdit);
+    $('#articleId'+ cloneCountEdit).attr('data-code', article);
+    $('#articleId'+ cloneCountEdit).attr('data-desc', articleDesc);
+    $('#articleId'+ cloneCountEdit).attr('data-uom', uom);
+    $('#articleId'+ cloneCountEdit).attr('data-so-code', soCode);
+    $('#articleId'+ cloneCountEdit).attr('data-po-number', poNumber);
+    $('#articleId'+ cloneCountEdit).attr('data-so-qty', qtySo);
+    $('#articleId'+ cloneCountEdit).val(articleCode+'-'+articleDesc);
 
-        $("#new_row"+ cloneCountEdit).find('#qtyInv').attr('id', 'qtyInv'+ cloneCountEdit);
-        $('#qtyInv'+ cloneCountEdit).val(qtyDel);
-        $("#new_row"+ cloneCountEdit).find('#uom').attr('id', 'uom'+ cloneCountEdit);
-        $('#qtySo'+ cloneCountEdit).val(qtySo*1);
-        listUom('uom'+ cloneCountEdit,uomGroup,uom,uom);
-        tombolPanah('qtyInv');
-        mask_thousand();
-        hitungTotal();
-        hitungGrandTotalLoad();
-        cekQty();
-    }
+    $("#new_row"+ cloneCountEdit).find('#qtyInv').attr('id', 'qtyInv'+ cloneCountEdit);
+    $('#qtyInv'+ cloneCountEdit).val(qtyDel);
+    $("#new_row"+ cloneCountEdit).find('#sisaSo').attr('id', 'sisaSo'+ cloneCountEdit);
+    $('#sisaSo'+ cloneCountEdit).val(humanizeNumber((parseFloat(qtySo)||0) - (parseFloat(qtyDel)||0)));
+    $("#new_row"+ cloneCountEdit).find('#uom').attr('id', 'uom'+ cloneCountEdit);
+    $('#qtySo'+ cloneCountEdit).val(qtySo*1);
+    // ← BARU: isi qtyStock[] sama seperti add_new_row()
+    $("#new_row"+ cloneCountEdit).find('input[name="qtyStock[]"]').val(stockFg || 0);
+    listUom('uom'+ cloneCountEdit,uomGroup,uom,uom);
+    tombolPanah('qtyInv');
+    mask_thousand();
+    mask_thousand_digit(2);   // ← BARU: konsisten dengan add_new_row()
+    hitungTotal();
+    hitungGrandTotalLoad();
+    cekQty();
+}
 
     function hitungTotal(){
         let objQtyInv= $('#article_row input[name="qtyInv[]"]');
@@ -281,6 +290,7 @@
     let objQtySo  = $('#article_row input[name="qtySo[]"]');
     let objStock  = $('#article_row input[name="qtyStock[]"]');
     let objQtyDel = $('#article_row input[name="qtyInv[]"]');
+    let objSisaSo = $('#article_row input[name="sisaSo[]"]');
 
     objQtyDel.off('keyup.cekqty').on('keyup.cekqty', function() {
         let indexnya = objQtyDel.index(this);
@@ -288,11 +298,16 @@
         let qtySo  = parseFloat(objQtySo.eq(indexnya).val().replace(/,/gi, '') || 0);
         let stock  = parseFloat(objStock.eq(indexnya).val().replace(/,/gi, '') || 0);
 
+        // update Sisa SO = Qty SO - Qty Kirim
+        let sisaSo = qtySo - qtyDel;
+        objSisaSo.eq(indexnya).val(humanizeNumber(sisaSo));
+
         let lebihSo    = qtyDel > qtySo;
         let lebihStock = qtyDel > stock;
 
         if (lebihSo || lebihStock){
             objQtyDel.eq(indexnya).css("background-color","rgba(255,0,0,0.5)");
+            objSisaSo.eq(indexnya).css("color", sisaSo < 0 ? "red" : "");
             if (lebihStock){
                 ToastQty.fire({icon:'error', title:'Qty melebihi Stock FG'});
             } else {
@@ -300,6 +315,7 @@
             }
         } else {
             objQtyDel.eq(indexnya).css("background-color","");
+            objSisaSo.eq(indexnya).css("color", "");
         }
         hitungGrandTotal();
     });

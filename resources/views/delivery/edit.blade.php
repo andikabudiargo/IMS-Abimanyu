@@ -275,34 +275,36 @@
             $('#modalConfirmationCancel').attr("action", href);
         });
 
-        let detail = {!!  $detail !!};
-        for(let i=0;i<detail.length;i++){
-            article = detail[i].article_code;
-            articleCode = detail[i].article_alternative_code;
-            articleDesc = detail[i].article_desc;
-            qtyDel = detail[i].qty;
-            uomGroup =  detail[i].uom_group;
-            uom = detail[i].uom;
-            soCode = detail[i].so_number;
-            poNumber = detail[i].po_number;
-            qtySo = detail[i].qty_so;
-            add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo);
-        }
+      let detail = {!!  $detail !!};
+for(let i=0;i<detail.length;i++){
+    article = detail[i].article_code;
+    articleCode = detail[i].article_alternative_code;
+    articleDesc = detail[i].article_desc;
+    qtyDel = detail[i].qty;
+    uomGroup =  detail[i].uom_group;
+    uom = detail[i].uom;
+    soCode = detail[i].so_number;
+    poNumber = detail[i].po_number;
+    qtySo = detail[i].qty_so;
+    stockFg = detail[i].stock_fg;   // ← BARU
+    add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo,stockFg);
+}
 
-        // supaya yang sisa SO nya juga keluar datanya bukan hanya yang di delivery saja
-        let detailSo = {!! $detailSo !!};
-        for(let i=0;i<detailSo.length;i++){
-            article = detailSo[i].article_code;
-            articleCode = detailSo[i].article_alternative_code;
-            articleDesc = detailSo[i].article_desc;
-            qtyDel = 0;
-            uomGroup =  detailSo[i].uom_group;
-            uom = detailSo[i].uom;
-            soCode = detailSo[i].so_number;
-            poNumber = detailSo[i].po_number;
-            qtySo = detailSo[i].qty_so;
-            add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo);
-        }
+// supaya yang sisa SO nya juga keluar datanya bukan hanya yang di delivery saja
+let detailSo = {!! $detailSo !!};
+for(let i=0;i<detailSo.length;i++){
+    article = detailSo[i].article_code;
+    articleCode = detailSo[i].article_alternative_code;
+    articleDesc = detailSo[i].article_desc;
+    qtyDel = 0;
+    uomGroup =  detailSo[i].uom_group;
+    uom = detailSo[i].uom;
+    soCode = detailSo[i].so_number;
+    poNumber = detailSo[i].po_number;
+    qtySo = detailSo[i].qty_so;
+    stockFg = detailSo[i].stock_fg;   // ← BARU
+    add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo,stockFg);
+}
         
     });
 
@@ -323,105 +325,103 @@
         reloadPage();
     });
 
-    $("#cmdSave").click(function(){    
-        if (!$("#frmAdd")[0].checkValidity()){
-            $("#frmAdd").submit();
-        }else{ 
-            $('.disabled-el').removeAttr('disabled');
-            let objQtySo= $('#article_row input[name="qtySo[]"]');
-            let objQty= $('#article_row input[name="qtyInv[]"]');
-            let objUom= $('#article_row span[name="uom[]"]'); 
-            let articles = []; 
-            let flag=0; 
-            let pesan="";
+   $("#cmdSave").click(function(){    
+    if (!$("#frmAdd")[0].checkValidity()){
+        $("#frmAdd").submit();
+    }else{ 
+        $('.disabled-el').removeAttr('disabled');
+        let objQtySo= $('#article_row input[name="qtySo[]"]');
+        let objQty= $('#article_row input[name="qtyInv[]"]');
+        let objUom= $('#article_row span[name="uom[]"]'); 
+        let objSisaSo  = $('#article_row input[name="sisaSo[]"]');  // ← BARU
+        let articles = []; 
+        let flag=0; 
+        let pesan="";
 
-            $("#article_row input[name='articleId[]']").map(function(i) {  
-                let $this=$(this);
-                if ($this.val()){
-                    let articleCode = $this.data("code");
-                    let articleDesc = $this.data("desc");
-                    let articleUom = $this.data("uom");
-                    let articleSoCode = $this.data("so-code");
-                    let poNumber = $this.data("po-number");
-                    let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
-                    let qtySo=objQtySo.eq(i).val().replace(/,/gi, '') || 0;
-                    
-                    if ((articleCode!=='') && (qty> 0)){
-                        articles.push({
-                            "article_code":articleCode,
-                            "qty":qty,
-                            "uom":articleUom,
-                            "so_number":articleSoCode,
-                            "po_number":poNumber,
-                            "qty_so":qtySo
-                        });
+        $("#article_row input[name='articleId[]']").map(function(i) {  
+            let $this=$(this);
+            if ($this.val()){
+                let articleCode = $this.data("code");
+                let articleDesc = $this.data("desc");
+                let articleUom = $this.data("uom");
+                let articleSoCode = $this.data("so-code");
+                let poNumber = $this.data("po-number");
+                let qty=objQty.eq(i).val().replace(/,/gi, '') || 0;
+                let qtySo=objQtySo.eq(i).val().replace(/,/gi, '') || 0;
+                // ← BARU: ambil nilai Sisa SO yang sudah dihitung di layar
+                let sisaSoVal = objSisaSo.eq(i).length
+                    ? (objSisaSo.eq(i).val().replace(/,/gi, '') || 0)
+                    : (parseFloat(qtySo) - parseFloat(qty));
+                
+                if ((articleCode!=='') && (qty> 0)){
+                    articles.push({
+                        "article_code":articleCode,
+                        "qty":qty,
+                        "uom":articleUom,
+                        "so_number":articleSoCode,
+                        "po_number":poNumber,
+                        "qty_so":qtySo,
+                        "sisa_so":sisaSoVal   // ← BARU
+                    });
+                }
+
+                if (parseInt(qty) > parseInt(qtySo)){
+                    pesan +="Items "+ articleDesc +"-"+qty+"-"+qtySo+" QTY Delivery is higher than QTY SO<br>"; 
+                    flag=1;
+                }
+            }
+        });
+
+        if (articles.length == 0){
+            pesan +="Articles must be filled in completely <br>"; 
+            flag=1;
+        }
+
+        if (flag==0){
+            let dnDate = $('#dnDate').val();
+            let customer = $('#customer').val();
+            let soNumber = $('#soNumber').val();
+            let poNumber = $('#soNumber').find(":selected").data("po-number");
+            let note = $('#note').val();
+            let dnNumber = $('#dnNumber').val();
+            let osNumber = $('#osNumber').val();
+
+            $.ajax({
+                type: "post",
+                url: "{{ route('delivery.update') }}",
+                data: {
+                    articles:JSON.stringify(articles),
+                    dnDate:dnDate,
+                    customer:customer,
+                    soNumber:soNumber,
+                    poNumber:poNumber,
+                    dnNumber:dnNumber,
+                    note:note,
+                    osNumber:osNumber
+                },
+                dataType: "json",
+                success: function(data) {
+                    if (data.status == 0 ){
+                        for(let i = 0; i < data.message.length; i++) {
+                            show_msg(data.title, data.message[i], data.alert);
+                        }
+                        $('#dnNumber').attr('disabled','disabled');
+                    }else{
+                        show_msg(data.title, data.message, data.alert);
+                        $('#dnNumber').val(data.dnNumber);
+                        $('#dnNumber').attr('disabled','disabled');
                     }
-
-                    if (parseInt(qty) > parseInt(qtySo)){
-                        pesan +="Items "+ articleDesc +"-"+qty+"-"+qtySo+" QTY Delivery is higher than QTY SO<br>"; 
-                        flag=1;
-                    }
-
-                    // console.log(articles);
-                    // if (qty == 0){
-                    //     pesan +="QTY of items "+ articleDesc +" cannot be 0 <br>"; 
-                    //     flag=1;
-                    // }
+                },
+                error: function(error) {
+                    console.log(error);
                 }
             });
 
-            if (articles.length == 0){
-                pesan +="Articles must be filled in completely <br>"; 
-                flag=1;
-            }
-
-            if (flag==0){
-
-                let dnDate = $('#dnDate').val();
-                let customer = $('#customer').val();
-                let soNumber = $('#soNumber').val();
-                let poNumber = $('#soNumber').find(":selected").data("po-number");
-                // let poNumber = $('#poNumberHdr').val();
-                let note = $('#note').val();
-                let dnNumber = $('#dnNumber').val();
-                let osNumber = $('#osNumber').val();
-
-                $.ajax({
-                    type: "post",
-                    url: "{{ route('delivery.update') }}",
-                    data: {
-                        articles:JSON.stringify(articles),
-                        dnDate:dnDate,
-                        customer:customer,
-                        soNumber:soNumber,
-                        poNumber:poNumber,
-                        dnNumber:dnNumber,
-                        note:note,
-                        osNumber:osNumber
-                    },
-                    dataType: "json",
-                    success: function(data) {
-                        if (data.status == 0 ){
-                            for(let i = 0; i < data.message.length; i++) {
-                                show_msg(data.title, data.message[i], data.alert);
-                            }
-                            $('#dnNumber').attr('disabled','disabled');
-                        }else{
-                            show_msg(data.title, data.message, data.alert);
-                            $('#dnNumber').val(data.dnNumber);
-                            $('#dnNumber').attr('disabled','disabled');
-                        }
-                    },
-                    error: function(error) {
-                        console.log(error);
-                    }
-                });
-
-            }else{
-                Swal.fire('Warning..',pesan,'warning');
-            }
+        }else{
+            Swal.fire('Warning..',pesan,'warning');
         }
-    });
+    }
+});
                     
     $.ajaxSetup({
         headers: {

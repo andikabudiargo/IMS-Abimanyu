@@ -257,54 +257,53 @@
             <tr>
                 <td>
                     <div class="content">
-                      <table id="tblContent" class="font-14">
-    <thead>
-        <tr>
-            <td width="5%" align="center">No</td>
-            <td width="13%" align="center">Code</td>
-            <td width="47%" align="center">Description</td>
-            <td width="10%" align="center">Qty</td>
-            <td width="10%" align="center">UOM</td>
-            <td width="10%" align="center">Sisa PO</td>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach ($details as $val )
-            <tr >
-                <td align="center"><div style="height:35px;display: table-cell;
-                    vertical-align: middle;
-                    text-align: center;">{{ ++$no }}</div></td>
-                <td align="left">{{ $val->article_alternative_code }}</td>
-                <td align="left">{{ $val->article_desc }}</td>
-                <td align="right">{{ fmod($val->qty, 1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
-                <td align="left">{{ $val->uom }}</td>
-                <td align="right">{{ fmod($val->sisa_so, 1) !== 0.0 ? number_format($val->sisa_so,2) : number_format($val->sisa_so) }}</td>
-            </tr>
-            
-        @endforeach      
-                            
-        @if((count($details))>4)
-            <?php $totalBaris = 19 ?>
-        @else
-            <?php $totalBaris = 4 ?>
-        @endif
+                        <table id="tblContent" class="font-14">
+                            <thead>
+                                <tr>
+                                    <td width="5%" align="center">No</td>
+                                    <td width="15%" align="center">Code</td>
+                                    <td width="60%" align="center">Description</td>
+                                    <td width="10%" align="center">Qty</td>
+                                    <td width="10%" align="center">UOM</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($details as $val )
+                                    <tr >
+                                        <td align="center"><div style="height:35px;display: table-cell;
+                                            vertical-align: middle;
+                                            text-align: center;">{{ ++$no }}</div></td>
+                                        <td align="left">{{ $val->article_alternative_code }}</td>
+                                        <td align="left">{{ $val->article_desc }}</td>
+                                        <td align="right">{{ fmod($val->qty, 1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
+                                        <td align="left">{{ $val->uom }}</td>
+                                    </tr>
+                                    
+                                @endforeach      
+                                                    
+                                @if((count($details))>4)
+                                    <?php $totalBaris = 19 ?>
+                                @else
+                                    <?php $totalBaris = 4 ?>
+                                @endif
 
-        @for ($i=1;$i<= $totalBaris-(count($details));$i++)
-            <tr >
-                <td align="right" class="putih"><div style="height:35px;"></div></td>
-                <td align="left"></td>
-                <td align="left"></td>
-                <td align="right"></td>
-                <td align="left"></td>
-                <td align="right"></td>
-            </tr>
-        @endfor
-                                
-        <tr style="border: thin solid var(--line-color)">
-            <td colspan="6">Description: {{ $dnHdr->note }} </td>
-        </tr>
-    </tbody>
-</table>
+                                {{-- <?php //$totalBaris = 16 ?> --}}
+
+                                @for ($i=1;$i<= $totalBaris-(count($details));$i++)
+                                    <tr >
+                                        <td align="right" class="putih"><div style="height:35px;"></div></td>
+                                        <td align="left"></td>
+                                        <td align="left"></td>
+                                        <td align="right"></td>
+                                        <td align="left"></td>
+                                    </tr>
+                                @endfor
+                                                        
+                                <tr style="border: thin solid var(--line-color)">
+                                    <td colspan="5">Description: {{ $dnHdr->note }} </td>
+                                </tr>
+                            </tbody>
+                        </table>
                         <table width="100%">
                             <tr><td colspan="5" height="3"></td></tr>
                             <tr>

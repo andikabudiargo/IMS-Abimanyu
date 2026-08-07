@@ -606,56 +606,57 @@ class DeliveryController extends Controller
         $soNumber = $data['header']->so_number;
 
 
-        //ambil data dari SO semua barang SO kecuali yang sudah di delivery dengan nomor yang sama
-        $data['detailSo'] = DB::table('sales_order_det as a')
-        ->leftJoin('article','article.article_code','=','a.article_code')
-        ->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','a.so_code')
-        ->leftJoin('uom','a.uom','uom.code')
-        ->select('a.*'
-        ,'article.*'
-        ,'a.so_code as so_number'
-        ,'sales_order_hdr.po_number'
-        ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
-        ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_so")
-        )
-        ->whereNotIn('a.article_code', function($query) use($dnNumber){
-            $query->select('article_code')
-            ->from('delivery_det')
-            ->where('delivery_number',$dnNumber);
-        })
-        ->where('a.so_code',$soNumber)
-        ->orderBy('a.id')
-        ->get();
+       //ambil data dari SO semua barang SO kecuali yang sudah di delivery dengan nomor yang sama
+$data['detailSo'] = DB::table('sales_order_det as a')
+->leftJoin('article','article.article_code','=','a.article_code')
+->leftJoin('sales_order_hdr','sales_order_hdr.so_code','=','a.so_code')
+->leftJoin('uom','a.uom','uom.code')
+->select('a.*'
+,'article.*'
+,'a.so_code as so_number'
+,'sales_order_hdr.po_number'
+,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
+,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_so")
+,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = a.article_code and location_number = '007'),0)) as stock_fg")
+)
+->whereNotIn('a.article_code', function($query) use($dnNumber){
+    $query->select('article_code')
+    ->from('delivery_det')
+    ->where('delivery_number',$dnNumber);
+})
+->where('a.so_code',$soNumber)
+->orderBy('a.id')
+->get();
 
-        //ambil data detail yang sudah di delivery
-        $data['detail'] = DB::table('delivery_det')
-        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
-        ->leftJoin('article','article.article_code','=','delivery_det.article_code')
-        ->leftJoin('uom','delivery_det.uom','uom.code')
-        ->select(
-            'delivery_det.*'
-            ,'article.*'
-            ,'uom.*'
-            // ,DB::RAW("(select sum(qty) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code group by a.article_code) - delivery_det.qty as qty_so")
-           ,DB::RAW("
-                coalesce((select sum(qty) from sales_order_det a
-                    where a.so_code = delivery_det.so_number
-                      and a.article_code = delivery_det.article_code),0)
-                - coalesce((select sum(qty) from delivery_det z
-                    where z.delivery_number in (
-                        select delivery_number from delivery_hdr
-                        where so_number = delivery_det.so_number
-                          and status not in ('5','7','10')
-                    )
-                    and z.article_code = delivery_det.article_code
-                    and z.delivery_number <> delivery_det.delivery_number
-                  ),0)
-                as qty_so
-            ")
-        )
-        ->where('delivery_det.delivery_number',$dnNumber)
-        ->orderBy('delivery_det.id')
-        ->get();
+//ambil data detail yang sudah di delivery
+$data['detail'] = DB::table('delivery_det')
+->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+->leftJoin('article','article.article_code','=','delivery_det.article_code')
+->leftJoin('uom','delivery_det.uom','uom.code')
+->select(
+    'delivery_det.*'
+    ,'article.*'
+    ,'uom.*'
+   ,DB::RAW("
+        coalesce((select sum(qty) from sales_order_det a
+            where a.so_code = delivery_det.so_number
+              and a.article_code = delivery_det.article_code),0)
+        - coalesce((select sum(qty) from delivery_det z
+            where z.delivery_number in (
+                select delivery_number from delivery_hdr
+                where so_number = delivery_det.so_number
+                  and status not in ('5','7','10')
+            )
+            and z.article_code = delivery_det.article_code
+            and z.delivery_number <> delivery_det.delivery_number
+          ),0)
+        as qty_so
+    ")
+    ,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = delivery_det.article_code and location_number = '007'),0)) as stock_fg")
+)
+->where('delivery_det.delivery_number',$dnNumber)
+->orderBy('delivery_det.id')
+->get();
 
         $data['customers'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
