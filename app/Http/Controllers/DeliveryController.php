@@ -387,6 +387,7 @@ class DeliveryController extends Controller
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                             'qty_so'=>$val->qty_so,
+                            'sisa_so' => $val->sisa_so ?? ($val->qty_so - $val->qty), // ← BARU: snapshot Sisa SO
                         ];
                     }
 
@@ -636,8 +637,21 @@ class DeliveryController extends Controller
             ,'article.*'
             ,'uom.*'
             // ,DB::RAW("(select sum(qty) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code group by a.article_code) - delivery_det.qty as qty_so")
-            ,DB::RAW("((select sum(qty) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code group by a.article_code)
-            -coalesce((select sum(qty) from delivery_det z where z.delivery_number in (select delivery_number from delivery_hdr where so_number = delivery_det.so_number and status not in ('5','7')) and article_code = delivery_det.article_code group by article_code),0))+delivery_det.qty as qty_so")
+           ,DB::RAW("
+                coalesce((select sum(qty) from sales_order_det a
+                    where a.so_code = delivery_det.so_number
+                      and a.article_code = delivery_det.article_code),0)
+                - coalesce((select sum(qty) from delivery_det z
+                    where z.delivery_number in (
+                        select delivery_number from delivery_hdr
+                        where so_number = delivery_det.so_number
+                          and status not in ('5','7','10')
+                    )
+                    and z.article_code = delivery_det.article_code
+                    and z.delivery_number <> delivery_det.delivery_number
+                  ),0)
+                as qty_so
+            ")
         )
         ->where('delivery_det.delivery_number',$dnNumber)
         ->orderBy('delivery_det.id')
@@ -762,7 +776,8 @@ class DeliveryController extends Controller
                                 'uom' => $val->uom,
                                 'updated_by' => Auth::user()->username,
                                 'updated_at' => date('Y-m-d H:i:s'),
-                                'qty_so'=>$val->qty_so
+                                'qty_so'=>$val->qty_so,
+                                'sisa_so' => $val->sisa_so ?? ($val->qty_so - $val->qty), // ← BARU: snapshot Sisa SO
                             ]
                         );
                     }
@@ -1009,7 +1024,7 @@ public function posting(Request $request)
                 'movement_plus'      => $val->movement_plus,
                 'movement_price'     => $val->movement_price,
                 'movement_transnno'  => $val->movement_transnno,
-                'movement_type'      => $val->movement_type,   // 'Delivery'
+                'movement_type'      => 'DELIVERY',
                 'movement_desc'      => $val->movement_desc,
                 'created_by'         => $username,
                 'created_at'         => date('Y-m-d H:i:s'),
@@ -1355,7 +1370,108 @@ public function posting(Request $request)
         }
     }
 
-    public function unPosting($dnNumber,$reason)
+    
+    public function unPosting($dnNumber, $reason, $movementType = 'REVERSE DELIVERY')
+{
+    $username =  Auth::user()->username;
+    $dnNumber = $dnNumber;
+    $recType = "NORMAL";
+    $siteCode = 'HO';
+    $location ='007'; // gudang FG
+
+    $moduleCode = $this->moduleCode;
+    $todayDate = date('Y-m-d');
+
+    if ($dnNumber){
+
+        $data = DB::table('delivery_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+        ->leftJoin('article','article.article_code','delivery_det.article_code')
+        ->where('delivery_det.delivery_number',$dnNumber)
+        ->select('delivery_det.*'
+        ,'article.article_type'
+        ,'article.uom as uom_article'
+        ,'delivery_det.qty as total_qty'
+        )->get();
+
+        foreach($data as $val){
+            DB::table('warehouse_stock')
+            ->updateOrInsert(
+                [ 'site_code' =>$siteCode,
+                  'article_code' => $val->article_code,
+                  'location_number'=> $location
+                ],
+                [
+                  'dept_code'=>$val->article_type,
+                  'uom'=>$val->uom_article,
+                ]
+            );
+
+            DB::table('warehouse_stock')
+            ->where('site_code',$siteCode)
+            ->where('article_code',$val->article_code)
+            ->where('location_number',$location)
+            ->update([
+                'article_qty' => DB::raw('coalesce(article_qty,0) + '.$val->total_qty)
+            ]);
+        }
+
+        $movements = DB::table('delivery_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+        ->leftJoin('article','article.article_code','delivery_det.article_code')
+        ->where('delivery_det.delivery_number',$dnNumber)
+        ->where('qty', '<>', 0)
+        ->select(
+            'delivery_hdr.delivery_date as movement_date'
+            ,'delivery_det.article_code'
+            ,'article.article_desc'
+            ,'delivery_det.qty as movement_plus'
+            ,DB::raw("0 as movement_min")
+            ,DB::raw("0 as movement_price ")
+            ,'delivery_hdr.delivery_number as movement_transnno'
+            ,'delivery_hdr.delivery_number as movement_desc'
+            ,'delivery_hdr.customer_id as movement_from_code'
+        )
+        ->get();
+
+        $seq = (int) DB::table('warehouse_movement')->max('movement_code');
+
+        $dataSetMovement = [];
+        foreach ($movements as $val) {
+            $seq++;
+            $dataSetMovement[] = [
+                'movement_code'    => $seq,
+                'movement_date' => $val->movement_date,
+                'artikel_code' => $val->article_code,
+                'artikel_desc' => $val->article_desc,
+                'movement_min' => $val->movement_min,
+                'movement_plus' => $val->movement_plus,
+                'movement_price' => $val->movement_price,
+                'movement_transnno' => $val->movement_transnno,
+                'movement_type' => $movementType,          // ← ditentukan oleh pemanggil, bukan hardcode
+                'movement_desc' => $val->movement_desc."($reason)",
+                'created_by' => $username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'site_code' => $siteCode,
+                'location_number' => $location,
+                'movement_from' => $val->movement_from_code,
+                'movement_to'   => $location,
+                'partner_type'  => 'CUST',
+                'last_qty' => DB::raw("get_last_qty_new('$val->article_code','$todayDate','$siteCode','$location') + ($val->movement_min+$val->movement_plus)")
+            ];
+        }
+
+        if (!empty($dataSetMovement)) {
+            DB::table('warehouse_movement')->insert($dataSetMovement);
+        }
+        return 'true';
+
+    }else{
+        return 'false';
+    }
+}
+
+    public function unPostingLatest($dnNumber,$reason)
 {
     $username =  Auth::user()->username;
     $dnNumber = $dnNumber;
@@ -1572,7 +1688,6 @@ public function posting(Request $request)
     $note     = $dnHdr->note;
     $dnStatus = $dnHdr->status;
 
-    // ── GUARD: tolak cancel jika DN masih punya AR/Invoice aktif ──
     if ($this->punyaArAktif($dnNumber)) {
         $title   = "Cancel $this->title";
         $alert   = "warning";
@@ -1583,6 +1698,15 @@ public function posting(Request $request)
 
     DB::beginTransaction();
     try {
+        // ── Reverse stok DULU, SEBELUM delivery_number di-rename ──
+        // supaya movement_transnno yang dicari cocok dengan yang di-insert saat posting()
+        if ($dnStatus == '4') {
+            $reverse = $this->reverseStock($dnNumber, 'Cancel');
+            if (!$reverse['success']) {
+                throw new \Exception($reverse['message']);
+            }
+        }
+
         $rowAffected = DB::table('delivery_hdr')
             ->where('delivery_number', $dnNumber)
             ->update([
@@ -1604,16 +1728,6 @@ public function posting(Request $request)
                     'updated_at'      => date('Y-m-d H:i:s'),
                 ]);
 
-            $dnAfterCancel = $dnNumber . "(C)";
-
-            // Reverse stock hanya jika DN sudah POSTED (status 4).
-            if ($dnStatus == '4') {
-                $hasilUnposting = $this->unPosting($dnAfterCancel, 'Cancel');
-                if ($hasilUnposting !== 'true') {
-                    throw new \Exception("unPosting gagal untuk $dnAfterCancel");
-                }
-            }
-
             DB::commit();
 
             $title   = "Cancel $this->title";
@@ -1621,14 +1735,14 @@ public function posting(Request $request)
             $message = "$title $dnNumber Successfully Cancel";
             \LogActivity::addToLog($title, "username: $username Status $message");
             return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
-        } else {
-            DB::rollBack();
-            $title   = "Cancel $this->title";
-            $alert   = "warning";
-            $message = "$title $dnNumber Failed to Cancel";
-            \LogActivity::addToLog($title, "username: $username Status $message");
-            return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
         }
+
+        DB::rollBack();
+        $title   = "Cancel $this->title";
+        $alert   = "warning";
+        $message = "$title $dnNumber Failed to Cancel";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
 
     } catch (\Exception $e) {
         DB::rollBack();
@@ -1766,13 +1880,12 @@ public function posting(Request $request)
                 ]);
 
             if ($rowAffected) {
-                // Reverse stock DN asli hanya jika sebelumnya POSTED (status 4).
-                if ($dnStatus == '4') {
-                    $hasilUnposting = $this->unPosting($dnOrigin, 'Revision');
-                    if ($hasilUnposting !== 'true') {
-                        throw new \Exception("unPosting gagal untuk $dnOrigin");
-                    }
-                }
+              if ($dnStatus == '4') {
+    $reverse = $this->reverseStock($dnOrigin, 'Revision');
+    if (!$reverse['success']) {
+        throw new \Exception($reverse['message']);
+    }
+}
             }
 
             DB::table('approval_history')
@@ -3381,5 +3494,147 @@ private function punyaArAktif($dnNumber)
         return redirect()->back()->with('success',$message); 
                    
     }
+
+    private function recalculateAvgPrice(string $articleCode, string $location): void
+{
+    $siteCode = 'HO';
+
+    $movements = DB::table('warehouse_movement')
+        ->where('artikel_code', $articleCode)
+        ->where('location_number', $location)
+        ->where('site_code', $siteCode)
+        ->orderBy(DB::raw("TO_DATE(movement_date,'DD-MM-YYYY')"), 'asc')
+        ->orderBy('movement_code', 'asc')
+        ->select('movement_min', 'movement_plus', 'movement_price')
+        ->get();
+
+    $qty = 0.0;
+    $avg = 0.0;
+
+    foreach ($movements as $m) {
+        $plus = (float) $m->movement_plus;
+        $min  = (float) $m->movement_min;
+
+        if ($plus > 0) {
+            $price  = (float) $m->movement_price;
+            $newQty = $qty + $plus;
+            $avg    = $newQty > 0 ? (($qty * $avg) + ($plus * $price)) / $newQty : $avg;
+            $qty    = $newQty;
+        }
+        if ($min > 0) {
+            $qty -= $min;
+        }
+    }
+
+    DB::table('warehouse_stock')
+        ->where('site_code', $siteCode)
+        ->where('article_code', $articleCode)
+        ->where('location_number', $location)
+        ->update(['avg_price' => $avg]);
+}
+
+private function recalculateMovementAndStock(string $articleCode, string $location, string $fromDate): void
+{
+    $siteCode = 'HO';
+
+    if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $fromDate)) {
+        $fromDate = \Carbon\Carbon::createFromFormat('d-m-Y', $fromDate)->format('Y-m-d');
+    } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate)) {
+        // sudah benar
+    } else {
+        $fromDate = \Carbon\Carbon::parse($fromDate)->format('Y-m-d');
+    }
+
+    $balanceBefore = (float) DB::selectOne(
+        "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'YYYY-MM-DD') - INTERVAL '1 day', 'YYYY-MM-DD'), ?, ?) AS bal",
+        [$articleCode, $fromDate, $siteCode, $location]
+    )->bal;
+
+    $movements = DB::table('warehouse_movement')
+        ->where('artikel_code', $articleCode)
+        ->where('location_number', $location)
+        ->where('site_code', $siteCode)
+        ->where(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), '>=',
+            DB::raw("TO_DATE('$fromDate', 'YYYY-MM-DD')"))
+        ->whereNotIn('movement_type', ['RETURN-CANCEL', 'RETURN-REVERSE'])
+        ->where('movement_type', 'NOT LIKE', 'CANCEL %')
+        ->where('movement_type', 'NOT LIKE', 'DELETE%')
+        ->where('movement_type', 'NOT LIKE', 'REVISI %')
+        ->whereNotExists(function ($q) {
+            $q->select(DB::raw(1))
+              ->from('stock_adjustment_hdr')
+              ->whereColumn('stock_adjustment_hdr.adj_code', 'warehouse_movement.movement_transnno')
+              ->where('stock_adjustment_hdr.adj_type', 'OPENING BALANCE');
+        })
+        ->orderBy(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), 'asc')
+        ->orderBy('movement_code', 'asc')
+        ->select('movement_code', 'movement_min', 'movement_plus')
+        ->get();
+
+    if ($movements->isEmpty()) {
+        DB::table('warehouse_stock')
+            ->where('site_code', $siteCode)
+            ->where('article_code', $articleCode)
+            ->where('location_number', $location)
+            ->update(['article_qty' => $balanceBefore]);
+        $this->recalculateAvgPrice($articleCode, $location);
+        return;
+    }
+
+    $running = $balanceBefore;
+    foreach ($movements as $mov) {
+        $running = $running - (float) $mov->movement_min + (float) $mov->movement_plus;
+        DB::table('warehouse_movement')
+            ->where('movement_code', $mov->movement_code)
+            ->update(['last_qty' => $running]);
+    }
+
+    DB::table('warehouse_stock')
+        ->where('site_code', $siteCode)
+        ->where('article_code', $articleCode)
+        ->where('location_number', $location)
+        ->update(['article_qty' => $running]);
+
+    $this->recalculateAvgPrice($articleCode, $location);
+}
+
+/**
+ * Ganti unPosting()/unPostingLatest() lama.
+ * Prinsip sama seperti TransferStockController::reverseStock():
+ * HAPUS movement posting asli, lalu recalculate — TIDAK insert movement baru.
+ *
+ * PENTING: panggil ini sebelum delivery_number di-rename (mis. tambah "(C)"),
+ * karena movement_transnno tersimpan dengan nomor ASLI saat posting().
+ */
+private function reverseStock(string $dnNumber, string $reasonLabel): array
+{
+    $location = '007'; // Gudang FG, sama seperti posting()
+
+    $hdr = DB::table('delivery_hdr')->where('delivery_number', $dnNumber)->first();
+    if (!$hdr) {
+        return ['success' => false, 'message' => "Delivery $dnNumber tidak ditemukan"];
+    }
+
+    $articleCodes = DB::table('delivery_det')
+        ->where('delivery_number', $dnNumber)
+        ->pluck('article_code')
+        ->unique();
+
+    if ($articleCodes->isEmpty()) {
+        return ['success' => false, 'message' => "Tidak ada detail untuk $dnNumber"];
+    }
+
+    // Hapus movement POSTING asli milik DN ini (bukan insert movement pembalik baru)
+    DB::table('warehouse_movement')
+        ->where('movement_transnno', $dnNumber)
+        ->where('movement_type', 'DELIVERY')
+        ->delete();
+
+    foreach ($articleCodes as $code) {
+        $this->recalculateMovementAndStock($code, $location, $hdr->delivery_date);
+    }
+
+    return ['success' => true, 'message' => "Stock $dnNumber berhasil di-reverse ($reasonLabel)"];
+}
 
 }
