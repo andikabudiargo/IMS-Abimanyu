@@ -318,17 +318,17 @@
 /* ── SweetAlert custom ── */
 .swal-label-body { font-family: inherit; }
 .swal-label-preview {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 14px;
     background: #f8f9fa; border: 1px solid #e0e0e0;
-    border-radius: 8px; padding: 10px 12px; margin: 12px 0 0; text-align: left;
+    border-radius: 10px; padding: 14px 16px; margin: 14px 0 0; text-align: left;
 }
 .swal-label-preview img {
-    width: 52px; height: 52px; object-fit: contain; flex-shrink: 0;
-    border: 1px solid #ddd; border-radius: 4px; background: #fff; padding: 2px;
+    width: 72px; height: 72px; object-fit: contain; flex-shrink: 0;
+    border: 1px solid #ddd; border-radius: 6px; background: #fff; padding: 4px;
 }
 .swal-label-preview .prev-info { line-height: 1.4; overflow: hidden; }
-.swal-label-preview .prev-code { font-weight: 700; font-size: 13px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.swal-label-preview .prev-desc { font-size: 11px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.swal-label-preview .prev-code { font-weight: 700; font-size: 15px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.swal-label-preview .prev-desc { font-size: 12px; color: #666; white-space: normal; line-height: 1.4; }
 
 .swal2-qty-wrap {
     display: flex; align-items: center; justify-content: center;
@@ -336,7 +336,7 @@
 }
 .swal2-qty-wrap label { font-size: 13px; color: #555; font-weight: 600; }
 .swal2-qty-input {
-    width: 70px; text-align: center;
+    width: 85px; text-align: center;
     border: 1.5px solid #d0d0d0; border-radius: 6px;
     padding: 5px 8px; font-size: 15px; font-weight: 700; outline: none;
 }
@@ -397,17 +397,25 @@
     #labelPrintArea { position: fixed !important; top:0; left:0; width:100%; background:#fff; }
 }
 .label-sheet { display: flex; flex-wrap: wrap; }
-.label-card {
-    width: 30mm; height: 20mm; box-sizing: border-box;
-    border: 0.3mm solid #ccc; padding: 1mm 1.5mm;
-    display: flex; flex-direction: column; justify-content: space-between;
-    overflow: hidden; page-break-inside: avoid;
+.label-card{
+    width:30mm; height:20mm;
+    border:0.3mm solid #ccc;
+    padding:1mm 1.5mm;
+    display:flex; flex-direction:column; justify-content:space-between;
+    overflow:visible;
+    page-break-inside:avoid;
 }
 .label-top { display: flex; align-items: center; gap: 1.5mm; flex: 1; min-height: 0; overflow: hidden; }
 .label-qr  { width: 13mm; height: 13mm; flex-shrink: 0; object-fit: contain; }
 .label-text { overflow: hidden; }
 .label-altcode { font-size: 5.5pt; font-weight: 700; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.label-desc { font-size: 4.5pt; color: #333; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.label-desc { 
+    font-size: 4.5pt; 
+    color: #333; 
+    line-height: 1.2; 
+    overflow: visible;
+    word-wrap: break-word;
+}
 .label-footer { font-size: 3.5pt; color: #888; border-top: 0.2mm solid #ddd; padding-top: 0.5mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 @endsection
@@ -861,7 +869,7 @@ $(function () {
             cancelButtonText: 'Batal',
             confirmButtonColor: '#7367f0',
             cancelButtonColor: '#aaa',
-            width: 400,
+            width: 520,
             didOpen: function () {
                 // Tab switch
                 $(document).on('click.swal', '.pm-tab', function () {
@@ -990,7 +998,7 @@ body{ background:#fff; }
 .label-qr{ width:13mm;height:13mm;flex-shrink:0;object-fit:contain; }
 .label-text{ overflow:hidden; }
 .label-altcode{ font-size:5.5pt;font-weight:700;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.label-desc{ font-size:4.5pt;color:#333;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+.label-desc{ font-size:4.5pt;color:#333;line-height:1.2;overflow:visible;word-wrap:break-word; }
 .label-footer{ font-size:3.5pt;color:#888;border-top:0.2mm solid #ddd;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 </style></head><body>
 <div class="label-sheet">${labels}</div>

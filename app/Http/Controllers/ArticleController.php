@@ -816,7 +816,7 @@ $qrUrl    = 'https://abimanyugreats.com/storage/' . $article->barcode_path;
     // 30mm = 240 dots, 20mm = 160 dots
     // QR native ZPL (lebih tajam dari PNG embed)
     $altCode = $article->article_alternative_code;
-    $desc    = mb_substr($article->article_desc, 0, 40); // max 40 char
+    $desc    = $article->article_desc;
     $footer  = mb_substr("Dicetak: {$printedBy} {$printedAt}", 0, 50);
 
     // ZPL template (^BQR = native QR code Zebra, tajam di 203 DPI)
