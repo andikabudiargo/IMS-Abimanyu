@@ -47,7 +47,7 @@ class InventoryValuationController extends Controller
         $fromDate   = $request->input('from_date');   // format: dd-mm-yyyy
         $toDate     = $request->input('to_date');     // format: dd-mm-yyyy
         $locations  = $request->input('locations', self::SUPPORTED_LOCATIONS); // array
-        $siteCode   = 'ASN'; // sesuaikan jika multi-site
+        $siteCode   = 'HO'; // sesuaikan jika multi-site
 
         // Validasi lokasi hanya yang di-support
         $locations = array_values(array_intersect((array) $locations, self::SUPPORTED_LOCATIONS));
