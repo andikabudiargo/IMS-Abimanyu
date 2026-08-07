@@ -85,9 +85,10 @@ class GenerateBarcodeArticle extends Command
             $bar->advance();
         }
 
-        $bar->finish();
-        $this->newLine(2);
-        $this->info("✅ Berhasil: {$success} artikel.");
+       $bar->finish();
+$this->line('');
+$this->line('');
+$this->info("Berhasil: {$success} artikel.");
 
         if (!empty($failed)) {
             $this->warn("❌ Gagal: " . count($failed) . " artikel:");
