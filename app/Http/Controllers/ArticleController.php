@@ -801,7 +801,7 @@ public function printLabel(Request $request)
         return response()->json(['status' => 0, 'message' => 'Artikel tidak ditemukan.']);
     }
 
-   $qrAbsPath = '/home/abimany1/public_html/storage/app/public/' . $article->barcode_path;
+   $qrAbsPath = '/home/abimany1/public_html/ims/storage/app/public/' . $article->barcode_path;
 
 if (empty($article->barcode_path) || !file_exists($qrAbsPath)) {
     return response()->json(['status' => 0, 'message' => 'QR Code belum digenerate untuk artikel ini.']);
