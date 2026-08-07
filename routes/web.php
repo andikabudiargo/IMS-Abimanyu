@@ -231,6 +231,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('articles/code/create',['as'=>'article.code.create','uses'=>'ArticleController@articleCodeCreate']);
 	Route::post('articles/get/supplier',['as'=>'get.supplier','uses'=>'ArticleController@getSupplier']);
 	Route::get('articles/movement',['as'=>'article.movement','uses'=>'ArticleController@movement']);
+	Route::post('articles/print-label', ['as' => 'article.printLabel', 'uses' => 'ArticleController@printLabel']);
+	Route::post('articles/print-label-network', ['as' => 'article.printLabelNetwork', 'uses' => 'ArticleController@printLabelNetwork']);
 
 
 	// MOVEMENT MULTI WAREHOUSE
@@ -724,7 +726,11 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('warehouse/article/check-anomaly', ['as' => 'stock.anomaly.check', 'uses' => 'WarehouseControllerv2@runCheck']);
 	Route::get('warehouse/article/check-anomaly/export', ['as' => 'stock.anomaly.export', 'uses' => 'WarehouseControllerv2@exportAnomaly']);
 
-
+Route::get('location',               'LocationController@index')->name('location.index');
+Route::get('location/list',          'LocationController@list')->name('location.list');
+Route::get('location/children',      'LocationController@children');           // ?code=012
+Route::post('location/store',        'LocationController@store')->name('location.store');
+Route::delete('location/destroy/{id}','LocationController@destroy');
 
 	/* new transfer in and out */
 
@@ -1071,6 +1077,12 @@ Route::post('stockReconciliation/cancel',['as'=>'stockReconciliation.cancel','us
 	Route::get('asset/get/list/asset',['as'=>'get.list.asset','uses'=>'Accounting\AssetController@getListAsset']);
 	Route::get('asset/get/akun/mapping',['as'=>'get.akun.mapping','uses'=>'Accounting\AssetController@getAkunMapping']);
 	Route::get('asset/print',['as'=>'asset.print','uses'=>'Accounting\AssetController@print']);
+
+	// Inventory Valuation Report
+	Route::get('/inventory-valuation',          'InventoryValuationController@index')   ->name('inventoryValuation.index');
+	Route::get('/inventory-valuation/data',     'InventoryValuationController@getData') ->name('inventoryValuation.getData');
+	Route::get('/inventory-valuation/export',   'InventoryValuationController@export')  ->name('inventoryValuation.export');
+ 
 
 	Route::get('conversion',['as'=>'conversion.index','uses'=>'Conversion\ConversionController@index']);
 	Route::get('conversion/create',['as'=>'conversion.create','uses'=>'Conversion\ConversionController@create']);

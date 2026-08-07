@@ -748,6 +748,14 @@
                                 <i data-feather="list"></i>
                                 Detail
                             </a>';
+        $buttons .= '<a href="javascript:;"
+                class="dropdown-item btn-print-label"
+                data-id="' . Crypt::encryptString($data->id) . '"
+                data-code="' . e($data->article_alternative_code) . '"
+                data-desc="' . e($data->article_desc) . '">
+                <i data-feather="printer"></i>
+                Print Label
+            </a>';
         if ($bisaDelete) {
             $buttons .=         '<a href="javascript:;"
                                 id="deleteButton"
@@ -773,6 +781,101 @@
     
     ->rawColumns(['action','status'])
     ->make(true);
+}
+
+public function printLabel(Request $request)
+{
+    $id  = Crypt::decryptString($request->id);
+    $qty = (int) $request->qty;
+
+    if ($qty < 1 || $qty > 100) {
+        return response()->json(['status' => 0, 'message' => 'Jumlah label harus antara 1-100.']);
+    }
+
+    $article = DB::table('article')
+        ->where('id', $id)
+        ->select('article_code', 'article_alternative_code', 'article_desc', 'barcode_path', 'uom')
+        ->first();
+
+    if (!$article) {
+        return response()->json(['status' => 0, 'message' => 'Artikel tidak ditemukan.']);
+    }
+
+    if (empty($article->barcode_path) || !\Storage::disk('public')->exists($article->barcode_path)) {
+        return response()->json(['status' => 0, 'message' => 'QR Code belum digenerate untuk artikel ini. Silakan generate QR terlebih dahulu.']);
+    }
+
+    // Konversi QR PNG ke base64 untuk ZPL
+    $qrAbsPath  = storage_path('app/public/' . $article->barcode_path);
+    $qrBase64   = base64_encode(file_get_contents($qrAbsPath));
+    $qrUrl      = asset('storage/' . $article->barcode_path);
+    $printedBy  = Auth::user()->username;
+    $printedAt  = now()->format('d/m/Y H:i');
+
+    // Build ZPL untuk 30x20mm @ 203 DPI
+    // 30mm = 240 dots, 20mm = 160 dots
+    // QR native ZPL (lebih tajam dari PNG embed)
+    $altCode = $article->article_alternative_code;
+    $desc    = mb_substr($article->article_desc, 0, 40); // max 40 char
+    $footer  = mb_substr("Dicetak: {$printedBy} {$printedAt}", 0, 50);
+
+    // ZPL template (^BQR = native QR code Zebra, tajam di 203 DPI)
+    $zpl = "^XA
+^MMT
+^PW240
+^LL160
+^LS0
+^CI28
+^FO8,4^BQN,2,3^FDQA,{$altCode}^FS
+^FO76,6^A0N,14,13^FD{$altCode}^FS
+^FO76,24^A0N,10,9^FB155,3,0,L^FD{$desc}^FS
+^FO4,142^A0N,8,7^FD{$footer}^FS
+^FO4,140^GB232,0,1^FS
+^PQ{$qty},0,1,Y
+^XZ";
+
+    return response()->json([
+        'status'      => 1,
+        'article'     => $article,
+        'qr_url'      => $qrUrl,
+        'qr_base64'   => $qrBase64,
+        'zpl'         => $zpl,
+        'printed_by'  => $printedBy,
+        'printed_at'  => $printedAt,
+        'qty'         => $qty,
+    ]);
+}
+
+public function printLabelNetwork(Request $request)
+{
+    $zpl  = $request->zpl;
+    $ip   = $request->ip;
+    $port = (int) ($request->port ?? 9100);
+
+    if (empty($zpl) || empty($ip)) {
+        return response()->json(['status' => 0, 'message' => 'ZPL atau IP kosong.']);
+    }
+
+    // Validasi IP format
+    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+        return response()->json(['status' => 0, 'message' => 'Format IP tidak valid.']);
+    }
+
+    try {
+        $socket = @fsockopen($ip, $port, $errno, $errstr, 5); // timeout 5 detik
+        if (!$socket) {
+            return response()->json([
+                'status'  => 0,
+                'message' => "Tidak bisa terhubung ke {$ip}:{$port} — {$errstr} (#{$errno})"
+            ]);
+        }
+        fwrite($socket, $zpl);
+        fclose($socket);
+
+        return response()->json(['status' => 1, 'message' => 'ZPL berhasil dikirim.']);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 0, 'message' => $e->getMessage()]);
+    }
 }
 
         public function getSupplierOld(Request $request)
