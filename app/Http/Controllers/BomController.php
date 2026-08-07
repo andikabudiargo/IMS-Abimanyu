@@ -60,7 +60,7 @@ class BomController extends Controller
             'sp4a'=>'Spray Booth 4 A',
             'sp4b'=>'Spray Booth 4 B',
             'sp4c'=>'Spray Booth 4 C',
-             'sp5'=>'Spray Booth 5',
+            'sp5'=>'Spray Booth 5',
             'sp5a'=>'Spray Booth 5 A',
             'sp5b'=>'Spray Booth 5 B',
             'sp5c'=>'Spray Booth 5 C',
@@ -599,7 +599,7 @@ if (!empty($articleCodeRm)) {
 
         // $data['arrSprayBooth'] = ['sb1'=>'Spray Booth 1','sb1'=>'Spray Booth 1','sb2'=>'Spray Booth 2','sb3'=>'Spray Booth 3','sb4'=>'Spray Booth 4'];
         
-        $data['arrSprayBooth'] = ['sb1'=>'Spraybooth 1','sb1a'=>'Spraybooth 1 A','sb1b'=>'Spraybooth 1 B','sb1c'=>'Spraybooth 1 C','sb2'=>'Spraybooth 2','sb2a'=>'Spraybooth 2 A','sb2b'=>'Spraybooth 2 B','sb2c'=>'Spraybooth 2 C','sb3'=>'Spraybooth 3','sb3a'=>'Spraybooth 3 A','sb3b'=>'Spraybooth 3 B','sb3c'=>'Spraybooth 3 C','sb4'=>'Spraybooth 4','sb4a'=>'Spraybooth 4 A','sb4b'=>'Spraybooth 4 B','sb4c'=>'Spraybooth 4 C','sbtoto'=>'Toto'];
+        $data['arrSprayBooth'] = ['sb1'=>'Spraybooth 1','sb1a'=>'Spraybooth 1 A','sb1b'=>'Spraybooth 1 B','sb1c'=>'Spraybooth 1 C','sb2'=>'Spraybooth 2','sb2a'=>'Spraybooth 2 A','sb2b'=>'Spraybooth 2 B','sb2c'=>'Spraybooth 2 C','sb3'=>'Spraybooth 3','sb3a'=>'Spraybooth 3 A','sb3b'=>'Spraybooth 3 B','sb3c'=>'Spraybooth 3 C','sb4'=>'Spraybooth 4','sb4a'=>'Spraybooth 4 A','sb4b'=>'Spraybooth 4 B','sb4c'=>'Spraybooth 4 C','sb5'=>'Spraybooth 5','sb5a'=>'Spraybooth 5 A','sb5b'=>'Spraybooth 5 B','sb5c'=>'Spraybooth 5 C','sbtoto'=>'Toto'];
 
         $data['arrTone'] = ['t1'=>'Tone 1','t2'=>'Tone 2','t3'=>'Tone 3','t4'=>'Tone 4'];
 
