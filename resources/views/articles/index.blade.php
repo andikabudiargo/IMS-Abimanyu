@@ -829,7 +829,7 @@ $(function () {
                         <span class="pm-tab-icon">🔌</span>USB Direct<br><small>(ZPL)</small>
                     </div>
                     <div class="pm-tab" data-method="network">
-                        <span class="pm-tab-icon">🌐</span>Network IP<br><small>(ZPL)</small>
+                        <span class="pm-tab-icon">🖧</span>Network IP<br><small>(ZPL)</small>
                     </div>
                 </div>
 
