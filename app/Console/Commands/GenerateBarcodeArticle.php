@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Picqer\Barcode\BarcodeGeneratorPNG;
+use SimpleSoftwareIO\QrCode\Generator;
 
 class GenerateBarcodeArticle extends Command
 {
@@ -13,7 +13,7 @@ class GenerateBarcodeArticle extends Command
                             {--type= : Filter by article_type, e.g. CM1}
                             {--force : Overwrite barcode yang sudah ada}';
 
-    protected $description = 'Generate barcode PNG untuk artikel di database';
+    protected $description = 'Generate QR Code PNG untuk artikel di database';
 
     public function handle()
     {
@@ -30,7 +30,6 @@ class GenerateBarcodeArticle extends Command
         }
 
         if (!$force) {
-            // Skip yang sudah punya barcode
             $query->whereNull('barcode_path');
         }
 
@@ -41,11 +40,10 @@ class GenerateBarcodeArticle extends Command
             return;
         }
 
-        $this->info("Ditemukan {$articles->count()} artikel. Mulai generate...");
+        $this->info("Ditemukan {$articles->count()} artikel. Mulai generate QR Code...");
 
-        $generator = new BarcodeGeneratorPNG();
-        $success   = 0;
-        $failed    = [];
+        $success = 0;
+        $failed  = [];
 
         $bar = $this->output->createProgressBar($articles->count());
         $bar->start();
@@ -60,18 +58,16 @@ class GenerateBarcodeArticle extends Command
                     continue;
                 }
 
-                $imageData = $generator->getBarcode(
-                    $barcodeValue,
-                    $generator::TYPE_CODE_128,
-                    2,   // width factor
-                    60   // height px
-                );
-
                 $dir      = 'barcodes';
                 $filename = $dir . '/' . $article->article_code . '.png';
 
                 Storage::disk('public')->makeDirectory($dir);
-                Storage::disk('public')->put($filename, $imageData);
+
+                $qr = new Generator;
+                $qr->format('png')
+                   ->size(200)
+                   ->errorCorrection('M')
+                   ->generate($barcodeValue, storage_path('app/public/' . $filename));
 
                 DB::table('article')
                     ->where('article_code', $article->article_code)
@@ -85,13 +81,13 @@ class GenerateBarcodeArticle extends Command
             $bar->advance();
         }
 
-       $bar->finish();
-$this->line('');
-$this->line('');
-$this->info("Berhasil: {$success} artikel.");
+        $bar->finish();
+        $this->line('');
+        $this->line('');
+        $this->info("Berhasil: {$success} artikel.");
 
         if (!empty($failed)) {
-            $this->warn("❌ Gagal: " . count($failed) . " artikel:");
+            $this->warn("Gagal: " . count($failed) . " artikel:");
             foreach ($failed as $f) {
                 $this->line("   - {$f}");
             }
