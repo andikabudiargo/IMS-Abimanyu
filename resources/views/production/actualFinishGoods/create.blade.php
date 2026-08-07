@@ -22,7 +22,7 @@
                             @csrf
                             <div class="form-row">
                                 <div class="form-group col-md-3">
-                                    <label for="fgNumber">FG Number</label>
+                                    <label for="fgNumber">AFG Number</label>
                                     <input type="text" id="fgNumber" name="fgNumber"
                                            placeholder="Automatic"
                                            class="form-control disabled-el" disabled />
@@ -31,6 +31,18 @@
                                     <label for="fgDate">Date*</label>
                                     <input type="text" id="fgDate" name="fgDate"
                                            class="form-control" placeholder="DD-MM-YYYY" required />
+                                </div>
+                            </div>
+                             <div class="form-row">
+                            <div class="form-group col-md-6">
+                                    <label for="location">Location*</label>
+                                    <select class="select2 form-control" id="location" name="location"
+                                            data-placeholder="-- Select Location --" required>
+                                        <option value=""></option>
+                                        @foreach($listLocation as $loc)
+                                        <option value="{{ $loc->location_code }}">{{ $loc->location_name }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -58,7 +70,7 @@
 
                             {{-- HEADER KOLOM --}}
                             <div class="form-row d-flex align-items-end">
-                                <div class="col-md-5 col-12 d-none d-md-block">
+                                <div class="col-md-6 col-12 d-none d-md-block">
                                     <div class="form-group">
                                         <label class="d-none d-md-block">Article</label>
                                     </div>
@@ -71,11 +83,6 @@
                                 <div class="col-md-1 col-12 d-none d-md-block">
                                     <div class="form-group">
                                         <label class="d-none d-md-block text-right">Qty OT</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-1 col-12 d-none d-md-block">
-                                    <div class="form-group">
-                                        <label class="d-none d-md-block text-right">Qty WIP</label>
                                     </div>
                                 </div>
                                 <div class="col-md-3 col-12 d-none d-md-block">
@@ -304,95 +311,67 @@ function initRowSelect2($row){
     // ============================================================
     // SAVE
     // ============================================================
-    $('#cmdSave').on('click', function(){
+  $('#cmdSave').on('click', function(){
         let fgDateVal  = $('#fgDate').val();
+        let locationVal= $('#location').val();
         let headerNote = $('#note').val();
 
-        if (!fgDateVal){
-            Swal.fire("Info","Tanggal wajib diisi.","info"); return;
-        }
+        if (!fgDateVal){ Swal.fire("Info","Tanggal wajib diisi.","info"); return; }
+        if (!locationVal){ Swal.fire("Info","Location wajib dipilih.","info"); return; }
 
         let $rows = $('#article_row .tanda-baris');
         if ($rows.length === 0){
             Swal.fire("Info","Belum ada artikel. Klik Add Article terlebih dahulu.","info"); return;
         }
 
-        let articles = [];
-        let adaIsi   = false;
-        let adaKosong = false;
+        let articles = [], adaIsi = false, adaKosong = false;
 
         $rows.each(function(){
-            let $r           = $(this);
-            let articleCode  = $r.find('select[name="article_code[]"]').val();
-            let uom          = $r.find('input[name="uom[]"]').val();
-            let qtyFg        = toNum($r.find('.qty-fg').val());
-            let qtyOt        = toNum($r.find('.qty-ot').val());
-            let qtyWip       = toNum($r.find('.qty-wip').val());
-            let noteVal      = $r.find('input[name="note[]"]').val();
+            let $r          = $(this);
+            let articleCode = $r.find('select[name="article_code[]"]').val();
+            let uom         = $r.find('input[name="uom[]"]').val();
+            let qtyFg       = toNum($r.find('.qty-fg').val());
+            let qtyOt       = toNum($r.find('.qty-ot').val());
+            let noteVal     = $r.find('input[name="note[]"]').val();
 
             if (!articleCode){
                 adaKosong = true;
                 $r.find('.select2-article-fg').next('.select2-container')
                   .find('.select2-selection').addClass('border-danger');
-                return; // next iteration
+                return;
             }
-
             if (qtyFg > 0 || qtyOt > 0) adaIsi = true;
 
-            articles.push({
-                article_code : articleCode,
-                uom          : uom,
-                qty_fg       : qtyFg,
-                qty_ot       : qtyOt,
-                qty_wip      : qtyWip,
-                note         : noteVal
-            });
+            articles.push({ article_code: articleCode, uom: uom, qty_fg: qtyFg, qty_ot: qtyOt, note: noteVal });
         });
 
-        if (adaKosong){
-            Swal.fire("Info","Ada baris yang belum dipilih article-nya.","info"); return;
-        }
-        if (!adaIsi){
-            Swal.fire("Info","Minimal satu artikel harus punya Qty FG atau OT > 0.","info"); return;
-        }
+        if (adaKosong){ Swal.fire("Info","Ada baris yang belum dipilih article-nya.","info"); return; }
+        if (!adaIsi){ Swal.fire("Info","Minimal satu artikel harus punya Qty FG atau OT > 0.","info"); return; }
 
-        // cek duplikat article
         let codes = articles.map(a => a.article_code);
         if (new Set(codes).size !== codes.length){
             Swal.fire("Info","Ada article yang duplikat. Setiap article hanya boleh muncul sekali.","info"); return;
         }
 
-        let $btn     = $(this);
-        let origHtml = $btn.html();
-        $btn.prop('disabled', true)
-            .html('<span class="spinner-border spinner-border-sm mr-1"></span>Saving...');
+        let $btn = $(this), origHtml = $btn.html();
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span>Saving...');
 
         $.ajax({
             url    : "{{ route('production.actualFinishGoods.store') }}",
             method : "POST",
-            data   : {
-                articles : JSON.stringify(articles),
-                fgDate   : fgDateVal,
-                note     : headerNote
-            },
+            data   : { articles: JSON.stringify(articles), fgDate: fgDateVal, location: locationVal, note: headerNote },
             success: function(res){
                 if (res.status == 1){
-                    Swal.fire({ icon:'success', title:res.title, text:res.message })
-                        .then(() => window.location.reload());
+                    Swal.fire({ icon:'success', title:res.title, text:res.message }).then(() => window.location.reload());
                 } else {
-                    let msg = Array.isArray(res.message)
-                              ? res.message.flat().join('<br>') : res.message;
+                    let msg = Array.isArray(res.message) ? res.message.flat().join('<br>') : res.message;
                     Swal.fire({ icon:'error', title:res.title || 'Error', html:msg });
                 }
             },
             error: function(xhr){
-                Swal.fire("Error",
-                    "Gagal menyimpan. " + (xhr.responseJSON?.message || xhr.statusText || ''),
-                    "error");
+                Swal.fire("Error","Gagal menyimpan. "+(xhr.responseJSON?.message||xhr.statusText||''),"error");
             },
-            complete: function(){
-                $btn.prop('disabled', false).html(origHtml);
-            }
+            complete: function(){ $btn.prop('disabled', false).html(origHtml); }
         });
     });
 

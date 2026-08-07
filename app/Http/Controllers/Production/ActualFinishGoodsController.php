@@ -188,6 +188,11 @@ class ActualFinishGoodsController extends Controller
         ];
     })->values();
 
+    $data['listLocation'] = DB::table('stock_location_master')
+            ->whereIn('location_code', ['050','051'])   // BUFFING PLANT 1 & 2
+            ->orderBy('location_name')
+            ->get();
+
     $data['statusPrd'] = 'NEW';
     $data['oEdit']     = false;
 
@@ -221,16 +226,15 @@ class ActualFinishGoodsController extends Controller
 
     public function store(Request $request)
     {
-        $username    = Auth::user()->username;
-        $articles    = json_decode($request->articles);
-        $fgDate      = $request->fgDate;
-        $loadingCode = $request->loadingCode;
-        $reference   = $request->reference;
-        $note        = $request->note;
+        $username = Auth::user()->username;
+        $articles = json_decode($request->articles);
+        $fgDate   = $request->fgDate;
+        $location = $request->location;   // spray_booth = lokasi header (mis. 050/051)
+        $note     = $request->note;
 
         $validation = Validator::make($request->all(), [
-            'loadingCode' => 'required',
-            'fgDate'      => 'required',
+            'fgDate'   => 'required',
+            'location' => 'required',
         ]);
         if ($validation->fails()) {
             $errs = [];
@@ -242,44 +246,19 @@ class ActualFinishGoodsController extends Controller
         }
 
         $fgDateDb = $fgDate ? implode('-', array_reverse(explode('-', $fgDate))) : date('Y-m-d');
+        $trDate   = $fgDate ?: date('d-m-Y');
         $now      = date('Y-m-d H:i:s');
 
         DB::beginTransaction();
         try {
-            // ── header loading: pastikan ada & belum diproses ──
-            $loading = DB::table('actual_loading_hdr as alh')
-                ->leftJoin('stock_location_master as slm', 'slm.location_code', '=', 'alh.spray_booth')
-                ->where('alh.prod_code', $loadingCode)
-                ->select(
-                    'alh.status',
-                    'alh.spray_booth',
-                    DB::raw("coalesce(slm.location_name, alh.spray_booth) as booth_name")
-                )
-                ->first();
-
-            if (!$loading) {
-                throw new \Exception("Actual Loading {$loadingCode} tidak ditemukan.");
-            }
-            if ((int)$loading->status === $this->loadingStatusDone) {
-                throw new \Exception("Actual Loading {$loadingCode} sudah pernah diinput Finish Goods-nya.");
-            }
-            if ((int)$loading->status === 5) {
-                throw new \Exception("Actual Loading {$loadingCode} sudah CANCELED.");
-            }
-
-            $sprayBooth = $loading->spray_booth;
-            $boothName  = $loading->booth_name ?? '-';
-            $refText    = $reference ? " ({$reference})" : '';
-            $descBase   = "HASIL LOADING {$boothName}{$refText}";
-
             AppHelpers::resetCode($this->codeKey);
             $fgNumber = $this->getLastCode($this->codeKey);
 
             DB::table('actual_finish_goods_hdr')->insert([
                 'fg_code'       => $fgNumber,
-                'loading_code'  => $loadingCode,
-                'wos_reference' => $reference,
-                'spray_booth'   => $sprayBooth,
+                'loading_code'  => null,
+                'wos_reference' => null,
+                'spray_booth'   => $location,
                 'fg_date'       => $fgDateDb,
                 'num_revision'  => 0,
                 'status'        => 1,
@@ -290,42 +269,70 @@ class ActualFinishGoodsController extends Controller
                 'updated_at'    => $now,
             ]);
 
-            $seq          = (int) DB::table('warehouse_movement')->max('movement_code');
-            $movementType = 'FINISH GOODS';
-            $urutan       = 0;
-            $savedRows    = 0;
+            // Kumpulkan baris transfer per (bucket, source_loc)
+            // struktur: $lines[bucket][source_loc] = [ ['article_code','qty','uom','note'], ... ]
+            $lines = [
+                'FG'  => [$this->whLoading => [], $this->whWip => []],
+                'OT'  => [$this->whLoading => [], $this->whWip => []],
+                'WIP' => [$this->whLoading => []],
+            ];
+
+            $urutan = 0; $savedRows = 0;
 
             foreach ($articles as $val) {
-                $qtyFg    = (float)($val->qty_fg  ?? 0);
-                $qtyOt    = (float)($val->qty_ot  ?? 0);
-                $qtyWip   = (float)($val->qty_wip ?? 0);
-                $qtyTotal = $qtyFg + $qtyOt + $qtyWip;
-                if ($qtyTotal <= 0) continue;
+                $ac    = $val->article_code;
+                $qtyFg = (float)($val->qty_fg ?? 0);
+                $qtyOt = (float)($val->qty_ot ?? 0);
+                $need  = $qtyFg + $qtyOt;
 
-                $urutan++;
-                $savedRows++;
+                $acLabel = DB::table('article')
+                    ->where('article_code', $ac)
+                    ->selectRaw("coalesce(article_alternative_code, article_code) || ' — ' || coalesce(article_desc,'') as lbl")
+                    ->value('lbl') ?? $ac;
 
-                // stok fisik di gudang loading (047) harus cukup
-                $avail = (float) DB::table('warehouse_stock')
-                    ->where('article_code', $val->article_code)
-                    ->where('location_number', $this->whLoading)
-                    ->sum('article_qty');
+                if ($qtyFg < 0 || $qtyOt < 0) throw new \Exception("Qty FG/OT untuk {$acLabel} tidak boleh negatif.");
+                if ($need <= 0) continue;
 
-                if ($avail < $qtyTotal) {
+              $uom = $val->uom ?? DB::table('article')->where('article_code', $ac)->value('uom');
+
+                // stok sumber
+                $s047 = (float) DB::table('warehouse_stock')
+                    ->where('article_code', $ac)->where('location_number', $this->whLoading)->sum('article_qty');
+                $s012 = (float) DB::table('warehouse_stock')
+                    ->where('article_code', $ac)->where('location_number', $this->whWip)->sum('article_qty');
+
+                if ($need > $s047 + $s012) {
                     throw new \Exception(
-                        "Stok loading ({$this->whLoading}) untuk {$val->article_code} tidak cukup ".
-                        "(tersedia {$avail}, butuh {$qtyTotal})."
+                        "Stok untuk {$acLabel} tidak cukup. Butuh {$need}, tersedia Hasil Loading={$s047} + WIP={$s012}."
                     );
                 }
 
+                // Ambil 047 dulu, lalu 012
+                $from047 = min($need, $s047);
+                $from012 = $need - $from047;
+
+                // WIP sisa hanya jika 047 > need
+                $wipQty = ($s047 > $need) ? ($s047 - $need) : 0.0;
+
+                // ── Alokasi FG-first ke sumber ──
+                // FG diambil dari 047 dulu, sisa FG dari 012. Lalu OT mengikuti sisa sumber.
+                $fg047 = min($qtyFg, $from047);
+                $fg012 = $qtyFg - $fg047;
+
+                $sisa047ForOt = $from047 - $fg047;      // sisa kapasitas 047 setelah FG
+                $ot047 = min($qtyOt, $sisa047ForOt);
+                $ot012 = $qtyOt - $ot047;
+
+                // Simpan detail AFG (qty_wip = sisa yang terdeteksi)
+                $urutan++; $savedRows++;
                 DB::table('actual_finish_goods_det')->insert([
                     'fg_code'      => $fgNumber,
-                    'loading_code' => $loadingCode,
+                    'loading_code' => null,
                     'urutan'       => $urutan,
-                    'article_code' => $val->article_code,
-                    'uom'          => $val->uom ?? null,
-                    'qty_loading'  => (float)($val->qty_loading ?? 0),
-                    'qty_wip'      => $qtyWip,
+                    'article_code' => $ac,
+                    'uom'          => $uom,
+                    'qty_loading'  => $s047,        // snapshot stok loading saat input
+                    'qty_wip'      => $wipQty,
                     'qty_fg'       => $qtyFg,
                     'qty_ot'       => $qtyOt,
                     'note'         => $val->note ?? null,
@@ -335,28 +342,73 @@ class ActualFinishGoodsController extends Controller
                     'updated_at'   => $now,
                 ]);
 
-                // FG->007, OT->008, WIP->012 (potong dari 047, booth cuma di desc)
-                $this->postFgBucket($seq, $val->article_code, $val->uom, $qtyFg,  $this->whFg,   $movementType, $fgNumber, "{$descBase} - FG",  $username);
-                $this->postFgBucket($seq, $val->article_code, $val->uom, $qtyOt,  $this->whFgOt, $movementType, $fgNumber, "{$descBase} - OT",  $username);
-                $this->postFgBucket($seq, $val->article_code, $val->uom, $qtyWip, $this->whWip,  $movementType, $fgNumber, "{$descBase} - WIP", $username);
+                // Masukkan ke bucket transfer
+                if ($fg047 > 0) $lines['FG'][$this->whLoading][] = ['article_code'=>$ac,'qty'=>$fg047,'uom'=>$uom,'note'=>$val->note ?? null];
+                if ($fg012 > 0) $lines['FG'][$this->whWip][]     = ['article_code'=>$ac,'qty'=>$fg012,'uom'=>$uom,'note'=>$val->note ?? null];
+                if ($ot047 > 0) $lines['OT'][$this->whLoading][] = ['article_code'=>$ac,'qty'=>$ot047,'uom'=>$uom,'note'=>$val->note ?? null];
+                if ($ot012 > 0) $lines['OT'][$this->whWip][]     = ['article_code'=>$ac,'qty'=>$ot012,'uom'=>$uom,'note'=>$val->note ?? null];
+                if ($wipQty > 0) $lines['WIP'][$this->whLoading][] = ['article_code'=>$ac,'qty'=>$wipQty,'uom'=>$uom,'note'=>$val->note ?? null];
             }
 
-            if ($savedRows === 0) {
-                throw new \Exception("Tidak ada qty (FG/OT/WIP) yang diinput.");
+            if ($savedRows === 0) throw new \Exception("Tidak ada qty (FG/OT) yang diinput.");
+
+            // ── Buat transfer per (bucket, source, tujuan) ──
+            $trf = app(\App\Http\Controllers\TransferStockController::class);
+
+            $locationName = DB::table('stock_location_master')
+                ->where('location_code', $location)
+                ->value('location_name') ?? $location;
+
+            // definisi tujuan & atribut per bucket
+            $bucketMeta = [
+                'FG'  => ['to'=>$this->whFg,   'penerima'=>'Delivery', 'noteBase'=>$locationName],
+                'OT'  => ['to'=>$this->whFgOt, 'penerima'=>'Delivery', 'noteBase'=>'SANDING'],
+                'WIP' => ['to'=>$this->whWip,  'penerima'=>'Produksi', 'noteBase'=>'SISA LOADING KE WIP'],
+            ];
+            $srcName = [$this->whLoading => 'LOADING PROSES', $this->whWip => 'WIP'];
+
+            $pivotRows = [];
+
+            foreach ($lines as $bucket => $bySrc) {
+                foreach ($bySrc as $srcLoc => $bag) {
+                    if (empty($bag)) continue;
+
+                    $meta   = $bucketMeta[$bucket];
+                    $noteTr = $meta['noteBase'].' (dari '.($srcName[$srcLoc] ?? $srcLoc).')';
+
+                    $res = $trf->createTransferProgrammatically([
+                        'trDate'       => $trDate,
+                        'locationFrom' => $srcLoc,
+                        'locationTo'   => $meta['to'],
+                        'note'         => $noteTr,
+                        'penerima'     => $meta['penerima'],
+                        'refNumber'    => $fgNumber,
+                        'articles'     => $bag,
+                    ], false);
+
+                    if (!$res['success']) {
+                        throw new \Exception("Gagal buat transfer ($noteTr): ".$res['message']);
+                    }
+
+                    $pivotRows[] = [
+                        'fg_code'    => $fgNumber,
+                        'tr_number'  => $res['trNumber'],
+                        'bucket'     => $bucket,
+                        'source_loc' => $srcLoc,
+                        'created_at' => $now,
+                    ];
+                }
             }
 
-            // ── tutup Actual Loading ──
-            DB::table('actual_loading_hdr')
-                ->where('prod_code', $loadingCode)
-                ->update([
-                    'status'     => $this->loadingStatusDone,
-                    'updated_by' => $username,
-                    'updated_at' => $now,
-                ]);
+            if ($pivotRows) {
+                DB::table('afg_transfer')->insert($pivotRows);
+            }
 
             DB::commit();
+
             $title   = "Save $this->title";
-            $message = "$title $fgNumber is successfully saved";
+            $trList  = array_column($pivotRows, 'tr_number');
+            $message = "$title $fgNumber is successfully saved".($trList ? ' (Transfer: '.implode(', ', $trList).')' : '');
             \LogActivity::addToLog($title, substr("username: $username Status $message", 0, 250));
             return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','fgNumber'=>$fgNumber,'oEdit'=>true]);
 
@@ -369,15 +421,6 @@ class ActualFinishGoodsController extends Controller
     // =========================================================================
     // HELPER STOK & MOVEMENT
     // =========================================================================
-
-    /** 1 bucket (FG/OT/WIP): potong dari gudang loading (047), masuk ke $toLoc. */
-    private function postFgBucket(&$seq, $article, $uom, $qty, $toLoc, $movementType, $transno, $desc, $username)
-    {
-        if ($qty <= 0) return;
-        $this->postOut($seq, $article, $qty, $this->whLoading, $toLoc, $movementType, $transno, $desc, $username);
-        $this->postIn ($seq, $article, $uom, $qty, $toLoc, $this->whLoading, $movementType, $transno, $desc, $username);
-    }
-
     /** Satu baris KELUAR: kurangi warehouse_stock sumber + movement (min) */
     private function postOut(&$seq, $article, $qty, $fromLoc, $toLoc, $movementType, $transno, $desc, $username)
     {
@@ -708,12 +751,14 @@ class ActualFinishGoodsController extends Controller
         $fgNumber = $request->fgNumber;
         $fgDate   = $request->fgDate;
         $note     = $request->note;
+        $location = $request->location;
         $articles = json_decode($request->articles);
         $now      = date('Y-m-d H:i:s');
 
         $validation = Validator::make($request->all(), [
             'fgNumber' => 'required',
             'fgDate'   => 'required',
+            'location' => 'required',
         ]);
         if ($validation->fails()) {
             $errs = [];
@@ -725,105 +770,131 @@ class ActualFinishGoodsController extends Controller
         }
 
         $fgDateDb = $fgDate ? implode('-', array_reverse(explode('-', $fgDate))) : null;
+        $trDate   = $fgDate;
 
         DB::beginTransaction();
         try {
-            $hdr = DB::table('actual_finish_goods_hdr')
-                ->where('fg_code', $fgNumber)
-                ->lockForUpdate()
-                ->first();
+            $hdr = DB::table('actual_finish_goods_hdr')->where('fg_code', $fgNumber)->lockForUpdate()->first();
+            if (!$hdr) throw new \Exception("Data $fgNumber tidak ditemukan.");
+            if ((int)$hdr->status === 5) throw new \Exception("Dokumen $fgNumber sudah CANCELED dan tidak bisa diedit.");
+            if ((int)$hdr->status !== 1) throw new \Exception("Hanya dokumen berstatus NEW yang bisa diedit.");
 
-            if (!$hdr) {
-                throw new \Exception("Data $fgNumber tidak ditemukan.");
+            // ── Ambil transfer anak, pastikan semua masih NEW ──
+            $trList = DB::table('afg_transfer')->where('fg_code', $fgNumber)->pluck('tr_number');
+
+            $notNew = DB::table('transfer_stock_hdr')
+                ->whereIn('tr_number', $trList)
+                ->where('status', '<>', '1')
+                ->pluck('tr_number');
+            if ($notNew->isNotEmpty()) {
+                throw new \Exception("Tidak bisa edit: transfer ".$notNew->implode(', ')." sudah diproses. Lakukan Cancel AFG untuk mengoreksi.");
             }
-            if ((int) $hdr->status === 5) {
-                throw new \Exception("Dokumen $fgNumber sudah CANCELED dan tidak bisa diedit.");
+
+            // ── Cancel semua transfer anak (reverse stok + movement) ──
+            $trf = app(\App\Http\Controllers\TransferStockController::class);
+            foreach ($trList as $trNo) {
+                $res = $trf->cancelTransferProgrammatically($trNo, "Edit AFG $fgNumber", false, false);
+                if (!$res['success']) throw new \Exception("Gagal reverse transfer $trNo: ".$res['message']);
             }
-            if ((int) $hdr->status !== 1) {
-                throw new \Exception("Hanya dokumen berstatus NEW yang bisa diedit.");
-            }
 
-            $loadingCode = $hdr->loading_code;
-            $boothName   = DB::table('stock_location_master')
-                ->where('location_code', $hdr->spray_booth)
-                ->value('location_name') ?? $hdr->spray_booth;
-            $refText  = $hdr->wos_reference ? " ({$hdr->wos_reference})" : '';
-            $descBase = "HASIL LOADING {$boothName}{$refText}";
-
-            // ── balikin stok + hapus movement lama ──
-            $this->unPosting($fgNumber, $username, true, false);
-
-            // ambil $seq SETELAH movement lama dihapus
-            $seq          = (int) DB::table('warehouse_movement')->max('movement_code');
-            $movementType = 'FINISH GOODS';
-
+            // Bersihkan pivot & detail lama
+            DB::table('afg_transfer')->where('fg_code', $fgNumber)->delete();
             DB::table('actual_finish_goods_det')->where('fg_code', $fgNumber)->delete();
 
-            $urutan    = 0;
-            $savedRows = 0;
-
-            foreach ($articles as $val) {
-                $qtyFg    = (float)($val->qty_fg  ?? 0);
-                $qtyOt    = (float)($val->qty_ot  ?? 0);
-                $qtyWip   = (float)($val->qty_wip ?? 0);
-                $qtyTotal = $qtyFg + $qtyOt + $qtyWip;
-                if ($qtyTotal <= 0) continue;
-
-                $urutan++;
-                $savedRows++;
-
-                $avail = (float) DB::table('warehouse_stock')
-                    ->where('article_code', $val->article_code)
-                    ->where('location_number', $this->whLoading)
-                    ->sum('article_qty');
-
-                if ($avail < $qtyTotal) {
-                    throw new \Exception(
-                        "Stok loading ({$this->whLoading}) untuk {$val->article_code} tidak cukup ".
-                        "(tersedia {$avail}, butuh {$qtyTotal})."
-                    );
-                }
-
-                DB::table('actual_finish_goods_det')->insert([
-                    'fg_code'      => $fgNumber,
-                    'loading_code' => $loadingCode,
-                    'urutan'       => $urutan,
-                    'article_code' => $val->article_code,
-                    'uom'          => $val->uom ?? null,
-                    'qty_loading'  => (float)($val->qty_loading ?? 0),
-                    'qty_wip'      => $qtyWip,
-                    'qty_fg'       => $qtyFg,
-                    'qty_ot'       => $qtyOt,
-                    'note'         => $val->note ?? null,
-                    'created_by'   => $username,
-                    'updated_by'   => $username,
-                    'created_at'   => $now,
-                    'updated_at'   => $now,
-                ]);
-
-                $this->postFgBucket($seq, $val->article_code, $val->uom, $qtyFg,  $this->whFg,   $movementType, $fgNumber, "{$descBase} - FG (edit)",  $username);
-                $this->postFgBucket($seq, $val->article_code, $val->uom, $qtyOt,  $this->whFgOt, $movementType, $fgNumber, "{$descBase} - OT (edit)",  $username);
-                $this->postFgBucket($seq, $val->article_code, $val->uom, $qtyWip, $this->whWip,  $movementType, $fgNumber, "{$descBase} - WIP (edit)", $username);
-            }
-
-            if ($savedRows === 0) {
-                throw new \Exception("Tidak ada qty (FG/OT/WIP) yang diinput.");
-            }
-
+            // ── Update header ──
             DB::table('actual_finish_goods_hdr')->where('fg_code', $fgNumber)->update([
                 'fg_date'      => $fgDateDb,
+                'spray_booth'  => $location,
                 'note'         => $note,
                 'num_revision' => $hdr->num_revision + 1,
                 'updated_by'   => $username,
                 'updated_at'   => $now,
             ]);
 
-            DB::commit();
+            // ── Bangun ulang bucket (SAMA PERSIS logika store) ──
+            $lines = [
+                'FG'  => [$this->whLoading => [], $this->whWip => []],
+                'OT'  => [$this->whLoading => [], $this->whWip => []],
+                'WIP' => [$this->whLoading => []],
+            ];
+            $urutan = 0; $savedRows = 0;
 
+            foreach ($articles as $val) {
+                $ac    = $val->article_code;
+                $qtyFg = (float)($val->qty_fg ?? 0);
+                $qtyOt = (float)($val->qty_ot ?? 0);
+                $need  = $qtyFg + $qtyOt;
+
+                $acLabel = DB::table('article')->where('article_code', $ac)
+                    ->selectRaw("coalesce(article_alternative_code, article_code) || ' — ' || coalesce(article_desc,'') as lbl")
+                    ->value('lbl') ?? $ac;
+
+                if ($qtyFg < 0 || $qtyOt < 0) throw new \Exception("Qty FG/OT untuk {$acLabel} tidak boleh negatif.");
+                if ($need <= 0) continue;
+
+                $uom = $val->uom ?? DB::table('article')->where('article_code', $ac)->value('uom');
+
+                $s047 = (float) DB::table('warehouse_stock')->where('article_code',$ac)->where('location_number',$this->whLoading)->sum('article_qty');
+                $s012 = (float) DB::table('warehouse_stock')->where('article_code',$ac)->where('location_number',$this->whWip)->sum('article_qty');
+
+                if ($need > $s047 + $s012) {
+                    throw new \Exception("Stok untuk {$acLabel} tidak cukup. Butuh {$need}, tersedia Hasil Loading={$s047} + WIP={$s012}.");
+                }
+
+                $from047 = min($need, $s047);
+                $wipQty  = ($s047 > $need) ? ($s047 - $need) : 0.0;
+
+                $fg047 = min($qtyFg, $from047);
+                $fg012 = $qtyFg - $fg047;
+                $sisa047ForOt = $from047 - $fg047;
+                $ot047 = min($qtyOt, $sisa047ForOt);
+                $ot012 = $qtyOt - $ot047;
+
+                $urutan++; $savedRows++;
+                DB::table('actual_finish_goods_det')->insert([
+                    'fg_code'=>$fgNumber,'loading_code'=>null,'urutan'=>$urutan,
+                    'article_code'=>$ac,'uom'=>$uom,'qty_loading'=>$s047,'qty_wip'=>$wipQty,
+                    'qty_fg'=>$qtyFg,'qty_ot'=>$qtyOt,'note'=>$val->note ?? null,
+                    'created_by'=>$username,'updated_by'=>$username,'created_at'=>$now,'updated_at'=>$now,
+                ]);
+
+                if ($fg047 > 0) $lines['FG'][$this->whLoading][] = ['article_code'=>$ac,'qty'=>$fg047,'uom'=>$uom,'note'=>$val->note ?? null];
+                if ($fg012 > 0) $lines['FG'][$this->whWip][]     = ['article_code'=>$ac,'qty'=>$fg012,'uom'=>$uom,'note'=>$val->note ?? null];
+                if ($ot047 > 0) $lines['OT'][$this->whLoading][] = ['article_code'=>$ac,'qty'=>$ot047,'uom'=>$uom,'note'=>$val->note ?? null];
+                if ($ot012 > 0) $lines['OT'][$this->whWip][]     = ['article_code'=>$ac,'qty'=>$ot012,'uom'=>$uom,'note'=>$val->note ?? null];
+                if ($wipQty > 0) $lines['WIP'][$this->whLoading][] = ['article_code'=>$ac,'qty'=>$wipQty,'uom'=>$uom,'note'=>$val->note ?? null];
+            }
+
+            if ($savedRows === 0) throw new \Exception("Tidak ada qty (FG/OT) yang diinput.");
+
+            $locationName = DB::table('stock_location_master')->where('location_code',$location)->value('location_name') ?? $location;
+            $bucketMeta = [
+                'FG'  => ['to'=>$this->whFg,   'penerima'=>'Delivery', 'noteBase'=>$locationName],
+                'OT'  => ['to'=>$this->whFgOt, 'penerima'=>'Delivery', 'noteBase'=>'SANDING'],
+                'WIP' => ['to'=>$this->whWip,  'penerima'=>'Produksi', 'noteBase'=>'SISA LOADING KE WIP'],
+            ];
+            $srcName = [$this->whLoading => 'LOADING PROSES', $this->whWip => 'WIP'];
+
+            $pivotRows = [];
+            foreach ($lines as $bucket => $bySrc) {
+                foreach ($bySrc as $srcLoc => $bag) {
+                    if (empty($bag)) continue;
+                    $meta   = $bucketMeta[$bucket];
+                    $noteTr = $meta['noteBase'].' (dari '.($srcName[$srcLoc] ?? $srcLoc).')';
+                    $res = $trf->createTransferProgrammatically([
+                        'trDate'=>$trDate,'locationFrom'=>$srcLoc,'locationTo'=>$meta['to'],
+                        'note'=>$noteTr,'penerima'=>$meta['penerima'],'refNumber'=>$fgNumber,'articles'=>$bag,
+                    ], false);
+                    if (!$res['success']) throw new \Exception("Gagal buat transfer ($noteTr): ".$res['message']);
+                    $pivotRows[] = ['fg_code'=>$fgNumber,'tr_number'=>$res['trNumber'],'bucket'=>$bucket,'source_loc'=>$srcLoc,'created_at'=>$now];
+                }
+            }
+            if ($pivotRows) DB::table('afg_transfer')->insert($pivotRows);
+
+            DB::commit();
             $title   = "Update $this->title";
             $message = "$title $fgNumber berhasil disimpan, stok disesuaikan";
             \LogActivity::addToLog($title, substr("username: $username Status $message", 0, 250));
-
             return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','fgNumber'=>$fgNumber,'oEdit'=>true]);
 
         } catch (\Throwable $e) {
@@ -836,6 +907,41 @@ class ActualFinishGoodsController extends Controller
     // CANCEL
     // =========================================================================
 
+    public function cancel(Request $request)
+    {
+        $username = Auth::user()->username;
+        $id       = Crypt::decryptString($request->id);
+        $now      = date('Y-m-d H:i:s');
+        $title    = "Cancel $this->title";
+
+        DB::beginTransaction();
+        try {
+            $hdr = DB::table('actual_finish_goods_hdr')->where('id', $id)->lockForUpdate()->first();
+            if (!$hdr) throw new \Exception("Dokumen tidak ditemukan.");
+            if ((int)$hdr->status === 5) throw new \Exception("Dokumen {$hdr->fg_code} sudah berstatus CANCELED.");
+
+            $fgNumber = $hdr->fg_code;
+
+            $trList = DB::table('afg_transfer')->where('fg_code', $fgNumber)->pluck('tr_number');
+            $trf = app(\App\Http\Controllers\TransferStockController::class);
+            foreach ($trList as $trNo) {
+                $res = $trf->cancelTransferProgrammatically($trNo, "Cancel AFG $fgNumber", false, false);
+                if (!$res['success']) throw new \Exception("Gagal cancel transfer $trNo: ".$res['message']);
+            }
+
+            DB::table('actual_finish_goods_hdr')->where('id', $id)
+                ->update(['status'=>5,'updated_by'=>$username,'updated_at'=>$now]);
+
+            DB::commit();
+            $message = "$title $fgNumber berhasil dibatalkan, transfer stok dikembalikan";
+            \LogActivity::addToLog($title, substr("username: $username Status $message", 0, 250));
+            return redirect()->back()->with(['title'=>$title, 'alert'=>'success', 'message'=>$message]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \LogActivity::addToLog($title, substr("username: $username Status GAGAL: ".$e->getMessage(), 0, 250));
+            return redirect()->back()->with(['title'=>$title, 'alert'=>'warning', 'message'=>$e->getMessage()]);
+        }
+    }
     /**
      * Cancel Actual Finish Goods:
      *  - stok 007/008/012 dikembalikan ke 047
@@ -843,7 +949,7 @@ class ActualFinishGoodsController extends Controller
      *  - status FG jadi 5 (CANCELED)
      *  - Actual Loading-nya dibuka lagi (status balik ke 1)
      */
-    public function cancel(Request $request)
+    public function cancel1(Request $request)
     {
         $username = Auth::user()->username;
         $id       = Crypt::decryptString($request->id);
@@ -903,6 +1009,42 @@ class ActualFinishGoodsController extends Controller
         }
     }
 
+    public function destroy(Request $request)
+    {
+        $username = Auth::user()->username;
+        $id       = Crypt::decryptString($request->id);
+        $now      = date('Y-m-d H:i:s');
+        $title    = "Delete $this->title";
+
+        DB::beginTransaction();
+        try {
+            $hdr = DB::table('actual_finish_goods_hdr')->where('id', $id)->lockForUpdate()->first();
+            if (!$hdr) throw new \Exception("Dokumen tidak ditemukan.");
+            if ((int)$hdr->status !== 1) throw new \Exception("Hanya dokumen berstatus NEW yang bisa dihapus. Gunakan Cancel untuk dokumen lain.");
+
+            $fgNumber = $hdr->fg_code;
+
+            $trList = DB::table('afg_transfer')->where('fg_code', $fgNumber)->pluck('tr_number');
+            $trf = app(\App\Http\Controllers\TransferStockController::class);
+            foreach ($trList as $trNo) {
+                $res = $trf->cancelTransferProgrammatically($trNo, "Delete AFG $fgNumber", false, false);
+                if (!$res['success']) throw new \Exception("Gagal cancel transfer $trNo: ".$res['message']);
+            }
+
+            DB::table('afg_transfer')->where('fg_code', $fgNumber)->delete();
+            DB::table('actual_finish_goods_det')->where('fg_code', $fgNumber)->delete();
+            DB::table('actual_finish_goods_hdr')->where('id', $id)->delete();
+
+            DB::commit();
+            $message = "$title $fgNumber Successfully Deleted";
+            \LogActivity::addToLog($title, substr("username: $username Status $message", 0, 250));
+            return redirect()->back()->with(['title'=>$title, 'alert'=>'success', 'message'=>$message]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \LogActivity::addToLog($title, substr("username: $username Status GAGAL: ".$e->getMessage(), 0, 250));
+            return redirect()->back()->with(['title'=>$title, 'alert'=>'warning', 'message'=>$e->getMessage()]);
+        }
+    }
     // =========================================================================
     // DESTROY
     // =========================================================================
@@ -911,7 +1053,7 @@ class ActualFinishGoodsController extends Controller
      * Hapus permanen dokumen berstatus NEW.
      * Stok dikembalikan dulu, Actual Loading-nya dibuka kembali.
      */
-    public function destroy(Request $request)
+    public function destroy1(Request $request)
     {
         $username = Auth::user()->username;
         $id       = Crypt::decryptString($request->id);

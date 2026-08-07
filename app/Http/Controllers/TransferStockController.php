@@ -377,7 +377,129 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
             return view("transfer/transferStock.create", $data);
         }
 
-        public function store(Request $request)
+        public function createTransferProgrammatically(array $payload, bool $manageTransaction = true): array
+    {
+        $username     = Auth::user()->username;
+        $trDate       = $payload['trDate']       ?? null;
+        $locationCode = $payload['locationFrom'] ?? null;
+        $locationTo   = $payload['locationTo']   ?? null;
+        $note         = $payload['note']         ?? null;
+        $penerima     = $payload['penerima']     ?? null;
+        $refNumber    = $payload['refNumber']    ?? '';
+        $articles     = $payload['articles']     ?? [];
+        $poLeadCode   = $this->moduleCode;   // 'TRF'
+        $status       = '1';
+
+        if (!$trDate)       return ['success'=>false,'trNumber'=>null,'message'=>'Transfer Date harus diisi'];
+        if (!$locationCode) return ['success'=>false,'trNumber'=>null,'message'=>'Location From harus dipilih'];
+        if (!$locationTo)   return ['success'=>false,'trNumber'=>null,'message'=>'Location To harus dipilih'];
+        if ($locationTo === $locationCode)
+                            return ['success'=>false,'trNumber'=>null,'message'=>'Location From dan Location To tidak boleh sama'];
+        if (empty($articles)) return ['success'=>false,'trNumber'=>null,'message'=>'Artikel harus diisi'];
+
+        $locToType   = DB::table('stock_location_master')->where('location_code', $locationTo)->value('location_type');
+        $trType      = ($locToType === 'booth') ? 'SUPPLY' : 'TRANSFER';
+        $approveDept = DB::table('stock_location_master')->where('location_code', $locationTo)->value('dept_code');
+
+        $runner = function () use (
+            $poLeadCode, $trDate, $locationCode, $locationTo, $status, $refNumber,
+            $penerima, $note, $trType, $approveDept, $articles, $username
+        ) {
+            DB::select("SELECT pg_advisory_xact_lock(hashtext(?))", [$poLeadCode]);
+
+            AppHelpers::resetCode($poLeadCode);
+            $trNumber = $this->getLastCode($poLeadCode, $trDate, $username);
+
+            DB::table('transfer_stock_hdr')->insert([
+                'tr_number'    => $trNumber,
+                'ref_number'   => $refNumber,
+                'tr_date'      => $trDate,
+                'status'       => $status,
+                'penerima'     => $penerima,
+                'note'         => $note,
+                'tr_type'      => $trType,
+                'location_from'=> $locationCode,
+                'location_to'  => $locationTo,
+                'approve_dept' => $approveDept,
+                'created_by'   => $username,
+                'updated_by'   => $username,
+                'created_at'   => date('Y-m-d H:i:s'),
+                'updated_at'   => date('Y-m-d H:i:s'),
+            ]);
+
+            $dataSet = [];
+            foreach ($articles as $val) {
+                $ac  = is_array($val) ? ($val['article_code'] ?? null) : ($val->article_code ?? null);
+                $qty = is_array($val) ? ($val['qty']  ?? 0)    : ($val->qty  ?? 0);
+                $uom = is_array($val) ? ($val['uom']  ?? null) : ($val->uom  ?? null);
+                $nt  = is_array($val) ? ($val['note'] ?? null) : ($val->note ?? null);
+
+                $dataSet[] = [
+                    'tr_number'    => $trNumber,
+                    'article_code' => $ac,
+                    'qty'          => $qty,
+                    'uom'          => $uom,
+                    'note'         => $nt,
+                    'created_by'   => $username,
+                    'updated_by'   => $username,
+                    'created_at'   => date('Y-m-d H:i:s'),
+                    'updated_at'   => date('Y-m-d H:i:s'),
+                ];
+            }
+            DB::table('transfer_stock_det')->insert($dataSet);
+
+            $postResult = $this->processPosting($trNumber, $username);
+            if (!$postResult['success']) {
+                $msg = is_array($postResult['message']) ? implode(' | ', $postResult['message']) : $postResult['message'];
+                throw new \RuntimeException($msg);
+            }
+
+            \LogActivity::addToLog("Save $this->title", "username: $username Status Save $trNumber (auto) is successfully saved");
+            return $trNumber;
+        };
+
+        if ($manageTransaction) {
+            DB::beginTransaction();
+            try {
+                $trNumber = $runner();
+                DB::commit();
+                return ['success'=>true,'trNumber'=>$trNumber,'message'=>"Transfer $trNumber berhasil dibuat"];
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                return ['success'=>false,'trNumber'=>null,'message'=>$e->getMessage()];
+            }
+        }
+
+        $trNumber = $runner();
+        return ['success'=>true,'trNumber'=>$trNumber,'message'=>"Transfer $trNumber berhasil dibuat"];
+    }
+
+    public function store(Request $request)
+    {
+        $username = Auth::user()->username;
+        $title    = "Save $this->title";
+
+        $payload = [
+            'trDate'       => $request->trDate,
+            'locationFrom' => $request->locationFrom,
+            'locationTo'   => $request->locationTo,
+            'note'         => $request->note,
+            'penerima'     => $request->penerima,
+            'articles'     => json_decode($request->articles, true) ?? [],
+        ];
+
+        $result = $this->createTransferProgrammatically($payload, true);
+
+        if (!$result['success']) {
+            return response()->json(['status'=>0,'title'=>$title,'message'=>(array) $result['message'],'alert'=>'error']);
+        }
+
+        $trNumber = $result['trNumber'];
+        $message  = "$title $trNumber is successfully saved";
+        return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','trNumber'=>$trNumber,'oEdit'=>true]);
+    }
+
+        public function store1(Request $request)
         {
             $username     = Auth::user()->username;
             $articles     = json_decode($request->articles);
@@ -720,7 +842,94 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
         ->update(['article_qty' => DB::raw('coalesce(article_qty,0) + ' . $qty)]);
 }
 
-         public function cancel(Request $request)
+/**
+     * Inti cancel transfer stock: reverse stok + movement, set status 5.
+     * @param bool $manageTransaction  false = ikut transaksi pemanggil.
+     * @param bool $enforceAuth        false = lewati cek role (dipakai pemanggil internal spt AFG).
+     */
+    public function cancelTransferProgrammatically(string $trNumber, string $reasonLabel = 'Cancel', bool $manageTransaction = true, bool $enforceAuth = true): array
+    {
+        $user     = Auth::user();
+        $username = $user->username;
+        $title    = "Cancel $this->title";
+
+        $hdrQ = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->first();
+        if (!$hdrQ) {
+            return ['success'=>false,'message'=>'Data tidak ditemukan'];
+        }
+        if ($hdrQ->status == '5') {
+            return ['success'=>true,'message'=>"$trNumber sudah dicancel"]; // idempotent
+        }
+
+        if ($enforceAuth) {
+            $isCreator = ($hdrQ->created_by === $username);
+            if ($hdrQ->status == '4') {
+                if (!($user->hasAnyRole(['Superuser','accounting']) || $user->can('transferOut-posting'))) {
+                    return ['success'=>false,'message'=>'Anda tidak berwenang cancel transfer yang sudah diposting'];
+                }
+            } else {
+                if (!($isCreator || $user->hasAnyRole(['Superuser','accounting']))) {
+                    return ['success'=>false,'message'=>'Anda tidak berwenang cancel transfer ini'];
+                }
+            }
+        }
+
+        $reason = "($reasonLabel by $username)";
+
+        $runner = function () use ($hdrQ, $trNumber, $username, $reason) {
+            $reverse = $this->reverseStock($hdrQ, $username, 'Cancel');
+            if (!$reverse['success']) {
+                $msg = is_array($reverse['message']) ? implode(' | ', $reverse['message']) : $reverse['message'];
+                throw new \RuntimeException($msg);
+            }
+
+            $newNote = trim(($hdrQ->note ?? '') . ';' . $reason);
+            DB::table('transfer_stock_hdr')
+                ->where('tr_number', $trNumber)
+                ->update([
+                    'status'     => '5',
+                    'note'       => $newNote,
+                    'updated_by' => $username,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+
+            \LogActivity::addToLog("Cancel $this->title", "username: $username Status Cancel $trNumber Successfully Canceled");
+        };
+
+        if ($manageTransaction) {
+            DB::beginTransaction();
+            try {
+                $runner();
+                DB::commit();
+                return ['success'=>true,'message'=>"$trNumber Successfully Canceled"];
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                return ['success'=>false,'message'=>$e->getMessage()];
+            }
+        }
+
+        $runner();
+        return ['success'=>true,'message'=>"$trNumber Successfully Canceled"];
+    }
+
+    public function cancel(Request $request)
+    {
+        $id    = Crypt::decryptString($request->id);
+        $title = "Cancel $this->title";
+
+        $trNumber = DB::table('transfer_stock_hdr')->where('id', $id)->value('tr_number');
+        if (!$trNumber) {
+            return response()->json(['status'=>0,'title'=>$title,'message'=>['Data tidak ditemukan'],'alert'=>'error']);
+        }
+
+        $res = $this->cancelTransferProgrammatically($trNumber, 'Cancel', true, true);
+        if (!$res['success']) {
+            return response()->json(['status'=>0,'title'=>$title,'message'=>(array)$res['message'],'alert'=>'warning']);
+        }
+        return response()->json(['status'=>1,'title'=>$title,'message'=>$res['message'],'alert'=>'success']);
+    }
+
+         public function cancel1(Request $request)
 {
     $user     = Auth::user();
     $username = $user->username;

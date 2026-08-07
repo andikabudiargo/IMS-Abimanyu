@@ -359,7 +359,7 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Transfer out V1</span>
               </a>
             </li>
-            @endcan --}}
+            @endcan 
              
 
          @if(
@@ -373,7 +373,7 @@
             <span class="menu-item text-truncate">Transfer out</span>
         </a>
     </li>
-@endif
+@endif --}}
 
               <li class="{{ \Request::is(['stockMovement','stockMovement/create','stockMovement/show','stockMovement/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('stockMovement.index') }}">
@@ -392,7 +392,7 @@
                 
               <li class="{{ \Request::segment(1) == 'stockCount'  ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('stockCount.index') }}">
-                  <span class="menu-item text-truncate" data-i18n="Input">Count (E-STO)</span>
+                  <span class="menu-item text-truncate" data-i18n="Input">Count</span>
                 </a>
               </li>
             
@@ -425,6 +425,14 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Stock Reconciliation</span>
               </a>
             </li>--}}
+
+            <li class="{{ \Request::is(['warehouse/location']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('location.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Location</span>
+              </a>
+            </li> 
+
           </ul>
         </li>
 
@@ -761,8 +769,8 @@
               @endcan
 
                 @can('accType-index')
-              <li class="{{ \Request::segment(1) == 'asset'  ? 'active' : '' }}">
-                <a class="d-flex align-items-center" href="{{ route('asset.index') }}">
+              <li class="{{ \Request::segment(1) == 'inventoryValuation'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('inventoryValuation.index') }}">
                   <i data-feather="circle"></i>
                   <span class="menu-item text-truncate" data-i18n="Input">Inventory Valuation</span>
                 </a>
