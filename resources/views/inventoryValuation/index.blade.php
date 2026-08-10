@@ -29,7 +29,7 @@
                 <div class="col-md-4 col-12 mb-1">
                     <label class="form-label mb-25 font-weight-bold text-muted" style="font-size:0.78rem;">
                         <i data-feather="map-pin" class="mr-25" style="width:14px;height:14px;"></i>
-                        LOKASI GUDANG
+                        LOCATION
                     </label>
                     <select id="selLocations" name="selLocations" class="select2 form-control" multiple>
                         @foreach($locations as $code => $label)
@@ -41,7 +41,7 @@
                 <div class="col-md-5 col-12 mb-1 d-flex align-items-end flex-wrap" style="gap:.5rem;">
                     <button id="btnLoad" type="button" class="btn btn-dark btn-sm">
                         <i data-feather="search" class="mr-25" style="width:14px;height:14px;"></i>
-                        Tampilkan
+                        Show
                     </button>
                     <button id="btnExportXlsx" type="button" class="btn btn-outline-secondary btn-sm" disabled>
                         <i data-feather="download" class="mr-25" style="width:14px;height:14px;"></i>
@@ -75,10 +75,10 @@
     <div class="mb-1 d-none" id="viewSwitcher">
         <div class="btn-group" role="group">
             <button type="button" class="btn btn-sm btn-outline-dark view-tab active" data-view="detail">
-                Detail per Artikel
+                Detail
             </button>
             <button type="button" class="btn btn-sm btn-outline-dark view-tab" data-view="summary">
-                Ringkasan per Lokasi
+                Summary
             </button>
         </div>
     </div>
@@ -90,32 +90,32 @@
                 <table id="tblValuation" class="table table-bordered table-sm mb-0">
                     <thead>
                         <tr>
-                            <th rowspan="2" style="min-width:220px;">Artikel</th>
+                            <th rowspan="2" style="min-width:220px;">Article</th>
                             <th rowspan="2" style="min-width:55px;">UOM</th>
-                            <th rowspan="2" style="min-width:80px;">Tanggal</th>
+                            <th rowspan="2" style="min-width:80px;">Date</th>
                             <th rowspan="2" style="min-width:130px;">No. Ref</th>
-                            <th rowspan="2" style="min-width:110px;">Tipe</th>
-                            <th colspan="3" class="text-center grp-saldo-awal">SALDO AWAL</th>
-                            <th colspan="3" class="text-center grp-masuk">MASUK</th>
-                            <th colspan="3" class="text-center grp-keluar">KELUAR</th>
-                            <th colspan="3" class="text-center grp-saldo-akhir">SALDO AKHIR</th>
+                            <th rowspan="2" style="min-width:110px;">Type</th>
+                            <th colspan="3" class="text-center grp-saldo-awal">OPENING</th>
+                            <th colspan="3" class="text-center grp-masuk">INCOMING (DEBIT)</th>
+                            <th colspan="3" class="text-center grp-keluar">OUTGOING (CREDIT)</th>
+                            <th colspan="3" class="text-center grp-saldo-akhir">ON HAND (BALANCE)</th>
                         </tr>
                         <tr>
                             <th class="col-qty grp-saldo-awal">Qty</th>
-                            <th class="col-money grp-saldo-awal">Harga</th>
-                            <th class="col-money grp-saldo-awal">Nilai</th>
+                            <th class="col-money grp-saldo-awal">Price</th>
+                            <th class="col-money grp-saldo-awal">Value</th>
 
                             <th class="col-qty grp-masuk">Qty</th>
-                            <th class="col-money grp-masuk">Harga</th>
-                            <th class="col-money grp-masuk">Nilai</th>
+                            <th class="col-money grp-masuk">Price</th>
+                            <th class="col-money grp-masuk">Value</th>
 
                             <th class="col-qty grp-keluar">Qty</th>
-                            <th class="col-money grp-keluar">Harga</th>
-                            <th class="col-money grp-keluar">Nilai</th>
+                            <th class="col-money grp-keluar">Price</th>
+                            <th class="col-money grp-keluar">Value</th>
 
                             <th class="col-qty grp-saldo-akhir">Qty</th>
-                            <th class="col-money grp-saldo-akhir">Harga</th>
-                            <th class="col-money grp-saldo-akhir">Nilai</th>
+                            <th class="col-money grp-saldo-akhir">Price</th>
+                            <th class="col-money grp-saldo-akhir">Value</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyValuation">
@@ -155,22 +155,22 @@
                 <table id="tblSummary" class="table table-bordered table-sm mb-0">
                     <thead>
                         <tr>
-                            <th rowspan="2" style="min-width:170px;">Lokasi</th>
-                            <th rowspan="2" class="text-center" style="min-width:90px;">Jml Artikel</th>
-                            <th colspan="2" class="text-center grp-saldo-awal">SALDO AWAL</th>
-                            <th colspan="2" class="text-center grp-masuk">MASUK</th>
-                            <th colspan="2" class="text-center grp-keluar">KELUAR</th>
-                            <th colspan="2" class="text-center grp-saldo-akhir">SALDO AKHIR</th>
+                            <th rowspan="2" style="min-width:170px;">Location</th>
+                            <th rowspan="2" class="text-center" style="min-width:90px;">Articles</th>
+                            <th colspan="2" class="text-center grp-saldo-awal">OPENING</th>
+                            <th colspan="2" class="text-center grp-masuk">INCOMING (DEBIT)</th>
+                            <th colspan="2" class="text-center grp-keluar">OUTGOING (CREDIT)</th>
+                            <th colspan="2" class="text-center grp-saldo-akhir">ON HAND (BALANCE)</th>
                         </tr>
                         <tr>
                             <th class="col-qty grp-saldo-awal">Qty</th>
-                            <th class="col-money grp-saldo-awal">Nilai</th>
+                            <th class="col-money grp-saldo-awal">Value</th>
                             <th class="col-qty grp-masuk">Qty</th>
-                            <th class="col-money grp-masuk">Nilai</th>
+                            <th class="col-money grp-masuk">Value</th>
                             <th class="col-qty grp-keluar">Qty</th>
-                            <th class="col-money grp-keluar">Nilai</th>
+                            <th class="col-money grp-keluar">Value</th>
                             <th class="col-qty grp-saldo-akhir">Qty</th>
-                            <th class="col-money grp-saldo-akhir">Nilai</th>
+                            <th class="col-money grp-saldo-akhir">Value</th>
                         </tr>
                     </thead>
                     <tbody id="tbodySummary">
