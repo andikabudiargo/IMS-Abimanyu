@@ -118,7 +118,7 @@ public function getTableColoumnMovementGlobal()
     $operator = $request->opr;
     $location = $request->location;
     $hideEmptyQty = $request->hideEmptyQty;
-    $asof     = $request->asof;   // <-- BARU: 'dd-mm-yyyy', kosong = saldo sekarang
+    $asof     = $request->asof;
 
     // label lokasi
     $locationLabel = $location
@@ -128,18 +128,32 @@ public function getTableColoumnMovementGlobal()
         : 'ALL';
     $locationLabel = $locationLabel ?: 'ALL';
 
-    // ── agregasi saldo: as-of (ledger) atau current (warehouse_stock) ──
+    // ── GUARD: mode as-of wajib ada filter (lokasi / kode / nama / type / supp) ──
     if ($asof) {
-        $stockSub = DB::table('warehouse_movement')
+        $hasFilter = $location || $code || $name || $type || $supp;
+        if (!$hasFilter) {
+            return Datatables::of(collect([]))->make(true);
+            // frontend akan handle pesan; atau bisa return error json (lihat catatan)
+        }
+    }
+
+    // ── agregasi saldo ──
+    if ($asof) {
+        $asofYmd = \Carbon\Carbon::createFromFormat('d-m-Y', $asof)->format('Y-m-d');
+        $locParam = $location ? DB::getPdo()->quote($location) : "NULL";
+        $asofParam = DB::getPdo()->quote($asofYmd);
+
+        // saldo per artikel dari fungsi resmi (sudah menerapkan semua aturan)
+        $stockSub = DB::table('article as a_asof')
             ->select(
-                'artikel_code as article_code',
-                DB::raw('sum(movement_plus - movement_min) as article_qty')
+                'a_asof.article_code',
+                DB::raw("get_last_qty_new(a_asof.article_code, $asofParam, 'HO', $locParam) as article_qty")
             )
-            ->whereRaw("wm_movement_date_imm(movement_date) <= to_date(?, 'DD-MM-YYYY')", [$asof])
-            ->when($location, function ($q) use ($location) {
-                $q->where('location_number', $location);
-            })
-            ->groupBy('artikel_code');
+            // terapkan filter yang sama supaya jumlah artikel yang dihitung sedikit
+            ->when($code, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', '%'.$code.'%'))
+            ->when($name, fn($q) => $q->where('a_asof.article_desc', 'ilike', '%'.$name.'%'))
+            ->when($type, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', $type.'%'))
+            ->when($supp, fn($q) => $q->where('a_asof.third_party', 'ilike', '%'.$supp.'%'));
     } else {
         $stockSub = DB::table('warehouse_stock')
             ->select('article_code', DB::raw('sum(article_qty) as article_qty'))
@@ -251,19 +265,28 @@ public function summary(Request $request)
     $operator = $request->opr;
     $location = $request->location;
     $hideEmptyQty = $request->hideEmptyQty;
-    $asof     = $request->asof;   // <-- BARU
+    $asof     = $request->asof;
 
     if ($asof) {
-        $stockSub = DB::table('warehouse_movement')
+        // guard sama: tanpa filter, summary 0 semua
+        $hasFilter = $location || $code || $name || $type || $supp;
+        if (!$hasFilter) {
+            return response()->json(['total'=>0,'save'=>0,'critical'=>0,'empty'=>0]);
+        }
+
+        $asofYmd = \Carbon\Carbon::createFromFormat('d-m-Y', $asof)->format('Y-m-d');
+        $locParam  = $location ? DB::getPdo()->quote($location) : "NULL";
+        $asofParam = DB::getPdo()->quote($asofYmd);
+
+        $stockSub = DB::table('article as a_asof')
             ->select(
-                'artikel_code as article_code',
-                DB::raw('sum(movement_plus - movement_min) as article_qty')
+                'a_asof.article_code',
+                DB::raw("get_last_qty_new(a_asof.article_code, $asofParam, 'HO', $locParam) as article_qty")
             )
-            ->whereRaw("wm_movement_date_imm(movement_date) <= to_date(?, 'DD-MM-YYYY')", [$asof])
-            ->when($location, function ($q) use ($location) {
-                $q->where('location_number', $location);
-            })
-            ->groupBy('artikel_code');
+            ->when($code, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', '%'.$code.'%'))
+            ->when($name, fn($q) => $q->where('a_asof.article_desc', 'ilike', '%'.$name.'%'))
+            ->when($type, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', $type.'%'))
+            ->when($supp, fn($q) => $q->where('a_asof.third_party', 'ilike', '%'.$supp.'%'));
     } else {
         $stockSub = DB::table('warehouse_stock')
             ->select('article_code', DB::raw('sum(article_qty) as article_qty'))

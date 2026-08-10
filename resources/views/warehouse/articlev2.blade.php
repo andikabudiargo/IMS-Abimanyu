@@ -500,6 +500,18 @@ const loadSummary = (f) => {
 $("#btnSearch").click(function (e) {
     e.preventDefault();
     const f = getFilters();
+
+    // guard: as-of butuh minimal 1 filter
+    if (f.asof) {
+        const hasFilter = f.location || f.code || f.name || f.type || f.supp;
+        if (!hasFilter) {
+            Swal.fire('Perlu Filter',
+                'Untuk lihat stock per tanggal, pilih minimal 1 dari filter berikut: Lokasi / Kode / Nama / Type / Supplier.',
+                'warning');
+            return;
+        }
+    }
+
     showList(f.name, f.code, f.group, f.supp, f.type, f.opr, f.qty, f.status, f.location, f.hideEmptyQty, f.asof);
     loadSummary(f);
 });
