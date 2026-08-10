@@ -283,12 +283,28 @@
 @endphp
 
 {{-- table --}}
+{{-- table --}}
 <div class="table-wrap">
     <div class="table-responsive">
         <table class="table table-hover table-mapping">
+            <colgroup>
+                <col style="width:28px">
+                <col style="width:36px">
+                <col style="width:90px">
+                <col>
+                <col style="width:100px">
+                <col style="width:160px">
+                <col style="width:64px">
+                <col style="width:64px">
+                <col style="width:74px">
+                <col style="width:64px">
+                <col style="width:74px">
+                <col style="width:150px">
+                <col style="width:110px">
+            </colgroup>
             <thead>
                 <tr>
-                    <th style="width:28px;"></th>
+                    <th></th>
                     <th>#</th>
                     <th>Sumber</th>
                     <th>Target</th>
@@ -392,8 +408,6 @@
                             $gAccurate   = $gMatch + $gRecountTol;
                             $gPct        = $gTotal > 0 ? round(($gAccurate / $gTotal) * 100, 2) : 0;
                             $gBarColor   = $gPct >= 98 ? 'bg-success' : ($gPct >= 50 ? 'bg-warning' : 'bg-danger');
-
-                            // finish time parent = paling lambat di antara semua child
                             $gFinishTime = $group->pluck('finish_time')->filter()->sort()->last();
                         @endphp
                         <tr style="background:#fafbfc;cursor:pointer;" data-toggle="collapse" data-target="#{{ $groupId }}" aria-expanded="false">
@@ -442,22 +456,25 @@
                             </td>
                         </tr>
 
-                        {{-- ── CHILD ROWS (collapsed), tanpa kolom match/notmatch/recount/incomplete, + Blind ── --}}
+                        {{-- ── CHILD ROWS: kolom persis sama dgn parent biar sejajar, Blind gabung ke nama Target ── --}}
                         <tr class="collapse" id="{{ $groupId }}">
                             <td colspan="13" class="p-0" style="background:#fbfbfd;">
-                                <table class="table table-sm mb-0" style="font-size:.8rem;">
-                                    <thead>
-                                        <tr>
-                                            <th style="width:28px;"></th>
-                                            <th>Target</th>
-                                            <th>STO Date</th>
-                                            <th>Counter</th>
-                                            <th class="text-center">Total</th>
-                                            <th class="text-center">Blind</th>
-                                            <th class="text-center">Progress</th>
-                                            <th>Finish Time</th>
-                                        </tr>
-                                    </thead>
+                                <table class="table table-sm mb-0 table-mapping" style="font-size:.8rem;">
+                                    <colgroup>
+                                        <col style="width:28px">
+                                        <col style="width:36px">
+                                        <col style="width:90px">
+                                        <col>
+                                        <col style="width:100px">
+                                        <col style="width:160px">
+                                        <col style="width:64px">
+                                        <col style="width:64px">
+                                        <col style="width:74px">
+                                        <col style="width:64px">
+                                        <col style="width:74px">
+                                        <col style="width:150px">
+                                        <col style="width:110px">
+                                    </colgroup>
                                     <tbody>
                                         @foreach($group as $m)
                                             @php
@@ -468,7 +485,14 @@
                                             @endphp
                                             <tr>
                                                 <td></td>
-                                                <td class="font-weight-bold">{{ $m->target_name }}</td>
+                                                <td class="text-muted">&middot;</td>
+                                                <td class="text-muted">-</td>
+                                                <td class="font-weight-bold">
+                                                    {{ $m->target_name }}
+                                                    <span class="badge badge-light-{{ $isBlind ? 'primary' : 'secondary' }} ml-25" style="font-size:.58rem;">
+                                                        {{ $isBlind ? 'BLIND' : 'NON-BLIND' }}
+                                                    </span>
+                                                </td>
                                                 <td>{{ $m->sto_date }}</td>
                                                 <td>
                                                     <div class="d-flex flex-column" style="gap:.3rem;">
@@ -482,11 +506,10 @@
                                                     </div>
                                                 </td>
                                                 <td class="text-center font-weight-bold">{{ $m->total_lines }}</td>
-                                                <td class="text-center">
-                                                    <span class="badge badge-light-{{ $isBlind ? 'primary' : 'secondary' }}">
-                                                        {{ $isBlind ? 'TRUE' : 'FALSE' }}
-                                                    </span>
-                                                </td>
+                                                <td class="text-center text-muted">-</td>
+                                                <td class="text-center text-muted">-</td>
+                                                <td class="text-center text-muted">-</td>
+                                                <td class="text-center text-muted">-</td>
                                                 <td class="progress-cell">
                                                     <div class="d-flex align-items-center" style="gap:.5rem;">
                                                         <div class="progress flex-grow-1" style="height:6px;border-radius:6px;">
