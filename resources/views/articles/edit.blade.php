@@ -110,7 +110,7 @@
                                 <select class="select2 form-control" id="coa" name="coa" required>
                                     <option value=""></option>
                                    @foreach($accounts as $val)
-                                                    <option value="{{ $val->account }}" {{ old('account') == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
+                                                    <option value="{{ $val->account }}" {{ old('coa') == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
                                  @endforeach
                                 </select>
                             </div>
