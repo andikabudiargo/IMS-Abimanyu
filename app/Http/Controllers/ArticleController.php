@@ -1044,16 +1044,43 @@ public function printLabelNetwork(Request $request)
     $inout       = $request->inout;
     $isGlobal    = empty($location);
 
-    // Saldo awal = carry-forward dari periode sebelumnya, Juni 2026 dikecualikan
-    $opening   = $this->resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal);
+    // ── Resolusi lokasi MOVEMENT: parent → child, child/biasa → dirinya sendiri ──
+    // (OB tetap dicari di $location/parent — jangan pakai list ini untuk OB)
+  $locationList = [];
+if (!$isGlobal) {
+    $childs = DB::table('stock_location_master')
+        ->where('parent_location', $location)
+        ->pluck('location_code')
+        ->toArray();
+
+    if (!empty($childs)) {
+        // parent → movement tersebar di parent SENDIRI + semua child
+        $childs[] = $location;        // ← tambahkan 012
+        $locationList = $childs;
+    } else {
+        $locationList = [$location];  // child/lokasi biasa
+    }
+}
+
+    // Saldo awal — OB pakai $location (parent), movement pakai $locationList
+    $opening   = $this->resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal, 0, $locationList);
     $saldoAwal = $opening['qty'];
 
     $bind = ['art' => $articleCode, 'site' => $siteCode, 'from' => $fromDate, 'to' => $toDate,
              'art_dir' => $articleCode, 'art_qty' => $articleCode];
 
+    // Filter movement: IN (childs) untuk parent, atau IN (single) untuk child biasa
     $whereLoc = '';
-    if (!$isGlobal) { $whereLoc = "AND m.location_number = :loc"; $bind['loc'] = $location; }
-    $locationCol = $isGlobal ? "'ALL'" : "b.location_number";
+    if (!$isGlobal) {
+        $ph = [];
+        foreach ($locationList as $i => $loc) {
+            $ph[] = ":loc$i";
+            $bind["loc$i"] = $loc;
+        }
+        $whereLoc = "AND m.location_number IN (" . implode(',', $ph) . ")";
+    }
+    // Kolom Location tampilkan lokasi yg DIPILIH user (parent 012), bukan child
+    $locationCol = $isGlobal ? "'ALL'" : DB::getPdo()->quote($location);
 
     $inoutFilter = '';
     if ($inout === 'in')  $inoutFilter = "AND (b.movement_plus > 0 OR b.adj_direction = '+')";
@@ -1321,10 +1348,9 @@ private function renderRefLink($type, $ref)
     return '<a href="'.$url.'" target="_blank" class="text-primary">'.e($ref).'</a>';
 }
 
-private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal, $depth = 0)
+private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal, $depth = 0, array $locationList = [])
 {
-    // Safety: batas rekursi maksimal / floor tanggal
-    $floorDate = '30-06-2026'; // atau tanggal go-live sistem
+    $floorDate = '30-06-2026';
     if ($depth > 36 || strtotime($fromDate) <= strtotime($floorDate)) {
         return ['qty' => 0.0, 'adj_code' => null, 'adj_id' => null,
                 'note' => 'Saldo awal diasumsikan 0 (di luar rentang data)', 'authorized_at' => null];
@@ -1332,8 +1358,6 @@ private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGl
 
     $out = ['qty'=>0.0,'adj_code'=>null,'adj_id'=>null,'note'=>null,'authorized_at'=>null];
 
-    // Saldo awal = saldo akhir SEHARI sebelum fromDate.
-    // = OB periode (bulan fromDate - 1)  +  net movement (01-<bulan fromDate> .. fromDate-1)
     $parts = explode('-', $fromDate);
     $bulan = isset($parts[1]) ? (int) $parts[1] : (int) date('m');
     $tahun = isset($parts[2]) ? (int) $parts[2] : (int) date('Y');
@@ -1342,43 +1366,39 @@ private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGl
     $tahunOB   = $tahun;
     if ($periodeOB < 1) { $periodeOB = 12; $tahunOB = $tahun - 1; }
 
-    // 1) Basis = OB periode (bulan-1). Kalau tidak ada, mundur rekursif ke saldo akhir bulan sebelumnya.
-  $ob = $this->fetchOBByPeriode($articleCode, $location, $periodeOB, $tahunOB, $isGlobal);
-if ($ob['found']) {
-    $basis = $ob['qty'];
-    $out['adj_code']      = $ob['adj_code'];
-    $out['adj_id']        = $ob['adj_id'];
-    $out['authorized_at'] = $ob['authorized_at'];
-} elseif (strtotime(sprintf('01-%02d-%04d', $periodeOB, $tahunOB)) <= strtotime($floorDate)) {
-    // Sebelum floor (Juni) dan OB Juni tidak ada -> dianggap 0, TIDAK rekursi, TIDAK tambah net bulan sebelumnya
-    $basis = 0.0;
-    $out['note'] = 'OB Juni tidak ditemukan, saldo sebelum periode floor diabaikan';
-} else {
-    // Masih di atas floor, boleh rekursi normal seperti biasa
-    $awalPrev = $this->resolveOpeningBalance(
-        $articleCode, $location,
-        sprintf('01-%02d-%04d', $periodeOB, $tahunOB),
-        $isGlobal,
-        $depth + 1
-    );
-    $basis = $awalPrev['qty']
-           + $this->netMovementRange($articleCode, $location,
-               sprintf('01-%02d-%04d', $periodeOB, $tahunOB),
-               date('t-m-Y', mktime(0,0,0,$periodeOB,1,$tahunOB)),
-               $isGlobal);
-}
+    // OB tetap dicari di $location (parent) — TIDAK pakai locationList
+    $ob = $this->fetchOBByPeriode($articleCode, $location, $periodeOB, $tahunOB, $isGlobal);
+    if ($ob['found']) {
+        $basis = $ob['qty'];
+        $out['adj_code']      = $ob['adj_code'];
+        $out['adj_id']        = $ob['adj_id'];
+        $out['authorized_at'] = $ob['authorized_at'];
+    } elseif (strtotime(sprintf('01-%02d-%04d', $periodeOB, $tahunOB)) <= strtotime($floorDate)) {
+        $basis = 0.0;
+        $out['note'] = 'OB Juni tidak ditemukan, saldo sebelum periode floor diabaikan';
+    } else {
+        $awalPrev = $this->resolveOpeningBalance(
+            $articleCode, $location,
+            sprintf('01-%02d-%04d', $periodeOB, $tahunOB),
+            $isGlobal, $depth + 1, $locationList   // ← teruskan locationList
+        );
+        // net movement pakai locationList (child)
+        $basis = $awalPrev['qty']
+               + $this->netMovementRange($articleCode, $location,
+                   sprintf('01-%02d-%04d', $periodeOB, $tahunOB),
+                   date('t-m-Y', mktime(0,0,0,$periodeOB,1,$tahunOB)),
+                   $isGlobal, $locationList);        // ← locationList
+    }
 
-    // 2) Tambah net movement dari AWAL bulan fromDate s/d SEHARI sebelum fromDate.
-    //    Kalau fromDate = tanggal 1, rentang ini kosong → net 0.
     $awalBulan = sprintf('01-%02d-%04d', $bulan, $tahun);
     $prevDay   = date('d-m-Y', strtotime(
         \DateTime::createFromFormat('d-m-Y', $fromDate)->format('Y-m-d') . ' -1 day'
     ));
 
     $netParsial = 0.0;
-    // hanya kalau fromDate bukan tanggal 1 (ada hari yang perlu diakumulasi)
     if ((int)$parts[0] > 1) {
-        $netParsial = $this->netMovementRange($articleCode, $location, $awalBulan, $prevDay, $isGlobal);
+        // net movement pakai locationList (child)
+        $netParsial = $this->netMovementRange($articleCode, $location, $awalBulan, $prevDay, $isGlobal, $locationList);
     }
 
     $out['qty']  = $basis + $netParsial;
@@ -1387,16 +1407,28 @@ if ($ob['found']) {
         : 'Saldo akhir periode sebelumnya';
 
     if ($netParsial != 0.0 || !$ob['found']) {
-    $out['adj_code'] = null;
-    $out['adj_id']   = null;
-}
+        $out['adj_code'] = null;
+        $out['adj_id']   = null;
+    }
 
     return $out;
 }
 
-private function netMovementRange($articleCode, $location, $from, $to, $isGlobal): float
+private function netMovementRange($articleCode, $location, $from, $to, $isGlobal, array $locationList = []): float
 {
-    $whereLoc = $isGlobal ? '' : 'AND m.location_number = :loc2';
+    $bind = ['art'=>$articleCode,'from'=>$from,'to'=>$to];
+
+    $whereLoc = '';
+    if (!$isGlobal) {
+        $locs = !empty($locationList) ? $locationList : [$location];
+        $ph = [];
+        foreach ($locs as $i => $loc) {
+            $ph[] = ":loc2_$i";
+            $bind["loc2_$i"] = $loc;
+        }
+        $whereLoc = "AND m.location_number IN (" . implode(',', $ph) . ")";
+    }
+
     $sql = "
       WITH acc AS (
         SELECT m.movement_code, m.created_at,
@@ -1439,8 +1471,7 @@ private function netMovementRange($articleCode, $location, $from, $to, $isGlobal
       )
       SELECT COALESCE(SUM(net_value),0) AS net
       FROM acc WHERE rn=1 AND hdr_status IS DISTINCT FROM '5'";
-    $bind = ['art'=>$articleCode,'from'=>$from,'to'=>$to];
-    if (!$isGlobal) $bind['loc2'] = $location;
+
     $r = DB::select($sql, $bind);
     return isset($r[0]) ? (float) $r[0]->net : 0.0;
 }
