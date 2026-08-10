@@ -106,8 +106,8 @@
                                 </select>
                             </div>
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="uom">Chart of Account (CoA)</label>
-                                <select class="select2 form-control" id="uom" name="uom" required>
+                                <label class="form-label" for="coa">Chart of Account (CoA)</label>
+                                <select class="select2 form-control" id="coa" name="coa" required>
                                     <option value=""></option>
                                    @foreach($accounts as $val)
                                                     <option value="{{ $val->account }}" {{ old('account') == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
