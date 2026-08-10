@@ -5,9 +5,9 @@
 
 {{-- Loading Overlay --}}
 <div id="loadingOverlay">
-    <div class="text-center text-white">
-        <div class="spinner-border text-light mb-2" style="width:3rem;height:3rem;" role="status"></div>
-        <div id="loadingText" class="font-weight-bold">Memuat data...</div>
+    <div class="text-center">
+        <div class="spinner-border mb-2" style="width:2.5rem;height:2.5rem;color:#3b4a5a;" role="status"></div>
+        <div id="loadingText" class="font-weight-bold text-secondary">Memuat data...</div>
     </div>
 </div>
 
@@ -17,22 +17,19 @@
     <div class="card filter-card mb-1">
         <div class="card-body py-1">
             <div class="row align-items-end">
-
-                {{-- Range Date — satu input, mode range, pakai helper global initDatePicker() --}}
                 <div class="col-md-3 col-12 mb-1">
-                    <label class="form-label mb-25 font-weight-bold" style="font-size:0.8rem;">
+                    <label class="form-label mb-25 font-weight-bold text-muted" style="font-size:0.78rem;">
                         <i data-feather="calendar" class="mr-25" style="width:14px;height:14px;"></i>
-                        Periode
+                        PERIODE
                     </label>
                     <input type="text" id="rangeDate" name="rangeDate" class="form-control flatpickr-range"
                            placeholder="DD-MM-YYYY to DD-MM-YYYY" autocomplete="off">
                 </div>
 
-                {{-- Pilih Lokasi — pakai class select2, auto ke-init sama seperti halaman lain --}}
                 <div class="col-md-4 col-12 mb-1">
-                    <label class="form-label mb-25 font-weight-bold" style="font-size:0.8rem;">
+                    <label class="form-label mb-25 font-weight-bold text-muted" style="font-size:0.78rem;">
                         <i data-feather="map-pin" class="mr-25" style="width:14px;height:14px;"></i>
-                        Lokasi Gudang
+                        LOKASI GUDANG
                     </label>
                     <select id="selLocations" name="selLocations" class="select2 form-control" multiple>
                         @foreach($locations as $code => $label)
@@ -41,76 +38,89 @@
                     </select>
                 </div>
 
-                {{-- Tombol --}}
-                <div class="col-md-5 col-12 mb-1 d-flex align-items-end gap-50">
-                    <button id="btnLoad" type="button" class="btn btn-primary btn-sm mr-50">
+                <div class="col-md-5 col-12 mb-1 d-flex align-items-end flex-wrap" style="gap:.5rem;">
+                    <button id="btnLoad" type="button" class="btn btn-dark btn-sm">
                         <i data-feather="search" class="mr-25" style="width:14px;height:14px;"></i>
                         Tampilkan
                     </button>
-                    <button id="btnExportXlsx" type="button" class="btn btn-success btn-sm mr-50" disabled>
+                    <button id="btnExportXlsx" type="button" class="btn btn-outline-secondary btn-sm" disabled>
                         <i data-feather="download" class="mr-25" style="width:14px;height:14px;"></i>
                         Export Excel
                     </button>
-                    <button id="btnExpandAll" type="button" class="btn btn-outline-secondary btn-sm mr-50" disabled>
+                    <button id="btnExpandAll" type="button" class="btn btn-outline-secondary btn-sm" disabled>
                         <i data-feather="maximize-2" class="mr-25" style="width:14px;height:14px;"></i>
-                        Expand All
+                        Expand
                     </button>
                     <button id="btnCollapseAll" type="button" class="btn btn-outline-secondary btn-sm" disabled>
                         <i data-feather="minimize-2" class="mr-25" style="width:14px;height:14px;"></i>
-                        Collapse All
+                        Collapse
                     </button>
                 </div>
             </div>
 
-            {{-- Info summary (muncul setelah load) --}}
             <div id="infoBar" class="d-none">
                 <hr class="my-50">
                 <div class="row">
-                    <div class="col-12">
-                        <span class="badge badge-light-primary mr-1" id="badgePeriode"></span>
-                        <span class="badge badge-light-secondary mr-1" id="badgeLokasi"></span>
-                        <span class="badge badge-light-info" id="badgeJumlahArtikel"></span>
+                    <div class="col-12 text-muted" style="font-size:0.82rem;">
+                        <span id="badgePeriode" class="mr-2"></span>
+                        <span id="badgeLokasi" class="mr-2"></span>
+                        <span id="badgeJumlahArtikel"></span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- ── Table Card ── --}}
-    <div class="card">
+    {{-- ── View Switcher ── --}}
+    <div class="mb-1 d-none" id="viewSwitcher">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-outline-dark view-tab active" data-view="detail">
+                Detail per Artikel
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-dark view-tab" data-view="summary">
+                Ringkasan per Lokasi
+            </button>
+        </div>
+    </div>
+
+    {{-- ── Detail Table ── --}}
+    <div class="card" id="cardDetail">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table id="tblValuation" class="table table-bordered table-hover mb-0">
+                <table id="tblValuation" class="table table-bordered table-sm mb-0">
                     <thead>
                         <tr>
-                            <th rowspan="2" style="min-width:200px;">Artikel</th>
-                            <th rowspan="2" style="min-width:60px;">UOM</th>
-                            <th rowspan="2" style="min-width:80px;">Tgl</th>
-                            <th rowspan="2" style="min-width:130px;">No. Dokumen</th>
-                            <th rowspan="2" style="min-width:100px;">Tipe</th>
-                            <th rowspan="2" style="min-width:60px;">Lokasi</th>
-                            <th colspan="3" class="text-center" style="background-color:#5a52bf !important;">MASUK (IN)</th>
-                            <th colspan="3" class="text-center" style="background-color:#d63031 !important;">KELUAR (OUT)</th>
-                            <th colspan="3" class="text-center" style="background-color:#00b894 !important;">SALDO AKHIR</th>
+                            <th rowspan="2" style="min-width:220px;">Artikel</th>
+                            <th rowspan="2" style="min-width:55px;">UOM</th>
+                            <th rowspan="2" style="min-width:80px;">Tanggal</th>
+                            <th rowspan="2" style="min-width:130px;">No. Ref</th>
+                            <th rowspan="2" style="min-width:110px;">Tipe</th>
+                            <th colspan="3" class="text-center grp-saldo-awal">SALDO AWAL</th>
+                            <th colspan="3" class="text-center grp-masuk">MASUK</th>
+                            <th colspan="3" class="text-center grp-keluar">KELUAR</th>
+                            <th colspan="3" class="text-center grp-saldo-akhir">SALDO AKHIR</th>
                         </tr>
                         <tr>
-                            {{-- IN --}}
-                            <th class="col-qty"  style="background-color:#7367f0cc !important;">QTY</th>
-                            <th class="col-money" style="background-color:#7367f0cc !important;">Harga</th>
-                            <th class="col-money" style="background-color:#7367f0cc !important;">Nilai</th>
-                            {{-- OUT --}}
-                            <th class="col-qty"  style="background-color:#ea5455cc !important;">QTY</th>
-                            <th class="col-money" style="background-color:#ea5455cc !important;">Harga</th>
-                            <th class="col-money" style="background-color:#ea5455cc !important;">Nilai</th>
-                            {{-- SALDO AKHIR --}}
-                            <th class="col-qty"  style="background-color:#28c76fcc !important;">QTY</th>
-                            <th class="col-money" style="background-color:#28c76fcc !important;">Avg Price</th>
-                            <th class="col-money" style="background-color:#28c76fcc !important;">Nilai</th>
+                            <th class="col-qty grp-saldo-awal">Qty</th>
+                            <th class="col-money grp-saldo-awal">Harga</th>
+                            <th class="col-money grp-saldo-awal">Nilai</th>
+
+                            <th class="col-qty grp-masuk">Qty</th>
+                            <th class="col-money grp-masuk">Harga</th>
+                            <th class="col-money grp-masuk">Nilai</th>
+
+                            <th class="col-qty grp-keluar">Qty</th>
+                            <th class="col-money grp-keluar">Harga</th>
+                            <th class="col-money grp-keluar">Nilai</th>
+
+                            <th class="col-qty grp-saldo-akhir">Qty</th>
+                            <th class="col-money grp-saldo-akhir">Harga</th>
+                            <th class="col-money grp-saldo-akhir">Nilai</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyValuation">
                         <tr class="no-data-row">
-                            <td colspan="15">
+                            <td colspan="17">
                                 <i data-feather="info" class="mr-1"></i>
                                 Pilih filter dan klik <strong>Tampilkan</strong> untuk memuat data.
                             </td>
@@ -118,16 +128,71 @@
                     </tbody>
                     <tfoot id="tfootValuation" class="d-none">
                         <tr class="tfoot-total">
-                            <td colspan="6" class="text-right">GRAND TOTAL</td>
-                            <td class="col-qty"  id="ftTotalQtyIn"></td>
+                            <td colspan="5" class="text-right">GRAND TOTAL</td>
+                            <td class="col-qty"   id="ftSaldoAwalQty"></td>
+                            <td class="col-money"></td>
+                            <td class="col-money" id="ftSaldoAwalValue"></td>
+                            <td class="col-qty"   id="ftTotalQtyIn"></td>
                             <td class="col-money"></td>
                             <td class="col-money" id="ftTotalValueIn"></td>
-                            <td class="col-qty"  id="ftTotalQtyOut"></td>
+                            <td class="col-qty"   id="ftTotalQtyOut"></td>
                             <td class="col-money"></td>
                             <td class="col-money" id="ftTotalValueOut"></td>
-                            <td class="col-qty"  id="ftSaldoAkhirQty"></td>
+                            <td class="col-qty"   id="ftSaldoAkhirQty"></td>
                             <td class="col-money"></td>
                             <td class="col-money" id="ftSaldoAkhirValue"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Summary per Lokasi Table ── --}}
+    <div class="card d-none" id="cardSummary">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="tblSummary" class="table table-bordered table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="min-width:170px;">Lokasi</th>
+                            <th rowspan="2" class="text-center" style="min-width:90px;">Jml Artikel</th>
+                            <th colspan="2" class="text-center grp-saldo-awal">SALDO AWAL</th>
+                            <th colspan="2" class="text-center grp-masuk">MASUK</th>
+                            <th colspan="2" class="text-center grp-keluar">KELUAR</th>
+                            <th colspan="2" class="text-center grp-saldo-akhir">SALDO AKHIR</th>
+                        </tr>
+                        <tr>
+                            <th class="col-qty grp-saldo-awal">Qty</th>
+                            <th class="col-money grp-saldo-awal">Nilai</th>
+                            <th class="col-qty grp-masuk">Qty</th>
+                            <th class="col-money grp-masuk">Nilai</th>
+                            <th class="col-qty grp-keluar">Qty</th>
+                            <th class="col-money grp-keluar">Nilai</th>
+                            <th class="col-qty grp-saldo-akhir">Qty</th>
+                            <th class="col-money grp-saldo-akhir">Nilai</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodySummary">
+                        <tr class="no-data-row">
+                            <td colspan="10">
+                                <i data-feather="info" class="mr-1"></i>
+                                Pilih filter dan klik <strong>Tampilkan</strong> untuk memuat data.
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot id="tfootSummary" class="d-none">
+                        <tr class="tfoot-total">
+                            <td class="text-right">GRAND TOTAL</td>
+                            <td class="text-center" id="fsJumlahArtikel"></td>
+                            <td class="col-qty"   id="fsSaldoAwalQty"></td>
+                            <td class="col-money" id="fsSaldoAwalValue"></td>
+                            <td class="col-qty"   id="fsQtyIn"></td>
+                            <td class="col-money" id="fsValueIn"></td>
+                            <td class="col-qty"   id="fsQtyOut"></td>
+                            <td class="col-money" id="fsValueOut"></td>
+                            <td class="col-qty"   id="fsAkhirQty"></td>
+                            <td class="col-money" id="fsAkhirValue"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -141,100 +206,130 @@
 {{-- ════════════════════════════════════════════════
      TIDAK ADA @section('vendor-script') di sini.
      flatpickr & select2 SUDAH di-load global oleh
-     layouts.app (terbukti dari halaman actualFinishGoods
-     yang pakai keduanya tanpa load manual sama sekali).
-     Kalau di-load ulang di sini, file JS-nya ke-load 2x
-     dan bikin plugin (terutama flatpickr) auto-init dobel
-     — itu penyebab kalender kemarin cuma bisa pilih tgl 1.
-
-     Satu-satunya library yang MEMANG belum ada secara
-     global adalah SheetJS (xlsx), jadi itu saja yang
-     tetap dimuat, taruh di dalam section 'scripts'.
+     layouts.app. Satu-satunya library yang belum ada
+     secara global adalah SheetJS (xlsx), jadi itu saja
+     yang dimuat di section 'scripts'.
 ════════════════════════════════════════════════ --}}
 
 @section('styles')
 <style>
-    /* ── Filter Card ── */
-    .filter-card { border-left: 4px solid #7367f0; }
+    /*
+     * ── Palet enterprise / netral ──
+     * Tidak ada warna-warni: hanya abu-abu, putih, dan satu warna
+     * aksen (navy) untuk header. Grup kolom dibedakan lewat garis
+     * pemisah tegas + label header, bukan lewat background warna.
+     */
+    :root{
+        --iv-ink:      #1f2937;
+        --iv-muted:    #6b7280;
+        --iv-border:   #dfe3e8;
+        --iv-header:   #2b3648;
+        --iv-header2:  #3d4a60;
+        --iv-row-alt:  #f7f8fa;
+        --iv-accent:   #2b3648;
+    }
 
-    /* ── Artikel header row ── */
+    .filter-card { border-left: 3px solid var(--iv-accent); }
+
+    .view-tab.active { background-color: var(--iv-accent); color:#fff; border-color: var(--iv-accent); }
+
+    #tblValuation, #tblSummary { font-size: 0.82rem; color: var(--iv-ink); }
+
+    #tblValuation th, #tblSummary th {
+        background-color: var(--iv-header);
+        color: #fff;
+        white-space: nowrap;
+        font-weight: 600;
+        vertical-align: middle;
+        border-color: #4a5670 !important;
+    }
+    /* Header baris kedua (Qty/Harga/Nilai) sedikit lebih terang supaya grup terlihat */
+    #tblValuation thead tr:nth-child(2) th,
+    #tblSummary thead tr:nth-child(2) th { background-color: var(--iv-header2); font-weight: 500; }
+
+    #tblValuation .col-money, #tblSummary .col-money { text-align: right; white-space: nowrap; }
+    #tblValuation .col-qty,   #tblSummary .col-qty   { text-align: right; }
+
+    /* Pemisah tegas antar grup Saldo Awal | Masuk | Keluar | Saldo Akhir */
+    .grp-masuk        { border-left: 2px solid #9aa5b1 !important; }
+    .grp-keluar        { border-left: 2px solid #9aa5b1 !important; }
+    .grp-saldo-akhir  { border-left: 2px solid #9aa5b1 !important; }
+
+    /* ── Baris lokasi (grup header per lokasi) ── */
+    .row-lokasi-header td {
+        background-color: var(--iv-ink) !important;
+        color: #fff;
+        font-weight: 700;
+        letter-spacing: .02em;
+        border-top: none !important;
+    }
+
+    /* ── Baris artikel (klik untuk expand) ── */
     .row-artikel-header {
-        background-color: #f3f0ff !important;
+        background-color: var(--iv-row-alt) !important;
         font-weight: 600;
         cursor: pointer;
     }
-    .row-artikel-header td { border-top: 2px solid #7367f0 !important; }
-    .row-artikel-header:hover { background-color: #e9e4ff !important; }
+    .row-artikel-header td { border-top: 1px solid var(--iv-border) !important; }
+    .row-artikel-header:hover { background-color: #eef1f4 !important; }
 
-    /* ── Baris IN ── */
-    .row-trans-in td:first-child { padding-left: 2.5rem; }
-    .row-trans-in { background-color: #f6fffa !important; font-size: 0.85rem; }
+    /* ── Baris detail (saldo awal / in / out) — netral, dibedakan lewat teks kecil ── */
+    .row-detail td:first-child { padding-left: 2.25rem; color: var(--iv-muted); }
+    .row-detail { font-size: 0.8rem; }
+    .row-detail-label { color: var(--iv-muted); font-style: italic; }
 
-    /* ── Baris OUT ── */
-    .row-trans-out td:first-child { padding-left: 2.5rem; }
-    .row-trans-out { background-color: #fff8f8 !important; font-size: 0.85rem; }
+    /* ── Baris rekonsiliasi per artikel: satu-satunya baris yang menampilkan
+         ke-4 grup sekaligus (Saldo Awal → Masuk → Keluar → Saldo Akhir),
+         supaya jelas terlihat cara perhitungannya tanpa ambigu. ── */
+    .row-reconcile { background-color: #eef2f6 !important; font-weight: 600; font-size: 0.82rem; }
+    .row-reconcile td { border-top: 1px dashed #9aa5b1 !important; border-bottom: 2px solid var(--iv-border) !important; }
 
-    /* ── Saldo rows ── */
-    .row-saldo-awal  { background-color: #fffde7 !important; font-size: 0.85rem; }
-    .row-saldo-akhir { background-color: #e8f5e9 !important; font-size: 0.85rem; font-weight: 600; }
-
-    /* ── Subtotal row ── */
-    .row-subtotal { background-color: #eef1fb !important; font-weight: 600; font-size: 0.85rem; }
-    .row-subtotal td { border-top: 1px dashed #7367f0 !important; }
-
-    /* ── Toggle icon ── */
-    .toggle-icon { transition: transform 0.2s; display: inline-block; }
+    .toggle-icon { transition: transform 0.15s; display: inline-block; color: var(--iv-muted); }
     .collapsed .toggle-icon { transform: rotate(-90deg); }
 
-    /* ── Table ── */
-    #tblValuation { font-size: 0.82rem; }
-    #tblValuation th { background-color: #7367f0 !important; color: #fff; white-space: nowrap; }
-    #tblValuation .col-money { text-align: right; white-space: nowrap; }
-    #tblValuation .col-qty   { text-align: right; }
+    /* Badge tipe movement — netral, tidak warna-warni. Hanya beda border kiri tipis untuk IN/OUT. */
+    .badge-mv {
+        background-color: #fff;
+        color: var(--iv-ink);
+        border: 1px solid var(--iv-border);
+        font-weight: 500;
+        font-size: 0.7rem;
+    }
+    .badge-mv.mv-in  { border-left: 3px solid #4b5563; }
+    .badge-mv.mv-out { border-left: 3px solid #94a3b8; }
 
-    /* ── Badge movement ── */
-    .badge-receiving  { background-color: #28c76f; color: #fff; }
-    .badge-transfer   { background-color: #00cfe8; color: #fff; }
-    .badge-adjustment { background-color: #ff9f43; color: #fff; }
-    .badge-supply     { background-color: #ea5455; color: #fff; }
-    .badge-delivery   { background-color: #e83e8c; color: #fff; }
-    .badge-ob         { background-color: #7367f0; color: #fff; }
-    .badge-other      { background-color: #b0b8c1; color: #fff; }
-
-    /* ── Loading overlay ── */
     #loadingOverlay {
         display: none;
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.35); z-index: 9999;
+        background: rgba(255,255,255,0.75); z-index: 9999;
         align-items: center; justify-content: center;
     }
     #loadingOverlay.show { display: flex; }
 
-    /* ── Summary total footer ── */
-    .tfoot-total td { font-weight: 700; background-color: #7367f0 !important; color: #fff; }
+    .tfoot-total td { font-weight: 700; background-color: var(--iv-header) !important; color: #fff; }
 
-    .no-data-row td { text-align: center; color: #aaa; padding: 2rem !important; }
+    .no-data-row td { text-align: center; color: var(--iv-muted); padding: 2rem !important; }
 </style>
 @endsection
 
 @section('scripts')
-{{-- SheetJS: satu-satunya library baru yang benar-benar belum ada global --}}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="text/javascript">
 // ============================================================
 // STATE
 // ============================================================
-let reportData   = null;  // hasil JSON dari server
-let reportMeta   = null;  // from_date, to_date, loc_labels
-let expandedRows = {};    // { artikel_code: true/false }
+let reportData    = null;  // { "005": [artikel...], "006": [...] }
+let summaryData   = null;  // [ { location, label, ... }, ... ]
+let reportMeta    = null;  // from_date, to_date, loc_labels, locations
+let expandedRows  = {};    // { artikel_code: true/false }
+let currentView   = 'detail';
 
-let rangeDate    = document.querySelector('#rangeDate');
-let btnLoad      = document.querySelector('#btnLoad');
-let btnExportXlsx  = document.querySelector('#btnExportXlsx');
-let btnExpandAll   = document.querySelector('#btnExpandAll');
-let btnCollapseAll = document.querySelector('#btnCollapseAll');
+let rangeDate      = document.querySelector('#rangeDate');
+let btnLoad         = document.querySelector('#btnLoad');
+let btnExportXlsx    = document.querySelector('#btnExportXlsx');
+let btnExpandAll     = document.querySelector('#btnExpandAll');
+let btnCollapseAll   = document.querySelector('#btnCollapseAll');
 
-// ── Date range picker — sama persis pola halaman lain (initDatePicker global) ──
 initDatePicker(rangeDate, {
     minDate: "01/01/2010",
     maxDate: "31/12/2030",
@@ -242,7 +337,6 @@ initDatePicker(rangeDate, {
     mode: "range"
 });
 
-// ── Default value awal: 1 bulan berjalan s/d hari ini ──
 document.addEventListener('DOMContentLoaded', function () {
     const now = new Date();
     const dd  = String(now.getDate()).padStart(2, '0');
@@ -263,6 +357,19 @@ btnExportXlsx.addEventListener('click', exportXlsx);
 btnExpandAll.addEventListener('click', () => toggleAllRows(true));
 btnCollapseAll.addEventListener('click', () => toggleAllRows(false));
 
+$(document).on('click', '.view-tab', function () {
+    currentView = $(this).data('view');
+    $('.view-tab').removeClass('active');
+    $(this).addClass('active');
+    if (currentView === 'detail') {
+        $('#cardDetail').removeClass('d-none');
+        $('#cardSummary').addClass('d-none');
+    } else {
+        $('#cardDetail').addClass('d-none');
+        $('#cardSummary').removeClass('d-none');
+    }
+});
+
 // ============================================================
 // LOAD REPORT
 // ============================================================
@@ -275,7 +382,6 @@ function loadReport() {
         return;
     }
 
-    // format flatpickr range: "01-08-2026 to 05-08-2026"
     const parts    = rangeVal.split(' to ');
     const fromDate = parts[0].trim();
     const toDate   = parts.length > 1 ? parts[1].trim() : parts[0].trim();
@@ -292,11 +398,14 @@ function loadReport() {
         method : 'GET',
         data   : { from_date: fromDate, to_date: toDate, locations: locations },
         success: function (res) {
-            reportData = res.data;
-            reportMeta = { from_date: res.from_date, to_date: res.to_date, loc_labels: res.loc_labels, locations: res.locations };
+            reportData  = res.data;
+            summaryData = res.summary_per_lokasi;
+            reportMeta  = { from_date: res.from_date, to_date: res.to_date, loc_labels: res.loc_labels, locations: res.locations };
             expandedRows = {};
-            renderTable();
+            renderDetailTable();
+            renderSummaryTable();
             updateInfoBar();
+            $('#viewSwitcher').removeClass('d-none');
             hideLoading();
         },
         error: function (xhr) {
@@ -308,149 +417,241 @@ function loadReport() {
 }
 
 // ============================================================
-// RENDER TABLE
+// RENDER DETAIL TABLE (dikelompokkan per lokasi, lalu per artikel)
 // ============================================================
-function renderTable() {
+function renderDetailTable() {
     const tbody = $('#tbodyValuation');
     const tfoot = $('#tfootValuation');
     tbody.empty();
 
-    if (!reportData || reportData.length === 0) {
-        tbody.html('<tr class="no-data-row"><td colspan="15"><i data-feather="info" class="mr-1"></i>Tidak ada data untuk filter yang dipilih.</td></tr>');
+    const locs = reportMeta.locations || [];
+    const hasAnyArticle = locs.some(loc => (reportData[loc] || []).length > 0);
+
+    if (!hasAnyArticle) {
+        tbody.html('<tr class="no-data-row"><td colspan="17"><i data-feather="info" class="mr-1"></i>Tidak ada data untuk filter yang dipilih.</td></tr>');
         tfoot.addClass('d-none');
         feather.replace();
         updateBtnState(false);
         return;
     }
 
-    let grandTotalQtyIn = 0, grandTotalValueIn = 0;
-    let grandTotalQtyOut = 0, grandTotalValueOut = 0;
-    let grandSaldoAkhirQty = 0, grandSaldoAkhirValue = 0;
+    let gSaldoAwalQty = 0, gSaldoAwalValue = 0;
+    let gQtyIn = 0, gValueIn = 0;
+    let gQtyOut = 0, gValueOut = 0;
+    let gAkhirQty = 0, gAkhirValue = 0;
 
-    reportData.forEach(function (art) {
-        const artCode = art.artikel_code;
-        const isExpanded = expandedRows[artCode] !== false; // default expanded
+    locs.forEach(function (loc) {
+        const articles = reportData[loc] || [];
+        if (articles.length === 0) return;
 
-        const arrowClass = isExpanded ? '' : 'collapsed';
-        const detailClass = isExpanded ? '' : 'd-none';
-
+        const label = (reportMeta.loc_labels && reportMeta.loc_labels[loc]) ? reportMeta.loc_labels[loc] : loc;
         tbody.append(`
-            <tr class="row-artikel-header ${arrowClass}" data-artcode="${artCode}">
-                <td>
-                    <span class="toggle-icon mr-50">&#9660;</span>
-                    <strong>${artCode}</strong> &mdash; ${escHtml(art.artikel_desc)}
-                </td>
-                <td>${art.uom}</td>
-                <td colspan="4"></td>
-                <td class="col-qty">${fmt(art.saldo_awal.qty)}</td>
-                <td class="col-money">${fmtRp(art.saldo_awal.avg_price)}</td>
-                <td class="col-money">${fmtRp(art.saldo_awal.value)}</td>
-                <td colspan="3"></td>
-                <td class="col-qty">${fmt(art.summary.saldo_akhir_qty)}</td>
-                <td class="col-money">${fmtRp(art.summary.avg_price_akhir)}</td>
-                <td class="col-money">${fmtRp(art.summary.saldo_akhir_value)}</td>
+            <tr class="row-lokasi-header">
+                <td colspan="17">${loc} — ${escHtml(label)} <span class="font-weight-normal" style="opacity:.75;">(${articles.length} artikel)</span></td>
             </tr>
         `);
 
-        tbody.append(`
-            <tr class="row-saldo-awal detail-row-${artCode} ${detailClass}">
-                <td class="pl-4"><em>Saldo Awal</em></td>
-                <td>${art.uom}</td>
-                <td>—</td><td>—</td>
-                <td><span class="badge badge-ob badge-sm">SALDO AWAL</span></td>
-                <td>—</td>
-                <td class="col-qty">${fmt(art.saldo_awal.qty)}</td>
-                <td class="col-money">${fmtRp(art.saldo_awal.avg_price)}</td>
-                <td class="col-money">${fmtRp(art.saldo_awal.value)}</td>
-                <td colspan="3"></td>
-                <td colspan="3"></td>
-            </tr>
-        `);
+        articles.forEach(function (art) {
+            const artCode = art.artikel_code;
+            const rowKey = loc + '|' + artCode;
+            const isExpanded = expandedRows[rowKey] !== false; // default expanded
+            const arrowClass = isExpanded ? '' : 'collapsed';
+            const detailClass = isExpanded ? '' : 'd-none';
 
-        art.transaksi_in.forEach(function (t) {
+            // Baris header artikel: hanya ringkasan saldo akhir, TIDAK menumpuk saldo awal
+            // di kolom "Masuk" (ini penyebab tampilan lama membingungkan).
             tbody.append(`
-                <tr class="row-trans-in detail-row-${artCode} ${detailClass}">
-                    <td class="pl-4">&nbsp;</td>
+                <tr class="row-artikel-header ${arrowClass}" data-rowkey="${rowKey}">
+                    <td>
+                        <span class="toggle-icon mr-50">&#9660;</span>
+                        <strong>${artCode}</strong> &mdash; ${escHtml(art.artikel_desc)}
+                    </td>
                     <td>${art.uom}</td>
-                    <td>${t.tanggal}</td>
-                    <td><small>${escHtml(t.doc_number)}</small></td>
-                    <td>${movBadge(t.movement_type)}</td>
-                    <td><small>${t.location}</small></td>
-                    <td class="col-qty">${fmt(t.qty)}</td>
-                    <td class="col-money">${fmtRp(t.price)}</td>
-                    <td class="col-money">${fmtRp(t.total_value)}</td>
                     <td colspan="3"></td>
-                    <td colspan="3"></td>
+                    <td colspan="3" class="grp-saldo-awal"></td>
+                    <td colspan="3" class="grp-masuk"></td>
+                    <td colspan="3" class="grp-keluar"></td>
+                    <td class="col-qty grp-saldo-akhir">${fmt(art.summary.saldo_akhir_qty)}</td>
+                    <td class="col-money">${fmtRp(art.summary.avg_price_akhir)}</td>
+                    <td class="col-money">${fmtRp(art.summary.saldo_akhir_value)}</td>
                 </tr>
             `);
-        });
 
-        art.transaksi_out.forEach(function (t) {
+            // Baris Saldo Awal (kolom Saldo Awal saja yang terisi)
             tbody.append(`
-                <tr class="row-trans-out detail-row-${artCode} ${detailClass}">
-                    <td class="pl-4">&nbsp;</td>
+                <tr class="row-detail detail-row-${CSS.escape(rowKey)} ${detailClass}">
+                    <td class="row-detail-label">Saldo Awal</td>
                     <td>${art.uom}</td>
-                    <td>${t.tanggal}</td>
-                    <td><small>${escHtml(t.doc_number)}</small></td>
-                    <td>${movBadge(t.movement_type)}</td>
-                    <td><small>${t.location}</small></td>
-                    <td colspan="3"></td>
-                    <td class="col-qty">${fmt(t.qty)}</td>
-                    <td class="col-money">${fmtRp(t.price)}</td>
-                    <td class="col-money">${fmtRp(t.total_value)}</td>
-                    <td colspan="3"></td>
+                    <td>—</td><td>—</td><td>—</td>
+                    <td class="col-qty grp-saldo-awal">${fmt(art.saldo_awal.qty)}</td>
+                    <td class="col-money">${fmtRp(art.saldo_awal.avg_price)}</td>
+                    <td class="col-money">${fmtRp(art.saldo_awal.value)}</td>
+                    <td colspan="3" class="grp-masuk"></td>
+                    <td colspan="3" class="grp-keluar"></td>
+                    <td colspan="3" class="grp-saldo-akhir"></td>
                 </tr>
             `);
+
+            // Baris Masuk (kolom Masuk saja yang terisi)
+            art.transaksi_in.forEach(function (t) {
+                tbody.append(`
+                    <tr class="row-detail detail-row-${CSS.escape(rowKey)} ${detailClass}">
+                        <td>&nbsp;</td>
+                        <td>${art.uom}</td>
+                        <td>${t.tanggal}</td>
+                        <td><small>${escHtml(t.doc_number)}</small></td>
+                        <td>${movBadge(t.movement_type, 'in')}</td>
+                        <td colspan="3" class="grp-saldo-awal"></td>
+                        <td class="col-qty grp-masuk">${fmt(t.qty)}</td>
+                        <td class="col-money">${fmtRp(t.price)}</td>
+                        <td class="col-money">${fmtRp(t.total_value)}</td>
+                        <td colspan="3" class="grp-keluar"></td>
+                        <td colspan="3" class="grp-saldo-akhir"></td>
+                    </tr>
+                `);
+            });
+
+            // Baris Keluar (kolom Keluar saja yang terisi)
+            art.transaksi_out.forEach(function (t) {
+                tbody.append(`
+                    <tr class="row-detail detail-row-${CSS.escape(rowKey)} ${detailClass}">
+                        <td>&nbsp;</td>
+                        <td>${art.uom}</td>
+                        <td>${t.tanggal}</td>
+                        <td><small>${escHtml(t.doc_number)}</small></td>
+                        <td>${movBadge(t.movement_type, 'out')}</td>
+                        <td colspan="3" class="grp-saldo-awal"></td>
+                        <td colspan="3" class="grp-masuk"></td>
+                        <td class="col-qty grp-keluar">${fmt(t.qty)}</td>
+                        <td class="col-money">${fmtRp(t.price)}</td>
+                        <td class="col-money">${fmtRp(t.total_value)}</td>
+                        <td colspan="3" class="grp-saldo-akhir"></td>
+                    </tr>
+                `);
+            });
+
+            // Baris Rekonsiliasi: menampilkan Saldo Awal | Masuk | Keluar | Saldo Akhir
+            // sekaligus dalam satu baris, sehingga terlihat jelas:
+            // Saldo Akhir = Saldo Awal + Masuk − Keluar
+            tbody.append(`
+                <tr class="row-reconcile detail-row-${CSS.escape(rowKey)} ${detailClass}">
+                    <td class="text-right" colspan="5">${escHtml(art.artikel_desc)} — Rekonsiliasi</td>
+                    <td class="col-qty grp-saldo-awal">${fmt(art.saldo_awal.qty)}</td>
+                    <td class="col-money"></td>
+                    <td class="col-money">${fmtRp(art.saldo_awal.value)}</td>
+                    <td class="col-qty grp-masuk">${fmt(art.summary.total_qty_in)}</td>
+                    <td class="col-money"></td>
+                    <td class="col-money">${fmtRp(art.summary.total_value_in)}</td>
+                    <td class="col-qty grp-keluar">${fmt(art.summary.total_qty_out)}</td>
+                    <td class="col-money"></td>
+                    <td class="col-money">${fmtRp(art.summary.total_value_out)}</td>
+                    <td class="col-qty grp-saldo-akhir">${fmt(art.summary.saldo_akhir_qty)}</td>
+                    <td class="col-money">${fmtRp(art.summary.avg_price_akhir)}</td>
+                    <td class="col-money">${fmtRp(art.summary.saldo_akhir_value)}</td>
+                </tr>
+            `);
+
+            gSaldoAwalQty   += art.saldo_awal.qty;
+            gSaldoAwalValue += art.saldo_awal.value;
+            gQtyIn          += art.summary.total_qty_in;
+            gValueIn        += art.summary.total_value_in;
+            gQtyOut         += art.summary.total_qty_out;
+            gValueOut       += art.summary.total_value_out;
+            gAkhirQty       += art.summary.saldo_akhir_qty;
+            gAkhirValue     += art.summary.saldo_akhir_value;
         });
-
-        tbody.append(`
-            <tr class="row-subtotal detail-row-${artCode} ${detailClass}">
-                <td class="text-right" colspan="6">Subtotal ${escHtml(art.artikel_desc)}</td>
-                <td class="col-qty">${fmt(art.summary.total_qty_in)}</td>
-                <td class="col-money"></td>
-                <td class="col-money">${fmtRp(art.summary.total_value_in)}</td>
-                <td class="col-qty">${fmt(art.summary.total_qty_out)}</td>
-                <td class="col-money"></td>
-                <td class="col-money">${fmtRp(art.summary.total_value_out)}</td>
-                <td class="col-qty">${fmt(art.summary.saldo_akhir_qty)}</td>
-                <td class="col-money">${fmtRp(art.summary.avg_price_akhir)}</td>
-                <td class="col-money">${fmtRp(art.summary.saldo_akhir_value)}</td>
-            </tr>
-        `);
-
-        grandTotalQtyIn      += art.summary.total_qty_in;
-        grandTotalValueIn    += art.summary.total_value_in;
-        grandTotalQtyOut     += art.summary.total_qty_out;
-        grandTotalValueOut   += art.summary.total_value_out;
-        grandSaldoAkhirQty   += art.summary.saldo_akhir_qty;
-        grandSaldoAkhirValue += art.summary.saldo_akhir_value;
     });
 
-    $('#ftTotalQtyIn').text(fmt(grandTotalQtyIn));
-    $('#ftTotalValueIn').text(fmtRp(grandTotalValueIn));
-    $('#ftTotalQtyOut').text(fmt(grandTotalQtyOut));
-    $('#ftTotalValueOut').text(fmtRp(grandTotalValueOut));
-    $('#ftSaldoAkhirQty').text(fmt(grandSaldoAkhirQty));
-    $('#ftSaldoAkhirValue').text(fmtRp(grandSaldoAkhirValue));
+    $('#ftSaldoAwalQty').text(fmt(gSaldoAwalQty));
+    $('#ftSaldoAwalValue').text(fmtRp(gSaldoAwalValue));
+    $('#ftTotalQtyIn').text(fmt(gQtyIn));
+    $('#ftTotalValueIn').text(fmtRp(gValueIn));
+    $('#ftTotalQtyOut').text(fmt(gQtyOut));
+    $('#ftTotalValueOut').text(fmtRp(gValueOut));
+    $('#ftSaldoAkhirQty').text(fmt(gAkhirQty));
+    $('#ftSaldoAkhirValue').text(fmtRp(gAkhirValue));
 
     tfoot.removeClass('d-none');
     feather.replace();
     updateBtnState(true);
 
     $(document).off('click', '.row-artikel-header').on('click', '.row-artikel-header', function () {
-        const artCode    = $(this).data('artcode');
+        const rowKey     = $(this).data('rowkey');
         const isExpanded = !$(this).hasClass('collapsed');
+        const sel = `.detail-row-${CSS.escape(rowKey)}`;
 
         if (isExpanded) {
             $(this).addClass('collapsed');
-            $(`.detail-row-${CSS.escape(artCode)}`).addClass('d-none');
-            expandedRows[artCode] = false;
+            $(sel).addClass('d-none');
+            expandedRows[rowKey] = false;
         } else {
             $(this).removeClass('collapsed');
-            $(`.detail-row-${CSS.escape(artCode)}`).removeClass('d-none');
-            expandedRows[artCode] = true;
+            $(sel).removeClass('d-none');
+            expandedRows[rowKey] = true;
         }
     });
+}
+
+// ============================================================
+// RENDER SUMMARY PER LOKASI (tanpa breakdown artikel)
+// ============================================================
+function renderSummaryTable() {
+    const tbody = $('#tbodySummary');
+    const tfoot = $('#tfootSummary');
+    tbody.empty();
+
+    if (!summaryData || summaryData.length === 0) {
+        tbody.html('<tr class="no-data-row"><td colspan="10"><i data-feather="info" class="mr-1"></i>Tidak ada data untuk filter yang dipilih.</td></tr>');
+        tfoot.addClass('d-none');
+        feather.replace();
+        return;
+    }
+
+    let tJumlah = 0;
+    let tSaldoAwalQty = 0, tSaldoAwalValue = 0;
+    let tQtyIn = 0, tValueIn = 0;
+    let tQtyOut = 0, tValueOut = 0;
+    let tAkhirQty = 0, tAkhirValue = 0;
+
+    summaryData.forEach(function (s) {
+        tbody.append(`
+            <tr>
+                <td><strong>${s.location}</strong> — ${escHtml(s.label)}</td>
+                <td class="text-center">${s.jumlah_artikel}</td>
+                <td class="col-qty grp-saldo-awal">${fmt(s.saldo_awal_qty)}</td>
+                <td class="col-money">${fmtRp(s.saldo_awal_value)}</td>
+                <td class="col-qty grp-masuk">${fmt(s.total_qty_in)}</td>
+                <td class="col-money">${fmtRp(s.total_value_in)}</td>
+                <td class="col-qty grp-keluar">${fmt(s.total_qty_out)}</td>
+                <td class="col-money">${fmtRp(s.total_value_out)}</td>
+                <td class="col-qty grp-saldo-akhir">${fmt(s.saldo_akhir_qty)}</td>
+                <td class="col-money">${fmtRp(s.saldo_akhir_value)}</td>
+            </tr>
+        `);
+
+        tJumlah         += s.jumlah_artikel;
+        tSaldoAwalQty   += s.saldo_awal_qty;
+        tSaldoAwalValue += s.saldo_awal_value;
+        tQtyIn          += s.total_qty_in;
+        tValueIn        += s.total_value_in;
+        tQtyOut         += s.total_qty_out;
+        tValueOut       += s.total_value_out;
+        tAkhirQty       += s.saldo_akhir_qty;
+        tAkhirValue     += s.saldo_akhir_value;
+    });
+
+    $('#fsJumlahArtikel').text(tJumlah);
+    $('#fsSaldoAwalQty').text(fmt(tSaldoAwalQty));
+    $('#fsSaldoAwalValue').text(fmtRp(tSaldoAwalValue));
+    $('#fsQtyIn').text(fmt(tQtyIn));
+    $('#fsValueIn').text(fmtRp(tValueIn));
+    $('#fsQtyOut').text(fmt(tQtyOut));
+    $('#fsValueOut').text(fmtRp(tValueOut));
+    $('#fsAkhirQty').text(fmt(tAkhirQty));
+    $('#fsAkhirValue').text(fmtRp(tAkhirValue));
+
+    tfoot.removeClass('d-none');
+    feather.replace();
 }
 
 // ============================================================
@@ -458,16 +659,19 @@ function renderTable() {
 // ============================================================
 function toggleAllRows(expand) {
     if (!reportData) return;
-    reportData.forEach(function (art) {
-        const artCode = art.artikel_code;
-        expandedRows[artCode] = expand;
-        if (expand) {
-            $(`[data-artcode="${artCode}"]`).removeClass('collapsed');
-            $(`.detail-row-${CSS.escape(artCode)}`).removeClass('d-none');
-        } else {
-            $(`[data-artcode="${artCode}"]`).addClass('collapsed');
-            $(`.detail-row-${CSS.escape(artCode)}`).addClass('d-none');
-        }
+    (reportMeta.locations || []).forEach(function (loc) {
+        (reportData[loc] || []).forEach(function (art) {
+            const rowKey = loc + '|' + art.artikel_code;
+            expandedRows[rowKey] = expand;
+            const sel = `.detail-row-${CSS.escape(rowKey)}`;
+            if (expand) {
+                $(`[data-rowkey="${rowKey}"]`).removeClass('collapsed');
+                $(sel).removeClass('d-none');
+            } else {
+                $(`[data-rowkey="${rowKey}"]`).addClass('collapsed');
+                $(sel).addClass('d-none');
+            }
+        });
     });
 }
 
@@ -475,99 +679,90 @@ function toggleAllRows(expand) {
 // EXPORT EXCEL (SheetJS)
 // ============================================================
 function exportXlsx() {
-    if (!reportData || reportData.length === 0) return;
+    if (!reportData) return;
 
     showLoading('Menyiapkan file Excel...');
 
     setTimeout(function () {
         const wb = XLSX.utils.book_new();
 
+        // ── Sheet: Ringkasan per Lokasi ──
         const summaryRows = [
-            ['INVENTORY VALUATION REPORT'],
+            ['INVENTORY VALUATION — RINGKASAN PER LOKASI'],
             [`Periode: ${reportMeta.from_date} s/d ${reportMeta.to_date}`],
-            [`Lokasi: ${Object.values(reportMeta.loc_labels).join(', ')}`],
             [],
-            ['Artikel Code', 'Deskripsi', 'UOM',
-             'Saldo Awal Qty', 'Saldo Awal Avg Price', 'Saldo Awal Nilai',
-             'Total IN Qty', 'Avg Price IN', 'Total IN Nilai',
-             'Total OUT Qty', 'Avg Price OUT', 'Total OUT Nilai',
-             'Saldo Akhir Qty', 'Avg Price Akhir', 'Saldo Akhir Nilai'],
+            ['Lokasi', 'Nama', 'Jml Artikel',
+             'Saldo Awal Qty', 'Saldo Awal Nilai',
+             'Masuk Qty', 'Masuk Nilai',
+             'Keluar Qty', 'Keluar Nilai',
+             'Saldo Akhir Qty', 'Saldo Akhir Nilai'],
         ];
-
-        let gtQtyIn = 0, gtValIn = 0, gtQtyOut = 0, gtValOut = 0, gtSaldoQty = 0, gtSaldoVal = 0;
-
-        reportData.forEach(function (art) {
+        (summaryData || []).forEach(function (s) {
             summaryRows.push([
-                art.artikel_code, art.artikel_desc, art.uom,
-                art.saldo_awal.qty, art.saldo_awal.avg_price, art.saldo_awal.value,
-                art.summary.total_qty_in, art.summary.avg_price_in, art.summary.total_value_in,
-                art.summary.total_qty_out, 0, art.summary.total_value_out,
-                art.summary.saldo_akhir_qty, art.summary.avg_price_akhir, art.summary.saldo_akhir_value,
+                s.location, s.label, s.jumlah_artikel,
+                s.saldo_awal_qty, s.saldo_awal_value,
+                s.total_qty_in, s.total_value_in,
+                s.total_qty_out, s.total_value_out,
+                s.saldo_akhir_qty, s.saldo_akhir_value,
             ]);
-            gtQtyIn    += art.summary.total_qty_in;
-            gtValIn    += art.summary.total_value_in;
-            gtQtyOut   += art.summary.total_qty_out;
-            gtValOut   += art.summary.total_value_out;
-            gtSaldoQty += art.summary.saldo_akhir_qty;
-            gtSaldoVal += art.summary.saldo_akhir_value;
         });
-
-        summaryRows.push([]);
-        summaryRows.push(['GRAND TOTAL', '', '', '', '', '',
-            gtQtyIn, '', gtValIn, gtQtyOut, '', gtValOut, gtSaldoQty, '', gtSaldoVal]);
-
         const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-        wsSummary['!cols'] = [
-            {wch:15},{wch:35},{wch:8},
-            {wch:12},{wch:14},{wch:16},
-            {wch:12},{wch:14},{wch:16},
-            {wch:12},{wch:14},{wch:16},
-            {wch:12},{wch:14},{wch:16},
-        ];
-        XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+        wsSummary['!cols'] = [{wch:10},{wch:20},{wch:12},{wch:14},{wch:16},{wch:14},{wch:16},{wch:14},{wch:16},{wch:14},{wch:16}];
+        XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan Lokasi');
 
+        // ── Sheet: Detail per Artikel (dikelompokkan per lokasi) ──
         const detailRows = [
-            ['INVENTORY VALUATION - DETAIL TRANSAKSI'],
+            ['INVENTORY VALUATION — DETAIL TRANSAKSI'],
             [`Periode: ${reportMeta.from_date} s/d ${reportMeta.to_date}`],
             [],
-            ['Artikel Code', 'Deskripsi', 'UOM', 'Tanggal', 'No. Dokumen', 'Tipe', 'Lokasi',
-             'IN QTY', 'IN Price', 'IN Nilai', 'OUT QTY', 'OUT Price', 'OUT Nilai', 'Keterangan'],
+            ['Lokasi', 'Artikel Code', 'Deskripsi', 'UOM', 'Tanggal', 'No. Dokumen', 'Tipe',
+             'Saldo Awal Qty', 'Saldo Awal Nilai',
+             'IN Qty', 'IN Nilai', 'OUT Qty', 'OUT Nilai',
+             'Saldo Akhir Qty', 'Saldo Akhir Nilai', 'Keterangan'],
         ];
 
-        reportData.forEach(function (art) {
-            detailRows.push([
-                art.artikel_code, art.artikel_desc, art.uom,
-                '—', '—', 'SALDO AWAL', '—',
-                art.saldo_awal.qty, art.saldo_awal.avg_price, art.saldo_awal.value,
-                '', '', '', ''
-            ]);
-            art.transaksi_in.forEach(function (t) {
+        (reportMeta.locations || []).forEach(function (loc) {
+            (reportData[loc] || []).forEach(function (art) {
                 detailRows.push([
-                    art.artikel_code, art.artikel_desc, art.uom,
-                    t.tanggal, t.doc_number, t.movement_type, t.location,
-                    t.qty, t.price, t.total_value, '', '', '', t.keterangan
+                    loc, art.artikel_code, art.artikel_desc, art.uom,
+                    '', '', 'SALDO AWAL',
+                    art.saldo_awal.qty, art.saldo_awal.value,
+                    '', '', '', '',
+                    '', '', ''
+                ]);
+                art.transaksi_in.forEach(function (t) {
+                    detailRows.push([
+                        loc, art.artikel_code, art.artikel_desc, art.uom,
+                        t.tanggal, t.doc_number, t.movement_type,
+                        '', '',
+                        t.qty, t.total_value, '', '',
+                        '', '', t.keterangan
+                    ]);
+                });
+                art.transaksi_out.forEach(function (t) {
+                    detailRows.push([
+                        loc, art.artikel_code, art.artikel_desc, art.uom,
+                        t.tanggal, t.doc_number, t.movement_type,
+                        '', '',
+                        '', '', t.qty, t.total_value,
+                        '', '', t.keterangan
+                    ]);
+                });
+                detailRows.push([
+                    loc, art.artikel_code, `-- SALDO AKHIR ${art.artikel_desc} --`, art.uom,
+                    '', '', '',
+                    '', '',
+                    art.summary.total_qty_in, art.summary.total_value_in,
+                    art.summary.total_qty_out, art.summary.total_value_out,
+                    art.summary.saldo_akhir_qty, art.summary.saldo_akhir_value, ''
                 ]);
             });
-            art.transaksi_out.forEach(function (t) {
-                detailRows.push([
-                    art.artikel_code, art.artikel_desc, art.uom,
-                    t.tanggal, t.doc_number, t.movement_type, t.location,
-                    '', '', '', t.qty, t.price, t.total_value, t.keterangan
-                ]);
-            });
-            detailRows.push([
-                art.artikel_code, `-- SUBTOTAL ${art.artikel_desc} --`, art.uom,
-                '', '', '', '',
-                art.summary.total_qty_in, '', art.summary.total_value_in,
-                art.summary.total_qty_out, '', art.summary.total_value_out, ''
-            ]);
-            detailRows.push([]);
         });
 
         const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
         wsDetail['!cols'] = [
-            {wch:15},{wch:35},{wch:8},{wch:12},{wch:18},{wch:15},{wch:8},
-            {wch:10},{wch:14},{wch:16},{wch:10},{wch:14},{wch:16},{wch:30}
+            {wch:8},{wch:15},{wch:35},{wch:8},{wch:12},{wch:18},{wch:15},
+            {wch:12},{wch:14},{wch:10},{wch:14},{wch:10},{wch:14},{wch:12},{wch:14},{wch:30}
         ];
         XLSX.utils.book_append_sheet(wb, wsDetail, 'Detail Transaksi');
 
@@ -582,10 +777,11 @@ function exportXlsx() {
 // INFO BAR / LOADING / FORMAT HELPERS
 // ============================================================
 function updateInfoBar() {
-    if (!reportMeta || !reportData) return;
-    $('#badgePeriode').text(`📅 ${reportMeta.from_date} s/d ${reportMeta.to_date}`);
-    $('#badgeLokasi').text(`📦 ${Object.values(reportMeta.loc_labels).join(' | ')}`);
-    $('#badgeJumlahArtikel').text(`🔢 ${reportData.length} artikel`);
+    if (!reportMeta) return;
+    const jumlahArtikel = (reportMeta.locations || []).reduce((sum, loc) => sum + (reportData[loc] || []).length, 0);
+    $('#badgePeriode').text(`Periode: ${reportMeta.from_date} s/d ${reportMeta.to_date}`);
+    $('#badgeLokasi').text(`Lokasi: ${Object.values(reportMeta.loc_labels).join(', ')}`);
+    $('#badgeJumlahArtikel').text(`${jumlahArtikel} artikel`);
     $('#infoBar').removeClass('d-none');
 }
 
@@ -624,17 +820,10 @@ function escHtml(str) {
         .replace(/"/g, '&quot;');
 }
 
-function movBadge(type) {
-    if (!type) return '<span class="badge badge-other badge-sm">—</span>';
-    const t = type.toUpperCase();
-    let cls = 'badge-other';
-    if (t.includes('RECEIVING'))        cls = 'badge-receiving';
-    else if (t.includes('TRANSFER'))    cls = 'badge-transfer';
-    else if (t.includes('ADJUSTMENT'))  cls = 'badge-adjustment';
-    else if (t.includes('SUPPLY'))      cls = 'badge-supply';
-    else if (t.includes('DELIVERY'))    cls = 'badge-delivery';
-    else if (t.includes('OPENING'))     cls = 'badge-ob';
-    return `<span class="badge ${cls} badge-sm" style="font-size:0.7rem;">${escHtml(type)}</span>`;
+function movBadge(type, direction) {
+    if (!type) return '<span class="badge badge-mv">—</span>';
+    const cls = direction === 'in' ? 'mv-in' : 'mv-out';
+    return `<span class="badge badge-mv ${cls}">${escHtml(type)}</span>`;
 }
 
 $.ajaxSetup({
