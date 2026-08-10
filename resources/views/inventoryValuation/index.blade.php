@@ -535,7 +535,7 @@ function renderDetailTable() {
             // Saldo Akhir = Saldo Awal + Masuk − Keluar
             tbody.append(`
                 <tr class="row-reconcile detail-row-${CSS.escape(rowKey)} ${detailClass}">
-                    <td class="text-right" colspan="5">${escHtml(art.artikel_desc)} — Rekonsiliasi</td>
+                    <td class="text-right" colspan="5">${escHtml(art.artikel_desc)} — Subtotal </td>
                     <td class="col-qty grp-saldo-awal">${fmt(art.saldo_awal.qty)}</td>
                     <td class="col-money"></td>
                     <td class="col-money">${fmtRp(art.saldo_awal.value)}</td>

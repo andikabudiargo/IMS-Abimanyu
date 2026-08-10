@@ -116,24 +116,38 @@ public function getTableColoumnMovementGlobal()
     $status   = $request->status;
     $qty      = $request->qty;
     $operator = $request->opr;
-    $location = $request->location;   // location_number (mis. '011'); kosong = All
-    $hideEmptyQty = $request->hideEmptyQty;   // <-- baru
+    $location = $request->location;
+    $hideEmptyQty = $request->hideEmptyQty;
+    $asof     = $request->asof;   // <-- BARU: 'dd-mm-yyyy', kosong = saldo sekarang
 
-    // label lokasi: nama gudang kalau dipilih, 'ALL' kalau semua
+    // label lokasi
     $locationLabel = $location
-        ? DB::table('stock_location_master')                       // <-- sesuaikan nama tabel master lokasi
+        ? DB::table('stock_location_master')
             ->where('location_code', $location)
             ->value('location_name')
         : 'ALL';
     $locationLabel = $locationLabel ?: 'ALL';
 
-    // agregasi saldo: per gudang kalau dipilih, total semua gudang kalau All
-    $stockSub = DB::table('warehouse_stock')
-        ->select('article_code', DB::raw('sum(article_qty) as article_qty'))
-        ->when($location, function ($q) use ($location) {
-            $q->where('location_number', $location);
-        })
-        ->groupBy('article_code');
+    // ── agregasi saldo: as-of (ledger) atau current (warehouse_stock) ──
+    if ($asof) {
+        $stockSub = DB::table('warehouse_movement')
+            ->select(
+                'artikel_code as article_code',
+                DB::raw('sum(movement_plus - movement_min) as article_qty')
+            )
+            ->whereRaw("wm_movement_date_imm(movement_date) <= to_date(?, 'DD-MM-YYYY')", [$asof])
+            ->when($location, function ($q) use ($location) {
+                $q->where('location_number', $location);
+            })
+            ->groupBy('artikel_code');
+    } else {
+        $stockSub = DB::table('warehouse_stock')
+            ->select('article_code', DB::raw('sum(article_qty) as article_qty'))
+            ->when($location, function ($q) use ($location) {
+                $q->where('location_number', $location);
+            })
+            ->groupBy('article_code');
+    }
 
     $data = DB::table('article')
         ->select(
@@ -142,7 +156,6 @@ public function getTableColoumnMovementGlobal()
             'article.article_code as art_code',
             'article.article_alternative_code as code',
             'article.article_desc as desc',
-            // satuan = uom_to dari uom_conv_v2 (per supplier), fallback ke article.uom
             DB::raw("coalesce(ucv.unit_to, article.uom) as uom"),
             'quality',
             'note',
@@ -158,34 +171,33 @@ public function getTableColoumnMovementGlobal()
         )
         ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
         ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
-        // konversi satuan per article + supplier
         ->leftJoin('uom_con_v2 as ucv', function ($j) {
             $j->on('ucv.article_code', '=', 'article.article_code')
-              ->on('ucv.supplier_name', '=', 'article.third_party');   // <-- cek nama kolom supplier di uom_conv_v2
+              ->on('ucv.supplier_name', '=', 'article.third_party');
         })
         ->joinSub($stockSub, 'stock', function ($j) {
             $j->on('stock.article_code', '=', 'article.article_code');
         })
         ->leftJoin('uom', 'uom.code', 'article.uom')
-      ->where(function ($query) use ($code, $name, $group, $supp, $type, $operator, $qty, $status, $hideEmptyQty) {
-    $code  ? $query->where('article.article_alternative_code', 'ilike', '%'.$code.'%') : '';
-    $name  ? $query->where('article.article_desc', 'ilike', '%'.$name.'%') : '';
-    $group ? $query->where('article.group_of_material', 'ilike', '%'.$group.'%') : '';
-    $supp  ? $query->where('article.third_party', 'ilike', '%'.$supp.'%') : '';
-    $type  ? $query->where('article.article_alternative_code', 'ilike', $type.'%') : '';
-    $operator ? $query->where('stock.article_qty', $operator, (float)$qty) : '';
+        ->where(function ($query) use ($code, $name, $group, $supp, $type, $operator, $qty, $status, $hideEmptyQty) {
+            $code  ? $query->where('article.article_alternative_code', 'ilike', '%'.$code.'%') : '';
+            $name  ? $query->where('article.article_desc', 'ilike', '%'.$name.'%') : '';
+            $group ? $query->where('article.group_of_material', 'ilike', '%'.$group.'%') : '';
+            $supp  ? $query->where('article.third_party', 'ilike', '%'.$supp.'%') : '';
+            $type  ? $query->where('article.article_alternative_code', 'ilike', $type.'%') : '';
+            $operator ? $query->where('stock.article_qty', $operator, (float)$qty) : '';
 
-    if ($status == 'critical') {
-        $query->where('stock.article_qty', '<', DB::raw('coalesce(safety_stock,0)'));
-    } else if ($status == 'save') {
-        $query->where('stock.article_qty', '>=', DB::raw('coalesce(safety_stock,0)'));
-    } else if ($status == 'empty') {
-        $query->where('stock.article_qty', '<=', 0);
-    }
-    if ($hideEmptyQty) {
-        $query->where('stock.article_qty', '>', 0);
-    }
-})
+            if ($status == 'critical') {
+                $query->where('stock.article_qty', '<', DB::raw('coalesce(safety_stock,0)'));
+            } else if ($status == 'save') {
+                $query->where('stock.article_qty', '>=', DB::raw('coalesce(safety_stock,0)'));
+            } else if ($status == 'empty') {
+                $query->where('stock.article_qty', '<=', 0);
+            }
+            if ($hideEmptyQty) {
+                $query->where('stock.article_qty', '>', 0);
+            }
+        })
         ->orderBy('article_desc')
         ->get();
 
@@ -196,34 +208,34 @@ public function getTableColoumnMovementGlobal()
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
-         $buttons .= "<a href='javascript:;' onclick='movement("
-    . json_encode($data->art_code, JSON_HEX_APOS) . ","
-    . json_encode($data->code,     JSON_HEX_APOS) . ","
-    . json_encode($data->desc,     JSON_HEX_APOS) . ")' class='dropdown-item'>
-    <i data-feather='activity'></i>
-    Movement
-</a>";
+            $buttons .= "<a href='javascript:;' onclick='movement("
+                . json_encode($data->art_code, JSON_HEX_APOS) . ","
+                . json_encode($data->code,     JSON_HEX_APOS) . ","
+                . json_encode($data->desc,     JSON_HEX_APOS) . ")' class='dropdown-item'>
+                <i data-feather='activity'></i>
+                Movement
+            </a>";
             $buttons .= '</div></div>';
             return $buttons;
         })
-       ->addColumn('article_qty', function ($data) {
-    $artilceQty = number_format((float) $data->article_qty, 2);
-    return $data->article_qty < 0
-        ? "<div class='text-red'>$artilceQty</div>"
-        : "<div class='text-hitam'>$artilceQty</div>";
-})
+        ->addColumn('article_qty', function ($data) {
+            $artilceQty = number_format((float) $data->article_qty, 2);
+            return $data->article_qty < 0
+                ? "<div class='text-red'>$artilceQty</div>"
+                : "<div class='text-hitam'>$artilceQty</div>";
+        })
         ->addColumn('status', function ($data) {
             $badges     = ['badge-light-danger', 'badge-light-primary'];
             $statusCode = ['Freeze', 'Active'];
             return "<div class='badge badge-pill ".$badges[$data->status]."'>".$statusCode[$data->status]."</div>";
         })
         ->addColumn('critical_stock', function ($data) {
-    $safety = (float) ($data->safety_stock ?? 0);
-    if ($data->article_qty < $safety) {
-        return "<div class='badge badge-pill badge-light-danger'>Critical</div>";
-    }
-    return "<div class='badge badge-pill badge-light-primary'>Save</div>";
-})
+            $safety = (float) ($data->safety_stock ?? 0);
+            if ($data->article_qty < $safety) {
+                return "<div class='badge badge-pill badge-light-danger'>Critical</div>";
+            }
+            return "<div class='badge badge-pill badge-light-primary'>Save</div>";
+        })
         ->rawColumns(['action', 'status', 'article_qty', 'critical_stock'])
         ->make(true);
 }
@@ -239,30 +251,44 @@ public function summary(Request $request)
     $operator = $request->opr;
     $location = $request->location;
     $hideEmptyQty = $request->hideEmptyQty;
+    $asof     = $request->asof;   // <-- BARU
 
-    $stockSub = DB::table('warehouse_stock')
-        ->select('article_code', DB::raw('sum(article_qty) as article_qty'))
-        ->when($location, function ($q) use ($location) {
-            $q->where('location_number', $location);
+    if ($asof) {
+        $stockSub = DB::table('warehouse_movement')
+            ->select(
+                'artikel_code as article_code',
+                DB::raw('sum(movement_plus - movement_min) as article_qty')
+            )
+            ->whereRaw("wm_movement_date_imm(movement_date) <= to_date(?, 'DD-MM-YYYY')", [$asof])
+            ->when($location, function ($q) use ($location) {
+                $q->where('location_number', $location);
+            })
+            ->groupBy('artikel_code');
+    } else {
+        $stockSub = DB::table('warehouse_stock')
+            ->select('article_code', DB::raw('sum(article_qty) as article_qty'))
+            ->when($location, function ($q) use ($location) {
+                $q->where('location_number', $location);
+            })
+            ->groupBy('article_code');
+    }
+
+    $base = DB::table('article')
+        ->joinSub($stockSub, 'stock', function ($j) {
+            $j->on('stock.article_code', '=', 'article.article_code');
         })
-        ->groupBy('article_code');
+        ->where(function ($query) use ($code, $name, $group, $supp, $type, $operator, $qty, $hideEmptyQty) {
+            $code  ? $query->where('article.article_alternative_code', 'ilike', '%'.$code.'%') : '';
+            $name  ? $query->where('article.article_desc', 'ilike', '%'.$name.'%') : '';
+            $group ? $query->where('article.group_of_material', 'ilike', '%'.$group.'%') : '';
+            $supp  ? $query->where('article.third_party', 'ilike', '%'.$supp.'%') : '';
+            $type  ? $query->where('article.article_alternative_code', 'ilike', $type.'%') : '';
+            $operator ? $query->where('stock.article_qty', $operator, (float)$qty) : '';
 
-   $base = DB::table('article')
-    ->joinSub($stockSub, 'stock', function ($j) {
-        $j->on('stock.article_code', '=', 'article.article_code');
-    })
-    ->where(function ($query) use ($code, $name, $group, $supp, $type, $operator, $qty, $hideEmptyQty) {   // <-- tambahkan $hideEmptyQty di sini
-        $code  ? $query->where('article.article_alternative_code', 'ilike', '%'.$code.'%') : '';
-        $name  ? $query->where('article.article_desc', 'ilike', '%'.$name.'%') : '';
-        $group ? $query->where('article.group_of_material', 'ilike', '%'.$group.'%') : '';
-        $supp  ? $query->where('article.third_party', 'ilike', '%'.$supp.'%') : '';
-        $type  ? $query->where('article.article_alternative_code', 'ilike', $type.'%') : '';
-        $operator ? $query->where('stock.article_qty', $operator, (float)$qty) : '';
-
-        if ($hideEmptyQty) {                          // <-- tambahkan blok ini
-            $query->where('stock.article_qty', '>', 0);
-        }
-    });
+            if ($hideEmptyQty) {
+                $query->where('stock.article_qty', '>', 0);
+            }
+        });
 
     $total    = (clone $base)->count();
     $critical = (clone $base)->whereRaw('stock.article_qty <  coalesce(article.safety_stock,0)')->count();

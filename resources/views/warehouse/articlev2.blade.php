@@ -85,6 +85,16 @@
                           </div>
                       {{-- </fieldset> --}}
                   </div>
+                  <div class="form-group col-md-3">
+  <label class="form-label" for="searchAsof">Stock Date</label>
+  <div class="input-group input-group-merge">
+    <div class="input-group-prepend">
+      <span class="input-group-text"><i data-feather="calendar"></i></span>
+    </div>
+    <input type="text" class="form-control" id="searchAsof" name="searchAsof"
+           placeholder="Keep empty for current stock..." autocomplete="off">
+  </div>
+</div>
                 </div>
                 {{--<div class="form-row">
                     <div class="col-md-12"> 
@@ -378,6 +388,11 @@
     });
     mask_thousand_digit(numberOfDecimalDigit);
 
+    let asofPicker = $('#searchAsof').flatpickr({
+    dateFormat: 'd-m-Y',
+    allowInput: true
+});
+
     // ── auto-filter dari query string (mis. link dari halaman STO audit) ──
 (function applyUrlFilters() {
     const params = new URLSearchParams(window.location.search);
@@ -464,7 +479,8 @@ $(document).on('change', '#toggleHideEmpty', function () {
     qty: qty.val(),
     status: searchStatus.val(),
     location: $("#searchLoc").val(),
-    hideEmptyQty: $('#toggleHideEmpty').is(':checked') ? 1 : 0   // <-- baru
+    hideEmptyQty: $('#toggleHideEmpty').is(':checked') ? 1 : 0,
+    asof: $('#searchAsof').val()          // <-- BARU
 });
 
 const loadSummary = (f) => {
@@ -484,7 +500,7 @@ const loadSummary = (f) => {
 $("#btnSearch").click(function (e) {
     e.preventDefault();
     const f = getFilters();
-    showList(f.name, f.code, f.group, f.supp, f.type, f.opr, f.qty, f.status, f.location, f.hideEmptyQty);
+    showList(f.name, f.code, f.group, f.supp, f.type, f.opr, f.qty, f.status, f.location, f.hideEmptyQty, f.asof);
     loadSummary(f);
 });
 
@@ -501,7 +517,7 @@ $('#btnAnalytics').on('click', function () {
     $('#mdlAnalytics').modal('show');
 });
 
-  const showList = (name,code,group,supp,type,opr,qty,status,location,hideEmptyQty) => {
+  const showList = (name,code,group,supp,type,opr,qty,status,location,hideEmptyQty,asof) => {
     if ($('#detailedTable tr').length > 0){
         let table = $('#detailedTable').DataTable();
         table.destroy();
@@ -527,7 +543,8 @@ $('#btnAnalytics').on('click', function () {
             qty:qty,
             status:status,
             location:location,
-            hideEmptyQty: hideEmptyQty ?? (hideEmptyState ? 1 : 0)   // <-- ganti
+            hideEmptyQty: hideEmptyQty ?? (hideEmptyState ? 1 : 0),
+            asof: asof || ''          // <-- BARU
         },
         orderColumn:[[ 1, 'asc' ],[ 2, 'asc' ]],
         excelFileName:'article_stock',
