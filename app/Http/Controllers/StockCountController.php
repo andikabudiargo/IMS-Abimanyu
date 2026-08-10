@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
+use App\Jobs\RecalcStoAccuracyJob;
+use Illuminate\Support\Str;
 use DataTables;
 use DB;
 
@@ -1570,6 +1572,80 @@ public function recalcMappingProgress($mappingId)
         ->update(['target_act' => round($actGlobal ?? 0, 2), 'updated_at' => date('Y-m-d H:i:s')]);
 }
 
+// ══════════════════════════════════════════════
+// REFRESH QTY_SYSTEM — dipanggil terpisah dari recalcMappingProgress,
+// karena ini MENGUBAH data transaksional (sto_dtl), bukan cuma skor.
+// Setiap perubahan dicatat ke sto_qty_system_recalc_logs (before/after).
+// ══════════════════════════════════════════════
+public function refreshQtySystemForMapping($mappingId, $recalculatedBy = 'system', $source = 'manual', $includeFinished = false)
+{
+    $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->first();
+    if (!$m) return ['checked' => 0, 'changed' => 0];
+
+    $query = DB::table('sto_dtl as d')
+        ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
+        ->where('h.mapping_id', $mappingId)
+        ->whereNotNull('d.article_code') // manual tidak punya pembanding stock system
+        ->select('d.*', 'h.status as hdr_status');
+
+    // Default: JANGAN sentuh STO yang sudah FINISHED (status=2),
+    // supaya rekap yang sudah ditutup tidak diam-diam berubah.
+    // Pakai --include-finished kalau memang mau dipaksa.
+    if (!$includeFinished) {
+        $query->where('h.status', 1);
+    }
+
+    $dtlRows = $query->get();
+
+    $checked = 0;
+    $changed = 0;
+    $now = date('Y-m-d H:i:s');
+
+    DB::transaction(function () use ($dtlRows, $m, $mappingId, $recalculatedBy, $source, $now, &$checked, &$changed) {
+        foreach ($dtlRows as $dtl) {
+            $checked++;
+
+            // resolveStatus() sudah menghitung ulang qty_system dari getLastQty()
+            // secara fresh — kita cuma ambil hasilnya, belum ditulis ke DB.
+            [$newStatus, $newQtySystem, $newVariance] = $this->resolveStatus($dtl, $m);
+
+            $oldQtySystem = $dtl->qty_system;
+            $isDifferent = round((float) $oldQtySystem, 2) !== round((float) $newQtySystem, 2);
+
+            if (!$isDifferent) continue; // tidak ada perubahan, tidak perlu log/update
+
+            $changed++;
+
+            DB::table('sto_qty_system_recalc_logs')->insert([
+                'dtl_id'           => $dtl->dtl_id,
+                'mapping_id'       => $mappingId,
+                'sto_id'           => $dtl->sto_id,
+                'article_code'     => $dtl->article_code,
+                'location_number'  => $dtl->location_number,
+                'old_qty_system'   => $oldQtySystem,
+                'new_qty_system'   => $newQtySystem,
+                'old_qty_variance' => $dtl->qty_variance,
+                'new_qty_variance' => $newVariance,
+                'old_count_status' => $dtl->count_status,
+                'new_count_status' => $newStatus,
+                'recalculated_by'  => $recalculatedBy,
+                'source'           => $source,
+                'created_at'       => $now,
+                'updated_at'       => $now,
+            ]);
+
+            DB::table('sto_dtl')->where('dtl_id', $dtl->dtl_id)->update([
+                'qty_system'   => $newQtySystem,
+                'qty_variance' => $newVariance,
+                'count_status' => $newStatus,
+                'updated_at'   => $now,
+            ]);
+        }
+    });
+
+    return ['checked' => $checked, 'changed' => $changed];
+}
+
 // Tentukan apakah satu grup artikel (gabungan lintas sto_number) AKURAT,
 // dengan toleransi. Qty di-SUM dulu per slot counter, baru dibandingkan —
 // bukan dinilai per baris/sto_number satu-satu.
@@ -1913,6 +1989,56 @@ private function resolveGroupStatus($items)
     $counted  = array_values($totals)[0];
     $variance = round($counted - $qtySystem, 2);
     return [$variance == 0 ? 'MATCH' : 'RECOUNT', $qtySystem, $variance];
+}
+
+public function requestRecalcAccuracy(Request $request, $encConfigId)
+{
+    // ── Guard: hanya accounting/superuser yang boleh trigger ini ──
+    if (!$this->isAccountingUser()) {
+        abort(403, 'Anda tidak memiliki akses untuk memicu recalculate.');
+    }
+
+    $configId = Crypt::decryptString($encConfigId);
+    $config   = DB::table('sto_config')->where('config_id', $configId)->first();
+    if (!$config) {
+        return response()->json(['status' => 0, 'message' => 'Config tidak ditemukan.'], 404);
+    }
+
+    $refreshQty      = filter_var($request->refresh_qty_system, FILTER_VALIDATE_BOOLEAN);
+    $includeFinished = filter_var($request->include_finished, FILTER_VALIDATE_BOOLEAN);
+    $jobToken        = (string) Str::uuid();
+
+    DB::table('sto_recalc_jobs')->insert([
+        'job_token'        => $jobToken,
+        'config_id'        => $configId,
+        'refresh_qty'      => $refreshQty,
+        'include_finished' => $includeFinished,
+        'requested_by'     => Auth::user()->username,
+        'status'           => 'QUEUED',
+        'created_at'       => now(),
+    ]);
+
+    RecalcStoAccuracyJob::dispatch($configId, $refreshQty, $includeFinished, Auth::user()->username, $jobToken);
+
+    return response()->json([
+        'status'    => 1,
+        'message'   => 'Proses recalculate telah dimulai di background.',
+        'job_token' => $jobToken,
+    ]);
+}
+
+public function checkRecalcAccuracyStatus($jobToken)
+{
+    $job = DB::table('sto_recalc_jobs')->where('job_token', $jobToken)->first();
+    if (!$job) return response()->json(['status' => 0, 'message' => 'Job tidak ditemukan.'], 404);
+
+    return response()->json([
+        'status'         => 1,
+        'job_status'     => $job->status,
+        'total_checked'  => $job->total_checked,
+        'total_changed'  => $job->total_changed,
+        'error_message'  => $job->error_message,
+    ]);
 }
 
 }

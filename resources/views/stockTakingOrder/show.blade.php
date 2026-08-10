@@ -357,20 +357,80 @@
         </div>
         @endif
 
-        <div class="foot-actions">
-            <a href="{{ route('stockTakingOrder.index') }}" class="btn btn-light">Back</a>
-            @if(in_array($hdr->status, [1, 2]))
-            <a href="{{ route('stockTakingOrder.edit', ['id' => Crypt::encryptString($hdr->config_id)]) }}" class="btn btn-warning">
-                <i data-feather="edit-2" class="align-middle mr-sm-25 mr-0"></i>
-                <span class="align-middle">Edit</span>
-            </a>
-            <button type="button" class="btn btn-danger" onclick="cancelConfig('{{ Crypt::encryptString($hdr->config_id) }}')">
-                <i data-feather="x-circle" class="align-middle mr-sm-25 mr-0"></i>
-                <span class="align-middle">Cancel</span>
-            </button>
-            @endif
+       <div class="foot-actions">
+    <a href="{{ route('stockTakingOrder.index') }}" class="btn btn-light">Back</a>
+
+    @if(Auth::user()->username === 'leo' || Auth::user()->hasRole('Superuser'))
+    <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#modalRecalcAccuracy">
+        <i data-feather="refresh-cw" class="align-middle mr-sm-25 mr-0"></i>
+        <span class="align-middle">Recalculate Akurasi</span>
+    </button>
+    @endif
+
+    @if(in_array($hdr->status, [1, 2]))
+    <a href="{{ route('stockTakingOrder.edit', ['id' => Crypt::encryptString($hdr->config_id)]) }}" class="btn btn-warning">
+        <i data-feather="edit-2" class="align-middle mr-sm-25 mr-0"></i>
+        <span class="align-middle">Edit</span>
+    </a>
+    <button type="button" class="btn btn-danger" onclick="cancelConfig('{{ Crypt::encryptString($hdr->config_id) }}')">
+        <i data-feather="x-circle" class="align-middle mr-sm-25 mr-0"></i>
+        <span class="align-middle">Cancel</span>
+    </button>
+    @endif
+</div>
+
+{{-- ════ MODAL RECALCULATE AKURASI ════ --}}
+<div class="modal fade" id="modalRecalcAccuracy" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Recalculate Akurasi — {{ $hdr->sto_code }}</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted" style="font-size:.85rem;">
+                    Proses ini menghitung ulang skor akurasi (target_act) untuk semua target di config ini.
+                    Dijalankan di background — halaman ini tidak perlu ditunggu, hasil bisa dicek lewat notifikasi.
+                </p>
+
+                <div class="custom-control custom-checkbox mb-1">
+                    <input type="checkbox" class="custom-control-input" id="refreshQtySystem">
+                    <label class="custom-control-label" for="refreshQtySystem">
+                        Ikut refresh <b>qty_system</b> (untuk kasus ada transaksi back-date yang mengubah saldo H-1)
+                    </label>
+                </div>
+
+                <div class="custom-control custom-checkbox mb-1 pl-4" id="includeFinishedWrap" style="display:none;">
+                    <input type="checkbox" class="custom-control-input" id="includeFinished">
+                    <label class="custom-control-label" for="includeFinished">
+                        Sertakan juga STO yang sudah <b>COMPLETED</b> (hati-hati — bisa mengubah status yang sudah ditutup)
+                    </label>
+                </div>
+
+                <div class="alert alert-warning" style="font-size:.8rem;" id="warnIncludeFinished" style="display:none;">
+                    <i data-feather="alert-triangle" style="width:14px;height:14px;" class="mr-25"></i>
+                    STO yang sudah COMPLETED bisa berubah status/qty_system-nya. Semua perubahan tetap tercatat di history log.
+                </div>
+
+                <div id="recalcProgress" style="display:none;">
+                    <div class="d-flex align-items-center" style="gap:.6rem;">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span id="recalcStatusText">Memproses...</span>
+                    </div>
+                </div>
+
+                <div id="recalcResult" style="display:none;" class="alert alert-success mt-1"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btnStartRecalc">
+                    <i data-feather="play" style="width:14px;height:14px;" class="mr-25"></i>
+                    Run
+                </button>
+            </div>
         </div>
     </div>
+</div>
 
 </section>
 @endsection
@@ -383,5 +443,66 @@ $(function () {
 });
 
 $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+
+// tampilkan opsi include-finished cuma kalau refresh qty system dicentang
+$('#refreshQtySystem').on('change', function () {
+    const checked = $(this).is(':checked');
+    $('#includeFinishedWrap').toggle(checked);
+    if (!checked) $('#includeFinished').prop('checked', false);
+    $('#warnIncludeFinished').toggle(checked && $('#includeFinished').is(':checked'));
+});
+$('#includeFinished').on('change', function () {
+    $('#warnIncludeFinished').toggle($(this).is(':checked'));
+});
+
+let pollTimer = null;
+
+$('#btnStartRecalc').on('click', function () {
+    const btn = $(this);
+    btn.prop('disabled', true);
+    $('#recalcResult').hide();
+    $('#recalcProgress').show();
+    $('#recalcStatusText').text('Mengirim permintaan...');
+
+    $.post("{{ route('stockTakingOrder.recalcAccuracy', ['id' => Crypt::encryptString($hdr->config_id)]) }}", {
+        refresh_qty_system: $('#refreshQtySystem').is(':checked') ? 1 : 0,
+        include_finished:   $('#includeFinished').is(':checked') ? 1 : 0,
+    }).done(function (res) {
+        if (res.status !== 1) {
+            $('#recalcProgress').hide();
+            btn.prop('disabled', false);
+            alert(res.message || 'Gagal memulai proses.');
+            return;
+        }
+        $('#recalcStatusText').text('Sedang diproses di background...');
+        pollStatus(res.job_token, btn);
+    }).fail(function () {
+        $('#recalcProgress').hide();
+        btn.prop('disabled', false);
+        alert('Gagal menghubungi server.');
+    });
+});
+
+function pollStatus(jobToken, btn) {
+    pollTimer = setInterval(function () {
+        $.get("{{ url('/stock-taking-order/recalc-status') }}/" + jobToken).done(function (res) {
+            if (res.job_status === 'DONE') {
+                clearInterval(pollTimer);
+                $('#recalcProgress').hide();
+                btn.prop('disabled', false);
+                let msg = 'Recalculate selesai.';
+                if (res.total_checked) msg += ` Qty system: ${res.total_changed}/${res.total_checked} baris berubah.`;
+                $('#recalcResult').text(msg).show();
+                setTimeout(() => location.reload(), 1500); // refresh halaman biar angka akurasi update
+            } else if (res.job_status === 'FAILED') {
+                clearInterval(pollTimer);
+                $('#recalcProgress').hide();
+                btn.prop('disabled', false);
+                alert('Proses gagal: ' + (res.error_message || 'unknown error'));
+            }
+            // kalau QUEUED/RUNNING, terus polling
+        });
+    }, 2000);
+}
 </script>
 @endsection

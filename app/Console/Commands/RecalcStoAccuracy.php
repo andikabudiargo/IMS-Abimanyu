@@ -3,43 +3,33 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Http\Controllers\StockCountController;
+use App\Services\StoAccuracyRecalcService;
 use DB;
 
 class RecalcStoAccuracy extends Command
 {
-    // Contoh pakai:
-    //   php artisan sto:recalc-accuracy --config=2
-    //   php artisan sto:recalc-accuracy --mapping=34
-    //   php artisan sto:recalc-accuracy --config=2 --mapping=34   (bisa gabung, mapping override)
-    //   php artisan sto:recalc-accuracy --all                     (SEMUA config, hati-hati kalau data banyak)
     protected $signature = 'sto:recalc-accuracy
-                            {--config= : config_id spesifik, recalc semua mapping di dalamnya}
-                            {--mapping=* : mapping_id spesifik, bisa lebih dari satu}
-                            {--all : recalc SEMUA mapping di semua config (hati-hati, bisa lama)}';
+                        {--config= : config_id spesifik, recalc semua mapping di dalamnya}
+                        {--mapping=* : mapping_id spesifik, bisa lebih dari satu}
+                        {--all : recalc SEMUA mapping di semua config (hati-hati, bisa lama)}
+                        {--refresh-qty-system : ikut refresh qty_system/qty_variance/count_status di sto_dtl (ada history log)}
+                        {--include-finished : dipakai bareng --refresh-qty-system, ikut sertakan STO yang sudah FINISHED}';
 
-    protected $description = 'Recalculate target_act_loc & target_act setelah perbaikan data qty_system/movement secara manual';
+    protected $description = 'Recalculate target_act_loc & target_act, opsional refresh qty_system (dengan history log)';
 
-    public function handle()
+    public function handle(StoAccuracyRecalcService $service)
     {
-        $controller = new StockCountController();
-
         $mappingIds = collect();
 
         if ($this->option('all')) {
             $mappingIds = DB::table('sto_config_mapping')->pluck('mapping_id');
         }
-
         if ($configId = $this->option('config')) {
-            $mappingIds = $mappingIds->concat(
-                DB::table('sto_config_mapping')->where('config_id', $configId)->pluck('mapping_id')
-            );
+            $mappingIds = $mappingIds->concat($service->resolveMappingIdsForConfig($configId));
         }
-
         foreach ($this->option('mapping') as $mid) {
             $mappingIds->push((int) $mid);
         }
-
         $mappingIds = $mappingIds->unique()->values();
 
         if ($mappingIds->isEmpty()) {
@@ -50,23 +40,22 @@ class RecalcStoAccuracy extends Command
         $bar = $this->output->createProgressBar($mappingIds->count());
         $bar->start();
 
-        $affectedConfigIds = collect();
-
-        foreach ($mappingIds as $mappingId) {
-            $configId = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('config_id');
-            if ($configId) $affectedConfigIds->push($configId);
-
-            $controller->recalcMappingProgress($mappingId);
-            $bar->advance();
-        }
+        $result = $service->recalcMappingIds(
+            $mappingIds,
+            $this->option('refresh-qty-system'),
+            $this->option('include-finished'),
+            'artisan:sto:recalc-accuracy',
+            'cli',
+            fn() => $bar->advance()
+        );
 
         $bar->finish();
         $this->newLine();
 
-        // recalcMappingProgress sudah update target_act (global) tiap kali dipanggil,
-        // tapi kalau ada beberapa mapping dalam 1 config, cukup dipanggil sekali per config
-        // sudah cukup karena avg-nya dihitung ulang dari semua mapping di config yg sama.
-        $this->info('Selesai. Config yang ter-refresh: ' . $affectedConfigIds->unique()->values()->implode(', '));
+        if ($this->option('refresh-qty-system')) {
+            $this->info("Qty system: {$result['total_changed']}/{$result['total_checked']} baris berubah.");
+        }
+        $this->info('Selesai. Config yang ter-refresh: ' . implode(', ', $result['affected_config_ids']));
 
         return 0;
     }
