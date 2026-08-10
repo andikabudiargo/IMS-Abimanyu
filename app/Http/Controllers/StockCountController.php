@@ -27,7 +27,6 @@ class StockCountController extends Controller
         '008' => ['FG'],
         '006' => ['CM2', 'CM3', 'RMP', 'RMNP'],
         '005' => ['CM1'],
-        '042' => ['CM1'],
         '049' => ['CM1'],
     ];
 
@@ -326,16 +325,9 @@ private function getTableColoumnAuditDetail()
 
     DB::table('sto_dtl')->where('dtl_id', $dtlId)->update($updates);
 
-    $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-    [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
-    DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
-        'count_status' => $status,
-        'qty_system'   => $qtySystem,
-        'qty_variance' => $variance,
-        'updated_at'   => $now,
-    ]);
-    $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-
+  $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+$this->syncArticleStatus($m, $dtl);
+$dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     $this->recalcMappingProgress($stoHdr->mapping_id);
     $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc');
 
@@ -915,15 +907,9 @@ return $this->storeLineInline($mappingId, $m, $access, $userId, $locationNumber,
                 'updated_at'      => $now,
             ], 'dtl_id');
 
-            $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-            [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
-            DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
-                'count_status' => $status,
-                'qty_system'   => $qtySystem,
-                'qty_variance' => $variance,
-                'updated_at'   => $now,
-            ]);
-            $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+          $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+$this->syncArticleStatus($m, $dtl);
+$dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
             $this->recalcMappingProgress($mappingId);
             $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
             $myQty = $dtl->{"qty_{$dbRole}"};
@@ -990,12 +976,9 @@ return $this->storeLineInline($mappingId, $m, $access, $userId, $locationNumber,
             $atField   => $now,
             'updated_at' => $now,
         ]);
-        $dtl = DB::table('sto_dtl')->where('dtl_id', $existingDtl->dtl_id)->first();
-        [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
-        DB::table('sto_dtl')->where('dtl_id', $dtl->dtl_id)->update([
-            'count_status' => $status, 'qty_system' => $qtySystem, 'qty_variance' => $variance, 'updated_at' => $now,
-        ]);
-        $dtl = DB::table('sto_dtl')->where('dtl_id', $dtl->dtl_id)->first();
+      $dtl = DB::table('sto_dtl')->where('dtl_id', $existingDtl->dtl_id)->first();
+$this->syncArticleStatus($m, $dtl);
+$dtl = DB::table('sto_dtl')->where('dtl_id', $dtl->dtl_id)->first();
         $this->recalcMappingProgress($mappingId);
         $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
         $myQty = $dtl->{"qty_{$dbRole}"};
@@ -1086,15 +1069,9 @@ private function storeLineInline($mappingId, $m, $access, $userId, $locationNumb
             'updated_at'      => $now,
         ], 'dtl_id');
 
-        $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-        [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
-        DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
-            'count_status' => $status,
-            'qty_system'   => $qtySystem,
-            'qty_variance' => $variance,
-            'updated_at'   => $now,
-        ]);
-        $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+       $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+$this->syncArticleStatus($m, $dtl);
+$dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 
         $this->recalcMappingProgress($mappingId);
         $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
@@ -1249,12 +1226,9 @@ private function storeLineInline($mappingId, $m, $access, $userId, $locationNumb
                 'updated_at'      => $now,
             ], 'dtl_id');
 
-            $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-            [$status, $qtySystem, $variance] = $this->resolveStatus($dtl, $m);
-            DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
-                'count_status' => $status, 'qty_system' => $qtySystem, 'qty_variance' => $variance, 'updated_at' => $now,
-            ]);
-            $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+           $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+$this->syncArticleStatus($m, $dtl);
+$dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
             $myQty = $dtl->{"qty_{$dbRole}"};
 
             $savedLines[] = [
@@ -1295,13 +1269,30 @@ private function storeLineInline($mappingId, $m, $access, $userId, $locationNumb
     // ══════════════════════════════════════════════
     private function resolveStatus($dtl, $mapping)
 {
-    // qty_system selalu dihitung, apa pun statusnya (kecuali manual/tanpa artikel)
-    $qtySystem = $this->resolveQtySystem($dtl, $mapping);
+    if ($dtl->is_manual || is_null($dtl->article_code)) {
+        return ['MATCH', null, 0];
+    }
 
+    // SUPPLIER/CUSTOMER tidak punya konsep family — qty_system tetap dari
+    // lokasi yang dipilih di baris itu sendiri (dtl->location_number),
+    // dan status dihitung HANYA dari qty_counter1/2/3 baris ini (perilaku asli).
+    if ($mapping->target_type !== 'LOCATION') {
+        $qtySystem = $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
+        return $this->resolveSingleRowStatus($dtl, $mapping, $qtySystem);
+    }
+
+    return $this->resolveFamilyArticleStatus($mapping, $dtl->article_code, false, null);
+}
+
+// Perilaku resolveStatus() ASLI (sebelum family) — cuma lihat qty_counter1/2/3
+// di SATU baris ini, tidak gabung baris lain. Dipakai utk SUPPLIER/CUSTOMER.
+private function resolveSingleRowStatus($dtl, $mapping, $qtySystem)
+{
     if (!($mapping->is_blind ?? true)) {
         $qty = $dtl->qty_counter1 ?? $dtl->qty_counter2 ?? ($dtl->qty_counter3 ?? null);
         if (is_null($qty)) return ['INCOMPLETE', $qtySystem, null];
-        return $this->compareToSystem($qty, $dtl, $mapping, $qtySystem);
+        $variance = round((float) $qty - (float) $qtySystem, 2);
+        return [$variance == 0 ? 'MATCH' : 'RECOUNT', $qtySystem, $variance];
     }
 
     $activeQty = [];
@@ -1316,7 +1307,8 @@ private function storeLineInline($mappingId, $m, $access, $userId, $locationNumb
     $unique = array_unique(array_map(fn($q) => round((float) $q, 2), $activeQty));
     if (count($unique) > 1) return ['NOT MATCH', $qtySystem, null];
 
-    return $this->compareToSystem($activeQty[0], $dtl, $mapping, $qtySystem);
+    $variance = round((float) $activeQty[0] - (float) $qtySystem, 2);
+    return [$variance == 0 ? 'MATCH' : 'RECOUNT', $qtySystem, $variance];
 }
 
 // hitung qty_system tanpa membandingkan qty counter
@@ -1325,6 +1317,78 @@ private function resolveQtySystem($dtl, $mapping)
     if ($dtl->is_manual || is_null($dtl->article_code)) return null;
     if (empty($dtl->location_number)) return 0;
     return (float) $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
+}
+
+// ══════════════════════════════════════════════
+// LOCATION FAMILY — parent + semua sibling child
+// ══════════════════════════════════════════════
+private $locationFamilyCache = [];
+
+private function resolveLocationFamily($locationCode)
+{
+    if (isset($this->locationFamilyCache[$locationCode])) {
+        return $this->locationFamilyCache[$locationCode];
+    }
+
+    $loc = DB::table('stock_location_master')->where('location_code', $locationCode)->first();
+    if (!$loc) {
+        return $this->locationFamilyCache[$locationCode] = [$locationCode];
+    }
+
+    if (!empty($loc->parent_location)) {
+        $siblings = DB::table('stock_location_master')
+            ->where('parent_location', $loc->parent_location)
+            ->pluck('location_code')->toArray();
+        $family = array_values(array_unique(array_merge([$loc->parent_location], $siblings)));
+        return $this->locationFamilyCache[$locationCode] = $family;
+    }
+
+    $children = DB::table('stock_location_master')
+        ->where('parent_location', $locationCode)
+        ->pluck('location_code')->toArray();
+    if (!empty($children)) {
+        $family = array_values(array_unique(array_merge([$locationCode], $children)));
+        return $this->locationFamilyCache[$locationCode] = $family;
+    }
+
+    return $this->locationFamilyCache[$locationCode] = [$locationCode];
+}
+
+// mapping-mapping (sto_config_mapping) lain di config yang sama, yang target_ref-nya
+// satu keluarga dengan $mapping ini. Kalau standalone, hasilnya cuma dirinya sendiri.
+private function resolveFamilyMappings($mapping)
+{
+    if ($mapping->target_type !== 'LOCATION') return collect([$mapping]);
+
+    $family = $this->resolveLocationFamily($mapping->target_ref);
+    if (count($family) <= 1) return collect([$mapping]);
+
+    return DB::table('sto_config_mapping')
+        ->where('config_id', $mapping->config_id)
+        ->where('target_type', 'LOCATION')
+        ->whereIn('target_ref', $family)
+        ->get();
+}
+
+// gabungkan sto_dtl artikel yang sama, dari SEMUA sibling mapping dalam keluarga
+private function collectFamilyDtlRows($mapping, $articleCode, $isManual, $articleDesc)
+{
+    $siblingMappingIds = $this->resolveFamilyMappings($mapping)->pluck('mapping_id');
+    if ($siblingMappingIds->isEmpty()) return collect();
+
+    $stoIds = DB::table('sto_hdr')->whereIn('mapping_id', $siblingMappingIds)->pluck('sto_id');
+    if ($stoIds->isEmpty()) return collect();
+
+    $query = DB::table('sto_dtl')->whereIn('sto_id', $stoIds);
+
+    if ($isManual) {
+        $query->whereNull('article_code')
+              ->whereRaw('UPPER(article_desc) = ?', [strtoupper(trim($articleDesc ?? ''))]);
+    } else {
+        $query->where('article_code', $articleCode);
+    }
+
+    return $query->select('dtl_id', 'qty_counter1', 'qty_counter2', 'qty_counter3')->get();
 }
 
 private function resolveTolerancePercent($targetPlanLoc)
@@ -1348,23 +1412,37 @@ private function resolveTolerancePercent($targetPlanLoc)
  
     private function getLastQty($article, $location, $stoDate)
 {
-    // $article = article_alternative_code (dari sto_dtl)
-    // get_last_qty_new butuh INTERNAL article_code
     $realCode = DB::table('article')
         ->where('article_alternative_code', $article)
         ->value('article_code');
     if (!$realCode) return 0;
 
-    // sto_date format DD-MM-YYYY → ambil H-1, kirim sebagai yyyy-mm-dd
     $target = $stoDate
         ? \DateTime::createFromFormat('d-m-Y', $stoDate)
         : new \DateTime();
     if (!$target) return 0;
     $target->modify('-1 day');
 
+    $family = $this->resolveLocationFamily($location);
+
+    // standalone (tidak ada parent/child) → tetap pakai function lama,
+    // supaya perilaku persis sama seperti sebelumnya, zero risk regresi.
+    if (count($family) <= 1) {
+        $row = DB::selectOne(
+            "SELECT get_last_qty_new(?, ?, 'HO', ?) AS q",
+            [$realCode, $target->format('Y-m-d'), $location]
+        );
+        return $row ? (float) $row->q : 0;
+    }
+
+    // punya keluarga (parent+child) → pakai function grouped
+    $pgArray = '{' . implode(',', array_map(function ($c) {
+        return '"' . str_replace('"', '\\"', $c) . '"';
+    }, $family)) . '}';
+
     $row = DB::selectOne(
-        "SELECT get_last_qty_new(?, ?, 'HO', ?) AS q",
-        [$realCode, $target->format('Y-m-d'), $location]
+        "SELECT get_last_qty_new_grouped(?, ?, 'HO', ?::varchar[]) AS q",
+        [$realCode, $target->format('Y-m-d'), $pgArray]
     );
     return $row ? (float) $row->q : 0;
 }
@@ -1387,6 +1465,7 @@ private function resolveTolerancePercent($targetPlanLoc)
 
     $now    = date('Y-m-d H:i:s');
     $stoHdr = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
+    $m      = $stoHdr ? DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->first() : null; // ← tambah
 
     // Leo: paksa hapus SATU BARIS PENUH — semua qty 3 counter ikut hilang
     $forceWholeDelete = $isAccounting;
@@ -1400,7 +1479,11 @@ private function resolveTolerancePercent($targetPlanLoc)
     }
 
     if ($forceWholeDelete || !$otherFilled) {
-        DB::table('sto_dtl')->where('dtl_id', $dtlId)->delete();
+    $deletedArticleCode = $dtl->article_code;
+    $deletedIsManual    = (bool) $dtl->is_manual;
+    $deletedArticleDesc = $dtl->article_desc;
+
+    DB::table('sto_dtl')->where('dtl_id', $dtlId)->delete();
 
         $remainingDtl = DB::table('sto_dtl')->where('sto_id', $dtl->sto_id)->count();
        if ($remainingDtl === 0 && $stoHdr) {
@@ -1434,11 +1517,22 @@ private function resolveTolerancePercent($targetPlanLoc)
     });
 }
 
-        $freshTargetAct = null;
-        if ($stoHdr) {
-            $this->recalcMappingProgress($stoHdr->mapping_id);
-            $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc');
+       
+    $freshTargetAct = null;
+    if ($stoHdr) {
+        // sync sibling family utk artikel yg baru dihapus (kalau masih ada baris lain milik artikel ini di keluarga)
+        if ($m && $m->target_type === 'LOCATION' && !$deletedIsManual && $deletedArticleCode) {
+            $remainingFamilyRows = $this->collectFamilyDtlRows($m, $deletedArticleCode, false, null);
+            if ($remainingFamilyRows->isNotEmpty()) {
+                [$status, $qtySystem, $variance] = $this->resolveFamilyArticleStatus($m, $deletedArticleCode, false, null);
+                DB::table('sto_dtl')->whereIn('dtl_id', $remainingFamilyRows->pluck('dtl_id'))->update([
+                    'count_status' => $status, 'qty_system' => $qtySystem, 'qty_variance' => $variance, 'updated_at' => $now,
+                ]);
+            }
         }
+        $this->recalcMappingProgress($stoHdr->mapping_id);
+        $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc');
+    }
 
         return response()->json([
             'status'         => 1,
@@ -1455,17 +1549,22 @@ private function resolveTolerancePercent($targetPlanLoc)
     $userField = "{$role}_user";
     $atField   = "{$role}_at";
 
-    DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
-        $field => null, $userField => null, $atField => null,
-        'count_status' => 'INCOMPLETE', 'qty_system' => null, 'qty_variance' => null,
-        'updated_at'   => $now,
-    ]);
+   DB::table('sto_dtl')->where('dtl_id', $dtlId)->update([
+    $field => null, $userField => null, $atField => null,
+    'count_status' => 'INCOMPLETE', 'qty_system' => null, 'qty_variance' => null,
+    'updated_at'   => $now,
+]);
 
-    if ($stoHdr) {
-        $this->recalcMappingProgress($stoHdr->mapping_id);
-    }
-    $freshTargetAct = $stoHdr ? DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc') : null;
-    $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+if ($m) {
+    $dtlFresh = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+    $this->syncArticleStatus($m, $dtlFresh);
+}
+
+if ($stoHdr) {
+    $this->recalcMappingProgress($stoHdr->mapping_id);
+}
+$freshTargetAct = $stoHdr ? DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc') : null;
+$dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 
     return response()->json([
         'status'         => 1,
@@ -1493,17 +1592,27 @@ private function resolveTolerancePercent($targetPlanLoc)
     // ══════════════════════════════════════════════
     // RECALC PROGRESS
     // ══════════════════════════════════════════════
-    // ══════════════════════════════════════════════
-// RECALC PROGRESS
-// ══════════════════════════════════════════════
-public function recalcMappingProgress($mappingId)
+   public function recalcMappingProgress($mappingId)
 {
     $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->first();
     if (!$m) return;
 
-    $tolerance = $this->resolveTolerancePercent($m->target_plan_loc);
+    if ($m->target_type === 'LOCATION') {
+        $family = $this->resolveLocationFamily($m->target_ref);
+        if (count($family) > 1) {
+            $this->recalcFamilyProgress($m->config_id, $family);
+            return;
+        }
+    }
 
-    $stoIds = DB::table('sto_hdr')->where('mapping_id', $mappingId)->pluck('sto_id');
+    $this->recalcSingleMappingProgress($m);
+}
+
+// ── perilaku LAMA, PERSIS tidak berubah — dipakai lokasi standalone & SUPPLIER/CUSTOMER ──
+private function recalcSingleMappingProgress($m)
+{
+    $tolerance = $this->resolveTolerancePercent($m->target_plan_loc);
+    $stoIds = DB::table('sto_hdr')->where('mapping_id', $m->mapping_id)->pluck('sto_id');
 
     $dtlRows = DB::table('sto_dtl as d')
         ->whereIn('d.sto_id', $stoIds)
@@ -1511,64 +1620,158 @@ public function recalcMappingProgress($mappingId)
                  'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3')
         ->get();
 
-    // ── Group per artikel + lokasi (BUKAN per baris/sto_number). Auto & non-auto
-    // DIPERLAKUKAN SAMA: satu artikel fisik = satu unit penilaian, meski qty-nya
-    // terpecah di beberapa sto_number berbeda (khususnya lokasi non-auto). ──
     $grouped = $dtlRows->groupBy(function ($row) {
         $key = $row->article_code ? strtoupper($row->article_code) : ('MANUAL-'.$row->dtl_id);
         return $row->location_number.'|'.$key;
     });
 
-    $total    = 0;
-    $accurate = 0;
-
+    $total = 0; $accurate = 0;
     foreach ($grouped as $items) {
         $total++;
-        if ($this->isGroupAccurate($items, $m, $tolerance)) {
-            $accurate++;
-        }
+        if ($this->isGroupAccurate($items, $m, $tolerance)) $accurate++;
     }
 
-    // ── PHANTOM: artikel yang punya movement di lokasi+periode ini tapi SAMA SEKALI
-    // belum diinput STO sama sekali. Dihitung sebagai TIDAK AKURAT (0), tapi TETAP
-    // masuk total — supaya skor tidak bisa dikerek dengan cuma menghitung artikel
-    // yang gampang/kebetulan sudah pas. ──
-   if ($m->target_type === 'LOCATION') {
+    if ($m->target_type === 'LOCATION') {
         $countedCodes = $grouped->keys()
             ->map(fn($k) => explode('|', $k, 2)[1] ?? $k)
             ->reject(fn($k) => str_starts_with($k, 'MANUAL-'))
-            ->map(fn($k) => strtoupper($k))
-            ->unique()
-            ->all();
+            ->map(fn($k) => strtoupper($k))->unique()->all();
 
         $periode = DB::table('sto_config')->where('config_id', $m->config_id)->value('periode');
         $periode = $periode ? substr($periode, 0, 7) : null;
 
         $phantoms = $this->buildPhantomArticlesForLocation($m, $countedCodes, $periode);
-
-        // Phantom dievaluasi satu per satu:
-        // kalau qty_system = 0 → dianggap MATCH (accurate),
-        // kalau qty_system > 0 → belum diinput = INCOMPLETE (tidak accurate).
         foreach ($phantoms as $phantom) {
-            $phantomQtySystem = (float) $this->getLastQty(
-                $phantom->article_code,
-                $phantom->location_number,
-                $m->sto_date
-            );
+            $phantomQtySystem = (float) $this->getLastQty($phantom->article_code, $phantom->location_number, $m->sto_date);
             $total++;
-            if ($phantomQtySystem == 0) {
-                $accurate++;
-            }
+            if ($phantomQtySystem == 0) $accurate++;
         }
     }
 
     $actLoc = $total > 0 ? round(($accurate / $total) * 100, 2) : 0;
-
-    DB::table('sto_config_mapping')->where('mapping_id', $mappingId)
+    DB::table('sto_config_mapping')->where('mapping_id', $m->mapping_id)
         ->update(['target_act_loc' => $actLoc, 'updated_at' => date('Y-m-d H:i:s')]);
 
-    $actGlobal = DB::table('sto_config_mapping')->where('config_id', $m->config_id)->avg('target_act_loc');
-    DB::table('sto_config')->where('config_id', $m->config_id)
+    $this->recalcConfigTargetAct($m->config_id);
+}
+
+// ── BARU: gabung seluruh sibling dalam satu keluarga jadi satu unit skor ──
+private function recalcFamilyProgress($configId, array $family)
+{
+    $siblingMappings = DB::table('sto_config_mapping')
+        ->where('config_id', $configId)
+        ->where('target_type', 'LOCATION')
+        ->whereIn('target_ref', $family)
+        ->get();
+    if ($siblingMappings->isEmpty()) return;
+
+    $repMapping = $siblingMappings->first();
+    $tolerance  = $this->resolveTolerancePercent($repMapping->target_plan_loc);
+    $mappingIds = $siblingMappings->pluck('mapping_id');
+
+    $stoIds = DB::table('sto_hdr')->whereIn('mapping_id', $mappingIds)->pluck('sto_id');
+
+    $dtlRows = DB::table('sto_dtl as d')
+        ->whereIn('d.sto_id', $stoIds)
+        ->select('d.dtl_id', 'd.article_code', 'd.is_manual',
+                 'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3')
+        ->get();
+
+    // ── group per ARTIKEL SAJA — keluarga dianggap satu unit lokasi ──
+    $grouped = $dtlRows->groupBy(function ($row) {
+        return $row->article_code ? strtoupper($row->article_code) : ('MANUAL-'.$row->dtl_id);
+    });
+
+    $total = 0; $accurate = 0;
+    foreach ($grouped as $items) {
+        $total++;
+        if ($this->isFamilyGroupAccurate($items, $repMapping, $siblingMappings, $tolerance)) $accurate++;
+    }
+
+    $countedCodes = $grouped->keys()
+        ->reject(fn($k) => str_starts_with($k, 'MANUAL-'))
+        ->map(fn($k) => strtoupper($k))->unique()->all();
+
+    $periode = DB::table('sto_config')->where('config_id', $configId)->value('periode');
+    $periode = $periode ? substr($periode, 0, 7) : null;
+
+    $phantoms = $this->buildPhantomArticlesForFamily($repMapping, $family, $countedCodes, $periode);
+    foreach ($phantoms as $phantom) {
+        $phantomQtySystem = (float) $this->getLastQty($phantom->article_code, $repMapping->target_ref, $repMapping->sto_date);
+        $total++;
+        if ($phantomQtySystem == 0) $accurate++;
+    }
+
+    $actLoc = $total > 0 ? round(($accurate / $total) * 100, 2) : 0;
+
+    // ── skor yang sama ditulis ke SEMUA sibling mapping dalam keluarga ini ──
+    DB::table('sto_config_mapping')->whereIn('mapping_id', $mappingIds)
+        ->update(['target_act_loc' => $actLoc, 'updated_at' => date('Y-m-d H:i:s')]);
+
+    $this->recalcConfigTargetAct($configId);
+}
+
+private function isFamilyGroupAccurate($items, $repMapping, $siblingMappings, $tolerance)
+{
+    $first = $items->first();
+    if (empty($first->article_code)) return true;
+
+    $qtySystem = (float) $this->getLastQty($first->article_code, $repMapping->target_ref, $repMapping->sto_date);
+
+    if (!($repMapping->is_blind ?? true)) {
+        $sum = $items->sum(fn($r) => (float) ($r->qty_counter1 ?? $r->qty_counter2 ?? $r->qty_counter3 ?? 0));
+        $anyFilled = $items->contains(fn($r) => $r->qty_counter1 !== null || $r->qty_counter2 !== null || $r->qty_counter3 !== null);
+        if (!$anyFilled) return false;
+        return $this->withinTolerance($sum, $qtySystem, $tolerance);
+    }
+
+    $activeSlots = [];
+    foreach (['1', '2', '3'] as $n) {
+        if ($siblingMappings->contains(fn($sm) => !empty($sm->{"counter{$n}_user"}))) $activeSlots[] = $n;
+    }
+    if (empty($activeSlots)) $activeSlots = ['1', '2', '3'];
+
+    $totals = [];
+    foreach ($activeSlots as $n) {
+        $field  = "qty_counter{$n}";
+        $hasAny = $items->contains(fn($r) => $r->{$field} !== null);
+        if (!$hasAny) return false;
+        $totals[$n] = (float) $items->sum($field);
+    }
+
+    $unique = array_unique(array_map(fn($v) => round($v, 2), $totals));
+    if (count($unique) > 1) return false;
+
+    $counted = array_values($totals)[0];
+    return $this->withinTolerance($counted, $qtySystem, $tolerance);
+}
+
+private function buildPhantomArticlesForFamily($repMapping, array $family, array $countedCodes, $periode)
+{
+    $movementQuery = DB::table('warehouse_movement as wm')
+        ->join('article as a', 'a.article_code', '=', 'wm.artikel_code')
+        ->whereIn('wm.location_number', $family)
+        ->where('wm.movement_type', 'not ilike', 'CANCEL %')
+        ->select('a.article_alternative_code as article_code')
+        ->distinct();
+
+    if ($periode) {
+        $movementQuery->whereRaw("TO_CHAR(TO_DATE(wm.movement_date,'DD-MM-YYYY'), 'YYYY-MM') = ?", [$periode]);
+    }
+
+    $phantoms = collect();
+    foreach ($movementQuery->get() as $sa) {
+        if (!$sa->article_code) continue;
+        if (in_array(strtoupper($sa->article_code), $countedCodes)) continue;
+        $phantoms->push((object) ['article_code' => $sa->article_code, 'location_number' => $repMapping->target_ref]);
+    }
+    return $phantoms;
+}
+
+private function recalcConfigTargetAct($configId)
+{
+    $actGlobal = DB::table('sto_config_mapping')->where('config_id', $configId)->avg('target_act_loc');
+    DB::table('sto_config')->where('config_id', $configId)
         ->update(['target_act' => round($actGlobal ?? 0, 2), 'updated_at' => date('Y-m-d H:i:s')]);
 }
 
@@ -2057,6 +2260,91 @@ public function checkRecalcAccuracyStatus($jobToken)
         'total_checked'  => $job->total_checked,
         'total_changed'  => $job->total_changed,
         'error_message'  => $job->error_message,
+    ]);
+}
+
+// Hitung status gabungan satu artikel lintas seluruh sibling mapping dalam keluarga.
+// Untuk lokasi standalone, ini otomatis "keluarga isi satu", jadi hasilnya = perilaku lama.
+private function resolveFamilyArticleStatus($mapping, $articleCode, $isManual, $articleDesc, $qtySystem = null)
+{
+    if ($isManual || !$articleCode) {
+        return ['MATCH', null, 0];
+    }
+
+    if ($qtySystem === null) {
+        $qtySystem = $this->getLastQty($articleCode, $mapping->target_ref, $mapping->sto_date);
+    }
+
+    $rows = $this->collectFamilyDtlRows($mapping, $articleCode, $isManual, $articleDesc);
+    if ($rows->isEmpty()) return ['INCOMPLETE', $qtySystem, null];
+
+    $siblingMappings = $this->resolveFamilyMappings($mapping);
+
+    if (!($mapping->is_blind ?? true)) {
+        $sum = $rows->sum(fn($r) => (float) ($r->qty_counter1 ?? $r->qty_counter2 ?? $r->qty_counter3 ?? 0));
+        $anyFilled = $rows->contains(fn($r) => $r->qty_counter1 !== null || $r->qty_counter2 !== null || $r->qty_counter3 !== null);
+        if (!$anyFilled) return ['INCOMPLETE', $qtySystem, null];
+        $variance = round($sum - $qtySystem, 2);
+        return [$variance == 0 ? 'MATCH' : 'RECOUNT', $qtySystem, $variance];
+    }
+
+    $activeSlots = [];
+    foreach (['1', '2', '3'] as $n) {
+        if ($siblingMappings->contains(fn($sm) => !empty($sm->{"counter{$n}_user"}))) {
+            $activeSlots[] = $n;
+        }
+    }
+    if (empty($activeSlots)) $activeSlots = ['1', '2', '3'];
+
+    $totals = [];
+    foreach ($activeSlots as $n) {
+        $field  = "qty_counter{$n}";
+        $hasAny = $rows->contains(fn($r) => $r->{$field} !== null);
+        if (!$hasAny) return ['INCOMPLETE', $qtySystem, null];
+        $totals[$n] = (float) $rows->sum($field);
+    }
+
+    $unique = array_unique(array_map(fn($v) => round($v, 2), $totals));
+    if (count($unique) > 1) return ['NOT MATCH', $qtySystem, null];
+
+    $counted  = array_values($totals)[0];
+    $variance = round($counted - $qtySystem, 2);
+    return [$variance == 0 ? 'MATCH' : 'RECOUNT', $qtySystem, $variance];
+}
+
+// Dipanggil setelah insert/update/delete satu baris — recompute status artikel ini
+// di level family, lalu TULIS ULANG count_status/qty_system/qty_variance ke SEMUA
+// baris sto_dtl (lintas sibling mapping) yang artikelnya sama, biar tampilannya konsisten.
+// Dipanggil setelah insert/update/delete satu baris — recompute & TULIS ULANG
+// count_status/qty_system/qty_variance. LOCATION → broadcast ke seluruh
+// keluarga (parent+child). SUPPLIER/CUSTOMER → cuma baris itu sendiri (lama).
+private function syncArticleStatus($mapping, $dtl)
+{
+    $now = date('Y-m-d H:i:s');
+
+    if ($dtl->is_manual || is_null($dtl->article_code)) {
+        DB::table('sto_dtl')->where('dtl_id', $dtl->dtl_id)->update([
+            'count_status' => 'MATCH', 'qty_system' => null, 'qty_variance' => 0, 'updated_at' => $now,
+        ]);
+        return;
+    }
+
+    if ($mapping->target_type === 'LOCATION') {
+        [$status, $qtySystem, $variance] = $this->resolveFamilyArticleStatus($mapping, $dtl->article_code, false, null);
+        $rows = $this->collectFamilyDtlRows($mapping, $dtl->article_code, false, null);
+        if ($rows->isNotEmpty()) {
+            DB::table('sto_dtl')->whereIn('dtl_id', $rows->pluck('dtl_id'))->update([
+                'count_status' => $status, 'qty_system' => $qtySystem, 'qty_variance' => $variance, 'updated_at' => $now,
+            ]);
+        }
+        return;
+    }
+
+    // SUPPLIER/CUSTOMER — per baris saja, seperti perilaku asli
+    $qtySystem = $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
+    [$status, , $variance] = $this->resolveSingleRowStatus($dtl, $mapping, $qtySystem);
+    DB::table('sto_dtl')->where('dtl_id', $dtl->dtl_id)->update([
+        'count_status' => $status, 'qty_system' => $qtySystem, 'qty_variance' => $variance, 'updated_at' => $now,
     ]);
 }
 
