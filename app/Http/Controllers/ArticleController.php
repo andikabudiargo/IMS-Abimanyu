@@ -1301,11 +1301,15 @@ if (!$isGlobal) {
             $st = $d->trx_status;
             if ($st === null || $st === '') return "<span class='badge badge-pill badge-light-secondary'>-</span>";
             $map = [
-                '1'=>['NEW','badge-light-primary'], '2'=>['VALIDATED','badge-light-info'],
-                '3'=>['APPROVED','badge-light-warning'], '4'=>['POSTED','badge-light-success'],
-                '5'=>['CANCELED','badge-light-danger'], '7'=>['REVISED','badge-light-warning'],
-                '10'=>['REVISED','badge-light-warning'],
-            ];
+        '1'  => ['NEW',      'badge-light-primary'],
+        '2'  => ['VALIDATE', 'badge-light-info'],
+        '3'  => ['APPROVED', 'badge-light-warning'],
+        '4'  => ['POSTED',   'badge-light-success'],
+        '5'  => ['CANCELED', 'badge-light-danger'],
+        '7'  => ['REVISED',  'badge-light-warning'],
+        '8'  => ['RECEIVED', 'badge-light-success'],   // ← DELIVERY: sudah diterima customer
+        '10' => ['REVISI',   'badge-light-warning'],
+    ];
             [$label, $cls] = $map[$st] ?? [strtoupper($st), 'badge-light-secondary'];
             return "<span class='badge badge-pill $cls'>$label</span>";
         })
