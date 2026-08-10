@@ -319,11 +319,12 @@
                     <th>Finish Time</th>
                 </tr>
             </thead>
-            <tbody>
-                @php $rowNo = 0; @endphp
-                @foreach($groupedMappings as $parentKey => $group)
-                    @if($parentKey === '__no_parent__')
-                        {{-- ── Baris biasa, tanpa grouping ── --}}
+
+            @php $rowNo = 0; @endphp
+            @foreach($groupedMappings as $parentKey => $group)
+                @if($parentKey === '__no_parent__')
+                    {{-- ── Baris biasa, tanpa grouping ── --}}
+                    <tbody>
                         @foreach($group as $m)
                             @php
                                 $rowNo++;
@@ -392,25 +393,27 @@
                                 </td>
                             </tr>
                         @endforeach
-                    @else
-                        {{-- ── Grup dengan parent_location: 1 baris parent (sum) + accordion child ── --}}
-                        @php
-                            $rowNo++;
-                            $groupId = 'group-' . \Illuminate\Support\Str::slug($parentKey);
-                            $parentName = $group->first()->parent_location_name ?? $parentKey;
+                    </tbody>
+                @else
+                    {{-- ── Grup dengan parent_location: 1 baris parent (sum, punya progress) + child rows (tanpa progress) ── --}}
+                    @php
+                        $rowNo++;
+                        $groupId = 'group-' . \Illuminate\Support\Str::slug($parentKey);
+                        $parentName = $group->first()->parent_location_name ?? $parentKey;
 
-                            $gTotal      = $group->sum('total_lines');
-                            $gMatch      = $group->sum('match_lines');
-                            $gNotMatch   = $group->sum('notmatch_lines');
-                            $gRecount    = $group->sum('recount_lines');
-                            $gRecountTol = $group->sum('recount_in_tolerance');
-                            $gIncomplete = $group->sum('incomplete_lines');
-                            $gAccurate   = $gMatch + $gRecountTol;
-                            $gPct        = $gTotal > 0 ? round(($gAccurate / $gTotal) * 100, 2) : 0;
-                            $gBarColor   = $gPct >= 98 ? 'bg-success' : ($gPct >= 50 ? 'bg-warning' : 'bg-danger');
-                            $gFinishTime = $group->pluck('finish_time')->filter()->sort()->last();
-                        @endphp
-                        <tr style="background:#fafbfc;cursor:pointer;" data-toggle="collapse" data-target="#{{ $groupId }}" aria-expanded="false">
+                        $gTotal      = $group->sum('total_lines');
+                        $gMatch      = $group->sum('match_lines');
+                        $gNotMatch   = $group->sum('notmatch_lines');
+                        $gRecount    = $group->sum('recount_lines');
+                        $gRecountTol = $group->sum('recount_in_tolerance');
+                        $gIncomplete = $group->sum('incomplete_lines');
+                        $gAccurate   = $gMatch + $gRecountTol;
+                        $gPct        = $gTotal > 0 ? round(($gAccurate / $gTotal) * 100, 2) : 0;
+                        $gBarColor   = $gPct >= 98 ? 'bg-success' : ($gPct >= 50 ? 'bg-warning' : 'bg-danger');
+                        $gFinishTime = $group->pluck('finish_time')->filter()->sort()->last();
+                    @endphp
+                    <tbody>
+                        <tr class="sto-group-toggle" style="background:#fafbfc;cursor:pointer;" data-target-group="{{ $groupId }}" aria-expanded="false">
                             <td class="text-center">
                                 <i data-feather="chevron-right" class="accordion-caret" style="width:14px;height:14px;"></i>
                             </td>
@@ -455,85 +458,55 @@
                                 @endif
                             </td>
                         </tr>
+                    </tbody>
 
-                        {{-- ── CHILD ROWS: kolom persis sama dgn parent biar sejajar, Blind gabung ke nama Target ── --}}
-                        <tr class="collapse" id="{{ $groupId }}">
-                            <td colspan="13" class="p-0" style="background:#fbfbfd;">
-                                <table class="table table-sm mb-0 table-mapping" style="font-size:.8rem;">
-                                    <colgroup>
-                                        <col style="width:28px">
-                                        <col style="width:36px">
-                                        <col style="width:90px">
-                                        <col>
-                                        <col style="width:100px">
-                                        <col style="width:160px">
-                                        <col style="width:64px">
-                                        <col style="width:64px">
-                                        <col style="width:74px">
-                                        <col style="width:64px">
-                                        <col style="width:74px">
-                                        <col style="width:150px">
-                                        <col style="width:110px">
-                                    </colgroup>
-                                    <tbody>
-                                        @foreach($group as $m)
-                                            @php
-                                                $pct = (float) $m->target_act_loc;
-                                                $barColor = $pct >= 98 ? 'bg-success' : ($pct >= 50 ? 'bg-warning' : 'bg-danger');
-                                                $counter3Name = $m->counter3_name ?? null;
-                                                $isBlind = in_array($m->is_blind, [true, 1, '1', 't', 'true'], true);
-                                            @endphp
-                                            <tr>
-                                                <td></td>
-                                                <td class="text-muted">&middot;</td>
-                                                <td class="text-muted">-</td>
-                                                <td class="font-weight-bold">
-                                                    {{ $m->target_name }}
-                                                    <span class="badge badge-light-{{ $isBlind ? 'primary' : 'secondary' }} ml-25" style="font-size:.58rem;">
-                                                        {{ $isBlind ? 'BLIND' : 'NON-BLIND' }}
-                                                    </span>
-                                                </td>
-                                                <td>{{ $m->sto_date }}</td>
-                                                <td>
-                                                    <div class="d-flex flex-column" style="gap:.3rem;">
-                                                        <span class="counter-chip c1"><span class="chip-badge">1</span>{{ $m->counter1_name }}</span>
-                                                        @if($m->counter2_name)
-                                                            <span class="counter-chip c2"><span class="chip-badge">2</span>{{ $m->counter2_name }}</span>
-                                                        @endif
-                                                        @if($counter3Name)
-                                                            <span class="counter-chip c3"><span class="chip-badge">3</span>{{ $counter3Name }}</span>
-                                                        @endif
-                                                    </div>
-                                                </td>
-                                                <td class="text-center font-weight-bold">{{ $m->total_lines }}</td>
-                                                <td class="text-center text-muted">-</td>
-                                                <td class="text-center text-muted">-</td>
-                                                <td class="text-center text-muted">-</td>
-                                                <td class="text-center text-muted">-</td>
-                                                <td class="progress-cell">
-                                                    <div class="d-flex align-items-center" style="gap:.5rem;">
-                                                        <div class="progress flex-grow-1" style="height:6px;border-radius:6px;">
-                                                            <div class="progress-bar {{ $barColor }}" style="width:{{ $pct }}%"></div>
-                                                        </div>
-                                                        <small class="text-muted">{{ number_format($pct, 1) }}%</small>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    @if($m->finish_time)
-                                                        <span class="text-success">{{ $m->finish_time }}</span>
-                                                    @else
-                                                        <span class="text-muted">-</span>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </td>
-                        </tr>
-                    @endif
-                @endforeach
-            </tbody>
+                    {{-- ── CHILD ROWS: satu tabel yg sama, jadi kolom pasti sejajar. Tanpa progress (akurasi cuma relevan di level parent). ── --}}
+                    <tbody class="sto-group-child" data-group="{{ $groupId }}" style="display:none;">
+                        @foreach($group as $m)
+                            @php
+                                $counter3Name = $m->counter3_name ?? null;
+                                $isBlind = in_array($m->is_blind, [true, 1, '1', 't', 'true'], true);
+                            @endphp
+                            <tr style="background:#fbfbfd;">
+                                <td></td>
+                                <td class="text-muted">&middot;</td>
+                                <td class="text-muted">-</td>
+                                <td class="font-weight-bold">
+                                    {{ $m->target_name }}
+                                    <span class="badge badge-light-{{ $isBlind ? 'primary' : 'secondary' }} ml-25" style="font-size:.58rem;">
+                                        {{ $isBlind ? 'BLIND' : 'NON-BLIND' }}
+                                    </span>
+                                </td>
+                                <td>{{ $m->sto_date }}</td>
+                                <td>
+                                    <div class="d-flex flex-column" style="gap:.3rem;">
+                                        <span class="counter-chip c1"><span class="chip-badge">1</span>{{ $m->counter1_name }}</span>
+                                        @if($m->counter2_name)
+                                            <span class="counter-chip c2"><span class="chip-badge">2</span>{{ $m->counter2_name }}</span>
+                                        @endif
+                                        @if($counter3Name)
+                                            <span class="counter-chip c3"><span class="chip-badge">3</span>{{ $counter3Name }}</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="text-center font-weight-bold">{{ $m->total_lines }}</td>
+                                <td class="text-center text-muted">-</td>
+                                <td class="text-center text-muted">-</td>
+                                <td class="text-center text-muted">-</td>
+                                <td class="text-center text-muted">-</td>
+                                <td class="text-center text-muted">-</td>
+                                <td>
+                                    @if($m->finish_time)
+                                        <span class="text-success">{{ $m->finish_time }}</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                @endif
+            @endforeach
         </table>
     </div>
 </div>
@@ -642,8 +615,12 @@ $(function () {
     safeFeatherReplace();
 });
 
-$('[data-toggle="collapse"]').on('click', function () {
-    $(this).attr('aria-expanded', $(this).attr('aria-expanded') === 'true' ? 'false' : 'true');
+$(document).on('click', '.sto-group-toggle', function () {
+    const grp = $(this).data('target-group');
+    const $child = $('tbody.sto-group-child[data-group="' + grp + '"]');
+    const willShow = $child.is(':hidden');
+    $child.toggle(willShow);
+    $(this).attr('aria-expanded', willShow ? 'true' : 'false');
 });
 
 function safeFeatherReplace() {
