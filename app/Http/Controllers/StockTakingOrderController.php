@@ -502,78 +502,82 @@ if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['co
 
     if (!$hdr) abort(404);
 
-    $mappings = DB::table('sto_config_mapping as m')
-        ->leftJoin('stock_location_master as l', function ($j) {
-            $j->on('l.location_code', '=', 'm.target_ref')
-              ->where('m.target_type', '=', 'LOCATION');
-        })
-        ->leftJoin('third_party as tp', function ($j) {
-            $j->on('tp.kode', '=', 'm.target_ref')
-              ->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
-        })
-        ->leftJoin('users as u1', 'u1.id', '=', 'm.counter1_user')
-        ->leftJoin('users as u2', 'u2.id', '=', 'm.counter2_user')
-        ->leftJoin('users as u3', 'u3.id', '=', 'm.counter3_user')
-        ->select(
-            'm.mapping_id',
-            'm.target_type',
-            'm.target_ref',
-            'm.sto_date',
-            'm.finish_time',
-            'm.target_plan_loc',
-            'm.target_act_loc',
-            'm.notes',
-            'u1.name as counter1_name',
-            'u2.name as counter2_name',
-            'u3.name as counter3_name',
-            DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name"),
+  $mappings = DB::table('sto_config_mapping as m')
+    ->leftJoin('stock_location_master as l', function ($j) {
+        $j->on('l.location_code', '=', 'm.target_ref')
+          ->where('m.target_type', '=', 'LOCATION');
+    })
+    ->leftJoin('third_party as tp', function ($j) {
+        $j->on('tp.kode', '=', 'm.target_ref')
+          ->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
+    })
+    // ── BARU: resolve nama parent lokasi (utk grouping WIP dkk) ──
+    ->leftJoin('stock_location_master as pl', 'pl.location_code', '=', 'l.parent_location')
+    ->leftJoin('users as u1', 'u1.id', '=', 'm.counter1_user')
+    ->leftJoin('users as u2', 'u2.id', '=', 'm.counter2_user')
+    ->leftJoin('users as u3', 'u3.id', '=', 'm.counter3_user')
+    ->select(
+        'm.mapping_id',
+        'm.target_type',
+        'm.target_ref',
+        'm.sto_date',
+        'm.finish_time',
+        'm.target_plan_loc',
+        'm.target_act_loc',
+        'm.notes',
+        'm.is_blind',                              // ← BARU
+        'l.parent_location',                       // ← BARU
+        'pl.location_name as parent_location_name', // ← BARU
+        'u1.name as counter1_name',
+        'u2.name as counter2_name',
+        'u3.name as counter3_name',
+        DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name"),
 
-            DB::raw("(
-                SELECT COUNT(*) FROM sto_dtl d
-                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                  AND sh.config_id = m.config_id
-            ) as total_lines"),
-            DB::raw("(
-                SELECT COUNT(*) FROM sto_dtl d
-                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                  AND sh.config_id = m.config_id AND d.count_status = 'MATCH'
-            ) as match_lines"),
-            DB::raw("(
-                SELECT COUNT(*) FROM sto_dtl d
-                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                  AND sh.config_id = m.config_id AND d.count_status = 'NOT MATCH'
-            ) as notmatch_lines"),
-            DB::raw("(
-                SELECT COUNT(*) FROM sto_dtl d
-                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                  AND sh.config_id = m.config_id AND d.count_status = 'RECOUNT'
-            ) as recount_lines"),
-            // ── BARU: dari total recount_lines, berapa yang masuk toleransi (dianggap akurat) ──
-            DB::raw("(
-                SELECT COUNT(*) FROM sto_dtl d
-                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                  AND sh.config_id = m.config_id AND d.count_status = 'RECOUNT'
-                  AND d.qty_system IS NOT NULL AND d.qty_system <> 0
-                  AND ABS(d.qty_variance) / ABS(d.qty_system) * 100 <=
-                      CASE WHEN m.target_plan_loc > 0 AND m.target_plan_loc < 100
-                           THEN 100 - m.target_plan_loc ELSE 0 END
-            ) as recount_in_tolerance"),
-            DB::raw("(
-                SELECT COUNT(*) FROM sto_dtl d
-                JOIN sto_hdr sh ON sh.sto_id = d.sto_id
-                WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
-                  AND sh.config_id = m.config_id AND d.count_status = 'INCOMPLETE'
-            ) as incomplete_lines")
-        )
-        ->where('m.config_id', $configId)
-        ->orderBy('m.sto_date')
-        ->orderBy('target_name')
-        ->get();
+        DB::raw("(
+            SELECT COUNT(*) FROM sto_dtl d
+            JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+            WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+              AND sh.config_id = m.config_id
+        ) as total_lines"),
+        DB::raw("(
+            SELECT COUNT(*) FROM sto_dtl d
+            JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+            WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+              AND sh.config_id = m.config_id AND d.count_status = 'MATCH'
+        ) as match_lines"),
+        DB::raw("(
+            SELECT COUNT(*) FROM sto_dtl d
+            JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+            WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+              AND sh.config_id = m.config_id AND d.count_status = 'NOT MATCH'
+        ) as notmatch_lines"),
+        DB::raw("(
+            SELECT COUNT(*) FROM sto_dtl d
+            JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+            WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+              AND sh.config_id = m.config_id AND d.count_status = 'RECOUNT'
+        ) as recount_lines"),
+        DB::raw("(
+            SELECT COUNT(*) FROM sto_dtl d
+            JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+            WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+              AND sh.config_id = m.config_id AND d.count_status = 'RECOUNT'
+              AND d.qty_system IS NOT NULL AND d.qty_system <> 0
+              AND ABS(d.qty_variance) / ABS(d.qty_system) * 100 <=
+                  CASE WHEN m.target_plan_loc > 0 AND m.target_plan_loc < 100
+                       THEN 100 - m.target_plan_loc ELSE 0 END
+        ) as recount_in_tolerance"),
+        DB::raw("(
+            SELECT COUNT(*) FROM sto_dtl d
+            JOIN sto_hdr sh ON sh.sto_id = d.sto_id
+            WHERE sh.target_type = m.target_type AND sh.target_ref = m.target_ref
+              AND sh.config_id = m.config_id AND d.count_status = 'INCOMPLETE'
+        ) as incomplete_lines")
+    )
+    ->where('m.config_id', $configId)
+    ->orderBy('m.sto_date')
+    ->orderBy('target_name')
+    ->get();
 
     $data = [
         'title'    => $this->title,

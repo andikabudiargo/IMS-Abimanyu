@@ -1,5 +1,4 @@
 <?php
-// app/Jobs/RecalcStoAccuracyJob.php
 
 namespace App\Jobs;
 
@@ -15,15 +14,15 @@ class RecalcStoAccuracyJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $timeout = 600; // 10 menit, sesuaikan skala data
-    public $tries = 1;     // jangan retry otomatis — ini operasi yang mengubah data + log
+    public $timeout = 600;
+    public $tries = 1;
 
     public function __construct(
-        public int $configId,
+        public array $mappingIds,
         public bool $refreshQty,
         public bool $includeFinished,
-        public string $requestedBy,   // username, bukan Auth::id() (job jalan di worker, beda proses)
-        public string $jobToken       // uuid unik, dipakai untuk polling status
+        public string $requestedBy,
+        public string $jobToken
     ) {}
 
     public function handle(StoAccuracyRecalcService $service)
@@ -33,14 +32,15 @@ class RecalcStoAccuracyJob implements ShouldQueue
         ]);
 
         try {
-            $mappingIds = $service->resolveMappingIdsForConfig($this->configId);
-
             $result = $service->recalcMappingIds(
-                $mappingIds,
+                collect($this->mappingIds),
                 $this->refreshQty,
                 $this->includeFinished,
                 'web:' . $this->requestedBy,
-                'web-ui'
+                'web-ui',
+                function () {
+                    DB::table('sto_recalc_jobs')->where('job_token', $this->jobToken)->increment('processed_mappings');
+                }
             );
 
             DB::table('sto_recalc_jobs')->where('job_token', $this->jobToken)->update([

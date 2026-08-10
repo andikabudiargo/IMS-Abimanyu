@@ -1993,7 +1993,6 @@ private function resolveGroupStatus($items)
 
 public function requestRecalcAccuracy(Request $request, $encConfigId)
 {
-    // ── Guard: hanya accounting/superuser yang boleh trigger ini ──
     if (!$this->isAccountingUser()) {
         abort(403, 'Anda tidak memiliki akses untuk memicu recalculate.');
     }
@@ -2004,6 +2003,24 @@ public function requestRecalcAccuracy(Request $request, $encConfigId)
         return response()->json(['status' => 0, 'message' => 'Config tidak ditemukan.'], 404);
     }
 
+    // ── validasi mapping_ids harus MILIK config ini, cegah orang input mapping_id config lain ──
+    $requestedMappingIds = collect($request->input('mapping_ids', []))->map(fn($v) => (int) $v)->filter();
+
+    if ($requestedMappingIds->isNotEmpty()) {
+        $validMappingIds = DB::table('sto_config_mapping')
+            ->where('config_id', $configId)
+            ->whereIn('mapping_id', $requestedMappingIds)
+            ->pluck('mapping_id');
+
+        if ($validMappingIds->isEmpty()) {
+            return response()->json(['status' => 0, 'message' => 'Target yang dipilih tidak valid.'], 422);
+        }
+        $mappingIds = $validMappingIds;
+    } else {
+        // kosong = semua mapping di config ini (perilaku lama)
+        $mappingIds = DB::table('sto_config_mapping')->where('config_id', $configId)->pluck('mapping_id');
+    }
+
     $refreshQty      = filter_var($request->refresh_qty_system, FILTER_VALIDATE_BOOLEAN);
     $includeFinished = filter_var($request->include_finished, FILTER_VALIDATE_BOOLEAN);
     $jobToken        = (string) Str::uuid();
@@ -2011,14 +2028,16 @@ public function requestRecalcAccuracy(Request $request, $encConfigId)
     DB::table('sto_recalc_jobs')->insert([
         'job_token'        => $jobToken,
         'config_id'        => $configId,
+        'mapping_ids'      => json_encode($mappingIds->values()->all()), // simpan mapping mana yg diproses
         'refresh_qty'      => $refreshQty,
         'include_finished' => $includeFinished,
         'requested_by'     => Auth::user()->username,
         'status'           => 'QUEUED',
+        'total_mappings'   => $mappingIds->count(),
         'created_at'       => now(),
     ]);
 
-    RecalcStoAccuracyJob::dispatch($configId, $refreshQty, $includeFinished, Auth::user()->username, $jobToken);
+    RecalcStoAccuracyJob::dispatch($mappingIds->values()->all(), $refreshQty, $includeFinished, Auth::user()->username, $jobToken);
 
     return response()->json([
         'status'    => 1,

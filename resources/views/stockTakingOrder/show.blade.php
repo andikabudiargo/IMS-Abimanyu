@@ -138,6 +138,10 @@
         #sto-show .info-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem 0; }
         #sto-show .info-grid .info-cell { border-left: none; padding-left: 0; }
     }
+
+    #sto-show .accordion-caret { transition: transform .2s ease; }
+#sto-show [aria-expanded="true"] .accordion-caret { transform: rotate(90deg); }
+#sto-show tr[data-toggle="collapse"]:hover { background: #f2f4f7 !important; }
 </style>
 
 <section id="sto-show">
@@ -270,104 +274,259 @@
     </div>
 </div>
 
-        {{-- table --}}
-        <div class="table-wrap">
-            <div class="table-responsive">
-                <table class="table table-hover table-mapping">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Sumber</th>
-                            <th>Target</th>
-                            <th>STO Date</th>
-                            <th>Counter</th>
-                            <th class="text-center">Total</th>
-                            <th class="text-center">Match</th>
-                            <th class="text-center">Not Match</th>
-                            <th class="text-center">Recount</th>
-                            <th class="text-center">Incomplete</th>
-                            <th class="text-center">Progress</th>
-                            <th>Finish Time</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                      @foreach($mappings as $i => $m)
-@php
-    $pct = (float) $m->target_act_loc; // sudah termasuk toleransi, sumber tunggal kebenaran
-    $barColor = $pct >= 98 ? 'bg-success' : ($pct >= 50 ? 'bg-warning' : 'bg-danger');
-    $tb = $typeBadge[$m->target_type] ?? ['label'=>$m->target_type,'class'=>'badge-light-secondary'];
-    $counter3Name = $m->counter3_name ?? null;
-    $accurateLines = $m->match_lines + $m->recount_in_tolerance;
+     @php
+    // ── Group mappings berdasarkan parent_location. Yang tidak punya parent
+    // (parent_location null/kosong) tetap tampil sebagai baris biasa. ──
+    $groupedMappings = collect($mappings)->groupBy(function ($m) {
+        return $m->parent_location ?: '__no_parent__';
+    });
 @endphp
-<tr>
-    <td class="text-muted">{{ $i + 1 }}</td>
-    <td><span class="badge {{ $tb['class'] }}">{{ $tb['label'] }}</span></td>
-    <td class="font-weight-bold">{{ $m->target_name }}</td>
-    <td>{{ $m->sto_date }}</td>
-    <td>
-        <div class="d-flex flex-column" style="gap:.35rem;">
-            <span class="counter-chip c1"><span class="chip-badge">1</span>{{ $m->counter1_name }}</span>
-            @if($m->counter2_name)
-                <span class="counter-chip c2"><span class="chip-badge">2</span>{{ $m->counter2_name }}</span>
-            @endif
-            @if($counter3Name)
-                <span class="counter-chip c3"><span class="chip-badge">3</span>{{ $counter3Name }}</span>
-            @endif
-        </div>
-    </td>
-    <td class="text-center font-weight-bold">{{ $m->total_lines }}</td>
-    <td class="text-center text-success font-weight-bold">
-        {{ $m->match_lines }}
-        @if($m->recount_in_tolerance > 0)
-            <i data-toggle="tooltip" data-html="true"
-               title="Match murni: {{ $m->match_lines }}<br>Recount masuk toleransi ({{ number_format(100 - $m->target_plan_loc, 2) }}%): {{ $m->recount_in_tolerance }}<br><b>Total akurat: {{ $accurateLines }}</b>"
-               data-feather="info" class="text-muted ml-25" style="width:11px;height:11px;cursor:help;vertical-align:-1px;"></i>
-        @endif
-    </td>
-    <td class="text-center text-danger font-weight-bold">{{ $m->notmatch_lines }}</td>
-    <td class="text-center text-warning font-weight-bold">
-        {{ $m->recount_lines }}
-        @if($m->recount_in_tolerance > 0)
-            <div style="font-size:.68rem;color:#9aa0ab;font-weight:600;">
-                ({{ $m->recount_in_tolerance }} toleransi)
-            </div>
-        @endif
-    </td>
-    <td class="text-center text-secondary">{{ $m->incomplete_lines }}</td>
-    <td class="progress-cell">
-        <div class="d-flex align-items-center" style="gap:.5rem;">
-            <div class="progress flex-grow-1" style="height:7px;border-radius:6px;">
-                <div class="progress-bar {{ $barColor }}" style="width:{{ $pct }}%"></div>
-            </div>
-            <small class="text-muted">{{ number_format($pct, 1) }}%</small>
-        </div>
-    </td>
-    <td>
-        @if($m->finish_time)
-            <span class="text-success">{{ $m->finish_time }}</span>
-        @else
-            <span class="text-muted">-</span>
-        @endif
-    </td>
-</tr>
-@endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
+
+{{-- table --}}
+<div class="table-wrap">
+    <div class="table-responsive">
+        <table class="table table-hover table-mapping">
+            <thead>
+                <tr>
+                    <th style="width:28px;"></th>
+                    <th>#</th>
+                    <th>Sumber</th>
+                    <th>Target</th>
+                    <th>STO Date</th>
+                    <th>Counter</th>
+                    <th class="text-center">Total</th>
+                    <th class="text-center">Match</th>
+                    <th class="text-center">Not Match</th>
+                    <th class="text-center">Recount</th>
+                    <th class="text-center">Incomplete</th>
+                    <th class="text-center">Progress</th>
+                    <th>Finish Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php $rowNo = 0; @endphp
+                @foreach($groupedMappings as $parentKey => $group)
+                    @if($parentKey === '__no_parent__')
+                        {{-- ── Baris biasa, tanpa grouping ── --}}
+                        @foreach($group as $m)
+                            @php
+                                $rowNo++;
+                                $pct = (float) $m->target_act_loc;
+                                $barColor = $pct >= 98 ? 'bg-success' : ($pct >= 50 ? 'bg-warning' : 'bg-danger');
+                                $tb = $typeBadge[$m->target_type] ?? ['label'=>$m->target_type,'class'=>'badge-light-secondary'];
+                                $counter3Name = $m->counter3_name ?? null;
+                                $accurateLines = $m->match_lines + $m->recount_in_tolerance;
+                                $isBlind = in_array($m->is_blind, [true, 1, '1', 't', 'true'], true);
+                            @endphp
+                            <tr>
+                                <td></td>
+                                <td class="text-muted">{{ $rowNo }}</td>
+                                <td><span class="badge {{ $tb['class'] }}">{{ $tb['label'] }}</span></td>
+                                <td class="font-weight-bold">
+                                    {{ $m->target_name }}
+                                    <span class="badge badge-light-{{ $isBlind ? 'primary' : 'secondary' }} ml-25" style="font-size:.6rem;">
+                                        {{ $isBlind ? 'BLIND' : 'NON-BLIND' }}
+                                    </span>
+                                </td>
+                                <td>{{ $m->sto_date }}</td>
+                                <td>
+                                    <div class="d-flex flex-column" style="gap:.35rem;">
+                                        <span class="counter-chip c1"><span class="chip-badge">1</span>{{ $m->counter1_name }}</span>
+                                        @if($m->counter2_name)
+                                            <span class="counter-chip c2"><span class="chip-badge">2</span>{{ $m->counter2_name }}</span>
+                                        @endif
+                                        @if($counter3Name)
+                                            <span class="counter-chip c3"><span class="chip-badge">3</span>{{ $counter3Name }}</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="text-center font-weight-bold">{{ $m->total_lines }}</td>
+                                <td class="text-center text-success font-weight-bold">
+                                    {{ $m->match_lines }}
+                                    @if($m->recount_in_tolerance > 0)
+                                        <i data-toggle="tooltip" data-html="true"
+                                           title="Match murni: {{ $m->match_lines }}<br>Recount masuk toleransi ({{ number_format(100 - $m->target_plan_loc, 2) }}%): {{ $m->recount_in_tolerance }}<br><b>Total akurat: {{ $accurateLines }}</b>"
+                                           data-feather="info" class="text-muted ml-25" style="width:11px;height:11px;cursor:help;vertical-align:-1px;"></i>
+                                    @endif
+                                </td>
+                                <td class="text-center text-danger font-weight-bold">{{ $m->notmatch_lines }}</td>
+                                <td class="text-center text-warning font-weight-bold">
+                                    {{ $m->recount_lines }}
+                                    @if($m->recount_in_tolerance > 0)
+                                        <div style="font-size:.68rem;color:#9aa0ab;font-weight:600;">
+                                            ({{ $m->recount_in_tolerance }} toleransi)
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="text-center text-secondary">{{ $m->incomplete_lines }}</td>
+                                <td class="progress-cell">
+                                    <div class="d-flex align-items-center" style="gap:.5rem;">
+                                        <div class="progress flex-grow-1" style="height:7px;border-radius:6px;">
+                                            <div class="progress-bar {{ $barColor }}" style="width:{{ $pct }}%"></div>
+                                        </div>
+                                        <small class="text-muted">{{ number_format($pct, 1) }}%</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if($m->finish_time)
+                                        <span class="text-success">{{ $m->finish_time }}</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
+                        {{-- ── Grup dengan parent_location: 1 baris parent (sum) + accordion child ── --}}
+                        @php
+                            $rowNo++;
+                            $groupId = 'group-' . \Illuminate\Support\Str::slug($parentKey);
+                            $parentName = $group->first()->parent_location_name ?? $parentKey;
+
+                            $gTotal      = $group->sum('total_lines');
+                            $gMatch      = $group->sum('match_lines');
+                            $gNotMatch   = $group->sum('notmatch_lines');
+                            $gRecount    = $group->sum('recount_lines');
+                            $gRecountTol = $group->sum('recount_in_tolerance');
+                            $gIncomplete = $group->sum('incomplete_lines');
+                            $gAccurate   = $gMatch + $gRecountTol;
+                            $gPct        = $gTotal > 0 ? round(($gAccurate / $gTotal) * 100, 2) : 0;
+                            $gBarColor   = $gPct >= 98 ? 'bg-success' : ($gPct >= 50 ? 'bg-warning' : 'bg-danger');
+
+                            // finish time parent = paling lambat di antara semua child
+                            $gFinishTime = $group->pluck('finish_time')->filter()->sort()->last();
+                        @endphp
+                        <tr style="background:#fafbfc;cursor:pointer;" data-toggle="collapse" data-target="#{{ $groupId }}" aria-expanded="false">
+                            <td class="text-center">
+                                <i data-feather="chevron-right" class="accordion-caret" style="width:14px;height:14px;"></i>
+                            </td>
+                            <td class="text-muted">{{ $rowNo }}</td>
+                            <td><span class="badge badge-light-primary">Lokasi</span></td>
+                            <td class="font-weight-bold">
+                                {{ $parentName }}
+                                <span class="badge badge-light-dark ml-25" style="font-size:.6rem;">{{ $group->count() }} sub-lokasi</span>
+                            </td>
+                            <td class="text-muted">-</td>
+                            <td class="text-muted">-</td>
+                            <td class="text-center font-weight-bold">{{ $gTotal }}</td>
+                            <td class="text-center text-success font-weight-bold">
+                                {{ $gMatch }}
+                                @if($gRecountTol > 0)
+                                    <i data-toggle="tooltip" data-html="true"
+                                       title="Match murni: {{ $gMatch }}<br>Recount masuk toleransi: {{ $gRecountTol }}<br><b>Total akurat: {{ $gAccurate }}</b>"
+                                       data-feather="info" class="text-muted ml-25" style="width:11px;height:11px;cursor:help;vertical-align:-1px;"></i>
+                                @endif
+                            </td>
+                            <td class="text-center text-danger font-weight-bold">{{ $gNotMatch }}</td>
+                            <td class="text-center text-warning font-weight-bold">
+                                {{ $gRecount }}
+                                @if($gRecountTol > 0)
+                                    <div style="font-size:.68rem;color:#9aa0ab;font-weight:600;">({{ $gRecountTol }} toleransi)</div>
+                                @endif
+                            </td>
+                            <td class="text-center text-secondary">{{ $gIncomplete }}</td>
+                            <td class="progress-cell">
+                                <div class="d-flex align-items-center" style="gap:.5rem;">
+                                    <div class="progress flex-grow-1" style="height:7px;border-radius:6px;">
+                                        <div class="progress-bar {{ $gBarColor }}" style="width:{{ $gPct }}%"></div>
+                                    </div>
+                                    <small class="text-muted">{{ number_format($gPct, 1) }}%</small>
+                                </div>
+                            </td>
+                            <td>
+                                @if($gFinishTime)
+                                    <span class="text-success">{{ $gFinishTime }}</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                        </tr>
+
+                        {{-- ── CHILD ROWS (collapsed), tanpa kolom match/notmatch/recount/incomplete, + Blind ── --}}
+                        <tr class="collapse" id="{{ $groupId }}">
+                            <td colspan="13" class="p-0" style="background:#fbfbfd;">
+                                <table class="table table-sm mb-0" style="font-size:.8rem;">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:28px;"></th>
+                                            <th>Target</th>
+                                            <th>STO Date</th>
+                                            <th>Counter</th>
+                                            <th class="text-center">Total</th>
+                                            <th class="text-center">Blind</th>
+                                            <th class="text-center">Progress</th>
+                                            <th>Finish Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($group as $m)
+                                            @php
+                                                $pct = (float) $m->target_act_loc;
+                                                $barColor = $pct >= 98 ? 'bg-success' : ($pct >= 50 ? 'bg-warning' : 'bg-danger');
+                                                $counter3Name = $m->counter3_name ?? null;
+                                                $isBlind = in_array($m->is_blind, [true, 1, '1', 't', 'true'], true);
+                                            @endphp
+                                            <tr>
+                                                <td></td>
+                                                <td class="font-weight-bold">{{ $m->target_name }}</td>
+                                                <td>{{ $m->sto_date }}</td>
+                                                <td>
+                                                    <div class="d-flex flex-column" style="gap:.3rem;">
+                                                        <span class="counter-chip c1"><span class="chip-badge">1</span>{{ $m->counter1_name }}</span>
+                                                        @if($m->counter2_name)
+                                                            <span class="counter-chip c2"><span class="chip-badge">2</span>{{ $m->counter2_name }}</span>
+                                                        @endif
+                                                        @if($counter3Name)
+                                                            <span class="counter-chip c3"><span class="chip-badge">3</span>{{ $counter3Name }}</span>
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                                <td class="text-center font-weight-bold">{{ $m->total_lines }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge badge-light-{{ $isBlind ? 'primary' : 'secondary' }}">
+                                                        {{ $isBlind ? 'TRUE' : 'FALSE' }}
+                                                    </span>
+                                                </td>
+                                                <td class="progress-cell">
+                                                    <div class="d-flex align-items-center" style="gap:.5rem;">
+                                                        <div class="progress flex-grow-1" style="height:6px;border-radius:6px;">
+                                                            <div class="progress-bar {{ $barColor }}" style="width:{{ $pct }}%"></div>
+                                                        </div>
+                                                        <small class="text-muted">{{ number_format($pct, 1) }}%</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    @if($m->finish_time)
+                                                        <span class="text-success">{{ $m->finish_time }}</span>
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    @endif
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
         @endif
 
        <div class="foot-actions">
     <a href="{{ route('stockTakingOrder.index') }}" class="btn btn-light">Back</a>
 
     @if(Auth::user()->username === 'leo' || Auth::user()->hasRole('Superuser'))
-    <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#modalRecalcAccuracy">
-        <i data-feather="refresh-cw" class="align-middle mr-sm-25 mr-0"></i>
-        <span class="align-middle">Recalculate Akurasi</span>
-    </button>
+    <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modalRecalcAccuracy">
+    <i data-feather="refresh-cw" class="align-middle mr-sm-25 mr-0" style="color:#fff;stroke:#fff;"></i>
+    <span class="align-middle">Recalculate</span>
+</button>
     @endif
 
-    @if(in_array($hdr->status, [1, 2]))
+   {{-- @if(in_array($hdr->status, [1, 2]))
     <a href="{{ route('stockTakingOrder.edit', ['id' => Crypt::encryptString($hdr->config_id)]) }}" class="btn btn-warning">
         <i data-feather="edit-2" class="align-middle mr-sm-25 mr-0"></i>
         <span class="align-middle">Edit</span>
@@ -376,7 +535,7 @@
         <i data-feather="x-circle" class="align-middle mr-sm-25 mr-0"></i>
         <span class="align-middle">Cancel</span>
     </button>
-    @endif
+    @endif--}}
 </div>
 
 {{-- ════ MODAL RECALCULATE AKURASI ════ --}}
@@ -389,27 +548,45 @@
             </div>
             <div class="modal-body">
                 <p class="text-muted" style="font-size:.85rem;">
-                    Proses ini menghitung ulang skor akurasi (target_act) untuk semua target di config ini.
-                    Dijalankan di background — halaman ini tidak perlu ditunggu, hasil bisa dicek lewat notifikasi.
+                    Pilih target mana saja yang mau di-recalculate. Kosongkan semua ceklis untuk memproses SEMUA target di config ini.
                 </p>
+
+                <div class="form-group">
+                    <label class="d-flex justify-content-between align-items-center" style="font-size:.8rem;font-weight:700;">
+                        <span>Target</span>
+                        <a href="#" id="toggleAllMappings" style="font-size:.75rem;">Pilih Semua / Hapus Semua</a>
+                    </label>
+                    <div style="max-height:180px;overflow-y:auto;border:1px solid #eef0f3;border-radius:8px;padding:.6rem .8rem;">
+                        @foreach($mappings as $m)
+                        <div class="custom-control custom-checkbox mb-50">
+                            <input type="checkbox" class="custom-control-input mapping-checkbox"
+                                   id="mapping_{{ $m->mapping_id }}" value="{{ $m->mapping_id }}">
+                            <label class="custom-control-label" for="mapping_{{ $m->mapping_id }}" style="font-size:.82rem;">
+                                {{ $m->target_name }}
+                                <span class="text-muted" style="font-size:.72rem;">({{ number_format($m->target_act_loc, 1) }}% akurat)</span>
+                            </label>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
 
                 <div class="custom-control custom-checkbox mb-1">
                     <input type="checkbox" class="custom-control-input" id="refreshQtySystem">
                     <label class="custom-control-label" for="refreshQtySystem">
-                        Ikut refresh <b>qty_system</b> (untuk kasus ada transaksi back-date yang mengubah saldo H-1)
+                        Refresh juga <b>Stock System</b>? (untuk kasus ada transaksi back-date yang mengubah saldo H-1)
                     </label>
                 </div>
 
                 <div class="custom-control custom-checkbox mb-1 pl-4" id="includeFinishedWrap" style="display:none;">
                     <input type="checkbox" class="custom-control-input" id="includeFinished">
                     <label class="custom-control-label" for="includeFinished">
-                        Sertakan juga STO yang sudah <b>COMPLETED</b> (hati-hati — bisa mengubah status yang sudah ditutup)
+                        Sertakan juga STO yang sudah <b>COMPLETED</b>? (hati-hati — bisa mengubah status yang sudah ditutup)
                     </label>
                 </div>
 
                 <div class="alert alert-warning" style="font-size:.8rem;" id="warnIncludeFinished" style="display:none;">
                     <i data-feather="alert-triangle" style="width:14px;height:14px;" class="mr-25"></i>
-                    STO yang sudah COMPLETED bisa berubah status/qty_system-nya. Semua perubahan tetap tercatat di history log.
+                    STO yang sudah COMPLETED bisa berubah status/stock system-nya. Semua perubahan tetap tercatat di history log.
                 </div>
 
                 <div id="recalcProgress" style="display:none;">
@@ -439,8 +616,33 @@
 <script>
 $(function () {
     $('[data-toggle="tooltip"]').tooltip();
-    if (window.feather) feather.replace();
+    safeFeatherReplace();
 });
+
+$('[data-toggle="collapse"]').on('click', function () {
+    $(this).attr('aria-expanded', $(this).attr('aria-expanded') === 'true' ? 'false' : 'true');
+});
+
+function safeFeatherReplace() {
+    if (!window.feather) return;
+    document.querySelectorAll('[data-feather]').forEach(function (el) {
+        try {
+            const iconName = el.getAttribute('data-feather');
+            const icon = feather.icons[iconName];
+            if (!icon) return;
+            const svg = icon.toSvg({ class: el.getAttribute('class') || '' });
+            const wrapper = document.createElement('span');
+            wrapper.innerHTML = svg;
+            const svgNode = wrapper.firstElementChild;
+            // copy inline style kalau ada (mis. width/height/color manual)
+            if (el.getAttribute('style')) svgNode.setAttribute('style', el.getAttribute('style'));
+            el.parentNode.replaceChild(svgNode, el);
+        } catch (e) {
+            console.warn('Gagal replace icon:', el, e);
+            // lanjut ke elemen berikutnya, tidak berhenti
+        }
+    });
+}
 
 $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
 
@@ -457,14 +659,24 @@ $('#includeFinished').on('change', function () {
 
 let pollTimer = null;
 
+$('#toggleAllMappings').on('click', function (e) {
+    e.preventDefault();
+    const boxes = $('.mapping-checkbox');
+    const anyUnchecked = boxes.filter(':not(:checked)').length > 0;
+    boxes.prop('checked', anyUnchecked); // kalau ada yang belum dicentang, centang semua; kalau semua sudah, uncheck semua
+});
+
 $('#btnStartRecalc').on('click', function () {
     const btn = $(this);
+    const mappingIds = $('.mapping-checkbox:checked').map(function () { return this.value; }).get();
+
     btn.prop('disabled', true);
     $('#recalcResult').hide();
     $('#recalcProgress').show();
     $('#recalcStatusText').text('Mengirim permintaan...');
 
     $.post("{{ route('stockTakingOrder.recalcAccuracy', ['id' => Crypt::encryptString($hdr->config_id)]) }}", {
+        mapping_ids:        mappingIds, // kosong = semua target di config ini
         refresh_qty_system: $('#refreshQtySystem').is(':checked') ? 1 : 0,
         include_finished:   $('#includeFinished').is(':checked') ? 1 : 0,
     }).done(function (res) {
