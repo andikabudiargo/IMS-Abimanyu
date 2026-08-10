@@ -129,31 +129,35 @@ public function getTableColoumnMovementGlobal()
     $locationLabel = $locationLabel ?: 'ALL';
 
     // ── GUARD: mode as-of wajib ada filter (lokasi / kode / nama / type / supp) ──
-    if ($asof) {
-        $hasFilter = $location || $code || $name || $type || $supp;
-        if (!$hasFilter) {
-            return Datatables::of(collect([]))->make(true);
-            // frontend akan handle pesan; atau bisa return error json (lihat catatan)
-        }
+   if ($asof) {
+    $hasFilter = $location || $code || $name || $type || $supp;
+    if (!$hasFilter) {
+        return Datatables::of(collect([]))->make(true); // (di summary: return 0 semua)
     }
 
-    // ── agregasi saldo ──
-    if ($asof) {
-        $asofYmd = \Carbon\Carbon::createFromFormat('d-m-Y', $asof)->format('Y-m-d');
-        $locParam = $location ? DB::getPdo()->quote($location) : "NULL";
-        $asofParam = DB::getPdo()->quote($asofYmd);
+    $asofYmd   = \Carbon\Carbon::createFromFormat('d-m-Y', $asof)->format('Y-m-d');
+    $locParam  = $location ? DB::getPdo()->quote($location) : "NULL";
+    $asofParam = DB::getPdo()->quote($asofYmd);
 
-        // saldo per artikel dari fungsi resmi (sudah menerapkan semua aturan)
-        $stockSub = DB::table('article as a_asof')
-            ->select(
-                'a_asof.article_code',
-                DB::raw("get_last_qty_new(a_asof.article_code, $asofParam, 'HO', $locParam) as article_qty")
-            )
-            // terapkan filter yang sama supaya jumlah artikel yang dihitung sedikit
-            ->when($code, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', '%'.$code.'%'))
-            ->when($name, fn($q) => $q->where('a_asof.article_desc', 'ilike', '%'.$name.'%'))
-            ->when($type, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', $type.'%'))
-            ->when($supp, fn($q) => $q->where('a_asof.third_party', 'ilike', '%'.$supp.'%'));
+    // basis: HANYA artikel yang punya jejak di warehouse_stock pada lokasi ini
+    // (kalau lokasi kosong, ambil semua artikel yang punya stock di mana pun)
+    $articleBasis = DB::table('warehouse_stock as ws')
+        ->select('ws.article_code')
+        ->when($location, fn($q) => $q->where('ws.location_number', $location))
+        ->groupBy('ws.article_code');
+
+    $stockSub = DB::table('article as a_asof')
+        ->joinSub($articleBasis, 'basis', function ($j) {
+            $j->on('basis.article_code', '=', 'a_asof.article_code');
+        })
+        ->select(
+            'a_asof.article_code',
+            DB::raw("get_last_qty_new(a_asof.article_code, $asofParam, 'HO', $locParam) as article_qty")
+        )
+        ->when($code, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', '%'.$code.'%'))
+        ->when($name, fn($q) => $q->where('a_asof.article_desc', 'ilike', '%'.$name.'%'))
+        ->when($type, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', $type.'%'))
+        ->when($supp, fn($q) => $q->where('a_asof.third_party', 'ilike', '%'.$supp.'%'));
     } else {
         $stockSub = DB::table('warehouse_stock')
             ->select('article_code', DB::raw('sum(article_qty) as article_qty'))
@@ -267,27 +271,36 @@ public function summary(Request $request)
     $hideEmptyQty = $request->hideEmptyQty;
     $asof     = $request->asof;
 
-    if ($asof) {
-        // guard sama: tanpa filter, summary 0 semua
-        $hasFilter = $location || $code || $name || $type || $supp;
-        if (!$hasFilter) {
-            return response()->json(['total'=>0,'save'=>0,'critical'=>0,'empty'=>0]);
-        }
+  if ($asof) {
+    $hasFilter = $location || $code || $name || $type || $supp;
+    if (!$hasFilter) {
+        return Datatables::of(collect([]))->make(true); // (di summary: return 0 semua)
+    }
 
-        $asofYmd = \Carbon\Carbon::createFromFormat('d-m-Y', $asof)->format('Y-m-d');
-        $locParam  = $location ? DB::getPdo()->quote($location) : "NULL";
-        $asofParam = DB::getPdo()->quote($asofYmd);
+    $asofYmd   = \Carbon\Carbon::createFromFormat('d-m-Y', $asof)->format('Y-m-d');
+    $locParam  = $location ? DB::getPdo()->quote($location) : "NULL";
+    $asofParam = DB::getPdo()->quote($asofYmd);
 
-        $stockSub = DB::table('article as a_asof')
-            ->select(
-                'a_asof.article_code',
-                DB::raw("get_last_qty_new(a_asof.article_code, $asofParam, 'HO', $locParam) as article_qty")
-            )
-            ->when($code, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', '%'.$code.'%'))
-            ->when($name, fn($q) => $q->where('a_asof.article_desc', 'ilike', '%'.$name.'%'))
-            ->when($type, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', $type.'%'))
-            ->when($supp, fn($q) => $q->where('a_asof.third_party', 'ilike', '%'.$supp.'%'));
-    } else {
+    // basis: HANYA artikel yang punya jejak di warehouse_stock pada lokasi ini
+    // (kalau lokasi kosong, ambil semua artikel yang punya stock di mana pun)
+    $articleBasis = DB::table('warehouse_stock as ws')
+        ->select('ws.article_code')
+        ->when($location, fn($q) => $q->where('ws.location_number', $location))
+        ->groupBy('ws.article_code');
+
+    $stockSub = DB::table('article as a_asof')
+        ->joinSub($articleBasis, 'basis', function ($j) {
+            $j->on('basis.article_code', '=', 'a_asof.article_code');
+        })
+        ->select(
+            'a_asof.article_code',
+            DB::raw("get_last_qty_new(a_asof.article_code, $asofParam, 'HO', $locParam) as article_qty")
+        )
+        ->when($code, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', '%'.$code.'%'))
+        ->when($name, fn($q) => $q->where('a_asof.article_desc', 'ilike', '%'.$name.'%'))
+        ->when($type, fn($q) => $q->where('a_asof.article_alternative_code', 'ilike', $type.'%'))
+        ->when($supp, fn($q) => $q->where('a_asof.third_party', 'ilike', '%'.$supp.'%'));
+} else {
         $stockSub = DB::table('warehouse_stock')
             ->select('article_code', DB::raw('sum(article_qty) as article_qty'))
             ->when($location, function ($q) use ($location) {
