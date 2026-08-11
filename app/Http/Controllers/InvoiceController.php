@@ -1839,35 +1839,32 @@ DB::raw("
 {
     $id = Crypt::decryptString($request->id);
 
-    // ── Header ──────────────────────────────────────────────────────────────
-    $invHdr    = DB::table('invoice_hdr')->where('id', $id)->first();
-    $invNumber = $invHdr->invoice_number;
-
     $data['companies'] = [
         "nama"   => "PT ABIMANYU SEKAR NUSANTARA",
         "alamat" => "KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO",
         "kota"   => "KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT",
         "tlp"    => ""
     ];
-    $data['recHdr'] = $invHdr;
-    $data['title']  = $invNumber;
 
-    // ── Totals (harus pertama agar printType bisa ditentukan) ───────────────
+    $invHdr            = DB::table('invoice_hdr')->where('id', $id)->first();
+    $data['recHdr']    = $invHdr;
+    $invNumber         = $invHdr->invoice_number;
+    $data['title']     = $invNumber;
+
+    // ── Totals dulu ─────────────────────────────────────────────────────────
     $data['totals'] = DB::select("
-        SELECT
-            b.dpp_lain_value,
-            total_ppn  AS ppn,
-            total_pph  AS pph23,
-            total_material,
-            total_service,
-            (total_material + total_service) AS sub_total,
-            ((total_material + total_service + total_ppn) - total_pph) AS grand_total
+        SELECT b.dpp_lain_value,
+               total_ppn  AS ppn,
+               total_pph  AS pph23,
+               total_material,
+               total_service,
+               (total_material + total_service) AS sub_total,
+               ((total_material + total_service + total_ppn) - total_pph) AS grand_total
         FROM (
-            SELECT
-                invoice_number,
-                SUM(qty)              AS qty,
-                SUM(qty * price)      AS total_material,
-                SUM(qty * price_service) AS total_service
+            SELECT invoice_number,
+                   SUM(qty)                 AS qty,
+                   SUM(qty * price)         AS total_material,
+                   SUM(qty * price_service) AS total_service
             FROM invoice_det
             WHERE invoice_number = '$invNumber'
             GROUP BY invoice_number
@@ -1877,55 +1874,53 @@ DB::raw("
 
     $total = $data['totals'][0];
 
-    // ── Print type ──────────────────────────────────────────────────────────
+    // ── Print type ───────────────────────────────────────────────────────────
     if ($total->total_material > 0 && $total->total_service > 0) {
-        $printType = '12';   // kolom ganda
+        $printType = '12';
     } elseif ($total->total_material > 0 && $total->total_service == 0) {
-        $printType = '1';    // kolom tunggal material
+        $printType = '1';
     } else {
-        $printType = '2';    // kolom tunggal service
+        $printType = '2';
     }
     $data['printType'] = $printType;
 
-    // ── Kapasitas halaman 1 sesuai blade ────────────────────────────────────
-    // printType '12' → invoice.print  (kolom ganda,  muat ±22 baris)
-    // printType '1'/'2' → invoice.printV2 (kolom tunggal, muat 33 baris)
+    // ── Kapasitas halaman 1 ──────────────────────────────────────────────────
     $capacityPage1 = ($printType == '12') ? 22 : 33;
 
-    // ── Hitung jumlah baris (groupBy SAMA dengan $details) ──────────────────
+    // ── Hitung jumlah baris ──────────────────────────────────────────────────
     $jumlahData = DB::table('invoice_det')
         ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
-        ->select('article.article_code', 'article.article_desc', 'price', 'price_service')
         ->where('invoice_number', $invNumber)
         ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
         ->get()
         ->count();
 
-    $limits              = min($jumlahData, $capacityPage1);
-    $data['duaHalaman']  = $jumlahData > $capacityPage1 ? 'yes' : 'no';
+    $limits             = min($jumlahData, $capacityPage1);
+    $data['duaHalaman'] = $jumlahData > $capacityPage1 ? 'yes' : 'no';
 
-    // ── Detail items ────────────────────────────────────────────────────────
-    $detailQuery = DB::table('invoice_det')
+    // ── Details halaman 1 ────────────────────────────────────────────────────
+    $data['details'] = DB::table('invoice_det')
         ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
         ->select('article.article_desc', DB::raw('sum(qty) as qty'), 'price', 'price_service')
         ->where('invoice_number', $invNumber)
         ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
-        ->orderBy('article.article_code');
+        ->orderBy('article.article_code')
+        ->limit($limits)
+        ->get();
 
-    $data['details']  = (clone $detailQuery)->limit($limits)->get();
-    $data['details2'] = (clone $detailQuery)->offset($limits)->get();
+    // ── Details halaman 2 ────────────────────────────────────────────────────
+    $data['details2'] = DB::table('invoice_det')
+        ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
+        ->select('article.article_desc', DB::raw('sum(qty) as qty'), 'price', 'price_service')
+        ->where('invoice_number', $invNumber)
+        ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
+        ->orderBy('article.article_code')
+        ->offset($limits)
+        ->get();
 
-    // ── PO list ─────────────────────────────────────────────────────────────
-    $listpo = DB::select("
-        SELECT string_agg(
-            DISTINCT (SELECT po_number FROM sales_order_hdr WHERE so_code = so_number),
-            ', '
-        ) AS po_list
-        FROM invoice_det
-        WHERE invoice_number = '$invNumber'
-    ");
+    // ── PO list ──────────────────────────────────────────────────────────────
+    $listpo     = DB::select("SELECT string_agg(DISTINCT (SELECT po_number FROM sales_order_hdr WHERE so_code = so_number), ', ') AS po_list FROM invoice_det WHERE invoice_number = '$invNumber'");
     $dataListPo = $listpo[0]->po_list ?? '';
-
     if (strlen($dataListPo) > 275) {
         $cut        = substr($dataListPo, 0, 275);
         $parts      = explode(',', trim($cut));
@@ -1934,15 +1929,15 @@ DB::raw("
     }
     $data['listpo'] = $dataListPo;
 
-    // ── Terbilang ───────────────────────────────────────────────────────────
+    // ── Terbilang ────────────────────────────────────────────────────────────
     $data['terbilang'] = $this->terbilang($total->grand_total);
 
-    // ── Customer ────────────────────────────────────────────────────────────
+    // ── Customer ─────────────────────────────────────────────────────────────
     $data['customers'] = DB::table('third_party')
         ->where('kode', $invHdr->customer_id)
         ->first();
 
-    // ── Misc ────────────────────────────────────────────────────────────────
+    // ── Misc ─────────────────────────────────────────────────────────────────
     $data['status']   = '1';
     $data['no']       = 0;
     $data['nilaiPPN'] = $invHdr->ppn
@@ -1950,27 +1945,23 @@ DB::raw("
         : Attributes::getLastPpn($invHdr->invoice_date)['ppnValue'];
     $data['nilaiPPH'] = $this->nilaiPph23;
 
-    // ── Tanggal Indonesia ───────────────────────────────────────────────────
+    // ── Tanggal Indonesia ────────────────────────────────────────────────────
     $bulan = [
         '01'=>'Januari','02'=>'Februari','03'=>'Maret','04'=>'April',
         '05'=>'Mei','06'=>'Juni','07'=>'Juli','08'=>'Agustus',
         '09'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember',
     ];
-
     if ($invHdr->invoice_date) {
-        [$tgl, $bln, $thn]       = explode('-', $invHdr->invoice_date);
-        $data['tanggalHariIni']  = "$tgl {$bulan[$bln]} $thn";
+        [$tgl, $bln, $thn]      = explode('-', $invHdr->invoice_date);
+        $data['tanggalHariIni'] = "$tgl {$bulan[$bln]} $thn";
     } else {
-        $data['tanggalHariIni']  = date('d') . ' ' . $bulan[date('m')] . ' ' . date('Y');
+        $data['tanggalHariIni'] = date('d') . ' ' . $bulan[date('m')] . ' ' . date('Y');
     }
 
-    // ── Pilih blade ─────────────────────────────────────────────────────────
-    // File di server saat ini (setelah swap):
-    //   invoice.print   = blade KOLOM GANDA  (material + service)
-    //   invoice.printV2 = blade KOLOM TUNGGAL (price + total)
+    // ── Pilih blade ──────────────────────────────────────────────────────────
     return $printType === '12'
-        ? view('invoice.printV2',   $data)
-        : view('invoice.print', $data);
+        ? view('invoice.printV2', $data)   // kolom ganda
+        : view('invoice.print',   $data);  // kolom tunggal
 }
 
     public function printNew(Request $request)
