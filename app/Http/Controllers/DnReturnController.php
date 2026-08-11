@@ -1577,10 +1577,10 @@ return Datatables::of($data)
 ->editColumn('qty_remaining', function ($data) {
     $val = (float) $data->qty_remaining;
     if ($val < 0) {
-        return '<span class="text-danger">'.number_format($val).' (Over)</span>';
+        return '<span class="text-danger">'.number_format($val).'</span>';
     }
     if ($val == 0) {
-        return '<span class="text-success">0 (Match)</span>';
+        return '<span class="text-success">0</span>';
     }
     return number_format($val);
 })
