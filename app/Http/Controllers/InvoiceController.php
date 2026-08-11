@@ -1876,7 +1876,7 @@ DB::raw("
     // Kapasitas per halaman WAJIB match dengan blade yang dipakai
     // printType 12 -> invoice.printV2 (kolom ganda, totalBaris=40)
     // printType 1/2 -> invoice.print   (kolom tunggal, limitPage1=33)
-    $capacityPage1 = ($printType == '12') ? 40 : 33;
+    $capacityPage1 = ($printType == '12') ? 22 : 33;
 
     // Hitung jumlah baris dengan groupBy YANG SAMA seperti $details
     $jumlahDataRaw = DB::table('invoice_det')
