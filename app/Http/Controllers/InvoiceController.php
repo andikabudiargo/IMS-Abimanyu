@@ -1999,7 +1999,7 @@ DB::raw("
 
         $limits = $jumlahData <= 22 ? $jumlahData : 33;
 
-        $data['duaHalaman'] = $jumlahData <= 24 ? 'no' : 'yes';
+        $data['duaHalaman'] = $jumlahData <= 22 ? 'no' : 'yes';
 
         // dd($jumlahData);
        
