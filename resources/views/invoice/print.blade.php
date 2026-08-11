@@ -403,13 +403,8 @@
                         </tr>
                     @endforeach
                     <?php $totalBaris = 40 ?>
-                    @for ($i=1;$i< $totalBaris-(count($details));$i++)
-                        {{-- @if(count($details)> 19)
-                            <tr style="height:23px">
-                        @else
-                            <tr style="height:25px">
-                        @endif --}}
-                        <tr style="height:38px">
+                   @for ($i = count($details) + 1; $i <= 22; $i++)
+    <tr style="height:21px">
                             <td ></td>
                             <td ></td>
                             <td ></td>
@@ -648,7 +643,7 @@
                         <?php $totalBaris = 30 ?>
                         @for ($i=1;$i< $totalBaris-(count($details2));$i++)
                             <tr style="height:23px">
-                                <td ></div></td>
+                                <td ></td>
                                 <td ></td>
                                 <td ></td>
                                 <td ></td>
@@ -687,7 +682,7 @@
                             </tr>
                             <tr style="height:25px">
                                 {{-- <td colspan="" style="border: 1px solid #0c0c0c;">VAT {{ $nilaiPPN }}% </td> --}}
-                                <td colspan="2" style="border: 1px solid #0c0c0c;">PPN 12% </td>
+                               <td colspan="2" style="border: 1px solid #0c0c0c;">VAT {{ $nilaiPPN }}% </td>
                                 <td colspan="2" align="right" style="border: 1px solid #0c0c0c;">{{ number_format($val->ppn,2) }}</td>
                             </tr>
                             <tr style="height:25px">
