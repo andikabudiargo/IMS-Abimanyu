@@ -1885,7 +1885,7 @@ DB::raw("
     $data['printType'] = $printType;
 
     // ── Kapasitas halaman 1 ──────────────────────────────────────────────────
-    $capacityPage1 = ($printType == '12') ? 25 : 30;
+    $capacityPage1 = ($printType == '12') ? 25 : 28;
 
     // ── Hitung jumlah baris ──────────────────────────────────────────────────
    // ── Hitung jumlah baris ──────────────────────────────────────────────────
