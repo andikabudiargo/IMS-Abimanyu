@@ -1885,7 +1885,7 @@ DB::raw("
     $data['printType'] = $printType;
 
     // ── Kapasitas halaman 1 ──────────────────────────────────────────────────
-    $capacityPage1 = ($printType == '12') ? 22 : 33;
+    $capacityPage1 = ($printType == '12') ? 22 : 25;
 
     // ── Hitung jumlah baris ──────────────────────────────────────────────────
    // ── Hitung jumlah baris ──────────────────────────────────────────────────
@@ -1920,15 +1920,7 @@ $jumlahData = DB::table('invoice_det')
         ->offset($limits)
         ->get();
 
-        dd([
-    'printType'     => $printType,
-    'capacityPage1' => $capacityPage1,
-    'jumlahData'    => $jumlahData,
-    'limits'        => $limits,
-    'duaHalaman'    => $data['duaHalaman'],
-    'detailsCount'  => count($data['details']),
-    'firstRow'      => $data['details']->first(),
-]);
+        
 
     // ── PO list ──────────────────────────────────────────────────────────────
     $listpo     = DB::select("SELECT string_agg(DISTINCT (SELECT po_number FROM sales_order_hdr WHERE so_code = so_number), ', ') AS po_list FROM invoice_det WHERE invoice_number = '$invNumber'");
