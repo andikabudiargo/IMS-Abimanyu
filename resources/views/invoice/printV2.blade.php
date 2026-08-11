@@ -63,6 +63,10 @@
             --line-color: rgba(0, 0, 0);
         }
 
+        #tblContent tbody {
+    border-bottom: 2px solid #0c0c0c;
+}
+
         @media print {
             header, footer { position: fixed; top: 0; }
             footer { position: fixed; bottom: 0; }
@@ -249,7 +253,7 @@
                 </thead>
                 <tbody>
                     {{-- $limitPage1: batas baris item di sheet pertama, disamakan dengan $limits di controller --}}
-                    <?php $limitPage1 = 28; ?>
+                    <?php $limitPage1 = 30; ?>
                     @foreach ($details as $val )
                         @if(count($details)> 19)
                             <tr style="font-size: 11pt;">
@@ -442,7 +446,7 @@
                     </thead>
                     <tbody>
                         {{-- $limitPage2: baris item halaman 2 lebih sedikit karena ruang dipakai tabel totals --}}
-                        <?php $limitPage2 = 28; ?>
+                        <?php $limitPage2 = 30; ?>
                         @foreach ($details2 as $val )
                             @if(count($details2)> 19)
                                 <tr style="font-size: 11pt;">
