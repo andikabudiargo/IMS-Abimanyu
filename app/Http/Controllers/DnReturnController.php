@@ -33,6 +33,30 @@ class DnReturnController extends Controller
         $this->mvType     = 'RETURN';   // dipakai konsisten di store/update/destroy
     }
 
+    /**
+ * Konversi input tanggal dari date-range-picker (format "dd-mm-yyyy" atau "dd/mm/yyyy")
+ * ke format ISO 'Y-m-d' — aman dibandingkan di Postgres apapun setting DateStyle-nya.
+ * Return null kalau kosong, lempar Exception kalau formatnya tidak valid.
+ */
+private function toIsoDate($value)
+{
+    $value = trim((string) $value);
+    if ($value === '') {
+        return null;
+    }
+
+    // Normalisasi separator "/" jadi "-"
+    $value = str_replace('/', '-', $value);
+
+    $d = \DateTime::createFromFormat('d-m-Y', $value);
+    $errors = \DateTime::getLastErrors();
+    if (!$d || ($errors && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+        throw new \Exception("Format tanggal tidak valid: '{$value}' (harus dd-mm-yyyy)");
+    }
+
+    return $d->format('Y-m-d');
+}
+
     public function getTableColoumn()
 {
     $kolom =
@@ -1076,19 +1100,27 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
     $searchStatus   = $request->searchStatus;
     $returnDate     = $request->returnDate;
     $searchCustomer = $request->searchCustomer;
-    $fromDate = "";
-    $toDate   = "";
+   $fromDate = null;
+$toDate   = null;
 
-    if ($returnDate) {
-        $date = explode("to", $returnDate);
-        if (count($date) > 1) {
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate   = implode("/", array_reverse(explode("-", trim($date[1]))));
-        } else {
-            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            $toDate   = $fromDate;
-        }
+if ($returnDate) {
+    $parts   = explode("to", $returnDate);
+    $rawFrom = trim($parts[0]);
+    $rawTo   = isset($parts[1]) ? trim($parts[1]) : $rawFrom;
+
+    try {
+        $fromDate = $this->toIsoDate($rawFrom);
+        $toDate   = $this->toIsoDate($rawTo);
+    } catch (\Exception $e) {
+        return response()->json([
+            'draw' => (int) $request->draw,
+            'recordsTotal' => 0,
+            'recordsFiltered' => 0,
+            'data' => [],
+            'error' => $e->getMessage(),
+        ]);
     }
+}
 
     $data = DB::table('dn_return_hdr')
         ->leftJoin('third_party', 'third_party.kode', '=', 'dn_return_hdr.customer_id')
@@ -1512,19 +1544,27 @@ public function reconciliation(Request $request)
         $searchStatus = $request->searchStatus;
         $returnDate = $request->returnDate;
         $searchCustomer = $request->searchCustomer;
-        $fromDate ="";
-        $toDate = "";
+      $fromDate = null;
+$toDate   = null;
 
-        if ($returnDate){
-            $date = explode("to",$returnDate);
-            if(count($date)>1){
-                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-            }else{
-                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = $fromDate; 
-            }
-        }      
+if ($returnDate) {
+    $parts   = explode("to", $returnDate);
+    $rawFrom = trim($parts[0]);
+    $rawTo   = isset($parts[1]) ? trim($parts[1]) : $rawFrom;
+
+    try {
+        $fromDate = $this->toIsoDate($rawFrom);
+        $toDate   = $this->toIsoDate($rawTo);
+    } catch (\Exception $e) {
+        return response()->json([
+            'draw' => (int) $request->draw,
+            'recordsTotal' => 0,
+            'recordsFiltered' => 0,
+            'data' => [],
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
     
       $data = DB::table('dn_return_det')
 ->leftJoin('dn_return_hdr','dn_return_hdr.return_number','dn_return_det.return_number')
