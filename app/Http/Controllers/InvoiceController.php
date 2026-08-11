@@ -1888,12 +1888,14 @@ DB::raw("
     $capacityPage1 = ($printType == '12') ? 22 : 33;
 
     // ── Hitung jumlah baris ──────────────────────────────────────────────────
-    $jumlahData = DB::table('invoice_det')
-        ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
-        ->where('invoice_number', $invNumber)
-        ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
-        ->get()
-        ->count();
+   // ── Hitung jumlah baris ──────────────────────────────────────────────────
+$jumlahData = DB::table('invoice_det')
+    ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
+    ->select('article.article_code', 'article.article_desc', 'price', 'price_service')  // ← tambah ini
+    ->where('invoice_number', $invNumber)
+    ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
+    ->get()
+    ->count();
 
     $limits             = min($jumlahData, $capacityPage1);
     $data['duaHalaman'] = $jumlahData > $capacityPage1 ? 'yes' : 'no';
