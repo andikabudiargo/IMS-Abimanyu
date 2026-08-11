@@ -1964,8 +1964,8 @@ $jumlahData = DB::table('invoice_det')
 
     // ── Pilih blade ──────────────────────────────────────────────────────────
     return $printType === '12'
-        ? view('invoice.printV2', $data)   // kolom ganda
-        : view('invoice.print',   $data);  // kolom tunggal
+        ? view('invoice.print', $data)   // kolom ganda
+        : view('invoice.printV2',   $data);  // kolom tunggal
 }
 
     public function printNew(Request $request)
