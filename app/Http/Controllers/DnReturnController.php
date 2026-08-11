@@ -1184,7 +1184,7 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
             $statusPr = ['OPEN', '', 'CLOSED', 'CANCELED'];
             return "<div class='badge " . $badges[$data->status - 1] . "'>" . $statusPr[$data->status - 1] . "</div>";
         })
-      ->editColumn('replace_number', function ($data) {
+     ->editColumn('replace_number', function ($data) {
     if (!$data->replace_list) {
         return '-';
     }
@@ -1208,14 +1208,6 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
 
     return $html;
 })
-
-    return '<a href="' . route('dnReplace.show', [
-            'id' => Crypt::encryptString($data->replace_id)
-        ]) . '" target="_blank">'
-        . e($data->replace_number) .
-        '</a>';
-})
-
 ->addColumn('reconciliation', function ($data) {
 
     return '<button
