@@ -1997,10 +1997,9 @@ DB::raw("
         // dd(count($jumlahData));
         $jumlahData = count($jumlahData);
 
-       // BARU - benar
-$capacityPage1 = ($printType == '12') ? 22 : 33;
-$limits = $jumlahData <= $capacityPage1 ? $jumlahData : $capacityPage1;
-$data['duaHalaman'] = $jumlahData <= $capacityPage1 ? 'no' : 'yes';
+        $limits = $jumlahData <= 22 ? $jumlahData : 33;
+
+        $data['duaHalaman'] = $jumlahData <= 24 ? 'no' : 'yes';
 
         // dd($jumlahData);
        
