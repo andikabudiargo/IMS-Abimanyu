@@ -1836,6 +1836,125 @@ DB::raw("
     }
 
     public function print(Request $request)
+{
+    $id = Crypt::decryptString($request->id);
+
+    $data['companies'] = array(
+        "nama"   => "PT ABIMANYU SEKAR NUSANTARA",
+        "alamat" => "KP. KARANG MULYA RT 014 RW 005 DESA CIKOPO",
+        "kota"   => "KEC. BUNGURSARI KAB. PURWAKARTA JAWA BARAT",
+        "tlp"    => ""
+    );
+
+    $invHdr = DB::table('invoice_hdr')->where('id', $id)->first();
+    $data['recHdr'] = $invHdr;
+    $invNumber = $invHdr->invoice_number;
+    $data['title'] = $invNumber;
+
+    $data['totals'] = DB::select("SELECT 
+        b.dpp_lain_value, total_ppn as ppn, total_material, total_service, total_pph as pph23 
+        ,(total_material+total_service) as sub_total
+        ,((total_material+total_service+total_ppn)-total_pph) as grand_total 
+        FROM 
+        (SELECT invoice_number, sum(qty) as qty, sum(qty*price) as total_material, sum(qty*price_service) as total_service
+        from invoice_det where invoice_number = '$invNumber' group by invoice_number) a
+        left join invoice_hdr b on a.invoice_number = b.invoice_number
+    ");
+
+    $printType = '12';
+    if ($data['totals'][0]->total_material > 0 && $data['totals'][0]->total_service > 0) {
+        $printType = '12';
+    }
+    if ($data['totals'][0]->total_material > 0 && $data['totals'][0]->total_service == 0) {
+        $printType = '1';
+    }
+    if ($data['totals'][0]->total_material == 0 && $data['totals'][0]->total_service > 0) {
+        $printType = '2';
+    }
+    $data['printType'] = $printType;
+
+    // Kapasitas per halaman WAJIB match dengan blade yang dipakai
+    // printType 12 -> invoice.printV2 (kolom ganda, totalBaris=40)
+    // printType 1/2 -> invoice.print   (kolom tunggal, limitPage1=33)
+    $capacityPage1 = ($printType == '12') ? 40 : 33;
+
+    // Hitung jumlah baris dengan groupBy YANG SAMA seperti $details
+    $jumlahDataRaw = DB::table('invoice_det')
+        ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
+        ->select('article.article_code', 'article.article_desc', DB::raw('sum(qty) as qty'), 'price', 'price_service')
+        ->where('invoice_number', $invNumber)
+        ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
+        ->get();
+    $jumlahData = count($jumlahDataRaw);
+
+    $limits = $jumlahData <= $capacityPage1 ? $jumlahData : $capacityPage1;
+    $data['duaHalaman'] = $jumlahData <= $capacityPage1 ? 'no' : 'yes';
+
+    $data['details'] = DB::table('invoice_det')
+        ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
+        ->select('article.article_desc', DB::raw('sum(qty) as qty'), 'price', 'price_service')
+        ->where('invoice_number', $invNumber)
+        ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
+        ->orderBy('article.article_code')
+        ->limit($limits)
+        ->get();
+
+    $data['details2'] = DB::table('invoice_det')
+        ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
+        ->select('article.article_desc', DB::raw('sum(qty) as qty'), 'price', 'price_service')
+        ->where('invoice_number', $invNumber)
+        ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
+        ->orderBy('article.article_code')
+        ->offset($limits)
+        ->get();
+
+    $listpo = DB::select("SELECT string_agg(distinct (select po_number from sales_order_hdr where so_code = so_number),', ') as po_list from invoice_det where invoice_number = '$invNumber'");
+    $data['listpo'] = $listpo[0]->po_list;
+
+    $dataListPo = $listpo[0]->po_list;
+    $maxChar = 275;
+    if (strlen($dataListPo) > $maxChar) {
+        $dataListPo = substr($dataListPo, 0, $maxChar);
+        $arrDataListPo = explode(",", trim($dataListPo));
+        array_pop($arrDataListPo);
+        $data['listpo'] = implode(", ", $arrDataListPo) . ",dst...";
+    }
+
+    $data['terbilang'] = $this->terbilang($data['totals'][0]->grand_total);
+
+    $data['customers'] = DB::table('third_party')->where('kode', $invHdr->customer_id)->first();
+
+    $data['status'] = '1';
+    $data['no'] = 0;
+
+    $ppn = Attributes::getLastPpn($invHdr->invoice_date)['ppnValue'];
+    $data['nilaiPPN'] = $invHdr->ppn ? $invHdr->ppn : $ppn;
+    $data['nilaiPPH'] = $this->nilaiPph23;
+
+    $bulan = [
+        '01'=>'Januari','02'=>'Februari','03'=>'Maret','04'=>'April','05'=>'Mei','06'=>'Juni',
+        '07'=>'Juli','08'=>'Agustus','09'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember',
+    ];
+
+    // ✅ pakai $invHdr, bukan $header (yang tidak pernah didefinisikan)
+    $invoiceDate = $invHdr->invoice_date;
+
+    if ($invoiceDate) {
+        $invoiceDateArr = explode("-", $invoiceDate);
+        $data['tanggalHariIni'] = $invoiceDateArr[0].' '.($bulan[$invoiceDateArr[1]]).' '.$invoiceDateArr[2];
+    } else {
+        $data['tanggalHariIni'] = date('d').' '.($bulan[date('m')]).' '.date('Y');
+    }
+
+    // ✅ tukar mapping view supaya sesuai kapasitas & jumlah kolom
+    if ($printType == '12') {
+        return view('invoice.printV2', $data);
+    } else {
+        return view('invoice.print', $data);
+    }
+}
+
+    public function printOld(Request $request)
     {
         $id=Crypt::decryptString($request->id);
 
