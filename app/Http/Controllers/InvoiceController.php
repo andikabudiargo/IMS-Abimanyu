@@ -1948,9 +1948,9 @@ DB::raw("
 
     // ✅ tukar mapping view supaya sesuai kapasitas & jumlah kolom
    if ($printType == '12') {
-    return view('invoice.printV2', $data);   // material + service → kolom ganda
+    return view('invoice.print', $data);   // material + service → kolom ganda
 } else {
-    return view('invoice.print', $data);     // material-only / service-only → kolom tunggal
+    return view('invoice.printV2', $data);     // material-only / service-only → kolom tunggal
 }
 }
 
