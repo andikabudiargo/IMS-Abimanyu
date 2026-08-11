@@ -1897,7 +1897,7 @@ $jumlahData = DB::table('invoice_det')
     ->get()
     ->count();
 
-    $limits             = min($jumlahData, $capacityPage1);
+    $limits = $jumlahData; // semua item masuk halaman 1
     $data['duaHalaman'] = $jumlahData > $capacityPage1 ? 'yes' : 'no';
 
     // ── Details halaman 1 ────────────────────────────────────────────────────
