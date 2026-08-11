@@ -1202,8 +1202,7 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
         $badgeClass = $badges[$r['status']] ?? 'badge-secondary';
         $label      = $labels[$r['status']] ?? '';
         $html .= '<div class="mb-1"><a href="' . route('dnReplace.show', ['id' => Crypt::encryptString($r['id'])]) . '" target="_blank">'
-            . e($r['replace_number']) . '</a> '
-            . '<span class="badge ' . $badgeClass . '" style="font-size:9px;">' . $label . '</span></div>';
+            . e($r['replace_number']) . '</a> ';
     }
 
     return $html;
