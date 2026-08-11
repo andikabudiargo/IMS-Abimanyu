@@ -87,46 +87,43 @@ class InvoiceController extends Controller
     }
 
     public function getTableColoumn()
-    {
-        $kolom=
-        [
-            ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false], //0
-            ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number'], //1
-            ['data'=> 'status', 'name'=> 'status','title'=>'Status'], //2
-            ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date'], //3
-            ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date','visible'=>false], //4
-            ['data'=> 'period', 'name'=> 'period','title'=>'Period'], //5
-            ['data'=> 'so_number_2', 'name'=> 'so_number_2','title'=>'SO Number'], //6
-            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'], //7
-            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer'], //8
-            ['data'=> 'faktur_pajak', 'name'=> 'faktur_pajak','title'=>'Tax number'], //9   
-            // ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'], //10
-            ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP'], //10
-            ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'], //11
-            ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN'], //12
-            ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH'], //13
-            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total'], //14
-            ['data'=> 'jatuh_tempo', 'name'=> 'jatuh_tempo','title'=>'Jatuh Tempo'], //15
-            ['data'=> 'jatuh_tempo_2', 'name'=> 'jatuh_tempo_2','title'=>'Jatuh Tempo','visible'=>false], //16
-            ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date'], //17
-            ['data'=> 'voucher_date_2', 'name'=> 'voucher_date_2','title'=>'Paid Date','visible'=>false], //18
-            ['data'=> 'sending_date', 'name'=> 'sending_date','title'=>'Sending Date'], //19
-            ['data'=> 'sending_date_2', 'name'=> 'sending_date_2','title'=>'Sending Date','visible'=>false], //20
-            ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid'], //21
-            ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance'], //22
-            ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number'], //23
-            ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'], //24
-            ['data'=> 'note', 'name'=> 'note','title'=>'Note'], //25
-            ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By'], //26
-            ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At'], //27
-            ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'], //28
-            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'], //29
-            ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number'], //30
-            // ['data'=> 'updated_by', 'name'=> 'updated_by','title'=>'Updated By'],
-            // ['data'=> 'updated_at', 'name'=> 'updated_at','title'=>'Updated At']
-        ];
-        return json_encode($kolom, true);
-    }
+{
+    $kolom=
+    [
+        ['data'=> 'action', 'name'=> 'action','title'=>'action', 'orderable'=> false, 'searchable'=> false], //0
+        ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number'], //1
+        ['data'=> 'status', 'name'=> 'status','title'=>'Status'], //2
+        ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date'], //3
+        ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date','visible'=>false,'searchable'=>false], //4
+        ['data'=> 'period', 'name'=> 'period','title'=>'Period'], //5
+        ['data'=> 'so_number_2', 'name'=> 'so_number_2','title'=>'SO Number'], //6  (searchable via filterColumn)
+        ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number','searchable'=>false], //7
+        ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer'], //8  (searchable via filterColumn)
+        ['data'=> 'faktur_pajak', 'name'=> 'faktur_pajak','title'=>'Tax number'], //9   
+        ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP'], //10
+        ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'], //11
+        ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN'], //12
+        ['data'=> 'total_pph', 'name'=> 'total_pph','title'=>'PPH'], //13
+        ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total'], //14
+        ['data'=> 'jatuh_tempo', 'name'=> 'jatuh_tempo','title'=>'Jatuh Tempo','searchable'=>false], //15
+        ['data'=> 'jatuh_tempo_2', 'name'=> 'jatuh_tempo_2','title'=>'Jatuh Tempo','visible'=>false,'searchable'=>false], //16
+        ['data'=> 'voucher_date', 'name'=> 'voucher_date','title'=>'Paid Date','searchable'=>false], //17
+        ['data'=> 'voucher_date_2', 'name'=> 'voucher_date_2','title'=>'Paid Date','visible'=>false,'searchable'=>false], //18
+        ['data'=> 'sending_date', 'name'=> 'sending_date','title'=>'Sending Date'], //19
+        ['data'=> 'sending_date_2', 'name'=> 'sending_date_2','title'=>'Sending Date','visible'=>false,'searchable'=>false], //20
+        ['data'=> 'voucher_amount', 'name'=> 'voucher_amount','title'=>'Amount Paid','searchable'=>false], //21
+        ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance','searchable'=>false], //22
+        ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number','searchable'=>false], //23
+        ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'], //24
+        ['data'=> 'note', 'name'=> 'note','title'=>'Note'], //25
+        ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By','searchable'=>false], //26
+        ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At','searchable'=>false], //27
+        ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'], //28
+        ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'], //29
+        ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number'], //30  (searchable via filterColumn)
+    ];
+    return json_encode($kolom, true);
+}
 
     public function getTableColoumnDetail()
     {
@@ -1452,7 +1449,8 @@ class InvoiceController extends Controller
             DB::raw("(select (select name from users where username = z.username) from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_by"),
             DB::raw("(select to_char(approval_date::date, 'DD-MM-YYYY') from approval_history z where module_number = invoice_hdr.invoice_number order by approval_order desc limit 1) as approval_at"),
             DB::raw("(select STRING_AGG(distinct (select po_number from sales_order_hdr where so_code = so_number),',') from invoice_det a where invoice_number = invoice_hdr.invoice_number) as po_number"),
-            DB::raw("(select STRING_AGG(distinct a.dn_number, ', ' ORDER BY a.dn_number) from invoice_det a where invoice_number = invoice_hdr.invoice_number) as dn_number"),
+           DB::raw("(select json_agg(json_build_object('number', x.dn_number, 'id', (select id from delivery_hdr where delivery_number = x.dn_number))) 
+    from (select distinct dn_number from invoice_det where invoice_number = invoice_hdr.invoice_number and dn_number is not null) x) as dn_number"),
             DB::raw("case when invoice_hdr.status = '6' then (select voucher_date from kas_hdr where voucher_number = (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number)) else '' end as voucher_date"),
             DB::raw("case when invoice_hdr.status = '6' then (select to_date(voucher_date, 'DD-MM-YYYY') from kas_hdr where voucher_number = (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number)) else null end as voucher_date_2"),
             DB::raw("case when invoice_hdr.status = '6' then (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and reference = invoice_hdr.invoice_number) else '' end as voucher_number"),
@@ -1468,15 +1466,25 @@ DB::raw("
     ) as jatuh_tempo_2
 "),
             DB::raw("to_date(sending_date, 'DD-MM-YYYY') as sending_date_2"),
-            DB::raw("(select STRING_AGG(distinct a.so_number, ', ' ORDER BY a.so_number) from invoice_det a where invoice_number = invoice_hdr.invoice_number) as so_number_2")
+            DB::raw("(select json_agg(json_build_object('number', x.so_number, 'id', (select id from sales_order_hdr where so_code = x.so_number))) 
+    from (select distinct so_number from invoice_det where invoice_number = invoice_hdr.invoice_number and so_number is not null) x) as so_number_2"),
         )
-        ->orderBy('invoice_hdr.id');
+        ->orderBy('invoice_hdr.id', 'desc');
 
     $lockDateToDate = date('Y-m-d', strtotime($this->lockDate));
     $bisaEdit       = Auth::user()->can('receiving-edit');
     $bisaDelete     = Auth::user()->can('ap-delete');
 
     return Datatables::of($query)
+     ->filterColumn('customer_name', function ($query, $keyword) {
+        $query->where('third_party.nama', 'ilike', "%{$keyword}%");
+    })
+    ->filterColumn('so_number_2', function ($query, $keyword) {
+        $query->whereRaw("(select STRING_AGG(distinct a.so_number, ', ') from invoice_det a where invoice_number = invoice_hdr.invoice_number) ilike ?", ["%{$keyword}%"]);
+    })
+    ->filterColumn('dn_number', function ($query, $keyword) {
+        $query->whereRaw("(select STRING_AGG(distinct a.dn_number, ', ') from invoice_det a where invoice_number = invoice_hdr.invoice_number) ilike ?", ["%{$keyword}%"]);
+    })
         ->addColumn('action', function ($data) use ($lockDateToDate, $bisaEdit, $bisaDelete) {
             $invDate = $data->invoice_date_2 ? date('Y-m-d', strtotime($data->invoice_date_2)) : null;
             $editable = $invDate && $invDate >= $lockDateToDate;
@@ -1552,7 +1560,27 @@ DB::raw("
 
             return "<div class='badge {$badges[$idx]}'>{$statusInv[$idx]}</div>";
         })
-        ->rawColumns(['action', 'status', 'invoice_number'])
+        ->addColumn('so_number_2', function ($data) {
+    if (!$data->so_number_2) return '';
+    $items = json_decode($data->so_number_2, true);
+    $links = array_map(function ($item) {
+        if (!$item['id']) return $item['number']; // id tidak ketemu, tampilkan text biasa
+        $url = route('salesOrder.show', ['id' => Crypt::encryptString($item['id'])]); // sesuaikan nama route
+        return '<a href="'.$url.'" target="_blank">'.$item['number'].'</a>';
+    }, $items);
+    return implode(', ', $links);
+})
+->addColumn('dn_number', function ($data) {
+    if (!$data->dn_number) return '';
+    $items = json_decode($data->dn_number, true);
+    $links = array_map(function ($item) {
+        if (!$item['id']) return $item['number'];
+        $url = route('delivery.show', ['id' => Crypt::encryptString($item['id'])]); // sesuaikan nama route
+        return '<a href="'.$url.'" target="_blank">'.$item['number'].'</a>';
+    }, $items);
+    return implode(', ', $links);
+})
+        ->rawColumns(['action', 'status', 'invoice_number', 'so_number_2', 'dn_number'])
         ->make(true);
 }
 
@@ -1624,7 +1652,8 @@ DB::raw("
             ,DB::raw("to_char(COALESCE(invoice_hdr.jatuh_tempo,to_date(invoice_hdr.sending_date, 'DD-MM-YYYY') + INTERVAL '1 day' * COALESCE((SELECT top_batas_1 FROM third_party WHERE kode = invoice_hdr.customer_id), 0)), 'DD/MM/YYYY') as jatuh_tempo")
             ,DB::raw("invoice_hdr.jatuh_tempo as jatuh_tempo_2")
             ,DB::raw("to_date(sending_date, 'DD-MM-YYYY') as sending_date_2")
-            ,DB::raw("(select STRING_AGG ( distinct a.so_number,', ' ORDER BY a.so_number) as so_number from invoice_det a where invoice_number = invoice_hdr.invoice_number) as so_number_2")
+            ,DB::raw("(select json_agg(json_build_object('number', x.so_number, 'id', (select id from sales_order_hdr where so_code = x.so_number))) 
+    from (select distinct so_number from invoice_det where invoice_number = invoice_hdr.invoice_number and so_number is not null) x) as so_number_2"),
         )
         ->orderBy('invoice_hdr.id')
         ->get(); 
