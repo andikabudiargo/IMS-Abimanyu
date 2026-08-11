@@ -1835,7 +1835,7 @@ DB::raw("
         ->make(true);
     }
 
-    public function print(Request $request)
+    public function printNew(Request $request)
 {
     $id = Crypt::decryptString($request->id);
 
@@ -1954,7 +1954,7 @@ DB::raw("
 }
 }
 
-    public function printOld(Request $request)
+    public function print(Request $request)
     {
         $id=Crypt::decryptString($request->id);
 
@@ -2173,9 +2173,9 @@ DB::raw("
         $data['printType'] = $printType;
 
       if ($printType == '12') {
-    return view('invoice.printV2', $data);   // kolom ganda
+    return view('invoice.print', $data);   // kolom ganda
 } else {
-    return view('invoice.print', $data);     // kolom tunggal
+    return view('invoice.printV2', $data);     // kolom tunggal
 }
 
 
