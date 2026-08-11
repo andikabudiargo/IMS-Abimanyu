@@ -1838,6 +1838,20 @@ DB::raw("
     public function print(Request $request)
 {
     $id = Crypt::decryptString($request->id);
+    $invHdr = DB::table('invoice_hdr')->where('id', $id)->first();
+    $invNumber = $invHdr->invoice_number;
+    $t = DB::select("SELECT sum(qty*price) as tm, sum(qty*price_service) as ts, count(*) as c FROM invoice_det WHERE invoice_number = '$invNumber'");
+    dd([
+        'method' => 'print() INI YANG JALAN',
+        'invNumber' => $invNumber,
+        'total_material' => $t[0]->tm,
+        'total_service' => $t[0]->ts,
+        'jumlah_baris' => $t[0]->c,
+    ]);
+
+    public function printNew(Request $request)
+{
+    $id = Crypt::decryptString($request->id);
 
     $data['companies'] = array(
         "nama"   => "PT ABIMANYU SEKAR NUSANTARA",
