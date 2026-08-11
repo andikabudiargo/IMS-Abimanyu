@@ -533,6 +533,7 @@
             </div>
         @endif
     </div>
+     </div>
 
     {{-- @if(count($details2)>0) --}}
     @if($duaHalaman=='yes')
