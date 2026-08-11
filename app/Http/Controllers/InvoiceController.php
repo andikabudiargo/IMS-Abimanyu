@@ -1920,6 +1920,16 @@ $jumlahData = DB::table('invoice_det')
         ->offset($limits)
         ->get();
 
+        dd([
+    'printType'     => $printType,
+    'capacityPage1' => $capacityPage1,
+    'jumlahData'    => $jumlahData,
+    'limits'        => $limits,
+    'duaHalaman'    => $data['duaHalaman'],
+    'detailsCount'  => count($data['details']),
+    'firstRow'      => $data['details']->first(),
+]);
+
     // ── PO list ──────────────────────────────────────────────────────────────
     $listpo     = DB::select("SELECT string_agg(DISTINCT (SELECT po_number FROM sales_order_hdr WHERE so_code = so_number), ', ') AS po_list FROM invoice_det WHERE invoice_number = '$invNumber'");
     $dataListPo = $listpo[0]->po_list ?? '';
@@ -2010,13 +2020,18 @@ $jumlahData = DB::table('invoice_det')
     $capacityPage1 = ($printType == '12') ? 22 : 33;
 
     // Hitung jumlah baris dengan groupBy YANG SAMA seperti $details
-    $jumlahDataRaw = DB::table('invoice_det')
-        ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
-        ->select('article.article_code', 'article.article_desc', DB::raw('sum(qty) as qty'), 'price', 'price_service')
-        ->where('invoice_number', $invNumber)
-        ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
-        ->get();
-    $jumlahData = count($jumlahDataRaw);
+   $jumlahDataRaw = DB::table('invoice_det')
+    ->leftJoin('article','article.article_code','invoice_det.article_code')
+    ->select(
+        'article.article_code',
+        'article.article_desc',
+        'invoice_det.price',
+        'invoice_det.price_service'
+    )
+    ->where('invoice_number',$invNumber)
+    ->groupBy(['article.article_code','article.article_desc','invoice_det.price','invoice_det.price_service'])
+    ->get();
+$jumlahData = count($jumlahDataRaw);
 
     $limits = $jumlahData <= $capacityPage1 ? $jumlahData : $capacityPage1;
     $data['duaHalaman'] = $jumlahData <= $capacityPage1 ? 'no' : 'yes';
