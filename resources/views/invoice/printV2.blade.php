@@ -250,7 +250,7 @@
                 <tbody>
                     {{-- $limitPage1: batas baris item di sheet pertama, disamakan dengan $limits di controller --}}
                     <?php $limitPage1 = 33; ?>
-                    @foreach ($details as $val )
+                    @foreach ($details2 as $val )
                         @if(count($details)> 19)
                             <tr style="font-size: 11pt;">
                         @else
