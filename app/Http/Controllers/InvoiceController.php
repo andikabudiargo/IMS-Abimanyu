@@ -1848,6 +1848,7 @@ DB::raw("
         'total_service' => $t[0]->ts,
         'jumlah_baris' => $t[0]->c,
     ]);
+}
 
     public function printNew(Request $request)
 {
