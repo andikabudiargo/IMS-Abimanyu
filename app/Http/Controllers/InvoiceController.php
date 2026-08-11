@@ -1969,8 +1969,8 @@ DB::raw("
     //   invoice.print   = blade KOLOM GANDA  (material + service)
     //   invoice.printV2 = blade KOLOM TUNGGAL (price + total)
     return $printType === '12'
-        ? view('invoice.print',   $data)
-        : view('invoice.printV2', $data);
+        ? view('invoice.printV2',   $data)
+        : view('invoice.print', $data);
 }
 
     public function printNew(Request $request)
