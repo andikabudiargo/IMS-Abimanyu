@@ -249,7 +249,7 @@
                 </thead>
                 <tbody>
                     {{-- $limitPage1: batas baris item di sheet pertama, disamakan dengan $limits di controller --}}
-                    <?php $limitPage1 = 25; ?>
+                    <?php $limitPage1 = 30; ?>
                     @foreach ($details as $val )
                         @if(count($details)> 19)
                             <tr style="font-size: 11pt;">
