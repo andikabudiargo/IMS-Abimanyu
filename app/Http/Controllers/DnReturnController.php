@@ -57,26 +57,28 @@ class DnReturnController extends Controller
 }
 
     public function getTableColoumnDetail(){
-        $kolom=
-        [
-            ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'], //0
-            ['data'=>'dn_number','name'=>'dn_number','title'=>'Customer DN Number'], //1
-            ['data'=>'return_date','name'=>'return_date','title'=>'Return Date'],
-            ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'], //4
-            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'], //5
-            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'], //6
-            ['data'=>'article_desc','name'=>'article_desc','title'=>'Description'], //7
-            ['data'=>'qty','name'=>'qty','title'=>'Qty'], //8
-            ['data'=>'uom','name'=>'uom','title'=>'UOM'], //9
-            ['data'=>'status','name'=>'status','title'=>'Status'], //10
-            ['data'=>'note','name'=>'note','title'=>'Note'], //11
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'], //12
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'], //13
-            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'], //14
-            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'], //15
-        ];
-        return json_encode($kolom, true);
-    }
+    $kolom=
+    [
+        ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'], //0
+        ['data'=>'dn_number','name'=>'dn_number','title'=>'Customer DN Number'], //1
+        ['data'=>'return_date','name'=>'return_date','title'=>'Return Date'],
+        ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'], //4
+        ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'], //5
+        ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article Code'], //6
+        ['data'=>'article_desc','name'=>'article_desc','title'=>'Description'], //7
+        ['data'=>'qty','name'=>'qty','title'=>'Qty Return'], //8
+        ['data'=>'qty_replace','name'=>'qty_replace','title'=>'Qty Replace','orderable'=>false,'searchable'=>false], //9
+        ['data'=>'qty_remaining','name'=>'qty_remaining','title'=>'Sisa Qty','orderable'=>false,'searchable'=>false], //10
+        ['data'=>'uom','name'=>'uom','title'=>'UOM'], //11
+        ['data'=>'status','name'=>'status','title'=>'Status'], //12
+        ['data'=>'note','name'=>'note','title'=>'Note'], //13
+        ['data'=>'created_by','name'=>'created_by','title'=>'Created By'], //14
+        ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'], //15
+        ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'], //16
+        ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'], //17
+    ];
+    return json_encode($kolom, true);
+}
 
     public function index(Request $request)
     {
@@ -1097,29 +1099,21 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
             $searchCustomer ? $query->where('dn_return_hdr.customer_id', $searchCustomer) : '';
         })
         ->where('dn_return_hdr.status', '!=', '4')
-        ->select(
-            'dn_return_hdr.*',
-            'nama as customer_name',
-            // jumlah DN Replace aktif (status bukan 3=CANCELED) untuk return ini
-            DB::raw("(select count(*) from dn_replace_hdr r where r.return_number = dn_return_hdr.return_number and r.status not in ('3')) as ada_replace"),
-            // nomor DN Replace yang mau ditampilkan: prioritaskan yang masih AKTIF
-            // (status bukan CANCELED); kalau semua replace-nya sudah CANCELED,
-            // fallback ke yang paling terakhir dibuat -- supaya tetap ada jejak,
-            // bukan langsung kosong padahal riwayatnya ada.
-            DB::raw("(
-                select replace_number from dn_replace_hdr r
-                where r.return_number = dn_return_hdr.return_number
-                order by (r.status <> '3') desc, r.id desc
-                limit 1
-            ) as replace_number"),
-            DB::raw("(
-    select id
-    from dn_replace_hdr r
-    where r.return_number = dn_return_hdr.return_number
-    order by (r.status <> '3') desc, r.id desc
-    limit 1
-) as replace_id")
-        )
+      ->select(
+    'dn_return_hdr.*',
+    'nama as customer_name',
+    DB::raw("(select count(*) from dn_replace_hdr r where r.return_number = dn_return_hdr.return_number and r.status not in ('3')) as ada_replace"),
+    // ganti dari "limit 1" jadi kumpulan semua replace (json array)
+    DB::raw("(
+        select json_agg(json_build_object(
+            'id', r.id,
+            'replace_number', r.replace_number,
+            'status', r.status
+        ) order by r.id)
+        from dn_replace_hdr r
+        where r.return_number = dn_return_hdr.return_number
+    ) as replace_list")
+)
         ->orderBy('id')
         ->get();
 
@@ -1190,10 +1184,30 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
             $statusPr = ['OPEN', '', 'CLOSED', 'CANCELED'];
             return "<div class='badge " . $badges[$data->status - 1] . "'>" . $statusPr[$data->status - 1] . "</div>";
         })
-       ->editColumn('replace_number', function ($data) {
-    if (!$data->replace_number) {
+      ->editColumn('replace_number', function ($data) {
+    if (!$data->replace_list) {
         return '-';
     }
+
+    $list = json_decode($data->replace_list, true);
+    if (!$list) {
+        return '-';
+    }
+
+    $labels = ['1' => 'OPEN', '2' => 'CLOSED', '3' => 'CANCELED'];
+    $badges = ['1' => 'badge-info', '2' => 'badge-success', '3' => 'badge-danger'];
+
+    $html = '';
+    foreach ($list as $r) {
+        $badgeClass = $badges[$r['status']] ?? 'badge-secondary';
+        $label      = $labels[$r['status']] ?? '';
+        $html .= '<div class="mb-1"><a href="' . route('dnReplace.show', ['id' => Crypt::encryptString($r['id'])]) . '" target="_blank">'
+            . e($r['replace_number']) . '</a> '
+            . '<span class="badge ' . $badgeClass . '" style="font-size:9px;">' . $label . '</span></div>';
+    }
+
+    return $html;
+})
 
     return '<a href="' . route('dnReplace.show', [
             'id' => Crypt::encryptString($data->replace_id)
@@ -1521,18 +1535,18 @@ public function reconciliation(Request $request)
             }
         }      
     
-        $data = DB::table('dn_return_det')
-        ->leftJoin('dn_return_hdr','dn_return_hdr.return_number','dn_return_det.return_number')
-        ->leftJoin('article','article.article_code','dn_return_det.article_code')
-        ->leftJoin('third_party','third_party.kode','dn_return_hdr.customer_id')
-        ->where(function ($query) use ($searchDn,$searchStatus,$returnDate,$fromDate,$toDate,$searchCustomer) {
-            $searchDn ? $query->where('dn_return_hdr.return_number','ilike','%'.$searchDn.'%') : '';
-            $searchStatus ? $query->where('dn_return_hdr.status',$searchStatus) : '';
-            $returnDate ? $query->whereBetween(DB::raw("to_date(return_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $searchCustomer ? $query->where('dn_return_hdr.customer_id',$searchCustomer) : '';
-        })
-        ->where('dn_return_hdr.status','!=','4')
-        ->select('dn_return_det.*'
+      $data = DB::table('dn_return_det')
+->leftJoin('dn_return_hdr','dn_return_hdr.return_number','dn_return_det.return_number')
+->leftJoin('article','article.article_code','dn_return_det.article_code')
+->leftJoin('third_party','third_party.kode','dn_return_hdr.customer_id')
+->where(function ($query) use ($searchDn,$searchStatus,$returnDate,$fromDate,$toDate,$searchCustomer) {
+    $searchDn ? $query->where('dn_return_hdr.return_number','ilike','%'.$searchDn.'%') : '';
+    $searchStatus ? $query->where('dn_return_hdr.status',$searchStatus) : '';
+    $returnDate ? $query->whereBetween(DB::raw("to_date(return_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+    $searchCustomer ? $query->where('dn_return_hdr.customer_id',$searchCustomer) : '';
+})
+->where('dn_return_hdr.status','!=','4')
+->select('dn_return_det.*'
     ,'article_alternative_code'
     ,'article.article_desc'
     ,'dn_return_hdr.status'
@@ -1542,19 +1556,45 @@ public function reconciliation(Request $request)
     ,'dn_return_hdr.dn_number'
     ,'dn_return_hdr.so_number'
     ,'third_party.nama as customer_name'
+    ,DB::raw("(
+        select coalesce(sum(rd.qty),0)
+        from dn_replace_det rd
+        join dn_replace_hdr rh on rh.replace_number = rd.replace_number
+        where rh.return_number = dn_return_det.return_number
+          and rh.status != '3'
+          and rd.article_code = dn_return_det.article_code
+    ) as qty_replace")
+    ,DB::raw("(dn_return_det.qty - (
+        select coalesce(sum(rd.qty),0)
+        from dn_replace_det rd
+        join dn_replace_hdr rh on rh.replace_number = rd.replace_number
+        where rh.return_number = dn_return_det.return_number
+          and rh.status != '3'
+          and rd.article_code = dn_return_det.article_code
+    )) as qty_remaining")
 )
-        ->orderBy('id')
-        ->orderBy('return_number')
-        ->get(); 
-             
-        return Datatables::of($data)
-        ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
-            $statusPr = ['OPEN','','CLOSED','CANCELED'];
-            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPr[$data->status - 1]."</div>";
-        })
-        ->rawColumns(['status'])
-        ->make(true);
+->orderBy('id')
+->orderBy('return_number')
+->get();
+
+return Datatables::of($data)
+->addColumn('status', function ($data) {
+    $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-secondary'];
+    $statusPr = ['OPEN','','CLOSED','CANCELED'];
+    return "<div class='badge ".$badges[$data->status - 1]."'>".$statusPr[$data->status - 1]."</div>";
+})
+->editColumn('qty_remaining', function ($data) {
+    $val = (float) $data->qty_remaining;
+    if ($val < 0) {
+        return '<span class="text-danger">'.number_format($val).' (Over)</span>';
+    }
+    if ($val == 0) {
+        return '<span class="text-success">0 (Match)</span>';
+    }
+    return number_format($val);
+})
+->rawColumns(['status','qty_remaining'])
+->make(true);
     }
 
     /**
