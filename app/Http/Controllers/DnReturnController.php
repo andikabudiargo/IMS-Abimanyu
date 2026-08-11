@@ -1581,6 +1581,8 @@ return Datatables::of($data)
     }
     if ($val == 0) {
         return '<span class="text-success">0</span>';
+    } else {
+        return '<span class="text-primary">'.number_format($val).'</span>';
     }
     return number_format($val);
 })
