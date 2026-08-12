@@ -168,13 +168,13 @@
             margin-left : 1.4mm;
         }
 
-        .sub_div_tengah {
-            height : 529px;
-            width  : 803px;
-            position: absolute;
-            margin-left : 1.4mm;
-            bottom: 355px;
-        }
+       .sub_div_tengah {
+    height : 526px;   /* dulu 529px */
+    width  : 803px;
+    position: absolute;
+    margin-left : 1.4mm;
+    bottom: 355px;
+}
     </style>
 </head>
 <body class="Letter">
