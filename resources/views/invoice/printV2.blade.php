@@ -169,13 +169,12 @@
             margin-left : 1.4mm;
         }
 
-       .sub_div_tengah {
+      .sub_div_tengah {
     height : 524px;
     width  : 803px;
     position: absolute;
     margin-left : 1.4mm;
     bottom: 355px;
-    box-shadow: 0 2px 0 0 #0c0c0c;  /* ← garis bawah via shadow, tidak terpotong overflow */
 }
     </style>
 </head>
@@ -301,6 +300,7 @@
                     @endif
                 </tbody>
             </table>
+             <div style="position:absolute; bottom:0; left:0; width:100%; height:2px; background-color:#0c0c0c;"></div>
         </div>
 
         @if($duaHalaman=='no')
