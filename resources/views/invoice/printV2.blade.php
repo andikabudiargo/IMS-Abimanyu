@@ -87,12 +87,22 @@
 
         #tblContent{ border-collapse: collapse; }
         #tblContent  th { border: thin solid var(--line-color); }
-        #tblContent  td {
-            padding : 0px 10px 0px 10px;
-            border-bottom: none;
-            border-left: thin solid var(--line-color);
-            border-right: thin solid var(--line-color);
-        }
+       #tblContent  td {
+    padding : 4px 10px 4px 10px;   /* dulu 0px 10px 0px 10px — 4px atas-bawah = jarak antar baris */
+    border-bottom: none;
+    border-left: thin solid var(--line-color);
+    border-right: thin solid var(--line-color);
+}
+
+/* stretch tabel item khusus halaman 1 dari 2 */
+#tblContent.tbl-full { height: 100%; }
+#tblContent.tbl-full tr.spacer-row,
+#tblContent.tbl-full tr.spacer-row td { height: 100%; }   /* serap sisa ruang */
+
+.sub_div_tengah.tengah-full {
+    height: 814px;   /* 70 + 814 = 884, sama dgn 355 + 529 → posisi ATAS tabel tidak berubah */
+    bottom: 70px;    /* jarak dari dasar; turunkan/naikkan utk atur gap ke "Page 1 of 2" */
+}
         #tblContent tr:last-child{ }
 
         #tblContent1{ border-collapse: collapse; }
@@ -235,8 +245,8 @@
             </tfoot>
         </table>
 
-        <div class="sub_div_tengah">
-            <table id="tblContent" class="font-14" style="table-layout:fixed;">
+       <div class="sub_div_tengah {{ $duaHalaman=='yes' ? 'tengah-full' : '' }}">
+    <table id="tblContent" class="font-14 {{ $duaHalaman=='yes' ? 'tbl-full' : '' }}" style="table-layout:fixed;">
                 <thead>
                     <tr style="height: 35px;">
                         <th width="4.5%">No</th>
@@ -280,7 +290,13 @@
                             <td ></td>
                             <td ></td>
                         </tr>
-                    @endfor
+                   @endfor
+                    @if($duaHalaman=='yes')
+                        {{-- baris pengisi fleksibel: dorong garis penutup ke dasar halaman --}}
+                        <tr class="spacer-row">
+                            <td></td><td></td><td></td><td></td><td></td>
+                        </tr>
+                    @endif
                 </tbody>
             </table>
         </div>
