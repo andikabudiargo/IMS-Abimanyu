@@ -1885,20 +1885,23 @@ DB::raw("
     $data['printType'] = $printType;
 
     // ── Kapasitas halaman 1 ──────────────────────────────────────────────────
-    $capacityPage1 = ($printType == '12') ? 25 : 26;
+    $capacityPage1 = ($printType == '12') ? 25 : 28;
 
-    // ── Hitung jumlah baris ──────────────────────────────────────────────────
    // ── Hitung jumlah baris ──────────────────────────────────────────────────
 $jumlahData = DB::table('invoice_det')
     ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
-    ->select('article.article_code', 'article.article_desc', 'price', 'price_service')  // ← tambah ini
+    ->select('article.article_code', 'article.article_desc', 'price', 'price_service')
     ->where('invoice_number', $invNumber)
     ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
     ->get()
     ->count();
 
-    $limits = $jumlahData; // semua item masuk halaman 1
-    $data['duaHalaman'] = $jumlahData > $capacityPage1 ? 'yes' : 'no';
+  $data['duaHalaman'] = $jumlahData > $capacityPage1 ? 'yes' : 'no';
+
+// $limits = jumlah item yg masuk halaman 1
+// Kalau 1 halaman: ambil semua tapi max $capacityPage1 supaya ada sisa slot kosong
+// Kalau 2 halaman: ambil $capacityPage1 saja untuk halaman 1
+$limits = $data['duaHalaman'] === 'yes' ? $capacityPage1 : min($jumlahData, $capacityPage1);
 
     // ── Details halaman 1 ────────────────────────────────────────────────────
     $data['details'] = DB::table('invoice_det')
