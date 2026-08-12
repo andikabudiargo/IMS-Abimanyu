@@ -5,6 +5,8 @@
     <title>{{ $title }}</title>
     <style type="text/css">
         @page { margin: 0; size: A4; }
+        body.Letter .sheet { width: 215mm; height: 300mm }
+        body.Letter.landscape .sheet { width: 297mm; height: 215mm }
         * { box-sizing: border-box; font-family: Calibri, Arial, Helvetica, sans-serif; }
         body { margin: 0; }
         .arial { font-family: Arial, Helvetica, sans-serif; }
@@ -43,9 +45,9 @@
             }
         }
 
-        @media print {
-            .sheet { height: 297mm; overflow: hidden; }
-        }
+       @media print {
+    .sheet { overflow: hidden; }
+}
 
         @media print {
             .hide-print { display: none; }
@@ -111,7 +113,7 @@
         .footnote { font-size: 10pt; }
     </style>
 </head>
-<body>
+<body class="Letter">
     <div class="row hide-print" style="margin-left:20px;margin-top:20px">
         <div class="col-md-12">
             <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
