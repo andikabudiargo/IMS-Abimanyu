@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>{{ $title }}</title>
     <style type="text/css">
-        @page { margin: 0; }
-         body { margin: 0 }
+        @page { margin: 0 }
+        body { margin: 0 }
             .sheet {
             margin: 0;
             overflow: hidden;
@@ -35,31 +35,8 @@
         .sheet.padding-20mm { padding: 20mm }
         .sheet.padding-25mm { padding: 25mm }
         .sheet.padding-8mm { padding: 8mm }
-        .arial { font-family: Arial, Helvetica, sans-serif; }
 
-        :root { --line-color: #0c0c0c; }
-
-        /* ── Halaman ─────────────────────────────────────────────── */
-        /* Tiap .sheet = satu halaman A4 penuh, disusun sbg flex-column
-           supaya area tabel bisa flex:1 (mengisi sisa) dan blok bawah
-           menempel di dasar tanpa position:absolute. */
-       .sheet {
-    padding: 5mm 8mm;
-    margin: 0;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    page-break-after: always;
-    page-break-inside: avoid;
-}
-        .sheet:last-child { page-break-after: auto; }
-
-        /* Cegah tabel & baris pecah antar halaman saat print */
-        #tblContent, #tblContent2 { page-break-inside: auto; }
-        #tblContent tr, #tblContent2 tr { page-break-inside: avoid; }
-        #tblContent thead { display: table-header-group; }
-
-         /** For screen preview **/
+        /** For screen preview **/
         @media screen {
             body { background: #e0e0e0 }
             .sheet {
@@ -69,70 +46,215 @@
             }
         }
 
-   @media print {
-    body.A3.landscape { width: 420mm }
-    body.A3, body.A4.landscape { width: 297mm }
-    body.A4, body.A5.landscape { width: 210mm }
-    body.A5 { width: 148mm }
-    .hide-print { display: none; }   /* ← tambahkan ini */
-}
-        /* ── Kop / header (diulang tiap halaman) ─────────────────── */
-        .kop img { width: 20%; }
-        .kop p { margin: 6px 0 8px; padding: 0 2px; font-size: 11pt; }
+        /** Fix for Chrome issue #273306 **/
+        @media print {
+            body.A3.landscape { width: 420mm }
+            body.A3, body.A4.landscape { width: 297mm }
+            body.A4, body.A5.landscape { width: 210mm }
+            body.A5                    { width: 148mm }
 
-        .info-inv { width: 100%; border-collapse: collapse; }
-        .info-inv td { border: 1px solid var(--line-color); padding: 3px 5px; }
+           
+        }
 
-        /* ── Tabel item ──────────────────────────────────────────── */
-        /* Area tabel tumbuh mengisi sisa tinggi halaman (flex:1). */
-        .area-tabel { flex: 1 1 auto; display: flex; }
+        .putih{
+            color:white;
+        }
 
-        #tblContent {
+        .header, .header-space{
+                height: 125px;
+        }
+
+        .footer, .footer-space {
+                height: 170px;
+        }
+        
+        .header {
+            position: fixed;
+            top: 0;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+        }
+
+        :root {
+            /*half black*/
+            /* --line-color: rgba(0, 0, 0, 0.8); */
+            --line-color: rgba(0, 0, 0);
+        }
+
+        @media print {
+            header, footer {
+                position: fixed;
+                top: 0;
+            }
+            
+            footer {
+                position: fixed;
+                bottom: 0;
+            }
+
+            @page :footer {
+                display: none
+            }
+            @page :header {
+                display: none
+            }
+
+            .tanpa-padding{
+                padding:0px;
+            }
+
+            .hide-print {
+                display: none;
+            }
+
+
+            .putih1{
+                color:white !important;
+            }
+
+            .fprint p{
+                color:white !important;
+            }
+
+        }
+        
+        * {
+            font-family: Calibri,Arial, Helvetica, sans-serif;
+            /* font-family: Arial, Helvetica, sans-serif; */
+        }
+
+        table{
+            font-family: Calibri,Arial, Helvetica, sans-serif;
+            /* font-family: Arial, Helvetica, sans-serif; */
+        }
+
+        .arial{
+            font-family: Arial, Helvetica, sans-serif;
+            /* font-family: Arial, Helvetica, sans-serif; */
+        }
+        
+        table {
             width: 100%;
+        }
+
+        #tblContent{
+            /* border: thin solid var(--line-color); */
             border-collapse: collapse;
-            border-bottom: 2px solid var(--line-color);  /* garis penutup bawah */
-            table-layout: fixed;
         }
-        #tblContent th { border: 1px solid var(--line-color); padding: 4px; }
-        #tblContent td {
-            padding: 3px 10px;
-            border-left: 1px solid var(--line-color);
-            border-right: 1px solid var(--line-color);
-        }
-        /* Baris terakhir juga digaris bawah, jaga-jaga */
-        #tblContent tbody tr:last-child td { border-bottom: 2px solid var(--line-color); }
 
-        /* ── Blok totals (hanya halaman terakhir) ────────────────── */
-        .blok-bawah { flex: 0 0 auto; margin-top: 4px; }
-
-        #tblTotal { width: 100%; border-collapse: collapse; border: 1px solid var(--line-color); table-layout: fixed; }
-        #tblTotal td { padding: 2px 10px; border: 1px solid var(--line-color); }
-
-        /* Tabel totals — lebar penuh menyamai tabel item */
-        #tblContent2 {
-            width: 100%;
+        #tblContent  th {
             border: thin solid var(--line-color);
-            border-collapse: collapse;
-            table-layout: fixed;
         }
-        #tblContent2 th { border: thin solid var(--line-color); }
-        #tblContent2 td {
-            padding: 0px 10px;
+
+        #tblContent  td {
+            padding : 0px 10px 0px 10px;
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
+            /* height: 25px; */
         }
-        /* Kolom label & nilai totals: nowrap, lebar cukup agar teks tidak terpotong */
-        #tblContent2 td.lbl-total { white-space: nowrap; width: 22%; padding-left: 6px; padding-right: 4px; }
-        #tblContent2 td.val-total { white-space: nowrap; width: 16%; padding-left: 6px; padding-right: 6px; }
-        #tblContent2 tr:last-child {
+
+        #tblContent tr:last-child{
+            /* border-bottom: thin solid var(--line-color);
+            border-left: thin solid var(--line-color);
+            border-right: thin solid var(--line-color); */
+        }
+
+        #tblContent1{
+            /* border: thin solid var(--line-color); */
+            border-collapse: collapse;
+        }
+
+        #tblContent1  td {
+            /* padding : 3px 10px 3px 10px;
+            border-bottom: none;
+            border-left: thin solid var(--line-color);
+            border-top: thin solid var(--line-color);
+            border-right: thin solid var(--line-color); */
+        }
+
+
+        .tableHeader td{
+            padding-bottom: 0px;
+            padding-top: 0px;
+        }
+
+        .font-12{
+            /* font-size:12pt; */
+            font-size: medium;
+        }
+
+        .font-14{
+            /* font-size:14pt; */
+            font-size: medium;
+        }
+
+        .font-13{
+            font-size:11pt;
+            /* font-size: medium; */
+        }
+
+        .font-16{
+            font-size:16pt;
+            /* font-size: medium; */
+        }
+
+        .font-small{
+            font-size: small;
+        }
+
+        .tanpa-padding{
+            padding:0px;
+        }
+
+        .huruf-tebal{
+            font-weight: bold;
+        }
+
+        #tblContent2{
+            border: thin solid var(--line-color);
+            border-collapse: collapse;
+        }
+
+        #tblContent2  th {
+            border: thin solid var(--line-color);
+        }
+
+        #tblContent2  td {
+            padding : 0px 10px 0px 10px;
+            border-bottom: none;
+            border-left: thin solid var(--line-color);
+            border-right: thin solid var(--line-color);
+            /* height: 25px; */
+        }
+
+        #tblContent2 tr:last-child{
             border-bottom: thin solid var(--line-color);
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
         }
 
-        .catatan { font-size: 11pt; }
-        .footnote { font-size: 10pt; }
+        .sub_div {
+            position: absolute;
+            /* margin-right: 8mm; */
+            bottom: 18px;
+            background-color:white;
+            width  : 803px;
+            margin-left : 1.4mm;
+        }
+
+        .sub_div_tengah {
+            /* border : thin solid var(--line-color); */
+            height : 529px;
+            width  : 803px;
+            position: absolute;
+            margin-left : 1.4mm;
+            bottom: 355px;
+        }
+
     </style>
 </head>
 <body class="Letter">
@@ -141,225 +263,212 @@
             <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
         </div>
     </div>
+    <div class="sheet" style="padding:5mm 8mm 5mm 8mm">
+        <table>
+            <thead>
+                <tr>
+                    <td>
+                        <div class="header-space">
+                            <table width="100%" class="font-13">
+                                <tr>
+                                    <td width="50%" style="padding-top:10px;padding-left:5px" >
+                                        <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 20%;"> 
+                                    </td>
+                                </tr>
+                                {{-- <tr>
+                                    <td colspan="2">
+                                        Kp. Karang Mulya RT 014 RW 005 Cikopo Bungursari Kab. Purwakarta
+                                    </td>
+                                </tr> --}}
+                            </table>
+                            <p style="margin-top:0px;margin-bottom:5px;padding:0 2px 0 2px" class="font-13">Kp. Karang Mulya RT 014 RW 005 Cikopo Bungursari Kab. Purwakarta<br>NPWP : 31.284.174.5-416.000</p>
+                        </div>
+                    </td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <table width="100%">
+                            <tr>
+                                <td width="60%" align="center" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px" >
+                                    <h2 style="margin:0px">INVOICE</h2>
+                                </td>
+                                <td style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                                    <b style="font-size:17px" >{{ $recHdr->invoice_number }}</b>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td width="60%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
+                                    <strong> Customer: </strong><br>
+                                    {{ $customers->nama }} <br>
+                                    {{ $customers->alamat_kirim_1 }} <br>
+                                    @if(strlen($customers->alamat_kirim_1)<69)
+                                    <br>
+                                    @endif
+                                    <strong>No. NPWP : </strong> {{ $customers->npwp }}</strong>
+                                </td>
+                                <td width="38%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px;font-size:12px">
+                                    <strong style="font-size:15px">PO Number : </strong>{{ $listpo }}<br>
+                                </td>
+                            </tr>
+                        </table>
+                        <div style="padding: 0 2px 0 2px">
+                        </div>                   
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                <td>
+                <div class="footer-space">
 
-    @php
-        // Kapasitas baris per halaman (terverifikasi via render A4).
-        $perHalamanPenuh    = $capacityFull ?? 33;  // halaman TANPA totals (item saja)
-        $perHalamanTerakhir = $capacityLast ?? 20;  // item maksimal jika 1 halaman + totals
-
-        $items = collect($details ?? [])->merge($details2 ?? [])->values();
-        $total = $items->count();
-
-        // PILIHAN 1: isi tiap halaman sampai penuh dengan item.
-        // Totals selalu di halaman terakhir. Jika item terakhir + totals tidak
-        // muat bersama, totals mendapat halaman sendiri (item = 0 di halaman itu).
-        $distribusi = [];
-        if ($total == 0) {
-            $distribusi[] = 0;
-        } elseif ($total <= $perHalamanTerakhir) {
-            // semua item + totals muat dalam 1 halaman
-            $distribusi[] = $total;
-        } else {
-            // Isi halaman penuh dengan item.
-            $idx = 0;
-            while ($idx < $total) {
-                $take = min($perHalamanPenuh, $total - $idx);
-                $distribusi[] = $take;
-                $idx += $take;
-            }
-            // Cek halaman terakhir: kalau item-nya > kapasitas-dengan-totals,
-            // totals tidak muat bareng → tambah halaman khusus totals.
-            if (end($distribusi) > $perHalamanTerakhir) {
-                $distribusi[] = 0;  // halaman totals-only
-            }
-        }
-
-        // Ubah distribusi jadi array koleksi item.
-        $halaman = [];
-        $mulai = 0;
-        foreach ($distribusi as $jml) {
-            $halaman[] = $items->slice($mulai, $jml)->values();
-            $mulai += $jml;
-        }
-
-        $jmlHalaman = count($halaman);
-        $nomor = 0;
-    @endphp
-
-    @foreach ($halaman as $h => $baris)
-        @php $isLast = ($h === $jmlHalaman - 1); @endphp
-        <div class="sheet">
-
-            {{-- ===== KOP + INFO INVOICE (tiap halaman) ===== --}}
-            <div class="kop" style="flex:0 0 auto;">
-                <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo">
-                <p>Kp. Karang Mulya RT 014 RW 005 Cikopo Bungursari Kab. Purwakarta<br>NPWP : 31.284.174.5-416.000</p>
-
-                <table class="info-inv">
-                    <tr>
-                        <td width="60%" align="center"><h2 style="margin:0">INVOICE</h2></td>
-                        <td><b style="font-size:17px">{{ $recHdr->invoice_number }}</b></td>
+                </div>
+                </td>
+                </tr>
+            </tfoot>
+        </table>
+        <div class="sub_div_tengah">
+            <table id="tblContent" class="font-14" style="table-layout:fixed;">
+                <thead>
+                    <tr style="height: 35px;">
+                        <th width="4.5%">No</th>
+                        <th width="51.5%" >Description</th>
+                        <th width="8.5%" align="center">Qty</th>
+                        @if($printType=='1')
+                        <th width="12%">Price</th>
+                        <th width="15%">Total</th>
+                        @else
+                        <th width="12%">Service Price</th>
+                        <th width="15%">Total Service</th>
+                        @endif
                     </tr>
-                    <tr>
-                        <td width="60%" valign="top">
-                            <strong>Customer:</strong><br>
-                            {{ $customers->nama }}<br>
-                            {{ $customers->alamat_kirim_1 }}<br>
-                            @if(strlen($customers->alamat_kirim_1) < 69)<br>@endif
-                            <strong>No. NPWP :</strong> {{ $customers->npwp }}
-                        </td>
-                        <td width="38%" valign="top" style="font-size:12px">
-                            <strong style="font-size:15px">PO Number : </strong>{{ $listpo }}
-                        </td>
-                    </tr>
-                </table>
-            </div>
-
-            {{-- ===== TABEL ITEM (flex:1, mengisi sisa) ===== --}}
-            <div class="area-tabel" style="margin-top:6px;">
-                <table id="tblContent">
-                    <thead>
-                        <tr style="height:35px;">
-                            <th width="4.5%">No</th>
-                            <th width="51.5%">Description</th>
-                            <th width="8.5%">Qty</th>
+                </thead>
+                <tbody>
+                    @foreach ($details as $val )
+                        @if(count($details)> 19)
+                            {{-- <tr style="font-size: 11pt;height:23px"> --}}
+                            <tr style="font-size: 11pt;">
+                        @else
+                            <tr style="font-size: 11pt;height:23px">
+                        @endif
+                            <td   align="center" scope="row" >{{ ++$no }}</td>
+                            <td   align="left">{{ $val->article_desc }}</td>
+                            <td   align="center">{{ fmod($val->qty, 1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
                             @if($printType=='1')
-                                <th width="12%">Price</th>
-                                <th width="15%">Total</th>
+                            <td   align="right">{{ number_format($val->price,2) }}</td>
+                            <td   align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
                             @else
-                                <th width="12%">Service Price</th>
-                                <th width="15%">Total Service</th>
+                            <td   align="right">{{ number_format($val->price_service,2) }}</td>
+                            <td   align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                             @endif
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($baris as $val)
-                            <tr style="font-size:11pt;">
-                                <td align="center">{{ ++$nomor }}</td>
-                                <td align="left">{{ $val->article_desc }}</td>
-                                <td align="center">{{ fmod($val->qty,1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
-                                @if($printType=='1')
-                                    <td align="right">{{ number_format($val->price,2) }}</td>
-                                    <td align="right">{{ number_format($val->qty*$val->price,2) }}</td>
-                                @else
-                                    <td align="right">{{ number_format($val->price_service,2) }}</td>
-                                    <td align="right">{{ number_format($val->qty*$val->price_service,2) }}</td>
-                                @endif
-                            </tr>
-                        @endforeach
-
-                        @php
-                            // Baris kosong pengisi supaya tabel penuh sampai bawah (opsi A).
-                            $kapasitas = $isLast ? $perHalamanTerakhir : $perHalamanPenuh;
-                            $kosong = max(0, $kapasitas - $baris->count());
-                        @endphp
-                        @for ($i = 0; $i < $kosong; $i++)
-                            <tr style="height:23px;">
-                                <td></td><td></td><td></td><td></td><td></td>
-                            </tr>
-                        @endfor
-                    </tbody>
-                </table>
-            </div>
-
-            {{-- ===== BLOK BAWAH ===== --}}
-            @if($isLast)
-                {{-- Totals + Note + tanda tangan: hanya halaman terakhir (struktur asli) --}}
-                <div class="blok-bawah">
-                    <table id="tblContent2">
-                        <tbody>
-                            @foreach ($totals as $val )
-                                <tr style="height:25px">
-                                    <td colspan="3" rowspan="5" style="border-bottom: 1px solid black;">
-                                        <table>
-                                            <tr>
-                                                <td style="border-right: none;border-left: none;padding-right:0px;white-space:nowrap;" valign="top"><b>Terbilang : </b></td>
-                                                <td style="border-right: none;border-left: none;padding-left:0px"><i class="arial" style="font-size: 10pt;">{{ ucwords(strtolower($terbilang)) }}</i></td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                    <td class="lbl-total" style="border: 1px solid #0c0c0c;padding-left:10px">Selling Price</td>
-                                    <td class="val-total" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
-                                </tr>
-                                <tr style="height:25px">
-                                    <td class="lbl-total" style="border: 1px solid #0c0c0c;padding-left:10px">VAT Object </td>
-                                    <td class="val-total" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->dpp_lain_value,2) }}</td>
-                                </tr>
-                                <tr style="height:25px">
-                                    <td class="lbl-total" style="border: 1px solid #0c0c0c;padding-left:10px">VAT {{ $nilaiPPN }}% </td>
-                                    <td class="val-total" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
-                                </tr>
-                                <tr style="height:25px">
-                                    <td class="lbl-total" style="border: 1px solid #0c0c0c;padding-left:10px">WHT 23</td>
-                                    <td class="val-total" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
-                                </tr>
-                                <tr style="height:25px">
-                                    <td class="lbl-total" style="border: 1px solid #0c0c0c;padding-left:10px">Total Bill</td>
-                                    <td class="val-total" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
-                                </tr>
-                            @endforeach
-                            <tr>
-                                <td class = "arial" valign="top" width="60%" colspan="3" style="border-right: 1px solid white;font-size: 11pt;white-space:nowrap;">
-                                    Note:<br>
-                                    <span style="font-size: 11pt;">
-                                    Please transfer to our account <br>
-                                    Mohon transfer ke rekening kami	<br>
-                                    Bank BCA No. Rek : <b>6785577888</b><br>
-                                    Cabang KC Purwakarta<br>
-                                    a.n PT. Abimanyu Sekar Nusantara<br><br>
-                                    Attention/ perhatian<br></span>
-                                    <span style="font-size: 9pt;">
-                                    - Faktur ini berlaku sebagai Kwitansi.<br>
-                                    - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
-                                    </span>
-                                </td>
-                                <td class="arial" valign="top" colspan="2" align="center" style="font-size: 11pt;">
-                                    <br>
-                                    Purwakarta, {{ $tanggalHariIni }} <br>
-                                    <br><br><br><br><br><br><br>
-                                    (&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Budi Mulyadi &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp)
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <table style="width:100%;">
-                        <tr>
-                            <td>
-                                <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
-                                <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
-                            </td>
-                            <td align="right" valign="top" style="white-space:nowrap;width:140px;">Page {{ $h+1 }} of {{ $jmlHalaman }}</td>
+                    @endforeach
+                    <?php $totalBaris = 30 ?>
+                    @for ($i=1;$i< $totalBaris-(count($details));$i++)
+                        {{-- @if(count($details)> 19)
+                            <tr style="height:23px">
+                        @else
+                            <tr style="height:25px">
+                        @endif --}}
+                        <tr style="height:23px">
+                            <td ></div></td>
+                            <td ></td>
+                            <td ></td>
+                            <td ></td>
+                            <td ></td>
                         </tr>
-                    </table>
-                </div>
-            @else
-                {{-- Halaman non-terakhir: hanya label halaman --}}
-                <div class="blok-bawah">
-                    <table style="width:100%;">
-                        <tr>
-                            <td></td>
-                            <td align="right" valign="top" style="white-space:nowrap;width:140px;">Page {{ $h+1 }} of {{ $jmlHalaman }}</td>
-                        </tr>
-                    </table>
-                </div>
-            @endif
-
+                    @endfor
+                </tbody>
+            </table>
         </div>
-    @endforeach
-
+        <div class="sub_div">
+            <table id="tblContent2" style="table-layout:fixed;">
+                <tbody>
+                    @foreach ($totals as $val )            
+                        <tr style="height:25px">
+                            <td colspan="3" rowspan="5" style="border-bottom: 1px solid black;">
+                                <table style="table-layout:fixed;">
+                                    <tr>
+                                        <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
+                                        <td style="border-right: none;border-left: none;padding-left:0px"><i class="arial" style="font-size: 10pt;">{{ ucwords(strtolower($terbilang)) }}</i></td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td width="10.6%" colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Selling Price</td>
+                            <td width="13.9%" colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
+                        </tr>
+                        <tr style="height:25px">
+                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT Object </td>
+                            {{-- <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">PPN 12% </td> --}}
+                            <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->dpp_lain_value,2) }}</td>
+                        </tr>
+                        <tr style="height:25px">
+                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT {{ $nilaiPPN }}% </td>
+                            {{-- <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT</td> --}}
+                            <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
+                        </tr>
+                        <tr style="height:25px">
+                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">WHT 23</td>
+                            <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
+                        </tr>
+                        <tr style="height:25px">
+                            <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total Bill</td>
+                            <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
+                        </tr>
+                    @endforeach
+                    <tr>
+                        <td class = "arial" valign="top" width="60%" colspan="3" style="border-right: 1px solid white;font-size: 11pt;">
+                            Note:<br>
+                            <span style="font-size: 11pt;">
+                            Please transfer to our account <br>	
+                            Mohon transfer ke rekening kami	<br>
+                            Bank BCA No. Rek : <b>6785577888</b><br>
+                            Cabang KC Purwakarta<br>
+                            a.n PT. Abimanyu Sekar Nusantara<br><br>
+                            Attention/ perhatian<br></span>
+                            <span style="font-size: 11pt;">
+                            - Faktur ini berlaku sebagai Kwitansi.<br>
+                            - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
+                            </span>
+                        </td>
+                        <td class="arial" valign="top" colspan="2" align="center" style="font-size: 11pt;">
+                            <br>
+                            Purwakarta, {{ $tanggalHariIni }} <br>
+                            <br><br><br><br><br><br><br>
+                            (&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp Budi Mulyadi &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp)
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
+            <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
+        </div>
+    </div>
     <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
     <script>
-        $("#cmdPrint").click(function(){
+        $("#cmdPrint").click(function(){ 
             window.print();
             window.onafterprint = function () {
                 window.close();
             }
-            window.onfocus = function () {
-                setTimeout(function () {
-                    window.close();
-                }, 200);
+            window.onfocus = function () { 
+                setTimeout(function () { 
+                    window.close(); 
+                }, 200); 
             }
         });
+        // window.onload= function () {
+        //     window.print();
+        //     window.onafterprint = function () {
+        //         window.close();
+        //     }
+        //     window.onfocus = function () { 
+        //         setTimeout(function () { 
+        //             window.close(); 
+        //         }, 200); 
+        //     }
+        // }
     </script>
 </body>
 </html>
