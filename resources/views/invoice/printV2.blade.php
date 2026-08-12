@@ -34,10 +34,15 @@
         .sheet.padding-8mm { padding: 8mm }
 
         /** For screen preview **/
-      /* Override overflow hanya untuk screen preview */
-@media screen {
-    .sheet { overflow: visible !important; }
-}
+        @media screen {
+            body { background: #e0e0e0 }
+            .sheet {
+                background: white;
+                box-shadow: 0 .5mm 2mm rgba(0,0,0,.3);
+                margin: 5mm;
+                .sheet { overflow: visible !important; }
+            }
+        }
 
         /** Fix for Chrome issue #273306 **/
         @media print {
