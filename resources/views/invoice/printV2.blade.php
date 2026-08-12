@@ -6,7 +6,7 @@
     <style type="text/css">
         @page { margin: 0 }
         body { margin: 0 }
-            .sheet {
+        .sheet {
             margin: 0;
             overflow: hidden;
             position: relative;
@@ -75,6 +75,7 @@
         .arial{ font-family: Arial, Helvetica, sans-serif; }
         table { width: 100%; }
 
+        /* ── Tabel item (#tblContent) ──────────────────────────────── */
         #tblContent{ border-collapse: collapse; }
         #tblContent  th { border: thin solid var(--line-color); }
         #tblContent  td {
@@ -83,12 +84,12 @@
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
         }
-        /* ── FIX: sebelumnya rule ini di-comment sehingga tabel item
-           tidak pernah punya garis penutup di bawah. Diaktifkan supaya
-           tabel selalu tampak sebagai satu kotak utuh (border kiri,
-           kanan, dan bawah), baik saat ditutup oleh box totals (mode
-           satu halaman) maupun saat berdiri sendiri di halaman tanpa
-           totals (halaman 1 dari 2 halaman). ── */
+        /* FIX: sebelumnya rule ini kosong/di-comment sehingga tabel item
+           tidak pernah punya garis penutup di bawah, membuat kotak tabel
+           terlihat "bocor" di kiri-kanan-bawah. Diaktifkan supaya tabel
+           selalu tampak sebagai satu kotak utuh, baik saat ditutup oleh
+           box totals (mode satu halaman) maupun saat berdiri sendiri di
+           halaman tanpa totals (halaman 1 dari 2 halaman). */
         #tblContent tr:last-child td{
             border-bottom: thin solid var(--line-color);
         }
@@ -97,9 +98,9 @@
 
         .tableHeader td{ padding-bottom: 0px; padding-top: 0px; }
 
-        /* ── FIX: .font-12 dan .font-14 sebelumnya di-override ke keyword
+        /* FIX: .font-12 dan .font-14 sebelumnya di-override ke keyword
            "medium" sehingga ukurannya identik walau nama class beda.
-           Dikembalikan ke nilai pt asli. ── */
+           Dikembalikan ke nilai pt asli. */
         .font-12{ font-size:12pt; }
         .font-14{ font-size:14pt; }
         .font-13{ font-size:11pt; }
@@ -109,6 +110,7 @@
         .tanpa-padding{ padding:0px; }
         .huruf-tebal{ font-weight: bold; }
 
+        /* ── Box totals (#tblContent2) ─────────────────────────────── */
         #tblContent2{ border: thin solid var(--line-color); border-collapse: collapse; }
         #tblContent2  th { border: thin solid var(--line-color); }
         #tblContent2  td {
@@ -147,12 +149,27 @@
         </div>
     </div>
 
-    {{-- ══════════════════════════════════════════════════════════════
-         HALAMAN 1
-         Kalau $duaHalaman=='no'  → tampilkan $details + totals (seperti semula)
-         Kalau $duaHalaman=='yes' → tampilkan $details TANPA totals
-                                     (totals pindah ke halaman 2 bersama $details2)
-         ══════════════════════════════════════════════════════════════ --}}
+    {{--
+        Ringkasan alur:
+        - $duaHalaman == 'no'  → satu halaman. $details berisi SEMUA item.
+                                  Totals + note + ttd tampil di bawah tabel item
+                                  (overlay .sub_div, posisi tetap dari bawah kertas).
+        - $duaHalaman == 'yes' → dua halaman. $details berisi item halaman 1
+                                  (dibatasi controller, idealnya konsisten ~30 baris),
+                                  $details2 berisi sisanya untuk halaman 2.
+                                  Halaman 1 TIDAK ada totals, cuma nomor halaman.
+                                  Totals + note + ttd pindah ke halaman 2.
+
+        Kapasitas baris ($totalBaris) untuk tiap tabel item HARDCODE, bukan
+        dihitung dinamis, karena jumlah baris per halaman pada sistem ini
+        sudah dibatasi tetap oleh controller (bukan bervariasi bebas).
+        Kalau nanti batas baris di controller berubah, angka $totalBaris di
+        bawah ini yang perlu disesuaikan (tinggal render lalu lihat apakah
+        baris terakhir/garis bawah tabel pas nempel ke elemen di bawahnya —
+        box totals untuk mode 'no', atau teks "Page 1 of 2" untuk mode 'yes').
+    --}}
+
+    {{-- ══════════════════ HALAMAN 1 ══════════════════ --}}
     <div class="sheet" style="padding:5mm 8mm 5mm 8mm">
         <table>
             <thead>
@@ -210,12 +227,13 @@
                 </tr>
             </tfoot>
         </table>
+
         <div class="sub_div_tengah">
             <table id="tblContent" class="font-14" style="table-layout:fixed;">
                 <thead>
                     <tr style="height: 35px;">
                         <th width="4.5%">No</th>
-                        <th width="51.5%" >Description</th>
+                        <th width="51.5%">Description</th>
                         <th width="8.5%" align="center">Qty</th>
                         @if($printType=='1')
                         <th width="12%">Price</th>
@@ -229,31 +247,30 @@
                 <tbody>
                     @foreach ($details as $val )
                         <tr style="font-size: 11pt;height:23px">
-                            <td   align="center" scope="row" >{{ ++$no }}</td>
-                            <td   align="left">{{ $val->article_desc }}</td>
-                            <td   align="center">{{ fmod($val->qty, 1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
+                            <td align="center" scope="row">{{ ++$no }}</td>
+                            <td align="left">{{ $val->article_desc }}</td>
+                            <td align="center">{{ fmod($val->qty, 1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
                             @if($printType=='1')
-                            <td   align="right">{{ number_format($val->price,2) }}</td>
-                            <td   align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
+                            <td align="right">{{ number_format($val->price,2) }}</td>
+                            <td align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
                             @else
-                            <td   align="right">{{ number_format($val->price_service,2) }}</td>
-                            <td   align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
+                            <td align="right">{{ number_format($val->price_service,2) }}</td>
+                            <td align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                             @endif
                         </tr>
                     @endforeach
 
-                    {{-- ── FIX: kapasitas pengisi baris kosong.
-                         - $duaHalaman=='no'  : totals tampil menutupi bagian bawah
-                           tabel ini (overlay sub_div), jadi kapasitas dijaga di 27
-                           supaya baris terakhir pas tertutup box totals.
-                         - $duaHalaman=='yes' : halaman ini TIDAK ada box totals yang
-                           menutupi, jadi tabel boleh (dan sebaiknya) diisi baris
-                           kosong lebih banyak supaya penuh sampai dekat footer,
-                           lalu ditutup garis bawah (lihat rule tr:last-child di atas).
-                           33 adalah kapasitas halaman-penuh-tanpa-totals yang sudah
-                           terverifikasi render A4 di template lain. ── --}}
+                    {{--
+                        - $duaHalaman=='no'  : totals menutupi bagian bawah tabel ini
+                          (overlay .sub_div), kapasitas dijaga 27 baris supaya baris
+                          terakhir pas tertutup box totals.
+                        - $duaHalaman=='yes' : halaman ini tidak ada box totals,
+                          kapasitas 33 baris supaya penuh mendekati teks "Page 1 of 2".
+                          Kalau masih ada gap atau malah numbuk teksnya, tinggal
+                          naik/turunkan angka 33 ini saja.
+                    --}}
                     <?php $totalBaris = $duaHalaman=='yes' ? 33 : 27; ?>
-                    @for ($i=1;$i< $totalBaris-(count($details));$i++)
+                    @for ($i=1; $i < $totalBaris-(count($details)); $i++)
                         <tr style="height:23px">
                             <td></td>
                             <td></td>
@@ -281,28 +298,28 @@
                                         </tr>
                                     </table>
                                 </td>
-                                <td width="10.6%" colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Selling Price</td>
-                                <td width="13.9%" colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
+                                <td width="10.6%" style="border: 1px solid #0c0c0c;padding-left:10px">Selling Price</td>
+                                <td width="13.9%" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
                             </tr>
                             <tr style="height:25px">
-                                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT Object </td>
-                                <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->dpp_lain_value,2) }}</td>
+                                <td style="border: 1px solid #0c0c0c;padding-left:10px">VAT Object </td>
+                                <td align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->dpp_lain_value,2) }}</td>
                             </tr>
                             <tr style="height:25px">
-                                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT {{ $nilaiPPN }}% </td>
-                                <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
+                                <td style="border: 1px solid #0c0c0c;padding-left:10px">VAT {{ $nilaiPPN }}% </td>
+                                <td align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
                             </tr>
                             <tr style="height:25px">
-                                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">WHT 23</td>
-                                <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
+                                <td style="border: 1px solid #0c0c0c;padding-left:10px">WHT 23</td>
+                                <td align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
                             </tr>
                             <tr style="height:25px">
-                                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total Bill</td>
-                                <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
+                                <td style="border: 1px solid #0c0c0c;padding-left:10px">Total Bill</td>
+                                <td align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
                             </tr>
                         @endforeach
                         <tr>
-                            <td class = "arial" valign="top" width="60%" colspan="3" style="border-right: 1px solid white;font-size: 11pt;">
+                            <td class="arial" valign="top" width="60%" colspan="3" style="border-right: 1px solid white;font-size: 11pt;">
                                 Note:<br>
                                 <span style="font-size: 11pt;">
                                 Please transfer to our account <br>
@@ -328,8 +345,8 @@
                 <table>
                     <tr>
                         <td>
-                            <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
-                            <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
+                            <span class="arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
+                            <span class="arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
                         </td>
                         <td align="right" valign="top" style="white-space:nowrap;width:110px;">Page 1 of 1</td>
                     </tr>
@@ -348,12 +365,7 @@
         @endif
     </div>
 
-    {{-- ══════════════════════════════════════════════════════════════
-         HALAMAN 2 — HANYA DIRENDER KALAU $duaHalaman=='yes'
-         Ini blok yang SEBELUMNYA TIDAK ADA SAMA SEKALI, sehingga
-         $details2 (sisa item setelah halaman 1 penuh) tidak pernah
-         tercetak dan tidak pernah muncul halaman kedua.
-         ══════════════════════════════════════════════════════════════ --}}
+    {{-- ══════════════════ HALAMAN 2 (hanya jika $duaHalaman=='yes') ══════════════════ --}}
     @if($duaHalaman=='yes')
         <div class="sheet" style="padding:5mm 8mm 5mm 8mm">
             <table>
@@ -412,12 +424,13 @@
                     </tr>
                 </tfoot>
             </table>
+
             <div class="sub_div_tengah">
                 <table id="tblContent" class="font-14" style="table-layout:fixed;">
                     <thead>
                         <tr style="height: 35px;">
                             <th width="4.5%">No</th>
-                            <th width="51.5%" >Description</th>
+                            <th width="51.5%">Description</th>
                             <th width="8.5%" align="center">Qty</th>
                             @if($printType=='1')
                             <th width="12%">Price</th>
@@ -431,24 +444,23 @@
                     <tbody>
                         @foreach ($details2 as $val )
                             <tr style="font-size: 11pt;height:23px">
-                                <td   align="center" scope="row" >{{ ++$no }}</td>
-                                <td   align="left">{{ $val->article_desc }}</td>
-                                <td   align="center">{{ fmod($val->qty, 1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
+                                <td align="center" scope="row">{{ ++$no }}</td>
+                                <td align="left">{{ $val->article_desc }}</td>
+                                <td align="center">{{ fmod($val->qty, 1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
                                 @if($printType=='1')
-                                <td   align="right">{{ number_format($val->price,2) }}</td>
-                                <td   align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
+                                <td align="right">{{ number_format($val->price,2) }}</td>
+                                <td align="right">{{ number_format(($val->qty*$val->price),2) }}</td>
                                 @else
-                                <td   align="right">{{ number_format($val->price_service,2) }}</td>
-                                <td   align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
+                                <td align="right">{{ number_format($val->price_service,2) }}</td>
+                                <td align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                                 @endif
                             </tr>
                         @endforeach
 
-                        {{-- Halaman kedua SELALU menampilkan totals di bawahnya,
-                             jadi kapasitasnya pakai angka yang lebih kecil (27),
-                             sama seperti halaman totals pada mode satu-halaman. ── --}}
+                        {{-- Halaman 2 SELALU menampilkan totals di bawahnya, jadi
+                             kapasitasnya sama seperti mode satu-halaman (27 baris). --}}
                         <?php $totalBaris2 = 27; ?>
-                        @for ($i=1;$i< $totalBaris2-(count($details2));$i++)
+                        @for ($i=1; $i < $totalBaris2-(count($details2)); $i++)
                             <tr style="height:23px">
                                 <td></td>
                                 <td></td>
@@ -460,6 +472,7 @@
                     </tbody>
                 </table>
             </div>
+
             <div class="sub_div">
                 <table id="tblContent2" style="table-layout:fixed;">
                     <tbody>
@@ -473,28 +486,28 @@
                                         </tr>
                                     </table>
                                 </td>
-                                <td width="10.6%" colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Selling Price</td>
-                                <td width="13.9%" colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
+                                <td width="10.6%" style="border: 1px solid #0c0c0c;padding-left:10px">Selling Price</td>
+                                <td width="13.9%" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->sub_total,2) }}</td>
                             </tr>
                             <tr style="height:25px">
-                                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT Object </td>
-                                <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->dpp_lain_value,2) }}</td>
+                                <td style="border: 1px solid #0c0c0c;padding-left:10px">VAT Object </td>
+                                <td align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->dpp_lain_value,2) }}</td>
                             </tr>
                             <tr style="height:25px">
-                                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">VAT {{ $nilaiPPN }}% </td>
-                                <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
+                                <td style="border: 1px solid #0c0c0c;padding-left:10px">VAT {{ $nilaiPPN }}% </td>
+                                <td align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->ppn,2) }}</td>
                             </tr>
                             <tr style="height:25px">
-                                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">WHT 23</td>
-                                <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
+                                <td style="border: 1px solid #0c0c0c;padding-left:10px">WHT 23</td>
+                                <td align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ $val->pph23 ? '-'.number_format($val->pph23,2):'-' }}</td>
                             </tr>
                             <tr style="height:25px">
-                                <td colspan="" style="border: 1px solid #0c0c0c;padding-left:10px">Total Bill</td>
-                                <td colspan="" align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
+                                <td style="border: 1px solid #0c0c0c;padding-left:10px">Total Bill</td>
+                                <td align="right" style="border: 1px solid #0c0c0c;padding-left:10px">{{ number_format($val->grand_total,2) }}</td>
                             </tr>
                         @endforeach
                         <tr>
-                            <td class = "arial" valign="top" width="60%" colspan="3" style="border-right: 1px solid white;font-size: 11pt;">
+                            <td class="arial" valign="top" width="60%" colspan="3" style="border-right: 1px solid white;font-size: 11pt;">
                                 Note:<br>
                                 <span style="font-size: 11pt;">
                                 Please transfer to our account <br>
@@ -520,8 +533,8 @@
                 <table>
                     <tr>
                         <td>
-                            <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
-                            <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
+                            <span class="arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
+                            <span class="arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
                         </td>
                         <td align="right" valign="top" style="white-space:nowrap;width:110px;">Page 2 of 2</td>
                     </tr>
