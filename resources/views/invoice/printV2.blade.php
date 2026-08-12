@@ -284,7 +284,7 @@
                             </tr>
                         </tbody>
                     </table>
-                    <table>
+                    <table style="width:100%;">
                         <tr>
                             <td>
                                 <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
