@@ -83,6 +83,15 @@
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
         }
+        /* ── FIX: sebelumnya rule ini di-comment sehingga tabel item
+           tidak pernah punya garis penutup di bawah. Diaktifkan supaya
+           tabel selalu tampak sebagai satu kotak utuh (border kiri,
+           kanan, dan bawah), baik saat ditutup oleh box totals (mode
+           satu halaman) maupun saat berdiri sendiri di halaman tanpa
+           totals (halaman 1 dari 2 halaman). ── */
+        #tblContent tr:last-child td{
+            border-bottom: thin solid var(--line-color);
+        }
 
         #tblContent1{ border-collapse: collapse; }
 
@@ -237,14 +246,17 @@
                         </tr>
                     @endforeach
 
-                    {{-- ── FIX: kapasitas pengisi baris kosong. Kalau halaman ini
-                         akan diikuti halaman totals terpisah ($duaHalaman=='yes'),
-                         TIDAK perlu overlay totals di halaman ini, jadi kapasitasnya
-                         disamakan dengan capacityPage1 di controller (28) supaya
-                         tidak overflow maupun terlalu kosong. Kalau totals tampil
-                         di halaman ini juga ($duaHalaman=='no'), kapasitas dikurangi
-                         (27) karena baris paling bawah akan ketutup box totals. ── --}}
-                    <?php $totalBaris = $duaHalaman=='yes' ? 28 : 27; ?>
+                    {{-- ── FIX: kapasitas pengisi baris kosong.
+                         - $duaHalaman=='no'  : totals tampil menutupi bagian bawah
+                           tabel ini (overlay sub_div), jadi kapasitas dijaga di 27
+                           supaya baris terakhir pas tertutup box totals.
+                         - $duaHalaman=='yes' : halaman ini TIDAK ada box totals yang
+                           menutupi, jadi tabel boleh (dan sebaiknya) diisi baris
+                           kosong lebih banyak supaya penuh sampai dekat footer,
+                           lalu ditutup garis bawah (lihat rule tr:last-child di atas).
+                           33 adalah kapasitas halaman-penuh-tanpa-totals yang sudah
+                           terverifikasi render A4 di template lain. ── --}}
+                    <?php $totalBaris = $duaHalaman=='yes' ? 33 : 27; ?>
                     @for ($i=1;$i< $totalBaris-(count($details));$i++)
                         <tr style="height:23px">
                             <td></td>
