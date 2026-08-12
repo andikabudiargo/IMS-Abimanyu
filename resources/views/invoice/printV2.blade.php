@@ -63,7 +63,8 @@
             --line-color: rgba(0, 0, 0);
         }
 
-        #tblContent tbody {
+        /* Garis penutup bawah tabel — di tr terakhir, bukan tbody */
+#tblContent tbody tr:last-child td {
     border-bottom: 2px solid #0c0c0c;
 }
 
