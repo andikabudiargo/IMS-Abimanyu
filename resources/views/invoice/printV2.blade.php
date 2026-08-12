@@ -17,17 +17,15 @@
         /* Tiap .sheet = satu halaman A4 penuh, disusun sbg flex-column
            supaya area tabel bisa flex:1 (mengisi sisa) dan blok bawah
            menempel di dasar tanpa position:absolute. */
-        .sheet {
-            width: 210mm;
-            min-height: 296mm;
-            padding: 5mm 8mm;
-            margin: 0;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            page-break-after: always;
-            page-break-inside: avoid;
-        }
+       .sheet {
+    padding: 5mm 8mm;
+    margin: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    page-break-after: always;
+    page-break-inside: avoid;
+}
         .sheet:last-child { page-break-after: auto; }
 
         /* Cegah tabel & baris pecah antar halaman saat print */
@@ -45,15 +43,15 @@
             }
         }
 
-       @media print {
-    .sheet { overflow: hidden; }
+   /* SEBAIKNYA — digabung jadi 1 blok */
+@media print {
+    .hide-print { display: none; }
+    .sheet { 
+        overflow: hidden; 
+        box-shadow: none; 
+        margin: 0; 
+    }
 }
-
-        @media print {
-            .hide-print { display: none; }
-            .sheet { box-shadow: none; margin: 0; }
-        }
-
         /* ── Kop / header (diulang tiap halaman) ─────────────────── */
         .kop img { width: 20%; }
         .kop p { margin: 6px 0 8px; padding: 0 2px; font-size: 11pt; }
