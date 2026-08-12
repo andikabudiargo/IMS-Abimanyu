@@ -170,14 +170,12 @@
             margin-left : 1.4mm;
         }
 
-     .sub_div_tengah {
-    height : 524px;
+      .sub_div_tengah {
+    height : 400px;
     width  : 803px;
     position: absolute;
     margin-left : 1.4mm;
     bottom: 355px;
-    outline: 2px solid #0c0c0c;        /* ← garis luar container, tidak terpotong overflow */
-    outline-offset: -1px;              /* ← masuk ke dalam supaya tidak terpotong di kiri/kanan */
 }
     </style>
 </head>
