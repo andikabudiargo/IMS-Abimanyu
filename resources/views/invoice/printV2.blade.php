@@ -120,42 +120,43 @@
 
     @php
         // Kapasitas baris per halaman (terverifikasi via render A4).
-        $perHalamanPenuh    = $capacityFull ?? 33;  // halaman TANPA totals
-        $perHalamanTerakhir = $capacityLast ?? 18;  // halaman DENGAN totals
+        $perHalamanPenuh    = $capacityFull ?? 33;  // halaman TANPA totals (item saja)
+        $perHalamanTerakhir = $capacityLast ?? 20;  // item maksimal jika 1 halaman + totals
 
         $items = collect($details ?? [])->merge($details2 ?? [])->values();
         $total = $items->count();
 
-        // Bagi item ke halaman. Halaman terakhir (yg memuat blok totals)
-        // dibatasi $perHalamanTerakhir agar totals + Note + Page tidak terpotong.
+        // PILIHAN 1: isi tiap halaman sampai penuh dengan item.
+        // Totals selalu di halaman terakhir. Jika item terakhir + totals tidak
+        // muat bersama, totals mendapat halaman sendiri (item = 0 di halaman itu).
         $distribusi = [];
-        if ($total <= $perHalamanTerakhir) {
+        if ($total == 0) {
+            $distribusi[] = 0;
+        } elseif ($total <= $perHalamanTerakhir) {
+            // semua item + totals muat dalam 1 halaman
             $distribusi[] = $total;
         } else {
+            // Isi halaman penuh dengan item.
             $idx = 0;
-            while (($total - $idx) > $perHalamanTerakhir) {
-                $remaining = $total - $idx;
-                if ($remaining <= $perHalamanPenuh) {
-                    // sisa muat 1 halaman penuh, tapi masih perlu halaman totals →
-                    // pindahkan (sisa - kapasitas terakhir) ke halaman ini
-                    $take = $remaining - $perHalamanTerakhir;
-                } else {
-                    $take = $perHalamanPenuh;
-                }
+            while ($idx < $total) {
+                $take = min($perHalamanPenuh, $total - $idx);
                 $distribusi[] = $take;
                 $idx += $take;
             }
-            $distribusi[] = $total - $idx;
+            // Cek halaman terakhir: kalau item-nya > kapasitas-dengan-totals,
+            // totals tidak muat bareng → tambah halaman khusus totals.
+            if (end($distribusi) > $perHalamanTerakhir) {
+                $distribusi[] = 0;  // halaman totals-only
+            }
         }
 
-        // Ubah distribusi (jumlah per halaman) jadi array koleksi item.
+        // Ubah distribusi jadi array koleksi item.
         $halaman = [];
         $mulai = 0;
         foreach ($distribusi as $jml) {
             $halaman[] = $items->slice($mulai, $jml)->values();
             $mulai += $jml;
         }
-        if (empty($halaman)) { $halaman[] = collect(); }
 
         $jmlHalaman = count($halaman);
         $nomor = 0;
@@ -283,7 +284,7 @@
                                     Cabang KC Purwakarta<br>
                                     a.n PT. Abimanyu Sekar Nusantara<br><br>
                                     Attention/ perhatian<br></span>
-                                    <span style="font-size: 11pt;">
+                                    <span style="font-size: 9pt;">
                                     - Faktur ini berlaku sebagai Kwitansi.<br>
                                     - Pembayaran dengan Cheque / Bilyet atau Wesel dianggap lunas setelah melalui Clearing
                                     </span>
@@ -313,7 +314,7 @@
                     <table style="width:100%;">
                         <tr>
                             <td></td>
-                            <td align="right" width="10%">Page {{ $h+1 }} of {{ $jmlHalaman }}</td>
+                            <td align="right" valign="top" style="white-space:nowrap;width:140px;">Page {{ $h+1 }} of {{ $jmlHalaman }}</td>
                         </tr>
                     </table>
                 </div>
