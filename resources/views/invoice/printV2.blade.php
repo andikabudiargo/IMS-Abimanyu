@@ -269,7 +269,7 @@
                           Kalau masih ada gap atau malah numbuk teksnya, tinggal
                           naik/turunkan angka 33 ini saja.
                     --}}
-                    <?php $totalBaris = $duaHalaman=='yes' ? 33 : 27; ?>
+                    <?php $totalBaris = $duaHalaman=='yes' ? 38 : 27; ?>
                     @for ($i=1; $i < $totalBaris-(count($details)); $i++)
                         <tr style="height:23px">
                             <td></td>
