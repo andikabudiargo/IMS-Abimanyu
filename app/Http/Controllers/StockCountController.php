@@ -364,7 +364,7 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     public function index(Request $request)
     {
         $userId = Auth::id();
-        $allowedUserIds = [58, 75, 23, 163, 176];
+        $allowedUserIds = [58, 75, 23, 163, 176, 52, 66, 152, 187, 67, 53];
         $isAcct = in_array($userId, $allowedUserIds);
         $today  = date('d-m-Y');
  
@@ -567,7 +567,7 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 // ══════════════════════════════════════════════
 public function auditListDetail(Request $request)
 {
-    $allowedUserIds = [58, 75, 23, 163, 176];
+    $allowedUserIds = [58, 75, 23, 163, 176, 52, 66, 152, 187, 67, 53];
     if (!in_array(Auth::id(), $allowedUserIds)) {
         abort(403, 'Anda tidak memiliki akses ke halaman ini.');
     }
