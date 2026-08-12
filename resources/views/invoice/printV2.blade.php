@@ -96,6 +96,11 @@
     border-right: thin solid var(--line-color);
 }
 
+/* Taruh SETELAH rule #tblContent td di atas */
+#tblContent tbody tr:last-child td {
+    border-bottom: 2px solid #0c0c0c !important;
+}
+
 /* stretch tabel item khusus halaman 1 dari 2 */
 #tblContent.tbl-full { height: 100%; }
 #tblContent.tbl-full tr.spacer-row,
@@ -136,11 +141,6 @@
         #tblContent2  td {
             padding : 0px 10px 0px 10px;
             border-bottom: none;
-            border-left: thin solid var(--line-color);
-            border-right: thin solid var(--line-color);
-        }
-        #tblContent2 tr:last-child{
-            border-bottom: thin solid var(--line-color);
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
         }
