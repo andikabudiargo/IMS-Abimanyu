@@ -17,7 +17,7 @@
            menempel di dasar tanpa position:absolute. */
         .sheet {
             width: 210mm;
-            min-height: 297mm;
+            height: 297mm;
             padding: 5mm 8mm;
             margin: 0;
             position: relative;
@@ -25,8 +25,14 @@
             flex-direction: column;
             overflow: hidden;
             page-break-after: always;
+            page-break-inside: avoid;
         }
         .sheet:last-child { page-break-after: auto; }
+
+        /* Cegah tabel & baris pecah antar halaman saat print */
+        #tblContent, #tblContent2 { page-break-inside: auto; }
+        #tblContent tr, #tblContent2 tr { page-break-inside: avoid; }
+        #tblContent thead { display: table-header-group; }
 
         /* Preview di layar */
         @media screen {
@@ -75,12 +81,12 @@
         #tblTotal { width: 100%; border-collapse: collapse; border: 1px solid var(--line-color); table-layout: fixed; }
         #tblTotal td { padding: 2px 10px; border: 1px solid var(--line-color); }
 
-        /* Tabel totals — struktur asli, layout auto agar label tidak wrap */
+        /* Tabel totals — lebar penuh menyamai tabel item */
         #tblContent2 {
             width: 100%;
             border: thin solid var(--line-color);
             border-collapse: collapse;
-            table-layout: auto;
+            table-layout: fixed;
         }
         #tblContent2 th { border: thin solid var(--line-color); }
         #tblContent2 td {
@@ -89,9 +95,9 @@
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
         }
-        /* Kolom label totals cukup lebar supaya "Selling Price" tetap 1 baris */
-        #tblContent2 td.lbl-total { white-space: nowrap; width: 120px; }
-        #tblContent2 td.val-total { width: 130px; white-space: nowrap; }
+        /* Kolom label & nilai totals: nowrap, lebar cukup agar teks tidak terpotong */
+        #tblContent2 td.lbl-total { white-space: nowrap; width: 22%; padding-left: 6px; padding-right: 4px; }
+        #tblContent2 td.val-total { white-space: nowrap; width: 16%; padding-left: 6px; padding-right: 6px; }
         #tblContent2 tr:last-child {
             border-bottom: thin solid var(--line-color);
             border-left: thin solid var(--line-color);
@@ -110,42 +116,32 @@
     </div>
 
     @php
-        // Pecah item jadi halaman-halaman.
-        // Halaman biasa (bukan terakhir) muat lebih banyak baris,
-        // halaman terakhir sisakan ruang untuk blok totals.
-        $perHalamanPenuh   = $capacityFull   ?? 34;  // kapasitas halaman tanpa totals
-        $perHalamanTerakhir= $capacityLast   ?? 24;  // kapasitas halaman dgn totals
+        // Kapasitas baris per halaman.
+        $perHalamanPenuh    = $capacityFull ?? 33;  // halaman tanpa totals
+        $sisaUntukTotals    = 9;                     // baris yg "dimakan" blok totals
+        $perHalamanTerakhir = $capacityLast ?? ($perHalamanPenuh - $sisaUntukTotals);
 
         $items = collect($details ?? [])->merge($details2 ?? [])->values();
         $total = $items->count();
 
-        // Bagi ke halaman: semua halaman kecuali terakhir pakai kapasitas penuh.
+        // Bagi item ke halaman. Tiap halaman diisi sampai $perHalamanPenuh.
+        // Blok totals selalu di halaman terakhir; kalau item terakhir + totals
+        // tidak muat, item sisanya didorong ke halaman totals tersendiri.
         $halaman = [];
-        $sisa = $total;
-        $idx = 0;
-        if ($total <= $perHalamanTerakhir) {
-            $halaman[] = $items->slice(0, $total)->values();
+        if ($total == 0) {
+            $halaman[] = collect();
+        } elseif ($total <= $perHalamanTerakhir) {
+            // Semua item + totals muat dalam 1 halaman.
+            $halaman[] = $items;
         } else {
-            // isi halaman-halaman penuh dulu, cek apakah sisa muat di halaman terakhir
-            while (true) {
-                $ambil = min($perHalamanPenuh, $sisa);
-                $tersisaSetelahIni = $sisa - $ambil;
-                // kalau setelah ambil, sisanya 0 tapi halaman ini > kapasitas terakhir,
-                // kita tetap butuh halaman terakhir terpisah utk totals
-                $halaman[] = $items->slice($idx, $ambil)->values();
-                $idx  += $ambil;
-                $sisa -= $ambil;
-                if ($sisa <= 0) break;
+            $idx = 0;
+            // Isi halaman-halaman penuh selama sisa masih > kapasitas-terakhir.
+            while (($total - $idx) > $perHalamanTerakhir) {
+                $halaman[] = $items->slice($idx, $perHalamanPenuh)->values();
+                $idx += $perHalamanPenuh;
             }
-            // Pastikan halaman terakhir tidak kepenuhan (agar totals muat).
-            $last = end($halaman);
-            if ($last->count() > $perHalamanTerakhir) {
-                // pindahkan kelebihan ke halaman baru
-                $lastKey = array_key_last($halaman);
-                $pindah  = $halaman[$lastKey]->slice($perHalamanTerakhir)->values();
-                $halaman[$lastKey] = $halaman[$lastKey]->slice(0, $perHalamanTerakhir)->values();
-                $halaman[] = $pindah;
-            }
+            // Sisa terakhir (≤ kapasitas-terakhir) jadi halaman totals.
+            $halaman[] = $items->slice($idx)->values();
         }
 
         $jmlHalaman = count($halaman);
@@ -239,7 +235,7 @@
                                     <td colspan="3" rowspan="5" style="border-bottom: 1px solid black;">
                                         <table>
                                             <tr>
-                                                <td style="border-right: none;border-left: none;padding-right:0px" width="15%" valign="top"><b>Terbilang : </b></td>
+                                                <td style="border-right: none;border-left: none;padding-right:0px;white-space:nowrap;" valign="top"><b>Terbilang : </b></td>
                                                 <td style="border-right: none;border-left: none;padding-left:0px"><i class="arial" style="font-size: 10pt;">{{ ucwords(strtolower($terbilang)) }}</i></td>
                                             </tr>
                                         </table>
@@ -294,7 +290,7 @@
                                 <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
                                 <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
                             </td>
-                            <td align="right" valign="top" style="white-space:nowrap;width:90px;">Page {{ $h+1 }} of {{ $jmlHalaman }}</td>
+                            <td align="right" valign="top" style="white-space:nowrap;width:140px;">Page {{ $h+1 }} of {{ $jmlHalaman }}</td>
                         </tr>
                     </table>
                 </div>
