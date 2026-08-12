@@ -256,7 +256,7 @@
                            lalu ditutup garis bawah (lihat rule tr:last-child di atas).
                            33 adalah kapasitas halaman-penuh-tanpa-totals yang sudah
                            terverifikasi render A4 di template lain. ── --}}
-                    <?php $totalBaris = $duaHalaman=='yes' ? 33 : 27; ?>
+                    <?php $totalBaris = $duaHalaman=='yes' ? 33 : 30; ?>
                     @for ($i=1;$i< $totalBaris-(count($details));$i++)
                         <tr style="height:23px">
                             <td></td>
@@ -455,7 +455,7 @@
                         {{-- Halaman kedua SELALU menampilkan totals di bawahnya,
                              jadi kapasitasnya pakai angka yang lebih kecil (27),
                              sama seperti halaman totals pada mode satu-halaman. ── --}}
-                        <?php $totalBaris2 = 27; ?>
+                        <?php $totalBaris2 = 30; ?>
                         @for ($i=1;$i< $totalBaris2-(count($details2));$i++)
                             <tr style="height:23px">
                                 <td></td>
