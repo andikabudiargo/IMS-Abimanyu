@@ -17,13 +17,12 @@
            menempel di dasar tanpa position:absolute. */
         .sheet {
             width: 210mm;
-            height: 297mm;
+            min-height: 296mm;
             padding: 5mm 8mm;
             margin: 0;
             position: relative;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
             page-break-after: always;
             page-break-inside: avoid;
         }
@@ -42,6 +41,10 @@
                 box-shadow: 0 .5mm 2mm rgba(0,0,0,.3);
                 margin: 5mm;
             }
+        }
+
+        @media print {
+            .sheet { height: 297mm; overflow: hidden; }
         }
 
         @media print {
@@ -116,33 +119,43 @@
     </div>
 
     @php
-        // Kapasitas baris per halaman.
-        $perHalamanPenuh    = $capacityFull ?? 33;  // halaman tanpa totals
-        $sisaUntukTotals    = 9;                     // baris yg "dimakan" blok totals
-        $perHalamanTerakhir = $capacityLast ?? ($perHalamanPenuh - $sisaUntukTotals);
+        // Kapasitas baris per halaman (terverifikasi via render A4).
+        $perHalamanPenuh    = $capacityFull ?? 33;  // halaman TANPA totals
+        $perHalamanTerakhir = $capacityLast ?? 18;  // halaman DENGAN totals
 
         $items = collect($details ?? [])->merge($details2 ?? [])->values();
         $total = $items->count();
 
-        // Bagi item ke halaman. Tiap halaman diisi sampai $perHalamanPenuh.
-        // Blok totals selalu di halaman terakhir; kalau item terakhir + totals
-        // tidak muat, item sisanya didorong ke halaman totals tersendiri.
-        $halaman = [];
-        if ($total == 0) {
-            $halaman[] = collect();
-        } elseif ($total <= $perHalamanTerakhir) {
-            // Semua item + totals muat dalam 1 halaman.
-            $halaman[] = $items;
+        // Bagi item ke halaman. Halaman terakhir (yg memuat blok totals)
+        // dibatasi $perHalamanTerakhir agar totals + Note + Page tidak terpotong.
+        $distribusi = [];
+        if ($total <= $perHalamanTerakhir) {
+            $distribusi[] = $total;
         } else {
             $idx = 0;
-            // Isi halaman-halaman penuh selama sisa masih > kapasitas-terakhir.
             while (($total - $idx) > $perHalamanTerakhir) {
-                $halaman[] = $items->slice($idx, $perHalamanPenuh)->values();
-                $idx += $perHalamanPenuh;
+                $remaining = $total - $idx;
+                if ($remaining <= $perHalamanPenuh) {
+                    // sisa muat 1 halaman penuh, tapi masih perlu halaman totals →
+                    // pindahkan (sisa - kapasitas terakhir) ke halaman ini
+                    $take = $remaining - $perHalamanTerakhir;
+                } else {
+                    $take = $perHalamanPenuh;
+                }
+                $distribusi[] = $take;
+                $idx += $take;
             }
-            // Sisa terakhir (≤ kapasitas-terakhir) jadi halaman totals.
-            $halaman[] = $items->slice($idx)->values();
+            $distribusi[] = $total - $idx;
         }
+
+        // Ubah distribusi (jumlah per halaman) jadi array koleksi item.
+        $halaman = [];
+        $mulai = 0;
+        foreach ($distribusi as $jml) {
+            $halaman[] = $items->slice($mulai, $jml)->values();
+            $mulai += $jml;
+        }
+        if (empty($halaman)) { $halaman[] = collect(); }
 
         $jmlHalaman = count($halaman);
         $nomor = 0;
