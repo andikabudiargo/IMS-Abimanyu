@@ -170,11 +170,12 @@
         }
 
        .sub_div_tengah {
-    height : 524px;   /* dulu 529px */
+    height : 524px;
     width  : 803px;
     position: absolute;
     margin-left : 1.4mm;
     bottom: 355px;
+    box-shadow: 0 2px 0 0 #0c0c0c;  /* ← garis bawah via shadow, tidak terpotong overflow */
 }
     </style>
 </head>
