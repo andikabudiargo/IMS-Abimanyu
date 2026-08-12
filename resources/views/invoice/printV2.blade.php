@@ -299,13 +299,6 @@
                 </tbody>
             </table>
         </div>
-          <div style="position:absolute; 
-                    bottom:355px; 
-                    left:1.4mm; 
-                    width:803px; 
-                    height:2px; 
-                    background-color:#0c0c0c;">
-        </div>
 
         @if($duaHalaman=='no')
             <div class="sub_div">
