@@ -69,15 +69,13 @@
             }
         }
 
-   /** Fix for Chrome issue #273306 **/
-        @media print {
-            body.A3.landscape { width: 420mm }
-            body.A3, body.A4.landscape { width: 297mm }
-            body.A4, body.A5.landscape { width: 210mm }
-            body.A5                    { width: 148mm }
-
-           
-        }
+   @media print {
+    body.A3.landscape { width: 420mm }
+    body.A3, body.A4.landscape { width: 297mm }
+    body.A4, body.A5.landscape { width: 210mm }
+    body.A5 { width: 148mm }
+    .hide-print { display: none; }   /* ← tambahkan ini */
+}
         /* ── Kop / header (diulang tiap halaman) ─────────────────── */
         .kop img { width: 20%; }
         .kop p { margin: 6px 0 8px; padding: 0 2px; font-size: 11pt; }
