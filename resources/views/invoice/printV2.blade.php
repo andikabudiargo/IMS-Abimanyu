@@ -4,11 +4,37 @@
     <meta charset="UTF-8">
     <title>{{ $title }}</title>
     <style type="text/css">
-        @page { margin: 0; size: Letter; }
-        body.Letter .sheet { width: 215mm; height: 300mm }
+        @page { margin: 0; }
+         body { margin: 0 }
+            .sheet {
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+            /* box-sizing: border-box; */
+            page-break-after: always;
+        }
+
+        /** Paper sizes **/
+        body.A3           .sheet { width: 297mm; height: 419mm }
+        body.A3.landscape .sheet { width: 420mm; height: 296mm }
+        body.A4           .sheet { width: 210mm; height: 296mm }
+        body.A4A5         .sheet { width: 210mm; height: 148mm }
+        body.A4.landscape .sheet { width: 297mm; height: 209mm }
+        body.A5           .sheet { width: 148mm; height: 209mm }
+        body.A5.landscape .sheet { width: 210mm; height: 147mm }
+        /* body.Letter           .sheet { width: 215mm; height: 296mm } */
+        body.Letter           .sheet { width: 215mm; height: 300mm }
+        /* body.Letter           .sheet { width: 230mm; height: 310mm } */
         body.Letter.landscape .sheet { width: 297mm; height: 215mm }
-        * { box-sizing: border-box; font-family: Calibri, Arial, Helvetica, sans-serif; }
-        body { margin: 0; }
+
+        /** Padding area **/
+        .sheet.padding-10mm { padding: 10mm }
+        .sheet.padding-5mm { padding: 5mm }
+        .sheet.padding-3mm { padding: 3mm }
+        .sheet.padding-15mm { padding: 15mm }
+        .sheet.padding-20mm { padding: 20mm }
+        .sheet.padding-25mm { padding: 25mm }
+        .sheet.padding-8mm { padding: 8mm }
         .arial { font-family: Arial, Helvetica, sans-serif; }
 
         :root { --line-color: #0c0c0c; }
@@ -33,25 +59,25 @@
         #tblContent tr, #tblContent2 tr { page-break-inside: avoid; }
         #tblContent thead { display: table-header-group; }
 
-        /* Preview di layar */
+         /** For screen preview **/
         @media screen {
-            body { background: #e0e0e0; }
+            body { background: #e0e0e0 }
             .sheet {
-                background: #fff;
+                background: white;
                 box-shadow: 0 .5mm 2mm rgba(0,0,0,.3);
                 margin: 5mm;
             }
         }
 
-   /* SEBAIKNYA — digabung jadi 1 blok */
-@media print {
-    .hide-print { display: none; }
-    .sheet { 
-        overflow: hidden; 
-        box-shadow: none; 
-        margin: 0; 
-    }
-}
+   /** Fix for Chrome issue #273306 **/
+        @media print {
+            body.A3.landscape { width: 420mm }
+            body.A3, body.A4.landscape { width: 297mm }
+            body.A4, body.A5.landscape { width: 210mm }
+            body.A5                    { width: 148mm }
+
+           
+        }
         /* ── Kop / header (diulang tiap halaman) ─────────────────── */
         .kop img { width: 20%; }
         .kop p { margin: 6px 0 8px; padding: 0 2px; font-size: 11pt; }
