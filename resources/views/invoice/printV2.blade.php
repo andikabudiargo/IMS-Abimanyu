@@ -112,7 +112,7 @@
         #tblContent2{ border: thin solid var(--line-color); border-collapse: collapse; }
         #tblContent2  th { border: thin solid var(--line-color); }
         #tblContent2  td {
-            padding : 1px 10px 0px 10px;
+            padding : 2px 10px 0px 10px;
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
