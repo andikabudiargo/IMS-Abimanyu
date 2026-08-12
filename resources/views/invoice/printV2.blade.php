@@ -40,7 +40,6 @@
                 background: white;
                 box-shadow: 0 .5mm 2mm rgba(0,0,0,.3);
                 margin: 5mm;
-                .sheet { overflow: visible !important; }
             }
         }
 
@@ -87,18 +86,16 @@
 
         table { width: 100%; }
 
-        #tblContent{ border-collapse: collapse; }
+       #tblContent {
+    border-collapse: collapse;
+    border-bottom: 2px solid #0c0c0c;  /* ← tambah ini */
+}
         #tblContent  th { border: thin solid var(--line-color); }
        #tblContent  td {
     padding : 3px 10px 4px 10px;   /* dulu 0px 10px 0px 10px — 4px atas-bawah = jarak antar baris */
     border-bottom: none;
     border-left: thin solid var(--line-color);
     border-right: thin solid var(--line-color);
-}
-
-/* Taruh SETELAH rule #tblContent td di atas */
-#tblContent tbody tr:last-child td {
-    border-bottom: 2px solid #0c0c0c !important;
 }
 
 /* stretch tabel item khusus halaman 1 dari 2 */
