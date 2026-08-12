@@ -112,7 +112,7 @@
         #tblContent2{ border: thin solid var(--line-color); border-collapse: collapse; }
         #tblContent2  th { border: thin solid var(--line-color); }
         #tblContent2  td {
-            padding : 2px 10px 0px 10px;
+            padding : 0px 10px 0px 10px;
             border-bottom: none;
             border-left: thin solid var(--line-color);
             border-right: thin solid var(--line-color);
@@ -228,11 +228,7 @@
                 </thead>
                 <tbody>
                     @foreach ($details as $val )
-                        @if(count($details)> 19)
-                            <tr style="font-size: 11pt;">
-                        @else
-                            <tr style="font-size: 11pt;height:23px">
-                        @endif
+                        <tr style="font-size: 11pt;height:23px">
                             <td   align="center" scope="row" >{{ ++$no }}</td>
                             <td   align="left">{{ $val->article_desc }}</td>
                             <td   align="center">{{ fmod($val->qty, 1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
@@ -256,7 +252,7 @@
                            lalu ditutup garis bawah (lihat rule tr:last-child di atas).
                            33 adalah kapasitas halaman-penuh-tanpa-totals yang sudah
                            terverifikasi render A4 di template lain. ── --}}
-                    <?php $totalBaris = $duaHalaman=='yes' ? 33 : 30; ?>
+                    <?php $totalBaris = $duaHalaman=='yes' ? 33 : 27; ?>
                     @for ($i=1;$i< $totalBaris-(count($details));$i++)
                         <tr style="height:23px">
                             <td></td>
@@ -434,11 +430,7 @@
                     </thead>
                     <tbody>
                         @foreach ($details2 as $val )
-                            @if(count($details2)> 19)
-                                <tr style="font-size: 11pt;">
-                            @else
-                                <tr style="font-size: 11pt;height:23px">
-                            @endif
+                            <tr style="font-size: 11pt;height:23px">
                                 <td   align="center" scope="row" >{{ ++$no }}</td>
                                 <td   align="left">{{ $val->article_desc }}</td>
                                 <td   align="center">{{ fmod($val->qty, 1) !== 0.0 ? number_format($val->qty,2) : number_format($val->qty) }}</td>
@@ -455,7 +447,7 @@
                         {{-- Halaman kedua SELALU menampilkan totals di bawahnya,
                              jadi kapasitasnya pakai angka yang lebih kecil (27),
                              sama seperti halaman totals pada mode satu-halaman. ── --}}
-                        <?php $totalBaris2 = 30; ?>
+                        <?php $totalBaris2 = 27; ?>
                         @for ($i=1;$i< $totalBaris2-(count($details2));$i++)
                             <tr style="height:23px">
                                 <td></td>
