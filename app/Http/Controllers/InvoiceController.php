@@ -1884,8 +1884,8 @@ DB::raw("
     }
     $data['printType'] = $printType;
 
-    // ── Kapasitas halaman 1 ──────────────────────────────────────────────────
-    $capacityPage1 = ($printType == '12') ? 25 : 28;
+  $capacityPage1 = ($printType == '12') ? 25 : 30;
+
 
    // ── Hitung jumlah baris ──────────────────────────────────────────────────
 $jumlahData = DB::table('invoice_det')
@@ -1896,7 +1896,7 @@ $jumlahData = DB::table('invoice_det')
     ->get()
     ->count();
 
-  $data['duaHalaman'] = $jumlahData > $capacityPage1 ? 'yes' : 'no';
+ $data['duaHalaman'] = $jumlahData >= $capacityPage1 ? 'yes' : 'no';
 
 // $limits = jumlah item yg masuk halaman 1
 // Kalau 1 halaman: ambil semua tapi max $capacityPage1 supaya ada sisa slot kosong
