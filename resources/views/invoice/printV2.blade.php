@@ -171,7 +171,7 @@
         }
 
       .sub_div_tengah {
-    height : 400px;
+    height : 524px;
     width  : 803px;
     position: absolute;
     margin-left : 1.4mm;
