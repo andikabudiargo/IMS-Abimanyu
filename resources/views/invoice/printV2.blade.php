@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>{{ $title }}</title>
     <style type="text/css">
-        @page { margin: 0; size: A4; }
+        @page { margin: 0; size: Letter; }
         body.Letter .sheet { width: 215mm; height: 300mm }
         body.Letter.landscape .sheet { width: 297mm; height: 215mm }
         * { box-sizing: border-box; font-family: Calibri, Arial, Helvetica, sans-serif; }
