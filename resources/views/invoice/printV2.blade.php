@@ -364,7 +364,7 @@
                             @endif
                         </tr>
                     @endforeach
-                    <?php $totalBaris = 30 ?>
+                    <?php $totalBaris = 27 ?>
                     @for ($i=1;$i< $totalBaris-(count($details));$i++)
                         {{-- @if(count($details)> 19)
                             <tr style="height:23px">
