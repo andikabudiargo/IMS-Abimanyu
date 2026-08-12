@@ -169,7 +169,7 @@
         }
 
        .sub_div_tengah {
-    height : 526px;   /* dulu 529px */
+    height : 524px;   /* dulu 529px */
     width  : 803px;
     position: absolute;
     margin-left : 1.4mm;
