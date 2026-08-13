@@ -2020,11 +2020,14 @@ private function applyAuditFilters($query, Request $request)
 {
     if ($request->filled('searchStoCode'))     $query->where('c.sto_code', $request->searchStoCode);
     if ($request->filled('searchPeriode'))     $query->where('c.periode', $request->searchPeriode);
-   if ($request->filled('searchTarget')) {
+  if ($request->filled('searchTarget')) {
         $t = $request->searchTarget;
-        $query->where(function ($q) use ($t) {
-            $q->where('m.target_ref', $t)        // mapping LOCATION langsung
-              ->orWhere('d.location_number', $t); // baris partner yang lokasi fisiknya = ini
+        // kalau lokasi ini punya family (parent/child), match SEMUA anggota family
+        $family = $this->resolveLocationFamily($t);   // parent → [parent, child1, child2, ...]
+
+        $query->where(function ($q) use ($t, $family) {
+            $q->where('m.target_ref', $t)                // mapping LOCATION dgn kode itu langsung
+              ->orWhereIn('d.location_number', $family); // baris di lokasi mana pun se-family
         });
     }
     if ($request->filled('searchArticleCode')) $query->where('d.article_code', 'ilike', '%'.$request->searchArticleCode.'%');
@@ -2129,7 +2132,10 @@ private function appendPhantomArticlesForFilters($rows, Request $request)
     // dienumerasi untuk lokasi yang benar2 relevan dengan filter aktif. ──
     if ($request->filled('searchStoCode')) $mapQuery->where('c.sto_code', $request->searchStoCode);
     if ($request->filled('searchPeriode')) $mapQuery->where('c.periode', $request->searchPeriode);
-    if ($request->filled('searchTarget'))  $mapQuery->where('m.target_ref', $request->searchTarget);
+    if ($request->filled('searchTarget')) {
+    $family = $this->resolveLocationFamily($request->searchTarget);
+    $mapQuery->whereIn('m.target_ref', $family);
+}
 
     if ($request->filled('searchDate')) {
         $parts = explode(' to ', $request->searchDate);
