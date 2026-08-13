@@ -445,6 +445,20 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 
     return [$dateFrom, $dateTo];
 }
+
+// Kumpulkan sto_dtl artikel sama di SEMUA lokasi se-family (berbasis d.location_number),
+// lintas tipe target (LOCATION & partner) dalam config yang sama.
+// P1: kode artikel sama + lokasi se-family → satu unit, qty digabung.
+private function collectFamilyDtlRowsByLocation($configId, array $family, $articleCode)
+{
+    return DB::table('sto_dtl as d')
+        ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
+        ->where('h.config_id', $configId)
+        ->whereIn('d.location_number', $family)
+        ->where('d.article_code', $articleCode)
+        ->select('d.dtl_id', 'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3')
+        ->get();
+}
  
     // ══════════════════════════════════════════════
     // AUDIT LIST
@@ -458,31 +472,34 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 
     $rawRows = $this->buildAuditRawRows($request);
 
-    $grouped = $rawRows->groupBy(function ($row) {
-        $key = $row->article_code ?: ('MANUAL-' . $row->dtl_id);
-        return $row->location_number . '|' . $key;
-    });
+   $grouped = $rawRows->groupBy(function ($row) {
+    $key = $row->article_code ?: ('MANUAL-' . $row->dtl_id);
+    return $this->resolveLocationAnchor($row->location_number) . '|' . $key;
+});
 
     $result = collect();
-   foreach ($grouped as $items) {
-        $first = $items->first();
+  foreach ($grouped as $items) {
+        $first  = $items->first();
+        $anchor = $this->resolveLocationAnchor($first->location_number); // ← BARU
+
         [$status, $qtySystem, $variance] = $this->resolveGroupStatus($items);
         $realItems = $items->filter(fn($r) => !$this->isPhantomRow($r));
 
-        // ── label lokasi fisik + jejak partner (kalau ada) ──
-        $locName      = $items->pluck('location_name')->filter()->first() ?? $first->target_name;
+        // label lokasi = PARENT/anchor (bukan child)
+        $locName = $this->resolveLocationName($anchor)
+                   ?? ($items->pluck('location_name')->filter()->first() ?? $first->target_name);
         $partnerNames = $items->pluck('partner_name')->filter()->unique()->values()->all();
 
         $result->push((object) [
-            'location_number' => $first->location_number,
+            'location_number' => $anchor,                 // ← anchor, dipakai juga utk link movement
             'target_name'     => $first->target_name,
-            'location_name'   => $locName,        // ← BARU
-            'partner_names'   => $partnerNames,   // ← BARU
+            'location_name'   => $locName,
+            'partner_names'   => $partnerNames,
             'article_code'    => $first->article_code,
             'article_desc'    => $first->article_desc,
             'uom'             => $first->uom,
             'min_package'     => $first->min_package,
-            'sto_date'        => $first->sto_date ?? null,   // ← tambahkan
+            'sto_date'        => $first->sto_date ?? null,
             'qty_counter1'    => $realItems->isEmpty() ? (float) $first->qty_counter1 : $realItems->sum('qty_counter1'),
             'qty_counter2'    => $realItems->isEmpty() ? (float) $first->qty_counter2 : $realItems->sum('qty_counter2'),
             'qty_counter3'    => $realItems->isEmpty() ? (float) $first->qty_counter3 : $realItems->sum('qty_counter3'),
@@ -554,7 +571,8 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
             $cls = (float) $row->qty_variance > 0 ? 'text-success' : ((float) $row->qty_variance < 0 ? 'text-danger' : '');
             return "<span class='{$cls}'>{$val}</span>";
         })
-        ->editColumn('count_status', function ($row) {
+     ->editColumn('count_status', function ($row) {
+    if ($row->count_status === null) return '-';   // ← child mentah / hidden
             $map = ['INCOMPLETE' => 'badge-secondary', 'NOT MATCH' => 'badge-danger', 'RECOUNT' => 'badge-warning', 'MATCH' => 'badge-success'];
             $cls = $map[$row->count_status] ?? 'badge-secondary';
             return '<span class="badge ' . $cls . '">' . $row->count_status . '</span>';
@@ -1609,15 +1627,48 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->first();
     if (!$m) return;
 
+    // Lokasi-lokasi yang dipakai baris mapping ini:
+    // - LOCATION → target_ref
+    // - partner  → semua d.location_number yang pernah diinput di mapping ini
     if ($m->target_type === 'LOCATION') {
-        $family = $this->resolveLocationFamily($m->target_ref);
-        if (count($family) > 1) {
-            $this->recalcFamilyProgress($m->config_id, $family);
-            return;
-        }
+        $usedLocations = [$m->target_ref];
+    } else {
+        $usedLocations = DB::table('sto_dtl as d')
+            ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
+            ->where('h.mapping_id', $mappingId)
+            ->whereNotNull('d.location_number')
+            ->distinct()
+            ->pluck('d.location_number')
+            ->all();
     }
 
-    $this->recalcSingleMappingProgress($m);
+    // Kumpulkan semua family unik dari lokasi-lokasi tsb.
+    // Kalau ada satu saja lokasi yang ber-family → recalc berbasis family.
+    $anchorsDone = [];
+    $ranFamily   = false;
+
+    foreach ($usedLocations as $loc) {
+        if (!$loc) continue;
+        $family = $this->resolveLocationFamily($loc);
+        if (count($family) <= 1) continue;
+
+        $anchor = $this->resolveLocationAnchor($loc);
+        if (in_array($anchor, $anchorsDone, true)) continue;
+        $anchorsDone[] = $anchor;
+
+        $this->recalcFamilyProgress($m->config_id, $family);
+        $ranFamily = true;
+    }
+
+    // Lokasi standalone (atau partner di lokasi standalone) tetap perlu skor single.
+    // Kalau SEMUA lokasi mapping ini ber-family, single tidak perlu.
+    $hasStandalone = collect($usedLocations)->contains(function ($loc) {
+        return $loc && count($this->resolveLocationFamily($loc)) <= 1;
+    });
+
+    if (!$ranFamily || $hasStandalone) {
+        $this->recalcSingleMappingProgress($m);
+    }
 }
 
 // ── perilaku LAMA, PERSIS tidak berubah — dipakai lokasi standalone & SUPPLIER/CUSTOMER ──
@@ -1684,7 +1735,9 @@ private function recalcFamilyProgress($configId, array $family)
     $stoIds = DB::table('sto_hdr')->whereIn('mapping_id', $mappingIds)->pluck('sto_id');
 
     $dtlRows = DB::table('sto_dtl as d')
-        ->whereIn('d.sto_id', $stoIds)
+        ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
+        ->where('h.config_id', $configId)
+        ->whereIn('d.location_number', $family)
         ->select('d.dtl_id', 'd.article_code', 'd.is_manual',
                  'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3')
         ->get();
@@ -2036,6 +2089,26 @@ private function buildAuditRawRows(Request $request)
     return $rows;
 }
 
+private $locationParentCache = [];
+
+// child → parent-nya; parent/standalone → dirinya sendiri
+private function resolveLocationAnchor($locationCode)
+{
+    if ($locationCode === null || $locationCode === '') return $locationCode;
+    if (array_key_exists($locationCode, $this->locationParentCache)) {
+        return $this->locationParentCache[$locationCode];
+    }
+    $loc = DB::table('stock_location_master')->where('location_code', $locationCode)->first();
+    $anchor = ($loc && !empty($loc->parent_location)) ? $loc->parent_location : $locationCode;
+    return $this->locationParentCache[$locationCode] = $anchor;
+}
+
+// Apakah lokasi ini CHILD (punya parent)?
+private function isChildLocation($locationCode)
+{
+    return $this->resolveLocationAnchor($locationCode) !== $locationCode;
+}
+
 // ══════════════════════════════════════════════
 // PHANTOM ROWS — artikel ada stok di lokasi, belum ada input STO sama sekali
 // ══════════════════════════════════════════════
@@ -2070,21 +2143,109 @@ private function appendPhantomArticlesForFilters($rows, Request $request)
         }
     }
 
-    $locationMappings = $mapQuery->get()->unique('target_ref');
+   $locationMappings = $mapQuery->get()->unique('target_ref');
     if ($locationMappings->isEmpty()) return $rows;
 
-    $countedByLocation = $rows->groupBy('location_number')
+    // counted per ANCHOR (child dilebur ke parent), supaya artikel yang sudah
+    // diinput di child manapun tidak muncul lagi sebagai phantom di parent
+    $countedByAnchor = $rows->groupBy(fn($r) => $this->resolveLocationAnchor($r->location_number))
         ->map(fn($items) => $items->pluck('article_code')->filter()
               ->map(fn($c) => strtoupper($c))->unique()->all());
 
-    $allPhantoms = collect();
+    $allPhantoms  = collect();
+    $seenAnchors  = []; // cegah enumerasi family yang sama dua kali (parent & child sama-sama jadi mapping)
+
     foreach ($locationMappings as $m) {
-        $counted = $countedByLocation->get($m->target_ref, []);
+        $anchor = $this->resolveLocationAnchor($m->target_ref);
+        if (in_array($anchor, $seenAnchors, true)) continue; // family ini sudah dienumerasi
+        $seenAnchors[] = $anchor;
+
+        $counted = $countedByAnchor->get($anchor, []);
         $periode = $m->periode ? substr($m->periode, 0, 7) : null;
-        $allPhantoms = $allPhantoms->concat($this->buildPhantomArticlesForLocation($m, $counted, $periode));
+
+        $family = $this->resolveLocationFamily($m->target_ref);
+
+        if (count($family) > 1) {
+            // ── WIP dkk: cari movement di SELURUH child+parent, distinct, anchor ke parent ──
+            $repMapping = (object) [
+                'target_ref'      => $anchor,
+                'sto_date'        => $m->sto_date ?? null,
+                'is_blind'        => $m->is_blind ?? true,
+                'counter1_user'   => $m->counter1_user,
+                'counter2_user'   => $m->counter2_user,
+                'counter3_user'   => $m->counter3_user ?? null,
+            ];
+            $famPhantoms = $this->buildPhantomArticlesForFamily($repMapping, $family, $counted, $periode);
+
+            // buildPhantomArticlesForFamily hanya isi article_code + location_number,
+            // lengkapi field yang dibutuhkan tampilan audit (desc/uom/dll) lewat helper di bawah
+            $allPhantoms = $allPhantoms->concat(
+                $this->hydratePhantomRows($famPhantoms, $repMapping)
+            );
+        } else {
+            // standalone: perilaku lama
+            $allPhantoms = $allPhantoms->concat(
+                $this->buildPhantomArticlesForLocation($m, $counted, $periode)
+            );
+        }
     }
 
     return $rows->concat($allPhantoms);
+}
+
+private function hydratePhantomRows($famPhantoms, $repMapping)
+{
+    if ($famPhantoms->isEmpty()) return collect();
+
+    $anchor       = $repMapping->target_ref;
+    $locationName = $this->resolveLocationName($anchor);
+
+    // ambil metadata artikel sekali jalan
+    $codes = $famPhantoms->pluck('article_code')->filter()->unique()->all();
+    $meta  = DB::table('article')
+        ->whereIn('article_alternative_code', $codes)
+        ->select('article_alternative_code', 'article_desc', 'uom', 'min_package')
+        ->get()->keyBy('article_alternative_code');
+
+    return $famPhantoms->map(function ($p) use ($anchor, $locationName, $repMapping, $meta) {
+        $md = $meta->get($p->article_code);
+        return (object) [
+            'dtl_id'            => 'phantom-'.$anchor.'-'.$p->article_code,
+            'target_type'       => 'LOCATION',
+            'target_ref'        => $anchor,
+            'is_blind'          => $repMapping->is_blind ?? true,
+            'sto_date'          => $repMapping->sto_date ?? null,
+            'map_counter1_user' => $repMapping->counter1_user,
+            'map_counter2_user' => $repMapping->counter2_user,
+            'map_counter3_user' => $repMapping->counter3_user ?? null,
+            'target_name'       => $locationName,
+            'location_name'     => $locationName,
+            'partner_name'      => null,
+            'sto_code'          => null,
+            'config_id'         => null,
+            'periode'           => null,
+            'article_code'      => $p->article_code,
+            'article_desc'      => $md->article_desc ?? $p->article_code,
+            'min_package'       => $md->min_package ?? null,
+            'uom'               => $md->uom ?? null,
+            'location_number'   => $anchor,       // ← anchor, jadi ikut grup parent
+            'qty_counter1'      => 0,
+            'qty_counter2'      => 0,
+            'qty_counter3'      => 0,
+            'sto_number'        => null,
+            'counter1_name' => null, 'counter1_at' => null,
+            'counter2_name' => null, 'counter2_at' => null,
+            'counter3_name' => null, 'counter3_at' => null,
+        ];
+    });
+}
+
+private function anchorForRow($row)
+{
+    $tt = $row->target_type ?? 'LOCATION';
+    return $tt === 'LOCATION'
+        ? $this->resolveLocationAnchor($row->location_number)
+        : $row->location_number;   // partner: tetap lokasi fisik, tidak dilipat ke family
 }
 
 private function resolveRealArticleCode($alternativeCode)
@@ -2170,10 +2331,11 @@ private function resolveGroupStatus($items)
         return ['MATCH', null, null];
     }
 
+    $anchorLoc = $this->resolveLocationAnchor($first->location_number); // ← BARU
+
     $qtySystem = isset($first->stock_qty)
         ? (float) $first->stock_qty
-        : (float) $this->getLastQty($first->article_code, $first->location_number, $first->sto_date);
-
+        : (float) $this->getLastQty($first->article_code, $anchorLoc, $first->sto_date); // ← anchor
     $realItems = $items->filter(fn($r) => !$this->isPhantomRow($r));
 
     if ($realItems->isEmpty()) {
@@ -2353,23 +2515,59 @@ private function syncArticleStatus($mapping, $dtl)
         return;
     }
 
-    if ($mapping->target_type === 'LOCATION') {
-        [$status, $qtySystem, $variance] = $this->resolveFamilyArticleStatus($mapping, $dtl->article_code, false, null);
-        $rows = $this->collectFamilyDtlRows($mapping, $dtl->article_code, false, null);
-        if ($rows->isNotEmpty()) {
-            DB::table('sto_dtl')->whereIn('dtl_id', $rows->pluck('dtl_id'))->update([
-                'count_status' => $status, 'qty_system' => $qtySystem, 'qty_variance' => $variance, 'updated_at' => $now,
-            ]);
-        }
-        return;
-    }
+    // basis lokasi FISIK baris ini (partner & LOCATION diperlakukan sama)
+    $loc     = $dtl->location_number;
+    $family  = $this->resolveLocationFamily($loc);
+    $anchor  = $this->resolveLocationAnchor($loc);
+    $configId = $mapping->config_id ?? DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->value('config_id');
 
-    // SUPPLIER/CUSTOMER — per baris saja, seperti perilaku asli
-    $qtySystem = $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
-    [$status, , $variance] = $this->resolveSingleRowStatus($dtl, $mapping, $qtySystem);
-    DB::table('sto_dtl')->where('dtl_id', $dtl->dtl_id)->update([
+    // qty_system = stok di lokasi (grouped kalau family) — getLastQty sudah handle
+    $qtySystem = $this->getLastQty($dtl->article_code, $anchor, $mapping->sto_date);
+
+    // kumpulkan semua baris kode sama di lokasi se-family (P1: gabung company+partner)
+    $rows = $this->collectFamilyDtlRowsByLocation($configId, $family, $dtl->article_code);
+    if ($rows->isEmpty()) $rows = collect([$dtl]);
+
+    [$status, , $variance] = $this->resolveGroupedRowsStatus($rows, $mapping, $qtySystem);
+
+    DB::table('sto_dtl')->whereIn('dtl_id', $rows->pluck('dtl_id'))->update([
         'count_status' => $status, 'qty_system' => $qtySystem, 'qty_variance' => $variance, 'updated_at' => $now,
     ]);
+}
+
+private function resolveGroupedRowsStatus($rows, $mapping, $qtySystem)
+{
+    $tolerance = $this->resolveTolerancePercent($mapping->target_plan_loc ?? 0);
+
+    if (!($mapping->is_blind ?? true)) {
+        $sum = $rows->sum(fn($r) => (float) ($r->qty_counter1 ?? $r->qty_counter2 ?? $r->qty_counter3 ?? 0));
+        $anyFilled = $rows->contains(fn($r) => $r->qty_counter1 !== null || $r->qty_counter2 !== null || $r->qty_counter3 !== null);
+        if (!$anyFilled) return ['INCOMPLETE', $qtySystem, null];
+        $variance = round($sum - $qtySystem, 2);
+        $ok = $this->withinTolerance($sum, $qtySystem, $tolerance);
+        return [$ok ? ($variance == 0 ? 'MATCH' : 'RECOUNT') : 'RECOUNT', $qtySystem, $variance];
+    }
+
+    $activeSlots = [];
+    foreach (['1', '2', '3'] as $n) {
+        if (!empty($mapping->{"counter{$n}_user"})) $activeSlots[] = $n;
+    }
+    if (empty($activeSlots)) $activeSlots = ['1', '2', '3'];
+
+    $totals = [];
+    foreach ($activeSlots as $n) {
+        $field  = "qty_counter{$n}";
+        $hasAny = $rows->contains(fn($r) => $r->{$field} !== null);
+        if (!$hasAny) return ['INCOMPLETE', $qtySystem, null];
+        $totals[$n] = (float) $rows->sum($field);
+    }
+
+    $unique = array_unique(array_map(fn($v) => round($v, 2), $totals));
+    if (count($unique) > 1) return ['NOT MATCH', $qtySystem, null];
+
+    $counted  = array_values($totals)[0];
+    $variance = round($counted - $qtySystem, 2);
+    return [$variance == 0 ? 'MATCH' : 'RECOUNT', $qtySystem, $variance];
 }
 
 }
