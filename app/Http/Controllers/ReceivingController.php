@@ -3015,6 +3015,7 @@ public function unPosting($recNumber)
 
     ->rawColumns(['status'])
     ->make(true);
+}
 
     public function print(Request $request)
     {
