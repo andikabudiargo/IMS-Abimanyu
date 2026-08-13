@@ -149,19 +149,17 @@
             border: thin solid var(--line-color);
         }
 
-        #tblContent  td {
-            padding : 0px 2px 0px 4px;
-            border-bottom: none;
-            border-left: thin solid var(--line-color);
-            border-right: thin solid var(--line-color);
-            /* height: 25px; */
-        }
+      #tblContent  td {
+    padding : 0px 2px 0px 4px;
+    border-bottom: none;
+    border-left: thin solid var(--line-color);
+    border-right: thin solid var(--line-color);
+    /* height: 25px; */
+}
 
-        #tblContent tr:last-child{
-            /* border-bottom: thin solid var(--line-color);
-            border-left: thin solid var(--line-color);
-            border-right: thin solid var(--line-color); */
-        }
+#tblContent tr:last-child td{
+    border-bottom: thin solid var(--line-color);
+}
 
         #tblContent1{
             /* border: thin solid var(--line-color); */
@@ -402,18 +400,12 @@
                             <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                         </tr>
                     @endforeach
-                    <?php $totalBaris = 40 ?>
-                   @for ($i = count($details) + 1; $i <= 22; $i++)
+                  <?php $totalBaris = $duaHalaman=='yes' ? 37 : 30; ?>
+@for ($i = count($details) + 1; $i <= $totalBaris; $i++)
     <tr style="height:21px">
-                            <td ></td>
-                            <td ></td>
-                            <td ></td>
-                            <td ></td>
-                            <td ></td>
-                            <td ></td>
-                            <td ></td>
-                        </tr>
-                    @endfor
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    </tr>
+@endfor
                 </tbody>
             </table>
         </div>
