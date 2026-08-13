@@ -836,6 +836,9 @@
         : "<div class='badge badge-pill badge-light-secondary'>No</div>";
 })
 ->addColumn('is_buffing_col', function ($data) {
+    if ($data->article_type !== 'FG') {
+        return '-';
+    }
     return $data->buffing_raw == '1'
         ? "<div class='badge badge-pill badge-light-info'>Buffing</div>"
         : "<div class='badge badge-pill badge-light-secondary'>Non Buffing</div>";
@@ -2475,6 +2478,9 @@ private function buildSummaryRow(array $p)
         : "<div class='badge badge-pill badge-light-secondary'>No</div>";
 })
 ->addColumn('is_buffing_col', function ($data) {
+    if ($data->article_type !== 'FG') {
+        return '-';
+    }
     return $data->buffing_raw == '1'
         ? "<div class='badge badge-pill badge-light-info'>Buffing</div>"
         : "<div class='badge badge-pill badge-light-secondary'>Non Buffing</div>";
