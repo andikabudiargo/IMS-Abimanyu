@@ -428,6 +428,7 @@
 }
 .label-footer { 
     font-size: 3.5pt; 
+    font-weight: 600;
     color: #555; 
     border-top: 0.2mm solid #999; 
     padding-top: 0.5mm; 
