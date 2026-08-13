@@ -743,7 +743,7 @@
     'brand',
     'article.uom',
     'quality',
-    'note',
+    'article.note',
     'article.id',
     'group_materials.name as group',
     'third_party.nama as cust',
