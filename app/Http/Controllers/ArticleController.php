@@ -826,6 +826,10 @@
     if (empty($data->coa_code)) {
         return '-';
     }
+   return $data->coa_name
+        ? e($data->coa_code) . ' - ' . e($data->coa_name)
+        : e($data->coa_code);
+})
     ->addColumn('is_marketing', function ($data) {
     return $data->marketing_raw == '1'
         ? "<div class='badge badge-pill badge-light-success'>Yes</div>"
@@ -836,10 +840,7 @@
         ? "<div class='badge badge-pill badge-light-info'>Buffing</div>"
         : "<div class='badge badge-pill badge-light-secondary'>Non Buffing</div>";
 })
-    return $data->coa_name
-        ? e($data->coa_code) . ' - ' . e($data->coa_name)
-        : e($data->coa_code);
-})
+    
     
     ->rawColumns(['action','status','is_marketing','is_buffing_col','coa_full'])
     ->make(true);
@@ -2482,6 +2483,7 @@ private function buildSummaryRow(array $p)
     if (empty($data->coa_code)) {
         return '-';
     }
+
     return $data->coa_name
         ? e($data->coa_code) . ' - ' . e($data->coa_name)
         : e($data->coa_code);
