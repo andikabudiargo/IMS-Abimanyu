@@ -1967,7 +1967,13 @@ private function applyAuditFilters($query, Request $request)
 {
     if ($request->filled('searchStoCode'))     $query->where('c.sto_code', $request->searchStoCode);
     if ($request->filled('searchPeriode'))     $query->where('c.periode', $request->searchPeriode);
-    if ($request->filled('searchTarget'))      $query->where('m.target_ref', $request->searchTarget);
+   if ($request->filled('searchTarget')) {
+        $t = $request->searchTarget;
+        $query->where(function ($q) use ($t) {
+            $q->where('m.target_ref', $t)        // mapping LOCATION langsung
+              ->orWhere('d.location_number', $t); // baris partner yang lokasi fisiknya = ini
+        });
+    }
     if ($request->filled('searchArticleCode')) $query->where('d.article_code', 'ilike', '%'.$request->searchArticleCode.'%');
     if ($request->filled('searchStoNumber'))   $query->where('h.sto_number', 'ilike', '%'.$request->searchStoNumber.'%');
 
