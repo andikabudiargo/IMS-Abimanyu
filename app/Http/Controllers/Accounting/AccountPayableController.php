@@ -166,7 +166,7 @@ class AccountPayableController extends Controller
         ['data'=> 'desc', 'name'=> 'desc','title'=>'Description'], //16
         ['data'=> 'dept', 'name'=> 'dept','title'=>'Dept','searchable'=>false,'orderable'=>false], //17
         ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'], //18
-        ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'], //19
+       ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY','searchable'=>false,'orderable'=>false], //19
         ['data'=> 'price', 'name'=> 'price','title'=>'Price'], //20
         ['data'=> 'total', 'name'=> 'total','title'=>'Total','searchable'=>false,'orderable'=>false], //21
     ];
@@ -2873,6 +2873,19 @@ class AccountPayableController extends Controller
               ->where('aid_search.rec_number', 'ilike', "%{$keyword}%");
         });
     })
+
+    ->filterColumn('article', function ($query, $keyword) {
+    $query->where('article.article_alternative_code', 'ilike', "%{$keyword}%");
+})
+->filterColumn('desc', function ($query, $keyword) {
+    $query->where('article.article_desc', 'ilike', "%{$keyword}%");
+})
+->filterColumn('uom', function ($query, $keyword) {
+    $query->where('receiving_det.uom_rec', 'ilike', "%{$keyword}%");
+})
+->filterColumn('price', function ($query, $keyword) {
+    $query->whereRaw('CAST(receiving_det.price AS TEXT) ilike ?', ["%{$keyword}%"]);
+})
 
     ->rawColumns(['action','status','ap_number','pr_number'])
     ->make(true);
