@@ -752,7 +752,7 @@
     'article.marketing as marketing_raw',
     'article.is_buffing as buffing_raw',
     'article.coa as coa_code',
-    'accounts.name as coa_name'
+    'accounts.description as coa_name'
 )
 ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
 ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
