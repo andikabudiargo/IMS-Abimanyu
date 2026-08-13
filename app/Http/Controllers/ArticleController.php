@@ -2367,7 +2367,7 @@ private function buildSummaryRow(array $p)
            ,'article_request.marketing as marketing_raw'
             ,'article_request.is_buffing as buffing_raw'
             ,'article_request.coa as coa_code'
-            ,'accounts.name as coa_name'
+            ,'accounts.description as coa_name'
             ,DB::RAW("(SELECT count(*) from user_dept where username = article_request.created_by and dept in (select dept from user_dept where username = '$username')) as bisa_approve")
             )
             ->leftJoin('group_materials', 'group_materials.code', '=', 'article_request.group_of_material')
