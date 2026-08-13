@@ -390,7 +390,6 @@
     background: #7367f0; color: #fff; font-size: 11px; cursor: pointer;
 }
 
-/* Print area (browser print) */
 @media print {
     body * { visibility: hidden !important; }
     #labelPrintArea, #labelPrintArea * { visibility: visible !important; }
@@ -399,24 +398,38 @@
 .label-sheet { display: flex; flex-wrap: wrap; }
 .label-card{
     width:30mm; height:20mm;
-    border:0.3mm solid #ccc;
+    border:0.3mm solid #000;      /* hitam solid, bukan #ccc */
     padding:1mm 1.5mm;
     display:flex; flex-direction:column; justify-content:space-between;
     overflow:visible;
     page-break-inside:avoid;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
 }
 .label-top { display: flex; align-items: center; gap: 1.5mm; flex: 1; min-height: 0; overflow: hidden; }
 .label-qr  { width: 13mm; height: 13mm; flex-shrink: 0; object-fit: contain; }
 .label-text { overflow: hidden; }
-.label-altcode { font-size: 5.5pt; font-weight: 700; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.label-altcode { 
+    font-size: 5.5pt; 
+    font-weight: 900;             /* extra bold */
+    color: #000;                  /* pure black */
+    -webkit-font-smoothing: none; /* matikan antialiasing */
+    text-shadow: none !important; 
+}
 .label-desc { 
     font-size: 4.5pt; 
-    color: #333; 
+    color: #000;
+    font-weight: 600;
     line-height: 1.2; 
-    overflow: visible;
-    word-wrap: break-word;
+    text-shadow: none !important;
 }
-.label-footer { font-size: 3.5pt; color: #888; border-top: 0.2mm solid #ddd; padding-top: 0.5mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.label-footer { 
+    font-size: 3.5pt; 
+    color: #555; 
+    border-top: 0.2mm solid #999; 
+    padding-top: 0.5mm; 
+    text-shadow: none !important;
+}
 </style>
 @endsection
 
@@ -758,12 +771,11 @@ function loadPieChartByType() {
 $(function () {
 
     // ── State BrowserPrint ──
-    var bpStatus    = 'unknown'; // 'ok' | 'err' | 'unknown'
-    var bpDevice    = null;
-    var networkIp   = localStorage.getItem('zebra_ip') || '';
-    var activePrintMethod = 'browser'; // 'browser' | 'usb' | 'network'
+    var bpStatus  = 'unknown';
+    var bpDevice  = null;
+    var activePrintMethod = 'browser';
 
-    // ── Cek BrowserPrint availability (background) ──
+    // ── Cek BrowserPrint ──
     function checkBrowserPrint(cb) {
         if (typeof BrowserPrint === 'undefined') {
             bpStatus = 'err'; cb && cb(false); return;
@@ -782,23 +794,74 @@ $(function () {
             }
         }, function() { bpStatus = 'err'; cb && cb(false); });
     }
-    // load BrowserPrint SDK
-    $.getScript('http://localhost:9101/zebra.js')
-        .done(function() { checkBrowserPrint(); })
-        .fail(function() { bpStatus = 'err'; });
+
+    // ── Load SDK — pakai port tersimpan dulu, fallback ke kandidat lain ──
+    var savedBpUrl = localStorage.getItem('zebra_bp_url') || '';
+    var bpCandidates = [
+        'https://localhost:9101/zebra.js',
+        'https://localhost:9100/zebra.js',
+        'http://localhost:9101/zebra.js',
+        'http://localhost:9100/zebra.js',
+    ];
+    if (savedBpUrl) {
+        // taruh yang tersimpan di urutan pertama
+        bpCandidates = [savedBpUrl + '/zebra.js'].concat(
+            bpCandidates.filter(function(u) { return u !== savedBpUrl + '/zebra.js'; })
+        );
+    }
+    (function loadBPSDK(urls, idx) {
+        if (idx >= urls.length) { bpStatus = 'err'; return; }
+        var s = document.createElement('script');
+        s.src = urls[idx];
+        s.onload = function () { checkBrowserPrint(); };
+        s.onerror = function () { loadBPSDK(urls, idx + 1); };
+        document.head.appendChild(s);
+    })(bpCandidates, 0);
+
+    // ── Helper: render status dot USB ──
+    function getUsbStatusHtml() {
+        if (bpStatus === 'ok') {
+            return '<span class="status-dot ok"></span> BrowserPrint terdeteksi ✓';
+        }
+        if (bpStatus === 'err') {
+            return '<span class="status-dot err"></span> BrowserPrint tidak terdeteksi. ' +
+                   'Klik <b>🔍 Deteksi Port</b> di bawah, atau buka ' +
+                   '<a href="https://localhost:9101" target="_blank">https://localhost:9101</a> ' +
+                   'lalu klik Advanced → Proceed, kemudian klik <b>🔄 Coba Lagi</b>.';
+        }
+        return '<span class="status-dot"></span> Memeriksa...';
+    }
+
+    // ── applyBPPort: simpan & reload SDK dari port yang ditemukan ──
+    window.applyBPPort = function(proto, port) {
+        var baseUrl = proto + '://localhost:' + port;
+        var $info   = $('#pmPanelUsb .pm-info');
+        $info.html('<span class="status-dot"></span> Menghubungkan ke ' + baseUrl + '...');
+
+        var s = document.createElement('script');
+        s.src = baseUrl + '/zebra.js?t=' + Date.now();
+        s.onload = function () {
+            checkBrowserPrint(function(ok) {
+                if (ok) {
+                    localStorage.setItem('zebra_bp_url', baseUrl);
+                    $info.html('<span class="status-dot ok"></span> BrowserPrint terdeteksi ✓ (' + baseUrl + ')');
+                    $('#diagResult').html('');
+                } else {
+                    $info.html('<span class="status-dot err"></span> Port ' + baseUrl + ' respond tapi printer tidak ditemukan. Cek kabel USB printer.');
+                }
+            });
+        };
+        s.onerror = function () {
+            $info.html('<span class="status-dot err"></span> Gagal load SDK dari ' + baseUrl + '. Coba port lain.');
+        };
+        document.head.appendChild(s);
+    };
 
     // ── Klik Print Label ──
     $(document).on('click', '.btn-print-label', function () {
-        var encId = $(this).data('id');
-        var code  = $(this).data('code');
-        var desc  = $(this).data('desc');
-
-        var usbStatusHtml = bpStatus === 'ok'
-            ? '<span class="status-dot ok"></span> BrowserPrint terdeteksi'
-            : bpStatus === 'err'
-                ? '<span class="status-dot err"></span> BrowserPrint tidak terdeteksi &mdash; <a href="https://www.zebra.com/us/en/support-downloads/printer-software/browser-print.html" target="_blank">Download</a>'
-                : '<span class="status-dot"></span> Memeriksa...';
-
+        var encId   = $(this).data('id');
+        var code    = $(this).data('code');
+        var desc    = $(this).data('desc');
         var savedIp = localStorage.getItem('zebra_ip') || '';
 
         Swal.fire({
@@ -806,8 +869,7 @@ $(function () {
             html: `
             <div class="swal-label-body">
                 <div class="swal-label-preview">
-                    <img src="" id="swalQrImg"
-                         onerror="this.style.opacity=0.2">
+                    <img src="" id="swalQrImg" onerror="this.style.opacity=0.2">
                     <div class="prev-info" style="min-width:0">
                         <div class="prev-code">${code}</div>
                         <div class="prev-desc">${desc}</div>
@@ -817,7 +879,7 @@ $(function () {
                 <div class="swal2-qty-wrap">
                     <label>Jumlah Label</label>
                     <button type="button" class="swal2-qty-btn" id="btnQtyMinus">−</button>
-                    <input  type="number"  id="inputQty" class="swal2-qty-input" value="1" min="1" max="100">
+                    <input type="number" id="inputQty" class="swal2-qty-input" value="1" min="1" max="100">
                     <button type="button" class="swal2-qty-btn" id="btnQtyPlus">+</button>
                 </div>
 
@@ -835,17 +897,36 @@ $(function () {
 
                 <div id="pmPanelBrowser" class="pm-panel active">
                     <div class="pm-info">
-                        Cetak via dialog print browser. Pastikan Zebra sudah dipilih<br>
-                        sebagai printer default & ukuran kertas diset <b>30×20mm</b>.
+                        Cetak via dialog print browser. Pastikan Zebra sudah dipilih
+                        sebagai printer default &amp; ukuran kertas diset <b>30×20mm</b>.
                     </div>
                 </div>
 
                 <div id="pmPanelUsb" class="pm-panel">
-                    <div class="pm-info">
-                        ${usbStatusHtml}<br>
-                        ZPL dikirim langsung ke Zebra via <b>Zebra BrowserPrint</b>.<br>
-                        Tidak perlu atur ukuran kertas — label otomatis presisi.
+                    <div class="pm-info" id="usbStatusInfo">
+                        ${getUsbStatusHtml()}
                     </div>
+                    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                        <button type="button" id="btnDiagnostic"
+                            style="flex:1;min-width:120px;padding:6px;border-radius:6px;
+                                   border:1.5px solid #7367f0;background:#f0eeff;color:#7367f0;
+                                   font-size:11px;cursor:pointer;font-weight:600;">
+                            🔍 Deteksi Port
+                        </button>
+                        <a href="https://localhost:9101" target="_blank"
+                            style="flex:1;min-width:120px;padding:6px;border-radius:6px;
+                                   border:1.5px solid #f79009;background:#fffbf0;color:#f79009;
+                                   font-size:11px;text-align:center;text-decoration:none;font-weight:600;">
+                            🔐 Trust Cert
+                        </a>
+                        <button type="button" id="btnRetryBP"
+                            style="flex:1;min-width:120px;padding:6px;border-radius:6px;border:none;
+                                   background:#7367f0;color:#fff;font-size:11px;
+                                   cursor:pointer;font-weight:600;">
+                            🔄 Coba Lagi
+                        </button>
+                    </div>
+                    <div id="diagResult" style="margin-top:6px;"></div>
                 </div>
 
                 <div id="pmPanelNetwork" class="pm-panel">
@@ -871,7 +952,8 @@ $(function () {
             cancelButtonColor: '#aaa',
             width: 520,
             didOpen: function () {
-                // Tab switch
+
+                // ── Tab switch ──
                 $(document).on('click.swal', '.pm-tab', function () {
                     $('.pm-tab').removeClass('active');
                     $('.pm-panel').removeClass('active');
@@ -881,7 +963,7 @@ $(function () {
                     $('#pmPanel' + m.charAt(0).toUpperCase() + m.slice(1)).addClass('active');
                 });
 
-                // Qty buttons
+                // ── Qty buttons ──
                 $('#btnQtyMinus').on('click', function () {
                     var v = parseInt($('#inputQty').val()) || 1;
                     if (v > 1) $('#inputQty').val(v - 1);
@@ -891,13 +973,10 @@ $(function () {
                     if (v < 100) $('#inputQty').val(v + 1);
                 });
 
-                // Test IP
+                // ── Test IP ──
                 $('#btnTestIp').on('click', function () {
                     var ip = $('#inputZebraIp').val().trim();
                     if (!ip) { $('#ipTestResult').html('<span style="color:#ea5455">Masukkan IP dulu.</span>'); return; }
-                    $('#ipTestResult').html('Mengetes...');
-                    // Kirim ZPL ~HS (Host Status) ke port 9100 via fetch tidak bisa dari browser (no TCP raw)
-                    // Workaround: anggap valid kalau format IP benar, konfirmasi saat print
                     var ipReg = /^(\d{1,3}\.){3}\d{1,3}$/;
                     if (ipReg.test(ip)) {
                         localStorage.setItem('zebra_ip', ip);
@@ -906,10 +985,77 @@ $(function () {
                         $('#ipTestResult').html('<span style="color:#ea5455">Format IP tidak valid.</span>');
                     }
                 });
+
+                // ── Deteksi Port otomatis ──
+                $('#btnDiagnostic').on('click', function () {
+                    var $btn    = $(this);
+                    var $result = $('#diagResult');
+                    $btn.text('Mendeteksi...').prop('disabled', true);
+                    $result.html('<div style="font-size:11px;color:#888;padding:4px 0;">Memindai port localhost...</div>');
+
+                    var candidates = [
+                        { proto: 'https', port: 9101 },
+                        { proto: 'https', port: 9100 },
+                        { proto: 'http',  port: 9101 },
+                        { proto: 'http',  port: 9100 },
+                        { proto: 'https', port: 8080 },
+                        { proto: 'http',  port: 8080 },
+                    ];
+                    var found   = [];
+                    var checked = 0;
+                    var total   = candidates.length;
+
+                    candidates.forEach(function(c) {
+                        var url = c.proto + '://localhost:' + c.port + '/';
+                        fetch(url, {
+                            method: 'GET',
+                            signal: AbortSignal.timeout(2500)
+                        })
+                        .then(function(r) { return r.text(); })
+                        .then(function(t) {
+                            var isZebra = t.toLowerCase().includes('api_version') ||
+                                          t.toLowerCase().includes('zebra') ||
+                                          t.toLowerCase().includes('printer');
+                            found.push({ proto: c.proto, port: c.port, isZebra: isZebra, preview: t.substring(0, 60) });
+                        })
+                        .catch(function() { /* port tidak respond */ })
+                        .finally(function() {
+                            checked++;
+                            if (checked === total) { renderDiagResult(found, $result, $btn); }
+                        });
+                    });
+                });
+
+                // ── Coba Lagi ──
+                $('#btnRetryBP').on('click', function () {
+                    var $btn  = $(this);
+                    var saved = localStorage.getItem('zebra_bp_url') || 'https://localhost:9101';
+                    $btn.text('Memeriksa...').prop('disabled', true);
+                    $('#usbStatusInfo').html('<span class="status-dot"></span> Menghubungkan...');
+
+                    var s = document.createElement('script');
+                    s.src = saved + '/zebra.js?t=' + Date.now();
+                    s.onload = function () {
+                        checkBrowserPrint(function(ok) {
+                            $('#usbStatusInfo').html(getUsbStatusHtml());
+                            $btn.text(ok ? '✓ Terdeteksi' : '🔄 Coba Lagi')
+                                .css('background', ok ? '#28c76f' : '#7367f0')
+                                .prop('disabled', false);
+                        });
+                    };
+                    s.onerror = function () {
+                        bpStatus = 'err';
+                        $('#usbStatusInfo').html(getUsbStatusHtml());
+                        $btn.text('🔄 Coba Lagi').prop('disabled', false);
+                    };
+                    document.head.appendChild(s);
+                });
             },
+
             willClose: function () {
                 $(document).off('click.swal');
             },
+
             preConfirm: function () {
                 var qty = parseInt($('#inputQty').val()) || 0;
                 if (qty < 1 || qty > 100) {
@@ -924,7 +1070,6 @@ $(function () {
                     }
                     localStorage.setItem('zebra_ip', ip);
                 }
-
                 return $.ajax({
                     url: '{{ route("article.printLabel") }}',
                     method: 'POST',
@@ -940,24 +1085,54 @@ $(function () {
         }).then(function (result) {
             if (!result.isConfirmed || !result.value) return;
             var data = result.value;
+            if (activePrintMethod === 'browser')  { doBrowserPrint(data); }
+            else if (activePrintMethod === 'usb') { doUsbZpl(data); }
+            else if (activePrintMethod === 'network') { doNetworkZpl(data); }
+        });
+    });
 
-            // Preview QR
-            $('#swalQrImg').attr('src', data.qr_url);
+    // ── Render hasil deteksi port ──
+    function renderDiagResult(found, $result, $btn) {
+        $btn.text('🔍 Deteksi Port').prop('disabled', false);
 
-            if (activePrintMethod === 'browser') {
-                doBrowserPrint(data);
-            } else if (activePrintMethod === 'usb') {
-                doUsbZpl(data);
-            } else if (activePrintMethod === 'network') {
-                doNetworkZpl(data);
+        if (found.length === 0) {
+            $result.html(
+                '<div style="color:#ea5455;font-size:11px;margin-top:4px;padding:6px 8px;' +
+                'background:#fff5f5;border-radius:6px;border:1px solid #ffd0d0;">' +
+                '✗ Tidak ada port yang respond.<br>' +
+                'Pastikan aplikasi <b>Zebra BrowserPrint</b> sudah berjalan (cek icon di system tray Windows).' +
+                '</div>'
+            );
+            return;
+        }
+
+        var html = '<div style="margin-top:4px;">';
+        found.forEach(function(f) {
+            var color = f.isZebra ? '#28c76f' : '#f79009';
+            var bg    = f.isZebra ? '#f0fff8' : '#fffbf0';
+            var icon  = f.isZebra ? '✓ ZEBRA' : '? Aktif';
+            html +=
+                '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:5px 8px;' +
+                'border-radius:6px;background:' + bg + ';border:1px solid ' + color + '44;">' +
+                '<span style="color:' + color + ';font-weight:700;font-size:10px;min-width:55px;">' + icon + '</span>' +
+                '<span style="font-size:11px;font-weight:600;">' + f.proto + '://localhost:' + f.port + '</span>';
+            if (f.isZebra) {
+                html +=
+                    '<button type="button" onclick="applyBPPort(\'' + f.proto + '\',' + f.port + ')"' +
+                    ' style="margin-left:auto;padding:2px 10px;border-radius:4px;border:none;' +
+                    'background:#7367f0;color:#fff;font-size:10px;cursor:pointer;font-weight:600;">' +
+                    'Pakai ini</button>';
+            }
+            html += '</div>';
+            if (f.preview) {
+                html += '<div style="font-size:9px;color:#aaa;padding:0 8px 4px;' +
+                        'word-break:break-all;font-family:monospace;">' +
+                        f.preview.replace(/</g,'&lt;') + '</div>';
             }
         });
-
-        // Set preview image (langsung dari data-* tanpa request dulu)
-        setTimeout(function () {
-            // preview kosong dulu, akan diisi setelah confirm
-        }, 100);
-    });
+        html += '</div>';
+        $result.html(html);
+    }
 
     // ══════════════════════════════════════
     // MODE 1: Browser Print (popup window)
@@ -971,50 +1146,48 @@ $(function () {
 
         var labels = '';
         for (var i = 0; i < qty; i++) {
-            labels += `
-            <div class="label-card">
-                <div class="label-top">
-                    <img class="label-qr" src="${qrUrl}">
-                    <div class="label-text">
-                        <div class="label-altcode">${article.article_alternative_code}</div>
-                        <div class="label-desc">${article.article_desc}</div>
-                    </div>
-                </div>
-                <div class="label-footer">Dicetak: ${printedBy} &bull; ${printedAt} &bull; ${i+1}/${qty}</div>
-            </div>`;
+            labels +=
+                '<div class="label-card">' +
+                '<div class="label-top">' +
+                '<img class="label-qr" src="' + qrUrl + '">' +
+                '<div class="label-text">' +
+                '<div class="label-altcode">' + article.article_alternative_code + '</div>' +
+                '<div class="label-desc">' + article.article_desc + '</div>' +
+                '</div></div>' +
+                '<div class="label-footer">Dicetak: ' + printedBy + ' &bull; ' + printedAt + ' &bull; ' + (i+1) + '/' + qty + '</div>' +
+                '</div>';
         }
 
-        var html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>Label ${article.article_alternative_code}</title>
-<style>
-@page { margin:0; size:30mm 20mm; }
-*{ box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif; }
-body{ background:#fff; }
-.label-sheet{ display:flex;flex-wrap:wrap; }
-.label-card{ width:30mm;height:20mm;border:0.3mm solid #ccc;padding:1mm 1.5mm;
-    display:flex;flex-direction:column;justify-content:space-between;
-    overflow:hidden;page-break-inside:avoid; }
-.label-top{ display:flex;align-items:center;gap:1.5mm;flex:1;min-height:0;overflow:hidden; }
-.label-qr{ width:13mm;height:13mm;flex-shrink:0;object-fit:contain; }
-.label-text{ overflow:hidden; }
-.label-altcode{ font-size:5.5pt;font-weight:700;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.label-desc{ font-size:4.5pt;color:#333;line-height:1.2;overflow:visible;word-wrap:break-word; }
-.label-footer{ font-size:3.5pt;color:#888;border-top:0.2mm solid #ddd;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-</style></head><body>
-<div class="label-sheet">${labels}</div>
-<script>
-window.onload=function(){
-    var imgs=document.querySelectorAll('img'),loaded=0;
-    if(!imgs.length){window.print();return;}
-    imgs.forEach(function(img){
-        if(img.complete){loaded++;if(loaded===imgs.length)window.print();}
-        else{img.onload=img.onerror=function(){loaded++;if(loaded===imgs.length)window.print();};}
-    });
-};
-<\/script></body></html>`;
+        var html = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+            '<title>Label ' + article.article_alternative_code + '</title>' +
+            '<style>' +
+            '@page{margin:0;size:30mm 20mm;}' +
+            '*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;text-shadow:none;}' +
+            'body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+            '.label-sheet{display:flex;flex-wrap:wrap;}' +
+            '.label-card{width:30mm;height:20mm;border:0.3mm solid #000;padding:1mm 1.5mm;' +
+                'display:flex;flex-direction:column;justify-content:space-between;' +
+                'overflow:hidden;page-break-inside:avoid;}' +
+            '.label-top{display:flex;align-items:center;gap:1.5mm;flex:1;min-height:0;overflow:hidden;}' +
+            '.label-qr{width:13mm;height:13mm;flex-shrink:0;object-fit:contain;}' +
+            '.label-text{overflow:hidden;}' +
+            '.label-altcode{font-size:5.5pt;font-weight:900;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+            '.label-desc{font-size:4.5pt;color:#000;font-weight:600;line-height:1.2;overflow:visible;word-wrap:break-word;}' +
+            '.label-footer{font-size:3.5pt;color:#555;border-top:0.2mm solid #999;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+            '</style></head><body>' +
+            '<div class="label-sheet">' + labels + '</div>' +
+            '<script>window.onload=function(){' +
+                'var imgs=document.querySelectorAll("img"),loaded=0;' +
+                'if(!imgs.length){window.print();return;}' +
+                'imgs.forEach(function(img){' +
+                    'if(img.complete){loaded++;if(loaded===imgs.length)window.print();}' +
+                    'else{img.onload=img.onerror=function(){loaded++;if(loaded===imgs.length)window.print();};}' +
+                '});' +
+            '};' +
+            '<\/script></body></html>';
 
-        var w = window.open('','_blank','width=600,height=400');
-        if (!w) { Swal.fire('Popup Diblokir','Izinkan popup di browser Anda.','warning'); return; }
+        var w = window.open('', '_blank', 'width=600,height=400');
+        if (!w) { Swal.fire('Popup Diblokir', 'Izinkan popup di browser Anda.', 'warning'); return; }
         w.document.write(html);
         w.document.close();
     }
@@ -1027,9 +1200,7 @@ window.onload=function(){
             Swal.fire({
                 icon: 'error',
                 title: 'BrowserPrint Tidak Terdeteksi',
-                html: `Install <b>Zebra BrowserPrint</b> terlebih dahulu.<br>
-                       <a href="https://www.zebra.com/us/en/support-downloads/printer-software/browser-print.html"
-                          target="_blank" style="color:#7367f0">Download di sini</a>`,
+                html: 'Gunakan tombol <b>🔍 Deteksi Port</b> di tab USB Direct untuk menemukan port yang aktif.',
             });
             return;
         }
@@ -1046,27 +1217,17 @@ window.onload=function(){
 
     // ══════════════════════════════════════
     // MODE 3: Network / LAN via raw TCP
-    // Browser tidak bisa buka TCP langsung,
-    // jadi kita relay lewat endpoint Laravel
     // ══════════════════════════════════════
     function doNetworkZpl(data) {
         var ip = localStorage.getItem('zebra_ip') || '';
         if (!ip) { Swal.fire('IP Kosong', 'Masukkan IP Address printer.', 'warning'); return; }
 
-        Swal.fire({
-            title: 'Mengirim ke printer...',
-            didOpen: function() { Swal.showLoading(); }
-        });
+        Swal.fire({ title: 'Mengirim ke printer...', didOpen: function() { Swal.showLoading(); } });
 
         $.ajax({
             url: '{{ route("article.printLabelNetwork") }}',
             method: 'POST',
-            data: {
-                _token : '{{ csrf_token() }}',
-                zpl    : data.zpl,
-                ip     : ip,
-                port   : 9100
-            }
+            data: { _token: '{{ csrf_token() }}', zpl: data.zpl, ip: ip, port: 9100 }
         }).done(function (res) {
             if (res.status === 1) {
                 Swal.fire({ icon:'success', title:'Berhasil!',
