@@ -2357,7 +2357,7 @@ private function buildSummaryRow(array $p)
             ,'brand'
             ,'article_request.uom'
             ,'quality'
-            ,'note'
+            ,'article_request.note'
             ,'article_request.id as idku'
             ,'group_materials.name as group'
             ,'third_party.nama as cust'
