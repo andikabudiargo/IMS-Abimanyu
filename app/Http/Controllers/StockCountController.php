@@ -464,14 +464,20 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     });
 
     $result = collect();
-    foreach ($grouped as $items) {
+   foreach ($grouped as $items) {
         $first = $items->first();
         [$status, $qtySystem, $variance] = $this->resolveGroupStatus($items);
         $realItems = $items->filter(fn($r) => !$this->isPhantomRow($r));
 
+        // ── label lokasi fisik + jejak partner (kalau ada) ──
+        $locName      = $items->pluck('location_name')->filter()->first() ?? $first->target_name;
+        $partnerNames = $items->pluck('partner_name')->filter()->unique()->values()->all();
+
         $result->push((object) [
             'location_number' => $first->location_number,
             'target_name'     => $first->target_name,
+            'location_name'   => $locName,        // ← BARU
+            'partner_names'   => $partnerNames,   // ← BARU
             'article_code'    => $first->article_code,
             'article_desc'    => $first->article_desc,
             'uom'             => $first->uom,
@@ -501,7 +507,13 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     }
 
     return DataTables::of($result)
-        ->addColumn('location', fn($row) => $row->target_name)
+        ->addColumn('location', function ($row) {
+            $loc = e($row->location_name ?? $row->target_name);
+            if (!empty($row->partner_names)) {
+                $loc .= ' <small class="text-muted d-block">via ' . e(implode(', ', $row->partner_names)) . '</small>';
+            }
+            return $loc;
+        })
         ->editColumn('article_code', fn($row) => $row->article_code ?? 'OTHER')
         ->editColumn('qty_counter1', fn($row) => $row->qty_counter1 !== null ? number_format((float) $row->qty_counter1, 2) : '-')
         ->editColumn('qty_counter2', fn($row) => $row->qty_counter2 !== null ? number_format((float) $row->qty_counter2, 2) : '-')
@@ -1986,6 +1998,9 @@ private function buildAuditRawRows(Request $request)
         ->leftJoin('third_party as tp', function ($j) {
             $j->on('tp.kode', '=', 'm.target_ref')->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
         })
+         // ── BARU: nama lokasi FISIK dari d.location_number (berlaku SEMUA tipe target) ──
+        ->leftJoin('stock_location_master as ll', 'll.location_code', '=', 'd.location_number')
+        ->leftJoin('users as u1', 'u1.id', '=', 'd.counter1_user')
         ->leftJoin('users as u1', 'u1.id', '=', 'd.counter1_user')
         ->leftJoin('users as u2', 'u2.id', '=', 'd.counter2_user')
         ->leftJoin('users as u3', 'u3.id', '=', 'd.counter3_user')
@@ -1996,6 +2011,8 @@ private function buildAuditRawRows(Request $request)
             'm.counter2_user as map_counter2_user',
             'm.counter3_user as map_counter3_user',
             DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name"),
+            DB::raw("COALESCE(ll.location_name, d.location_number) as location_name"), // ← BARU
+            'tp.nama as partner_name',                                                 // ← BARU
             'c.sto_code', 'c.config_id', 'c.periode',
             'd.article_code', 'd.article_desc', 'd.min_package', 'd.uom',
             'd.location_number',
@@ -2109,6 +2126,8 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
             'map_counter2_user' => $m->counter2_user,
             'map_counter3_user' => $m->counter3_user ?? null,
             'target_name'       => $locationName,
+            'location_name'     => $locationName,   // ← BARU
+            'partner_name'      => null,            // ← BARU
             'sto_code'          => null,
             'config_id'         => null,
             'periode'           => null,
