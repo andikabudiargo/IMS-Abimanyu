@@ -2001,7 +2001,6 @@ private function buildAuditRawRows(Request $request)
          // ── BARU: nama lokasi FISIK dari d.location_number (berlaku SEMUA tipe target) ──
         ->leftJoin('stock_location_master as ll', 'll.location_code', '=', 'd.location_number')
         ->leftJoin('users as u1', 'u1.id', '=', 'd.counter1_user')
-        ->leftJoin('users as u1', 'u1.id', '=', 'd.counter1_user')
         ->leftJoin('users as u2', 'u2.id', '=', 'd.counter2_user')
         ->leftJoin('users as u3', 'u3.id', '=', 'd.counter3_user')
         ->select([
