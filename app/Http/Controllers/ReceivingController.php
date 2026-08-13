@@ -2844,12 +2844,30 @@ public function unPosting($recNumber)
     $searchInv = strtolower($request->searchInv);
     $searchSupplier = $request->searchSupplier;
     $searchStatus = $request->searchStatus;
-    $searchRecType = $request->recType;   // <-- tambahan
+    $searchRecType = $request->recType;
     $recDate = $request->recDate;
     $doDate = $request->doDate;
-    $fromDate ="";
+
+    // ==========================================
+    // CEK HAK MELIHAT PRICE
+    // ==========================================
+    $user = Auth::user();
+
+    $isPurchasing = DB::table('user_dept')
+        ->where('username', $user->username)
+        ->where('dept', '008')
+        ->exists();
+
+    $isAccounting = $user->hasRole('accounting');
+    $isSuperuser = $user->hasRole('Superuser');
+
+    $canViewPrice = $isPurchasing || $isAccounting || $isSuperuser;
+
+    // ==========================================
+
+    $fromDate = "";
     $toDate = "";
-    $fromDateDo ="";
+    $fromDateDo = "";
     $toDateDo = "";
 
     if ($recDate){
@@ -2936,27 +2954,67 @@ public function unPosting($recNumber)
     ) DESC
 ");
 
-    return Datatables::of($query)
-        ->addColumn('status', function ($data) {
-            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-success','badge-success','badge-success'];
-            $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED','','','','','REVISI'];
-            return $statusRec[$data->status - 1];
-        })
-        // beri tahu yajra kolom asli untuk sort kolom yang ambigu:
-        ->orderColumn('rec_number', 'receiving_det.rec_number $1')
-        ->orderColumn('rec_date',   'receiving_hdr.rec_date $1')
-        ->orderColumn('do_date',    'receiving_hdr.do_date $1')
-        ->orderColumn('ap_number',  'ap_number $1')
-        ->orderColumn('ap_date',    'ap_date $1')
-        ->orderColumn('note',       'receiving_hdr.note $1')
-        ->orderColumn('created_by', 'receiving_hdr.created_by $1')
-        ->orderColumn('created_at', 'receiving_hdr.created_at $1')
-        ->orderColumn('updated_at', 'receiving_hdr.updated_at $1')
-        ->orderColumn('supplier_id','receiving_hdr.supplier_id $1')
-        ->orderColumn('po_number',  'receiving_hdr.po_number $1')
-        ->rawColumns(['status'])
-        ->make(true);
-}
+   return Datatables::of($query)
+    ->editColumn('price', function ($data) use ($canViewPrice) {
+        return $canViewPrice ? $data->price : '-';
+    })
+
+    ->editColumn('total_dpp', function ($data) use ($canViewPrice) {
+        return $canViewPrice ? $data->total_dpp : '-';
+    })
+
+    ->editColumn('total_ppn', function ($data) use ($canViewPrice) {
+        return $canViewPrice ? $data->total_ppn : '-';
+    })
+
+    ->editColumn('total_plus_ppn', function ($data) use ($canViewPrice) {
+        return $canViewPrice ? $data->total_plus_ppn : '-';
+    })
+
+    ->addColumn('status', function ($data) {
+        $badges = [
+            'badge-primary',
+            'badge-info',
+            'badge-success',
+            'badge-warning',
+            'badge-danger',
+            'badge-dark',
+            'badge-secondary',
+            'badge-success',
+            'badge-success',
+            'badge-success'
+        ];
+
+        $statusRec = [
+            'NEW',
+            'VALIDATE',
+            'APPROVE',
+            'POSTED',
+            'CANCELED',
+            '',
+            '',
+            '',
+            '',
+            'REVISI'
+        ];
+
+        return $statusRec[$data->status - 1];
+    })
+
+    ->orderColumn('rec_number', 'receiving_det.rec_number $1')
+    ->orderColumn('rec_date', 'receiving_hdr.rec_date $1')
+    ->orderColumn('do_date', 'receiving_hdr.do_date $1')
+    ->orderColumn('ap_number', 'ap_number $1')
+    ->orderColumn('ap_date', 'ap_date $1')
+    ->orderColumn('note', 'receiving_hdr.note $1')
+    ->orderColumn('created_by', 'receiving_hdr.created_by $1')
+    ->orderColumn('created_at', 'receiving_hdr.created_at $1')
+    ->orderColumn('updated_at', 'receiving_hdr.updated_at $1')
+    ->orderColumn('supplier_id', 'receiving_hdr.supplier_id $1')
+    ->orderColumn('po_number', 'receiving_hdr.po_number $1')
+
+    ->rawColumns(['status'])
+    ->make(true);
 
     public function print(Request $request)
     {
