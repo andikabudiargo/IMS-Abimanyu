@@ -58,11 +58,27 @@
               </a>
             </li>
             @endcan
+              @can('articleType-index')
+            <li class="{{ \Request::segment(1) == 'articleTypes'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('articleTypes.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Article Type</span>
+              </a>
+            </li>
+            @endcan
+              @can('groupMaterial-index')
+            <li class="{{ \Request::segment(1) == 'groupMaterials'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('groupMaterials.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Group of Material</span>
+              </a>
+            </li>
+            @endcan
             @can('uom-index')
             <li class="{{ \Request::segment(1) == 'uoms'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('uoms.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">UOM</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Unit of Measure</span>
               </a>
             </li>
             @endcan
@@ -83,22 +99,8 @@
               </a>
             </li>
              @endcan
-            @can('groupMaterial-index')
-            <li class="{{ \Request::segment(1) == 'groupMaterials'  ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('groupMaterials.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Group of Material</span>
-              </a>
-            </li>
-            @endcan
-            @can('articleType-index')
-            <li class="{{ \Request::segment(1) == 'articleTypes'  ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('articleTypes.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Article Type</span>
-              </a>
-            </li>
-            @endcan
+          
+          
           </ul>
         </li>
         <li class=" navigation-header"><span data-i18n="Marketing">Marketing</span><i data-feather="more-horizontal"></i>
@@ -110,6 +112,21 @@
             </span>
           </a>
           <ul class="menu-content">
+              @php
+    $user = Auth::user();
+
+    $isMarketing = DB::table('user_dept')
+        ->where('username', $user->username)
+        ->where('dept', '009')
+        ->exists();
+
+    $canViewSalesOrder =
+        $isMarketing ||
+        $user->hasRole('accounting') ||
+        $user->hasRole('Superuser');
+@endphp
+
+@if($canViewSalesOrder)
             @can('salesOrder-index')
             <li class="{{ \Request::segment(1) == 'salesOrders' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('salesOrders.index') }}">
@@ -118,6 +135,7 @@
               </a>
             </li>
             @endcan
+            @endif
 
             @can('targetSo-index')
             <li class="{{ \Request::segment(1) == 'targetSo' ? 'active' : '' }}">
@@ -196,14 +214,30 @@
             </li>
             @endcan
         
-            @can('purchaseOrder-index')
-            <li class="{{ \Request::segment(1) == 'purchaseOrders' ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('purchaseOrders.index') }}">
+          @php
+    $user = Auth::user();
+
+    $isPurchasing = DB::table('user_dept')
+        ->where('username', $user->username)
+        ->where('dept', '008')
+        ->exists();
+
+    $canViewPurchaseOrder =
+        $isPurchasing ||
+        $user->hasRole('accounting') ||
+        $user->hasRole('Superuser');
+@endphp
+
+@if($canViewPurchaseOrder)
+    @can('purchaseOrder-index')
+        <li class="{{ \Request::segment(1) == 'purchaseOrders' ? 'active' : '' }}">
+            <a class="d-flex align-items-center" href="{{ route('purchaseOrders.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Purchase Order</span>
-              </a>
-            </li>
-            @endcan
+            </a>
+        </li>
+    @endcan
+@endif
         
             <li class="{{ \Request::is(['forecastPurchase','forecastPurchase/create']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('forecastPurchase.index') }} ">
@@ -600,7 +634,7 @@
         <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='sliders'></i>
-            <span class="menu-title text-truncate" data-i18n="Production">Maintenance
+            <span class="menu-title text-truncate" data-i18n="Production">Workshop
             </span>
           </a>
           <ul class="menu-content">
@@ -609,7 +643,7 @@
             <li class="{{ \Request::is(['actualLoading','actualLoading/create','actualLoading/edit','actualLoading/show']) ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('production.actualLoading.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Actual Loading">Scrap Material</span>
+                <span class="menu-item text-truncate" data-i18n="Actual Loading">Scrap</span>
               </a>
             </li>
            
@@ -714,7 +748,7 @@
                   @can('delivery-report-acc')
                     <li class="{{ \Request::is(['deliveryReportAcc'])  ? 'active' : '' }}">
                       <a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}">
-                        <span class="menu-item text-truncate" data-i18n="Dn Report Acc">Dn Report</span>
+                        <span class="menu-item text-truncate" data-i18n="Dn Report Acc">DN Report</span>
                       </a>
                     </li>
                   @endcan
@@ -723,6 +757,13 @@
                     <li class="{{ \Request::is(['deliveryReportSoAcc'])  ? 'active' : '' }}">
                       <a class="d-flex align-items-center" href="{{ route('delivery.report.so.acc') }}">
                         <span class="menu-item text-truncate" data-i18n="Dn Report Acc">SO Report</span>
+                      </a>
+                    </li>
+                  @endcan
+                    @can('delivery-report-acc')
+                    <li class="{{ \Request::is(['deliveryReportSoAcc'])  ? 'active' : '' }}">
+                      <a class="d-flex align-items-center" href="{{ route('delivery.report.so.acc') }}">
+                        <span class="menu-item text-truncate" data-i18n="Dn Report Acc">Receiving Report</span>
                       </a>
                     </li>
                   @endcan
@@ -813,7 +854,7 @@
            
               <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Form">Form</span></a>
                 <ul class="menu-content">
-                    <li class="{{ \Request::segment(1) == 'perubahanData'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="#"><span class="menu-item text-truncate" data-i18n="PerubahanData">Perubahan Data</span></a>
+                    <li class="{{ \Request::segment(1) == 'changeRequest'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="#"><span class="menu-item text-truncate" data-i18n="changeRequest">Change Request</span></a>
                     </li>
                     
                 </ul>
