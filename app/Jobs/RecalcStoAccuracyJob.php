@@ -17,19 +17,34 @@ class RecalcStoAccuracyJob implements ShouldQueue
     public $timeout = 600;
     public $tries = 1;
 
+    protected $mappingIds;
+    protected $refreshQty;
+    protected $includeFinished;
+    protected $requestedBy;
+    protected $jobToken;
+
     public function __construct(
-        public array $mappingIds,
-        public bool $refreshQty,
-        public bool $includeFinished,
-        public string $requestedBy,
-        public string $jobToken
-    ) {}
+        array $mappingIds,
+        bool $refreshQty,
+        bool $includeFinished,
+        string $requestedBy,
+        string $jobToken
+    ) {
+        $this->mappingIds = $mappingIds;
+        $this->refreshQty = $refreshQty;
+        $this->includeFinished = $includeFinished;
+        $this->requestedBy = $requestedBy;
+        $this->jobToken = $jobToken;
+    }
 
     public function handle(StoAccuracyRecalcService $service)
     {
-        DB::table('sto_recalc_jobs')->where('job_token', $this->jobToken)->update([
-            'status' => 'RUNNING', 'started_at' => now(),
-        ]);
+        DB::table('sto_recalc_jobs')
+            ->where('job_token', $this->jobToken)
+            ->update([
+                'status' => 'RUNNING',
+                'started_at' => now(),
+            ]);
 
         try {
             $result = $service->recalcMappingIds(
@@ -39,20 +54,29 @@ class RecalcStoAccuracyJob implements ShouldQueue
                 'web:' . $this->requestedBy,
                 'web-ui',
                 function () {
-                    DB::table('sto_recalc_jobs')->where('job_token', $this->jobToken)->increment('processed_mappings');
+                    DB::table('sto_recalc_jobs')
+                        ->where('job_token', $this->jobToken)
+                        ->increment('processed_mappings');
                 }
             );
 
-            DB::table('sto_recalc_jobs')->where('job_token', $this->jobToken)->update([
-                'status'        => 'DONE',
-                'finished_at'   => now(),
-                'total_checked' => $result['total_checked'],
-                'total_changed' => $result['total_changed'],
-            ]);
+            DB::table('sto_recalc_jobs')
+                ->where('job_token', $this->jobToken)
+                ->update([
+                    'status'        => 'DONE',
+                    'finished_at'   => now(),
+                    'total_checked' => $result['total_checked'],
+                    'total_changed' => $result['total_changed'],
+                ]);
         } catch (\Throwable $e) {
-            DB::table('sto_recalc_jobs')->where('job_token', $this->jobToken)->update([
-                'status' => 'FAILED', 'finished_at' => now(), 'error_message' => $e->getMessage(),
-            ]);
+            DB::table('sto_recalc_jobs')
+                ->where('job_token', $this->jobToken)
+                ->update([
+                    'status' => 'FAILED',
+                    'finished_at' => now(),
+                    'error_message' => $e->getMessage(),
+                ]);
+
             throw $e;
         }
     }
