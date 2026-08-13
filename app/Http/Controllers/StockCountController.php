@@ -30,6 +30,11 @@ class StockCountController extends Controller
         '049' => ['CM1'],
     ];
 
+    private $phantomArticleTypeMap = [
+    // anchor (parent) WIP → hanya FG yang dianggap phantom
+    '012' => ['FG'],   // ← ganti dengan location_code parent WIP yang sebenarnya
+];
+
     // lokasi yang juga harus include CPA berdasarkan group_of_material
 private $locationGroupOfMaterialMap = [
     '006' => ['CPA'],
@@ -1813,12 +1818,19 @@ private function isFamilyGroupAccurate($items, $repMapping, $siblingMappings, $t
 
 private function buildPhantomArticlesForFamily($repMapping, array $family, array $countedCodes, $periode)
 {
+    $anchor = $repMapping->target_ref;                    // sudah anchor (parent)
+    $types  = $this->phantomArticleTypeMap[$anchor] ?? null;
+
     $movementQuery = DB::table('warehouse_movement as wm')
         ->join('article as a', 'a.article_code', '=', 'wm.artikel_code')
         ->whereIn('wm.location_number', $family)
         ->where('wm.movement_type', 'not ilike', 'CANCEL %')
         ->select('a.article_alternative_code as article_code')
         ->distinct();
+
+    if ($types) {
+        $movementQuery->whereIn('a.article_type', $types); // ← hanya FG utk WIP
+    }
 
     if ($periode) {
         $movementQuery->whereRaw("TO_CHAR(TO_DATE(wm.movement_date,'DD-MM-YYYY'), 'YYYY-MM') = ?", [$periode]);
@@ -1828,7 +1840,7 @@ private function buildPhantomArticlesForFamily($repMapping, array $family, array
     foreach ($movementQuery->get() as $sa) {
         if (!$sa->article_code) continue;
         if (in_array(strtoupper($sa->article_code), $countedCodes)) continue;
-        $phantoms->push((object) ['article_code' => $sa->article_code, 'location_number' => $repMapping->target_ref]);
+        $phantoms->push((object) ['article_code' => $sa->article_code, 'location_number' => $anchor]);
     }
     return $phantoms;
 }
