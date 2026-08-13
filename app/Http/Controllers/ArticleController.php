@@ -14,6 +14,8 @@
     use Excel;
     use App\Imports\SafetyStockImport;
     use App\Exports\SafetyStockExport;
+    use Illuminate\Support\Facades\Storage;
+    use SimpleSoftwareIO\QrCode\Generator;
 
     class ArticleController extends Controller
 {
@@ -36,27 +38,30 @@
 }
 
         public function getTableColoumn(){
-            $kolom=    
-            [
-                ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
-                ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
-                ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
-                ['data'=>'third_party','name'=>'third_party','title'=>'Cust/Supp Code'],
-                ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
-                ['data'=>'uom','name'=>'uom','title'=>'UOM'],
-                ['data'=>'article_type','name'=>'article_type','title'=>'Type'],
-                ['data'=>'group_of_material','name'=>'group_of_material','title'=>'Group'],
-                ['data'=>'color_code','name'=>'color_code','title'=>'Color'],
-                ['data'=>'variant','name'=>'variant','title'=>'Variant'],
-                ['data'=>'brand','name'=>'brand','title'=>'Brand'],
-                ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
-                ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
-                ['data'=>'group','name'=>'group_materials.name','title'=>'Group','visible'=>false],
-                ['data'=>'status','name'=>'status','title'=>'Status'],
-                ['data'=>'note','name'=>'note','title'=>'Note']
-            ];
-            return json_encode($kolom, true);
-        }
+    $kolom=    
+    [
+        ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
+        ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Code'],
+        ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
+        ['data'=>'third_party','name'=>'third_party','title'=>'Cust/Supp Code'],
+        ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
+        ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+        ['data'=>'article_type','name'=>'article_type','title'=>'Type'],
+        ['data'=>'group_of_material','name'=>'group_of_material','title'=>'Group'],
+        ['data'=>'color_code','name'=>'color_code','title'=>'Color'],
+        ['data'=>'variant','name'=>'variant','title'=>'Variant'],
+        ['data'=>'brand','name'=>'brand','title'=>'Brand'],
+        ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
+        ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
+        ['data'=>'group','name'=>'group_materials.name','title'=>'Group','visible'=>false],
+        ['data'=>'is_marketing','name'=>'article.marketing','title'=>'Marketing'],
+        ['data'=>'is_buffing_col','name'=>'article.is_buffing','title'=>'Buffing'],
+        ['data'=>'coa_full','name'=>'article.coa','title'=>'COA'],
+        ['data'=>'status','name'=>'status','title'=>'Status'],
+        ['data'=>'note','name'=>'note','title'=>'Note']
+    ];
+    return json_encode($kolom, true);
+}
 
         public function getTableColoumnMovement(){
             $kolom=    
@@ -102,6 +107,36 @@
             
             return view("articles.index",$data);
         }
+
+        private function generateBarcodeForArticle($articleCode, $barcodeValue)
+{
+    try {
+        $barcodeValue = trim($barcodeValue);
+        if (empty($barcodeValue)) {
+            return null;
+        }
+
+        $dir      = 'barcodes';
+        $filename = $dir . '/' . $articleCode . '.png';
+
+        Storage::disk('public')->makeDirectory($dir);
+
+        $qr = new Generator;
+        $qr->format('png')
+           ->size(200)
+           ->errorCorrection('M')
+           ->generate($barcodeValue, storage_path('app/public/' . $filename));
+
+        DB::table('article')
+            ->where('article_code', $articleCode)
+            ->update(['barcode_path' => $filename]);
+
+        return $filename;
+    } catch (\Exception $e) {
+        \Log::error("Gagal generate barcode untuk artikel {$articleCode}: " . $e->getMessage());
+        return null;
+    }
+}
 
         public function getStats(Request $request)
 {
@@ -393,7 +428,7 @@
             
             $data['article'] = DB::table('article')
             ->where('id',$id)
-            ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing'])->first();
+            ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing', 'coa'])->first();
             
 
             $data['images'] = DB::table('images')
@@ -450,7 +485,7 @@
             
             $data['article'] = DB::table('article')
             ->where('id',$id)
-            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','brand', 'third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing'])->first();
+            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','brand', 'third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing', 'coa'])->first();
 
             // $data['images'] = DB::table('images')
             // ->where('key',$data['article']->article_code)
@@ -497,6 +532,7 @@
             $nama = strtoupper($request->nama);
             $group = $request->group;
             $uom = $request->uom;
+            $coa = $request->coa;
             $price = $request->price;
             $price = $price ? str_replace(",","",$price) : $price;
             $sapetiStok = $request->safetyStock;
@@ -512,6 +548,7 @@
             $brand = $request->brand;
             $orderable = $request->orderableCheck == 'on' ? '1' : '0';
             $marketing = $request->marketingCheck == 'on' ? '1' : '0'; // tambahkan ini
+            $buffing = $request->buffingCheck == 'on' ? '1' : '0'; // tambahkan ini
 
             // status : 1= aktif, 0= freeze        
             $messages = [
@@ -538,6 +575,7 @@
                             'third_party' => $cust[0],
                             'note' => $note,
                             'uom' => $uom,
+                            'coa' => $coa,
                             'safety_stock' => $safetyStock,
                             'min_package' => $minimumPackage,
                             'costprice' => $price,
@@ -548,7 +586,8 @@
                             'updated_at' => date('Y-m-d H:i:s'),
                             'brand' => $brand,
                             'orderable' =>$orderable,
-                            'marketing' =>$marketing
+                            'marketing' =>$marketing,
+                            'is_buffing' => $buffing
                         ]
                     );
                     
@@ -695,26 +734,31 @@
     $type = strtolower($request->type);
     $statusFilter = $request->statusFilter;
 
-    $data = DB::table('article')
-    ->select(
-        'article.*',
-        'article.article_code as art_code',
-        'article_alternative_code as code',
-        'article_desc as desc',
-        'brand',
-        'article.uom',
-        'quality',
-        'note',
-        'article.id',
-        'group_materials.name as group',
-        'third_party.nama as cust',
-        'safety_stock',
-        'min_package',
-    )
-    ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
-    ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
-    ->leftJoin('uom', 'uom.code', '=', 'article.uom')
-    ->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
+   $data = DB::table('article')
+->select(
+    'article.*',
+    'article.article_code as art_code',
+    'article_alternative_code as code',
+    'article_desc as desc',
+    'brand',
+    'article.uom',
+    'quality',
+    'note',
+    'article.id',
+    'group_materials.name as group',
+    'third_party.nama as cust',
+    'safety_stock',
+    'min_package',
+    'article.marketing as marketing_raw',
+    'article.is_buffing as buffing_raw',
+    'article.coa as coa_code',
+    'accounts.name as coa_name'
+)
+->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
+->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
+->leftJoin('uom', 'uom.code', '=', 'article.uom')
+->leftJoin('accounts', 'accounts.account', '=', 'article.coa')
+->where(function ($query) use ($code,$name,$group,$cust,$supp,$type) {
         $code  ? $query->where('article_alternative_code','ilike','%'.$code.'%') : '';
         $name  ? $query->where('article_desc','ilike','%'.$name.'%') : '';
         $group ? $query->where('group_of_material','ilike','%'.$group.'%') : '';
@@ -778,8 +822,26 @@
         $statusCode = ['Freeze','Active'];
         return "<div class='badge badge-pill ".$badges[$data->status]."'>".$statusCode[$data->status]."</div>";
     })
+    ->addColumn('coa_full', function ($data) {
+    if (empty($data->coa_code)) {
+        return '-';
+    }
+    ->addColumn('is_marketing', function ($data) {
+    return $data->marketing_raw == '1'
+        ? "<div class='badge badge-pill badge-light-success'>Yes</div>"
+        : "<div class='badge badge-pill badge-light-secondary'>No</div>";
+})
+->addColumn('is_buffing_col', function ($data) {
+    return $data->buffing_raw == '1'
+        ? "<div class='badge badge-pill badge-light-info'>Buffing</div>"
+        : "<div class='badge badge-pill badge-light-secondary'>Non Buffing</div>";
+})
+    return $data->coa_name
+        ? e($data->coa_code) . ' - ' . e($data->coa_name)
+        : e($data->coa_code);
+})
     
-    ->rawColumns(['action','status'])
+    ->rawColumns(['action','status','is_marketing','is_buffing_col','coa_full'])
     ->make(true);
 }
 
@@ -820,15 +882,15 @@ $qrUrl    = 'https://abimanyugreats.com/storage/' . $article->barcode_path;
     $footer  = mb_substr("Dicetak: {$printedBy} {$printedAt}", 0, 50);
 
     // ZPL template (^BQR = native QR code Zebra, tajam di 203 DPI)
-    $zpl = "^XA
+   $zpl = "^XA
 ^MMT
 ^PW240
 ^LL160
 ^LS0
 ^CI28
-^FO8,4^BQN,2,3^FDQA,{$altCode}^FS
-^FO76,6^A0N,14,13^FD{$altCode}^FS
-^FO76,24^A0N,10,9^FB155,3,0,L^FD{$desc}^FS
+^FO4,4^BQN,2,2^FDQA,{$altCode}^FS
+^FO58,4^A0N,13,12^FD{$altCode}^FS
+^FO58,22^A0N,10,9^FB175,3,0,L^FD{$desc}^FS
 ^FO4,142^A0N,8,7^FD{$footer}^FS
 ^FO4,140^GB232,0,1^FS
 ^PQ{$qty},0,1,Y
@@ -1701,32 +1763,35 @@ private function buildSummaryRow(array $p)
         /*request article*/
 
         public function getTableColoumnRequest(){
-            $kolom=    
-            [
-                ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
-                ['data'=>'status_approve','name'=>'status_approve','title'=>'Status'],
-                ['data'=>'statusKu','name'=>'statusKu','title'=>'Status','visible'=>false],
-                ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
-                ['data'=>'third_party','name'=>'third_party','title'=>'Cust/supp'],
-                ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
-                ['data'=>'uom','name'=>'uom','title'=>'UOM'],
-                ['data'=>'article_type','name'=>'article_type','title'=>'Type'],
-                ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
-                ['data'=>'color_code','name'=>'color_code','title'=>'Color'],
-                ['data'=>'variant','name'=>'variant','title'=>'Variant'],
-                ['data'=>'brand','name'=>'brand','title'=>'Brand'],
-                ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
-                ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
-                ['data'=>'note','name'=>'note','title'=>'Note'],
-                ['data'=>'created_by','name'=>'created_by','title'=>'Requested By'],
-                ['data'=>'created_at','name'=>'created_at','title'=>'Requested At'],
-                ['data'=>'approved_by','name'=>'approved_by','title'=>'Approved By'],
-                ['data'=>'approved_at','name'=>'approved_at','title'=>'Approved At'],
-                ['data'=>'submitted_by','name'=>'submitted_by','title'=>'Submitted By'],
-                ['data'=>'submitted_at','name'=>'submitted_at','title'=>'Submitted At']
-            ];
-            return json_encode($kolom, true);
-        }
+    $kolom=    
+    [
+        ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
+        ['data'=>'status_approve','name'=>'status_approve','title'=>'Status'],
+        ['data'=>'statusKu','name'=>'statusKu','title'=>'Status','visible'=>false],
+        ['data'=>'desc','name'=>'article_desc','title'=>'Name'],
+        ['data'=>'third_party','name'=>'third_party','title'=>'Cust/supp'],
+        ['data'=>'cust','name'=>'third_party.nama','title'=>'Custs/Supp'],
+        ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+        ['data'=>'article_type','name'=>'article_type','title'=>'Type'],
+        ['data'=>'group','name'=>'group_materials.name','title'=>'Group'],
+        ['data'=>'color_code','name'=>'color_code','title'=>'Color'],
+        ['data'=>'variant','name'=>'variant','title'=>'Variant'],
+        ['data'=>'brand','name'=>'brand','title'=>'Brand'],
+        ['data'=>'safety_stock','name'=>'safety_stock','title'=>'Safety Stock'],
+        ['data'=>'min_package','name'=>'min_package','title'=>'Min Package'],
+        ['data'=>'is_marketing','name'=>'article_request.marketing','title'=>'Marketing'],
+        ['data'=>'is_buffing_col','name'=>'article_request.is_buffing','title'=>'Buffing'],
+        ['data'=>'coa_full','name'=>'article_request.coa','title'=>'COA'],
+        ['data'=>'note','name'=>'note','title'=>'Note'],
+        ['data'=>'created_by','name'=>'created_by','title'=>'Requested By'],
+        ['data'=>'created_at','name'=>'created_at','title'=>'Requested At'],
+        ['data'=>'approved_by','name'=>'approved_by','title'=>'Approved By'],
+        ['data'=>'approved_at','name'=>'approved_at','title'=>'Approved At'],
+        ['data'=>'submitted_by','name'=>'submitted_by','title'=>'Submitted By'],
+        ['data'=>'submitted_at','name'=>'submitted_at','title'=>'Submitted At']
+    ];
+    return json_encode($kolom, true);
+}
 
         public function requestIndex(Request $request)
         {
@@ -1845,7 +1910,8 @@ private function buildSummaryRow(array $p)
             $pesan = '';
             $brand = $request->brand;
             $orderable = $request->orderableCheck == 'on' ? '1' : '0';
-            $marketing = $request->marketingCheck == 'on' ? '1' : '0'; // tambahkan ini
+            $marketing = $request->marketingCheck == 'on' ? '1' : '0';
+            $buffing   = $request->buffingCheck == 'on' ? '1' : '0';
 
             $colorCode = $request->colorCode;
             $variant = $request->variant;
@@ -1895,6 +1961,7 @@ private function buildSummaryRow(array $p)
                         'brand' => $brand,
                         'orderable' =>$orderable,
                         'marketing' => $marketing,
+                        'is_buffing' => $buffing
                     ]); 
 
                     foreach($cust as $val){
@@ -2046,6 +2113,7 @@ private function buildSummaryRow(array $p)
 
             $orderable = $request->orderableCheck == 'on' ? '1' : '0';
             $marketing = $request->marketingCheck == 'on' ? '1' : '0';
+            $buffing = $request->buffingCheck == 'on' ? '1' : '0';
             $statusApprove = '1';
 
             // status : 1= aktif, 0= freeze        
@@ -2085,7 +2153,8 @@ private function buildSummaryRow(array $p)
                             'updated_at' => date('Y-m-d H:i:s'),
                             'brand' => $brand,
                             'orderable' =>$orderable,
-                            'marketing' => $marketing
+                            'marketing' => $marketing,
+                            'is_buffing' => $buffing
                         ]
                     );
                     
@@ -2224,7 +2293,7 @@ private function buildSummaryRow(array $p)
             
             $data['article'] = DB::table('article_request')
             ->where('id',$id)
-            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing'])->first();
+            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing','coa'])->first();
 
             // $data['images'] = DB::table('images')
             // ->where('key',$data['article']->article_code)
@@ -2294,11 +2363,16 @@ private function buildSummaryRow(array $p)
             ,'safety_stock'
             ,'min_package'
             ,'uom.uom_group'
+           ,'article_request.marketing as marketing_raw'
+            ,'article_request.is_buffing as buffing_raw'
+            ,'article_request.coa as coa_code'
+            ,'accounts.name as coa_name'
             ,DB::RAW("(SELECT count(*) from user_dept where username = article_request.created_by and dept in (select dept from user_dept where username = '$username')) as bisa_approve")
             )
             ->leftJoin('group_materials', 'group_materials.code', '=', 'article_request.group_of_material')
             ->leftJoin('third_party', 'third_party.kode', '=', 'article_request.third_party')
-            ->leftJoin('uom','uom.code','article_request.uom')        
+            ->leftJoin('uom','uom.code','article_request.uom')  
+            ->leftJoin('accounts', 'accounts.account', '=', 'article_request.coa')      
             // ->where(DB::RAW("(SELECT count(*) from user_dept where username = article_request.created_by and dept in (select dept from user_dept where username = '$username'))"),">",0)
             ->where(function ($query1) use ($userSubmitter,$username) {
                 if($userSubmitter === "no"){
@@ -2394,7 +2468,25 @@ private function buildSummaryRow(array $p)
             ->addColumn('statusKu', function ($data) {
                 return $data->status;
             })
-            ->rawColumns(['action','status','status_approve'])
+            ->addColumn('is_marketing', function ($data) {
+    return $data->marketing_raw == '1'
+        ? "<div class='badge badge-pill badge-light-success'>Yes</div>"
+        : "<div class='badge badge-pill badge-light-secondary'>No</div>";
+})
+->addColumn('is_buffing_col', function ($data) {
+    return $data->buffing_raw == '1'
+        ? "<div class='badge badge-pill badge-light-info'>Buffing</div>"
+        : "<div class='badge badge-pill badge-light-secondary'>Non Buffing</div>";
+})
+            ->addColumn('coa_full', function ($data) {
+    if (empty($data->coa_code)) {
+        return '-';
+    }
+    return $data->coa_name
+        ? e($data->coa_code) . ' - ' . e($data->coa_name)
+        : e($data->coa_code);
+})
+           ->rawColumns(['action','status','status_approve','is_marketing','is_buffing_col','coa_full'])
             ->make(true);
         }
 
@@ -2422,6 +2514,7 @@ private function buildSummaryRow(array $p)
             $status = $request->status == 'on' ? '1' : '0';
             $orderable = $request->orderableCheck == 'on' ? '1' : '0';
             $marketing = $request->marketingCheck == 'on' ? '1' : '0';
+            $buffing = $request->buffingCheck == 'on' ? '1' : '0';
 
             $messages = [
                 'required' => 'The field is required.',
@@ -2470,7 +2563,8 @@ private function buildSummaryRow(array $p)
                         'updated_at' => date('Y-m-d H:i:s'),
                         'brand' => $brand,
                         'orderable' =>$orderable,
-                        'marketing' =>$marketing
+                        'marketing' =>$marketing,
+                        'is_buffing' => $buffing
                     ]); 
 
                     foreach($cust as $val){
@@ -2484,6 +2578,8 @@ private function buildSummaryRow(array $p)
                             'updated_at' => date('Y-m-d H:i:s')
                         ]); 
                     }
+
+                    $this->generateBarcodeForArticle($artCode, $articleDet[0]);
 
                     $rowAffected=DB::table('article_request')
                     ->where('article_code',$articleCodeRequest)

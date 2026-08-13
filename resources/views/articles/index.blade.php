@@ -407,14 +407,17 @@
     print-color-adjust: exact;
 }
 .label-top { display: flex; align-items: center; gap: 1.5mm; flex: 1; min-height: 0; overflow: hidden; }
-.label-qr  { width: 13mm; height: 13mm; flex-shrink: 0; object-fit: contain; }
+.label-qr  { width: 10mm; height: 10mm; flex-shrink: 0; object-fit: contain; }
 .label-text { overflow: hidden; }
 .label-altcode { 
     font-size: 5.5pt; 
-    font-weight: 900;             /* extra bold */
-    color: #000;                  /* pure black */
-    -webkit-font-smoothing: none; /* matikan antialiasing */
-    text-shadow: none !important; 
+    font-weight: 900;
+    color: #000;
+    -webkit-font-smoothing: none;
+    text-shadow: none !important;
+    white-space: nowrap;
+    overflow: visible;       /* ← dari hidden jadi visible */
+    text-overflow: clip;     /* ← hapus ellipsis */
 }
 .label-desc { 
     font-size: 4.5pt; 
@@ -1169,9 +1172,9 @@ $(function () {
                 'display:flex;flex-direction:column;justify-content:space-between;' +
                 'overflow:hidden;page-break-inside:avoid;}' +
             '.label-top{display:flex;align-items:center;gap:1.5mm;flex:1;min-height:0;overflow:hidden;}' +
-            '.label-qr{width:13mm;height:13mm;flex-shrink:0;object-fit:contain;}' +
-            '.label-text{overflow:hidden;}' +
-            '.label-altcode{font-size:5.5pt;font-weight:900;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+           '.label-qr{width:10mm;height:10mm;flex-shrink:0;object-fit:contain;}' +
+'.label-text{overflow:visible;min-width:0;flex:1;}' +
+'.label-altcode{font-size:5.5pt;font-weight:900;color:#000;white-space:nowrap;overflow:visible;text-overflow:clip;}' +
             '.label-desc{font-size:4.5pt;color:#000;font-weight:600;line-height:1.2;overflow:visible;word-wrap:break-word;}' +
             '.label-footer{font-size:3.5pt;color:#555;border-top:0.2mm solid #999;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
             '</style></head><body>' +
