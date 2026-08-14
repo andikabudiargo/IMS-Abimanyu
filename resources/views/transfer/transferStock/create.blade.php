@@ -211,182 +211,185 @@
         stockByArticle = {};
     }
 
-    $(document).ready(function () {
+   $(document).ready(function () {
 
-      locationTo.on('change', function() {
-    const locTo = $(this).val();
-    checkAndSetBoothFlag(locTo);
+    function refreshArticleList() {
+        const locFrom = locationFrom.val();
+        const locTo   = locationTo.val();
 
-    const locFrom = locationFrom.val();
-    if (locFrom) {
-        resetArticleRows();                                    // bersihkan row lama yang mungkin tidak valid lagi
-        isiArticleByLocation('trArticleLocation', locFrom, locTo);  // ← reload dengan filter baru
-    }
-});
-        validateFormToast("frmAdd");
-        $('#trDate').val(currentDate);
-        objTsoBox.hide();
-
-        // ---- Flatpickr trDate: tidak boleh pilih tanggal setelah hari ini ----
-        flatpickr('#trDate', {
-            dateFormat: "d-m-Y",
-            allowInput: true,
-            maxDate: "today",     // kunci: tanggal maksimal = hari ini
-            defaultDate: currentDate,
-            disableMobile: true,
-            onReady: function () {
-                // pastikan value awal tetap terisi hari ini
-                if (!$('#trDate').val()) {
-                    $('#trDate').val(currentDate);
-                }
-            }
-        });
-
-        // ---- Inisialisasi select2 untuk Location From & To ----
-        $('#locationFrom, #locationTo').select2({
-            placeholder: '- Pilih Location -',
-            allowClear: true,
-            width: '100%'
-        });
-
-        const locationToOptions = locationTo.html();
-
-        // Kondisi awal: artikel terkunci sampai Location From dipilih
-        toggleArticleSection(false);
-
-      locationFrom.on('change', function () {
-    const loc = $(this).val();
-
-    resetArticleRows();
-
-    locationTo.html(locationToOptions);
-    if (loc) {
-        locationTo.find('option[value="' + loc + '"]').prop('disabled', true);
+        if (locFrom && locTo) {
+            resetArticleRows();
+            isiArticleByLocation('trArticleLocation', locFrom, locTo);
+            toggleArticleSection(true);
+        } else {
+            toggleArticleSection(false);
+        }
     }
 
-    locationTo.val('').prop('disabled', !loc).trigger('change');
+    validateFormToast("frmAdd");
+    $('#trDate').val(currentDate);
+    objTsoBox.hide();
 
-    checkAndSetFromRmFlag(loc);
-
-    if (loc) {
-        isiArticleByLocation('trArticleLocation', loc, locationTo.val());  // ← tambah param
-        toggleArticleSection(true);
-    } else {
-        toggleArticleSection(false);
-    }
-});
-
-        // ---- Validasi qty <= stock (delegated, lihat catatan class) ----
-        $(document).on('input change', '.qty-input', function () {
-            const row  = $(this).closest('.article-item');
-            const code = row.find('.article-code-input').val();
-            const stock = (stockByArticle[code] && stockByArticle[code].qty) ? parseFloat(stockByArticle[code].qty) : 0;
-            let val = parseFloat($(this).val()) || 0;
-
-            if (code && val > stock) {
-                $(this).val(stock);
-                show_msg('Warning', 'Qty transfer melebihi stock tersedia (' + stock + ') di gudang ini.', 'warning');
+    // ---- Flatpickr trDate: tidak boleh pilih tanggal setelah hari ini ----
+    flatpickr('#trDate', {
+        dateFormat: "d-m-Y",
+        allowInput: true,
+        maxDate: "today",
+        defaultDate: currentDate,
+        disableMobile: true,
+        onReady: function () {
+            if (!$('#trDate').val()) {
+                $('#trDate').val(currentDate);
             }
-            if (typeof hitungGrandTotal === 'function') hitungGrandTotal();
-        });
-
-        // ---- Excel import ----
-        $('#frmExcel').on('submit', function (event) {
-            $('#message').html('');
-            event.preventDefault();
-
-            if (!locationFrom.val()) {
-                Swal.fire('Error..', 'Pilih Location From terlebih dahulu !!', 'error');
-                return;
-            }
-
-            if ($('#file').val()) {
-                $.ajax({
-                    url: "{{ route('transferOut.import.excel') }}",
-                    method: "POST",
-                    data: new FormData(this),
-                    dataType: "json",
-                    contentType: false,
-                    cache: false,
-                    processData: false,
-                    beforeSend: function () {
-                        $('#uploadExcel').attr('disabled', 'disabled');
-                    },
-                    success: function (data) {
-                        if (data.status == 1) {
-                            Swal.fire({
-                                title: "Proses validasi...",
-                                html: '0/0 Loaded',
-                                icon: "warning",
-                                showConfirmButton: false,
-                                didOpen: () => {
-                                    Swal.showLoading();
-
-                                    if (data.dataDetail.length > 0) {
-                                        let jumlahData = data.dataDetail.length;
-                                        const dataDetail = data.dataDetail.reverse();
-                                        Swal.getHtmlContainer().innerHTML = `<b> 0/${jumlahData} </b> Loaded`;
-
-                                        let timerId = setInterval(() => checkVariable(), 1000);
-                                        function checkVariable() {
-                                            if (dataArticle.length > 0) {
-                                                clearInterval(timerId);
-                                                for (let i = jumlahData - 1; i >= 0; i--) {
-                                                    setTimeout(() => {
-                                                        if (Swal.isVisible()) {
-                                                            if (dataDetail[i].article_code) {
-                                                                add_new_row_edit(dataDetail[i].article_code, dataDetail[i].qty, dataDetail[i].uom, dataDetail[i].uom_member, '', dataDetail[i].location_code);
-                                                                Swal.getHtmlContainer().innerHTML = `<b> ${jumlahData - i}/${jumlahData} </b> Loaded`;
-                                                            }
-                                                            if (i === 0) {
-                                                                $("#uploadExcel").removeAttr('disabled');
-                                                                show_msg(data.title, data.message, data.alert);
-                                                                $(".loading-spinner-container").removeClass("-show");
-                                                                swal.close();
-                                                                clearFileInput('file');
-                                                            }
-                                                        }
-                                                    }, (jumlahData - i) * 1000);
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        swal.fire("warning", "Excel file is empty... !!", "warning");
-                                        $("#uploadExcel").removeAttr('disabled');
-                                        $(".loading-spinner-container").removeClass("-show");
-                                    }
-                                },
-                            })
-                        }
-
-                        if (data.status == 0) {
-                            for (let i = 0; i < data.message.length; i++) {
-                                show_msg(data.title, data.message[i], data.alert);
-                            }
-                            $("#uploadExcel").removeAttr('disabled');
-                            swal.fire("warning", data.pesan, "warning");
-                            $(".loading-spinner-container").removeClass("-show");
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        let err = JSON.parse(xhr.responseText);
-                        $("#uploadExcel").removeAttr('disabled');
-                        Swal.fire('Error..', err.message, 'error');
-                        $(".loading-spinner-container").removeClass("-show");
-                    }
-                })
-            } else {
-                Swal.fire('Error..', 'File is empty !!', 'error');
-            }
-        });
-
-        function clearFileInput(inputId) {
-            let input = $('#' + inputId);
-            input.wrap('<form>').closest('form').get(0).reset();
-            input.unwrap();
-            $('#fileLabel').text('Choose file');
         }
     });
+
+    // ---- Inisialisasi select2 untuk Location From & To ----
+    $('#locationFrom, #locationTo').select2({
+        placeholder: '- Pilih Location -',
+        allowClear: true,
+        width: '100%'
+    });
+
+    const locationToOptions = locationTo.html();
+
+    // Kondisi awal: artikel terkunci sampai Location From & To dipilih
+    toggleArticleSection(false);
+
+    // ===== SATU-SATUNYA handler locationFrom =====
+    locationFrom.on('change', function () {
+        const loc = $(this).val();
+
+        resetArticleRows();
+
+        locationTo.html(locationToOptions);
+        if (loc) {
+            locationTo.find('option[value="' + loc + '"]').prop('disabled', true);
+        }
+        locationTo.val('').prop('disabled', !loc).trigger('change');
+
+        checkAndSetFromRmFlag(loc);
+        // TIDAK manggil isiArticleByLocation di sini — biar handler locationTo yang urus,
+        // karena locationTo baru saja direset ke '' beberapa baris di atas.
+    });
+
+    // ===== SATU-SATUNYA handler locationTo =====
+    locationTo.on('change', function () {
+        checkAndSetBoothFlag($(this).val());
+        refreshArticleList();
+    });
+
+    // ---- Validasi qty <= stock (delegated) ----
+    $(document).on('input change', '.qty-input', function () {
+        const row  = $(this).closest('.article-item');
+        const code = row.find('.article-code-input').val();
+        const stock = (stockByArticle[code] && stockByArticle[code].qty) ? parseFloat(stockByArticle[code].qty) : 0;
+        let val = parseFloat($(this).val()) || 0;
+
+        if (code && val > stock) {
+            $(this).val(stock);
+            show_msg('Warning', 'Qty transfer melebihi stock tersedia (' + stock + ') di gudang ini.', 'warning');
+        }
+        if (typeof hitungGrandTotal === 'function') hitungGrandTotal();
+    });
+
+    // ---- Excel import ----
+    $('#frmExcel').on('submit', function (event) {
+        $('#message').html('');
+        event.preventDefault();
+
+        if (!locationFrom.val()) {
+            Swal.fire('Error..', 'Pilih Location From terlebih dahulu !!', 'error');
+            return;
+        }
+
+        if ($('#file').val()) {
+            $.ajax({
+                url: "{{ route('transferOut.import.excel') }}",
+                method: "POST",
+                data: new FormData(this),
+                dataType: "json",
+                contentType: false,
+                cache: false,
+                processData: false,
+                beforeSend: function () {
+                    $('#uploadExcel').attr('disabled', 'disabled');
+                },
+                success: function (data) {
+                    if (data.status == 1) {
+                        Swal.fire({
+                            title: "Proses validasi...",
+                            html: '0/0 Loaded',
+                            icon: "warning",
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+
+                                if (data.dataDetail.length > 0) {
+                                    let jumlahData = data.dataDetail.length;
+                                    const dataDetail = data.dataDetail.reverse();
+                                    Swal.getHtmlContainer().innerHTML = `<b> 0/${jumlahData} </b> Loaded`;
+
+                                    let timerId = setInterval(() => checkVariable(), 1000);
+                                    function checkVariable() {
+                                        if (dataArticle.length > 0) {
+                                            clearInterval(timerId);
+                                            for (let i = jumlahData - 1; i >= 0; i--) {
+                                                setTimeout(() => {
+                                                    if (Swal.isVisible()) {
+                                                        if (dataDetail[i].article_code) {
+                                                            add_new_row_edit(dataDetail[i].article_code, dataDetail[i].qty, dataDetail[i].uom, dataDetail[i].uom_member, '', dataDetail[i].location_code);
+                                                            Swal.getHtmlContainer().innerHTML = `<b> ${jumlahData - i}/${jumlahData} </b> Loaded`;
+                                                        }
+                                                        if (i === 0) {
+                                                            $("#uploadExcel").removeAttr('disabled');
+                                                            show_msg(data.title, data.message, data.alert);
+                                                            $(".loading-spinner-container").removeClass("-show");
+                                                            swal.close();
+                                                            clearFileInput('file');
+                                                        }
+                                                    }
+                                                }, (jumlahData - i) * 1000);
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    swal.fire("warning", "Excel file is empty... !!", "warning");
+                                    $("#uploadExcel").removeAttr('disabled');
+                                    $(".loading-spinner-container").removeClass("-show");
+                                }
+                            },
+                        })
+                    }
+
+                    if (data.status == 0) {
+                        for (let i = 0; i < data.message.length; i++) {
+                            show_msg(data.title, data.message[i], data.alert);
+                        }
+                        $("#uploadExcel").removeAttr('disabled');
+                        swal.fire("warning", data.pesan, "warning");
+                        $(".loading-spinner-container").removeClass("-show");
+                    }
+                },
+                error: function (xhr, status, error) {
+                    let err = JSON.parse(xhr.responseText);
+                    $("#uploadExcel").removeAttr('disabled');
+                    Swal.fire('Error..', err.message, 'error');
+                    $(".loading-spinner-container").removeClass("-show");
+                }
+            })
+        } else {
+            Swal.fire('Error..', 'File is empty !!', 'error');
+        }
+    });
+
+    function clearFileInput(inputId) {
+        let input = $('#' + inputId);
+        input.wrap('<form>').closest('form').get(0).reset();
+        input.unwrap();
+        $('#fileLabel').text('Choose file');
+    }
+});
 
     objToType.change(function (e) {
         let toType = $(this).val();
