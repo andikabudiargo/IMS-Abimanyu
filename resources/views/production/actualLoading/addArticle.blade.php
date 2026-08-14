@@ -442,23 +442,23 @@ function renderFgDetailModal(res, articleLabel, boothLabel){
         });
     }
 
-    let wipHtml = '';
-    if (wipRows.length === 0){
-        wipHtml = `<tr><td colspan="2" class="text-center text-muted py-2">
-                     Tidak ada stock FG di gudang WIP.
-                   </td></tr>`;
-    } else {
-        wipRows.forEach(function(r){
-            wipHtml += `
-                <tr>
-                    <td class="text-left align-middle">
-                        <div class="font-weight-bold">${r.location_name ?? r.location_code}</div>
-                        <div class="text-muted" style="font-size:11.5px;">${r.location_code}</div>
-                    </td>
-                    <td class="text-right align-middle font-weight-bold">${formatStock(r.qty)} ${r.uom ?? ''}</td>
-                </tr>`;
-        });
-    }
+   let wipHtml = '';
+if (wipRows.length === 0){
+    wipHtml = `<tr><td colspan="2" class="text-center text-muted py-2">
+                 Tidak ada stock FG di gudang WIP.
+               </td></tr>`;
+} else {
+    wipRows.forEach(function(r){
+        wipHtml += `
+            <tr>
+                <td class="text-left align-middle">
+                    <div class="font-weight-bold">${r.article_alternative_code}</div>
+                    <div class="text-muted" style="font-size:11.5px;">${r.article_desc}</div>
+                </td>
+                <td class="text-right align-middle font-weight-bold">${formatStock(r.qty)} ${r.uom ?? ''}</td>
+            </tr>`;
+    });
+}
 
     let summaryClass = total > 0 ? 'alert-success' : 'alert-danger';
     let summaryIcon  = total > 0 ? 'check-circle'  : 'x-circle';
@@ -506,7 +506,7 @@ function renderFgDetailModal(res, articleLabel, boothLabel){
             <table class="table table-sm table-hover mb-2" style="font-size:13px;">
                 <thead style="background-color:#f8f9fa;">
                     <tr>
-                        <th class="text-left"  style="width:70%;">Gudang (WIP)</th>
+                        <th class="text-left"  style="width:70%;">Gudang WIP</th>
                         <th class="text-right" style="width:30%;">Qty</th>
                     </tr>
                 </thead>

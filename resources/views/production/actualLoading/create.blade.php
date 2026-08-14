@@ -223,14 +223,26 @@ $('#uploadExcelLoading').on('click', function(){
     let $btn = $('#uploadExcelLoading');
     $btn.prop('disabled', true);
 
+    // ── Modal spinner ──
+    Swal.fire({
+        title: 'Memproses import...',
+        html: 'Membaca dan memvalidasi data Excel',
+        icon: 'warning',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
     $.ajax({
-        url: "{{ route('actualLoading.import.excel') }}",
+        url: "{{ route('production.actualLoading.import') }}",
         method: 'POST',
         data: formData,
         dataType: 'json',
         contentType: false,
         processData: false,
         success: function(res){
+            Swal.close();
+
             if (res.status == 1){
                 res.dataDetail.forEach(function(item){
                     let idx = appendRow();
@@ -255,6 +267,7 @@ $('#uploadExcelLoading').on('click', function(){
             }
         },
         error: function(xhr){
+            Swal.close();
             let err = xhr.responseJSON;
             Swal.fire('Error..', err?.message || xhr.statusText, 'error');
         },

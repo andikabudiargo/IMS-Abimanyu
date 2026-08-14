@@ -172,20 +172,19 @@ class ActualLoadingController extends Controller
         $locationCode = $request->location_code;
         $articleCode  = $request->article_code; // kode article FG
 
-      $wipRows = DB::table('warehouse_stock as ws')
-    ->join('stock_location_master as slm', 'slm.location_code', '=', 'ws.location_number')
+    $wipRows = DB::table('warehouse_stock as ws')
     ->join('article as a', 'a.article_code', '=', 'ws.article_code')
     ->where('ws.article_code', $articleCode)
-    ->where('ws.location_number', '012')   // ⬅ sama, langsung parent
+    ->where('ws.location_number', '012')
     ->select(
-        'slm.location_code',
-        'slm.location_name',
+        'a.article_code',
+        'a.article_alternative_code',
+        'a.article_desc',
         'a.uom',
         DB::raw('sum(ws.article_qty) as qty')
     )
-    ->groupBy('slm.location_code', 'slm.location_name', 'a.uom')
+    ->groupBy('a.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.uom')
     ->havingRaw('sum(ws.article_qty) > 0')
-    ->orderBy('slm.location_name')
     ->get();
 
         $wipTotal = (float) $wipRows->sum('qty');
