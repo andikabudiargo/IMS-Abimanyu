@@ -234,7 +234,7 @@ $('#uploadExcelLoading').on('click', function(){
     });
 
     $.ajax({
-        url: "{{ route('production.actualLoading.import') }}",
+        url: "{{ route('actualLoading.import.excel') }}",
         method: 'POST',
         data: formData,
         dataType: 'json',
