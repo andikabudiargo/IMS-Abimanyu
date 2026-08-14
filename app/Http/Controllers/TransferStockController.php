@@ -2217,7 +2217,7 @@ private function getArticleDesc(string $articleCode): string
         'a.article_type',
         'a.group_of_material',
         DB::raw('coalesce(s.article_qty, 0) as qty'),
-        'u.uom_to as uom'
+        'u.unit_to as uom'
     )
     ->distinct()
     ->orderBy('a.article_alternative_code')
