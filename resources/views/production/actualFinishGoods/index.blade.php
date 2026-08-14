@@ -25,8 +25,13 @@
                 <input type="text" id="prdDate" name="prdDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
               <div class="form-group col-md-4"> 
-                <label for="spraybooth">Location From</label>
-                <input type="text" class="form-control text-uppercase" id="spraybooth" name="spraybooth" placeholder=""  />
+                <label class="form-label" for="spraybooth">Location</label>
+                <select class="select2 form-control" id="spraybooth" name="spraybooth">
+                    <option value="">All</option>
+                    @foreach($listLocation as $loc)
+                        <option value="{{ $loc->location_code }}">{{ $loc->location_name }}</option>
+                    @endforeach
+                </select>
               </div>
             </div>
             <div class="form-row">
@@ -78,15 +83,13 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  let searchWos = document.querySelector("#spraybooth");
+  let searchLocation = document.querySelector("#spraybooth");
   let searchPrd = document.querySelector("#searchPrd");
   let searchStatus = document.querySelector("#searchStatus");
-  let wosDate = document.querySelector("#wosDate");
   let prdDate = document.querySelector("#prdDate");
   let search = document.querySelector('#btnSearch');
   let refresh = document.querySelector('a[data-action="reload"]');
   let rangePickr = document.querySelector('.flatpickr-range');
-  let rangePickr1 = document.querySelector('.flatpickr-range-1');
   let btnSummary = document.querySelector('#btnSummary');
   let btnDetail = document.querySelector('#btnDetail');
 
@@ -102,89 +105,79 @@
     mode: "range"
   });
 
-  initDatePicker(rangePickr1,{
-    minDate: "01/01/2010",
-    maxDate: "31/12/2030",
-    dateFormat: "d-m-Y",
-    mode: "range"
-  });
-
-  //refresh di cards
   refresh.addEventListener("click",function(){
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchPrd.value,prdDate.val,searchWos.value,wosDate.value,searchStatus.value);
-  })
+    showList(searchPrd.value, prdDate.value, searchLocation.value, searchStatus.value);
+  });
 
   search.addEventListener("click", function(){ 
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchPrd.value,prdDate.value,searchWos.value,wosDate.value,searchStatus.value);
+    showList(searchPrd.value, prdDate.value, searchLocation.value, searchStatus.value);
   });
 
   btnSummary.addEventListener("click", function(){
     btnSummary.style.display = "none";
     btnDetail.style.display = "block";
-    showList(searchPrd.value,prdDate.value,searchWos.value,wosDate.value,searchStatus.value);
+    showList(searchPrd.value, prdDate.value, searchLocation.value, searchStatus.value);
   });
   
   btnDetail.addEventListener("click", function(){
     btnSummary.style.display = "block";
     btnDetail.style.display = "none";
-    showListDetail(searchPrd.value,prdDate.value,searchWos.value,wosDate.value,searchStatus.value);
+    showListDetail(searchPrd.value, prdDate.value, searchLocation.value, searchStatus.value);
   });
 
-  const showList = (searchPrd,prdDate,searchWos,wosdate,searchStatus) => {
-    if ($('#detailedTable tr').length >0){
-        let table= $('#detailedTable').DataTable();
+  const showList = (searchPrd, prdDate, spraybooth, searchStatus) => {
+    if ($('#detailedTable tr').length > 0){
+        let table = $('#detailedTable').DataTable();
         table.destroy();
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
     showDataTables({
-      tableId:"detailedTable",
-      route:"{{ route('production.actualFinishGoods.list') }}",
-      kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
-      columnDefs :[
+      tableId: "detailedTable",
+      route: "{{ route('production.actualFinishGoods.list') }}",
+      kolom: {!! $kolom !!},
+      arrColPrint: [1,2,3,4,5,6,7],
+      columnDefs: [
         { width: '5%', targets: 0 },
       ],
-      dataSearch:  {
-        searchPrd:searchPrd,
-        prdDate:prdDate,
-        searchWos:searchWos,
-        wosDate:wosdate,
-        searchStatus:searchStatus
+      dataSearch: {
+        searchPrd: searchPrd,
+        prdDate: prdDate,
+        spraybooth: spraybooth,
+        searchStatus: searchStatus
       },
-      orderColumn:[[ 1, 'asc' ]],
-      excelFileName:'actual_finish_goods_data'
+      orderColumn: [[ 1, 'asc' ]],
+      excelFileName: 'actual_finish_goods_data'
     });
   }
 
-  const showListDetail = (searchPrd,prddate,searchWos,wosdate,searchStatus) => {
-    if ($('#detailedTable tr').length >0){
-        let table= $('#detailedTable').DataTable();
+  const showListDetail = (searchPrd, prdDate, spraybooth, searchStatus) => {
+    if ($('#detailedTable tr').length > 0){
+        let table = $('#detailedTable').DataTable();
         table.destroy();
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
     showDataTables({
-      tableId:"detailedTable",
-      route:"{{ route('production.actualFinishGoods.list.detail') }}",
-      kolom:{!! $kolomDetail !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17], 
-      dataSearch:  {
-        searchPrd:searchPrd,
-        prdDate:prddate,
-        searchWos:searchWos,
-        wosDate:wosdate,
-        searchStatus:searchStatus
+      tableId: "detailedTable",
+      route: "{{ route('production.actualFinishGoods.list.detail') }}",
+      kolom: {!! $kolomDetail !!},
+      arrColPrint: [0,1,2,3,4,5,6,7,8,9,10],
+      dataSearch: {
+        searchPrd: searchPrd,
+        prdDate: prdDate,
+        spraybooth: spraybooth,
+        searchStatus: searchStatus
       },
-      columnDefs :[
+      columnDefs: [
         { width: '5%', targets: 0 },
       ],
-      orderColumn:[[ 1, 'desc' ],[ 0, 'asc' ]],
-      excelFileName:'actual_finish_goods_data'
+      orderColumn: [[ 1, 'desc' ],[ 0, 'asc' ]],
+      excelFileName: 'actual_finish_goods_data'
     });
   }
         

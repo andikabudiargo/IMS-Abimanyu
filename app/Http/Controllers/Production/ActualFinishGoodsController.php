@@ -105,6 +105,11 @@ class ActualFinishGoodsController extends Controller
         $data['kolomDetail'] = $this->getTableColoumnDetail();
         $data['status']      = $this->statusMap;
 
+         $data['listLocation'] = DB::table('stock_location_master')
+        ->whereIn('location_code', ['050','051','052'])
+        ->orderBy('location_name')
+        ->get();
+
         return view("production.actualFinishGoods.index", $data);
     }
 
@@ -1112,9 +1117,10 @@ class ActualFinishGoodsController extends Controller
 
     public function list(Request $request)
 {
-    $searchFg     = strtolower($request->searchPrd);
-    $fgDate       = $request->prdDate;
-    $searchStatus = $request->searchStatus;
+    $searchFg       = strtolower($request->searchPrd);
+    $fgDate         = $request->prdDate;
+    $searchLocation = $request->spraybooth;
+    $searchStatus   = $request->searchStatus;
 
     $fromDate = "";
     $toDate   = "";
@@ -1137,6 +1143,9 @@ class ActualFinishGoodsController extends Controller
         })
         ->when($fgDate, function ($query) use ($fromDate, $toDate) {
             $query->whereBetween(DB::raw('afg.fg_date'), [$fromDate, $toDate]);
+        })
+        ->when($searchLocation, function ($query) use ($searchLocation) {
+            $query->where('afg.spray_booth', $searchLocation);
         })
         ->when($searchStatus, function ($query) use ($searchStatus) {
             $query->where('afg.status', $searchStatus);
@@ -1223,10 +1232,10 @@ class ActualFinishGoodsController extends Controller
 
     public function listDetail(Request $request)
 {
-    $searchFg     = strtolower($request->searchPrd);
-    $fgDate       = $request->prdDate;
-    $searchWos    = $request->spraybooth;
-    $searchStatus = $request->searchStatus;
+    $searchFg       = strtolower($request->searchPrd);
+    $fgDate         = $request->prdDate;
+    $searchLocation = $request->spraybooth;
+    $searchStatus   = $request->searchStatus;
 
     $fromDate = "";
     $toDate   = "";
@@ -1251,6 +1260,9 @@ class ActualFinishGoodsController extends Controller
         })
         ->when($fgDate, function ($query) use ($fromDate, $toDate) {
             $query->whereBetween(DB::raw('afg.fg_date'), [$fromDate, $toDate]);
+        })
+        ->when($searchLocation, function ($query) use ($searchLocation) {
+            $query->where('afg.spray_booth', $searchLocation);
         })
         ->when($searchStatus, function ($query) use ($searchStatus) {
             $query->where('afg.status', $searchStatus);
