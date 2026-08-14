@@ -1629,7 +1629,7 @@ private function buildTemplateFilename($wosDate, $boothName)
 
     $boothPart = $boothName ? trim($boothName) : 'NoBooth';
 
-    $filename = "Loading_{$datePart}_({$boothPart})";
+    $filename = "WOS_{$boothPart}_{$datePart}";
 
     $filename = preg_replace('/[\\\\\/:*?"<>|]/', '', $filename);
     $filename = preg_replace('/\s+/', ' ', $filename);
