@@ -83,109 +83,106 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  let searchLocation = document.querySelector("#spraybooth");
-  let searchPrd = document.querySelector("#searchPrd");
-  let searchStatus = document.querySelector("#searchStatus");
-  let prdDate = document.querySelector("#prdDate");
-  let search = document.querySelector('#btnSearch');
-  let refresh = document.querySelector('a[data-action="reload"]');
-  let rangePickr = document.querySelector('.flatpickr-range');
-  let btnSummary = document.querySelector('#btnSummary');
-  let btnDetail = document.querySelector('#btnDetail');
+ let searchLocation = document.querySelector("#spraybooth");
+let searchPrd = document.querySelector("#searchPrd");
+let prdDate = document.querySelector("#prdDate");
+let search = document.querySelector('#btnSearch');
+let refresh = document.querySelector('a[data-action="reload"]');
+let rangePickr = document.querySelector('.flatpickr-range');
+let btnSummary = document.querySelector('#btnSummary');
+let btnDetail = document.querySelector('#btnDetail');
 
-  document.addEventListener("DOMContentLoaded", function(event) {
-    btnSummary.style.display = "none";
-    btnDetail.style.display = "none";
-  });
+document.addEventListener("DOMContentLoaded", function(event) {
+  btnSummary.style.display = "none";
+  btnDetail.style.display = "none";
+});
 
-  initDatePicker(rangePickr,{
-    minDate: "01/01/2010",
-    maxDate: "31/12/2030",
-    dateFormat: "d-m-Y",
-    mode: "range"
-  });
+initDatePicker(rangePickr,{
+  minDate: "01/01/2010",
+  maxDate: "31/12/2030",
+  dateFormat: "d-m-Y",
+  mode: "range"
+});
 
-  refresh.addEventListener("click",function(){
-    btnDetail.style.display = "block";
-    btnSummary.style.display = "none";
-    showList(searchPrd.value, prdDate.value, searchLocation.value, searchStatus.value);
-  });
+refresh.addEventListener("click",function(){
+  btnDetail.style.display = "block";
+  btnSummary.style.display = "none";
+  showList(searchPrd.value, prdDate.value, searchLocation.value);
+});
 
-  search.addEventListener("click", function(){ 
-    btnDetail.style.display = "block";
-    btnSummary.style.display = "none";
-    showList(searchPrd.value, prdDate.value, searchLocation.value, searchStatus.value);
-  });
+search.addEventListener("click", function(){ 
+  btnDetail.style.display = "block";
+  btnSummary.style.display = "none";
+  showList(searchPrd.value, prdDate.value, searchLocation.value);
+});
 
-  btnSummary.addEventListener("click", function(){
-    btnSummary.style.display = "none";
-    btnDetail.style.display = "block";
-    showList(searchPrd.value, prdDate.value, searchLocation.value, searchStatus.value);
-  });
-  
-  btnDetail.addEventListener("click", function(){
-    btnSummary.style.display = "block";
-    btnDetail.style.display = "none";
-    showListDetail(searchPrd.value, prdDate.value, searchLocation.value, searchStatus.value);
-  });
+btnSummary.addEventListener("click", function(){
+  btnSummary.style.display = "none";
+  btnDetail.style.display = "block";
+  showList(searchPrd.value, prdDate.value, searchLocation.value);
+});
 
-  const showList = (searchPrd, prdDate, spraybooth, searchStatus) => {
-    if ($('#detailedTable tr').length > 0){
-        let table = $('#detailedTable').DataTable();
-        table.destroy();
-        $('#detailedTable tbody > tr').remove();
-        $("#detailedTable thead > tr").remove();
-    }
-    showDataTables({
-      tableId: "detailedTable",
-      route: "{{ route('production.actualFinishGoods.list') }}",
-      kolom: {!! $kolom !!},
-      arrColPrint: [1,2,3,4,5,6,7],
-      columnDefs: [
-        { width: '5%', targets: 0 },
-      ],
-      dataSearch: {
-        searchPrd: searchPrd,
-        prdDate: prdDate,
-        spraybooth: spraybooth,
-        searchStatus: searchStatus
-      },
-      orderColumn: [[ 1, 'asc' ]],
-      excelFileName: 'actual_finish_goods_data'
-    });
+btnDetail.addEventListener("click", function(){
+  btnSummary.style.display = "block";
+  btnDetail.style.display = "none";
+  showListDetail(searchPrd.value, prdDate.value, searchLocation.value);
+});
+
+const showList = (searchPrd, prdDate, spraybooth) => {
+  if ($('#detailedTable tr').length > 0){
+      let table = $('#detailedTable').DataTable();
+      table.destroy();
+      $('#detailedTable tbody > tr').remove();
+      $("#detailedTable thead > tr").remove();
   }
-
-  const showListDetail = (searchPrd, prdDate, spraybooth, searchStatus) => {
-    if ($('#detailedTable tr').length > 0){
-        let table = $('#detailedTable').DataTable();
-        table.destroy();
-        $('#detailedTable tbody > tr').remove();
-        $("#detailedTable thead > tr").remove();
-    }
-    showDataTables({
-      tableId: "detailedTable",
-      route: "{{ route('production.actualFinishGoods.list.detail') }}",
-      kolom: {!! $kolomDetail !!},
-      arrColPrint: [0,1,2,3,4,5,6,7,8,9,10],
-      dataSearch: {
-        searchPrd: searchPrd,
-        prdDate: prdDate,
-        spraybooth: spraybooth,
-        searchStatus: searchStatus
-      },
-      columnDefs: [
-        { width: '5%', targets: 0 },
-      ],
-      orderColumn: [[ 1, 'desc' ],[ 0, 'asc' ]],
-      excelFileName: 'actual_finish_goods_data'
-    });
-  }
-        
-  $.ajaxSetup({
-    headers: {
-        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-    }
+  showDataTables({
+    tableId: "detailedTable",
+    route: "{{ route('production.actualFinishGoods.list') }}",
+    kolom: {!! $kolom !!},
+    arrColPrint: [1,2,3,4,5,6,7],
+    columnDefs: [
+      { width: '5%', targets: 0 },
+    ],
+    dataSearch: {
+      searchPrd: searchPrd,
+      prdDate: prdDate,
+      spraybooth: spraybooth
+    },
+    orderColumn: [[ 1, 'asc' ]],
+    excelFileName: 'actual_finish_goods_data'
   });
+}
+
+const showListDetail = (searchPrd, prdDate, spraybooth) => {
+  if ($('#detailedTable tr').length > 0){
+      let table = $('#detailedTable').DataTable();
+      table.destroy();
+      $('#detailedTable tbody > tr').remove();
+      $("#detailedTable thead > tr").remove();
+  }
+  showDataTables({
+    tableId: "detailedTable",
+    route: "{{ route('production.actualFinishGoods.list.detail') }}",
+    kolom: {!! $kolomDetail !!},
+    arrColPrint: [0,1,2,3,4,5,6,7,8,9,10],
+    dataSearch: {
+      searchPrd: searchPrd,
+      prdDate: prdDate,
+      spraybooth: spraybooth
+    },
+    columnDefs: [
+      { width: '5%', targets: 0 },
+    ],
+    orderColumn: [[ 1, 'desc' ],[ 0, 'asc' ]],
+    excelFileName: 'actual_finish_goods_data'
+  });
+}
+      
+$.ajaxSetup({
+  headers: {
+      'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+  }
+});
     
 </script>
 @endsection
