@@ -1637,10 +1637,8 @@ public function importExcel(Request $request)
         return response()->json(['status'=>0,'title'=>$title,'message'=>[['Pilih Spray Booth terlebih dahulu sebelum import.']],'alert'=>'error']);
     }
 
-    $import = new ActualLoadingImport();
-    Excel::import($import, $request->file('file'));
-
-    $rows = $import->rows ?? collect();
+    $sheets = Excel::toCollection(new ActualLoadingImport(), $request->file('file'));
+    $rows   = $sheets->first() ?? collect();
 
     if ($rows->isEmpty()) {
         return response()->json(['status'=>0,'title'=>$title,'message'=>[['File kosong / tidak ada baris data.']],'alert'=>'error']);
