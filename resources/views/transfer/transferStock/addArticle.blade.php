@@ -5,7 +5,7 @@
            <div class="col-md-4 col-12">
     <div class="form-group margin-nol">
         <label for="articleId" class="d-block d-md-none">Article</label>
-        <select class="form-control" id="articleId" name="articleId[]" data-dependent="articleId"></select>
+        <select class="form-control" id="articleId" name="articleId[]"></select>
     </div>
 </div>
 <div class="col-md-1 col-12">
@@ -624,16 +624,31 @@ if (selStock !== undefined && selStock !== null && selStock !== '') {
     // ARTICLE & LOCATION HELPERS
     // ============================================================
 
-    function isiArticleByLocation(dependent, location) {
-        $.ajax({
-            url: "{{ route('dynamic.dependent') }}",
-            method: "POST",
-            data: { dependent: dependent, value: location },
-            success: function(result) {
-                dataArticle = result;
-            }
-        });
-    }
+    // GANTI fungsi lama isiArticleByLocation dengan ini:
+function isiArticleByLocation(dependent, locationFrom, locationTo = '') {
+    $.ajax({
+        url: "{{ route('transferStock.articleByLocation') }}",  // ← ganti ke route kita
+        method: "GET",
+        data: {
+            location:    locationFrom,
+            location_to: locationTo    // ← tambah param ini
+        },
+        success: function(result) {
+            // Bangun HTML options dari result (dulu dibangun oleh dynamic.dependent)
+            let options = '<option value=""></option>';
+            $.each(result, function(i, item) {
+                options += `<option value="${item.article_code}"
+                    data-uom="${item.uom}"
+                    data-stock="${item.qty}"
+                    data-article-type="${item.article_type}"
+                    data-group-of-material="${item.group_of_material ?? ''}"
+                    data-uom-member="${item.uom ?? ''}"
+                >${item.article_alternative_code} - ${item.article_desc}</option>`;
+            });
+            dataArticle = options;
+        }
+    });
+}
 
     function changeselect(dependent, obj, article) {
         $('#' + obj).attr('disabled','disabled');
