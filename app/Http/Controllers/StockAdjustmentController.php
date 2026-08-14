@@ -1410,9 +1410,9 @@ class StockAdjustmentController extends Controller
                 if (is_null($r->article_code)) {
                     $errors[] = "Article Code {$r->input_code} tidak terdaftar.";
                 }
-                if (abs((float) $r->qty_adjustment) < self::EPSILON) {
-                    $errors[] = "Article {$r->input_code} - Qty tidak boleh 0.";
-                }
+                //if (abs((float) $r->qty_adjustment) < self::EPSILON) {
+                  //  $errors[] = "Article {$r->input_code} - Qty tidak boleh 0.";
+                //}
             }
 
             if ($errors) {
@@ -1758,9 +1758,7 @@ class StockAdjustmentController extends Controller
         if ($errors) return $errors;
 
         foreach ($articles as $val) {
-            if (abs((float) $val->qty_adjustment) < self::EPSILON) {
-                $errors[] = "Qty Adjustment untuk artikel {$val->article_code} tidak boleh 0.";
-            }
+
             if ((float) $val->stock_after < 0) {
                 $errors[] = "Stock after untuk artikel {$val->article_code} tidak boleh negatif.";
             }

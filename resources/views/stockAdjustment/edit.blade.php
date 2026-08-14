@@ -689,11 +689,18 @@ function buildRevisePreview() {
 
         seen[artCode] = true;
 
-        if (diff === 0) {
-            if (artCode in before) removed.push(label);
+        // Artikel baru (belum pernah ada di dokumen ini) SELALU dihitung
+        // sebagai perubahan — meski diff-nya 0 (mis. balance yang dientri
+        // kebetulan sama dengan stock saat ini). Menambah baris baru ke
+        // dokumen tetap perubahan yang perlu masuk revision history,
+        // beda kasus dengan artikel lama yang qty-nya dikembalikan ke 0.
+        if (!(artCode in before)) {
+            added.push(`${label} (${diff > 0 ? '+' : ''}${diff})`);
             return;
         }
-        if (!(artCode in before)) { added.push(`${label} (${diff > 0 ? '+' : ''}${diff})`); return; }
+
+        if (diff === 0) { removed.push(label); return; }
+
         if (Math.abs(before[artCode] - diff) > 0.000001) {
             const f = before[artCode];
             changed.push(`${label}: ${f > 0 ? '+' : ''}${f} &rarr; ${diff > 0 ? '+' : ''}${diff}`);
