@@ -1306,8 +1306,8 @@ function editLine(dtlId, el) {
                 const c1 = ($('#editQtyC1').val() || '').replace(/,/g,'');
                 const c2 = ($('#editQtyC2').val() || '').replace(/,/g,'');
                 const c3 = ($('#editQtyC3').val() || '').replace(/,/g,'');
-                if (![c1,c2,c3].some(v => v !== '' && parseFloat(v) > 0)) {
-                    Swal.showValidationMessage('Minimal salah satu QTY counter harus > 0.'); return false;
+                if (![c1,c2,c3].some(v => v !== '' && parseFloat(v) >= 0)) {
+                    Swal.showValidationMessage('Minimal salah satu QTY counter harus >= 0.'); return false;
                 }
                 payload.qty_counter1 = c1;
                 payload.qty_counter2 = c2;
