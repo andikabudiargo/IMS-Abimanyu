@@ -2183,44 +2183,43 @@ private function getArticleDesc(string $articleCode): string
           public function articleByLocation(Request $r)
 {
     $locationFrom = $r->location;
-    $locationTo   = $r->location_to;   // ← parameter baru dari JS
+    $locationTo   = $r->location_to;
 
-    // Ambil allowed types dari location_to
     $allowedTypes = [];
     if ($locationTo) {
         $pgArray = DB::table('stock_location_master')
             ->where('location_code', $locationTo)
-            ->value('article_type');   // kolom text[]
+            ->value('article_type');
 
         $allowedTypes = $this->parsePostgresArray($pgArray);
     }
 
-    $query = DB::table('warehouse_stock as s')
-        ->join('article as a', 'a.article_code', '=', 's.article_code')
-        ->join('uom_con_v2 as u', 'u.article_code', '=', 's.article_code')
-        ->where('s.location_number', $locationFrom)
-        ->where('s.site_code', $this->siteCode)
-        ->where('s.article_qty', '>', 0);
+    $query = DB::table('article as a')
+        ->leftJoin('warehouse_stock as s', function ($join) use ($locationFrom) {
+            $join->on('s.article_code', '=', 'a.article_code')
+                 ->where('s.location_number', $locationFrom)
+                 ->where('s.site_code', $this->siteCode);
+        })
+        ->leftJoin('uom_con_v2 as u', 'u.article_code', '=', 'a.article_code')
+        ->where('a.status', '1');   // ← GANTI sesuai nama kolom & value "aktif" yang benar
 
     if (!empty($allowedTypes)) {
-        // article_type MATCH → tampil
-        // group_of_material MATCH → juga tampil (handle kasus CPA di gudang 006)
         $query->where(function ($q) use ($allowedTypes) {
             $q->whereIn('a.article_type', $allowedTypes)
               ->orWhereIn('a.group_of_material', $allowedTypes);
         });
     }
-    // Jika allowedTypes kosong (NULL di DB / gudang umum) → semua artikel tampil
 
     return $query->select(
-        's.article_code',
+        'a.article_code',
         'a.article_alternative_code',
         'a.article_desc',
         'a.article_type',
         'a.group_of_material',
-        's.article_qty as qty',
+        DB::raw('coalesce(s.article_qty, 0) as qty'),
         'u.uom_to as uom'
     )
+    ->distinct()
     ->orderBy('a.article_alternative_code')
     ->get();
 }
