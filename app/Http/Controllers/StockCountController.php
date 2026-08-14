@@ -303,30 +303,32 @@ private function getTableColoumnAuditDetail()
         'updated_at'      => $now,
     ];
 
-    if ($isAccounting) {
-        // Leo: bebas ubah qty di 3 slot counter sekaligus. Kosong = di-null-kan.
-        $anyQty = false;
-        foreach (['counter1', 'counter2', 'counter3'] as $c) {
-            if (!$request->has("qty_{$c}")) continue;
-            $raw = $request->input("qty_{$c}");
-            if ($raw === '' || $raw === null) {
-                $updates["qty_{$c}"] = null;
-            } else {
-                $val = (float) str_replace(',', '', $raw);
-                if ($val > 0) $anyQty = true;
-                $updates["qty_{$c}"] = $val;
+   if ($isAccounting) {
+    $anyFilled = false;
+    foreach (['counter1', 'counter2', 'counter3'] as $c) {
+        if (!$request->has("qty_{$c}")) continue;
+        $raw = $request->input("qty_{$c}");
+        if ($raw === '' || $raw === null) {
+            $updates["qty_{$c}"] = null;
+        } else {
+            $val = (float) str_replace(',', '', $raw);
+            if ($val < 0) {
+                return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY tidak boleh negatif.'],'alert'=>'warning']);
             }
+            $anyFilled = true;              // ← terisi = ada angka, termasuk 0
+            $updates["qty_{$c}"] = $val;
         }
-        if (!$anyQty) {
-            return response()->json(['status'=>0,'title'=>'Warning','message'=>['Minimal salah satu QTY counter harus lebih dari 0.'],'alert'=>'warning']);
-        }
-    } else {
-        $qty = (float) str_replace(',', '', $request->qty);
-        if ($qty <= 0) {
-            return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY harus lebih dari 0.'],'alert'=>'warning']);
-        }
-        $updates["qty_{$role}"] = $qty;
     }
+    if (!$anyFilled) {
+        return response()->json(['status'=>0,'title'=>'Warning','message'=>['Minimal salah satu QTY counter harus diisi.'],'alert'=>'warning']);
+    }
+} else {
+    $qty = (float) str_replace(',', '', $request->qty);
+    if ($qty < 0) {
+        return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY tidak boleh negatif.'],'alert'=>'warning']);
+    }
+    $updates["qty_{$role}"] = $qty;
+}
 
     DB::table('sto_dtl')->where('dtl_id', $dtlId)->update($updates);
 
@@ -865,9 +867,9 @@ public function auditListDetail(Request $request)
         $qty      = (float) str_replace(',', '', $request->qty);
         $confirmAccumulate = filter_var($request->confirm_accumulate, FILTER_VALIDATE_BOOLEAN);
  
-        if ($qty <= 0) {
-            return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY harus lebih dari 0.'],'alert'=>'warning']);
-        }
+        //if ($qty <= 0) {
+          //  return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY harus lebih dari 0.'],'alert'=>'warning']);
+        //}
  
         $now = date('Y-m-d H:i:s');
  
@@ -1158,7 +1160,14 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     $isAuto = $this->isAutoNumber($m->target_ref);
     $dbRole = $this->dbRole($access['role']); // accounting → counter1
 
-    $filled = array_filter($lines, fn($l) => !empty($l['article'] ?? $l['article_desc'] ?? '') && isset($l['qty']) && (float)str_replace(',','',$l['qty']) > 0);
+    $filled = array_filter($lines, function ($l) {
+    $hasArticle = !empty($l['article'] ?? $l['article_desc'] ?? '');
+    $qtyRaw     = $l['qty'] ?? null;
+    // qty dianggap "diisi" kalau bukan null/string kosong — 0 tetap valid,
+    // bukan lagi ditandai "tidak diisi" seperti sebelumnya (>0).
+    $hasQty     = $qtyRaw !== null && $qtyRaw !== '';
+    return $hasArticle && $hasQty;
+});
     if (count($filled) === 0) {
         return response()->json(['status'=>0,'title'=>'Warning','message'=>['Minimal 1 baris harus diisi beserta QTY-nya.'],'alert'=>'warning']);
     }

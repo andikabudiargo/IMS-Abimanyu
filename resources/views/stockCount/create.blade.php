@@ -808,7 +808,7 @@ function submitLineAuto(confirmAccumulate) {
     const val = $('#inArticle').val();
     const qty = ($('#inQty').val() || '').replace(/,/g, '');
     if (!val)  { Swal.fire('Warning','Pilih atau ketik artikel dulu.','warning'); return; }
-    if (!qty || parseFloat(qty) <= 0) { Swal.fire('Warning','QTY harus lebih dari 0.','warning'); return; }
+    //if (!qty || parseFloat(qty) <= 0) { Swal.fire('Warning','QTY harus lebih dari 0.','warning'); return; }
 
     const manual      = isManualValue(val);
     const article     = manual ? '' : val;
@@ -888,7 +888,7 @@ function submitSheet() {
         if (!val && (!qty || parseFloat(qty) <= 0)) return; // baris kosong, skip
 
         if (!val) { show_msg('Warning','Ada baris yang belum dipilih artikelnya.','warning'); valid=false; return false; }
-        if (!qty || parseFloat(qty) <= 0) { show_msg('Warning','Ada baris yang QTY-nya kosong atau 0.','warning'); valid=false; return false; }
+        //if (!qty || parseFloat(qty) <= 0) { show_msg('Warning','Ada baris yang QTY-nya kosong atau 0.','warning'); valid=false; return false; }
 
          const manual      = isManualValue(val);
         const article     = manual ? '' : val;
@@ -1312,11 +1312,11 @@ function editLine(dtlId, el) {
                 payload.qty_counter1 = c1;
                 payload.qty_counter2 = c2;
                 payload.qty_counter3 = c3;
-            } else {
-                const qty = ($('#editQty').val() || '').replace(/,/g, '');
-                if (!qty || parseFloat(qty) <= 0) { Swal.showValidationMessage('QTY harus lebih dari 0.'); return false; }
-                payload.qty = qty;
-            }
+           } else {
+    const qty = ($('#editQty').val() || '').replace(/,/g, '');
+    if (qty === '' || parseFloat(qty) < 0) { Swal.showValidationMessage('QTY tidak boleh negatif.'); return false; }
+    payload.qty = qty;
+}
 
             return payload;
         }
@@ -1455,7 +1455,7 @@ $(document).on('click', '.scc-btn-add-article', function () {
             if (!val) { Swal.showValidationMessage('Pilih atau ketik artikel dulu.'); return false; }
 
             const qty = ($('#maQty').val() || '').replace(/,/g, '');
-            if (!qty || parseFloat(qty) <= 0) { Swal.showValidationMessage('QTY harus lebih dari 0.'); return false; }
+            //if (!qty || parseFloat(qty) <= 0) { Swal.showValidationMessage('QTY harus lebih dari 0.'); return false; }
 
             const locationVal = IS_PARTNER ? ($('#maLocation').val() || '') : '';
             if (IS_PARTNER && !locationVal) { Swal.showValidationMessage('Lokasi wajib dipilih.'); return false; }
