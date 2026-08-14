@@ -196,7 +196,19 @@ $('#btnDownloadTemplate').on('click', function(){
         Swal.fire('Info','Pilih Spray Booth dulu supaya template berisi daftar Article FG yang relevan.','info');
         return;
     }
-    window.location.href = "{{ route('actualLoading.export.excel') }}?sprayBooth=" + encodeURIComponent(sprayBooth);
+
+    let wosDate = $('#reference').val();
+
+    if (!wosDate){
+        Swal.fire('Info','Isi WOS Date supaya mendapat filename template yang relevan.','info');
+        return;
+    }
+
+    let url = "{{ route('actualLoading.export.excel') }}"
+        + "?sprayBooth=" + encodeURIComponent(sprayBooth)
+        + "&wosDate=" + encodeURIComponent(wosDate);
+
+    window.location.href = url;
 });
 
 $('#fileLoading').on('change', function(){

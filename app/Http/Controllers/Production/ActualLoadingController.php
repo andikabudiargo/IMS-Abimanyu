@@ -1600,6 +1600,7 @@ private function fgStockInWip(array $articleCodes)
 public function export(Request $request)
 {
     $sprayBooth = $request->sprayBooth;
+    $wosDate    = $request->wosDate;
 
     $boothName = $sprayBooth
         ? DB::table('stock_location_master')->where('location_code', $sprayBooth)->value('location_name')
@@ -1609,12 +1610,31 @@ public function export(Request $request)
     $rmStock  = $sprayBooth ? $this->rmStockAtBooth($sprayBooth) : collect();
     $fgWip    = $sprayBooth ? $this->fgStockInWip($articles->pluck('article_code')->all()) : collect();
 
-    $filename = 'Template_ActualLoading' . ($sprayBooth ? '_' . $sprayBooth : '') . '.xlsx';
+    $filename = $this->buildTemplateFilename($wosDate, $boothName);
 
     return Excel::download(
         new ActualLoadingExport($articles, $rmStock, $fgWip, $sprayBooth, $boothName),
         $filename
     );
+}
+
+/**
+ * Bentuk nama file: Loading_WOSDATE_(NamaSprayBooth).xlsx
+ * Karakter yang tidak valid untuk nama file (/ \ : * ? " < > |) dibuang/diganti.
+ */
+private function buildTemplateFilename($wosDate, $boothName)
+{
+    $datePart = $wosDate ? trim($wosDate) : date('d-m-Y');
+    $datePart = str_replace(['/', '\\'], '-', $datePart);
+
+    $boothPart = $boothName ? trim($boothName) : 'NoBooth';
+
+    $filename = "Loading_{$datePart}_({$boothPart})";
+
+    $filename = preg_replace('/[\\\\\/:*?"<>|]/', '', $filename);
+    $filename = preg_replace('/\s+/', ' ', $filename);
+
+    return trim($filename) . '.xlsx';
 }
 
 /**
