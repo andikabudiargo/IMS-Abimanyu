@@ -70,6 +70,26 @@
                 </div>
                 <div class="card-body">
                     <hr>
+                     <div class="form-row" id="importSection">
+    <div class="col-lg-3 col-md-12">
+        <div class="form-group">
+            <div>
+                <input type="file" class="custom-file-input" name="file" id="fileLoading" required disabled/>
+                <label class="custom-file-label" for="fileLoading" id="fileLoadingLabel">Choose file</label>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 col-md-12">
+        <a href="javascript:;" id="btnDownloadTemplate" class="btn btn-light">
+            <i class="fa fa-download"></i> Download Template
+        </a>
+        <button type="button" class="btn btn-primary" id="uploadExcelLoading" disabled>
+            <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+            <span class="align-middle d-sm-inline-block d-none">Upload Excel</span>
+        </button>
+    </div>
+</div>
+
                     <div id="articleLockMsg" class="alert alert-warning">
                         <i data-feather="alert-triangle" class="align-middle mr-50"></i>
                         Silakan pilih <b>Spray Booth</b> terlebih dahulu sebelum menambahkan artikel.
@@ -85,6 +105,7 @@
                         </div>
                     </div>
                     <hr>
+                   
                     <div class="d-flex justify-content-between align-items-end mt-75">
                         <button class="btn btn-primary btn-prev" type="button" id="addNewRow" disabled onclick="add_new_row();">
                             <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
@@ -149,6 +170,105 @@ if (reference.length) {              // ⬅ NEW
         dateFormat: "d-m-Y",
         maxDate: "today"   // ⬅ NEW: tidak bisa pilih tanggal maju
     });
+}
+
+// ============================================================
+// IMPORT / EXPORT EXCEL
+// ============================================================
+function toggleImportSection(enable){
+    const disabled = !enable;
+    $('#fileLoading').prop('disabled', disabled);
+    $('#uploadExcelLoading').prop('disabled', disabled);
+    $('#importLockMsg').toggleClass('d-none', enable);
+}
+toggleImportSection(false);
+
+// gating: sama seperti dropdown artikel, ikut perubahan Spray Booth
+$('#sprayBooth').on('change', function(){
+    toggleImportSection(!!$(this).val());
+});
+// kalau pas load edit sudah ada value (halaman edit), langsung aktifkan
+if ($('#sprayBooth').val()) toggleImportSection(true);
+
+$('#btnDownloadTemplate').on('click', function(){
+    let sprayBooth = $('#sprayBooth').val();
+    if (!sprayBooth){
+        Swal.fire('Info','Pilih Spray Booth dulu supaya template berisi daftar Article FG yang relevan.','info');
+        return;
+    }
+    window.location.href = "{{ route('actualLoading.export.excel') }}?sprayBooth=" + encodeURIComponent(sprayBooth);
+});
+
+$('#fileLoading').on('change', function(){
+    let name = this.files.length ? this.files[0].name : 'Choose file';
+    $('#fileLoadingLabel').text(name);
+});
+
+$('#uploadExcelLoading').on('click', function(){
+    let sprayBooth = $('#sprayBooth').val();
+    if (!sprayBooth){
+        Swal.fire('Error..','Pilih Spray Booth terlebih dahulu !!','error');
+        return;
+    }
+    if (!$('#fileLoading').val()){
+        Swal.fire('Error..','File belum dipilih !!','error');
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append('file', $('#fileLoading')[0].files[0]);
+    formData.append('sprayBooth', sprayBooth);
+    formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+
+    let $btn = $('#uploadExcelLoading');
+    $btn.prop('disabled', true);
+
+    $.ajax({
+        url: "{{ route('actualLoading.import.excel') }}",
+        method: 'POST',
+        data: formData,
+        dataType: 'json',
+        contentType: false,
+        processData: false,
+        success: function(res){
+            if (res.status == 1){
+                res.dataDetail.forEach(function(item){
+                    let idx = appendRow();
+                    changeselect('articleId' + idx, item.article_code);
+
+                    let $row = $('#new_row' + idx);
+                    $row.find('input[name="qtyFresh[]"]').val(item.qty_fresh || '');
+                    $row.find('input[name="qtyRepaint[]"]').val(item.qty_repaint || '');
+                    $row.find('input[name="note[]"]').val(item.note || '');
+
+                    recalcTotal($row);
+                    checkQtyRow($row);
+                });
+
+                sumData();
+                lockChosenArticles();
+                show_msg(res.title, res.message, res.alert);
+                clearFileInput();
+            } else {
+                let msg = Array.isArray(res.message) ? res.message.flat().join('<br>') : res.message;
+                Swal.fire({ icon:'error', title: res.title || 'Error', html: msg });
+            }
+        },
+        error: function(xhr){
+            let err = xhr.responseJSON;
+            Swal.fire('Error..', err?.message || xhr.statusText, 'error');
+        },
+        complete: function(){
+            $btn.prop('disabled', false);
+        }
+    });
+});
+
+function clearFileInput(){
+    let input = $('#fileLoading');
+    input.wrap('<form>').closest('form').get(0).reset();
+    input.unwrap();
+    $('#fileLoadingLabel').text('Choose file');
 }
 
 function toggleArticleSection(enable){

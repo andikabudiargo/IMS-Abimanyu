@@ -151,86 +151,10 @@ class ActualLoadingController extends Controller
      * max_fg = kapasitas dari RM fresh di booth + stok FG jadi di gudang WIP (repaint).
      */
     public function articleBySprayBooth(Request $request)
-    {
-        $locationCode = $request->location_code;
-
-        $isBooth = DB::table('stock_location_master')
-            ->where('location_code', $locationCode)
-            ->where('location_type', 'booth')
-            ->exists();
-
-        if (!$isBooth) {
-            return response()->json([]);
-        }
-
-        $fgList = DB::table('bom_hdr as bh')
-            ->join('bom_rm as br', 'br.bom_code', '=', 'bh.bom_code')
-            ->join('article as arm', 'arm.article_code', '=', 'br.article_code')
-            ->join('article as afg', 'afg.article_code', '=', 'bh.article_code')
-            ->where('bh.status', '3')
-            ->whereIn('arm.article_type', ['RMP', 'RMNP'])
-            // Munculkan FG hanya jika minimal ADA salah satu RM komponennya yang stock > 0 di booth ini
-            ->whereExists(function ($q) use ($locationCode) {
-                $q->select(DB::raw(1))
-                  ->from('bom_rm as br3')
-                  ->join('article as arm3', 'arm3.article_code', '=', 'br3.article_code')
-                  ->whereColumn('br3.bom_code', 'bh.bom_code')
-                  ->whereIn('arm3.article_type', ['RMP', 'RMNP'])
-                  ->whereRaw("
-                      coalesce((
-                          select sum(article_qty)
-                          from warehouse_stock
-                          where article_code = br3.article_code
-                            and location_number = ?
-                      ), 0) > 0
-                  ", [$locationCode]);
-            })
-            ->select(
-                'afg.article_code',
-                'afg.article_alternative_code',
-                'afg.article_desc',
-                'afg.uom',
-                DB::raw("(select string_agg(unit_to,',' order by unit_from) from uom_con_v2 where article_code = afg.article_code) as uom_member"),
-                DB::raw("(
-                    select greatest(coalesce(min(floor(greatest(coalesce(ws.total_qty,0),0) / nullif(br2.qty,0))),0),0)
-                    from bom_rm br2
-                    join article arm2
-                        on arm2.article_code = br2.article_code
-                       and arm2.article_type in ('RMP','RMNP')
-                    left join (
-                        select article_code, sum(article_qty) as total_qty
-                        from warehouse_stock
-                        where location_number = '$locationCode'
-                        group by article_code
-                    ) ws on ws.article_code = br2.article_code
-                    where br2.bom_code = bh.bom_code
-                ) as stock_rm_fresh"),
-                DB::raw("(
-                    select coalesce(sum(greatest(t.qty,0)),0)
-                    from (
-                        select ws.location_number, sum(ws.article_qty) as qty
-                        from warehouse_stock ws
-                        join stock_location_master slm on slm.location_code = ws.location_number
-                        where ws.article_code = afg.article_code
-                          and slm.location_type = 'wip'
-                        group by ws.location_number
-                    ) t
-                ) as stock_fg_repaint")
-            )
-            ->distinct()
-            ->orderBy('afg.article_alternative_code')
-            ->get();
-
-        // ── Gabung jadi satu angka: Max FG ──
-        $fgList = $fgList->map(function ($r) {
-            $fresh   = max(0, (float) ($r->stock_rm_fresh   ?? 0));
-            $repaint = max(0, (float) ($r->stock_fg_repaint ?? 0));
-            $r->max_fg = $fresh + $repaint;
-            return $r;
-        })->values();
-
-        return response()->json($fgList);
-    }
+{
+    $fgList = $this->eligibleArticlesForBooth($request->location_code);
+    return response()->json($fgList);
+}
 
     /**
      * Detail 1 FG di spray booth terpilih:
@@ -248,22 +172,21 @@ class ActualLoadingController extends Controller
         $locationCode = $request->location_code;
         $articleCode  = $request->article_code; // kode article FG
 
-        // ── 1. Stok FG jadi di gudang WIP (buat repaint) ──
-        $wipRows = DB::table('warehouse_stock as ws')
-            ->join('stock_location_master as slm', 'slm.location_code', '=', 'ws.location_number')
-            ->join('article as a', 'a.article_code', '=', 'ws.article_code')
-            ->where('ws.article_code', $articleCode)
-            ->where('slm.location_type', 'wip')
-            ->select(
-                'slm.location_code',
-                'slm.location_name',
-                'a.uom',
-                DB::raw('sum(ws.article_qty) as qty')
-            )
-            ->groupBy('slm.location_code', 'slm.location_name', 'a.uom')
-            ->havingRaw('sum(ws.article_qty) > 0')
-            ->orderBy('slm.location_name')
-            ->get();
+      $wipRows = DB::table('warehouse_stock as ws')
+    ->join('stock_location_master as slm', 'slm.location_code', '=', 'ws.location_number')
+    ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+    ->where('ws.article_code', $articleCode)
+    ->where('ws.location_number', '012')   // ⬅ sama, langsung parent
+    ->select(
+        'slm.location_code',
+        'slm.location_name',
+        'a.uom',
+        DB::raw('sum(ws.article_qty) as qty')
+    )
+    ->groupBy('slm.location_code', 'slm.location_name', 'a.uom')
+    ->havingRaw('sum(ws.article_qty) > 0')
+    ->orderBy('slm.location_name')
+    ->get();
 
         $wipTotal = (float) $wipRows->sum('qty');
 
@@ -545,21 +468,14 @@ class ActualLoadingController extends Controller
 
     /** Total FG di gudang WIP, lokasi bersaldo minus dianggap 0. */
     private function wipAvailable($fgArticle)
-    {
-        $perLoc = DB::table('warehouse_stock as ws')
-            ->join('stock_location_master as slm','slm.location_code','=','ws.location_number')
-            ->where('ws.article_code', $fgArticle)
-            ->where('slm.location_type','wip')
-            ->groupBy('ws.location_number')
-            ->select('ws.location_number', DB::raw('sum(ws.article_qty) as qty'))
-            ->get();
+{
+    $qty = (float) DB::table('warehouse_stock')
+        ->where('article_code', $fgArticle)
+        ->where('location_number', '012')
+        ->sum('article_qty');
 
-        $total = 0;
-        foreach ($perLoc as $r) {
-            $total += max(0, (float) $r->qty);
-        }
-        return (float) $total;
-    }
+    return max(0, $qty);
+}
 
     /**
      * Alokasi qty repaint dari beberapa gudang WIP (greedy),
@@ -573,43 +489,24 @@ class ActualLoadingController extends Controller
  */
 private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeeded, $toLoc, $movementType, $transno, $username)
 {
-    $sources = DB::table('warehouse_stock as ws')
-        ->join('stock_location_master as slm','slm.location_code','=','ws.location_number')
-        ->where('ws.article_code', $fgArticle)
-        ->where('slm.location_type','wip')
-        ->groupBy('ws.location_number','slm.location_name')
-        ->orderBy('slm.location_name')
-        ->select('ws.location_number', DB::raw('sum(ws.article_qty) as qty'))
-        ->get();
+    $avail = max(0, (float) DB::table('warehouse_stock')
+        ->where('article_code', $fgArticle)
+        ->where('location_number', '012')
+        ->sum('article_qty'));
 
     $remaining = $qtyNeeded;
 
-    // 1. ambil dari WIP yang masih ada saldo positif
-    foreach ($sources as $src) {
-        if ($remaining <= 0) break;
-        $avail = max(0, (float)$src->qty);
-        if ($avail <= 0) continue;
-
+    if ($avail > 0) {
         $take = min($remaining, $avail);
-        $this->postOut($seq, $fgArticle, $take, $src->location_number, $toLoc, $movementType, $transno, "Repaint dari WIP", $username);
-        $this->postIn ($seq, $fgArticle, $uom, $take, $toLoc, $src->location_number, $movementType, $transno, "FG Repaint", $username);
+        $this->postOut($seq, $fgArticle, $take, '012', $toLoc, $movementType, $transno, "Repaint dari WIP", $username);
+        $this->postIn ($seq, $fgArticle, $uom, $take, $toLoc, '012', $movementType, $transno, "FG Repaint", $username);
         $remaining -= $take;
     }
 
-    // 2. sisa yang belum tercukupi → paksa dari WIP pertama (jadi minus)
+    // sisa yang belum tercukupi -> tetap dari 012, boleh minus
     if ($remaining > 0) {
-        // pilih lokasi WIP pertama sebagai penampung minus
-        $fallbackLoc = $sources->first()->location_number
-            ?? DB::table('stock_location_master')->where('location_type','wip')->value('location_code');
-
-        if (!$fallbackLoc) {
-            // tidak ada gudang WIP sama sekali — terpaksa tetap catat, saldo minus di lokasi loading source
-            $fallbackLoc = $toLoc;
-        }
-
-        $this->postOut($seq, $fgArticle, $remaining, $fallbackLoc, $toLoc, $movementType, $transno, "Repaint (WIP minus)", $username);
-        $this->postIn ($seq, $fgArticle, $uom, $remaining, $toLoc, $fallbackLoc, $movementType, $transno, "FG Repaint (minus)", $username);
-        $remaining = 0;
+        $this->postOut($seq, $fgArticle, $remaining, '012', $toLoc, $movementType, $transno, "FG Repaint", $username);
+        $this->postIn ($seq, $fgArticle, $uom, $remaining, $toLoc, '012', $movementType, $transno, "FG Repaint", $username);
     }
 }
 
@@ -1476,6 +1373,121 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
         return Datatables::of($data)->make(true);
     }
 
+    /**
+ * Daftar FG yang bisa diproduksi di Spray Booth tertentu.
+ * max_fg = kapasitas RM fresh di booth + stok FG repaint di gudang WIP.
+ * Dipakai bersama oleh: dropdown artikel (articleBySprayBooth),
+ * export template, dan validasi import.
+ */
+private function eligibleArticlesForBooth($locationCode)
+{
+    $isBooth = DB::table('stock_location_master')
+        ->where('location_code', $locationCode)
+        ->where('location_type', 'booth')
+        ->exists();
+
+    if (!$isBooth) {
+        return collect();
+    }
+
+    $fgList = DB::table('bom_hdr as bh')
+        ->join('bom_rm as br', 'br.bom_code', '=', 'bh.bom_code')
+        ->join('article as arm', 'arm.article_code', '=', 'br.article_code')
+        ->join('article as afg', 'afg.article_code', '=', 'bh.article_code')
+        ->where('bh.status', '3')
+        ->whereIn('arm.article_type', ['RMP', 'RMNP'])
+        ->whereExists(function ($q) use ($locationCode) {
+            $q->select(DB::raw(1))
+              ->from('bom_rm as br3')
+              ->join('article as arm3', 'arm3.article_code', '=', 'br3.article_code')
+              ->whereColumn('br3.bom_code', 'bh.bom_code')
+              ->whereIn('arm3.article_type', ['RMP', 'RMNP'])
+              ->whereRaw("
+                  coalesce((
+                      select sum(article_qty)
+                      from warehouse_stock
+                      where article_code = br3.article_code
+                        and location_number = ?
+                  ), 0) > 0
+              ", [$locationCode]);
+        })
+        ->select(
+            'afg.article_code',
+            'afg.article_alternative_code',
+            'afg.article_desc',
+            'afg.uom',
+            DB::raw("(select string_agg(unit_to,',' order by unit_from) from uom_con_v2 where article_code = afg.article_code) as uom_member"),
+            DB::raw("(
+                select greatest(coalesce(min(floor(greatest(coalesce(ws.total_qty,0),0) / nullif(br2.qty,0))),0),0)
+                from bom_rm br2
+                join article arm2
+                    on arm2.article_code = br2.article_code
+                   and arm2.article_type in ('RMP','RMNP')
+                left join (
+                    select article_code, sum(article_qty) as total_qty
+                    from warehouse_stock
+                    where location_number = '$locationCode'
+                    group by article_code
+                ) ws on ws.article_code = br2.article_code
+                where br2.bom_code = bh.bom_code
+            ) as stock_rm_fresh"),
+          DB::raw("(
+    select coalesce(sum(greatest(ws.article_qty,0)),0)
+    from warehouse_stock ws
+    where ws.article_code = afg.article_code
+      and ws.location_number = '012'
+) as stock_fg_repaint")
+        )
+        ->distinct()
+        ->orderBy('afg.article_alternative_code')
+        ->get();
+
+    return $fgList->map(function ($r) {
+        $fresh   = max(0, (float) ($r->stock_rm_fresh   ?? 0));
+        $repaint = max(0, (float) ($r->stock_fg_repaint ?? 0));
+        $r->max_fg = $fresh + $repaint;
+        return $r;
+    })->values();
+}
+
+/** Stok RM (RMP/RMNP) yang ada di Spray Booth tertentu, qty > 0 */
+private function rmStockAtBooth($locationCode)
+{
+    return DB::table('warehouse_stock as ws')
+        ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+        ->where('ws.location_number', $locationCode)
+        ->whereIn('a.article_type', ['RMP', 'RMNP'])
+        ->select(
+            'a.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.uom',
+            DB::raw('sum(ws.article_qty) as qty')
+        )
+        ->groupBy('a.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.uom')
+        ->havingRaw('sum(ws.article_qty) > 0')
+        ->orderBy('a.article_alternative_code')
+        ->get();
+}
+
+private function fgStockInWip(array $articleCodes)
+{
+    if (empty($articleCodes)) {
+        return collect();
+    }
+
+    return DB::table('warehouse_stock as ws')
+        ->join('stock_location_master as slm', 'slm.location_code', '=', 'ws.location_number')
+        ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+        ->whereIn('ws.article_code', $articleCodes)
+        ->where('ws.location_number', '012')   // ⬅ langsung ke parent, bukan location_type='wip'
+        ->select(
+            'a.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.uom',
+            'slm.location_name',
+            DB::raw('sum(ws.article_qty) as qty')
+        )
+        ->groupBy('a.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.uom', 'slm.location_name')
+        ->havingRaw('sum(ws.article_qty) > 0')
+        ->orderBy('a.article_alternative_code')
+        ->get();
+}
     // =========================================================================
     // PRINT / APPROVE
     // =========================================================================
@@ -1576,87 +1588,128 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
     // EXPORT / IMPORT
     // =========================================================================
 
-    public function export(Request $request)
-    {
-        $wosNumber = $request->wos_number;
-        $filename  = str_replace('/','_', $wosNumber);
-        return Excel::download(new ActualLoadingExport($wosNumber), $filename.'.xlsx');
+    // =========================================================================
+// EXPORT / IMPORT  — skema Spray Booth (bukan WOS)
+// =========================================================================
+
+/**
+ * Download template Excel untuk Actual Loading.
+ * Kalau sprayBooth dikirim, sheet diisi daftar FG yang eligible di booth itu
+ * (referensi Max FG) supaya user tinggal isi Qty Fresh / Qty Repaint.
+ * Tanpa sprayBooth -> template kosong (cuma header).
+ */
+public function export(Request $request)
+{
+    $sprayBooth = $request->sprayBooth;
+
+    $boothName = $sprayBooth
+        ? DB::table('stock_location_master')->where('location_code', $sprayBooth)->value('location_name')
+        : null;
+
+    $articles = $sprayBooth ? $this->eligibleArticlesForBooth($sprayBooth) : collect();
+    $rmStock  = $sprayBooth ? $this->rmStockAtBooth($sprayBooth) : collect();
+    $fgWip    = $sprayBooth ? $this->fgStockInWip($articles->pluck('article_code')->all()) : collect();
+
+    $filename = 'Template_ActualLoading' . ($sprayBooth ? '_' . $sprayBooth : '') . '.xlsx';
+
+    return Excel::download(
+        new ActualLoadingExport($articles, $rmStock, $fgWip, $sprayBooth, $boothName),
+        $filename
+    );
+}
+
+/**
+ * Import Excel Actual Loading.
+ * Wajib sprayBooth sudah dipilih di form (sama seperti Location From di Transfer Stock),
+ * karena validasi article & Max FG bergantung pada booth yang dipilih.
+ */
+public function importExcel(Request $request)
+{
+    $sprayBooth = $request->sprayBooth;
+
+    $this->validate($request, [
+        'file' => 'required|mimes:xls,xlsx',
+    ]);
+
+    $title = "Import $this->title";
+
+    if (!$sprayBooth) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>[['Pilih Spray Booth terlebih dahulu sebelum import.']],'alert'=>'error']);
     }
 
-    public function importExcel(Request $request)
-    {
-        $wosNumber = $request->aWosNumber;
+    $import = new ActualLoadingImport();
+    Excel::import($import, $request->file('file'));
 
-        $this->validate($request, [
-            'file' => 'required|mimes:xls,xlsx'
-        ]);
+    $rows = $import->rows ?? collect();
 
-        $file     = $request->file('file');
-        $namaFile = rand().$file->getClientOriginalName();
-
-        $data['filename'] = $namaFile;
-        DB::table('import_actual_loading_tmp')->delete();
-        Excel::import(new ActualLoadingImport($data), $file);
-
-        $dataValidasi = DB::table('import_actual_loading_tmp')
-            ->leftJoin('article','article.article_alternative_code','import_actual_loading_tmp.article_code')
-            ->select('import_actual_loading_tmp.article_code'
-            ,'article_desc'
-            ,'qty_fresh'
-            ,'qty_repaint'
-            ,'qty_tag'
-            ,DB::RAW("concat(
-                case when import_actual_loading_tmp.qty_fresh::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty Actual Fresh salah : ',qty_fresh,'<br>') end,
-                case when import_actual_loading_tmp.qty_repaint::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty Actual Repaint salah : ',qty_repaint,'<br>') end,
-                case when article_desc is null and import_actual_loading_tmp.article_code <> 'gantiwarna' and import_actual_loading_tmp.article_code <> 'istirahat' then concat('Urutan ',row_number() over(),': Article Code:',import_actual_loading_tmp.article_code, ' tidak terdaftar <br>') end,
-                case when import_actual_loading_tmp.wo_code != '$wosNumber' then concat('Urutan ',row_number() over(),': WOS Code:',import_actual_loading_tmp.wo_code, ' tidak sesuai <br>Seharusnya $wosNumber') end
-                ) as notes")
-            )
-            ->where('file_name', $namaFile)
-            ->get();
-
-        $dataNotes = [];
-        foreach ($dataValidasi as $val) {
-            if ($val->notes) {
-                $dataNotes[] = [$val->notes];
-            }
-        }
-
-        $title = "Import $this->title";
-        $pesan = "";
-
-        if (count($dataNotes) > 0) {
-            $pesan  .= 'Ada error pada data yang diupload, silahkan cek notes error!';
-            $status  = 0;
-            $alert   = "error";
-            $message = $dataNotes;
-            $data    = "";
-        } else {
-            $data = DB::table('wo_det')
-                ->leftJoin('import_actual_loading_tmp', function ($join) {
-                    $join->on('import_actual_loading_tmp.wo_code', '=', 'wo_det.wo_code');
-                    $join->on('import_actual_loading_tmp.urutan', '=', 'wo_det.urutan');
-                })
-                ->leftJoin('article','article.article_code','=','wo_det.article_code')
-                ->where('wo_det.wo_code',$wosNumber)
-                ->select('wo_det.*'
-                ,DB::raw("case when so_code ='other' then wo_det.article_code else concat(article.article_alternative_code,' - ',article.article_desc) end as article")
-                ,'article.article_alternative_code'
-                ,'article.article_desc'
-                ,'import_actual_loading_tmp.qty_fresh as qty_fresh_x'
-                ,'import_actual_loading_tmp.qty_repaint as qty_repaint_x'
-                ,'import_actual_loading_tmp.qty_tag as qty_tag_x'
-                )
-                ->orderBy('wo_det.urutan')
-                ->get();
-
-            $status  = 1;
-            $alert   = "success";
-            $message = "$title is successfully imported";
-
-            DB::table('import_actual_loading_tmp')->where('file_name', $namaFile)->delete();
-        }
-
-        return response()->json(['status'=>$status,'title'=>$title,'message'=>$message,'alert'=>$alert,'dataDetail'=>$data,'pesan'=>$pesan]);
+    if ($rows->isEmpty()) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>[['File kosong / tidak ada baris data.']],'alert'=>'error']);
     }
+
+    $eligible = $this->eligibleArticlesForBooth($sprayBooth)->keyBy(function ($r) {
+        return strtoupper(trim($r->article_alternative_code));
+    });
+
+    $dataDetail = [];
+    $errors     = [];
+    $baris      = 1; // baris 1 = header, data mulai baris 2
+
+    foreach ($rows as $row) {
+        $baris++;
+
+        $codeInput = strtoupper(trim((string) ($row['article_code'] ?? '')));
+        if ($codeInput === '') continue; // baris kosong dilewati
+
+        $rawFresh   = trim((string) ($row['qty_fresh']   ?? '0'));
+        $rawRepaint = trim((string) ($row['qty_repaint'] ?? '0'));
+
+        if ($rawFresh !== '' && !preg_match('/^[0-9]*\.?[0-9]*$/', $rawFresh)) {
+            $errors[] = "Baris $baris: Qty Fresh tidak valid ('$rawFresh')";
+            continue;
+        }
+        if ($rawRepaint !== '' && !preg_match('/^[0-9]*\.?[0-9]*$/', $rawRepaint)) {
+            $errors[] = "Baris $baris: Qty Repaint tidak valid ('$rawRepaint')";
+            continue;
+        }
+
+        $qtyFresh   = (float) $rawFresh;
+        $qtyRepaint = (float) $rawRepaint;
+
+        $article = $eligible->get($codeInput);
+        if (!$article) {
+            $errors[] = "Baris $baris: Article Code '$codeInput' tidak terdaftar / tidak eligible di Spray Booth ini";
+            continue;
+        }
+        if (($qtyFresh + $qtyRepaint) <= 0) {
+            $errors[] = "Baris $baris: Total Qty Fresh + Qty Repaint harus lebih dari 0 ($codeInput)";
+            continue;
+        }
+
+        $dataDetail[] = [
+            'article_code'             => $article->article_code,
+            'article_alternative_code' => $article->article_alternative_code,
+            'article_desc'             => $article->article_desc,
+            'uom'                      => $article->uom,
+            'max_fg'                   => $article->max_fg,
+            'qty_fresh'                => $qtyFresh,
+            'qty_repaint'              => $qtyRepaint,
+            'note'                     => $row['note'] ?? null,
+        ];
+    }
+
+    if (count($errors) > 0) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
+    }
+    if (count($dataDetail) === 0) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>[['Tidak ada baris valid untuk diimport.']],'alert'=>'error']);
+    }
+
+    return response()->json([
+        'status'     => 1,
+        'title'      => $title,
+        'message'    => "$title berhasil, " . count($dataDetail) . " baris siap ditambahkan",
+        'alert'      => 'success',
+        'dataDetail' => $dataDetail,
+    ]);
+}
 }
