@@ -1652,48 +1652,49 @@ public function importExcel(Request $request)
     $errors     = [];
     $baris      = 1; // baris 1 = header, data mulai baris 2
 
-    foreach ($rows as $row) {
-        $baris++;
+   foreach ($rows as $row) {
+    $baris++;
 
-        $codeInput = strtoupper(trim((string) ($row['article_code'] ?? '')));
-        if ($codeInput === '') continue; // baris kosong dilewati
+    $codeInput = strtoupper(trim((string) ($row['article_code'] ?? '')));
+    if ($codeInput === '') continue; // baris kosong dilewati
 
-        $rawFresh   = trim((string) ($row['qty_fresh']   ?? '0'));
-        $rawRepaint = trim((string) ($row['qty_repaint'] ?? '0'));
+    $rawFresh   = trim((string) ($row['qty_fresh']   ?? '0'));
+    $rawRepaint = trim((string) ($row['qty_repaint'] ?? '0'));
 
-        if ($rawFresh !== '' && !preg_match('/^[0-9]*\.?[0-9]*$/', $rawFresh)) {
-            $errors[] = "Baris $baris: Qty Fresh tidak valid ('$rawFresh')";
-            continue;
-        }
-        if ($rawRepaint !== '' && !preg_match('/^[0-9]*\.?[0-9]*$/', $rawRepaint)) {
-            $errors[] = "Baris $baris: Qty Repaint tidak valid ('$rawRepaint')";
-            continue;
-        }
-
-        $qtyFresh   = (float) $rawFresh;
-        $qtyRepaint = (float) $rawRepaint;
-
-        $article = $eligible->get($codeInput);
-        if (!$article) {
-            $errors[] = "Baris $baris: Article Code '$codeInput' tidak terdaftar / tidak eligible di Spray Booth ini";
-            continue;
-        }
-        if (($qtyFresh + $qtyRepaint) <= 0) {
-            $errors[] = "Baris $baris: Total Qty Fresh + Qty Repaint harus lebih dari 0 ($codeInput)";
-            continue;
-        }
-
-        $dataDetail[] = [
-            'article_code'             => $article->article_code,
-            'article_alternative_code' => $article->article_alternative_code,
-            'article_desc'             => $article->article_desc,
-            'uom'                      => $article->uom,
-            'max_fg'                   => $article->max_fg,
-            'qty_fresh'                => $qtyFresh,
-            'qty_repaint'              => $qtyRepaint,
-            'note'                     => $row['note'] ?? null,
-        ];
+    if ($rawFresh !== '' && !preg_match('/^[0-9]*\.?[0-9]*$/', $rawFresh)) {
+        $errors[] = "Baris $baris: Qty Fresh tidak valid ('$rawFresh')";
+        continue;
     }
+    if ($rawRepaint !== '' && !preg_match('/^[0-9]*\.?[0-9]*$/', $rawRepaint)) {
+        $errors[] = "Baris $baris: Qty Repaint tidak valid ('$rawRepaint')";
+        continue;
+    }
+
+    $qtyFresh   = (float) $rawFresh;
+    $qtyRepaint = (float) $rawRepaint;
+
+    // ⬇ TIDAK diisi user (qty 0/kosong) → lewati saja, BUKAN error
+    if (($qtyFresh + $qtyRepaint) <= 0) {
+        continue;
+    }
+
+    $article = $eligible->get($codeInput);
+    if (!$article) {
+        $errors[] = "Baris $baris: Article Code '$codeInput' tidak terdaftar / tidak eligible di Spray Booth ini";
+        continue;
+    }
+
+    $dataDetail[] = [
+        'article_code'             => $article->article_code,
+        'article_alternative_code' => $article->article_alternative_code,
+        'article_desc'             => $article->article_desc,
+        'uom'                      => $article->uom,
+        'max_fg'                   => $article->max_fg,
+        'qty_fresh'                => $qtyFresh,
+        'qty_repaint'              => $qtyRepaint,
+        'note'                     => $row['note'] ?? null,
+    ];
+}
 
     if (count($errors) > 0) {
         return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
