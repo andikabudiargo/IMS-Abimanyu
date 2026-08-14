@@ -356,21 +356,34 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
             $data['subtitle'] = "Create $this->title";
             $data['oEdit']    = false;
 
-            // Location From: gudang milik dept user + gudang umum (011), privileged -> semua
-            $data['locationsFrom'] = DB::table('stock_location_master')
-                ->when(!$privileged, function ($q) use ($userDepts) {
-                    $q->where(function ($sub) use ($userDepts) {
-                        $sub->whereIn('dept_code', $userDepts)
-                            ->orWhere('location_code', '011');   // gudang umum selalu muncul
-                    });
-                })
-                ->orderBy('location_name')
-                ->get();
+          // Location From: gudang milik dept user + gudang umum (011), privileged -> semua
+$data['locationsFrom'] = DB::table('stock_location_master')
+    ->whereNotIn('location_code', ['038', '039'])   // ← TAMBAH INI
+    ->when(!$privileged, function ($q) use ($userDepts) {
+        $q->where(function ($sub) use ($userDepts) {
+            $sub->whereIn('dept_code', $userDepts)
+                ->orWhere('location_code', '011');
+        });
+    })
+    ->orderBy('location_name')
+    ->get();
 
-            // Location To: semua gudang (boleh tujuan dept lain)
-            $data['locationsTo'] = DB::table('stock_location_master')
-                ->orderBy('location_name')
-                ->get();
+// Location To: semua gudang + sertakan article_type untuk filter di JS
+$data['locationsTo'] = DB::table('stock_location_master')
+    ->whereNotIn('location_code', ['038', '039'])   // ← TAMBAH INI
+    ->orderBy('location_name')
+    ->select(
+        'location_code',
+        'location_name',
+        'dept_code',
+        'location_type',
+        'article_type'
+    )
+    ->get()
+    ->map(function ($loc) {
+        $loc->article_type = $this->parsePostgresArray($loc->article_type);
+        return $loc;
+    });
 
             $data['thirdParties'] = DB::table('third_party')->orderBy('nama')->get();
 
@@ -1136,19 +1149,32 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
                 ->orderBy('transfer_stock_det.id')
                 ->get();
 
-        $data['locationsFrom'] = DB::table('stock_location_master')
-            ->when(!$privileged, function ($q) use ($userDepts) {
-                $q->where(function ($sub) use ($userDepts) {
-                    $sub->whereIn('dept_code', $userDepts)
-                        ->orWhere('location_code', '011');
-                });
-            })
-            ->orderBy('location_name')
-            ->get();
+       $data['locationsFrom'] = DB::table('stock_location_master')
+    ->whereNotIn('location_code', ['038', '039'])   // ← TAMBAH INI
+    ->when(!$privileged, function ($q) use ($userDepts) {
+        $q->where(function ($sub) use ($userDepts) {
+            $sub->whereIn('dept_code', $userDepts)
+                ->orWhere('location_code', '011');
+        });
+    })
+    ->orderBy('location_name')
+    ->get();
 
-            $data['locationsTo'] = DB::table('stock_location_master')
-                ->orderBy('location_name')
-                ->get();
+$data['locationsTo'] = DB::table('stock_location_master')
+    ->whereNotIn('location_code', ['038', '039'])   // ← TAMBAH INI
+    ->orderBy('location_name')
+    ->select(
+        'location_code',
+        'location_name',
+        'dept_code',
+        'location_type',
+        'article_type'
+    )
+    ->get()
+    ->map(function ($loc) {
+        $loc->article_type = $this->parsePostgresArray($loc->article_type);
+        return $loc;
+    });
 
             $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode, $trNumber, $username);
             $data['approveValidate'] = Approval::approveValidate($this->moduleCode, $trNumber, $username);
@@ -2154,14 +2180,60 @@ private function getArticleDesc(string $articleCode): string
             // }
 
 
-            public function articleByLocation(Request $r){
-            return DB::table('stock as s')
-                ->join('uom_con_v2 as u', 's.article_code', '=', 'u.article_code')
-                ->where('s.location_code', $r->location)
-                ->where('s.qty', '>', 0)
-                ->select('s.article_code', 's.qty', 'u.uom_to as uom') // <-- uom_to
-                ->get();
-        }
+          public function articleByLocation(Request $r)
+{
+    $locationFrom = $r->location;
+    $locationTo   = $r->location_to;   // ← parameter baru dari JS
+
+    // Ambil allowed types dari location_to
+    $allowedTypes = [];
+    if ($locationTo) {
+        $pgArray = DB::table('stock_location_master')
+            ->where('location_code', $locationTo)
+            ->value('article_type');   // kolom text[]
+
+        $allowedTypes = $this->parsePostgresArray($pgArray);
+    }
+
+    $query = DB::table('warehouse_stock as s')
+        ->join('article as a', 'a.article_code', '=', 's.article_code')
+        ->join('uom_con_v2 as u', 'u.article_code', '=', 's.article_code')
+        ->where('s.location_number', $locationFrom)
+        ->where('s.site_code', $this->siteCode)
+        ->where('s.article_qty', '>', 0);
+
+    if (!empty($allowedTypes)) {
+        // article_type MATCH → tampil
+        // group_of_material MATCH → juga tampil (handle kasus CPA di gudang 006)
+        $query->where(function ($q) use ($allowedTypes) {
+            $q->whereIn('a.article_type', $allowedTypes)
+              ->orWhereIn('a.group_of_material', $allowedTypes);
+        });
+    }
+    // Jika allowedTypes kosong (NULL di DB / gudang umum) → semua artikel tampil
+
+    return $query->select(
+        's.article_code',
+        'a.article_alternative_code',
+        'a.article_desc',
+        'a.article_type',
+        'a.group_of_material',
+        's.article_qty as qty',
+        'u.uom_to as uom'
+    )
+    ->orderBy('a.article_alternative_code')
+    ->get();
+}
+
+/**
+ * Parse PostgreSQL array string "{RMP,RMNP}" → ['RMP','RMNP']
+ * Return [] jika null/kosong → berarti tidak ada restriction
+ */
+private function parsePostgresArray(?string $pgArray): array
+{
+    if (empty($pgArray) || $pgArray === '{}') return [];
+    return array_filter(array_map('trim', explode(',', trim($pgArray, '{}'))));
+}
 
         public function checkLocationType(Request $request)
         {

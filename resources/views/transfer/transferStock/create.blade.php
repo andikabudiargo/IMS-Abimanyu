@@ -213,9 +213,16 @@
 
     $(document).ready(function () {
 
-        locationTo.on('change', function() {
-            checkAndSetBoothFlag($(this).val());
-        });
+      locationTo.on('change', function() {
+    const locTo = $(this).val();
+    checkAndSetBoothFlag(locTo);
+
+    const locFrom = locationFrom.val();
+    if (locFrom) {
+        resetArticleRows();                                    // bersihkan row lama yang mungkin tidak valid lagi
+        isiArticleByLocation('trArticleLocation', locFrom, locTo);  // ← reload dengan filter baru
+    }
+});
         validateFormToast("frmAdd");
         $('#trDate').val(currentDate);
         objTsoBox.hide();
@@ -247,7 +254,7 @@
         // Kondisi awal: artikel terkunci sampai Location From dipilih
         toggleArticleSection(false);
 
-        locationFrom.on('change', function () {
+      locationFrom.on('change', function () {
     const loc = $(this).val();
 
     resetArticleRows();
@@ -259,10 +266,10 @@
 
     locationTo.val('').prop('disabled', !loc).trigger('change');
 
-    checkAndSetFromRmFlag(loc);   // ← tambahan: cek tipe Location From
+    checkAndSetFromRmFlag(loc);
 
     if (loc) {
-        isiArticleByLocation('trArticleLocation', loc);
+        isiArticleByLocation('trArticleLocation', loc, locationTo.val());  // ← tambah param
         toggleArticleSection(true);
     } else {
         toggleArticleSection(false);
