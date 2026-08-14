@@ -236,7 +236,7 @@ const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus
       doDate:doDate,
       recType:recType          // <-- tambahan
     },
-    orderColumn:[[ 2, 'asc' ]],
+    orderColumn:[[ 2, 'desc' ]],
     excelFileName:'receiving_detail'
   });
 }
