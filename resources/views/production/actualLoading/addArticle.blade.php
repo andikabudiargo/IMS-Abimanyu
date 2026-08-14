@@ -490,7 +490,7 @@ if (wipRows.length === 0){
             <table class="table table-sm table-hover mb-2" style="font-size:13px;">
                 <thead style="background-color:#f8f9fa;">
                     <tr>
-                        <th class="text-left"  style="width:26%;">Raw Material</th>
+                        <th class="text-left"  style="width:26%;">RM Booth</th>
                         <th class="text-right" style="width:14%;">Qty BOM</th>
                         <th class="text-right" style="width:14%;">Stock Booth</th>
                         <th class="text-right" style="width:10%;">Max FG</th>

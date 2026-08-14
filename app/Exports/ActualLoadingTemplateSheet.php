@@ -31,27 +31,33 @@ class ActualLoadingTemplateSheet implements FromArray, WithHeadings, WithTitle, 
 
     public function headings(): array
     {
-        return ['No', 'Article Code', 'Article Desc', 'Max FG (info)', 'Qty Fresh', 'Qty Repaint', 'Note'];
+        return [
+            'No', 'Article Code', 'Article Desc',
+            'Stock Booth (info)', 'Stock WIP (info)',
+            'Qty Fresh', 'Qty Repaint', 'Note',
+        ];
     }
 
     public function array(): array
-{
-    $rows = [];
-    $no   = 0;
+    {
+        $rows = [];
+        $no   = 0;
 
-    foreach ($this->articles as $val) {
-        $no++;
-        $maxFg = isset($val->max_fg) ? round((float) $val->max_fg, 2) : 0;
+        foreach ($this->articles as $val) {
+            $no++;
 
-        $rows[] = [$no, $val->article_alternative_code, $val->article_desc, $maxFg, null, null, null];
+            $stockRm  = is_numeric($val->stock_rm_fresh   ?? null) ? round((float) $val->stock_rm_fresh, 2)   : 0;
+            $stockWip = is_numeric($val->stock_fg_repaint ?? null) ? round((float) $val->stock_fg_repaint, 2) : 0;
+
+            $rows[] = [$no, $val->article_alternative_code, $val->article_desc, $stockRm, $stockWip, null, null, null];
+        }
+
+        if (empty($rows)) {
+            $rows[] = [1, '', '', '', '', '', '', ''];
+        }
+
+        return $rows;
     }
-
-    if (empty($rows)) {
-        $rows[] = [1, '', '', '', '', '', ''];
-    }
-
-    return $rows;
-}
 
     public function columnFormats(): array
     {
@@ -59,6 +65,7 @@ class ActualLoadingTemplateSheet implements FromArray, WithHeadings, WithTitle, 
             'D' => NumberFormat::FORMAT_NUMBER_00,
             'E' => NumberFormat::FORMAT_NUMBER_00,
             'F' => NumberFormat::FORMAT_NUMBER_00,
+            'G' => NumberFormat::FORMAT_NUMBER_00,
         ];
     }
 
@@ -71,12 +78,12 @@ class ActualLoadingTemplateSheet implements FromArray, WithHeadings, WithTitle, 
                 $alphabet  = $event->sheet->getHighestDataColumn();
                 $totalRow  = $event->sheet->getHighestDataRow();
                 $sheet->getStyle('A1:' . $alphabet . $totalRow)->getFont()->setSize(10);
-                $sheet->getStyle('A1:G1')->getFont()->setBold(true);
+                $sheet->getStyle('A1:H1')->getFont()->setBold(true);
 
                 if ($this->boothName) {
-                    $sheet->setCellValue('I1', 'Spray Booth:');
-                    $sheet->setCellValue('J1', $this->boothName . ' (' . $this->sprayBooth . ')');
-                    $sheet->getStyle('I1')->getFont()->setBold(true);
+                    $sheet->setCellValue('J1', 'Spray Booth:');
+                    $sheet->setCellValue('K1', $this->boothName . ' (' . $this->sprayBooth . ')');
+                    $sheet->getStyle('J1')->getFont()->setBold(true);
                 }
             },
         ];
