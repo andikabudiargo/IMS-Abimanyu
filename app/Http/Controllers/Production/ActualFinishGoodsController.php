@@ -69,9 +69,7 @@ class ActualFinishGoodsController extends Controller
             ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false,'searchable'=>false],
             ['data'=>'fg_code','name'=>'fg_code','title'=>'FG Number'],
             ['data'=>'fg_date','name'=>'fg_date','title'=>'FG Date'],
-            ['data'=>'loading_code','name'=>'loading_code','title'=>'Actual Loading'],
-            ['data'=>'wos_reference','name'=>'wos_reference','title'=>'Referensi WOS'],
-            ['data'=>'spraybooth','name'=>'spraybooth','title'=>'Spray Booth'],
+            ['data'=>'spraybooth','name'=>'spraybooth','title'=>'From'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
@@ -85,15 +83,16 @@ class ActualFinishGoodsController extends Controller
         $kolom = [
             ['data'=>'fg_code','name'=>'fg_code','title'=>'FG Number'],
             ['data'=>'fg_date','name'=>'fg_date','title'=>'FG Date'],
-            ['data'=>'loading_code','name'=>'loading_code','title'=>'Actual Loading'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'spraybooth','name'=>'spraybooth','title'=>'From'],
             ['data'=>'article_code_fg','name'=>'article_code_fg','title'=>'Article Code'],
             ['data'=>'article_desc_fg','name'=>'article_desc_fg','title'=>'Article Desc'],
-            ['data'=>'qty_loading','name'=>'qty_loading','title'=>'Qty Loading'],
             ['data'=>'qty_fg','name'=>'qty_fg','title'=>'Qty FG'],
             ['data'=>'qty_ot','name'=>'qty_ot','title'=>'Qty OT'],
             ['data'=>'qty_wip','name'=>'qty_wip','title'=>'Qty WIP'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
         ];
         return json_encode($kolom, true);
     }
@@ -189,7 +188,7 @@ class ActualFinishGoodsController extends Controller
     })->values();
 
     $data['listLocation'] = DB::table('stock_location_master')
-            ->whereIn('location_code', ['050','051'])   // BUFFING PLANT 1 & 2
+            ->whereIn('location_code', ['050','051','052'])   // BUFFING PLANT 1 & 2
             ->orderBy('location_name')
             ->get();
 
@@ -261,7 +260,7 @@ class ActualFinishGoodsController extends Controller
                 'spray_booth'   => $location,
                 'fg_date'       => $fgDateDb,
                 'num_revision'  => 0,
-                'status'        => 1,
+                'status'        => 4,
                 'note'          => $note,
                 'created_by'    => $username,
                 'updated_by'    => $username,
@@ -1112,54 +1111,48 @@ class ActualFinishGoodsController extends Controller
     // =========================================================================
 
     public function list(Request $request)
-    {
-        $searchFg     = strtolower($request->searchPrd);
-        $fgDate       = $request->prdDate;
-        $searchStatus = $request->searchStatus;
+{
+    $searchFg     = strtolower($request->searchPrd);
+    $fgDate       = $request->prdDate;
+    $searchStatus = $request->searchStatus;
 
-        $fromDate = "";
-        $toDate   = "";
+    $fromDate = "";
+    $toDate   = "";
 
-        if ($fgDate) {
-            $date = explode("to", $fgDate);
-            if (count($date) > 1) {
-                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
-                $toDate   = implode("-", array_reverse(explode("-", trim($date[1]))));
-            } else {
-                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
-                $toDate   = $fromDate;
-            }
+    if ($fgDate) {
+        $date = explode("to", $fgDate);
+        if (count($date) > 1) {
+            $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = implode("-", array_reverse(explode("-", trim($date[1]))));
+        } else {
+            $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = $fromDate;
         }
+    }
 
-        $data = DB::table('actual_finish_goods_hdr as afg')
-            ->leftJoin('stock_location_master as slm', 'slm.location_code', '=', 'afg.spray_booth')
-            ->when($searchFg, function ($query) use ($searchFg) {
-                $query->where(function ($q) use ($searchFg) {
-                    $q->where('afg.fg_code', 'ilike', '%'.$searchFg.'%')
-                      ->orWhere('afg.loading_code', 'ilike', '%'.$searchFg.'%')
-                      ->orWhere('afg.wos_reference', 'ilike', '%'.$searchFg.'%');
-                });
-            })
-            ->when($fgDate, function ($query) use ($fromDate, $toDate) {
-                $query->whereBetween(DB::raw('afg.fg_date'), [$fromDate, $toDate]);
-            })
-            ->when($searchStatus, function ($query) use ($searchStatus) {
-                $query->where('afg.status', $searchStatus);
-            })
-            ->select(
-                'afg.id',
-                'afg.fg_code',
-                DB::raw("to_char(afg.fg_date, 'DD-MM-YYYY') as fg_date"),
-                'afg.loading_code',
-                'afg.wos_reference',
-                DB::raw("coalesce(slm.location_name, afg.spray_booth) as spraybooth"),
-                'afg.status',
-                'afg.note',
-                'afg.created_by',
-                DB::raw("to_char(afg.created_at, 'DD-MM-YYYY HH24:MI') as created_at")
-            )
-            ->orderBy('afg.id', 'desc')
-            ->get();
+    $data = DB::table('actual_finish_goods_hdr as afg')
+        ->leftJoin('stock_location_master as slm', 'slm.location_code', '=', 'afg.spray_booth')
+        ->when($searchFg, function ($query) use ($searchFg) {
+            $query->where('afg.fg_code', 'ilike', '%'.$searchFg.'%');
+        })
+        ->when($fgDate, function ($query) use ($fromDate, $toDate) {
+            $query->whereBetween(DB::raw('afg.fg_date'), [$fromDate, $toDate]);
+        })
+        ->when($searchStatus, function ($query) use ($searchStatus) {
+            $query->where('afg.status', $searchStatus);
+        })
+        ->select(
+            'afg.id',
+            'afg.fg_code',
+            DB::raw("to_char(afg.fg_date, 'DD-MM-YYYY') as fg_date"),
+            DB::raw("coalesce(slm.location_name, afg.spray_booth) as spraybooth"),
+            'afg.status',
+            'afg.note',
+            'afg.created_by',
+            DB::raw("to_char(afg.created_at, 'DD-MM-YYYY HH24:MI') as created_at")
+        )
+        ->orderBy('afg.id', 'desc')
+        ->get();
 
         return Datatables::of($data)
             ->addColumn('action', function ($data) {
@@ -1229,59 +1222,67 @@ class ActualFinishGoodsController extends Controller
     }
 
     public function listDetail(Request $request)
-    {
-        $searchFg     = strtolower($request->searchPrd);
-        $fgDate       = $request->prdDate;
-        $searchStatus = $request->searchStatus;
+{
+    $searchFg     = strtolower($request->searchPrd);
+    $fgDate       = $request->prdDate;
+    $searchWos    = $request->spraybooth;
+    $searchStatus = $request->searchStatus;
 
-        $fromDate = "";
-        $toDate   = "";
+    $fromDate = "";
+    $toDate   = "";
 
-        if ($fgDate) {
-            $date = explode("to", $fgDate);
-            if (count($date) > 1) {
-                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
-                $toDate   = implode("-", array_reverse(explode("-", trim($date[1]))));
-            } else {
-                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
-                $toDate   = $fromDate;
-            }
+    if ($fgDate) {
+        $date = explode("to", $fgDate);
+        if (count($date) > 1) {
+            $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = implode("-", array_reverse(explode("-", trim($date[1]))));
+        } else {
+            $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = $fromDate;
         }
-
-        $data = DB::table('actual_finish_goods_det as afd')
-            ->leftJoin('actual_finish_goods_hdr as afg', 'afg.fg_code', '=', 'afd.fg_code')
-            ->leftJoin('article as a', 'a.article_code', '=', 'afd.article_code')
-            ->when($searchFg, function ($query) use ($searchFg) {
-                $query->where(function ($q) use ($searchFg) {
-                    $q->where('afd.fg_code', 'ilike', '%'.$searchFg.'%')
-                      ->orWhere('afd.loading_code', 'ilike', '%'.$searchFg.'%');
-                });
-            })
-            ->when($fgDate, function ($query) use ($fromDate, $toDate) {
-                $query->whereBetween(DB::raw('afg.fg_date'), [$fromDate, $toDate]);
-            })
-            ->when($searchStatus, function ($query) use ($searchStatus) {
-                $query->where('afg.status', $searchStatus);
-            })
-            ->select(
-                'afd.fg_code',
-                DB::raw("to_char(afg.fg_date, 'DD-MM-YYYY') as fg_date"),
-                'afd.loading_code',
-                'afg.status',
-                'a.article_alternative_code as article_code_fg',
-                'a.article_desc as article_desc_fg',
-                'afd.qty_loading',
-                'afd.qty_fg',
-                'afd.qty_ot',
-                'afd.qty_wip',
-                'afd.note'
-            )
-            ->orderBy('afd.fg_code')
-            ->orderBy('afd.urutan')
-            ->get();
-
-        return Datatables::of($data)->make(true);
     }
+
+    $data = DB::table('actual_finish_goods_det as afd')
+        ->leftJoin('actual_finish_goods_hdr as afg', 'afg.fg_code', '=', 'afd.fg_code')
+        ->leftJoin('stock_location_master as slm', 'slm.location_code', '=', 'afg.spray_booth')
+        ->leftJoin('article as a', 'a.article_code', '=', 'afd.article_code')
+        ->when($searchFg, function ($query) use ($searchFg) {
+            $query->where('afd.fg_code', 'ilike', '%'.$searchFg.'%');
+        })
+        ->when($fgDate, function ($query) use ($fromDate, $toDate) {
+            $query->whereBetween(DB::raw('afg.fg_date'), [$fromDate, $toDate]);
+        })
+        ->when($searchStatus, function ($query) use ($searchStatus) {
+            $query->where('afg.status', $searchStatus);
+        })
+        ->select(
+            'afd.fg_code',
+            DB::raw("to_char(afg.fg_date, 'DD-MM-YYYY') as fg_date"),
+            DB::raw("coalesce(slm.location_name, afg.spray_booth) as spraybooth"),
+            'a.article_alternative_code as article_code_fg',
+            'a.article_desc as article_desc_fg',
+            'afd.qty_fg',
+            'afd.qty_ot',
+            'afd.qty_wip',
+            'afg.status',
+            'afd.note',
+            'afg.created_by',
+            DB::raw("to_char(afg.created_at, 'DD-MM-YYYY HH24:MI') as created_at")
+        )
+        ->orderBy('afd.fg_code')
+        ->orderBy('afd.urutan')
+        ->get();
+
+    return Datatables::of($data)
+        ->addColumn('status', function ($data) {
+            $badges = ['badge-primary', 'badge-info', 'badge-success', 'badge-warning', 'badge-danger'];
+            $status = ['NEW', 'VALIDATE', 'APPROVED', 'POSTED', 'CANCELED'];
+            $idx = $data->status - 1;
+            return "<div class='badge ".($badges[$idx] ?? 'badge-secondary')."'>".($status[$idx] ?? $data->status)."</div>";
+        })
+        ->rawColumns(['status'])
+        ->make(true);
+}
 
     // =========================================================================
     // PRINT / APPROVE
@@ -1379,14 +1380,149 @@ class ActualFinishGoodsController extends Controller
         }
     }
 
+    /**
+ * Daftar Article FG yang tersedia untuk diinput (ada stok di 047 dan/atau 012).
+ * Dipakai bersama: template export & validasi import.
+ */
+private function eligibleFgArticles()
+{
+    return DB::table('article as a')
+        ->where('a.article_type', 'FG')
+        ->select(
+            'a.article_code',
+            'a.article_alternative_code',
+            'a.article_desc',
+            'a.uom',
+            DB::raw("coalesce((select sum(article_qty) from warehouse_stock where article_code=a.article_code and location_number='{$this->whLoading}'),0) as stock_loading"),
+            DB::raw("coalesce((select sum(article_qty) from warehouse_stock where article_code=a.article_code and location_number='{$this->whWip}'),0) as stock_wip")
+        )
+        ->orderBy('a.article_alternative_code')
+        ->get()
+        ->map(function ($r) {
+            $r->stock_loading = max(0, (float) $r->stock_loading);
+            $r->stock_wip     = max(0, (float) $r->stock_wip);
+            return $r;
+        })
+        ->filter(function ($r) {
+            return ($r->stock_loading + $r->stock_wip) > 0;
+        })
+        ->values();
+}
+
+/**
+ * Bentuk nama file: AFG_TANGGAL_(NamaLocation).xlsx
+ */
+private function buildFgTemplateFilename($fgDate, $locationName)
+{
+    $datePart = $fgDate ? trim($fgDate) : date('d-m-Y');
+    $datePart = str_replace(['/', '\\'], '-', $datePart);
+
+    $locPart = $locationName ? trim($locationName) : 'NoLocation';
+
+    $filename = "AFG_{$datePart}_({$locPart})";
+    $filename = preg_replace('/[\\\\\/:*?"<>|]/', '', $filename);
+    $filename = preg_replace('/\s+/', ' ', $filename);
+
+    return trim($filename) . '.xlsx';
+}
+
     // =========================================================================
     // EXPORT
     // =========================================================================
 
     public function export(Request $request)
-    {
-        $fgNumber = $request->fg_number ?? $request->prd_number;
-        $filename = str_replace('/','_', $fgNumber);
-        return Excel::download(new ActualFinishGoodsExport($fgNumber), $filename.'.xlsx');
+{
+    $location = $request->location;
+    $fgDate   = $request->fgDate;
+
+    $locationName = $location
+        ? DB::table('stock_location_master')->where('location_code', $location)->value('location_name')
+        : null;
+
+    $articles = $this->eligibleFgArticles();
+
+    $filename = $this->buildFgTemplateFilename($fgDate, $locationName);
+
+    return Excel::download(new ActualFinishGoodsExport($articles, $location, $locationName), $filename);
+}
+
+public function importExcel(Request $request)
+{
+    $this->validate($request, [
+        'file' => 'required|mimes:xls,xlsx',
+    ]);
+
+    $title = "Import $this->title";
+
+    $sheets = Excel::toCollection(new ActualFinishGoodsImport(), $request->file('file'));
+    $rows   = $sheets->first() ?? collect();
+
+    if ($rows->isEmpty()) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>[['File kosong / tidak ada baris data.']],'alert'=>'error']);
     }
+
+    $eligible = $this->eligibleFgArticles()->keyBy(function ($r) {
+        return strtoupper(trim($r->article_alternative_code));
+    });
+
+    $dataDetail = [];
+    $errors     = [];
+    $baris      = 1;
+
+    foreach ($rows as $row) {
+        $baris++;
+
+        $codeInput = strtoupper(trim((string) ($row['article_code'] ?? '')));
+        if ($codeInput === '') continue;
+
+        $rawFg = trim((string) ($row['qty_fg'] ?? '0'));
+        $rawOt = trim((string) ($row['qty_ot'] ?? '0'));
+
+        if ($rawFg !== '' && !preg_match('/^[0-9]*\.?[0-9]*$/', $rawFg)) {
+            $errors[] = "Baris $baris: Qty FG tidak valid ('$rawFg')";
+            continue;
+        }
+        if ($rawOt !== '' && !preg_match('/^[0-9]*\.?[0-9]*$/', $rawOt)) {
+            $errors[] = "Baris $baris: Qty OT tidak valid ('$rawOt')";
+            continue;
+        }
+
+        $qtyFg = (float) $rawFg;
+        $qtyOt = (float) $rawOt;
+
+        if (($qtyFg + $qtyOt) <= 0) continue;
+
+        $article = $eligible->get($codeInput);
+        if (!$article) {
+            $errors[] = "Baris $baris: Article Code '$codeInput' tidak terdaftar / stok tidak tersedia";
+            continue;
+        }
+
+        $dataDetail[] = [
+            'article_code'             => $article->article_code,
+            'article_alternative_code' => $article->article_alternative_code,
+            'article_desc'             => $article->article_desc,
+            'uom'                      => $article->uom,
+            'qty_fg'                   => $qtyFg,
+            'qty_ot'                   => $qtyOt,
+            'note'                     => $row['note'] ?? null,
+        ];
+    }
+
+    if (count($errors) > 0) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
+    }
+    if (count($dataDetail) === 0) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>[['Tidak ada baris valid untuk diimport.']],'alert'=>'error']);
+    }
+
+    return response()->json([
+        'status'     => 1,
+        'title'      => $title,
+        'message'    => "$title berhasil, " . count($dataDetail) . " baris siap ditambahkan",
+        'alert'      => 'success',
+        'dataDetail' => $dataDetail,
+    ]);
+}
+
 }

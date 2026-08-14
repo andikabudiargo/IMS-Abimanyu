@@ -17,11 +17,11 @@
         <form class="needs-validation" novalidate>
             <div class="form-row">
               <div class="form-group col-md-3"> 
-                <label for="searchPrd">Production Number</label>
+                <label for="searchPrd">Loading Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPrd" name="searchPrd" placeholder=""  />
               </div>
               <div class="col-md-3 form-group">
-                <label for="prdDate">Production Date</label>
+                <label for="prdDate">Loading Date</label>
                 <input type="text" id="prdDate" name="prdDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
                 <div class="form-group col-md-3"> 
@@ -34,13 +34,8 @@
                 </select>
               </div>
               <div class="form-group col-md-3"> 
-                <label class="form-label" for="searchStatus">Status</label>
-                <select class="select2 form-control" id="searchStatus" name="searchStatus">
-                    <option value="">All</option>
-                    @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
-                    @endforeach
-                </select>
+                <label class="form-label" for="searchStatus">WOS Date</label>
+                <input type="text" id="wosDate" name="wosDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
             </div>
             <div class="form-row">
@@ -92,12 +87,12 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  let searchPrd = document.querySelector("#searchPrd");
+let searchPrd = document.querySelector("#searchPrd");
 let searchStatus = document.querySelector("#searchStatus");
 let prdDate = document.querySelector("#prdDate");
+let wosDate = document.querySelector("#wosDate");   // ⬅ TAMBAHAN
 let search = document.querySelector('#btnSearch');
 let refresh = document.querySelector('a[data-action="reload"]');
-let rangePickr = document.querySelector('.flatpickr-range');
 let btnSummary = document.querySelector('#btnSummary');
 let btnDetail = document.querySelector('#btnDetail');
 
@@ -106,38 +101,41 @@ document.addEventListener("DOMContentLoaded", function(event) {
   btnDetail.style.display = "none";
 });
 
-initDatePicker(rangePickr,{
-  minDate: "01/01/2010",
-  maxDate: "31/12/2030",
-  dateFormat: "d-m-Y",
-  mode: "range"
+// ── init date picker untuk KEDUA filter tanggal, bukan cuma satu ──
+document.querySelectorAll('.flatpickr-range').forEach(function(el){
+  initDatePicker(el, {
+    minDate: "01/01/2010",
+    maxDate: "31/12/2030",
+    dateFormat: "d-m-Y",
+    mode: "range"
+  });
 });
 
 refresh.addEventListener("click",function(){
   btnDetail.style.display = "block";
   btnSummary.style.display = "none";
-  showList(searchPrd.value, prdDate.value, searchStatus.value);
+  showList(searchPrd.value, prdDate.value, searchStatus.value, wosDate.value);
 });
 
 search.addEventListener("click", function(){
   btnDetail.style.display = "block";
   btnSummary.style.display = "none";
-  showList(searchPrd.value, prdDate.value, searchStatus.value);
+  showList(searchPrd.value, prdDate.value, searchStatus.value, wosDate.value);
 });
 
 btnSummary.addEventListener("click", function(){
   btnSummary.style.display = "none";
   btnDetail.style.display = "block";
-  showList(searchPrd.value, prdDate.value, searchStatus.value);
+  showList(searchPrd.value, prdDate.value, searchStatus.value, wosDate.value);
 });
 
 btnDetail.addEventListener("click", function(){
   btnSummary.style.display = "block";
   btnDetail.style.display = "none";
-  showListDetail(searchPrd.value, prdDate.value, searchStatus.value);
+  showListDetail(searchPrd.value, prdDate.value, searchStatus.value, wosDate.value);
 });
 
-const showList = (searchPrd, prdDate, searchStatus) => {
+const showList = (searchPrd, prdDate, searchStatus, wosDate) => {
   if ($('#detailedTable tr').length > 0){
     let table = $('#detailedTable').DataTable();
     table.destroy();
@@ -148,21 +146,22 @@ const showList = (searchPrd, prdDate, searchStatus) => {
     tableId: "detailedTable",
     route: "{{ route('production.actualLoading.list') }}",
     kolom: {!! $kolom !!},
-    arrColPrint: [1,2,3,4,5,6,7,8],
+    arrColPrint: [1,2,3,4,5,6,7,8,9],
     columnDefs: [
       { width: '5%', targets: 0 },
     ],
     dataSearch: {
       searchPrd: searchPrd,
       prdDate: prdDate,
-      searchStatus: searchStatus
+      searchStatus: searchStatus,
+      wosDate: wosDate   // ⬅ TAMBAHAN
     },
     orderColumn: [[ 1, 'asc' ]],
     excelFileName: 'actual_loading_data'
   });
 }
 
-const showListDetail = (searchPrd, prdDate, searchStatus) => {
+const showListDetail = (searchPrd, prdDate, searchStatus, wosDate) => {
   if ($('#detailedTable tr').length > 0){
     let table = $('#detailedTable').DataTable();
     table.destroy();
@@ -177,7 +176,8 @@ const showListDetail = (searchPrd, prdDate, searchStatus) => {
     dataSearch: {
       searchPrd: searchPrd,
       prdDate: prdDate,
-      searchStatus: searchStatus
+      searchStatus: searchStatus,
+      wosDate: wosDate   // ⬅ TAMBAHAN
     },
     columnDefs: [
       { width: '5%', targets: 0 },

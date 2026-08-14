@@ -16,30 +16,17 @@
       <div class="card-body">
         <form class="needs-validation" novalidate>
             <div class="form-row">
-              <div class="form-group col-md-3"> 
-                <label for="searchPrd">Production Number</label>
+              <div class="form-group col-md-4"> 
+                <label for="searchPrd">AFG Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchPrd" name="searchPrd" placeholder=""  />
               </div>
-              <div class="col-md-3 form-group">
-                <label for="prdDate">Prd Date</label>
+              <div class="col-md-4 form-group">
+                <label for="prdDate">AFG Date</label>
                 <input type="text" id="prdDate" name="prdDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-3"> 
-                <label for="searchWos">WOS Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchWos" name="searchWos" placeholder=""  />
-              </div>
-              <div class="col-md-3 form-group">
-                <label for="wosDate">Wos Date</label>
-                <input type="text" id="wosDate" name="wosDate" class="form-control flatpickr-range-1" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
-              </div>
-              <div class="form-group col-md-3"> 
-                <label class="form-label" for="searchStatus">Status</label>
-                <select class="select2 form-control" id="searchStatus" name="searchStatus">
-                    <option value="">All</option>
-                    @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $index }} - {{ $val }}</option>
-                    @endforeach
-                </select>
+              <div class="form-group col-md-4"> 
+                <label for="spraybooth">Location From</label>
+                <input type="text" class="form-control text-uppercase" id="spraybooth" name="spraybooth" placeholder=""  />
               </div>
             </div>
             <div class="form-row">
@@ -91,7 +78,7 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  let searchWos = document.querySelector("#searchWos");
+  let searchWos = document.querySelector("#spraybooth");
   let searchPrd = document.querySelector("#searchPrd");
   let searchStatus = document.querySelector("#searchStatus");
   let wosDate = document.querySelector("#wosDate");

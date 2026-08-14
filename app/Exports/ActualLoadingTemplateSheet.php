@@ -33,7 +33,7 @@ class ActualLoadingTemplateSheet implements FromArray, WithHeadings, WithTitle, 
     {
         return [
             'No', 'Article Code', 'Article Desc',
-            'Stock Booth (info)', 'Stock WIP (info)',
+            'Stock RM Booth (info)', 'Stock WIP (info)',
             'Qty Fresh', 'Qty Repaint', 'Note',
         ];
     }

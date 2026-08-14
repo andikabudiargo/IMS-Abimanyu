@@ -51,15 +51,16 @@ class ActualLoadingController extends Controller
     {
         $kolom=
         [
-            ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false],
-            ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Code'],
-            ['data'=>'prod_date','name'=>'prod_date','title'=>'Prod. Date'],
-            ['data'=>'spraybooth','name'=>'spraybooth','title'=>'Spray Booth'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
-            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+            ['data'=>'action','name'=>'action','title'=>'action','orderable'=> false,'searchable'=>false], //0
+            ['data'=>'prod_code','name'=>'prod_code','title'=>'Loading Number'], //2
+            ['data'=>'wos_reference','name'=>'wos_reference','title'=>'WOS Date'], //1
+            ['data'=>'prod_date','name'=>'prod_date','title'=>'Loading Date'], //3
+            ['data'=>'spraybooth','name'=>'spraybooth','title'=>'Spray Booth'], //4
+            ['data'=>'status','name'=>'status','title'=>'Status'], //5
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'], //6
+            ['data'=>'note','name'=>'note','title'=>'Note'], //7
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'], //8
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'], //9
         ];
         return json_encode($kolom, true);
     }
@@ -68,16 +69,16 @@ class ActualLoadingController extends Controller
     {
         $kolom=
         [
-            ['data'=>'prod_code','name'=>'prod_code','title'=>'Prod. Number'],
-            ['data'=>'status','name'=>'status','title'=>'Status'],
-            ['data'=>'prod_date','name'=>'prod_date','title'=>'Prod. Date'],
-            ['data'=>'article_code_fg','name'=>'article_code_fg','title'=>'Article Code'],
-            ['data'=>'article_desc_fg','name'=>'article_desc_fg','title'=>'Article Desc'],
-            ['data'=>'article_code_rm','name'=>'article_code_rm','title'=>'Article Code RM'],
-            ['data'=>'article_desc_rm','name'=>'article_desc_rm','title'=>'Article Desc RM'],
-            ['data'=>'qty_fresh','name'=>'qty_fresh','title'=>'Qty Fresh'],
-            ['data'=>'qty_repaint','name'=>'qty_repaint','title'=>'Qty Repaint'],
-            ['data'=>'note','name'=>'note','title'=>'Note']
+            ['data'=>'prod_code','name'=>'prod_code','title'=>'Loading Number'], //0
+            ['data'=>'wos_reference','name'=>'wos_reference','title'=>'WOS Date'], //1
+            ['data'=>'prod_date','name'=>'prod_date','title'=>'Loading Date'], //2
+            ['data'=>'spraybooth','name'=>'spraybooth','title'=>'Spray Booth'], //3
+            ['data'=>'article_code_fg','name'=>'article_code_fg','title'=>'Article Code'], //4
+            ['data'=>'article_desc_fg','name'=>'article_desc_fg','title'=>'Article Desc'], //5
+            ['data'=>'qty_fresh','name'=>'qty_fresh','title'=>'Qty Fresh'], //6
+            ['data'=>'qty_repaint','name'=>'qty_repaint','title'=>'Qty Repaint'], //7
+            ['data'=>'status','name'=>'status','title'=>'Status'], //8
+            ['data'=>'note','name'=>'note','title'=>'Note'] //9
         ];
 
         return json_encode($kolom, true);
@@ -343,7 +344,7 @@ class ActualLoadingController extends Controller
                 'spray_booth'        => $sprayBooth,
                 'wos_reference'      => $reference,
                 'num_revision'       => 0,
-                'status'             => 1,
+                'status'             => 4, // langsung POSTED
                 'note'               => $note,
                 'created_by'         => $username,
                 'updated_by'         => $username,
@@ -1196,49 +1197,74 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
     // =========================================================================
 
     public function list(Request $request)
-    {
-        $searchPrd    = strtolower($request->searchPrd);
-        $prdDate      = $request->prdDate;
-        $searchStatus = $request->searchStatus;
+{
+    $searchPrd    = strtolower($request->searchPrd);
+    $prdDate      = $request->prdDate;
+    $wosDate      = $request->wosDate;
+    $searchStatus = $request->searchStatus;
 
-        $fromDate = "";
-        $toDate   = "";
-
-        if ($prdDate) {
-            $date = explode("to", $prdDate);
-            if (count($date) > 1) {
-                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
-                $toDate   = implode("-", array_reverse(explode("-", trim($date[1]))));
-            } else {
-                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
-                $toDate   = $fromDate;
-            }
+    $fromDate = "";
+    $toDate   = "";
+    if ($prdDate) {
+        $date = explode("to", $prdDate);
+        if (count($date) > 1) {
+            $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = implode("-", array_reverse(explode("-", trim($date[1]))));
+        } else {
+            $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = $fromDate;
         }
+    }
 
-        $data = DB::table('actual_loading_hdr')
-            ->leftJoin('stock_location_master', 'stock_location_master.location_code', '=', 'actual_loading_hdr.spray_booth')
-            ->when($searchPrd, function ($query) use ($searchPrd) {
-                $query->where('actual_loading_hdr.prod_code', 'ilike', '%'.$searchPrd.'%');
-            })
-            ->when($prdDate, function ($query) use ($fromDate, $toDate) {
-                $query->whereBetween(DB::raw('actual_loading_hdr.loading_date'), [$fromDate, $toDate]);
-            })
-            ->when($searchStatus, function ($query) use ($searchStatus) {
-                $query->where('actual_loading_hdr.status', $searchStatus);
-            })
-            ->select(
-                'actual_loading_hdr.id',
-                'actual_loading_hdr.prod_code',
-                DB::raw("to_char(actual_loading_hdr.loading_date, 'DD-MM-YYYY') as prod_date"),
-                DB::raw("coalesce(stock_location_master.location_name, actual_loading_hdr.spray_booth) as spraybooth"),
-                'actual_loading_hdr.status',
-                'actual_loading_hdr.num_revision',
-                'actual_loading_hdr.note',
-                'actual_loading_hdr.created_by',
-                DB::raw("to_char(actual_loading_hdr.created_at, 'DD-MM-YYYY HH24:MI') as created_at")
-            )
-            ->orderBy('actual_loading_hdr.id', 'desc')
-            ->get();
+    // ── parsing WOS Date range, hasil akhir format YYYY-MM-DD utk dibandingkan via TO_DATE() ──
+    $fromWos = "";
+    $toWos   = "";
+    if ($wosDate) {
+        $wd = explode("to", $wosDate);
+        if (count($wd) > 1) {
+            $fromWos = implode("-", array_reverse(explode("-", trim($wd[0]))));
+            $toWos   = implode("-", array_reverse(explode("-", trim($wd[1]))));
+        } else {
+            $fromWos = implode("-", array_reverse(explode("-", trim($wd[0]))));
+            $toWos   = $fromWos;
+        }
+    }
+
+    $data = DB::table('actual_loading_hdr')
+        ->leftJoin('stock_location_master', 'stock_location_master.location_code', '=', 'actual_loading_hdr.spray_booth')
+        ->when($searchPrd, function ($query) use ($searchPrd) {
+            $query->where(function ($q) use ($searchPrd) {
+                $q->where('actual_loading_hdr.prod_code', 'ilike', '%'.$searchPrd.'%')
+                  ->orWhere('actual_loading_hdr.wos_reference', 'ilike', '%'.$searchPrd.'%');
+            });
+        })
+        ->when($prdDate, function ($query) use ($fromDate, $toDate) {
+            $query->whereBetween(DB::raw('actual_loading_hdr.loading_date'), [$fromDate, $toDate]);
+        })
+        ->when($wosDate, function ($query) use ($fromWos, $toWos) {
+            $query->whereRaw(
+                "TO_DATE(actual_loading_hdr.wos_reference, 'DD-MM-YYYY') BETWEEN ? AND ?",
+                [$fromWos, $toWos]
+            );
+        })
+        ->when($searchStatus, function ($query) use ($searchStatus) {
+            $query->where('actual_loading_hdr.status', $searchStatus);
+        })
+        ->select(
+            'actual_loading_hdr.id',
+            'actual_loading_hdr.prod_code',
+            'actual_loading_hdr.wos_reference',
+            DB::raw("to_char(actual_loading_hdr.loading_date, 'DD-MM-YYYY') as prod_date"),
+            DB::raw("coalesce(stock_location_master.location_name, actual_loading_hdr.spray_booth) as spraybooth"),
+            'actual_loading_hdr.status',
+            'actual_loading_hdr.num_revision',
+            'actual_loading_hdr.note',
+            'actual_loading_hdr.created_by',
+            DB::raw("to_char(actual_loading_hdr.created_at, 'DD-MM-YYYY HH24:MI') as created_at")
+        )
+        ->orderBy('actual_loading_hdr.id', 'desc')
+        ->get();
+
 
         return Datatables::of($data)
             ->addColumn('action', function ($data) {
@@ -1322,55 +1348,86 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
     }
 
     public function listDetail(Request $request)
-    {
-        $searchPrd    = strtolower($request->searchPrd);
-        $prdDate      = $request->prdDate;
-        $searchStatus = $request->searchStatus;
+{
+    $searchPrd    = strtolower($request->searchPrd);
+    $prdDate      = $request->prdDate;
+    $wosDate      = $request->wosDate;
+    $searchStatus = $request->searchStatus;
 
-        $fromDate = "";
-        $toDate   = "";
-
-        if ($prdDate) {
-            $date = explode("to", $prdDate);
-            if (count($date) > 1) {
-                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
-                $toDate   = implode("-", array_reverse(explode("-", trim($date[1]))));
-            } else {
-                $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
-                $toDate   = $fromDate;
-            }
+    $fromDate = "";
+    $toDate   = "";
+    if ($prdDate) {
+        $date = explode("to", $prdDate);
+        if (count($date) > 1) {
+            $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = implode("-", array_reverse(explode("-", trim($date[1]))));
+        } else {
+            $fromDate = implode("-", array_reverse(explode("-", trim($date[0]))));
+            $toDate   = $fromDate;
         }
-
-        $data = DB::table('actual_loading_det as ald')
-            ->leftJoin('actual_loading_hdr as alh', 'alh.prod_code', '=', 'ald.prod_code')
-            ->leftJoin('article as a', 'a.article_code', '=', 'ald.article_code')
-            ->when($searchPrd, function ($query) use ($searchPrd) {
-                $query->where('ald.prod_code', 'ilike', '%'.$searchPrd.'%');
-            })
-            ->when($prdDate, function ($query) use ($fromDate, $toDate) {
-                $query->whereBetween(DB::raw('alh.loading_date'), [$fromDate, $toDate]);
-            })
-            ->when($searchStatus, function ($query) use ($searchStatus) {
-                $query->where('alh.status', $searchStatus);
-            })
-            ->select(
-                'ald.prod_code',
-                'alh.status',
-                DB::raw("to_char(alh.loading_date, 'DD-MM-YYYY') as prod_date"),
-                'a.article_alternative_code as article_code_fg',
-                'a.article_desc as article_desc_fg',
-                DB::raw("null as article_code_rm"),
-                DB::raw("null as article_desc_rm"),
-                'ald.qty_fresh',
-                'ald.qty_repaint',
-                'ald.note'
-            )
-            ->orderBy('ald.prod_code')
-            ->orderBy('ald.urutan')
-            ->get();
-
-        return Datatables::of($data)->make(true);
     }
+
+    $fromWos = "";
+    $toWos   = "";
+    if ($wosDate) {
+        $wd = explode("to", $wosDate);
+        if (count($wd) > 1) {
+            $fromWos = implode("-", array_reverse(explode("-", trim($wd[0]))));
+            $toWos   = implode("-", array_reverse(explode("-", trim($wd[1]))));
+        } else {
+            $fromWos = implode("-", array_reverse(explode("-", trim($wd[0]))));
+            $toWos   = $fromWos;
+        }
+    }
+
+    $data = DB::table('actual_loading_det as ald')
+        ->leftJoin('actual_loading_hdr as alh', 'alh.prod_code', '=', 'ald.prod_code')
+        ->leftJoin('stock_location_master as slm', 'slm.location_code', '=', 'alh.spray_booth')
+        ->leftJoin('article as a', 'a.article_code', '=', 'ald.article_code')
+        ->when($searchPrd, function ($query) use ($searchPrd) {
+            $query->where(function ($q) use ($searchPrd) {
+                $q->where('ald.prod_code', 'ilike', '%'.$searchPrd.'%')
+                  ->orWhere('alh.wos_reference', 'ilike', '%'.$searchPrd.'%');
+            });
+        })
+        ->when($prdDate, function ($query) use ($fromDate, $toDate) {
+            $query->whereBetween(DB::raw('alh.loading_date'), [$fromDate, $toDate]);
+        })
+        ->when($wosDate, function ($query) use ($fromWos, $toWos) {
+            $query->whereRaw(
+                "TO_DATE(alh.wos_reference, 'DD-MM-YYYY') BETWEEN ? AND ?",
+                [$fromWos, $toWos]
+            );
+        })
+        ->when($searchStatus, function ($query) use ($searchStatus) {
+            $query->where('alh.status', $searchStatus);
+        })
+        ->select(
+            'ald.prod_code',
+            'alh.wos_reference',
+            DB::raw("to_char(alh.loading_date, 'DD-MM-YYYY') as prod_date"),
+            DB::raw("coalesce(slm.location_name, alh.spray_booth) as spraybooth"),
+            'a.article_alternative_code as article_code_fg',
+            'a.article_desc as article_desc_fg',
+            'ald.qty_fresh',
+            'ald.qty_repaint',
+            'alh.status',
+            'ald.note'
+        )
+        ->orderBy('ald.prod_code')
+        ->orderBy('ald.urutan')
+        ->get();
+
+    return Datatables::of($data)
+        ->addColumn('status', function ($data) {
+            $badges = ['badge-primary', 'badge-info', 'badge-success', 'badge-warning', 'badge-danger'];
+            $status = ['ON PROCESS', 'VALIDATE', 'APPROVED', 'POSTED', 'CANCELED'];
+            $idx = $data->status - 1;
+            return "<div class='badge ".($badges[$idx] ?? 'badge-secondary')."'>".($status[$idx] ?? $data->status)."</div>";
+        })
+        ->rawColumns(['status'])
+        ->make(true);
+}
 
     /**
  * Daftar FG yang bisa diproduksi di Spray Booth tertentu.

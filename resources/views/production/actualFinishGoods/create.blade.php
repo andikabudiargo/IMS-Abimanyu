@@ -64,7 +64,29 @@
                     <h4 class="card-title">Article Finish Goods</h4>
                 </div>
                 <div class="card-body">
-                    <hr>
+                   <div class="form-row align-items-end" id="importSectionFg">
+    <div class="col-lg-4 col-md-12">
+        <div class="form-group mb-0">
+            <label class="d-block mb-50" style="font-size:12px;color:#6e6b7b;">File Excel</label>
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" name="file" id="fileFg" required disabled/>
+                <label class="custom-file-label" for="fileFg" id="fileFgLabel">Choose file</label>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8 col-md-12">
+        <div class="form-group mb-0">
+            <a href="javascript:;" id="btnDownloadTemplateFg" class="btn btn-light">
+                <i class="fa fa-download"></i> Download Template
+            </a>
+            <button type="button" class="btn btn-primary" id="uploadExcelFg" disabled>
+                <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                <span class="align-middle d-sm-inline-block d-none">Upload Excel</span>
+            </button>
+        </div>
+    </div>
+</div>
+<hr>
                     <div class="container-list-item">
                         <div class="lebar-list-item">
 
@@ -106,22 +128,28 @@
                     </div>
 
                     <hr>
-                    <div class="d-flex justify-content-between align-items-center mt-75">
+                       <div class="d-flex justify-content-between align-items-end mt-75">
+                        <button class="btn btn-primary btn-prev" type="button" id="cmdAddArticle"">
+                            <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                            <span class="align-middle d-sm-inline-block d-none">Add Article</span>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end mt-75">
                         <div class="col-md-4">
                             <div class="form-group row mb-03">
                                 <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
                                 <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold"
-                                           id="totalRow" disabled/>
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
                                 </div>
                             </div>
                         </div>
-                        <div>
-                            <button class="btn btn-success btn-sm" type="button" id="cmdAddArticle">
-                                <i data-feather="plus-circle"
-                                   style="width:14px;height:14px;vertical-align:-2px;"></i>
-                                Add Article
-                            </button>
+                        <div class="col-md-5">
+                            <div class="form-group row mb-03 d-none">
+                                <label for="totalQty" class="col-sm-3 col-form-label titik-dua">Total QTY</label>
+                                <div class="col-sm-6">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalQty" disabled />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -378,6 +406,120 @@ function initRowSelect2($row){
     // ============================================================
     // READY
     // ============================================================
+    // ============================================================
+// IMPORT / EXPORT EXCEL
+// ============================================================
+function toggleImportSectionFg(enable){
+    const disabled = !enable;
+    $('#fileFg').prop('disabled', disabled);
+    $('#uploadExcelFg').prop('disabled', disabled);
+    $('#importLockMsgFg').toggleClass('d-none', enable);
+}
+toggleImportSectionFg(false);
+
+$('#location').on('change', function(){
+    toggleImportSectionFg(!!$(this).val());
+});
+
+$('#btnDownloadTemplateFg').on('click', function(){
+    let location = $('#location').val();
+    if (!location){
+        Swal.fire('Info','Pilih Location dulu supaya template berisi info stok yang relevan.','info');
+        return;
+    }
+
+    let fgDateVal = $('#fgDate').val();
+    if (!fgDateVal){
+        Swal.fire('Info','Isi Date supaya mendapat filename template yang relevan.','info');
+        return;
+    }
+
+    let url = "{{ route('actualFinishGood.export.excel') }}"
+        + "?location=" + encodeURIComponent(location)
+        + "&fgDate=" + encodeURIComponent(fgDateVal);
+
+    window.location.href = url;
+});
+
+$('#fileFg').on('change', function(){
+    let name = this.files.length ? this.files[0].name : 'Choose file';
+    $('#fileFgLabel').text(name);
+});
+
+$('#uploadExcelFg').on('click', function(){
+    if (!$('#location').val()){
+        Swal.fire('Error..','Pilih Location terlebih dahulu !!','error');
+        return;
+    }
+    if (!$('#fileFg').val()){
+        Swal.fire('Error..','File belum dipilih !!','error');
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append('file', $('#fileFg')[0].files[0]);
+    formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+
+    let $btn = $('#uploadExcelFg');
+    $btn.prop('disabled', true);
+
+    Swal.fire({
+        title: 'Memproses import...',
+        html: 'Membaca dan memvalidasi data Excel',
+        icon: 'warning',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    $.ajax({
+        url: "{{ route('actualFinishGood.import.excel') }}",
+        method: 'POST',
+        data: formData,
+        dataType: 'json',
+        contentType: false,
+        processData: false,
+        success: function(res){
+            Swal.close();
+
+            if (res.status == 1){
+                res.dataDetail.forEach(function(item){
+                    addNewRow();
+                    let $row = $('#article_row .tanda-baris').last();
+
+                    $row.find('.select2-article-fg').val(item.article_code).trigger('change');
+                    $row.find('input[name="uom[]"]').val(item.uom || '');
+                    $row.find('.qty-fg').val(item.qty_fg || 0);
+                    $row.find('.qty-ot').val(item.qty_ot || 0);
+                    $row.find('input[name="note[]"]').val(item.note || '');
+                });
+
+                updateTotalRow();
+                show_msg(res.title, res.message, res.alert);
+                clearFileInputFg();
+            } else {
+                let msg = Array.isArray(res.message) ? res.message.flat().join('<br>') : res.message;
+                Swal.fire({ icon:'error', title: res.title || 'Error', html: msg });
+            }
+        },
+        error: function(xhr){
+            Swal.close();
+            let err = xhr.responseJSON;
+            Swal.fire('Error..', err?.message || xhr.statusText, 'error');
+        },
+        complete: function(){
+            $btn.prop('disabled', false);
+        }
+    });
+});
+
+function clearFileInputFg(){
+    let input = $('#fileFg');
+    input.wrap('<form>').closest('form').get(0).reset();
+    input.unwrap();
+    $('#fileFgLabel').text('Choose file');
+}
+
     $(document).ready(function(){
         if (typeof validateFormToast === 'function'){
             validateFormToast("frmAdd");
