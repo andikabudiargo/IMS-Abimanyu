@@ -110,6 +110,7 @@
   </div>
 </section>
 @include('partials.delete-modal')
+@include('receiving.expired-date-modal')
 @endsection
 @section('styles')
 <style>
@@ -247,6 +248,198 @@ const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus
       href = $(this).data('href');
       $('#modalReasonRevision').attr("action", href);
   });
+
+  // =========================================================
+// CHEMICAL UNIT (Add Expired Date) — modal handler
+// =========================================================
+let chemicalUnitRecNumber = '';
+
+function tpl(templateId, replacements) {
+  let html = $(templateId).html();
+  for (let key in replacements) {
+    html = html.split('__' + key + '__').join(replacements[key]);
+  }
+  return html;
+}
+
+function loadChemicalUnitModal(recNumber) {
+  chemicalUnitRecNumber = recNumber;
+
+  $('#chemicalUnitRecNumber').text('Rec Number: ' + recNumber);
+  $('#chemicalUnitGroups').empty();
+  $('#chemicalUnitAlert').hide().text('');
+  $('#btnSaveChemicalUnit').hide();
+  $('#chemicalUnitLoading').show();
+
+  $.ajax({
+    url: "{{ route('receiving.chemicalUnitPreview') }}",
+    type: 'POST',
+    data: { rec_number: recNumber },
+    success: function (res) {
+      $('#chemicalUnitLoading').hide();
+
+      if (res.status !== 1) {
+        $('#chemicalUnitAlert').text(res.message).show();
+        return;
+      }
+
+      let hasEditableRows = false;
+
+      res.groups.forEach(function (group) {
+        let groupHtml = tpl('#tplChemicalGroup', {
+          RECEIVING_DET_ID: group.receiving_det_id,
+          ARTICLE_CODE: group.article_code,
+          ARTICLE_DESC: group.article_desc || '',
+          TOTAL_QTY: group.total_qty_needed,
+          ALLOCATED_QTY: group.allocated_qty,
+          REMAINING_QTY: group.remaining_qty,
+          UOM: group.uom || ''
+        });
+
+        let $groupEl = $(groupHtml);
+        let $rowsContainer = $groupEl.find('.chemical-unit-rows');
+
+        if (group.error) {
+          $rowsContainer.html('<div class="text-danger small">' + group.error + '</div>');
+        } else if (!group.rows || group.rows.length === 0) {
+          $rowsContainer.html('<div class="text-success small"><i data-feather="check"></i> Sudah lengkap</div>');
+        } else {
+          hasEditableRows = true;
+          group.rows.forEach(function (row) {
+            let rowHtml = tpl('#tplChemicalRow', {
+              RECEIVING_DET_ID: group.receiving_det_id,
+              UNIT_SEQUENCE: row.unit_sequence,
+              QTY: row.qty,
+              UOM: group.uom || ''
+            });
+            $rowsContainer.append(rowHtml);
+          });
+        }
+
+        $('#chemicalUnitGroups').append($groupEl);
+      });
+
+      if (hasEditableRows) {
+        $('#btnSaveChemicalUnit').show();
+      } else {
+        $('#chemicalUnitAlert').text('Tidak ada baris yang perlu diisi expired date.').show();
+      }
+
+      if (typeof feather !== 'undefined') feather.replace();
+    },
+    error: function () {
+      $('#chemicalUnitLoading').hide();
+      $('#chemicalUnitAlert').text('Gagal memuat data. Silakan coba lagi.').show();
+    }
+  });
+}
+
+$(document).on('click', '.chemical-unit-button', function () {
+  let recNumber = $(this).data('rec-number');
+  loadChemicalUnitModal(recNumber);
+});
+
+$('#btnSaveChemicalUnit').on('click', function () {
+  let groups = [];
+  let isValid = true;
+
+  $('.chemical-unit-group').each(function () {
+    let receivingDetId = $(this).data('receiving-det-id');
+    let units = [];
+
+    $(this).find('.chemical-unit-row').each(function () {
+      let expiredDate = $(this).find('.input-expired-date').val();
+      let printBarcode = $(this).find('.chk-print-barcode').is(':checked');
+
+      if (!expiredDate) {
+        isValid = false;
+        $(this).find('.input-expired-date').addClass('is-invalid');
+      } else {
+        $(this).find('.input-expired-date').removeClass('is-invalid');
+      }
+
+      units.push({
+        unit_sequence: $(this).data('unit-sequence'),
+        qty: $(this).data('qty'),
+        expired_date: expiredDate,
+        print_barcode: printBarcode
+      });
+    });
+
+    if (units.length > 0) {
+      groups.push({
+        receiving_det_id: receivingDetId,
+        units: units
+      });
+    }
+  });
+
+  if (!isValid) {
+    $('#chemicalUnitAlert').text('Semua kaleng wajib diisi Expired Date.').show();
+    return;
+  }
+
+  if (groups.length === 0) {
+    $('#chemicalUnitAlert').text('Tidak ada data untuk disimpan.').show();
+    return;
+  }
+
+  $('#btnSaveChemicalUnit').prop('disabled', true).text('Menyimpan...');
+
+  $.ajax({
+  url: "{{ route('receiving.chemicalUnitStore') }}",
+  type: 'POST',
+  data: {
+    rec_number: chemicalUnitRecNumber,
+    groups: JSON.stringify(groups)
+  },
+  success: function (res) {
+    $('#btnSaveChemicalUnit').prop('disabled', false).html('<i data-feather="save"></i> Simpan & Print');
+
+    if (res.status === 1) {
+      $('#chemicalUnitModal').modal('hide');
+      // reload datatable biar status pending/complete update
+      showList(searchRec.val(), searchPo.val(), searchInv.val(), searchSupplier.val(), searchStatus.val(), recDate.val(), doDate.val(), recType.val());
+
+      // TODO: kalau ada endpoint print barcode, panggil di sini pakai res.units
+      // yang punya print_barcode = true, buka window baru ke route print label.
+
+      Swal.fire({
+        title: 'Berhasil',
+        text: res.message,
+        icon: 'success',
+        confirmButtonText: 'OK'
+      });
+    } else {
+      $('#chemicalUnitAlert').text(res.message).show();
+      Swal.fire({
+        title: 'Gagal',
+        text: res.message,
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
+    }
+  },
+  error: function () {
+    $('#btnSaveChemicalUnit').prop('disabled', false).html('<i data-feather="save"></i> Simpan & Print');
+    $('#chemicalUnitAlert').text('Gagal menyimpan. Silakan coba lagi.').show();
+    Swal.fire({
+      title: 'Error',
+      text: 'Gagal menyimpan. Silakan coba lagi.',
+      icon: 'error',
+      confirmButtonText: 'OK'
+    });
+  }
+});
+});
+
+// Reset modal saat ditutup
+$('#chemicalUnitModal').on('hidden.bs.modal', function () {
+  $('#chemicalUnitGroups').empty();
+  $('#chemicalUnitAlert').hide();
+  $('#chemicalUnitLoading').hide();
+  chemicalUnitRecNumber = '';
+});
 
   $.ajaxSetup({
     headers: {

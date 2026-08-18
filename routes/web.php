@@ -370,6 +370,15 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('receivings/po/det2',['as'=>'receiving.po.det2','uses'=>'ReceivingController@poDetail2']);
 	Route::post('receiving/list/pr',  ['as'=>'receiving.list.pr','uses'=>'ReceivingController@listPr']);
 	Route::post('receiving/pr/det',['as'=>'receiving.pr.det','uses'=>'ReceivingController@prDetail']);
+	Route::post('receiving/chemical-unit-preview', [
+    'uses' => 'ReceivingController@chemicalUnitPreviewByRec',
+    'as'   => 'receiving.chemicalUnitPreview',
+]);
+
+Route::post('receiving/chemical-unit-store', [
+    'uses' => 'ReceivingController@chemicalUnitStoreByRec',
+    'as'   => 'receiving.chemicalUnitStore',
+]);
 	
 
 	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:delivery-index']]);

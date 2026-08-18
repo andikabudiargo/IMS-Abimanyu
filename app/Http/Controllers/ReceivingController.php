@@ -196,6 +196,215 @@ class ReceivingController extends Controller
         return json_encode($kolom, true);
     }
 
+    /**
+ * Preview semua baris CM1 yang masih pending dalam satu rec_number.
+ * Dipanggil saat klik button "Add Expired Date" di level header/list.
+ */
+public function chemicalUnitPreviewByRec(Request $request)
+{
+    $recNumber = trim($request->rec_number);
+
+    $recHdr = DB::table('receiving_hdr')->where('rec_number', $recNumber)->first();
+    if (!$recHdr) {
+        return response()->json(['status' => 0, 'message' => 'Receiving tidak ditemukan']);
+    }
+    if ($recHdr->status != '4') {
+        return response()->json(['status' => 0, 'message' => 'Receiving belum POSTED']);
+    }
+
+    $details = DB::table('receiving_det')
+        ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+        ->where('receiving_det.rec_number', $recNumber)
+        ->where('article.article_type', 'CM1')
+        ->whereRaw('(receiving_det.qty + receiving_det.qty_free) > 0')
+        ->select(
+            'receiving_det.id',
+            'receiving_det.article_code',
+            'article.article_desc',
+            'article.min_package',
+            'receiving_det.uom_rec as uom',
+            DB::raw('(receiving_det.qty + receiving_det.qty_free) as total_qty_needed')
+        )
+        ->orderBy('receiving_det.id')
+        ->get();
+
+    if ($details->isEmpty()) {
+        return response()->json(['status' => 0, 'message' => 'Tidak ada artikel Chemical (CM1) di transaksi ini']);
+    }
+
+    $groups = [];
+
+    foreach ($details as $detail) {
+        $minPackage = (float) $detail->min_package;
+
+        $allocatedQty = (float) DB::table('receiving_chemical_unit')
+            ->where('receiving_det_id', $detail->id)
+            ->where('status', '<>', 'cancelled')
+            ->sum('qty');
+
+        $remainingQty = round($detail->total_qty_needed - $allocatedQty, 3);
+
+        // Tetap tampilkan baris ini di modal walau sudah complete,
+        // biar user lihat status-nya — tapi rows kosong kalau remaining <= 0
+        $rows = [];
+
+        if ($remainingQty > 0) {
+            if ($minPackage <= 0) {
+                // Artikel belum punya min_package -> tandai perlu setting master dulu
+                $groups[] = [
+                    'receiving_det_id' => $detail->id,
+                    'article_code'     => $detail->article_code,
+                    'article_desc'     => $detail->article_desc,
+                    'uom'              => $detail->uom,
+                    'total_qty_needed' => $detail->total_qty_needed,
+                    'allocated_qty'    => $allocatedQty,
+                    'remaining_qty'    => $remainingQty,
+                    'error'            => "min_package belum di-set di master artikel {$detail->article_code}",
+                    'rows'             => [],
+                ];
+                continue;
+            }
+
+            $lastSeq = (int) DB::table('receiving_chemical_unit')
+                ->where('receiving_det_id', $detail->id)
+                ->max('unit_sequence');
+
+            $fullUnits = (int) floor($remainingQty / $minPackage);
+            $remainder = round($remainingQty - ($fullUnits * $minPackage), 3);
+
+            $seq = $lastSeq + 1;
+            for ($i = 0; $i < $fullUnits; $i++) {
+                $rows[] = ['unit_sequence' => $seq++, 'qty' => $minPackage, 'expired_date' => null, 'print_barcode' => true];
+            }
+            if ($remainder > 0) {
+                $rows[] = ['unit_sequence' => $seq++, 'qty' => $remainder, 'expired_date' => null, 'print_barcode' => true];
+            }
+        }
+
+        $groups[] = [
+            'receiving_det_id' => $detail->id,
+            'article_code'     => $detail->article_code,
+            'article_desc'     => $detail->article_desc,
+            'min_package'      => $minPackage,
+            'uom'              => $detail->uom,
+            'total_qty_needed' => $detail->total_qty_needed,
+            'allocated_qty'    => $allocatedQty,
+            'remaining_qty'    => $remainingQty,
+            'error'            => null,
+            'rows'             => $rows,
+        ];
+    }
+
+    return response()->json([
+        'status'     => 1,
+        'rec_number' => $recNumber,
+        'groups'     => $groups,
+    ]);
+}
+
+/**
+ * Simpan hasil input expired date untuk SEMUA baris CM1 dalam satu rec_number sekaligus.
+ * Payload: groups = [{ receiving_det_id, units: [{unit_sequence, qty, expired_date, print_barcode}, ...] }, ...]
+ */
+public function chemicalUnitStoreByRec(Request $request)
+{
+    $username  = Auth::user()->username;
+    $recNumber = trim($request->rec_number);
+    $groups    = json_decode($request->groups);
+
+    if (empty($groups)) {
+        return response()->json(['status' => 0, 'message' => 'Tidak ada data untuk disimpan']);
+    }
+
+    $recHdr = DB::table('receiving_hdr')->where('rec_number', $recNumber)->first();
+    if (!$recHdr || $recHdr->status != '4') {
+        return response()->json(['status' => 0, 'message' => 'Receiving tidak valid atau belum POSTED']);
+    }
+
+    // Validasi semua expired_date terisi dulu SEBELUM insert apapun
+    foreach ($groups as $g) {
+        if (empty($g->units)) continue;
+        foreach ($g->units as $u) {
+            if (empty($u->expired_date)) {
+                return response()->json(['status' => 0, 'message' => "Ada kaleng yang belum diisi Expired Date (article {$g->article_code})"]);
+            }
+        }
+    }
+
+    DB::beginTransaction();
+    try {
+        $allInserted = [];
+        $totalUnitCount = 0;
+
+        foreach ($groups as $g) {
+            if (empty($g->units)) continue;
+
+            // Re-validasi tiap group: pastikan article_code masih CM1 & receiving_det_id valid milik rec_number ini
+            $detail = DB::table('receiving_det')
+                ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+                ->where('receiving_det.id', $g->receiving_det_id)
+                ->where('receiving_det.rec_number', $recNumber)
+                ->where('article.article_type', 'CM1')
+                ->select('receiving_det.id', 'receiving_det.article_code')
+                ->first();
+
+            if (!$detail) {
+                DB::rollBack();
+                return response()->json(['status' => 0, 'message' => "Baris tidak valid untuk receiving_det_id {$g->receiving_det_id}"]);
+            }
+
+            $dataSet = [];
+            foreach ($g->units as $u) {
+                $barcodeCode = preg_replace('/[^A-Za-z0-9\-]/', '', $recNumber)
+                    . '-' . $detail->article_code . '-' . str_pad($u->unit_sequence, 3, '0', STR_PAD_LEFT);
+
+                $dataSet[] = [
+                    'receiving_det_id' => $detail->id,
+                    'rec_number'       => $recNumber,
+                    'article_code'     => $detail->article_code,
+                    'unit_sequence'    => $u->unit_sequence,
+                    'qty'              => $u->qty,
+                    'barcode_code'     => $barcodeCode,
+                    'expired_date'     => date('Y-m-d', strtotime($u->expired_date)),
+                    'status'           => 'active',
+                    'print_status'     => !empty($u->print_barcode),
+                    'print_count'      => !empty($u->print_barcode) ? 1 : 0,
+                    'created_by'       => $username,
+                    'updated_by'       => $username,
+                    'created_at'       => date('Y-m-d H:i:s'),
+                    'updated_at'       => date('Y-m-d H:i:s'),
+                ];
+            }
+
+            DB::table('receiving_chemical_unit')->insert($dataSet);
+            $allInserted = array_merge($allInserted, $dataSet);
+            $totalUnitCount += count($dataSet);
+        }
+
+        DB::commit();
+
+        $title   = "Add Expired Date";
+        $message = "$title untuk $recNumber berhasil disimpan ($totalUnitCount kaleng, " . count($groups) . " artikel)";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+
+        return response()->json([
+            'status'  => 1,
+            'message' => $message,
+            'units'   => array_map(fn($d) => [
+                'article_code' => $d['article_code'],
+                'barcode_code' => $d['barcode_code'],
+                'expired_date' => $d['expired_date'],
+            ], $allInserted),
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $message = "Add Expired Date $recNumber gagal: " . $e->getMessage();
+        \LogActivity::addToLog("Add Expired Date", "username: $username Status $message");
+        return response()->json(['status' => 0, 'message' => $message]);
+    }
+}
+
     private function ensureWarehouseStockRow(string $siteCode, string $articleCode, string $location, ?string $deptCode, ?string $uom): void
 {
     $exists = DB::table('warehouse_stock')
@@ -2408,7 +2617,7 @@ public function unPosting($recNumber)
     $searchInv      = strtolower($request->searchInv);
     $searchSupplier = $request->searchSupplier;
     $searchStatus   = $request->searchStatus;
-    $searchRecType  = $request->recType;   // <-- tambahan (NORMAL / NP / JASA)
+    $searchRecType  = $request->recType;
     $recDate        = $request->recDate;
     $doDate         = $request->doDate;
     $fromDate = ""; $toDate = ""; $fromDateDo = ""; $toDateDo = "";
@@ -2437,18 +2646,8 @@ public function unPosting($recNumber)
 
     $query = DB::table('receiving_hdr')
     ->where(function ($q) use (
-        $searchRec,
-        $searchPo,
-        $searchInv,
-        $searchSupplier,
-        $searchStatus,
-        $searchRecType,
-        $recDate,
-        $fromDate,
-        $toDate,
-        $doDate,
-        $fromDateDo,
-        $toDateDo
+        $searchRec, $searchPo, $searchInv, $searchSupplier, $searchStatus,
+        $searchRecType, $recDate, $fromDate, $toDate, $doDate, $fromDateDo, $toDateDo
     ) {
         $searchPo       ? $q->where('po_number','ilike','%'.$searchPo.'%') : '';
         $searchInv      ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
@@ -2480,30 +2679,56 @@ public function unPosting($recNumber)
                     )
                     and status in ('4','6')
                     limit 1) as ap_date"),
-        DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
+        DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do"),
+
+        // ===== TAMBAHAN: hitung baris CM1 & sisa yang belum diinput expired date =====
+        DB::raw("(
+            select count(*)
+            from receiving_det rd
+            left join article a on a.article_code = rd.article_code
+            where rd.rec_number = receiving_hdr.rec_number
+              and a.article_type = 'CM1'
+              and (rd.qty + rd.qty_free) > 0
+        ) as chemical_total_rows"),
+        DB::raw("(
+            select count(*)
+            from receiving_det rd
+            left join article a on a.article_code = rd.article_code
+            left join (
+                select receiving_det_id, sum(qty) as allocated_qty
+                from receiving_chemical_unit
+                where status <> 'cancelled'
+                group by receiving_det_id
+            ) us on us.receiving_det_id = rd.id
+            where rd.rec_number = receiving_hdr.rec_number
+              and a.article_type = 'CM1'
+              and (rd.qty + rd.qty_free) > 0
+              and coalesce(us.allocated_qty,0) < (rd.qty + rd.qty_free)
+        ) as chemical_pending_rows")
     )
    ->orderByRaw("
     to_date(nullif(do_date, ''), 'DD-MM-YYYY') DESC NULLS LAST
 ");
 
     $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
-    $bisaEdit    = Auth::user()->can('receiving-edit');
-    $bisaDelete  = Auth::user()->can('receiving-delete');
-    $bisaApprove = Auth::user()->can('receiving-approve');
-    $bisaPosting = Auth::user()->can('receiving-posting');
+    $bisaEdit     = Auth::user()->can('receiving-edit');
+    $bisaDelete   = Auth::user()->can('receiving-delete');
+    $bisaApprove  = Auth::user()->can('receiving-approve');
+    $bisaPosting  = Auth::user()->can('receiving-posting');
+    $bisaChemical = Auth::user()->can('receiving-edit'); // FIX: ganti ke permission khusus kalau nanti dibuat, mis. 'receiving-chemical-unit'
 
-    return Datatables::of($query)   // <-- kirim query, bukan collection
-        ->addColumn('action', function ($data) use ($lockDateToDate, $bisaEdit, $bisaDelete, $bisaPosting, $bisaApprove) {
+    return Datatables::of($query)
+        ->addColumn('action', function ($data) use ($lockDateToDate, $bisaEdit, $bisaDelete, $bisaPosting, $bisaApprove, $bisaChemical) {
             $recDate  = date('Y-m-d', strtotime($data->rec_date));
             $bisaUbah = $recDate >= $lockDateToDate;
             $adaAp    = !empty($data->ap_number);
- 
+
             $buttons  = '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                 <i data-feather="menu"></i>
                             </a>';
             $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
- 
+
             // ----- EDIT -----
             if ($data->status == '10' && $bisaUbah && $bisaEdit) {
                 $buttons .= '<a href="' . route('receiving.edit', ['id' => Crypt::encryptString($data->id)]) . '" class="dropdown-item">
@@ -2511,7 +2736,7 @@ public function unPosting($recNumber)
                                 <span>' . __('Edit') . '</span>
                              </a>';
             }
- 
+
             // ----- APPROVE -----
             if ($data->status == '10' && $bisaApprove) {
                 $buttons .= '<a href="' . route('receiving.edit', ['id' => Crypt::encryptString($data->id)]) . '" class="dropdown-item">
@@ -2519,7 +2744,7 @@ public function unPosting($recNumber)
                                 <span>' . __('Approve') . '</span>
                              </a>';
             }
- 
+
             // ----- POSTING -----
             if (in_array($data->status, ['1', '3', '10']) && $bisaPosting) {
                 $buttons .= "<a href='javascript:;'
@@ -2534,11 +2759,34 @@ public function unPosting($recNumber)
                                 <span>" . __('Posting') . "</span>
                              </a>";
             }
- 
+
+            // ----- ADD EXPIRED DATE (khusus CM1, cuma muncul kalau POSTED & ada baris chemical) -----
+            if ($data->status == '4' && $bisaChemical && (int) $data->chemical_total_rows > 0) {
+                $pending = (int) $data->chemical_pending_rows;
+                if ($pending > 0) {
+                    $buttons .= "<a href='javascript:;'
+                                    class='dropdown-item text-warning chemical-unit-button'
+                                    data-toggle='modal'
+                                    data-target='#chemicalUnitModal'
+                                    data-rec-number='{$data->rec_number}'>
+                                    <i data-feather='clock' class='feather-14-red'></i>
+                                    <span>" . __('Add Expired Date') . " <small>({$pending} pending)</small></span>
+                                 </a>";
+                } else {
+                    $buttons .= "<a href='javascript:;'
+                                    class='dropdown-item text-success chemical-unit-button'
+                                    data-toggle='modal'
+                                    data-target='#chemicalUnitModal'
+                                    data-rec-number='{$data->rec_number}'>
+                                    <i data-feather='check-circle' class='feather-14-red'></i>
+                                    <span>" . __('Expired Date') . " <small>(Complete)</small></span>
+                                 </a>";
+                }
+            }
+
             // ----- REVISION -----
             if (in_array($data->status, ['1', '2', '3', '4']) && $bisaUbah) {
                 if ($adaAp) {
-                    // sudah ada AP aktif — tampilkan info, tidak bisa diklik
                     $buttons .= "<a href='javascript:;' class='dropdown-item text-muted' 
                                     data-toggle='tooltip' 
                                     data-placement='left' 
@@ -2558,23 +2806,22 @@ public function unPosting($recNumber)
                                  </a>";
                 }
             }
- 
+
             // ----- PRINT -----
             $buttons .= "<a href='" . route('receiving.print', ['id' => Crypt::encryptString($data->id)]) . "' target='_blank' class='dropdown-item'>
                             <i data-feather='printer'></i>
                             <span>" . __('Print') . "</span>
                          </a>";
- 
+
             // ----- DETAIL -----
             $buttons .= '<a href="' . route('receiving.show', ['id' => Crypt::encryptString($data->id)]) . '" class="dropdown-item">
                             <i data-feather="list"></i>
                             Detail
                          </a>';
- 
+
             // ----- CANCEL -----
             if ($data->status == '4' && $bisaUbah && $bisaDelete) {
                 if ($adaAp) {
-                    // sudah ada AP aktif — tampilkan info, tidak bisa diklik
                     $buttons .= "<a href='javascript:;' class='dropdown-item text-muted'
                                     data-toggle='tooltip'
                                     data-placement='left'
@@ -2594,7 +2841,7 @@ public function unPosting($recNumber)
                                  </a>";
                 }
             }
- 
+
             // ----- DELETE -----
             if (!in_array($data->status, ['4', '5', '7']) && $bisaUbah && $bisaDelete) {
                 $buttons .= "<a href='javascript:;'
@@ -2609,7 +2856,7 @@ public function unPosting($recNumber)
                                 <span>" . __('Delete') . "</span>
                              </a>";
             }
- 
+
             $buttons .= '</div></div>';
             return $buttons;
         })
