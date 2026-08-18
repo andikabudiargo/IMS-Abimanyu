@@ -11,6 +11,8 @@
 |
 */
 
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
 use Illuminate\Http\Request;
 
 Route::get('/monitoring', function () {
@@ -39,6 +41,13 @@ Route::get('/tmp-recalc-sto-phantom', function () {
     }
 
     echo "Selesai.";
+});
+
+Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
 });
 
 // Route::auth();
