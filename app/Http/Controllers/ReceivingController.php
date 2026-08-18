@@ -423,16 +423,15 @@ $totalUnitCount += count($dataSet);
 
 public function printChemicalUnitLabel(Request $request)
 {
-    $unitId = (int) $request->unit_id;
-    $qty    = (int) $request->qty;
+    $unitIds = $request->unit_ids; // array of int
 
-    if ($qty < 1 || $qty > 100) {
-        return response()->json(['status' => 0, 'message' => 'Jumlah label harus antara 1-100.']);
+    if (empty($unitIds) || !is_array($unitIds)) {
+        return response()->json(['status' => 0, 'message' => 'Tidak ada kaleng untuk dicetak.']);
     }
 
-    $unit = DB::table('receiving_chemical_unit as rcu')
+    $units = DB::table('receiving_chemical_unit as rcu')
         ->leftJoin('article', 'article.article_code', 'rcu.article_code')
-        ->where('rcu.id', $unitId)
+        ->whereIn('rcu.id', $unitIds)
         ->select(
             'rcu.id',
             'rcu.barcode_code',
@@ -443,50 +442,35 @@ public function printChemicalUnitLabel(Request $request)
             'article.article_desc',
             'article.uom'
         )
-        ->first();
+        ->orderBy('rcu.unit_sequence')
+        ->get();
 
-    if (!$unit) {
+    if ($units->isEmpty()) {
         return response()->json(['status' => 0, 'message' => 'Data kaleng tidak ditemukan.']);
     }
 
-    // ----- Generate QR on the fly dari barcode_code -----
-    // FIX: sesuaikan dengan package QR yang terpasang di project.
-    // Contoh pakai simplesoftwareio/simple-qrcode:
-    $qrBase64 = base64_encode(
-        \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')->size(300)->margin(1)->generate($unit->barcode_code)
-    );
-    $qrUrl = 'data:image/png;base64,' . $qrBase64;
+    $printedBy = Auth::user()->username;
 
-    $printedBy   = Auth::user()->username;
-    $expiredDisp = date('d-m-Y', strtotime($unit->expired_date));
-    $altCode     = $unit->article_alternative_code;
-    $footer      = mb_substr("Dicetak: {$printedBy}", 0, 50);   // FIX: tanpa tanggal/jam
+    $labels = [];
+    foreach ($units as $unit) {
+        // FIX: sesuaikan dengan package QR yang terpasang
+        $qrBase64 = base64_encode(
+            \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')->size(300)->margin(1)->generate($unit->barcode_code)
+        );
 
-    // ----- ZPL 30x20mm @ 203 DPI (240x160 dots) -----
-    // Expired date dibikin lebih besar (A0N,20,18) dibanding altcode
-    $zpl = "^XA
-^MMT
-^PW240
-^LL160
-^LS0
-^CI28
-^FO4,4^BQN,2,2^FDQA,{$unit->barcode_code}^FS
-^FO58,4^A0N,13,12^FD{$altCode}^FS
-^FO58,22^A0N,20,18^FDEXP: {$expiredDisp}^FS
-^FO58,46^A0N,9,8^FB175,2,0,L^FDKaleng #{$unit->unit_sequence} - {$unit->unit_qty}{$unit->uom}^FS
-^FO4,142^A0N,8,7^FD{$footer}^FS
-^FO4,140^GB232,0,1^FS
-^PQ{$qty},0,1,Y
-^XZ";
+        $labels[] = [
+            'barcode_code'  => $unit->barcode_code,
+            'qr_url'        => 'data:image/png;base64,' . $qrBase64,
+            'alt_code'      => $unit->article_alternative_code,
+            'article_desc'  => $unit->article_desc,
+            'expired_date'  => date('d-m-Y', strtotime($unit->expired_date)),
+        ];
+    }
 
     return response()->json([
-        'status'       => 1,
-        'unit'         => $unit,
-        'qr_url'       => $qrUrl,
-        'zpl'          => $zpl,
-        'printed_by'   => $printedBy,
-        'expired_date' => $expiredDisp,
-        'qty'          => $qty,
+        'status'     => 1,
+        'labels'     => $labels,
+        'printed_by' => $printedBy,
     ]);
 }
 

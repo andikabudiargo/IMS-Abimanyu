@@ -398,32 +398,33 @@ $('#btnSaveChemicalUnit').on('click', function () {
   success: function (res) {
     $('#btnSaveChemicalUnit').prop('disabled', false).html('<i data-feather="save"></i> Simpan & Print');
 
-    if (res.status === 1) {
-      $('#chemicalUnitModal').modal('hide');
-      showList(searchRec.val(), searchPo.val(), searchInv.val(), searchSupplier.val(), searchStatus.val(), recDate.val(), doDate.val(), recType.val());
+ if (res.status === 1) {
+  $('#chemicalUnitModal').modal('hide');
+  showList(searchRec.val(), searchPo.val(), searchInv.val(), searchSupplier.val(), searchStatus.val(), recDate.val(), doDate.val(), recType.val());
 
-      Swal.fire({
-        title: 'Berhasil',
-        text: res.message,
-        icon: 'success',
-        confirmButtonText: 'OK'
-      }).then(() => {
-        // Print tiap unit yang dicentang print_barcode
-        (res.units || []).forEach(function (u) {
-          if (!u.print_barcode) return;
-          $.ajax({
-            url: "{{ route('receiving.printChemicalUnitLabel') }}",
-            type: 'POST',
-            data: { unit_id: u.id, qty: 1 },
-            success: function (printRes) {
-              if (printRes.status === 1) {
-                doBrowserPrintChemical(printRes);
-              }
-            }
-          });
-        });
-      });
-    } else {
+  Swal.fire({
+    title: 'Berhasil',
+    text: res.message,
+    icon: 'success',
+    confirmButtonText: 'OK'
+  }).then(() => {
+    let unitsToPrint = (res.units || []).filter(u => u.print_barcode);
+    if (unitsToPrint.length === 0) return;
+
+    let unitIds = unitsToPrint.map(u => u.id);
+
+    $.ajax({
+      url: "{{ route('receiving.printChemicalUnitLabel') }}",
+      type: 'POST',
+      data: { unit_ids: unitIds },   // <-- kirim array, bukan 1 per 1
+      success: function (printRes) {
+        if (printRes.status === 1) {
+          doBrowserPrintChemical(printRes);
+        }
+      }
+    });
+  });
+} else {
       $('#chemicalUnitAlert').text(res.message).show();
       Swal.fire({
         title: 'Gagal',
@@ -455,29 +456,27 @@ $('#chemicalUnitModal').on('hidden.bs.modal', function () {
 });
 
 function doBrowserPrintChemical(data) {
-    var unit      = data.unit;
-    var qrUrl     = data.qr_url;
+    var labels    = data.labels;
     var printedBy = data.printed_by;
-    var expDate   = data.expired_date;
-    var qty       = data.qty;
+    var total     = labels.length;
 
-    var labels = '';
-    for (var i = 0; i < qty; i++) {
-        labels +=
+    var labelsHtml = '';
+    labels.forEach(function (lbl, i) {
+        labelsHtml +=
             '<div class="label-card">' +
             '<div class="label-top">' +
-            '<img class="label-qr" src="' + qrUrl + '">' +
+            '<img class="label-qr" src="' + lbl.qr_url + '">' +
             '<div class="label-text">' +
-            '<div class="label-altcode">' + unit.article_alternative_code + '</div>' +
-            '<div class="label-exp">EXP: ' + expDate + '</div>' +
-            '<div class="label-sub">Kaleng #' + unit.unit_sequence + ' - ' + unit.unit_qty + unit.uom + '</div>' +
+            '<div class="label-altcode">' + lbl.alt_code + '</div>' +
+            '<div class="label-exp">EXP: ' + lbl.expired_date + '</div>' +
+            '<div class="label-desc">' + lbl.article_desc + '</div>' +
             '</div></div>' +
-            '<div class="label-footer">Dicetak: ' + printedBy + ' &bull; ' + (i+1) + '/' + qty + '</div>' +
+            '<div class="label-footer">Dicetak: ' + printedBy + ' &bull; ' + (i+1) + '/' + total + '</div>' +
             '</div>';
-    }
+    });
 
     var html = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
-        '<title>Label ' + unit.barcode_code + '</title>' +
+        '<title>Label Chemical Unit</title>' +
         '<style>' +
         '@page{margin:0;size:30mm 20mm;}' +
         '*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;text-shadow:none;}' +
@@ -491,10 +490,10 @@ function doBrowserPrintChemical(data) {
         '.label-text{overflow:visible;min-width:0;flex:1;}' +
         '.label-altcode{font-size:5.5pt;font-weight:900;color:#000;white-space:nowrap;overflow:visible;}' +
         '.label-exp{font-size:8pt;font-weight:900;color:#000;white-space:nowrap;margin-top:0.3mm;}' +
-        '.label-sub{font-size:4pt;color:#333;font-weight:600;line-height:1.2;overflow:visible;}' +
+        '.label-desc{font-size:4pt;color:#333;font-weight:600;line-height:1.2;overflow:visible;word-wrap:break-word;}' +
         '.label-footer{font-size:3.5pt;color:#555;border-top:0.2mm solid #999;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '</style></head><body>' +
-        '<div class="label-sheet">' + labels + '</div>' +
+        '<div class="label-sheet">' + labelsHtml + '</div>' +
         '<script>window.onload=function(){' +
             'var imgs=document.querySelectorAll("img"),loaded=0;' +
             'if(!imgs.length){window.print();return;}' +
