@@ -1692,42 +1692,53 @@ private function getArticleDesc(string $articleCode): string
     )->orderBy('transfer_stock_hdr.created_at', 'desc');
 
     return DataTables::of($query)
-        ->addColumn('action', function ($row) use ($username, $canPosting) {
-            $encId     = Crypt::encryptString($row->id);
-            $isCreator = ($row->created_by === $username);
-            $st        = $row->status;
+       ->addColumn('action', function ($row) use ($username, $canPosting, $userDepts) {
+    $encId     = Crypt::encryptString($row->id);
+    $isCreator = ($row->created_by === $username);
+    $st        = $row->status;
 
-            $buttons  = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a>';
-            $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
+    // Posting: hanya dept location_to (approve_dept) yang match, atau role privileged
+    $canPostThis = $canPosting || in_array($row->approve_dept, $userDepts);
 
-            // DETAIL — selalu
-            $buttons .= '<a href="' . route('transferStock.show', ['id' => $encId]) . '" class="dropdown-item">
-                            <i data-feather="eye"></i><span>' . __('Detail') . '</span></a>';
+    $buttons  = '<div class="d-inline-flex">
+                    <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a>';
+    $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
 
-            // EDIT — belum posted/canceled
-            if (!in_array($st, ['4', '5'])) {
-                $buttons .= '<a href="' . route('transferStock.edit', ['id' => $encId]) . '" class="dropdown-item">
-                                <i data-feather="edit-2"></i><span>' . __('Edit') . '</span></a>';
-            }
+    // DETAIL
+    $buttons .= '<a href="' . route('transferStock.show', ['id' => $encId]) . '" class="dropdown-item">
+                    <i data-feather="eye"></i><span>' . __('Detail') . '</span></a>';
 
-            // CANCEL — status 4 butuh otoritas khusus, selain itu cukup creator/privileged
-            if ($st != '5' && ($isCreator || $canPosting)) {
-                $buttons .= "<a href='javascript:;' class='dropdown-item' data-size='sm' data-ajax-delete='true'
-                                data-confirm='Batalkan Transfer ini?|Stok yang sudah dipindahkan akan dikembalikan.'
-                                data-confirm-yes='document.getElementById(\"delete-form-{$row->id}\").submit();'
-                                data-modal-id='{$row->id}'
-                                data-url='" . route('transferStock.cancel', ['id' => $encId]) . "'>
-                                <i data-feather='x-circle' class='feather-14-red'></i><span>" . __('Cancel') . "</span></a>";
-            }
+    // EDIT
+    if (!in_array($st, ['4', '5'])) {
+        $buttons .= '<a href="' . route('transferStock.edit', ['id' => $encId]) . '" class="dropdown-item">
+                        <i data-feather="edit-2"></i><span>' . __('Edit') . '</span></a>';
+    }
 
-            // PRINT
-            $buttons .= '<a href="' . route('transferStock.print', ['id' => $encId]) . '" target="_blank" class="dropdown-item">
-                            <i data-feather="printer"></i><span>' . __('Print') . '</span></a>';
+    // POSTING — status 1/2/3 saja, dept location_to atau privileged, link GET biasa
+    if (!in_array($st, ['4', '5']) && $canPostThis) {
+        $buttons .= '<a href="' . route('transferStock.posting', ['id' => $encId]) . '" 
+                        class="dropdown-item"
+                        onclick="return confirm(\'Anda telah menyetujui semua barang yang ditransfer ke gudang anda?\');">
+                        <i data-feather="check-circle" class="feather-14-green"></i><span class="text-success">' . __('Posting') . '</span></a>';
+    }
 
-            $buttons .= '</div></div>';
-            return $buttons;
-        })
+    // CANCEL
+    if ($st != '5' && ($isCreator || $canPosting)) {
+        $buttons .= "<a href='javascript:;' class='dropdown-item' data-size='sm' data-ajax-delete='true'
+                        data-confirm='Batalkan Transfer ini?|Stok yang sudah dipindahkan akan dikembalikan.'
+                        data-confirm-yes='document.getElementById(\"delete-form-{$row->id}\").submit();'
+                        data-modal-id='{$row->id}'
+                        data-url='" . route('transferStock.cancel', ['id' => $encId]) . "'>
+                        <i data-feather='x-circle' class='feather-14-red'></i><span class='text-danger'>" . __('Cancel') . "</span></a>";
+    }
+
+    // PRINT
+    $buttons .= '<a href="' . route('transferStock.print', ['id' => $encId]) . '" target="_blank" class="dropdown-item">
+                    <i data-feather="printer"></i><span>' . __('Print') . '</span></a>';
+
+    $buttons .= '</div></div>';
+    return $buttons;
+})
         ->editColumn('status', function ($row) {
             $badges   = ['badge-primary', 'badge-info', 'badge-warning', 'badge-success', 'badge-danger'];
             $statusTr = ['NEW', 'VALIDATED', 'APPROVED', 'POSTED', 'CANCELED'];
