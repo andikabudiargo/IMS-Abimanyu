@@ -1714,13 +1714,17 @@ private function getArticleDesc(string $articleCode): string
                         <i data-feather="edit-2"></i><span>' . __('Edit') . '</span></a>';
     }
 
-    // POSTING — status 1/2/3 saja, dept location_to atau privileged, link GET biasa
-    if (!in_array($st, ['4', '5']) && $canPostThis) {
-        $buttons .= '<a href="' . route('transferStock.posting', ['id' => $encId]) . '" 
-                        class="dropdown-item"
-                        onclick="return confirm(\'Anda telah menyetujui semua barang yang ditransfer ke gudang anda?\');">
-                        <i data-feather="check-circle" class="feather-14-green"></i><span class="text-success">' . __('Posting') . '</span></a>';
-    }
+   // POSTING — status 1/2/3 saja, dept location_to atau privileged, submit via POST
+if (!in_array($st, ['4', '5']) && $canPostThis) {
+    $buttons .= "
+        <form id='posting-form-{$row->id}' action='" . route('transferStock.posting') . "' method='POST' class='d-none'>
+            " . csrf_field() . "
+            <input type='hidden' name='id' value='{$encId}'>
+        </form>
+        <a href='javascript:;' class='dropdown-item'
+            onclick=\"if(confirm('Anda telah menyetujui semua barang yang ditransfer ke gudang anda?')){document.getElementById('posting-form-{$row->id}').submit();}\">
+            <i data-feather='check-circle' class='feather-14-green'></i><span class='text-success'>" . __('Posting') . "</span></a>";
+}
 
     // CANCEL
     if ($st != '5' && ($isCreator || $canPosting)) {
