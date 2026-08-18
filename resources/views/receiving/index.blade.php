@@ -413,16 +413,22 @@ $('#btnSaveChemicalUnit').on('click', function () {
 
     let unitIds = unitsToPrint.map(u => u.id);
 
-    $.ajax({
-      url: "{{ route('receiving.printChemicalUnitLabel') }}",
-      type: 'POST',
-      data: { unit_ids: unitIds },   // <-- kirim array, bukan 1 per 1
-      success: function (printRes) {
-        if (printRes.status === 1) {
-          doBrowserPrintChemical(printRes);
-        }
-      }
-    });
+   $.ajax({
+  url: "{{ route('receiving.printChemicalUnitLabel') }}",
+  type: 'POST',
+  data: { unit_ids: unitIds },
+  success: function (printRes) {
+    if (printRes.status === 1) {
+      doBrowserPrintChemical(printRes);
+    } else {
+      Swal.fire('Gagal Print', printRes.message, 'warning');
+    }
+  },
+  error: function (xhr) {
+    console.error(xhr.responseText);
+    Swal.fire('Error Print', 'Gagal generate label. Cek console untuk detail.', 'error');
+  }
+});
   });
 } else {
       $('#chemicalUnitAlert').text(res.message).show();
