@@ -286,15 +286,17 @@ function loadChemicalUnitModal(recNumber) {
       let hasEditableRows = false;
 
       res.groups.forEach(function (group) {
-        let groupHtml = tpl('#tplChemicalGroup', {
-          RECEIVING_DET_ID: group.receiving_det_id,
-          ARTICLE_CODE: group.article_code,
-          ARTICLE_DESC: group.article_desc || '',
-          TOTAL_QTY: group.total_qty_needed,
-          ALLOCATED_QTY: group.allocated_qty,
-          REMAINING_QTY: group.remaining_qty,
-          UOM: group.uom || ''
-        });
+       let groupHtml = tpl('#tplChemicalGroup', {
+  RECEIVING_DET_ID: group.receiving_det_id,
+  ARTICLE_CODE: group.article_code,
+  ARTICLE_ALT_CODE: group.article_alternative_code || group.article_code,   // fallback kalau kosong
+  ARTICLE_DESC: group.article_desc || '',
+  MIN_PACKAGE: group.min_package || '-',
+  TOTAL_QTY: group.total_qty_needed,
+  ALLOCATED_QTY: group.allocated_qty,
+  REMAINING_QTY: group.remaining_qty,
+  UOM: group.uom || ''
+});
 
         let $groupEl = $(groupHtml);
         let $rowsContainer = $groupEl.find('.chemical-unit-rows');
@@ -398,17 +400,28 @@ $('#btnSaveChemicalUnit').on('click', function () {
 
     if (res.status === 1) {
       $('#chemicalUnitModal').modal('hide');
-      // reload datatable biar status pending/complete update
       showList(searchRec.val(), searchPo.val(), searchInv.val(), searchSupplier.val(), searchStatus.val(), recDate.val(), doDate.val(), recType.val());
-
-      // TODO: kalau ada endpoint print barcode, panggil di sini pakai res.units
-      // yang punya print_barcode = true, buka window baru ke route print label.
 
       Swal.fire({
         title: 'Berhasil',
         text: res.message,
         icon: 'success',
         confirmButtonText: 'OK'
+      }).then(() => {
+        // Print tiap unit yang dicentang print_barcode
+        (res.units || []).forEach(function (u) {
+          if (!u.print_barcode) return;
+          $.ajax({
+            url: "{{ route('receiving.printChemicalUnitLabel') }}",
+            type: 'POST',
+            data: { unit_id: u.id, qty: 1 },
+            success: function (printRes) {
+              if (printRes.status === 1) {
+                doBrowserPrintChemical(printRes);
+              }
+            }
+          });
+        });
       });
     } else {
       $('#chemicalUnitAlert').text(res.message).show();
@@ -440,6 +453,63 @@ $('#chemicalUnitModal').on('hidden.bs.modal', function () {
   $('#chemicalUnitLoading').hide();
   chemicalUnitRecNumber = '';
 });
+
+function doBrowserPrintChemical(data) {
+    var unit      = data.unit;
+    var qrUrl     = data.qr_url;
+    var printedBy = data.printed_by;
+    var expDate   = data.expired_date;
+    var qty       = data.qty;
+
+    var labels = '';
+    for (var i = 0; i < qty; i++) {
+        labels +=
+            '<div class="label-card">' +
+            '<div class="label-top">' +
+            '<img class="label-qr" src="' + qrUrl + '">' +
+            '<div class="label-text">' +
+            '<div class="label-altcode">' + unit.article_alternative_code + '</div>' +
+            '<div class="label-exp">EXP: ' + expDate + '</div>' +
+            '<div class="label-sub">Kaleng #' + unit.unit_sequence + ' - ' + unit.unit_qty + unit.uom + '</div>' +
+            '</div></div>' +
+            '<div class="label-footer">Dicetak: ' + printedBy + ' &bull; ' + (i+1) + '/' + qty + '</div>' +
+            '</div>';
+    }
+
+    var html = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+        '<title>Label ' + unit.barcode_code + '</title>' +
+        '<style>' +
+        '@page{margin:0;size:30mm 20mm;}' +
+        '*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;text-shadow:none;}' +
+        'body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+        '.label-sheet{display:flex;flex-wrap:wrap;}' +
+        '.label-card{width:30mm;height:20mm;border:0.3mm solid #000;padding:1mm 1.5mm;' +
+            'display:flex;flex-direction:column;justify-content:space-between;' +
+            'overflow:hidden;page-break-inside:avoid;}' +
+        '.label-top{display:flex;align-items:center;gap:1.5mm;flex:1;min-height:0;overflow:hidden;}' +
+        '.label-qr{width:10mm;height:10mm;flex-shrink:0;object-fit:contain;}' +
+        '.label-text{overflow:visible;min-width:0;flex:1;}' +
+        '.label-altcode{font-size:5.5pt;font-weight:900;color:#000;white-space:nowrap;overflow:visible;}' +
+        '.label-exp{font-size:8pt;font-weight:900;color:#000;white-space:nowrap;margin-top:0.3mm;}' +
+        '.label-sub{font-size:4pt;color:#333;font-weight:600;line-height:1.2;overflow:visible;}' +
+        '.label-footer{font-size:3.5pt;color:#555;border-top:0.2mm solid #999;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+        '</style></head><body>' +
+        '<div class="label-sheet">' + labels + '</div>' +
+        '<script>window.onload=function(){' +
+            'var imgs=document.querySelectorAll("img"),loaded=0;' +
+            'if(!imgs.length){window.print();return;}' +
+            'imgs.forEach(function(img){' +
+                'if(img.complete){loaded++;if(loaded===imgs.length)window.print();}' +
+                'else{img.onload=img.onerror=function(){loaded++;if(loaded===imgs.length)window.print();};}' +
+            '});' +
+        '};' +
+        '<\/script></body></html>';
+
+    var w = window.open('', '_blank', 'width=600,height=400');
+    if (!w) { Swal.fire('Popup Diblokir', 'Izinkan popup di browser Anda.', 'warning'); return; }
+    w.document.write(html);
+    w.document.close();
+}
 
   $.ajaxSetup({
     headers: {

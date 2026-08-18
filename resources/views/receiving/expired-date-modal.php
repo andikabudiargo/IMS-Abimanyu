@@ -26,17 +26,17 @@
 </div>
 
 <script type="text/template" id="tplChemicalGroup">
-  <div class="card chemical-unit-group mb-2" data-receiving-det-id="__RECEIVING_DET_ID__" data-article-code="__ARTICLE_CODE__">
-    <div class="card-header py-2">
-      <strong>__ARTICLE_CODE__</strong> - __ARTICLE_DESC__
-      <span class="float-right text-muted">
-        Total: __TOTAL_QTY__ __UOM__ | Sudah diinput: __ALLOCATED_QTY__ __UOM__ | Sisa: __REMAINING_QTY__ __UOM__
-      </span>
-    </div>
-    <div class="card-body py-2 chemical-unit-rows">
-      <!-- rows disuntik JS -->
-    </div>
+ <div class="card chemical-unit-group mb-2" data-receiving-det-id="__RECEIVING_DET_ID__" data-article-code="__ARTICLE_CODE__">
+  <div class="card-header py-2">
+    <strong>__ARTICLE_ALT_CODE__</strong> - __ARTICLE_DESC__
+    <span class="float-right text-muted">
+      Min. Package: __MIN_PACKAGE__ __UOM__ | Total: __TOTAL_QTY__ __UOM__ | Set EP Date: __ALLOCATED_QTY__ __UOM__ | Belum ada EP Date: __REMAINING_QTY__ __UOM__
+    </span>
   </div>
+  <div class="card-body py-2 chemical-unit-rows">
+    <!-- rows disuntik JS -->
+  </div>
+</div>
 </script>
 
 <script type="text/template" id="tplChemicalRow">
@@ -45,7 +45,7 @@
        data-unit-sequence="__UNIT_SEQUENCE__"
        data-qty="__QTY__">
     <div class="col-md-2">
-      <span class="badge badge-light">Kaleng #__UNIT_SEQUENCE__</span>
+      <span class="badge badge-primary">Kaleng #__UNIT_SEQUENCE__</span>
     </div>
     <div class="col-md-3">
       Qty: <strong>__QTY__</strong> __UOM__

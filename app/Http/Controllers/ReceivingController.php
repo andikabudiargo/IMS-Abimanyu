@@ -212,21 +212,22 @@ public function chemicalUnitPreviewByRec(Request $request)
         return response()->json(['status' => 0, 'message' => 'Receiving belum POSTED']);
     }
 
-    $details = DB::table('receiving_det')
-        ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
-        ->where('receiving_det.rec_number', $recNumber)
-        ->where('article.article_type', 'CM1')
-        ->whereRaw('(receiving_det.qty + receiving_det.qty_free) > 0')
-        ->select(
-            'receiving_det.id',
-            'receiving_det.article_code',
-            'article.article_desc',
-            'article.min_package',
-            'receiving_det.uom_rec as uom',
-            DB::raw('(receiving_det.qty + receiving_det.qty_free) as total_qty_needed')
-        )
-        ->orderBy('receiving_det.id')
-        ->get();
+   $details = DB::table('receiving_det')
+    ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+    ->where('receiving_det.rec_number', $recNumber)
+    ->where('article.article_type', 'CM1')
+    ->whereRaw('(receiving_det.qty + receiving_det.qty_free) > 0')
+    ->select(
+        'receiving_det.id',
+        'receiving_det.article_code',
+        'article.article_alternative_code',   // <-- TAMBAH
+        'article.article_desc',
+        'article.min_package',
+        'receiving_det.uom_rec as uom',
+        DB::raw('(receiving_det.qty + receiving_det.qty_free) as total_qty_needed')
+    )
+    ->orderBy('receiving_det.id')
+    ->get();
 
     if ($details->isEmpty()) {
         return response()->json(['status' => 0, 'message' => 'Tidak ada artikel Chemical (CM1) di transaksi ini']);
@@ -281,18 +282,19 @@ public function chemicalUnitPreviewByRec(Request $request)
             }
         }
 
-        $groups[] = [
-            'receiving_det_id' => $detail->id,
-            'article_code'     => $detail->article_code,
-            'article_desc'     => $detail->article_desc,
-            'min_package'      => $minPackage,
-            'uom'              => $detail->uom,
-            'total_qty_needed' => $detail->total_qty_needed,
-            'allocated_qty'    => $allocatedQty,
-            'remaining_qty'    => $remainingQty,
-            'error'            => null,
-            'rows'             => $rows,
-        ];
+       $groups[] = [
+    'receiving_det_id'         => $detail->id,
+    'article_code'             => $detail->article_code,
+    'article_alternative_code' => $detail->article_alternative_code,   // <-- TAMBAH
+    'article_desc'             => $detail->article_desc,
+    'min_package'              => $minPackage,
+    'uom'                      => $detail->uom,
+    'total_qty_needed'         => $detail->total_qty_needed,
+    'allocated_qty'            => $allocatedQty,
+    'remaining_qty'            => $remainingQty,
+    'error'                    => null,
+    'rows'                     => $rows,
+];
     }
 
     return response()->json([
@@ -376,9 +378,21 @@ public function chemicalUnitStoreByRec(Request $request)
                 ];
             }
 
-            DB::table('receiving_chemical_unit')->insert($dataSet);
-            $allInserted = array_merge($allInserted, $dataSet);
-            $totalUnitCount += count($dataSet);
+          DB::table('receiving_chemical_unit')->insert($dataSet);
+
+$barcodeCodes = array_column($dataSet, 'barcode_code');
+$insertedRows = DB::table('receiving_chemical_unit')
+    ->whereIn('barcode_code', $barcodeCodes)
+    ->get(['id', 'barcode_code', 'article_code', 'expired_date', 'print_status'])
+    ->keyBy('barcode_code');
+
+foreach ($dataSet as &$d) {
+    $d['id'] = $insertedRows[$d['barcode_code']]->id ?? null;
+}
+unset($d);   // <-- TAMBAH INI
+
+$allInserted = array_merge($allInserted, $dataSet);
+$totalUnitCount += count($dataSet);
         }
 
         DB::commit();
@@ -387,15 +401,17 @@ public function chemicalUnitStoreByRec(Request $request)
         $message = "$title untuk $recNumber berhasil disimpan ($totalUnitCount kaleng, " . count($groups) . " artikel)";
         \LogActivity::addToLog($title, "username: $username Status $message");
 
-        return response()->json([
-            'status'  => 1,
-            'message' => $message,
-            'units'   => array_map(fn($d) => [
-                'article_code' => $d['article_code'],
-                'barcode_code' => $d['barcode_code'],
-                'expired_date' => $d['expired_date'],
-            ], $allInserted),
-        ]);
+       return response()->json([
+    'status'  => 1,
+    'message' => $message,
+    'units'   => array_map(fn($d) => [
+        'id'            => $d['id'] ?? null,   // perlu ambil id hasil insert, lihat catatan di bawah
+        'article_code'  => $d['article_code'],
+        'barcode_code'  => $d['barcode_code'],
+        'expired_date'  => $d['expired_date'],
+        'print_barcode' => $d['print_status'],
+    ], $allInserted),
+]);
 
     } catch (\Exception $e) {
         DB::rollBack();
@@ -403,6 +419,75 @@ public function chemicalUnitStoreByRec(Request $request)
         \LogActivity::addToLog("Add Expired Date", "username: $username Status $message");
         return response()->json(['status' => 0, 'message' => $message]);
     }
+}
+
+public function printChemicalUnitLabel(Request $request)
+{
+    $unitId = (int) $request->unit_id;
+    $qty    = (int) $request->qty;
+
+    if ($qty < 1 || $qty > 100) {
+        return response()->json(['status' => 0, 'message' => 'Jumlah label harus antara 1-100.']);
+    }
+
+    $unit = DB::table('receiving_chemical_unit as rcu')
+        ->leftJoin('article', 'article.article_code', 'rcu.article_code')
+        ->where('rcu.id', $unitId)
+        ->select(
+            'rcu.id',
+            'rcu.barcode_code',
+            'rcu.unit_sequence',
+            'rcu.qty as unit_qty',
+            'rcu.expired_date',
+            'article.article_alternative_code',
+            'article.article_desc',
+            'article.uom'
+        )
+        ->first();
+
+    if (!$unit) {
+        return response()->json(['status' => 0, 'message' => 'Data kaleng tidak ditemukan.']);
+    }
+
+    // ----- Generate QR on the fly dari barcode_code -----
+    // FIX: sesuaikan dengan package QR yang terpasang di project.
+    // Contoh pakai simplesoftwareio/simple-qrcode:
+    $qrBase64 = base64_encode(
+        \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')->size(300)->margin(1)->generate($unit->barcode_code)
+    );
+    $qrUrl = 'data:image/png;base64,' . $qrBase64;
+
+    $printedBy   = Auth::user()->username;
+    $expiredDisp = date('d-m-Y', strtotime($unit->expired_date));
+    $altCode     = $unit->article_alternative_code;
+    $footer      = mb_substr("Dicetak: {$printedBy}", 0, 50);   // FIX: tanpa tanggal/jam
+
+    // ----- ZPL 30x20mm @ 203 DPI (240x160 dots) -----
+    // Expired date dibikin lebih besar (A0N,20,18) dibanding altcode
+    $zpl = "^XA
+^MMT
+^PW240
+^LL160
+^LS0
+^CI28
+^FO4,4^BQN,2,2^FDQA,{$unit->barcode_code}^FS
+^FO58,4^A0N,13,12^FD{$altCode}^FS
+^FO58,22^A0N,20,18^FDEXP: {$expiredDisp}^FS
+^FO58,46^A0N,9,8^FB175,2,0,L^FDKaleng #{$unit->unit_sequence} - {$unit->unit_qty}{$unit->uom}^FS
+^FO4,142^A0N,8,7^FD{$footer}^FS
+^FO4,140^GB232,0,1^FS
+^PQ{$qty},0,1,Y
+^XZ";
+
+    return response()->json([
+        'status'       => 1,
+        'unit'         => $unit,
+        'qr_url'       => $qrUrl,
+        'zpl'          => $zpl,
+        'printed_by'   => $printedBy,
+        'expired_date' => $expiredDisp,
+        'qty'          => $qty,
+    ]);
 }
 
     private function ensureWarehouseStockRow(string $siteCode, string $articleCode, string $location, ?string $deptCode, ?string $uom): void

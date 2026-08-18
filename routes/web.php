@@ -807,6 +807,10 @@ Route::delete('location/destroy/{id}','LocationController@destroy');
 Route::get('transferStock/check-location-type',['as'=>'transferStock.checkLocationType','uses'=>'TransferStockController@checkLocationType']);
 Route::get('transferStock/article-by-location',['as'=>'transferStock.articleByLocation','uses'=>'TransferStockController@articleByLocation']);
 Route::get('transferStock/fg-by-rm',['as'=>'transferStock.fgByRm','uses'=>'TransferStockController@fgByRm']);
+Route::post('receiving/chemical-unit-print-label', [
+    'uses' => 'ReceivingController@printChemicalUnitLabel',
+    'as'   => 'receiving.printChemicalUnitLabel',
+]);
 // ───────────────────────────────────────────────────────────────────────────
 
 
