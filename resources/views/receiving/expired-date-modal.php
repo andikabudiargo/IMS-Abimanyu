@@ -30,7 +30,7 @@
   <div class="card-header py-2">
     <strong>__ARTICLE_ALT_CODE__</strong> - __ARTICLE_DESC__
     <span class="float-right text-muted">
-      Min. Package: __MIN_PACKAGE__ __UOM__ | Total: __TOTAL_QTY__ __UOM__ | Set EP Date: __ALLOCATED_QTY__ __UOM__ | Belum ada EP Date: __REMAINING_QTY__ __UOM__
+      Min. Package: __MIN_PACKAGE__ __UOM__ | Total: __TOTAL_QTY__ __UOM__ | Sudah Input EXP Date: __ALLOCATED_QTY__ __UOM__ | Belum ada EXP Date: __REMAINING_QTY__ __UOM__
     </span>
   </div>
   <div class="card-body py-2 chemical-unit-rows">

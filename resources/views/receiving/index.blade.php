@@ -474,8 +474,8 @@ function doBrowserPrintChemical(data) {
             '<img class="label-qr" src="' + lbl.qr_url + '">' +
             '<div class="label-text">' +
             '<div class="label-altcode">' + lbl.alt_code + '</div>' +
-            '<div class="label-exp">EXP: ' + lbl.expired_date + '</div>' +
             '<div class="label-desc">' + lbl.article_desc + '</div>' +
+            '<div class="label-exp">EXP: ' + lbl.expired_date + '</div>' +
             '</div></div>' +
             '<div class="label-footer">Dicetak: ' + printedBy + ' &bull; ' + (i+1) + '/' + total + '</div>' +
             '</div>';
@@ -495,7 +495,7 @@ function doBrowserPrintChemical(data) {
         '.label-qr{width:10mm;height:10mm;flex-shrink:0;object-fit:contain;}' +
         '.label-text{overflow:visible;min-width:0;flex:1;}' +
         '.label-altcode{font-size:5.5pt;font-weight:900;color:#000;white-space:nowrap;overflow:visible;}' +
-        '.label-exp{font-size:8pt;font-weight:900;color:#000;white-space:nowrap;margin-top:0.3mm;}' +
+       '.label-exp{font-size:4pt;font-weight:700;font-style:italic;color:#000;white-space:nowrap;margin-top:0.3mm;}' +
         '.label-desc{font-size:4pt;color:#333;font-weight:600;line-height:1.2;overflow:visible;word-wrap:break-word;}' +
         '.label-footer{font-size:3.5pt;color:#555;border-top:0.2mm solid #999;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '</style></head><body>' +
