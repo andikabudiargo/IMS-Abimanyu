@@ -334,9 +334,11 @@ public function chemicalUnitStoreByRec(Request $request)
     }
 
     DB::beginTransaction();
-    try {
-        $allInserted = [];
-        $totalUnitCount = 0;
+try {
+    $this->lockChemicalBarcodeSequence(); // TAMBAH INI
+
+    $allInserted = [];
+    $totalUnitCount = 0;
 
         foreach ($groups as $g) {
             if (empty($g->units)) continue;
@@ -357,8 +359,7 @@ public function chemicalUnitStoreByRec(Request $request)
 
             $dataSet = [];
             foreach ($g->units as $u) {
-                $barcodeCode = preg_replace('/[^A-Za-z0-9\-]/', '', $recNumber)
-                    . '-' . $detail->article_code . '-' . str_pad($u->unit_sequence, 3, '0', STR_PAD_LEFT);
+               $barcodeCode = $this->nextChemicalBarcode();
 
                 $dataSet[] = [
                     'receiving_det_id' => $detail->id,
@@ -498,6 +499,53 @@ private function lockMovementSequence(): void
 {
     // Key SAMA PERSIS dengan TransferStockController — supaya posting lintas modul tidak tabrakan.
     DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
+}
+
+private function lockChemicalBarcodeSequence(): void
+{
+    // Advisory lock khusus barcode chemical unit, biar generate sequence aman dari race condition
+    DB::select("SELECT pg_advisory_xact_lock(hashtext('receiving_chemical_unit_barcode'))");
+}
+
+private function nextChemicalBarcode(): string
+{
+    $last = DB::table('receiving_chemical_unit')
+        ->where('barcode_code', 'like', 'LOT-%')
+        ->orderByRaw("substring(barcode_code from 5 for 3) desc, (substring(barcode_code from 9))::bigint desc")
+        ->value('barcode_code');
+
+    if (!$last || !preg_match('/^LOT-([A-Z]{3})-(\d{9})$/', $last, $m)) {
+        return 'LOT-AAA-' . str_pad(1, 9, '0', STR_PAD_LEFT);
+    }
+
+    $letters = $m[1];
+    $number  = (int) $m[2];
+
+    if ($number >= 999999999) {
+        $letters = $this->incrementLetterSeq($letters);
+        $number  = 1;
+    } else {
+        $number++;
+    }
+
+    return 'LOT-' . $letters . '-' . str_pad($number, 9, '0', STR_PAD_LEFT);
+}
+
+private function incrementLetterSeq(string $letters): string
+{
+    $chars = str_split($letters);
+    for ($i = 2; $i >= 0; $i--) {
+        if ($chars[$i] === 'Z') {
+            $chars[$i] = 'A';
+            if ($i === 0) {
+                throw new \Exception('Barcode letter sequence overflow (ZZZ tercapai), perlu penanganan manual');
+            }
+        } else {
+            $chars[$i] = chr(ord($chars[$i]) + 1);
+            break;
+        }
+    }
+    return implode('', $chars);
 }
 
     /**
@@ -3879,6 +3927,99 @@ private function recalculateFromDate(string $articleCode, string $location, stri
         ->update(['article_qty' => $latestLastQty]);
 }
 
+// Ambil detail kaleng berdasarkan barcode_code hasil scan
+public function chemicalUnitByBarcode(Request $request)
+{
+    $barcode = trim($request->barcode_code);
+
+    $unit = DB::table('receiving_chemical_unit as rcu')
+        ->leftJoin('article', 'article.article_code', 'rcu.article_code')
+        ->leftJoin('receiving_hdr as rh', 'rh.rec_number', 'rcu.rec_number')
+        ->where('rcu.barcode_code', $barcode)
+        ->select(
+            'rcu.id',
+            'rcu.barcode_code',
+            'rcu.article_code',
+            'article.article_alternative_code',
+            'article.article_desc',
+            'rcu.qty',
+            'rcu.expired_date',
+            'rcu.unit_sequence',
+            'rcu.status',
+            'rcu.rec_number',
+            'rh.rec_date',
+            'rh.created_by as received_by',
+            'rh.do_number',
+            'rh.supplier_id'
+        )
+        ->first();
+
+    if (!$unit) {
+        return response()->json(['status' => 0, 'message' => 'Barcode tidak ditemukan / belum terdaftar']);
+    }
+
+    return response()->json(['status' => 1, 'data' => $unit]);
+}
+
+public function scanChemicalUnit(Request $request)
+{
+    $barcodeCode = trim($request->input('barcode_code'));
+
+    $unit = DB::table('receiving_chemical_unit as rcu')
+        ->leftJoin('article', 'article.article_code', 'rcu.article_code')
+        ->leftJoin('receiving_hdr as rh', 'rh.rec_number', 'rcu.rec_number')
+        ->where('rcu.barcode_code', $barcodeCode)
+        ->select(
+            'rcu.id',
+            'article.article_alternative_code',
+            'article.article_desc',
+            'rcu.barcode_code',
+            'rcu.qty',
+            'rcu.expired_date',
+            'rh.rec_number',
+            'rh.rec_date',
+            'rh.created_by as received_by'
+        )
+        ->first();
+
+    if (!$unit) {
+        return response()->json([
+            'status' => 0,
+            'message' => 'Barcode tidak ditemukan'
+        ]);
+    }
+
+    return response()->json([
+        'status' => 1,
+        'data' => $unit
+    ]);
+}
+
+public function extendExpiredDate(Request $request)
+{
+    $id = $request->input('id');
+    $newExpiredDate = $request->input('new_expired_date');
+
+    $updated = DB::table('receiving_chemical_unit')
+        ->where('id', $id)
+        ->update([
+            'expired_date' => $newExpiredDate,
+            'updated_at' => now(),
+            'updated_by' => auth()->user()->username ?? auth()->id(),
+        ]);
+
+    if (!$updated) {
+        return response()->json([
+            'status' => 0,
+            'message' => 'Gagal update, data tidak ditemukan'
+        ]);
+    }
+
+    return response()->json([
+        'status' => 1,
+        'message' => 'Tanggal kadaluarsa berhasil diperpanjang'
+    ]);
+}
 
     // public function posting(Request $request)
     // {
