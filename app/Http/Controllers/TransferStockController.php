@@ -2507,5 +2507,103 @@ private function parsePostgresArray(?string $pgArray): array
         return $rev;
     }
 
+    // ===== API MOBILE =====
+
+// Daftar lokasi from/to sesuai dept user
+public function apiLocations(Request $request)
+{
+    $user       = Auth::user();
+    $userDepts  = DB::table('user_dept')->where('username', $user->username)->pluck('dept')->toArray();
+    $privileged = $user->hasAnyRole(['Superuser', 'accounting', 'finance']);
+
+    $from = DB::table('stock_location_master')
+        ->whereNotIn('location_code', ['038', '039'])
+        ->when(!$privileged, function ($q) use ($userDepts) {
+            $q->where(function ($sub) use ($userDepts) {
+                $sub->whereIn('dept_code', $userDepts)->orWhere('location_code', '011');
+            });
+        })
+        ->orderBy('location_name')
+        ->select('location_code', 'location_name', 'dept_code', 'location_type')
+        ->get();
+
+    $to = DB::table('stock_location_master')
+        ->whereNotIn('location_code', ['038', '039'])
+        ->orderBy('location_name')
+        ->select('location_code', 'location_name', 'dept_code', 'location_type')
+        ->get();
+
+    return response()->json(['status' => 1, 'from' => $from, 'to' => $to]);
+}
+
+// Simpan transfer (reuse createTransferProgrammatically yang sudah ada)
+public function apiStore(Request $request)
+{
+    $payload = [
+        'trDate'       => $request->trDate,
+        'locationFrom' => $request->locationFrom,
+        'locationTo'   => $request->locationTo,
+        'note'         => $request->note,
+        'penerima'     => $request->penerima,
+        'articles'     => json_decode($request->articles, true) ?? [],
+    ];
+
+    $result = $this->createTransferProgrammatically($payload, true);
+
+    if (!$result['success']) {
+        return response()->json(['status' => 0, 'message' => $result['message']]);
+    }
+
+    return response()->json([
+        'status'   => 1,
+        'trNumber' => $result['trNumber'],
+        'message'  => "Transfer {$result['trNumber']} berhasil disimpan",
+    ]);
+}
+
+// Resolve barcode kaleng -> article + stok di lokasi asal (untuk scan di transfer)
+public function apiArticleByBarcode(Request $request)
+{
+    $barcode      = trim($request->barcode_code);
+    $locationFrom = $request->location;
+
+    $unit = DB::table('receiving_chemical_unit as rcu')
+        ->leftJoin('article', 'article.article_code', 'rcu.article_code')
+        ->where('rcu.barcode_code', $barcode)
+        ->select(
+            'rcu.article_code',
+            'rcu.qty as unit_qty',
+            'article.article_alternative_code',
+            'article.article_desc',
+            'article.uom'
+        )
+        ->first();
+
+    if (!$unit) {
+        return response()->json(['status' => 0, 'message' => 'Barcode tidak ditemukan']);
+    }
+
+    $stock = 0;
+    if ($locationFrom) {
+        $stock = (float) DB::table('warehouse_stock')
+            ->where('site_code', $this->siteCode)
+            ->where('article_code', $unit->article_code)
+            ->where('location_number', $locationFrom)
+            ->value('article_qty') ?? 0;
+    }
+
+    return response()->json([
+        'status' => 1,
+        'data'   => [
+            'article_code'             => $unit->article_code,
+            'article_alternative_code' => $unit->article_alternative_code,
+            'article_desc'             => $unit->article_desc,
+            'uom'                      => $unit->uom,
+            'unit_qty'                 => $unit->unit_qty,
+            'stock'                    => $stock,
+        ],
+    ]);
+}
+
         }
 

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\ReceivingController;
+use App\Http\Controllers\TransferStockController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -14,4 +15,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('receiving.scanChemicalUnit');
     Route::post('receiving/extend-expired-date', [ReceivingController::class, 'extendExpiredDate'])
         ->name('receiving.extendExpiredDate');
+Route::get('transfer/locations',          [TransferStockController::class, 'apiLocations']);
+Route::get('transfer/articles',           [TransferStockController::class, 'articleByLocation']);
+Route::get('transfer/article-by-barcode', [TransferStockController::class, 'apiArticleByBarcode']);
+Route::post('transfer/store',             [TransferStockController::class, 'apiStore']);
 });
