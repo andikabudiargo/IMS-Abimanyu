@@ -117,9 +117,9 @@
                 <div class="form-row">
   <div class="col-12">
     <button type="button" class="btn btn-primary" id="btnSearch" name="btnSearch">Search</button>
-    {{--<button type="button" class="btn btn-outline-danger" id="btnCheckAnomaly">
+    <button type="button" class="btn btn-outline-danger" id="btnCheckAnomaly">
       <i data-feather="alert-triangle"></i> Abnormality
-    </button>--}}
+    </button>
   </div>
 </div>
             </form>

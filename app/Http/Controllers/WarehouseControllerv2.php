@@ -472,11 +472,25 @@ class WarehouseControllerv2 extends Controller
 
             Artisan::call('stock:check-anomaly', $params);
 
+            // Resolusi $location ke parent (accounting anchor) — sama persis dengan
+            // logika di CheckStockAnomaly::handle(). Baris di stock_anomaly_log selalu
+            // tersimpan dengan location_number hasil fold (parent untuk keluarga WIP),
+            // jadi kalau user filter pakai child (mis. 038), query display di bawah
+            // harus mencari 012, bukan 038 — kalau tidak, hasilnya selalu kosong
+            // meski command barusan berhasil mendeteksi & menyimpan anomaly.
+            $locationAnchor = $location;
+            if ($location) {
+                $parent = DB::table('stock_location_master')
+                    ->where('location_code', $location)
+                    ->value('parent_location');
+                if ($parent) $locationAnchor = $parent;
+            }
+
             $anomalies = DB::table('stock_anomaly_log as l')
                 ->leftJoin('article as a', 'a.article_code', '=', 'l.article_id')
                 ->leftJoin('stock_location_master as loc', 'loc.location_code', '=', 'l.location_number')
                 ->where('l.status', 'OPEN')
-                ->when($location, fn($q) => $q->where('l.location_number', $location))
+                ->when($locationAnchor, fn($q) => $q->where('l.location_number', $locationAnchor))
                 ->when($code, fn($q) => $q->where('a.article_alternative_code', 'ilike', "%$code%"))
                 ->when($name, fn($q) => $q->where('a.article_desc', 'ilike', "%$name%"))
                 ->orderByDesc('l.diff')
@@ -488,6 +502,10 @@ class WarehouseControllerv2 extends Controller
                 'success' => true,
                 'data' => $anomalies,
                 'checked_at' => now()->format('d-m-Y H:i'),
+                // Info tambahan untuk UI: kasih tahu kalau filter lokasi yang dipilih
+                // di-resolve ke parent, supaya user tidak bingung kenapa hasil
+                // menampilkan lokasi lain dari yang dipilih di form.
+                'location_resolved' => $locationAnchor !== $location ? $locationAnchor : null,
             ]);
         } catch (\Exception $e) {
             // ── FIX BUG #4 ──
