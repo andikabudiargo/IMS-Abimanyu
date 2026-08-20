@@ -2605,5 +2605,214 @@ public function apiArticleByBarcode(Request $request)
     ]);
 }
 
+// Dashboard outstanding: transfer masuk yang perlu diposting + keluar yang menunggu
+public function apiOutstanding(Request $request)
+{
+    $user      = Auth::user();
+    $username  = $user->username;
+    $userDepts = DB::table('user_dept')->where('username', $username)->pluck('dept')->toArray();
+
+    $baseSelect = [
+        'transfer_stock_hdr.*',
+        'locFrom.location_name as location_name',
+        'locTo.location_name as location_name_to',
+    ];
+
+    $mapRow = function ($row) use ($username, $userDepts) {
+        $created = \Carbon\Carbon::parse($row->created_at);
+        $seconds = $created->diffInSeconds(now(), false);
+        if ($seconds < 0) $seconds = 0;
+
+        $aging = $this->formatAging($seconds);
+
+        $canPost = $user = false;
+        $u = Auth::user();
+        $canPost = $u->hasAnyRole(['Superuser', 'accounting'])
+            || $u->can('transferOut-posting')
+            || in_array($row->approve_dept, $userDepts);
+
+        return [
+            'id'               => (int) $row->id,
+            'enc_id'           => Crypt::encryptString((string) $row->id),
+            'tr_number'        => $row->tr_number,
+            'tr_date'          => $row->tr_date,
+            'tr_type'          => $row->tr_type,
+            'status'           => (string) $row->status,
+            'status_label'     => ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'][$row->status] ?? $row->status,
+            'location_from'    => $row->location_from,
+            'location_to'      => $row->location_to,
+            'location_name'    => $row->location_name,
+            'location_name_to' => $row->location_name_to,
+            'penerima'         => $row->penerima,
+            'note'             => $row->note,
+            'created_by'       => $row->created_by,
+            'created_at'       => $row->created_at,
+            'age_seconds'      => $seconds,
+            'aging_label'      => $aging['label'],
+            'aging_level'      => $aging['level'],
+            'can_post'         => $canPost,
+        ];
+    };
+
+    $in = DB::table('transfer_stock_hdr')
+        ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
+        ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to')
+        ->whereIn('transfer_stock_hdr.status', ['1', '2'])
+        ->whereIn('transfer_stock_hdr.approve_dept', $userDepts)
+        ->select($baseSelect)
+        ->orderBy('transfer_stock_hdr.created_at', 'asc')
+        ->get()
+        ->map($mapRow);
+
+    $out = DB::table('transfer_stock_hdr')
+        ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
+        ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to')
+        ->whereIn('transfer_stock_hdr.status', ['1', '2'])
+        ->where(function ($q) use ($userDepts, $username) {
+            $q->whereIn('locFrom.dept_code', $userDepts)
+              ->orWhere('transfer_stock_hdr.created_by', $username);
+        })
+        ->whereNotIn('transfer_stock_hdr.approve_dept', $userDepts)
+        ->select($baseSelect)
+        ->orderBy('transfer_stock_hdr.created_at', 'asc')
+        ->get()
+        ->map($mapRow);
+
+    // 5 transfer terakhir yang dibuat user (riwayat singkat)
+    $recent = DB::table('transfer_stock_hdr')
+        ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
+        ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to')
+        ->where('transfer_stock_hdr.created_by', $username)
+        ->select($baseSelect)
+        ->orderBy('transfer_stock_hdr.created_at', 'desc')
+        ->limit(5)
+        ->get()
+        ->map($mapRow);
+
+    return response()->json([
+        'status'      => 1,
+        'in'          => $in->values(),
+        'out'         => $out->values(),
+        'recent'      => $recent->values(),
+        'in_count'    => $in->count(),
+        'out_count'   => $out->count(),
+        'oldest_in'   => $in->sortByDesc('age_seconds')->first()['tr_number'] ?? null,
+        'oldest_out'  => $out->sortByDesc('age_seconds')->first()['tr_number'] ?? null,
+        'max_age_in'  => $in->max('age_seconds') ?? 0,
+        'max_age_out' => $out->max('age_seconds') ?? 0,
+    ]);
+}
+
+// Posting dari mobile — sama persis dengan posting() web, tapi return JSON
+public function apiPosting(Request $request)
+{
+    $user     = Auth::user();
+    $username = $user->username;
+
+    try {
+        $id = Crypt::decryptString($request->id);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 0, 'message' => 'Parameter tidak valid'], 422);
+    }
+
+    $hdrQ = DB::table('transfer_stock_hdr')->where('id', $id)->first();
+
+    if (!$hdrQ) {
+        return response()->json(['status' => 0, 'message' => 'Data tidak ditemukan']);
+    }
+    if ($hdrQ->status == '4') {
+        return response()->json(['status' => 0, 'message' => 'Transfer ini sudah diposting']);
+    }
+    if ($hdrQ->status == '5') {
+        return response()->json(['status' => 0, 'message' => 'Transfer ini sudah dicancel']);
+    }
+
+    $userDepts = DB::table('user_dept')->where('username', $username)->pluck('dept')->toArray();
+    $canPost = $user->hasAnyRole(['Superuser', 'accounting'])
+        || $user->can('transferOut-posting')
+        || in_array($hdrQ->approve_dept, $userDepts);
+
+    if (!$canPost) {
+        return response()->json(['status' => 0, 'message' => 'Anda tidak berwenang posting transfer ini']);
+    }
+
+    $trNumber = $hdrQ->tr_number;
+
+    $rowAffected = DB::table('transfer_stock_hdr')
+        ->where('tr_number', $trNumber)
+        ->update([
+            'status'        => '4',
+            'authorized_by' => $username,
+            'authorized_at' => date('Y-m-d H:i:s'),
+            'updated_by'    => $username,
+            'updated_at'    => date('Y-m-d H:i:s'),
+        ]);
+
+    if (!$rowAffected) {
+        return response()->json(['status' => 0, 'message' => "Posting $trNumber gagal"]);
+    }
+
+    \LogActivity::addToLog("Posting $this->title", "username: $username Status Posting $trNumber Successfully Posted (mobile)");
+
+    return response()->json([
+        'status'  => 1,
+        'message' => "Transfer $trNumber berhasil diposting",
+    ]);
+}
+
+// Detail satu transfer untuk mobile
+public function apiShow(Request $request)
+{
+    try {
+        $id = Crypt::decryptString($request->id);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 0, 'message' => 'Parameter tidak valid'], 422);
+    }
+
+    $hdr = DB::table('transfer_stock_hdr')
+        ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
+        ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to')
+        ->where('transfer_stock_hdr.id', $id)
+        ->select('transfer_stock_hdr.*', 'locFrom.location_name', 'locTo.location_name as location_name_to')
+        ->first();
+
+    if (!$hdr) {
+        return response()->json(['status' => 0, 'message' => 'Data tidak ditemukan']);
+    }
+
+    $details = DB::table('transfer_stock_det')
+        ->leftJoin('article', 'article.article_code', '=', 'transfer_stock_det.article_code')
+        ->where('transfer_stock_det.tr_number', $hdr->tr_number)
+        ->select(
+            'transfer_stock_det.id',
+            'transfer_stock_det.article_code',
+            'transfer_stock_det.qty',
+            'transfer_stock_det.uom',
+            'transfer_stock_det.note',
+            'article.article_alternative_code',
+            'article.article_desc'
+        )
+        ->orderBy('transfer_stock_det.id')
+        ->get();
+
+    return response()->json([
+        'status'  => 1,
+        'header'  => [
+            'tr_number'        => $hdr->tr_number,
+            'tr_date'          => $hdr->tr_date,
+            'tr_type'          => $hdr->tr_type,
+            'status'           => (string) $hdr->status,
+            'status_label'     => ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'][$hdr->status] ?? $hdr->status,
+            'location_name'    => $hdr->location_name,
+            'location_name_to' => $hdr->location_name_to,
+            'penerima'         => $hdr->penerima,
+            'note'             => $hdr->note,
+            'created_by'       => $hdr->created_by,
+            'created_at'       => $hdr->created_at,
+        ],
+        'details' => $details,
+    ]);
+}
+
         }
 

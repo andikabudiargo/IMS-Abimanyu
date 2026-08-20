@@ -17,10 +17,16 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('receiving.scanChemicalUnit');
     Route::post('receiving/extend-expired-date', [ReceivingController::class, 'extendExpiredDate'])
         ->name('receiving.extendExpiredDate');
-Route::get('transfer/locations',          [TransferStockController::class, 'apiLocations']);
-Route::get('transfer/articles',           [TransferStockController::class, 'articleByLocation']);
-Route::get('transfer/article-by-barcode', [TransferStockController::class, 'apiArticleByBarcode']);
-Route::post('transfer/store',             [TransferStockController::class, 'apiStore']);
+});
+
+Route::middleware('auth:sanctum')->prefix('transfer')->group(function () {
+    Route::get('/locations',          [TransferStockController::class, 'apiLocations']);
+    Route::get('/articles',           [TransferStockController::class, 'articleByLocation']);
+    Route::post('/article-barcode',   [TransferStockController::class, 'apiArticleByBarcode']);
+    Route::post('/store',             [TransferStockController::class, 'apiStore']);
+    Route::get('/outstanding',        [TransferStockController::class, 'apiOutstanding']);
+    Route::get('/show',               [TransferStockController::class, 'apiShow']);
+    Route::post('/posting',           [TransferStockController::class, 'apiPosting']);
 });
 
 Route::middleware('auth:sanctum')->prefix('sto')->group(function () {
