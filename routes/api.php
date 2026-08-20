@@ -20,5 +20,13 @@ Route::get('transfer/locations',          [TransferStockController::class, 'apiL
 Route::get('transfer/articles',           [TransferStockController::class, 'articleByLocation']);
 Route::get('transfer/article-by-barcode', [TransferStockController::class, 'apiArticleByBarcode']);
 Route::post('transfer/store',             [TransferStockController::class, 'apiStore']);
-Route::get('/sto/count-list', [StoController::class, 'countList']);
+    Route::get('/count-list',              [StoController::class, 'countList']);
+    Route::get('/count/detail',            [StoCountController::class, 'detail']);
+    Route::get('/count/articles',          [StoCountController::class, 'articles']);
+    Route::get('/count/available-numbers', [StoCountController::class, 'availableNumbers']);
+    Route::post('/count/store-line',       [StoCountController::class, 'storeLine']);
+    Route::post('/count/store-sheet',      [StoCountController::class, 'storeSheet']);
+    Route::put('/count/line/{dtlId}',      [StoCountController::class, 'updateLine']);
+    Route::delete('/count/line/{dtlId}',   [StoCountController::class, 'deleteLine']);
+    Route::post('/count/finish',           [StoCountController::class, 'finish']);
 });
