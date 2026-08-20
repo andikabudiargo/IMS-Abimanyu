@@ -19,6 +19,16 @@ Route::get('/monitoring', function () {
     );
 	});
 
+	Route::get('/download/apk', function () {
+    $path = storage_path('app/public/app-release.apk');
+
+    if (!file_exists($path)) {
+        abort(404, 'File APK tidak ditemukan.');
+    }
+
+    return response()->download($path, 'app-release.apk');
+});
+
 	Route::get('/recalculate-all', function () {
     set_time_limit(0);
     ini_set('memory_limit', '512M');
