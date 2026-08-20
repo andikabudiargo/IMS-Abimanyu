@@ -26,7 +26,13 @@ Route::get('/monitoring', function () {
         abort(404, 'File APK tidak ditemukan.');
     }
 
-    return response()->download($path, 'app-release.apk');
+    return response()->download(
+        $path,
+        'app-release.apk',
+        [
+            'Content-Type' => 'application/vnd.android.package-archive',
+        ]
+    );
 });
 
 	Route::get('/recalculate-all', function () {
