@@ -40,8 +40,24 @@ class CheckStockAnomaly extends Command
 
         $hasArticleFilter = $code || $name || $type || $supp;
 
+        // Resolusi lokasi ke parent (accounting anchor) — dipakai KHUSUS untuk
+        // scope delete log lama & (via return value) filter display di controller.
+        // Movement tetap discan di lokasi asli (lihat $whereLocation di bawah),
+        // tapi hasilnya selalu tersimpan di log dengan location_number = parent
+        // (efek fold di CTE ledger/diagnostic). Kalau delete-scope masih pakai
+        // $location mentah (child), baris log lama untuk parent yang sama tidak
+        // akan pernah ke-refresh/ke-hapus saat command dijalankan ulang dengan
+        // --location=child yang berbeda-beda.
+        $locationAnchor = $location;
+        if ($location) {
+            $parent = DB::table('stock_location_master')
+                ->where('location_code', $location)
+                ->value('parent_location');
+            if ($parent) $locationAnchor = $parent;
+        }
+
         $this->info('Mulai pengecekan abnormality stock...'
-            . ($location ? " | lokasi: $location" : '')
+            . ($location ? " | lokasi: $location" . ($locationAnchor !== $location ? " (anchor: $locationAnchor)" : '') : '')
             . ($hasArticleFilter ? ' | filter artikel aktif' : ''));
 
         // 0. Kalau ada filter artikel, resolve dulu daftar article_code yang match.
@@ -61,7 +77,7 @@ class CheckStockAnomaly extends Command
 
                 DB::table('stock_anomaly_log')
                     ->where('status', 'OPEN')
-                    ->when($location, fn($q) => $q->where('location_number', $location))
+                    ->when($locationAnchor, fn($q) => $q->where('location_number', $locationAnchor))
                     ->delete();
 
                 return 0;
@@ -70,20 +86,41 @@ class CheckStockAnomaly extends Command
 
         // 1. Kosongkan log lama yang masih OPEN, sesuai scope filter yang aktif
         //    (biar cek scope lain gak kehapus datanya)
+        //    Pakai $locationAnchor (parent), karena baris log selalu tersimpan
+        //    dengan location_number hasil fold — bukan lokasi child mentah.
         DB::table('stock_anomaly_log')
             ->where('status', 'OPEN')
-            ->when($location, fn($q) => $q->where('location_number', $location))
+            ->when($locationAnchor, fn($q) => $q->where('location_number', $locationAnchor))
             ->when($hasArticleFilter, fn($q) => $q->whereIn('article_id', $articleCodes))
             ->delete();
 
         // 2. Susun klausa WHERE dinamis untuk CTE ledger
+        //    Catatan: filter lokasi tetap dicek terhadap lokasi ASLI movement (wm.location_number),
+        //    bukan hasil fold ke parent — supaya --location=038 tetap bisa dipakai untuk
+        //    menelusuri movement di child tertentu, walau hasilnya nanti dilaporkan under parent-nya.
         $whereLocation = $location ? "AND wm.location_number = :location" : "";
         $whereArticle  = $hasArticleFilter ? "AND wm.artikel_code = ANY(:articleCodes)" : "";
 
         // 3. Query utama: bandingkan ledger (warehouse_movement, net dari 2 lapis
         //    exclude: status-header & net-value-pair) vs snapshot (warehouse_stock)
+        //
+        //    Tambahan: fold lokasi child (WIP sub-lokasi fisik, mis. 038/039/040/041)
+        //    ke parent-nya (mis. 012) via stock_location_master.parent_location,
+        //    karena by design warehouse_stock hanya dicatat di level parent
+        //    (pool akuntansi), sementara warehouse_movement dicatat di lokasi child
+        //    fisik tempat transaksi sebenarnya terjadi. Tanpa fold ini, setiap movement
+        //    di child akan selalu terlihat sebagai anomaly (qty_ledger ada, qty_snapshot
+        //    tidak pernah ada) padahal itu bukan bug.
         $sql = "
             WITH
+            -- Peta lokasi child -> parent (accounting anchor). Lokasi tanpa parent
+            -- (termasuk parent itu sendiri, atau lokasi biasa non-WIP) memetakan ke dirinya sendiri.
+            loc_anchor AS (
+                SELECT location_code,
+                       COALESCE(parent_location, location_code) AS stock_location
+                FROM stock_location_master
+            ),
+
             -- Lapis A: exclude by movement_type pattern + header status (dari baseSql logic)
             excluded_by_status AS (
                 SELECT m.movement_code
@@ -154,18 +191,19 @@ class CheckStockAnomaly extends Command
                 SELECT movement_code FROM excluded_by_pair
             ),
 
-            -- Ledger bersih: net qty per artikel+lokasi, setelah exclude dua lapis
-            -- + filter opsional lokasi & artikel dari form pencarian
+            -- Ledger bersih: net qty per artikel+lokasi (lokasi child sudah di-fold ke parent),
+            -- setelah exclude dua lapis + filter opsional lokasi & artikel dari form pencarian
             ledger AS (
                 SELECT
                     wm.artikel_code,
-                    wm.location_number,
+                    COALESCE(la.stock_location, wm.location_number) AS location_number,
                     SUM(wm.movement_plus - wm.movement_min) AS qty_ledger
                 FROM warehouse_movement wm
+                LEFT JOIN loc_anchor la ON la.location_code = wm.location_number
                 WHERE wm.movement_code NOT IN (SELECT movement_code FROM excluded_all)
                 {$whereLocation}
                 {$whereArticle}
-                GROUP BY wm.artikel_code, wm.location_number
+                GROUP BY wm.artikel_code, COALESCE(la.stock_location, wm.location_number)
             ),
 
             -- Diagnostic: movement yg cuma kena exclude di salah satu lapis
@@ -173,7 +211,7 @@ class CheckStockAnomaly extends Command
             diagnostic AS (
                 SELECT
                     wm.artikel_code,
-                    wm.location_number,
+                    COALESCE(la.stock_location, wm.location_number) AS location_number,
                     COUNT(*) FILTER (
                         WHERE s.movement_code IS NOT NULL AND p.movement_code IS NULL
                     ) AS excluded_by_status_only,
@@ -181,12 +219,13 @@ class CheckStockAnomaly extends Command
                         WHERE p.movement_code IS NOT NULL AND s.movement_code IS NULL
                     ) AS excluded_by_pair_only
                 FROM warehouse_movement wm
+                LEFT JOIN loc_anchor la ON la.location_code = wm.location_number
                 LEFT JOIN excluded_by_status s ON s.movement_code = wm.movement_code
                 LEFT JOIN excluded_by_pair   p ON p.movement_code = wm.movement_code
                 WHERE (s.movement_code IS NOT NULL OR p.movement_code IS NOT NULL)
                 {$whereLocation}
                 {$whereArticle}
-                GROUP BY wm.artikel_code, wm.location_number
+                GROUP BY wm.artikel_code, COALESCE(la.stock_location, wm.location_number)
             )
 
             SELECT
