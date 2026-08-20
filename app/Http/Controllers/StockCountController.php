@@ -1454,7 +1454,7 @@ private function resolveTolerancePercent($targetPlanLoc)
     return [($variance == 0 ? 'MATCH' : 'RECOUNT'), $qtySystem, $variance];
 }
  
-    private function getLastQty($article, $location, $stoDate)
+    private function getLastQty($article, $location, $stoDate, $mapping = null)
 {
     $realCode = DB::table('article')
         ->where('article_alternative_code', $article)
@@ -1469,26 +1469,33 @@ private function resolveTolerancePercent($targetPlanLoc)
 
     $family = $this->resolveLocationFamily($location);
 
-    // standalone (tidak ada parent/child) → tetap pakai function lama,
-    // supaya perilaku persis sama seperti sebelumnya, zero risk regresi.
     if (count($family) <= 1) {
         $row = DB::selectOne(
             "SELECT get_last_qty_new(?, ?, 'HO', ?) AS q",
             [$realCode, $target->format('Y-m-d'), $location]
         );
-        return $row ? (float) $row->q : 0;
+    } else {
+        $pgArray = '{' . implode(',', array_map(function ($c) {
+            return '"' . str_replace('"', '\\"', $c) . '"';
+        }, $family)) . '}';
+
+        $row = DB::selectOne(
+            "SELECT get_last_qty_new_grouped(?, ?, 'HO', ?::varchar[]) AS q",
+            [$realCode, $target->format('Y-m-d'), $pgArray]
+        );
     }
 
-    // punya keluarga (parent+child) → pakai function grouped
-    $pgArray = '{' . implode(',', array_map(function ($c) {
-        return '"' . str_replace('"', '\\"', $c) . '"';
-    }, $family)) . '}';
+    $qty = $row ? (float) $row->q : 0;
 
-    $row = DB::selectOne(
-        "SELECT get_last_qty_new_grouped(?, ?, 'HO', ?::varchar[]) AS q",
-        [$realCode, $target->format('Y-m-d'), $pgArray]
-    );
-    return $row ? (float) $row->q : 0;
+    // ── buang efek adjustment periode berjalan ──
+    if ($mapping) {
+        $configId = $mapping->config_id
+            ?? DB::table('sto_config_mapping')->where('mapping_id', $mapping->mapping_id ?? 0)->value('config_id');
+        $periode = $this->resolveStoPeriode($configId);
+        $qty -= $this->sumAdjustmentDeltaForPeriode($realCode, $family, $periode);
+    }
+
+    return $qty;
 }
  
     // ══════════════════════════════════════════════
@@ -2595,6 +2602,59 @@ private function resolveGroupedRowsStatus($rows, $mapping, $qtySystem)
     $counted  = array_values($totals)[0];
     $variance = round($counted - $qtySystem, 2);
     return [$variance == 0 ? 'MATCH' : 'RECOUNT', $qtySystem, $variance];
+}
+
+// ══════════════════════════════════════════════
+// ADJUSTMENT PERIODE BERJALAN — dikecualikan dari qty_system
+// Adjustment dibuat SETELAH STO, jadi tidak boleh jadi pembanding.
+// Adjustment periode SEBELUMNYA tetap terbaca (tidak dikurangi).
+// ══════════════════════════════════════════════
+private $stoPeriodeCache = [];
+private $adjDeltaCache   = [];
+
+/** sto_config.periode → ['year' => 2026, 'month' => 7] */
+private function resolveStoPeriode($configId)
+{
+    if (!$configId) return null;
+    if (array_key_exists($configId, $this->stoPeriodeCache)) {
+        return $this->stoPeriodeCache[$configId];
+    }
+
+    $p = DB::table('sto_config')->where('config_id', $configId)->value('periode');
+    $val = null;
+
+    if ($p) {
+        // dukung 'YYYY-MM', 'YYYY-MM-DD', dan 'MM-YYYY'
+        if (preg_match('/^(\d{4})-(\d{2})/', $p, $mt)) {
+            $val = ['year' => (int) $mt[1], 'month' => (int) $mt[2]];
+        } elseif (preg_match('/^(\d{2})-(\d{4})/', $p, $mt)) {
+            $val = ['year' => (int) $mt[2], 'month' => (int) $mt[1]];
+        }
+    }
+
+    return $this->stoPeriodeCache[$configId] = $val;
+}
+
+/** Total delta movement adjustment milik periode STO ini (yang harus dibuang) */
+private function sumAdjustmentDeltaForPeriode($realCode, array $locations, $periode)
+{
+    if (!$periode || !$realCode || empty($locations)) return 0;
+
+    $key = $realCode.'|'.implode(',', $locations).'|'.$periode['year'].'-'.$periode['month'];
+    if (array_key_exists($key, $this->adjDeltaCache)) {
+        return $this->adjDeltaCache[$key];
+    }
+
+    $delta = (float) DB::table('warehouse_movement as wm')
+        ->join('stock_adjustment_hdr as sa', 'sa.adj_code', '=', 'wm.movement_transnno') // ⚠️ (1)
+        ->where('wm.artikel_code', $realCode)
+        ->whereIn('wm.location_number', $locations)
+        ->where('wm.movement_type', 'not ilike', 'CANCEL %')
+        ->where('sa.periode', $periode['month'])
+        ->whereRaw("RIGHT(sa.adj_date, 4) = ?", [(string) $periode['year']])                                            // ⚠️ (2)
+        ->sum(DB::raw('COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'));                        // ⚠️ (3)
+
+    return $this->adjDeltaCache[$key] = $delta;
 }
 
 }

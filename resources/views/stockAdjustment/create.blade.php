@@ -30,7 +30,7 @@
                                             class="form-control disabled-el" disabled />
                                     </div>
                                     <div class="form-group col-md-2">
-                                        <label for="adjDate">Adjustment Date *</label>
+                                        <label for="adjDate">Cut-Off Date *</label>
                                         <input type="text" id="adjDate" name="adjDate"
                                             class="form-control" placeholder="DD-MM-YYYY"
                                             value="{{ old('adjDate') }}" required />
