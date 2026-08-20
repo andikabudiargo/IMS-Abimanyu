@@ -1321,7 +1321,7 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     // lokasi yang dipilih di baris itu sendiri (dtl->location_number),
     // dan status dihitung HANYA dari qty_counter1/2/3 baris ini (perilaku asli).
     if ($mapping->target_type !== 'LOCATION') {
-        $qtySystem = $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
+        $qtySystem = $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date,$mapping);
         return $this->resolveSingleRowStatus($dtl, $mapping, $qtySystem);
     }
 
@@ -1360,7 +1360,7 @@ private function resolveQtySystem($dtl, $mapping)
 {
     if ($dtl->is_manual || is_null($dtl->article_code)) return null;
     if (empty($dtl->location_number)) return 0;
-    return (float) $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date);
+    return (float) $this->getLastQty($dtl->article_code, $dtl->location_number, $mapping->sto_date, $mapping);
 }
 
 // ══════════════════════════════════════════════
@@ -1726,7 +1726,7 @@ private function recalcSingleMappingProgress($m)
 
         $phantoms = $this->buildPhantomArticlesForLocation($m, $countedCodes, $periode);
         foreach ($phantoms as $phantom) {
-            $phantomQtySystem = (float) $this->getLastQty($phantom->article_code, $phantom->location_number, $m->sto_date);
+            $phantomQtySystem = (float) $this->getLastQty($phantom->article_code, $phantom->location_number, $m->sto_date, $m);
             $total++;
             if ($phantomQtySystem == 0) $accurate++;
         }
@@ -1783,7 +1783,7 @@ private function recalcFamilyProgress($configId, array $family)
 
     $phantoms = $this->buildPhantomArticlesForFamily($repMapping, $family, $countedCodes, $periode);
     foreach ($phantoms as $phantom) {
-        $phantomQtySystem = (float) $this->getLastQty($phantom->article_code, $repMapping->target_ref, $repMapping->sto_date);
+        $phantomQtySystem = (float) $this->getLastQty($phantom->article_code, $repMapping->target_ref, $repMapping->sto_date, $repMapping);
         $total++;
         if ($phantomQtySystem == 0) $accurate++;
     }
@@ -1802,7 +1802,7 @@ private function isFamilyGroupAccurate($items, $repMapping, $siblingMappings, $t
     $first = $items->first();
     if (empty($first->article_code)) return true;
 
-    $qtySystem = (float) $this->getLastQty($first->article_code, $repMapping->target_ref, $repMapping->sto_date);
+    $qtySystem = (float) $this->getLastQty($first->article_code, $repMapping->target_ref, $repMapping->sto_date, $repMapping);
 
     if (!($repMapping->is_blind ?? true)) {
         $sum = $items->sum(fn($r) => (float) ($r->qty_counter1 ?? $r->qty_counter2 ?? $r->qty_counter3 ?? 0));
@@ -1955,7 +1955,7 @@ private function isGroupAccurate($items, $mapping, $tolerance)
         return true;
     }
 
-    $qtySystem = (float) $this->getLastQty($first->article_code, $first->location_number, $mapping->sto_date);
+    $qtySystem = (float) $this->getLastQty($first->article_code, $first->location_number, $mapping->sto_date, $mapping);
 
     if (!($mapping->is_blind ?? true)) {
         $sum = $items->sum(fn($r) => (float) ($r->qty_counter1 ?? $r->qty_counter2 ?? $r->qty_counter3 ?? 0));
@@ -2152,7 +2152,7 @@ private function appendPhantomArticlesForFilters($rows, Request $request)
     $mapQuery = DB::table('sto_config_mapping as m')
         ->join('sto_config as c', 'c.config_id', '=', 'm.config_id')
         ->where('m.target_type', 'LOCATION')
-        ->select('m.mapping_id', 'm.target_ref', 'm.is_blind', 'm.sto_date',
+        ->select('c.config_id', 'm.mapping_id', 'm.target_ref', 'm.is_blind', 'm.sto_date',
                  'm.counter1_user', 'm.counter2_user', 'm.counter3_user',
                  'c.periode');
 
@@ -2202,6 +2202,7 @@ private function appendPhantomArticlesForFilters($rows, Request $request)
         if (count($family) > 1) {
             // ── WIP dkk: cari movement di SELURUH child+parent, distinct, anchor ke parent ──
             $repMapping = (object) [
+                'config_id'       => $m->config_id,
                 'target_ref'      => $anchor,
                 'sto_date'        => $m->sto_date ?? null,
                 'is_blind'        => $m->is_blind ?? true,
@@ -2256,7 +2257,7 @@ private function hydratePhantomRows($famPhantoms, $repMapping)
             'location_name'     => $locationName,
             'partner_name'      => null,
             'sto_code'          => null,
-            'config_id'         => null,
+            'config_id'         => $repMapping->config_id ?? null,
             'periode'           => null,
             'article_code'      => $p->article_code,
             'article_desc'      => $md->article_desc ?? $p->article_code,
@@ -2329,7 +2330,7 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
             'location_name'     => $locationName,   // ← BARU
             'partner_name'      => null,            // ← BARU
             'sto_code'          => null,
-            'config_id'         => null,
+            'config_id'         => $m->config_id ??null,
             'periode'           => null,
             'article_code'      => $sa->article_code,
             'article_desc'      => $sa->article_desc,
@@ -2369,7 +2370,7 @@ private function resolveGroupStatus($items)
 
     $qtySystem = isset($first->stock_qty)
         ? (float) $first->stock_qty
-        : (float) $this->getLastQty($first->article_code, $anchorLoc, $first->sto_date); // ← anchor
+        : (float) $this->getLastQty($first->article_code, $anchorLoc, $first->sto_date, $first); // ← anchor
     $realItems = $items->filter(fn($r) => !$this->isPhantomRow($r));
 
     if ($realItems->isEmpty()) {
@@ -2492,7 +2493,7 @@ private function resolveFamilyArticleStatus($mapping, $articleCode, $isManual, $
     }
 
     if ($qtySystem === null) {
-        $qtySystem = $this->getLastQty($articleCode, $mapping->target_ref, $mapping->sto_date);
+        $qtySystem = $this->getLastQty($articleCode, $mapping->target_ref, $mapping->sto_date, $mapping);
     }
 
     $rows = $this->collectFamilyDtlRows($mapping, $articleCode, $isManual, $articleDesc);
@@ -2556,7 +2557,7 @@ private function syncArticleStatus($mapping, $dtl)
     $configId = $mapping->config_id ?? DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->value('config_id');
 
     // qty_system = stok di lokasi (grouped kalau family) — getLastQty sudah handle
-    $qtySystem = $this->getLastQty($dtl->article_code, $anchor, $mapping->sto_date);
+    $qtySystem = $this->getLastQty($dtl->article_code, $anchor, $mapping->sto_date, $mapping);
 
     // kumpulkan semua baris kode sama di lokasi se-family (P1: gabung company+partner)
     $rows = $this->collectFamilyDtlRowsByLocation($configId, $family, $dtl->article_code);
@@ -2645,14 +2646,14 @@ private function sumAdjustmentDeltaForPeriode($realCode, array $locations, $peri
         return $this->adjDeltaCache[$key];
     }
 
-    $delta = (float) DB::table('warehouse_movement as wm')
-        ->join('stock_adjustment_hdr as sa', 'sa.adj_code', '=', 'wm.movement_transnno') // ⚠️ (1)
-        ->where('wm.artikel_code', $realCode)
-        ->whereIn('wm.location_number', $locations)
-        ->where('wm.movement_type', 'not ilike', 'CANCEL %')
-        ->where('sa.periode', $periode['month'])
-        ->whereRaw("RIGHT(sa.adj_date, 4) = ?", [(string) $periode['year']])                                            // ⚠️ (2)
-        ->sum(DB::raw('COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'));                        // ⚠️ (3)
+   $delta = (float) DB::table('warehouse_movement as wm')
+    ->join('stock_adjustment_hdr as sa', 'sa.adj_code', '=', 'wm.movement_transnno')
+    ->where('wm.artikel_code', $realCode)
+    ->whereIn('wm.location_number', $locations)
+    ->whereIn('wm.movement_type', ['ADJUSTMENT', 'CANCEL ADJUSTMENT'])
+    ->where('sa.periode', $periode['month'])
+    ->whereRaw("RIGHT(sa.adj_date, 4) = ?", [(string) $periode['year']])
+    ->sum(DB::raw('COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'));
 
     return $this->adjDeltaCache[$key] = $delta;
 }
