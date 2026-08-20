@@ -27,6 +27,9 @@ Route::middleware('auth:sanctum')->prefix('transfer')->group(function () {
     Route::get('/outstanding',        [TransferStockController::class, 'apiOutstanding']);
     Route::get('/show',               [TransferStockController::class, 'apiShow']);
     Route::post('/posting',           [TransferStockController::class, 'apiPosting']);
+    Route::get('/edit-data',  [TransferStockController::class, 'apiEditData']);
+    Route::post('/update',    [TransferStockController::class, 'apiUpdate']);
+    Route::post('/cancel',    [TransferStockController::class, 'apiCancel']);
 });
 
 Route::middleware('auth:sanctum')->prefix('sto')->group(function () {

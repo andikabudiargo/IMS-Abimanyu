@@ -2814,5 +2814,224 @@ public function apiShow(Request $request)
     ]);
 }
 
+// Data untuk form edit mobile (header + detail + lokasi yang boleh dipilih)
+public function apiEditData(Request $request)
+{
+    $user       = Auth::user();
+    $username   = $user->username;
+    $userDepts  = DB::table('user_dept')->where('username', $username)->pluck('dept')->toArray();
+    $privileged = $user->hasAnyRole(['Superuser', 'accounting', 'finance']);
+
+    try {
+        $id = Crypt::decryptString($request->id);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 0, 'message' => 'Parameter tidak valid'], 422);
+    }
+
+    $hdr = DB::table('transfer_stock_hdr')->where('id', $id)->first();
+    if (!$hdr) {
+        return response()->json(['status' => 0, 'message' => 'Data tidak ditemukan']);
+    }
+
+    if ($hdr->status != '1') {
+        $map = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
+        $st  = $map[$hdr->status] ?? $hdr->status;
+        $extra = ($hdr->status == '4') ? ' Lakukan Cancel dulu untuk mengoreksi.' : '';
+        return response()->json([
+            'status'  => 0,
+            'message' => "Transfer berstatus $st, hanya dokumen NEW yang bisa diedit.$extra",
+        ]);
+    }
+
+    if ($hdr->created_by !== $username && !$privileged) {
+        return response()->json([
+            'status'  => 0,
+            'message' => 'Anda hanya bisa mengedit transfer yang Anda buat sendiri.',
+        ]);
+    }
+
+    $details = DB::table('transfer_stock_det')
+        ->leftJoin('article', 'article.article_code', '=', 'transfer_stock_det.article_code')
+        ->where('transfer_stock_det.tr_number', $hdr->tr_number)
+        ->select(
+            'transfer_stock_det.article_code',
+            'transfer_stock_det.qty',
+            'transfer_stock_det.uom',
+            'transfer_stock_det.note',
+            'article.article_alternative_code',
+            'article.article_desc'
+        )
+        ->orderBy('transfer_stock_det.id')
+        ->get()
+        ->map(function ($d) use ($hdr) {
+            $d->stock = (float) DB::table('warehouse_stock')
+                ->where('site_code', $this->siteCode)
+                ->where('article_code', $d->article_code)
+                ->where('location_number', $hdr->location_from)
+                ->value('article_qty') ?? 0;
+            return $d;
+        });
+
+    $from = DB::table('stock_location_master')
+        ->whereNotIn('location_code', ['038', '039'])
+        ->when(!$privileged, function ($q) use ($userDepts) {
+            $q->where(function ($sub) use ($userDepts) {
+                $sub->whereIn('dept_code', $userDepts)->orWhere('location_code', '011');
+            });
+        })
+        ->orderBy('location_name')
+        ->select('location_code', 'location_name')
+        ->get();
+
+    $to = DB::table('stock_location_master')
+        ->whereNotIn('location_code', ['038', '039'])
+        ->orderBy('location_name')
+        ->select('location_code', 'location_name')
+        ->get();
+
+    return response()->json([
+        'status' => 1,
+        'header' => [
+            'tr_number'     => $hdr->tr_number,
+            'tr_date'       => $hdr->tr_date,
+            'location_from' => $hdr->location_from,
+            'location_to'   => $hdr->location_to,
+            'penerima'      => $hdr->penerima,
+            'note'          => $hdr->note,
+        ],
+        'details' => $details,
+        'from'    => $from,
+        'to'      => $to,
+    ]);
+}
+
+// Simpan hasil edit — delegasi ke update() yang sudah ada
+public function apiUpdate(Request $request)
+{
+    $response = $this->update($request);
+    $data     = json_decode($response->getContent(), true);
+
+    return response()->json([
+        'status'   => $data['status'] ?? 0,
+        'message'  => is_array($data['message'] ?? null)
+                        ? implode("\n", $data['message'])
+                        : ($data['message'] ?? 'Terjadi kesalahan'),
+        'trNumber' => $data['trNumber'] ?? null,
+    ]);
+}
+
+// Cancel dari mobile
+public function apiCancel(Request $request)
+{
+    try {
+        $id = Crypt::decryptString($request->id);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 0, 'message' => 'Parameter tidak valid'], 422);
+    }
+
+    $trNumber = DB::table('transfer_stock_hdr')->where('id', $id)->value('tr_number');
+    if (!$trNumber) {
+        return response()->json(['status' => 0, 'message' => 'Data tidak ditemukan']);
+    }
+
+    $res = $this->cancelTransferProgrammatically($trNumber, 'Cancel', true, true);
+
+    return response()->json([
+        'status'  => $res['success'] ? 1 : 0,
+        'message' => is_array($res['message']) ? implode("\n", $res['message']) : $res['message'],
+    ]);
+}
+
+// Riwayat transfer — visibilitas SAMA dengan list() di web
+public function apiHistory(Request $request)
+{
+    $user       = Auth::user();
+    $username   = $user->username;
+    $userDepts  = DB::table('user_dept')->where('username', $username)->pluck('dept')->toArray();
+    $privileged = $user->hasAnyRole(['Superuser', 'accounting', 'finance']);
+
+    $query = DB::table('transfer_stock_hdr')
+        ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
+        ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to');
+
+    // Visibilitas identik dengan list() web
+    if (!$privileged) {
+        $query->where(function ($q) use ($userDepts, $username) {
+            $q->whereIn('locFrom.dept_code', $userDepts)
+              ->orWhereIn('transfer_stock_hdr.approve_dept', $userDepts)
+              ->orWhere('transfer_stock_hdr.created_by', $username);
+        });
+    }
+
+    // ── Filter opsional ──
+    if ($request->filled('search')) {
+        $query->where('transfer_stock_hdr.tr_number', 'ilike', '%' . $request->search . '%');
+    }
+    if ($request->filled('status')) {
+        $query->where('transfer_stock_hdr.status', $request->status);
+    }
+    // scope: all (default) | mine — supaya user tetap bisa lihat punya sendiri saja
+    if ($request->get('scope') === 'mine') {
+        $query->where('transfer_stock_hdr.created_by', $username);
+    }
+    if ($request->filled('date_from') && $request->filled('date_to')) {
+        $query->whereRaw(
+            "TO_DATE(transfer_stock_hdr.tr_date,'DD-MM-YYYY') BETWEEN TO_DATE(?,'DD-MM-YYYY') AND TO_DATE(?,'DD-MM-YYYY')",
+            [$request->date_from, $request->date_to]
+        );
+    }
+
+    $perPage = min((int) $request->get('per_page', 20), 50);
+
+    $paginator = $query
+        ->select(
+            'transfer_stock_hdr.*',
+            'locFrom.location_name as location_name',
+            'locTo.location_name as location_name_to'
+        )
+        ->orderBy('transfer_stock_hdr.created_at', 'desc')
+        ->paginate($perPage);
+
+    $canPostRole = $user->hasAnyRole(['Superuser', 'accounting'])
+        || $user->can('transferOut-posting');
+
+    $data = collect($paginator->items())->map(function ($row) use ($username, $userDepts, $canPostRole) {
+        $created = \Carbon\Carbon::parse($row->created_at);
+        $seconds = max(0, $created->diffInSeconds(now(), false));
+        $aging   = $this->formatAging($seconds);
+
+        return [
+            'id'               => (int) $row->id,
+            'enc_id'           => Crypt::encryptString((string) $row->id),
+            'tr_number'        => $row->tr_number,
+            'tr_date'          => $row->tr_date,
+            'tr_type'          => $row->tr_type,
+            'status'           => (string) $row->status,
+            'status_label'     => ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'][$row->status] ?? $row->status,
+            'location_from'    => $row->location_from,
+            'location_to'      => $row->location_to,
+            'location_name'    => $row->location_name,
+            'location_name_to' => $row->location_name_to,
+            'penerima'         => $row->penerima,
+            'note'             => $row->note,
+            'created_by'       => $row->created_by,
+            'created_at'       => $row->created_at,
+            'age_seconds'      => $seconds,
+            'aging_label'      => $aging['label'],
+            'aging_level'      => $aging['level'],
+            'can_post'         => $canPostRole || in_array($row->approve_dept, $userDepts),
+            'is_mine'          => $row->created_by === $username,
+        ];
+    });
+
+    return response()->json([
+        'status'       => 1,
+        'data'         => $data->values(),
+        'current_page' => $paginator->currentPage(),
+        'last_page'    => $paginator->lastPage(),
+        'total'        => $paginator->total(),
+    ]);
+}
+
         }
 
