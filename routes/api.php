@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\ReceivingController;
 use App\Http\Controllers\TransferStockController;
 use App\Http\Controllers\Api\StoController;
+use App\Http\Controllers\Api\StoCountController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
