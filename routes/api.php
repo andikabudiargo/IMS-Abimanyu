@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\ReceivingController;
 use App\Http\Controllers\TransferStockController;
+use App\Http\Controllers\Api\StoController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -19,4 +20,5 @@ Route::get('transfer/locations',          [TransferStockController::class, 'apiL
 Route::get('transfer/articles',           [TransferStockController::class, 'articleByLocation']);
 Route::get('transfer/article-by-barcode', [TransferStockController::class, 'apiArticleByBarcode']);
 Route::post('transfer/store',             [TransferStockController::class, 'apiStore']);
+Route::get('/sto/count-list', [StoController::class, 'countList']);
 });
