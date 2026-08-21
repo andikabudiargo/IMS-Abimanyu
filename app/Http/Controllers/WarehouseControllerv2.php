@@ -17,6 +17,7 @@ use Approval;
 use Artisan;
 use Excel;
 use App\Exports\StockAnomalyExport;
+use App\Http\Controllers\ArticleController; // sesuaikan namespace aslinya
 
 class WarehouseControllerv2 extends Controller
 {
@@ -776,6 +777,7 @@ public function apiStockMovement(Request $request)
     }
 
     // ── Saldo awal — reuse persis logic movement2() ──
+    $articleController = new ArticleController();
     $opening   = $this->resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal, 0, $locationList);
     $saldoAwal = $opening['qty'];
 

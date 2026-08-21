@@ -1418,7 +1418,7 @@ private function renderRefLink($type, $ref)
     return '<a href="'.$url.'" target="_blank" class="text-primary">'.e($ref).'</a>';
 }
 
-private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal, $depth = 0, array $locationList = [])
+public function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal, $depth = 0, array $locationList = [])
 {
     $floorDate = '30-06-2026';
     if ($depth > 36 || strtotime($fromDate) <= strtotime($floorDate)) {
@@ -1484,7 +1484,7 @@ private function resolveOpeningBalance($articleCode, $location, $fromDate, $isGl
     return $out;
 }
 
-private function netMovementRange($articleCode, $location, $from, $to, $isGlobal, array $locationList = []): float
+public function netMovementRange($articleCode, $location, $from, $to, $isGlobal, array $locationList = []): float
 {
     $bind = ['art'=>$articleCode,'from'=>$from,'to'=>$to];
 
@@ -1601,7 +1601,7 @@ private function netMovementBulan($articleCode, $location, $periode, $tahun, $is
 }
 
 /** OB tepat pada periode+tahun tertentu. */
-private function fetchOBByPeriode($articleCode, $location, $periode, $tahun, $isGlobal): array
+public function fetchOBByPeriode($articleCode, $location, $periode, $tahun, $isGlobal): array
 {
     if ($isGlobal) {
         $sql = "SELECT COALESCE(SUM(det.stock_after),0) AS qty, MAX(hdr.authorized_at) AS authorized_at,
