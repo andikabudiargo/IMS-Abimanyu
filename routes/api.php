@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->prefix('sto')->group(function () {
     Route::get('/count/detail',            [StoCountController::class, 'detail']);
     Route::get('/count/articles',          [StoCountController::class, 'articles']);
     Route::get('/count/available-numbers', [StoCountController::class, 'availableNumbers']);
+    Route::post('/count/article-barcode',  [StoCountController::class, 'articleByBarcode']); // ← TAMBAH
     Route::post('/count/store-line',       [StoCountController::class, 'storeLine']);
     Route::post('/count/store-sheet',      [StoCountController::class, 'storeSheet']);
     Route::put('/count/line/{dtlId}',      [StoCountController::class, 'updateLine']);

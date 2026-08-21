@@ -2657,5 +2657,4 @@ private function sumAdjustmentDeltaForPeriode($realCode, array $locations, $peri
 
     return $this->adjDeltaCache[$key] = $delta;
 }
-
 }

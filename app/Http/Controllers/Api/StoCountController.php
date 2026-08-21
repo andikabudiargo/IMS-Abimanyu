@@ -190,6 +190,57 @@ class StoCountController extends Controller
         ]);
     }
 
+    // ══════════════════════════════════════════════
+// RESOLVE BARCODE — dipakai scan artikel di halaman counting mobile
+// ══════════════════════════════════════════════
+public function articleByBarcode(Request $request)
+{
+    $barcode = trim($request->barcode_code);
+    if ($barcode === '') {
+        return response()->json(['status' => 0, 'message' => 'Barcode kosong']);
+    }
+
+    // ── Jalur 1: barcode LOT chemical ──
+    $unit = DB::table('receiving_chemical_unit as rcu')
+        ->leftJoin('article', 'article.article_code', 'rcu.article_code')
+        ->where('rcu.barcode_code', $barcode)
+        ->select(
+            'article.article_alternative_code',
+            'article.article_desc',
+            'article.uom',
+            'article.min_package'
+        )
+        ->first();
+
+    // ── Jalur 2: fallback ke kode artikel biasa ──
+    if (!$unit) {
+        $unit = DB::table('article')
+            ->where(function ($q) use ($barcode) {
+                $q->whereRaw('lower(trim(article_alternative_code)) = lower(trim(?))', [$barcode])
+                  ->orWhereRaw('lower(trim(article_code)) = lower(trim(?))', [$barcode]);
+            })
+            ->select('article_alternative_code', 'article_desc', 'uom', 'min_package')
+            ->first();
+    }
+
+    if (!$unit) {
+        return response()->json([
+            'status'  => 0,
+            'message' => "Barcode '$barcode' tidak ditemukan.",
+        ]);
+    }
+
+    return response()->json([
+        'status' => 1,
+        'data'   => [
+            'article_code' => $unit->article_alternative_code,
+            'article_desc' => $unit->article_desc,
+            'uom'          => $unit->uom,
+            'min_package'  => $unit->min_package,
+        ],
+    ]);
+}
+
     // ── delegasi ke controller web (semuanya sudah return JSON) ──
 
     public function articles(Request $request)
