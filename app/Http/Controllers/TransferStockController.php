@@ -2567,6 +2567,11 @@ public function apiArticleByBarcode(Request $request)
     $barcode      = trim($request->barcode_code);
     $locationFrom = $request->location;
 
+    if ($barcode === '') {
+        return response()->json(['status' => 0, 'message' => 'Barcode kosong']);
+    }
+
+    // ── Jalur 1: barcode LOT chemical (receiving_chemical_unit) ──
     $unit = DB::table('receiving_chemical_unit as rcu')
         ->leftJoin('article', 'article.article_code', 'rcu.article_code')
         ->where('rcu.barcode_code', $barcode)
@@ -2579,10 +2584,40 @@ public function apiArticleByBarcode(Request $request)
         )
         ->first();
 
+    // ── Jalur 2: fallback ke QR artikel biasa (article_alternative_code / article_code) ──
     if (!$unit) {
-        return response()->json(['status' => 0, 'message' => 'Barcode tidak ditemukan']);
+        $art = DB::table('article')
+            ->where(function ($q) use ($barcode) {
+                $q->whereRaw('lower(trim(article_alternative_code)) = lower(trim(?))', [$barcode])
+                  ->orWhereRaw('lower(trim(article_code)) = lower(trim(?))', [$barcode]);
+            })
+            ->select(
+                'article_code',
+                'article_alternative_code',
+                'article_desc',
+                'uom'
+            )
+            ->first();
+
+        if ($art) {
+            $unit = (object) [
+                'article_code'             => $art->article_code,
+                'unit_qty'                 => null,   // artikel biasa tidak punya qty per kaleng
+                'article_alternative_code' => $art->article_alternative_code,
+                'article_desc'             => $art->article_desc,
+                'uom'                      => $art->uom,
+            ];
+        }
     }
 
+    if (!$unit) {
+        return response()->json([
+            'status'  => 0,
+            'message' => "Barcode '$barcode' tidak ditemukan (bukan LOT chemical maupun kode artikel)",
+        ]);
+    }
+
+    // ── Ambil stok di lokasi asal ──
     $stock = 0;
     if ($locationFrom) {
         $stock = (float) DB::table('warehouse_stock')
