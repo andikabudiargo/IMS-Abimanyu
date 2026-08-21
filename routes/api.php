@@ -6,6 +6,8 @@ use App\Http\Controllers\ReceivingController;
 use App\Http\Controllers\TransferStockController;
 use App\Http\Controllers\Api\StoController;
 use App\Http\Controllers\Api\StoCountController;
+use App\Http\Controllers\WarehouseControllerv2;
+
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -43,4 +45,11 @@ Route::middleware('auth:sanctum')->prefix('sto')->group(function () {
     Route::put('/count/line/{dtlId}',      [StoCountController::class, 'updateLine']);
     Route::delete('/count/line/{dtlId}',   [StoCountController::class, 'deleteLine']);
     Route::post('/count/finish',           [StoCountController::class, 'finish']);
+});
+
+Route::middleware('auth:sanctum')->prefix('stock')->group(function () {
+    Route::get('/locations', [WarehouseControllerv2::class, 'apiStockLocations']);
+    Route::get('/summary',   [WarehouseControllerv2::class, 'apiStockSummary']);
+    Route::get('/list',      [WarehouseControllerv2::class, 'apiStockList']);
+    Route::get('/movement',  [WarehouseControllerv2::class, 'apiStockMovement']);
 });

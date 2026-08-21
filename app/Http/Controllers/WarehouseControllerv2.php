@@ -526,4 +526,505 @@ class WarehouseControllerv2 extends Controller
         return Excel::download(new StockAnomalyExport, 'stock_abnormality_' . date('YmdHis') . '.xlsx');
     }
 
+    // ===== API MOBILE — Stock =====
+
+/**
+ * Helper: bangun subquery stok (current atau as-of tanggal tertentu),
+ * dipakai bareng oleh apiList() dan apiSummary() supaya tidak duplikat.
+ */
+private function buildStockSub(?string $location, ?string $asof)
+{
+    if ($asof) {
+        $asofYmd   = \Carbon\Carbon::createFromFormat('d-m-Y', $asof)->format('Y-m-d');
+        $asofParam = DB::getPdo()->quote($asofYmd);
+
+        if ($location) {
+            $isParent = DB::table('stock_location_master')
+                ->where('location_code', $location)
+                ->where(function ($q) {
+                    $q->whereNull('parent_location')->orWhere('parent_location', '');
+                })
+                ->exists();
+
+            if ($isParent) {
+                $childLocations = DB::table('stock_location_master')
+                    ->where('parent_location', $location)
+                    ->pluck('location_code');
+                $allLocs = $childLocations->push($location);
+
+                $articleBasis = DB::table('warehouse_movement')
+                    ->select('artikel_code as article_code')
+                    ->where('site_code', 'HO')
+                    ->whereIn('location_number', $allLocs)
+                    ->groupBy('artikel_code');
+
+                $locSelects = $allLocs->map(function ($loc) use ($asofParam) {
+                    $locQ = DB::getPdo()->quote($loc);
+                    return "COALESCE(get_last_qty_new(a_asof.article_code, $asofParam, 'HO', $locQ), 0)";
+                })->implode(' + ');
+
+                $qtyExpr = "($locSelects)";
+            } else {
+                $locParam = DB::getPdo()->quote($location);
+                $articleBasis = DB::table('warehouse_movement')
+                    ->select('artikel_code as article_code')
+                    ->where('site_code', 'HO')
+                    ->where('location_number', $location)
+                    ->groupBy('artikel_code');
+                $qtyExpr = "get_last_qty_new(a_asof.article_code, $asofParam, 'HO', $locParam)";
+            }
+        } else {
+            $articleBasis = DB::table('warehouse_movement')
+                ->select('artikel_code as article_code')
+                ->where('site_code', 'HO')
+                ->groupBy('artikel_code');
+            $qtyExpr = "get_last_qty_new(a_asof.article_code, $asofParam, 'HO', NULL)";
+        }
+
+        return DB::table('article as a_asof')
+            ->joinSub($articleBasis, 'basis', fn($j) => $j->on('basis.article_code', '=', 'a_asof.article_code'))
+            ->select('a_asof.article_code', DB::raw("($qtyExpr) as article_qty"));
+    }
+
+    $effectiveLocation = $location;
+    if ($location) {
+        $parent = DB::table('stock_location_master')->where('location_code', $location)->value('parent_location');
+        if ($parent) $effectiveLocation = $parent;
+    }
+
+    return DB::table('warehouse_stock')
+        ->select('article_code', DB::raw('sum(article_qty) as article_qty'))
+        ->where('site_code', 'HO')
+        ->when($effectiveLocation, fn($q) => $q->where('location_number', $effectiveLocation))
+        ->groupBy('article_code');
+}
+
+private function buildStockBase(array $f)
+{
+    $stockSub = $this->buildStockSub($f['location'] ?? null, $f['asof'] ?? null);
+
+    return DB::table('article')
+        ->select(
+            'article.article_code',
+            'article.article_alternative_code as code',
+            'article.article_desc as desc',
+            DB::raw("coalesce(ucv.unit_to, article.uom) as uom"),
+            'article.safety_stock',
+            'article.min_package',
+            'group_materials.name as group_name',
+            'third_party.nama as cust',
+            DB::raw("last_rec_date(article.article_code) as last_rec_date"),
+            DB::raw("coalesce(stock.article_qty,0) as article_qty")
+        )
+        ->leftJoin('group_materials', 'group_materials.code', '=', 'article.group_of_material')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'article.third_party')
+        ->leftJoin('uom_con_v2 as ucv', function ($j) {
+            $j->on('ucv.article_code', '=', 'article.article_code')
+              ->on('ucv.supplier_name', '=', 'article.third_party');
+        })
+        ->joinSub($stockSub, 'stock', fn($j) => $j->on('stock.article_code', '=', 'article.article_code'))
+        ->where(function ($q) use ($f) {
+            !empty($f['code']) ? $q->where('article.article_alternative_code', 'ilike', '%'.$f['code'].'%') : null;
+            !empty($f['name']) ? $q->where('article.article_desc', 'ilike', '%'.$f['name'].'%') : null;
+            !empty($f['type']) ? $q->where('article.article_alternative_code', 'ilike', $f['type'].'%') : null;
+            !empty($f['supp']) ? $q->where('article.third_party', 'ilike', '%'.$f['supp'].'%') : null;
+
+            if (($f['status'] ?? null) === 'critical') {
+                $q->where('stock.article_qty', '<', DB::raw('coalesce(article.safety_stock,0)'));
+            } elseif (($f['status'] ?? null) === 'save') {
+                $q->where('stock.article_qty', '>=', DB::raw('coalesce(article.safety_stock,0)'));
+            } elseif (($f['status'] ?? null) === 'empty') {
+                $q->where('stock.article_qty', '<=', 0);
+            }
+            if (!empty($f['hideEmptyQty'])) {
+                $q->where('stock.article_qty', '>', 0);
+            }
+        });
+}
+
+private function extractStockFilters(Request $request): array
+{
+    return [
+        'code'         => $request->code,
+        'name'         => $request->name,
+        'type'         => $request->type,
+        'supp'         => $request->supp,
+        'status'       => $request->status,
+        'location'     => $request->location,
+        'hideEmptyQty' => $request->boolean('hideEmptyQty'),
+        'asof'         => $request->asof, // format d-m-Y
+    ];
+}
+
+// Dropdown lokasi (top-level saja, sama seperti web)
+public function apiStockLocations(Request $request)
+{
+    $locs = DB::table('stock_location_master')
+        ->where(function ($q) { $q->whereNull('parent_location')->orWhere('parent_location', ''); })
+        ->orderBy('location_name')
+        ->select('location_code', 'location_name')
+        ->get();
+
+    return response()->json(['status' => 1, 'locations' => $locs]);
+}
+
+// Kartu dashboard: total / save / critical / empty
+public function apiStockSummary(Request $request)
+{
+    $f = $this->extractStockFilters($request);
+
+    if ($f['asof'] && !($f['location'] || $f['code'] || $f['name'] || $f['type'] || $f['supp'])) {
+        return response()->json(['status' => 0, 'message' => 'Untuk lihat stock per tanggal, pilih minimal 1 filter (Lokasi/Kode/Nama/Type/Supplier).']);
+    }
+
+    // status & hideEmptyQty tidak ikut filter dasar summary supaya angka kartu tetap utuh,
+    // TAPI hideEmptyQty tetap relevan (toggle mempengaruhi semua angka termasuk total)
+    $base = $this->buildStockBase([
+        'code' => $f['code'], 'name' => $f['name'], 'type' => $f['type'], 'supp' => $f['supp'],
+        'location' => $f['location'], 'asof' => $f['asof'], 'hideEmptyQty' => $f['hideEmptyQty'],
+    ]);
+
+    $total    = (clone $base)->count();
+    $critical = (clone $base)->whereRaw('stock.article_qty < coalesce(article.safety_stock,0)')->count();
+    $save     = (clone $base)->whereRaw('stock.article_qty >= coalesce(article.safety_stock,0)')->count();
+    $empty    = (clone $base)->where('stock.article_qty', '<=', 0)->count();
+
+    return response()->json(['status' => 1, 'total' => $total, 'save' => $save, 'critical' => $critical, 'empty' => $empty]);
+}
+
+// List stock (paginated)
+public function apiStockList(Request $request)
+{
+    $f = $this->extractStockFilters($request);
+
+    if ($f['asof'] && !($f['location'] || $f['code'] || $f['name'] || $f['type'] || $f['supp'])) {
+        return response()->json(['status' => 0, 'message' => 'Untuk lihat stock per tanggal, pilih minimal 1 filter (Lokasi/Kode/Nama/Type/Supplier).']);
+    }
+
+    $perPage = min((int) $request->get('per_page', 25), 50);
+
+    $paginator = $this->buildStockBase($f)
+        ->orderBy('article.article_desc')
+        ->paginate($perPage);
+
+    $locationLabel = 'ALL';
+    if ($f['location']) {
+        $locationLabel = DB::table('stock_location_master')->where('location_code', $f['location'])->value('location_name') ?? 'ALL';
+    }
+
+    $data = collect($paginator->items())->map(function ($row) use ($locationLabel) {
+        $safety   = (float) ($row->safety_stock ?? 0);
+        $qty      = (float) $row->article_qty;
+        $status   = $qty <= 0 ? 'empty' : ($qty < $safety ? 'critical' : 'save');
+
+        return [
+            'article_code'             => $row->article_code,
+            'article_alternative_code' => $row->code,
+            'article_desc'             => $row->desc,
+            'uom'                      => $row->uom,
+            'qty'                      => $qty,
+            'safety_stock'             => $safety,
+            'min_package'              => $row->min_package,
+            'cust'                     => $row->cust,
+            'group_name'               => $row->group_name,
+            'last_rec_date'            => $row->last_rec_date,
+            'location_label'           => $locationLabel,
+            'status'                   => $status,
+        ];
+    });
+
+    return response()->json([
+        'status'       => 1,
+        'data'         => $data->values(),
+        'current_page' => $paginator->currentPage(),
+        'last_page'    => $paginator->lastPage(),
+        'total'        => $paginator->total(),
+    ]);
+}
+
+// Movement per artikel (paginated)
+public function apiStockMovement(Request $request)
+{
+    $articleCode = $request->articleCode;
+    $location    = $request->location;
+    $siteCode    = 'HO';
+    $fromDate    = $request->fromDate ?: date('01-m-Y');
+    $toDate      = $request->toDate   ?: date('d-m-Y');
+    $inout       = $request->inout;
+    $isGlobal    = empty($location);
+    $page        = max(1, (int) $request->get('page', 1));
+    $perPage     = min((int) $request->get('per_page', 30), 100);
+
+    if (!$articleCode) {
+        return response()->json(['status' => 0, 'message' => 'articleCode wajib diisi']);
+    }
+
+    // ── Resolusi lokasi MOVEMENT: parent → child, child/biasa → dirinya sendiri ──
+    $locationList = [];
+    if (!$isGlobal) {
+        $childs = DB::table('stock_location_master')
+            ->where('parent_location', $location)
+            ->pluck('location_code')
+            ->toArray();
+
+        if (!empty($childs)) {
+            $childs[] = $location;
+            $locationList = $childs;
+        } else {
+            $locationList = [$location];
+        }
+    }
+
+    // ── Saldo awal — reuse persis logic movement2() ──
+    $opening   = $this->resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal, 0, $locationList);
+    $saldoAwal = $opening['qty'];
+
+    $bind = ['art' => $articleCode, 'site' => $siteCode, 'from' => $fromDate, 'to' => $toDate,
+             'art_dir' => $articleCode, 'art_qty' => $articleCode];
+
+    $whereLoc = '';
+    if (!$isGlobal) {
+        $ph = [];
+        foreach ($locationList as $i => $loc) {
+            $ph[] = ":loc$i";
+            $bind["loc$i"] = $loc;
+        }
+        $whereLoc = "AND m.location_number IN (" . implode(',', $ph) . ")";
+    }
+    $locationCol = $isGlobal ? "'ALL'" : DB::getPdo()->quote($location);
+
+    $inoutFilter = '';
+    if ($inout === 'in')  $inoutFilter = "AND (b.movement_plus > 0 OR b.adj_direction = '+')";
+    if ($inout === 'out') $inoutFilter = "AND (b.movement_min  > 0 OR b.adj_direction = '-')";
+
+    // ── SQL PERSIS SAMA dengan movement2() ──
+    $sqlku = "
+    WITH ledger AS (
+        SELECT m.*,
+            CASE m.movement_type
+                WHEN 'RECEIVING'    THEN (SELECT status FROM receiving_hdr        WHERE rec_number      = m.movement_transnno LIMIT 1)
+                WHEN 'TRANSFER'     THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = m.movement_transnno LIMIT 1)
+                WHEN 'SUPPLY'       THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = m.movement_transnno LIMIT 1)
+                WHEN 'DELIVERY'     THEN (SELECT status FROM delivery_hdr         WHERE delivery_number = m.movement_transnno LIMIT 1)
+                WHEN 'RETURN'       THEN (SELECT status FROM dn_return_hdr        WHERE return_number   = m.movement_transnno LIMIT 1)
+                WHEN 'REPLACEMENT'  THEN (SELECT status FROM dn_replace_hdr       WHERE replace_number  = m.movement_transnno LIMIT 1)
+                WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
+                WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr       WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                ELSE NULL
+            END AS hdr_status,
+            (CASE WHEN m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT') THEN
+                (SELECT det.direction FROM stock_adjustment_det det
+                 WHERE det.adj_code = m.movement_transnno AND det.article_code = :art_dir LIMIT 1)
+            END) AS adj_direction,
+            (CASE WHEN m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT') THEN
+                (SELECT det.qty_adjustment FROM stock_adjustment_det det
+                 WHERE det.adj_code = m.movement_transnno AND det.article_code = :art_qty LIMIT 1)
+            END) AS adj_qty,
+            CASE
+                WHEN m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                     AND m.movement_plus = 0 AND m.movement_min = 0
+                THEN (SELECT CASE WHEN det.direction = '-' THEN -det.qty_adjustment ELSE det.qty_adjustment END
+                      FROM stock_adjustment_det det
+                      WHERE det.adj_code = m.movement_transnno AND det.article_code = m.artikel_code LIMIT 1)
+                     * CASE WHEN m.movement_type = 'CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
+                ELSE (m.movement_plus - m.movement_min)
+            END AS net_value
+        FROM warehouse_movement m
+        WHERE m.artikel_code = :art
+          AND m.site_code = :site
+          $whereLoc
+          AND TO_DATE(m.movement_date,'dd-mm-yyyy')
+              BETWEEN TO_DATE(:from,'dd-mm-yyyy') AND TO_DATE(:to,'dd-mm-yyyy')
+          AND m.movement_type NOT LIKE 'CANCEL %'
+          AND m.movement_type NOT LIKE 'DELETE%'
+          AND m.movement_type NOT LIKE 'REVISI %'
+          AND m.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
+          AND NOT (m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                   AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h
+                               WHERE h.adj_code = m.movement_transnno AND h.adj_type = 'OPENING BALANCE'))
+    ),
+    dedup AS (
+        SELECT l.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY l.artikel_code, l.movement_transnno, l.location_number
+                ORDER BY l.created_at DESC, l.movement_code DESC
+            ) AS rn
+        FROM ledger l
+        WHERE l.hdr_status IS DISTINCT FROM '5'
+    ),
+    kept AS (
+        SELECT d.*, d.net_value AS counted_net
+        FROM dedup d
+        WHERE d.rn = 1
+    ),
+    base AS (
+        SELECT k.*,
+            $saldoAwal + SUM(k.counted_net) OVER (
+                ORDER BY TO_DATE(k.movement_date,'dd-mm-yyyy'), k.movement_code
+            ) AS balanceqty_calc,
+            $saldoAwal + SUM(k.counted_net) OVER (
+                ORDER BY TO_DATE(k.movement_date,'dd-mm-yyyy'), k.movement_code
+            ) - k.counted_net AS last_qty_calc
+        FROM kept k
+    )
+    SELECT
+        b.movement_code, b.artikel_code, b.artikel_desc,
+        b.movement_plus - b.movement_min AS qty,
+        b.movement_price, b.movement_date, b.movement_desc, b.movement_type,
+        b.movement_min, b.movement_plus, b.movement_transnno, b.partner_type,
+        b.adj_direction, b.adj_qty, b.hdr_status,
+        b.movement_to AS dest_code,
+        $locationCol AS location_number,
+        CASE
+            WHEN b.partner_type = 'SUPP' THEN (SELECT nama FROM third_party WHERE kode = b.movement_from)
+            ELSE (SELECT location_name FROM stock_location_master WHERE location_code = b.movement_from)
+        END AS mv_from,
+        CASE
+            WHEN b.partner_type = 'CUST' THEN (SELECT nama FROM third_party WHERE kode = b.movement_to)
+            ELSE (SELECT location_name FROM stock_location_master WHERE location_code = b.movement_to)
+        END AS mv_to,
+        b.balanceqty_calc AS balanceqty,
+        b.last_qty_calc   AS last_qty,
+        b.site_code, b.created_at,
+        b.hdr_status AS trx_status
+    FROM base b
+    WHERE 1=1
+    $inoutFilter
+    ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy'), b.movement_code";
+
+    $data = DB::select($sqlku, $bind);
+
+    $artikelDesc = $data[0]->artikel_desc ?? null;
+    if (!$artikelDesc) {
+        $row = DB::table('article')->where('article_code', $articleCode)
+            ->selectRaw("concat(article_alternative_code,'-',article_desc) as desc")->first();
+        $artikelDesc = $row->desc ?? $articleCode;
+    }
+
+    $lastRow    = end($data); reset($data);
+    $saldoAkhir = $lastRow ? (float) $lastRow->balanceqty : $saldoAwal;
+
+    $totalIn = 0.0; $totalOut = 0.0;
+    foreach ($data as $d) {
+        [$in, $out] = $this->splitQty($d);
+        $totalIn  += $in;
+        $totalOut += $out;
+    }
+
+    // ── Bentuk baris JSON dari tiap movement (reuse splitQty, refMap, reklasifikasi type) ──
+    $mapStatus = [
+        '1'  => 'NEW',      '2'  => 'VALIDATE', '3'  => 'APPROVED', '4' => 'POSTED',
+        '5'  => 'CANCELED', '7'  => 'REVISED',  '8'  => 'RECEIVED', '10' => 'REVISI',
+    ];
+
+    $rows = collect($data)->map(function ($d) use ($mapStatus) {
+        [$in, $out] = $this->splitQty($d);
+
+        $type = $d->movement_type;
+        if (in_array($type, ['TRANSFER', 'SUPPLY'], true)) {
+            if ((float) ($d->movement_min ?? 0) > 0) {
+                $type = 'SUPPLY';
+            } else {
+                $dest = (string) ($d->dest_code ?? '');
+                $type = in_array($dest, self::RETURN_LOCS, true) ? 'RETURN' : 'TRANSFER';
+            }
+        } elseif ($type === 'RETURN') {
+            $type = 'DN RETURN';
+        } elseif ($type === 'REPLACEMENT') {
+            $type = 'DN REPLACEMENT';
+        }
+
+        $ref = $this->refInfo($d->movement_type, $d->movement_transnno);
+
+return [
+    'movement_date'     => $d->movement_date,
+    'movement_type'     => $type,
+    'movement_transnno' => $d->movement_transnno,
+    'ref_openable'      => $ref['openable'],
+    'ref_url'           => $ref['url'],
+    'ref_enc_id'         => $ref['enc_id'],   // ← TAMBAH
+    'ref_doc_kind'       => $ref['doc_kind'], // ← TAMBAH
+    'mv_from'           => $d->mv_from,
+    'mv_to'             => $d->mv_to,
+    'inout'             => $in > 0 ? 'in' : ($out > 0 ? 'out' : ''),
+    'qty_in'            => $in,
+    'qty_out'           => $out,
+    'opening'           => (float) $d->last_qty,
+    'balance'           => (float) $d->balanceqty,
+    'movement_desc'     => $d->movement_desc,
+    'trx_status'        => $d->trx_status,
+    'trx_status_label'  => $mapStatus[$d->trx_status] ?? null,
+    'created_at'        => $d->created_at,
+    'is_summary'        => false,
+];
+    });
+
+    // ── Baris Saldo Awal & Saldo Akhir, taruh di ujung list (bukan dipaginate) ──
+    $rowAwal = [
+        'movement_date' => '', 'movement_type' => 'OPENING', 'movement_transnno' => $opening['adj_code'],
+        'ref_openable' => false, 'ref_url' => null, 'mv_from' => null, 'mv_to' => null, 'inout' => '',
+        'qty_in' => 0, 'qty_out' => 0, 'opening' => null, 'balance' => $saldoAwal,
+        'movement_desc' => $opening['note'] ?: 'Saldo Awal', 'trx_status' => null, 'trx_status_label' => null,
+        'created_at' => $opening['authorized_at'], 'is_summary' => true, 'summary_label' => 'SALDO AWAL',
+    ];
+    $rowAkhir = [
+        'movement_date' => $toDate, 'movement_type' => 'CLOSING', 'movement_transnno' => null,
+        'ref_openable' => false, 'ref_url' => null, 'mv_from' => null, 'mv_to' => null, 'inout' => '',
+        'qty_in' => $totalIn, 'qty_out' => $totalOut, 'opening' => $saldoAwal, 'balance' => $saldoAkhir,
+        'movement_desc' => 'Saldo Akhir ('.$toDate.')', 'trx_status' => null, 'trx_status_label' => null,
+        'created_at' => null, 'is_summary' => true, 'summary_label' => 'SALDO AKHIR',
+    ];
+
+    // ── Pagination manual atas baris movement (Saldo Awal/Akhir tidak ikut dipaginate,
+    //    selalu tampil — Awal di halaman 1, Akhir di halaman terakhir) ──
+    $total    = $rows->count();
+    $lastPage = max(1, (int) ceil($total / $perPage));
+    $paged    = $rows->forPage($page, $perPage)->values();
+
+    $out = [];
+    if ($page === 1) $out[] = $rowAwal;
+    foreach ($paged as $r) $out[] = $r;
+    if ($page === $lastPage) $out[] = $rowAkhir;
+
+    return response()->json([
+        'status'        => 1,
+        'artikel_desc'  => $artikelDesc,
+        'data'          => $out,
+        'current_page'  => $page,
+        'last_page'     => $lastPage,
+        'total'         => $total,
+    ]);
+}
+
+/**
+ * Versi non-HTML dari renderRefLink() — reuse $refMap yang sama,
+ * tapi return url mentah + flag openable untuk konsumsi mobile.
+ */
+private function refInfo(?string $type, ?string $ref): array
+{
+    if (!$ref || !isset($this->refMap[$type])) {
+        return ['openable' => false, 'url' => null, 'enc_id' => null, 'doc_kind' => null];
+    }
+    [$table, $col, $routeName] = $this->refMap[$type];
+    $row = DB::table($table)->where($col, $ref)->select('id', 'status')->first();
+
+    if (!$row || (string) $row->status === '5') {
+        return ['openable' => false, 'url' => null, 'enc_id' => null, 'doc_kind' => null];
+    }
+
+    $encId = Crypt::encryptString($row->id);
+
+    // Tabel transfer_stock_hdr menaungi TRANSFER, SUPPLY, dan RETURN (via RETURN_LOCS
+    // reklasifikasi) — semuanya bisa dibuka via TransferDetailPage yang sudah ada di app.
+    $docKind = ($table === 'transfer_stock_hdr') ? 'transfer' : null;
+
+    return [
+        'openable' => true,
+        'url'      => route($routeName, ['id' => $encId]),
+        'enc_id'   => $docKind ? $encId : null,   // hanya diisi kalau ada halaman in-app
+        'doc_kind' => $docKind,                    // 'transfer' | null (nanti bisa 'receiving', dll)
+    ];
+}
+
 }
