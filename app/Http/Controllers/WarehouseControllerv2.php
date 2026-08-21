@@ -778,7 +778,7 @@ public function apiStockMovement(Request $request)
 
     // ── Saldo awal — reuse persis logic movement2() ──
     $articleController = new ArticleController();
-    $opening   = $this->resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal, 0, $locationList);
+    $opening   = $articleController->resolveOpeningBalance($articleCode, $location, $fromDate, $isGlobal, 0, $locationList);
     $saldoAwal = $opening['qty'];
 
     $bind = ['art' => $articleCode, 'site' => $siteCode, 'from' => $fromDate, 'to' => $toDate,
