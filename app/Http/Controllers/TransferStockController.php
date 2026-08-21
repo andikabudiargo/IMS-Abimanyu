@@ -2998,21 +2998,42 @@ public function apiHistory(Request $request)
         });
     }
 
-    // ── Filter opsional ──
+        // ── Filter opsional ──
     if ($request->filled('search')) {
         $query->where('transfer_stock_hdr.tr_number', 'ilike', '%' . $request->search . '%');
     }
     if ($request->filled('status')) {
         $query->where('transfer_stock_hdr.status', $request->status);
     }
-    // scope: all (default) | mine — supaya user tetap bisa lihat punya sendiri saja
+
+    // Filter lokasi asal & tujuan
+    if ($request->filled('location_from')) {
+        $query->where('transfer_stock_hdr.location_from', $request->location_from);
+    }
+    if ($request->filled('location_to')) {
+        $query->where('transfer_stock_hdr.location_to', $request->location_to);
+    }
+
+    // scope: all (default) | mine
     if ($request->get('scope') === 'mine') {
         $query->where('transfer_stock_hdr.created_by', $username);
     }
+
+    // Rentang tanggal (tr_date varchar DD-MM-YYYY). Fleksibel: boleh salah satu saja.
     if ($request->filled('date_from') && $request->filled('date_to')) {
         $query->whereRaw(
             "TO_DATE(transfer_stock_hdr.tr_date,'DD-MM-YYYY') BETWEEN TO_DATE(?,'DD-MM-YYYY') AND TO_DATE(?,'DD-MM-YYYY')",
             [$request->date_from, $request->date_to]
+        );
+    } elseif ($request->filled('date_from')) {
+        $query->whereRaw(
+            "TO_DATE(transfer_stock_hdr.tr_date,'DD-MM-YYYY') >= TO_DATE(?,'DD-MM-YYYY')",
+            [$request->date_from]
+        );
+    } elseif ($request->filled('date_to')) {
+        $query->whereRaw(
+            "TO_DATE(transfer_stock_hdr.tr_date,'DD-MM-YYYY') <= TO_DATE(?,'DD-MM-YYYY')",
+            [$request->date_to]
         );
     }
 
