@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->prefix('transfer')->group(function () {
     Route::post('/article-barcode',   [TransferStockController::class, 'apiArticleByBarcode']);
     Route::post('/store',             [TransferStockController::class, 'apiStore']);
     Route::get('/outstanding',        [TransferStockController::class, 'apiOutstanding']);
+    Route::get('/history',            [TransferStockController::class, 'apiHistory']);   // ← TAMBAH INI
     Route::get('/show',               [TransferStockController::class, 'apiShow']);
     Route::post('/posting',           [TransferStockController::class, 'apiPosting']);
     Route::get('/edit-data',  [TransferStockController::class, 'apiEditData']);
