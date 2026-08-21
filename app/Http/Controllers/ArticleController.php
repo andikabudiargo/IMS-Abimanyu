@@ -1098,7 +1098,7 @@ public function printLabelNetwork(Request $request)
             ->make(true);
         }
 
-        private const RETURN_LOCS = ['049', '042', '009', '006', '005'];
+        public const RETURN_LOCS = ['049', '042', '009', '006', '005'];
 
        public function movement2(Request $request)
 {
@@ -1727,7 +1727,7 @@ private function accumulateNet($articleCode, $location, $anchorDate, $fromDate, 
  *
  * @return array{0:float,1:float}
  */
-private function splitQty($d): array
+public function splitQty($d): array
 {
     // NEW/DRAFT (status 1) tetap DITAMPILKAN qty aslinya.
     // Yang tidak dihitung ke saldo cukup lewat `counted_net = 0` di CTE `kept`,

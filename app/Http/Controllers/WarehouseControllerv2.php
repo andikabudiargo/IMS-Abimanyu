@@ -907,12 +907,12 @@ public function apiStockMovement(Request $request)
     $lastRow    = end($data); reset($data);
     $saldoAkhir = $lastRow ? (float) $lastRow->balanceqty : $saldoAwal;
 
-    $totalIn = 0.0; $totalOut = 0.0;
-    foreach ($data as $d) {
-        [$in, $out] = $this->splitQty($d);
-        $totalIn  += $in;
-        $totalOut += $out;
-    }
+   $totalIn = 0.0; $totalOut = 0.0;
+foreach ($data as $d) {
+    [$in, $out] = $articleController->splitQty($d);   // ← ganti $this jadi $articleController
+    $totalIn  += $in;
+    $totalOut += $out;
+}
 
     // ── Bentuk baris JSON dari tiap movement (reuse splitQty, refMap, reklasifikasi type) ──
     $mapStatus = [
@@ -920,26 +920,26 @@ public function apiStockMovement(Request $request)
         '5'  => 'CANCELED', '7'  => 'REVISED',  '8'  => 'RECEIVED', '10' => 'REVISI',
     ];
 
-    $rows = collect($data)->map(function ($d) use ($mapStatus) {
-        [$in, $out] = $this->splitQty($d);
+    $rows = collect($data)->map(function ($d) use ($mapStatus, $articleController) {   // ← tambahkan $articleController ke use()
+    [$in, $out] = $articleController->splitQty($d);   // ← ganti $this jadi $articleController
 
-        $type = $d->movement_type;
-        if (in_array($type, ['TRANSFER', 'SUPPLY'], true)) {
-            if ((float) ($d->movement_min ?? 0) > 0) {
-                $type = 'SUPPLY';
-            } else {
-                $dest = (string) ($d->dest_code ?? '');
-                $type = in_array($dest, self::RETURN_LOCS, true) ? 'RETURN' : 'TRANSFER';
-            }
-        } elseif ($type === 'RETURN') {
-            $type = 'DN RETURN';
-        } elseif ($type === 'REPLACEMENT') {
-            $type = 'DN REPLACEMENT';
+    $type = $d->movement_type;
+    if (in_array($type, ['TRANSFER', 'SUPPLY'], true)) {
+        if ((float) ($d->movement_min ?? 0) > 0) {
+            $type = 'SUPPLY';
+        } else {
+            $dest = (string) ($d->dest_code ?? '');
+            $type = in_array($dest, ArticleController::RETURN_LOCS, true) ? 'RETURN' : 'TRANSFER';
         }
+    } elseif ($type === 'RETURN') {
+        $type = 'DN RETURN';
+    } elseif ($type === 'REPLACEMENT') {
+        $type = 'DN REPLACEMENT';
+    }
 
-        $ref = $this->refInfo($d->movement_type, $d->movement_transnno);
+    $ref = $this->refInfo($d->movement_type, $d->movement_transnno);   // ini tetap $this karena refInfo() ada di WarehouseControllerv2 sendiri
 
-return [
+    return [
     'movement_date'     => $d->movement_date,
     'movement_type'     => $type,
     'movement_transnno' => $d->movement_transnno,
