@@ -67,5 +67,6 @@ class Kernel extends HttpKernel
         'role_or_permission' => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class,
         'jwt.verify' => \App\Http\Middleware\JwtMiddleware::class,
         'api.access' => \App\Http\Middleware\VerifyApiAccess::class,
+        'active' => \App\Http\Middleware\EnsureUserIsActive::class,
     ];
 }

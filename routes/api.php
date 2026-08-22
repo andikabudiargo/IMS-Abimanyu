@@ -11,17 +11,17 @@ use App\Http\Controllers\WarehouseControllerv2;
 
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-
-    Route::post('receiving/scan-chemical-unit', [ReceivingController::class, 'scanChemicalUnit'])
-        ->name('receiving.scanChemicalUnit');
-    Route::post('receiving/extend-expired-date', [ReceivingController::class, 'extendExpiredDate'])
-        ->name('receiving.extendExpiredDate');
 });
 
-Route::middleware('auth:sanctum')->prefix('transfer')->group(function () {
+Route::middleware(['auth:sanctum','active'])->prefix('receiving')->group(function () {
+    Route::post('/scan-chemical-unit', [ReceivingController::class, 'scanChemicalUnit'])->name('scanChemicalUnit');
+    Route::post('/extend-expired-date', [ReceivingController::class, 'extendExpiredDate'])->name('extendExpiredDate');
+});
+
+Route::middleware(['auth:sanctum','active'])->prefix('transfer')->group(function () {
     Route::get('/locations',          [TransferStockController::class, 'apiLocations']);
     Route::get('/articles',           [TransferStockController::class, 'articleByLocation']);
     Route::post('/article-barcode',   [TransferStockController::class, 'apiArticleByBarcode']);
@@ -35,7 +35,7 @@ Route::middleware('auth:sanctum')->prefix('transfer')->group(function () {
     Route::post('/cancel',    [TransferStockController::class, 'apiCancel']);
 });
 
-Route::middleware('auth:sanctum')->prefix('sto')->group(function () {
+Route::middleware(['auth:sanctum','active'])->prefix('sto')->group(function () {
     Route::get('/count-list',              [StoController::class, 'countList']);
     Route::get('/count/detail',            [StoCountController::class, 'detail']);
     Route::get('/count/articles',          [StoCountController::class, 'articles']);
@@ -48,7 +48,7 @@ Route::middleware('auth:sanctum')->prefix('sto')->group(function () {
     Route::post('/count/finish',           [StoCountController::class, 'finish']);
 });
 
-Route::middleware('auth:sanctum')->prefix('stock')->group(function () {
+Route::middleware(['auth:sanctum','active'])->prefix('stock')->group(function () {
     Route::get('/locations', [WarehouseControllerv2::class, 'apiStockLocations']);
     Route::get('/summary',   [WarehouseControllerv2::class, 'apiStockSummary']);
     Route::get('/list',      [WarehouseControllerv2::class, 'apiStockList']);

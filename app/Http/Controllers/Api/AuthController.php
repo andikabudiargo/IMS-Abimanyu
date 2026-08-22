@@ -7,35 +7,59 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;   // ← TAMBAH INI
 
 class AuthController extends Controller
 {
     public function login(Request $request)
-    {
-        $request->validate([
-            'username' => 'required|string',
-            'password' => 'required|string',
-        ]);
+{
+    $request->validate([
+        'username'    => 'required|string',
+        'password'    => 'required|string',
+        'device_name' => 'nullable|string',
+    ]);
 
-        $user = User::where('username', $request->username)->first();
+    $user = User::where('username', $request->username)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'message' => 'Username atau password salah'
-            ], 401);
-        }
+   if (! $user || ! Hash::check($request->password, $user->password)) {
+    return response()->json(['message' => 'Username atau password salah'], 401);
+}
 
-        // Hapus token lama biar tidak menumpuk (optional, tergantung kebutuhan)
-        $user->tokens()->delete();
+// ← TAMBAH: cek akun aktif
+if ((string) $user->status !== '1') {   // sesuaikan kolom & nilai "aktif"
+    return response()->json([
+        'message' => 'Akun Anda dinonaktifkan. Hubungi administrator.',
+    ], 403);
+}
 
-        $token = $user->createToken('mobile-app')->plainTextToken;
 
-        return response()->json([
-            'message' => 'Login berhasil',
-            'user' => $user,
-            'token' => $token,
-        ]);
-    }
+    $deviceName = $request->device_name ?: 'Perangkat tidak dikenal';
+
+    // single-device: cabut semua sesi lama
+    $user->tokens()->delete();
+
+    $user->forceFill([
+    'last_mobile_login_at'     => now(),
+    'last_mobile_login_device' => $deviceName,
+])->save();
+
+    $token = $user->createToken($deviceName)->plainTextToken;
+    $dept  = DB::table('user_dept')->where('username', $user->username)->value('dept');
+    $roles = $user->getRoleNames();
+
+    return response()->json([
+        'message' => 'Login berhasil',
+        'user'  => [
+            'id'       => $user->id,
+            'username' => $user->username,
+            'name'     => $user->name,
+            'email'    => $user->email,
+            'dept'     => $dept,
+            'roles'    => $roles,
+        ],
+        'token' => $token,
+    ]);
+}
 
     public function logout(Request $request)
     {
@@ -46,8 +70,19 @@ class AuthController extends Controller
         ]);
     }
 
-    public function me(Request $request)
-    {
-        return response()->json($request->user());
-    }
+   public function me(Request $request)
+{
+    $user  = $request->user();
+    $dept  = DB::table('user_dept')->where('username', $user->username)->value('dept');
+    $roles = $user->getRoleNames();
+
+    return response()->json([
+        'id'       => $user->id,
+        'username' => $user->username,
+        'name'     => $user->name,
+        'email'    => $user->email,
+        'dept'     => $dept,
+        'roles'    => $roles,
+    ]);
+}
 }
