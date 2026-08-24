@@ -41,7 +41,7 @@
         }
 
         * { font-family: Calibri, Arial, Helvetica, sans-serif; }
-        table { width: 100%; font-family: Calibri, Arial, Helvetica, sans-serif; border-collapse: collapse; margin: 0; }
+        table { width: 100%; font-family: Calibri, Arial, Helvetica, sans-serif; }
 
         :root { --line-color: rgba(0,0,0); }
 
@@ -57,7 +57,7 @@
             border-bottom: thin solid var(--line-color);
         }
 
-        .header-space { height: auto; padding-top: 12px; }
+        .header-space { height: 232px; }
         .footer-space  { height: 170px; }
 
         .tanpa-padding { padding: 0px; }
@@ -78,7 +78,90 @@
     </div>
 
     <div class="sheet padding-5mm">
-        <table><thead><tr><td><div class="header-space"><table width="100%" style="border: thin solid var(--line-color); padding-left:10px"><tr><td width="20%"><img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width:100%"></td><td width="5%"></td><td width="50%" align="center" class="font-small">PT. ABIMANYU SEKAR NUSANTARA<br>Kp. Karang Mulya RT.014/005<br>Desa Cikopo, Bungursari Purwakarta</td><td width="5%"></td><td width="30%"></td></tr></table><table style="border-left: thin solid var(--line-color); border-right: thin solid var(--line-color); border-bottom: thin solid var(--line-color); border-top: 0; padding-left:10px; padding-bottom:5px" class="font-10 tanpa-padding"><tr><td colspan="4" align="center" class="font-20 huruf-tebal">SURAT JALAN RETUR SUPPLIER</td></tr><tr><td width="50%" valign="top"><table><tr><td width="20%" valign="top" class="tanpa-padding font-14">Kepada</td><td class="tanpa-padding font-14">: {{ $suppliers ? $suppliers->nama : '-' }}</td></tr><tr><td width="20%" valign="top" class="tanpa-padding font-14">Alamat</td><td class="tanpa-padding font-14">: {{ $suppliers ? ($suppliers->alamat_kirim_1 ?? $suppliers->alamat_kirim_2 ?? '') : '' }}</td></tr><tr><td width="20%" valign="top" class="tanpa-padding font-14">No. Polisi</td><td class="tanpa-padding font-14">: </td></tr></table></td><td width="50%" valign="top"><table><tr><td width="30%" valign="top" class="tanpa-padding font-14">Nomor</td><td class="tanpa-padding font-14">: {{ $tDnNumber }}</td></tr><tr><td width="30%" valign="top" class="tanpa-padding font-14">Tanggal Kirim</td><td class="tanpa-padding font-14">: {{ $tDnDate }}</td></tr><tr><td width="30%" valign="top" class="tanpa-padding font-14">Status</td><td class="tanpa-padding font-14">: {{ $status }}</td></tr></table></td></tr></table></div></td></tr></thead><tbody><tr><td><div class="content"><table id="tblContent" class="font-11"><thead><tr><td width="5%" align="center">No</td><td width="15%" align="center">Code</td><td width="55%" align="center">Description</td><td width="10%" align="center">Qty</td><td width="10%" align="center">UOM</td></tr></thead><tbody>
+        <table>
+            <thead>
+                <tr>
+                    <td>
+                        <div class="header-space">
+                            <br>
+                            {{-- Logo & perusahaan --}}
+                            <table width="100%" style="border: thin solid var(--line-color); padding-left:10px">
+                                <tr>
+                                    <td width="20%">
+                                        <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width:100%">
+                                    </td>
+                                    <td width="5%"></td>
+                                    <td width="50%" align="center" class="font-small">
+                                        PT. ABIMANYU SEKAR NUSANTARA<br>
+                                        Kp. Karang Mulya RT.014/005<br>
+                                        Desa Cikopo, Bungursari Purwakarta
+                                    </td>
+                                    <td width="5%"></td>
+                                    <td width="30%"></td>
+                                </tr>
+                            </table>
+
+                            {{-- Info header Supplier Retur --}}
+                            <table style="border-left: thin solid var(--line-color); border-right: thin solid var(--line-color); padding-left:10px" class="font-10 tanpa-padding">
+                                <tr>
+                                    <td colspan="4" align="center" class="font-20 huruf-tebal">
+                                        SURAT JALAN RETUR
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td width="50%" valign="top">
+                                        <table>
+                                            <tr>
+                                                <td width="20%" valign="top" class="tanpa-padding font-14">Kepada</td>
+                                                <td class="tanpa-padding font-14">: {{ $suppliers ? $suppliers->nama : '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td width="20%" valign="top" class="tanpa-padding font-14">Alamat</td>
+                                                <td class="tanpa-padding font-14">: {{ $suppliers ? ($suppliers->alamat_kirim_1 ?? $suppliers->alamat_kirim_2 ?? '') : '' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td width="20%" valign="top" class="tanpa-padding font-14">No. Polisi</td>
+                                                <td class="tanpa-padding font-14">: </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td width="50%" valign="top">
+                                        <table>
+                                            <tr>
+                                                <td width="30%" valign="top" class="tanpa-padding font-14">Nomor</td>
+                                                <td class="tanpa-padding font-14">: {{ $tDnNumber }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td width="30%" valign="top" class="tanpa-padding font-14">Tanggal Kirim</td>
+                                                <td class="tanpa-padding font-14">: {{ $tDnDate }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td width="30%" valign="top" class="tanpa-padding font-14">Status</td>
+                                                <td class="tanpa-padding font-14">: {{ $status }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+            </thead>
+             <tbody>
+                <tr>
+                    <td>
+                        <div class="content">
+                            <table id="tblContent" class="font-11">
+                                <thead>
+                                    <tr>
+                                        <td width="5%"  align="center">No</td>
+                                        <td width="15%" align="center">Code</td>
+                                        <td width="55%" align="center">Description</td>
+                                        <td width="10%" align="center">Qty</td>
+                                        <td width="10%" align="center">UOM</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
                                     @foreach ($details as $val)
                                         <tr>
                                             <td align="center">
