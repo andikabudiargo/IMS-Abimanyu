@@ -20,7 +20,7 @@ Route::get('/monitoring', function () {
 	});
 
 	Route::get('/download/apk', function () {
-    $path = storage_path('app/public/app-release.apk');
+    $path = storage_path('app/public/ims-mobile-v-1-0.apk');
 
     if (!file_exists($path)) {
         abort(404, 'File APK tidak ditemukan.');
