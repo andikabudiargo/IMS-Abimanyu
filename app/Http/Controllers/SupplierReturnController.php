@@ -885,7 +885,7 @@ private function deleteMovementAndRecalc(string $returnNumber, string $location,
     ->leftJoin('third_party', 'third_party.kode', '=', 'supplier_return_hdr.supplier_id')
     ->leftJoin(
         'stock_location_master',
-        'stock_location_master.location_number',
+        'stock_location_master.location_code',
         '=',
         'supplier_return_hdr.location_number'
     )
@@ -1031,7 +1031,7 @@ public function listDetail(Request $request)
     )
     ->leftJoin(
         'stock_location_master',
-        'stock_location_master.location_number',
+        'stock_location_master.location_code',
         '=',
         'supplier_return_hdr.location_number'
     )
