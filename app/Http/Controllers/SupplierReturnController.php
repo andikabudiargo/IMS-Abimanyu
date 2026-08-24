@@ -105,7 +105,7 @@ class SupplierReturnController extends Controller
         $data['status'] = ['1'=>'OPEN','3'=>'CLOSED'];
 
         $data['suppliers'] = DB::table('third_party')
-            ->where('third_party_type', '=', 'sup')
+            ->where('third_party_type', '=', 'supp')
             ->orderBy('nama')
             ->get();
 
@@ -154,7 +154,7 @@ class SupplierReturnController extends Controller
         $data['subtitle'] = "Create $this->title";
 
         $data['suppliers'] = DB::table('third_party')
-            ->where('third_party_type', '=', 'sup')
+            ->where('third_party_type', '=', 'supp')
             ->orderBy('nama')
             ->get();
 
@@ -425,7 +425,7 @@ class SupplierReturnController extends Controller
             ->get();
 
         $data['suppliers'] = DB::table('third_party')
-            ->where('third_party_type', '=', 'sup')
+            ->where('third_party_type', '=', 'supp')
             ->orderBy('nama')
             ->get();
 
@@ -464,7 +464,7 @@ class SupplierReturnController extends Controller
         $data['articles'] = $output;
 
         $data['suppliers'] = DB::table('third_party')
-            ->where('third_party_type', '=', 'sup')
+            ->where('third_party_type', '=', 'supp')
             ->orderBy('nama')
             ->get();
 
@@ -1059,7 +1059,7 @@ public function listDetail(Request $request)
         $data['no'] = 0;
 
         $data['suppliers'] = DB::table('third_party')
-            ->where('third_party_type', '=', 'sup')
+            ->where('third_party_type', '=', 'supp')
             ->where('kode', $tHdr->supplier_id)
             ->first();
 
@@ -1067,38 +1067,40 @@ public function listDetail(Request $request)
     }
 
     public function getArticle(Request $request)
-    {
-        $supplierCode = $request->supplierCode;
-        $location     = $request->locationNumber;
-        $siteCode     = $this->siteCode;
+{
+    $supplierCode = $request->supplierCode;
+    $location     = $request->locationNumber;
+    $siteCode     = $this->siteCode;
 
-        // article yang punya stok > 0 di lokasi tsb
-        $data = DB::table('warehouse_stock')
-            ->join('article', 'article.article_code', '=', 'warehouse_stock.article_code')
-            ->where('warehouse_stock.site_code', $siteCode)
-            ->where('warehouse_stock.location_number', $location)
-            ->where('warehouse_stock.article_qty', '>', 0)
-            ->when($supplierCode, function ($q) use ($supplierCode) {
-                $q->where('article.third_party', $supplierCode);
-            })
-            ->select(
-                'article.article_code',
-                'article.article_alternative_code',
-                'article.article_desc',
-                'article.uom',
-                'warehouse_stock.article_qty as stock_available'
-            )
-            ->orderBy('article.article_desc')
-            ->get();
+    // Base query: SEMUA article yang berelasi dengan supplier ini (article.third_party = supplierCode)
+    // Left join ke warehouse_stock supaya article yang belum punya baris stok / stoknya 0 tetap muncul
+    $data = DB::table('article')
+        ->leftJoin('warehouse_stock', function ($join) use ($siteCode, $location) {
+            $join->on('warehouse_stock.article_code', '=', 'article.article_code')
+                 ->where('warehouse_stock.site_code', $siteCode)
+                 ->where('warehouse_stock.location_number', $location);
+        })
+        ->when($supplierCode, function ($q) use ($supplierCode) {
+            $q->where('article.third_party', $supplierCode);
+        })
+        ->select(
+            'article.article_code',
+            'article.article_alternative_code',
+            'article.article_desc',
+            'article.uom',
+            DB::raw('coalesce(warehouse_stock.article_qty, 0) as stock_available')
+        )
+        ->orderBy('article.article_desc')
+        ->get();
 
-        $output = '<option value="">Choose article</option>';
-        foreach ($data as $row) {
-            $output .= '<option value="' . $row->article_code . '"'
-                     . ' data-uom="' . $row->uom . '"'
-                     . ' data-stock="' . $row->stock_available . '">'
-                     . $row->article_alternative_code . '-' . $row->article_desc . '</option>';
-        }
-
-        return $output;
+    $output = '<option value="">Choose article</option>';
+    foreach ($data as $row) {
+        $output .= '<option value="' . $row->article_code . '"'
+                 . ' data-uom="' . $row->uom . '"'
+                 . ' data-stock="' . $row->stock_available . '">'
+                 . $row->article_alternative_code . '-' . $row->article_desc . '</option>';
     }
+
+    return $output;
+}
 }
