@@ -35,17 +35,17 @@
                                     <form id="frmAdd" name="frmAdd" autocomplete="off">
                                         @csrf
                                         <div class="form-row">
-                                            <div class="form-group col-md-3">
+                                            <div class="form-group col-md-4">
                                                 <label for="returnNumber">Supplier Return Number</label>
                                                 <input type="text" id="returnNumber" name="returnNumber" class="form-control disabled-el" value="{{ $header2->return_number }}" disabled />
                                             </div>
-                                            <div class="form-group col-md-3">
+                                            <div class="form-group col-md-2">
                                                 <label for="returnDate">Return Date</label>
                                                 <input type="text" id="returnDate" name="returnDate" class="form-control" value="{{ $header2->return_date }}" disabled />
                                             </div>
                                         </div>
                                         <div class="form-row">
-                                            <div class="form-group col-md-5">
+                                            <div class="form-group col-md-3">
                                                 <label class="form-label" for="supplier">Supplier</label>
                                                 <select class="select2 form-control" id="supplier" name="supplier" disabled>
                                                     <option value=""></option>
@@ -67,7 +67,7 @@
                                         </div>
                                         @if($key != 0)
                                         <div class="form-row">
-                                            <div class="form-group col-md-8">
+                                            <div class="form-group col-md-6">
                                                 <label class="form-label" for="rReason">Revision reason</label>
                                                 <textarea type="text" id="rReason" name="rReason" class="form-control" rows="1" disabled>{{ $header2->reason }}</textarea>
                                             </div>
