@@ -20,17 +20,17 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-4">
                                     <label for="returnNumber">Supplier Return Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="returnNumber" name="returnNumber" class="form-control disabled-el" disabled />
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="returnDate">Return Date*</label>
                                     <input type="text" id="returnDate" name="returnDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="supplier">Supplier*</label>
                                     <select class="select2 form-control" id="supplier" name="supplier" required>
                                         <option value="">Choose Supplier</option>
@@ -39,7 +39,7 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="location">Location*</label>
                                     <select class="select2 form-control" id="location" name="location" required>
                                         <option value="">Choose Location</option>
@@ -56,7 +56,7 @@
                                 </div>
                             </div>--}}
                             <div class="form-row">
-                                <div class="form-group col-md-8">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                 </div>
