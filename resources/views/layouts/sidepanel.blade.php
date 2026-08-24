@@ -325,7 +325,7 @@
 
              <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Return&Replace">Return & Replace</span></a>
                 <ul class="menu-content">
-                    <li class="{{ \Request::segment(1) == 'dnReturn'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReturn.index') }}"><span class="menu-item text-truncate" data-i18n="DN Return">Supplier Return</span></a>
+                    <li class="{{ \Request::segment(1) == 'supplierReturn'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('supplierReturn.index') }}"><span class="menu-item text-truncate" data-i18n="Supplier Return">Supplier Return</span></a>
                     </li>
                     <li class="{{ \Request::segment(1) == 'dnReplace'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReplace.index') }}"><span class="menu-item text-truncate" data-i18n="DN Replace">Supplier Replace</span></a>
                     </li>
@@ -336,7 +336,77 @@
           </ul>
         </li>
         
-        <li class=" {{ in_array(\Request::segment(1), ['warehouse','transferIn']) ? 'active' : '' }} nav-item">
+       
+
+        <li class=" {{ in_array(\Request::segment(1), ['delivery','dnReceipt','deliveryReport','suratJalanSementara','dnReturn','dnReplace','temporaryDn']) ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="javascript:void(0);">
+            <i data-feather='truck'></i>
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Delivery
+            </span>
+          </a>
+          <ul class="menu-content">
+        
+            @can('delivery-index')
+              <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Return&Replace">Return & Replace</span></a>
+                <ul class="menu-content">
+                    <li class="{{ \Request::segment(1) == 'dnReturn'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReturn.index') }}"><span class="menu-item text-truncate" data-i18n="DN Return">DN Return</span></a>
+                    </li>
+                    <li class="{{ \Request::segment(1) == 'dnReplace'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReplace.index') }}"><span class="menu-item text-truncate" data-i18n="DN Replace">DN Replace</span></a>
+                    </li>
+                    
+                </ul>
+              </li>
+            @endcan
+
+            @can('delivery-index')
+            <li class="{{ \Request::segment(1) == 'delivery' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('delivery.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Delivery Note">Delivery Note</span>
+              </a>
+            </li>
+            @endcan
+
+             @can('delivery-index')
+            <li class="{{ \Request::segment(1) == 'dnGeneral' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('dnGeneral.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="DN Umum">DN General</span>
+              </a>
+            </li>
+            @endcan
+
+              @can('delivery-index')
+            <li class="{{ \Request::segment(1) == 'temporaryDn' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('suratJalanSementara.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Temporary DN">DN Temporary</span>
+              </a>
+            </li>
+            @endcan
+            
+            @can('dnReceipt-index')
+            <li class="{{ \Request::is(['dnReceipt','dnReceipt/create']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('dnReceipt.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Delivery Receipt">DN Received</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('delivery-report')
+            <li class="{{ \Request::segment(1) == 'deliveryReport' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('delivery.report') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="DN Report">DN Report</span>
+              </a>
+            </li>
+            @endcan
+
+          </ul>
+        </li>
+
+         <li class=" {{ in_array(\Request::segment(1), ['warehouse','transferIn']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='home'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Warehouse
@@ -466,74 +536,6 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Location</span>
               </a>
             </li> 
-
-          </ul>
-        </li>
-
-        <li class=" {{ in_array(\Request::segment(1), ['delivery','dnReceipt','deliveryReport','suratJalanSementara','dnReturn','dnReplace','temporaryDn']) ? 'active' : '' }} nav-item">
-          <a class="d-flex align-items-center" href="javascript:void(0);">
-            <i data-feather='truck'></i>
-            <span class="menu-title text-truncate" data-i18n="Form Elements">Delivery
-            </span>
-          </a>
-          <ul class="menu-content">
-        
-            @can('delivery-index')
-              <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Return&Replace">Return & Replace</span></a>
-                <ul class="menu-content">
-                    <li class="{{ \Request::segment(1) == 'dnReturn'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReturn.index') }}"><span class="menu-item text-truncate" data-i18n="DN Return">DN Return</span></a>
-                    </li>
-                    <li class="{{ \Request::segment(1) == 'dnReplace'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReplace.index') }}"><span class="menu-item text-truncate" data-i18n="DN Replace">DN Replace</span></a>
-                    </li>
-                    
-                </ul>
-              </li>
-            @endcan
-
-            @can('delivery-index')
-            <li class="{{ \Request::segment(1) == 'delivery' ? 'active' : '' }} " >
-              <a class="d-flex align-items-center" href="{{ route('delivery.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Delivery Note">Delivery Note</span>
-              </a>
-            </li>
-            @endcan
-
-             @can('delivery-index')
-            <li class="{{ \Request::segment(1) == 'dnGeneral' ? 'active' : '' }} " >
-              <a class="d-flex align-items-center" href="{{ route('dnGeneral.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="DN Umum">DN General</span>
-              </a>
-            </li>
-            @endcan
-
-              @can('delivery-index')
-            <li class="{{ \Request::segment(1) == 'temporaryDn' ? 'active' : '' }} " >
-              <a class="d-flex align-items-center" href="{{ route('suratJalanSementara.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Temporary DN">DN Temporary</span>
-              </a>
-            </li>
-            @endcan
-            
-            @can('dnReceipt-index')
-            <li class="{{ \Request::is(['dnReceipt','dnReceipt/create']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('dnReceipt.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Delivery Receipt">DN Received</span>
-              </a>
-            </li>
-            @endcan
-
-            @can('delivery-report')
-            <li class="{{ \Request::segment(1) == 'deliveryReport' ? 'active' : '' }} " >
-              <a class="d-flex align-items-center" href="{{ route('delivery.report') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="DN Report">DN Report</span>
-              </a>
-            </li>
-            @endcan
 
           </ul>
         </li>

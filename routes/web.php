@@ -395,6 +395,22 @@ Route::post('receiving/chemical-unit-store', [
     'uses' => 'ReceivingController@chemicalUnitStoreByRec',
     'as'   => 'receiving.chemicalUnitStore',
 ]);
+
+Route::prefix('supplier-return')->name('supplierReturn.')->group(function () {
+    Route::get('/', [SupplierReturnController::class, 'index'])->name('index');
+    Route::get('/create', [SupplierReturnController::class, 'create'])->name('create');
+    Route::post('/store', [SupplierReturnController::class, 'store'])->name('store');
+    Route::get('/show', [SupplierReturnController::class, 'show'])->name('show');
+    Route::get('/edit', [SupplierReturnController::class, 'edit'])->name('edit');
+    Route::post('/update', [SupplierReturnController::class, 'update'])->name('update');
+    Route::post('/destroy', [SupplierReturnController::class, 'destroy'])->name('destroy');
+    Route::post('/close', [SupplierReturnController::class, 'closed'])->name('close');
+    Route::post('/list', [SupplierReturnController::class, 'list'])->name('list');
+	// routes/web.php — tambahkan
+Route::post('/list-detail', [SupplierReturnController::class, 'listDetail'])->name('list.detail');
+    Route::get('/print', [SupplierReturnController::class, 'print'])->name('print');
+    Route::post('/get-article', [SupplierReturnController::class, 'getArticle'])->name('get.article');
+});
 	
 
 	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:delivery-index']]);
