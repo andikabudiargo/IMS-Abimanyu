@@ -119,7 +119,7 @@
                                                 <td width="20%" valign="top" class="tanpa-padding font-14">
                                                     <div style="height:48px; display:table-cell; vertical-align:top;">Alamat</div>
                                                 </td>
-                                                <td class="tanpa-padding font-14">: {{ $suppliers ? ($suppliers->alamat ?? '-') : '-' }}</td>
+                                                <td class="tanpa-padding font-14">: {{ $suppliers ? ($suppliers->alamat_kirim_1 ?? $suppliers->alamat_kirim_2 ?? '') : '' }}</td>
                                             </tr>
                                             <tr>
                                                 <td width="20%" valign="top" class="tanpa-padding font-14">No. Polisi</td>
