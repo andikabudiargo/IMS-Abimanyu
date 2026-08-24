@@ -110,9 +110,10 @@ class SupplierReturnController extends Controller
             ->get();
 
         // Master lokasi -> sesuaikan nama tabel/kolom kalau berbeda
-        $data['locations'] = DB::table('location')
-            ->orderBy('location_number')
-            ->get();
+       $data['locations'] = DB::table('stock_location_master')
+    ->orderBy('location_name')
+    ->select('location_code as location_number', 'location_name')   // alias biar view tidak perlu diubah
+    ->get();
 
         return view("supplierReturn.index", $data);
     }
@@ -157,9 +158,10 @@ class SupplierReturnController extends Controller
             ->orderBy('nama')
             ->get();
 
-        $data['locations'] = DB::table('location')
-            ->orderBy('location_number')
-            ->get();
+        $data['locations'] = DB::table('stock_location_master')
+    ->orderBy('location_name')
+    ->select('location_code as location_number', 'location_name')
+    ->get();
 
         $data['currentDate'] = date('d-m-Y');
 
@@ -466,9 +468,10 @@ class SupplierReturnController extends Controller
             ->orderBy('nama')
             ->get();
 
-        $data['locations'] = DB::table('location')
-            ->orderBy('location_number')
-            ->get();
+       $data['locations'] = DB::table('stock_location_master')
+    ->orderBy('location_name')
+    ->select('location_code as location_number', 'location_name')
+    ->get();
 
         $status = ['OPEN', '', 'CLOSED', 'CANCELED'];
         $data['status'] = $status[$data['header']->status - 1];
