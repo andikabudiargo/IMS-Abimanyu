@@ -65,6 +65,13 @@
         .font-small{ font-size: small; }
         .tanpa-padding{ padding:0px; }
         .huruf-tebal{ font-weight: bold; }
+
+        .company-name { font-size: 12pt; font-weight: bold; text-align: center; }
+        .company-address { font-size: 9pt; text-align: center; line-height: 1.3; }
+        .doc-title { font-size: 18pt; font-weight: bold; text-align: center; padding: 8px 0; }
+        .info-label { width: 90px; }
+        .border-outer { border: thin solid var(--line-color); }
+        .border-bottom-only { border-bottom: thin solid var(--line-color); }
     </style>
 </head>
 <body class="{{ (count($details)) < 5 ? "letter2" : "letter" }}">
@@ -80,48 +87,66 @@
                     <td>
                         <div class="header-space">
                             <br>
-                            <table width="100%" style="border: thin solid var(--line-color);padding-left:10px">
+                            <table width="100%" class="border-outer" style="padding:8px 10px">
                                 <tr>
-                                    <td width="30%">
+                                    <td width="20%" valign="middle">
                                         <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 100%;">
                                     </td>
-                                    <td width="20%"></td>
-                                    <td width="50%" style="vertical-align: bottom;">
-                                        <div class="huruf-tebal font-16" style="padding-right:10px">SURAT JALAN RETUR SUPPLIER</div>
-                                        <br>
-                                        <table>
-                                            <tr class="tanpa-padding">
-                                                <td class="tanpa-padding font-14" width="50"></td>
-                                                <td class="tanpa-padding font-14" width="70">Nomor</td>
-                                                <td class="tanpa-padding font-14">: {{ $tDnNumber }}</td>
-                                            </tr>
-                                            <tr class="tanpa-padding">
-                                                <td class="tanpa-padding font-14"></td>
-                                                <td class="tanpa-padding font-14">Status</td>
-                                                <td class="tanpa-padding font-14">: {{ $status }}</td>
-                                            </tr>
-                                        </table>
+                                    <td width="80%" valign="middle">
+                                        <div class="company-name">PT. ABIMANYU SEKAR NUSANTARA</div>
+                                        <div class="company-address">
+                                            Kp. Karang Mulya RT.014/005<br>
+                                            Desa Cikopo, Bungursari Purwakarta
+                                        </div>
                                     </td>
                                 </tr>
                             </table>
-                            <table style="border-left: thin solid var(--line-color);border-right: thin solid var(--line-color);padding-left:10px" class="font-13 tanpa-padding">
+
+                            <table width="100%" class="border-outer" style="border-top:0">
+                                <tr>
+                                    <td class="doc-title border-bottom-only">SURAT JALAN RETURN</td>
+                                </tr>
+                            </table>
+
+                            <table width="100%" class="border-outer font-13" style="border-top:0;padding:8px 10px" cellpadding="2">
                                 <tr>
                                     <td width="50%" valign="top">
                                         <table>
                                             <tr>
-                                                <td width="35%" class="tanpa-padding">Tanggal</td>
-                                                <td class="tanpa-padding">: {{ $tDnDate }}</td>
+                                                <td class="info-label tanpa-padding">Kepada</td>
+                                                <td class="tanpa-padding" width="15">:</td>
+                                                <td class="tanpa-padding huruf-tebal">{{ $suppliers ? $suppliers->nama : '' }}</td>
                                             </tr>
                                             <tr>
-                                                <td class="tanpa-padding">Location</td>
-                                                <td class="tanpa-padding">: {{ $locationNumber }}</td>
+                                                <td class="info-label tanpa-padding" valign="top">Alamat</td>
+                                                <td class="tanpa-padding" valign="top">:</td>
+                                                <td class="tanpa-padding">{{ $suppliers ? ($suppliers->alamat ?? '-') : '-' }}</td>
                                             </tr>
                                         </table>
                                     </td>
-                                    <td width="50%" valign="top" style="border-left: thin solid var(--line-color);padding-left:5px" class="font-small">
-                                        <strong>Kepada Yth.</strong><br>
-                                        {{ $suppliers ? $suppliers->nama : '' }} <br>
-                                        {{ $suppliers ? ($suppliers->alamat ?? '') : '' }} <br>
+                                    <td width="50%" valign="top">
+                                        <table>
+                                            <tr>
+                                                <td class="info-label tanpa-padding">Nomor</td>
+                                                <td class="tanpa-padding" width="15">:</td>
+                                                <td class="tanpa-padding">{{ $tDnNumber }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="info-label tanpa-padding">Tanggal Kirim</td>
+                                                <td class="tanpa-padding">:</td>
+                                                <td class="tanpa-padding">{{ $tDnDate }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="info-label tanpa-padding">Location</td>
+                                                <td class="tanpa-padding">:</td>
+                                                <td class="tanpa-padding">{{ $locationNumber }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="info-label tanpa-padding">Status</td>
+                                                <td class="tanpa-padding">:</td>
+                                                <td class="tanpa-padding">{{ $status }}</td>
+                                            </tr>
+                                        </table>
                                     </td>
                                 </tr>
                             </table>
@@ -173,7 +198,7 @@
                                     @endfor
 
                                     <tr style="border: thin solid var(--line-color)">
-                                        <td colspan="5">Description: {{ $tDnNote }}</td>
+                                        <td colspan="5">Catatan: {{ $tDnNote }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -183,8 +208,8 @@
                                     <td align="center">Created By</td>
                                     <td align="center">Checked By</td>
                                     <td align="center">Shipped By</td>
-                                    <td align="center">Security By</td>
-                                    <td align="center">Received By (Supplier)</td>
+                                    <td align="center">Security</td>
+                                    <td align="center">Received By</td>
                                 </tr>
                                 <tr>
                                     <td align="center" height="25"></td>
