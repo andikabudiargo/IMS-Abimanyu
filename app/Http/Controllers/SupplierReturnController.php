@@ -53,6 +53,61 @@ class SupplierReturnController extends Controller
         return $d->format('Y-m-d');
     }
 
+  /**
+ * Ambil daftar dept_code milik user login (bisa lebih dari satu).
+ * SESUAIKAN isi method ini dengan struktur tabel/relasi dept di sistemmu.
+ */
+private function getUserDeptCodes(): array
+{
+    $user = Auth::user();
+
+    // ===== OPSI A: pakai tabel pivot user_dept (paling umum utk multi-dept) =====
+    return DB::table('user_dept')
+        ->where('username', $user->username)   // ganti ke user_id kalau pivot pakai id
+        ->pluck('dept_code')
+        ->unique()
+        ->values()
+        ->all();
+
+    // ===== OPSI B: kalau dept_code di users isinya CSV "ACC,PUR" =====
+    // return collect(explode(',', (string) $user->dept_code))
+    //     ->map(fn ($d) => trim($d))
+    //     ->filter()
+    //     ->unique()
+    //     ->values()
+    //     ->all();
+
+    // ===== OPSI C: kalau ada relasi Eloquent =====
+    // return $user->departments()->pluck('dept_code')->all();
+}
+
+/**
+ * Ambil lokasi sesuai dept user. Role accounting & Superuser lihat semua.
+ */
+private function getUserLocations()
+{
+    $user = Auth::user();
+
+    $query = DB::table('stock_location_master')
+        ->orderBy('location_name')
+        ->select('location_code as location_number', 'location_name');
+
+    // Bypass: accounting & Superuser lihat semua lokasi
+    if ($user->hasRole(['accounting', 'Superuser'])) {
+        return $query->get();
+    }
+
+    $deptCodes = $this->getUserDeptCodes();
+
+    if (empty($deptCodes)) {
+        // User tanpa dept = tidak lihat lokasi apapun (ketat).
+        // Kalau mau sebaliknya (lihat semua), ganti jadi: return $query->get();
+        return collect();
+    }
+
+    return $query->whereIn('dept_code', $deptCodes)->get();
+}
+
     public function getTableColoumn()
     {
         $kolom =
@@ -158,10 +213,7 @@ class SupplierReturnController extends Controller
             ->orderBy('nama')
             ->get();
 
-        $data['locations'] = DB::table('stock_location_master')
-    ->orderBy('location_name')
-    ->select('location_code as location_number', 'location_name')
-    ->get();
+       $data['locations'] = $this->getUserLocations();
 
         $data['currentDate'] = date('d-m-Y');
 
@@ -468,10 +520,7 @@ class SupplierReturnController extends Controller
             ->orderBy('nama')
             ->get();
 
-       $data['locations'] = DB::table('stock_location_master')
-    ->orderBy('location_name')
-    ->select('location_code as location_number', 'location_name')
-    ->get();
+      $data['locations'] = $this->getUserLocations();
 
         $status = ['OPEN', '', 'CLOSED', 'CANCELED'];
         $data['status'] = $status[$data['header']->status - 1];
