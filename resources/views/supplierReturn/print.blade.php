@@ -14,9 +14,8 @@
             page-break-after: always;
         }
 
-        body.A4           .sheet { width: 210mm; height: 296mm }
-        body.letter        .sheet { width: 210mm; height: 279mm }
-        body.letter2       .sheet { width: 210mm; height: 148mm }
+        body.letter  .sheet { width: 210mm; height: 279mm }
+        body.letter2 .sheet { width: 210mm; height: 148mm }
 
         .sheet.padding-5mm { padding: 0mm 5mm 5mm 5mm }
 
@@ -29,57 +28,55 @@
             }
         }
 
-        .putih{ color:white; }
-
-        .header, .header-space{ height: 190px; }
-        .footer, .footer-space { height: 170px; }
-        .header { position: fixed; top: 0; }
-        .footer { position: fixed; bottom: 0; }
-
-        :root { --line-color: rgba(0, 0, 0); }
-
         @media print {
-            header, footer { position: fixed; top: 0; }
-            footer { position: fixed; bottom: 0; }
+            body.letter  { width: 210mm }
+            body.letter2 { width: 210mm }
+
             @page :footer { display: none }
             @page :header { display: none }
-            .tanpa-padding{ padding:0px; }
-            .putih{ color:white; }
+
             .hide-print { display: none; }
+            .tanpa-padding { padding: 0px; }
+            .putih { color: white; }
         }
 
-        * { font-family: Calibri,Arial, Helvetica, sans-serif; }
-        table { width: 100%; font-family: Calibri,Arial, Helvetica, sans-serif; }
+        * { font-family: Calibri, Arial, Helvetica, sans-serif; }
+        table { width: 100%; font-family: Calibri, Arial, Helvetica, sans-serif; }
 
-        #tblContent{ border: thin solid var(--line-color); border-collapse: collapse; }
+        :root { --line-color: rgba(0,0,0); }
+
+        #tblContent { border: thin solid var(--line-color); border-collapse: collapse; }
         #tblContent th { border: thin solid var(--line-color); }
-        #tblContent td { padding : 0px 10px 0px 10px; border-bottom: none; border-left: thin solid var(--line-color); border-right: thin solid var(--line-color); }
-        #tblContent tr:last-child{ border-bottom: thin solid var(--line-color); border-left: thin solid var(--line-color); border-right: thin solid var(--line-color); }
+        #tblContent td {
+            padding: 0px 10px;
+            border-bottom: none;
+            border-left: thin solid var(--line-color);
+            border-right: thin solid var(--line-color);
+        }
+        #tblContent tr:last-child {
+            border-bottom: thin solid var(--line-color);
+        }
 
-        .tableHeader td{ padding-bottom: 0px; padding-top: 0px; }
+        .header-space { height: 232px; }
+        .footer-space  { height: 170px; }
 
-        .font-12{ font-size: medium; }
-        .font-14{ font-size: medium; }
-        .font-13{ font-size:11pt; }
-        .font-16{ font-size:16pt; }
-        .font-small{ font-size: small; }
-        .tanpa-padding{ padding:0px; }
-        .huruf-tebal{ font-weight: bold; }
+        .tanpa-padding { padding: 0px; }
+        .huruf-tebal   { font-weight: bold; }
+        .putih         { color: white; }
 
-        .company-name { font-size: 12pt; font-weight: bold; text-align: center; }
-        .company-address { font-size: 9pt; text-align: center; line-height: 1.3; }
-        .doc-title { font-size: 18pt; font-weight: bold; text-align: center; padding: 8px 0; }
-        .info-label { width: 90px; }
-        .border-outer { border: thin solid var(--line-color); }
-        .border-bottom-only { border-bottom: thin solid var(--line-color); }
+        .font-10  { font-size: 10pt; }
+        .font-11  { font-size: 11pt; }
+        .font-14  { font-size: medium; }
+        .font-20  { font-size: 20pt; }
+        .font-small { font-size: small; }
     </style>
 </head>
-<body class="{{ (count($details)) < 5 ? "letter2" : "letter" }}">
-    <div class="row hide-print" style="margin-left:20px;margin-top:20px">
-        <div class="col-md-12">
-            <button class="btn btn-primary" type="button" id="cmdPrint" name="cmdPrint">Print</button>
-        </div>
+<body class="{{ count($details) < 5 ? 'letter2' : 'letter' }}">
+
+    <div class="hide-print" style="margin-left:20px; margin-top:20px">
+        <button class="btn btn-primary" type="button" id="cmdPrint">Print</button>
     </div>
+
     <div class="sheet padding-5mm">
         <table>
             <thead>
@@ -87,64 +84,66 @@
                     <td>
                         <div class="header-space">
                             <br>
-                            <table width="100%" class="border-outer" style="padding:8px 10px">
+                            {{-- Logo & perusahaan --}}
+                            <table width="100%" style="border: thin solid var(--line-color); padding-left:10px">
                                 <tr>
-                                    <td width="20%" valign="middle">
-                                        <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 100%;">
+                                    <td width="20%">
+                                        <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width:100%">
                                     </td>
-                                    <td width="80%" valign="middle">
-                                        <div class="company-name">PT. ABIMANYU SEKAR NUSANTARA</div>
-                                        <div class="company-address">
-                                            Kp. Karang Mulya RT.014/005<br>
-                                            Desa Cikopo, Bungursari Purwakarta
-                                        </div>
+                                    <td width="5%"></td>
+                                    <td width="50%" align="center" class="font-small">
+                                        PT. ABIMANYU SEKAR NUSANTARA<br>
+                                        Kp. Karang Mulya RT.014/005<br>
+                                        Desa Cikopo, Bungursari Purwakarta
                                     </td>
+                                    <td width="5%"></td>
+                                    <td width="30%"></td>
                                 </tr>
                             </table>
 
-                            <table width="100%" class="border-outer" style="border-top:0">
+                            {{-- Info header Supplier Return --}}
+                            <table style="border-left: thin solid var(--line-color); border-right: thin solid var(--line-color); padding-left:10px" class="font-10 tanpa-padding">
                                 <tr>
-                                    <td class="doc-title border-bottom-only">SURAT JALAN RETURN</td>
+                                    <td colspan="4" align="center" class="font-20 huruf-tebal">
+                                        SURAT JALAN RETURN
+                                    </td>
                                 </tr>
-                            </table>
-
-                            <table width="100%" class="border-outer font-13" style="border-top:0;padding:8px 10px" cellpadding="2">
                                 <tr>
                                     <td width="50%" valign="top">
                                         <table>
                                             <tr>
-                                                <td class="info-label tanpa-padding">Kepada</td>
-                                                <td class="tanpa-padding" width="15">:</td>
-                                                <td class="tanpa-padding huruf-tebal">{{ $suppliers ? $suppliers->nama : '' }}</td>
+                                                <td width="20%" valign="top" class="tanpa-padding font-14">Kepada</td>
+                                                <td class="tanpa-padding font-14">: {{ $suppliers ? $suppliers->nama : '-' }}</td>
                                             </tr>
                                             <tr>
-                                                <td class="info-label tanpa-padding" valign="top">Alamat</td>
-                                                <td class="tanpa-padding" valign="top">:</td>
-                                                <td class="tanpa-padding">{{ $suppliers ? ($suppliers->alamat ?? '-') : '-' }}</td>
+                                                <td width="20%" valign="top" class="tanpa-padding font-14">
+                                                    <div style="height:48px; display:table-cell; vertical-align:top;">Alamat</div>
+                                                </td>
+                                                <td class="tanpa-padding font-14">: {{ $suppliers ? ($suppliers->alamat ?? '-') : '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td width="20%" valign="top" class="tanpa-padding font-14">No. Polisi</td>
+                                                <td class="tanpa-padding font-14">: </td>
                                             </tr>
                                         </table>
                                     </td>
                                     <td width="50%" valign="top">
                                         <table>
                                             <tr>
-                                                <td class="info-label tanpa-padding">Nomor</td>
-                                                <td class="tanpa-padding" width="15">:</td>
-                                                <td class="tanpa-padding">{{ $tDnNumber }}</td>
+                                                <td width="30%" valign="top" class="tanpa-padding font-14">Nomor</td>
+                                                <td class="tanpa-padding font-14">: {{ $tDnNumber }}</td>
                                             </tr>
                                             <tr>
-                                                <td class="info-label tanpa-padding">Tanggal Kirim</td>
-                                                <td class="tanpa-padding">:</td>
-                                                <td class="tanpa-padding">{{ $tDnDate }}</td>
+                                                <td width="30%" valign="top" class="tanpa-padding font-14">Tanggal Kirim</td>
+                                                <td class="tanpa-padding font-14">: {{ $tDnDate }}</td>
                                             </tr>
                                             <tr>
-                                                <td class="info-label tanpa-padding">Location</td>
-                                                <td class="tanpa-padding">:</td>
-                                                <td class="tanpa-padding">{{ $locationNumber }}</td>
+                                                <td width="30%" valign="top" class="tanpa-padding font-14">Location</td>
+                                                <td class="tanpa-padding font-14">: {{ $locationNumber }}</td>
                                             </tr>
                                             <tr>
-                                                <td class="info-label tanpa-padding">Status</td>
-                                                <td class="tanpa-padding">:</td>
-                                                <td class="tanpa-padding">{{ $status }}</td>
+                                                <td width="30%" valign="top" class="tanpa-padding font-14">Status</td>
+                                                <td class="tanpa-padding font-14">: {{ $status }}</td>
                                             </tr>
                                         </table>
                                     </td>
@@ -154,16 +153,17 @@
                     </td>
                 </tr>
             </thead>
+
             <tbody>
                 <tr>
                     <td>
                         <div class="content">
-                            <table id="tblContent" class="font-14">
+                            <table id="tblContent" class="font-11">
                                 <thead>
                                     <tr>
-                                        <td width="5%" align="center">No</td>
+                                        <td width="5%"  align="center">No</td>
                                         <td width="15%" align="center">Code</td>
-                                        <td width="60%" align="center">Description</td>
+                                        <td width="55%" align="center">Description</td>
                                         <td width="10%" align="center">Qty</td>
                                         <td width="10%" align="center">UOM</td>
                                     </tr>
@@ -172,7 +172,9 @@
                                     @foreach ($details as $val)
                                         <tr>
                                             <td align="center">
-                                                <div style="height:35px;display: table-cell;vertical-align: middle;text-align: center;">{{ ++$no }}</div>
+                                                <div style="height:25px; display:table-cell; vertical-align:middle; text-align:center;">
+                                                    {{ ++$no }}
+                                                </div>
                                             </td>
                                             <td align="left">{{ $val->article_alternative_code }}</td>
                                             <td align="left">{{ $val->article_desc }}</td>
@@ -181,27 +183,25 @@
                                         </tr>
                                     @endforeach
 
-                                    @if ((count($details)) > 4)
-                                        <?php $totalBaris = 19 ?>
-                                    @else
-                                        <?php $totalBaris = 4 ?>
-                                    @endif
+                                    @php $totalBaris = count($details) > 5 ? 20 : 5; @endphp
 
-                                    @for ($i = 1; $i <= $totalBaris - (count($details)); $i++)
+                                    @for ($i = 1; $i <= $totalBaris - count($details); $i++)
                                         <tr>
-                                            <td align="right" class="putih"><div style="height:35px;"></div></td>
-                                            <td align="left"></td>
-                                            <td align="left"></td>
-                                            <td align="right"></td>
-                                            <td align="left"></td>
+                                            <td class="putih"><div style="height:25px;"></div></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
                                         </tr>
                                     @endfor
 
                                     <tr style="border: thin solid var(--line-color)">
-                                        <td colspan="5">Catatan: {{ $tDnNote }}</td>
+                                        <td colspan="6">Catatan: {{ $tDnNote }}</td>
                                     </tr>
                                 </tbody>
                             </table>
+
+                            {{-- Tanda tangan --}}
                             <table width="100%">
                                 <tr><td colspan="5" height="3"></td></tr>
                                 <tr>
@@ -219,14 +219,14 @@
                                     <td align="center"></td>
                                 </tr>
                                 <tr>
-                                    <td align="center">  _____________  </td>
-                                    <td align="center">  _____________  </td>
-                                    <td align="center">  _____________  </td>
-                                    <td align="center">  _____________  </td>
-                                    <td align="center">  _____________  </td>
+                                    <td align="center">_____________</td>
+                                    <td align="center">_____________</td>
+                                    <td align="center">_____________</td>
+                                    <td align="center">_____________</td>
+                                    <td align="center">_____________</td>
                                 </tr>
                                 <tr>
-                                    <td align="left" style="padding-left:20px">Date: </td>
+                                    <td align="left" style="padding-left:20px">Date:</td>
                                     <td align="left" style="padding-left:20px">Date:</td>
                                     <td align="left" style="padding-left:20px">Date:</td>
                                     <td align="left" style="padding-left:20px">Date:</td>
@@ -237,27 +237,21 @@
                     </td>
                 </tr>
             </tbody>
+
             <tfoot>
                 <tr>
-                    <td>
-                        <div class="footer-space"></div>
-                    </td>
+                    <td><div class="footer-space"></div></td>
                 </tr>
             </tfoot>
         </table>
     </div>
+
     <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
     <script>
-        $("#cmdPrint").click(function () {
+        document.getElementById('cmdPrint').addEventListener('click', function () {
             window.print();
-            window.onafterprint = function () {
-                window.close();
-            }
-            window.onfocus = function () {
-                setTimeout(function () {
-                    window.close();
-                }, 200);
-            }
+            window.onafterprint = function () { window.close(); };
+            window.onfocus = function () { setTimeout(function () { window.close(); }, 200); };
         });
     </script>
 </body>
