@@ -60,7 +60,7 @@ class SupplierReturnController extends Controller
             ['data'=>'action','name'=>'action','title'=>'Action','orderable'=>false,'searchable'=>false],
             ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'location_number','name'=>'location_number','title'=>'Location'],
+            ['data'=>'location_name','name'=>'location_name','title'=>'Location'],
             ['data'=>'return_date','name'=>'return_date','title'=>'Return Date'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier Code'],
@@ -81,7 +81,7 @@ class SupplierReturnController extends Controller
         [
             ['data'=>'return_number','name'=>'return_number','title'=>'Return Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'location_number','name'=>'location_number','title'=>'Location'],
+            ['data'=>'location_name','name'=>'location_name','title'=>'Location'],
             ['data'=>'return_date','name'=>'return_date','title'=>'Return Date'],
             ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier Code'],
             ['data'=>'supplier_name','name'=>'supplier_name','title'=>'Supplier'],
@@ -881,22 +881,54 @@ private function deleteMovementAndRecalc(string $returnNumber, string $location,
             }
         }
 
-        $data = DB::table('supplier_return_hdr')
-            ->leftJoin('third_party', 'third_party.kode', '=', 'supplier_return_hdr.supplier_id')
-            ->where(function ($query) use ($searchDn, $searchStatus, $returnDate, $fromDate, $toDate, $searchSupplier, $searchLocation) {
-                $searchDn ? $query->where('supplier_return_hdr.return_number', 'ilike', '%' . $searchDn . '%') : '';
-                $searchStatus ? $query->where('supplier_return_hdr.status', $searchStatus) : '';
-                $returnDate ? $query->whereBetween(DB::raw("to_date(return_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-                $searchSupplier ? $query->where('supplier_return_hdr.supplier_id', $searchSupplier) : '';
-                $searchLocation ? $query->where('supplier_return_hdr.location_number', $searchLocation) : '';
-            })
-            ->where('supplier_return_hdr.status', '!=', '4')
-            ->select(
-                'supplier_return_hdr.*',
-                'nama as supplier_name'
+       $data = DB::table('supplier_return_hdr')
+    ->leftJoin('third_party', 'third_party.kode', '=', 'supplier_return_hdr.supplier_id')
+    ->leftJoin(
+        'stock_location_master',
+        'stock_location_master.location_number',
+        '=',
+        'supplier_return_hdr.location_number'
+    )
+    ->where(function ($query) use (
+        $searchDn,
+        $searchStatus,
+        $returnDate,
+        $fromDate,
+        $toDate,
+        $searchSupplier,
+        $searchLocation
+    ) {
+        $searchDn
+            ? $query->where('supplier_return_hdr.return_number', 'ilike', '%' . $searchDn . '%')
+            : '';
+
+        $searchStatus
+            ? $query->where('supplier_return_hdr.status', $searchStatus)
+            : '';
+
+        $returnDate
+            ? $query->whereBetween(
+                DB::raw("to_date(supplier_return_hdr.return_date,'DD-MM-YYYY')"),
+                [$fromDate, $toDate]
             )
-            ->orderBy('id')
-            ->get();
+            : '';
+
+        $searchSupplier
+            ? $query->where('supplier_return_hdr.supplier_id', $searchSupplier)
+            : '';
+
+        $searchLocation
+            ? $query->where('supplier_return_hdr.location_number', $searchLocation)
+            : '';
+    })
+    ->where('supplier_return_hdr.status', '!=', '4')
+    ->select(
+        'supplier_return_hdr.*',
+        'third_party.nama as supplier_name',
+        'stock_location_master.location_name as location_name'
+    )
+    ->orderBy('supplier_return_hdr.id')
+    ->get();
 
         return Datatables::of($data)
             ->addColumn('action', function ($data) {
@@ -978,41 +1010,124 @@ public function listDetail(Request $request)
         }
     }
 
-    $data = DB::table('supplier_return_det')
-        ->leftJoin('supplier_return_hdr', 'supplier_return_hdr.return_number', 'supplier_return_det.return_number')
-        ->leftJoin('article', 'article.article_code', 'supplier_return_det.article_code')
-        ->leftJoin('third_party', 'third_party.kode', 'supplier_return_hdr.supplier_id')
-        ->where(function ($query) use ($searchDn, $searchStatus, $returnDate, $fromDate, $toDate, $searchSupplier, $searchLocation) {
-            $searchDn ? $query->where('supplier_return_hdr.return_number', 'ilike', '%' . $searchDn . '%') : '';
-            $searchStatus ? $query->where('supplier_return_hdr.status', $searchStatus) : '';
-            $returnDate ? $query->whereBetween(DB::raw("to_date(return_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $searchSupplier ? $query->where('supplier_return_hdr.supplier_id', $searchSupplier) : '';
-            $searchLocation ? $query->where('supplier_return_hdr.location_number', $searchLocation) : '';
-        })
-        ->where('supplier_return_hdr.status', '!=', '4')
-        ->select(
-            'supplier_return_det.*',
-            'article_alternative_code',
-            'article.article_desc',
-            'supplier_return_hdr.status',
-            'supplier_return_hdr.return_date',
-            'supplier_return_hdr.note',
-            'supplier_return_hdr.supplier_id',
-            'supplier_return_hdr.po_number',
-            'supplier_return_hdr.location_number',
-            'third_party.nama as supplier_name'
-        )
-        ->orderBy('supplier_return_det.id')
-        ->get();
+   $data = DB::table('supplier_return_det')
+    ->leftJoin(
+        'supplier_return_hdr',
+        'supplier_return_hdr.return_number',
+        '=',
+        'supplier_return_det.return_number'
+    )
+    ->leftJoin(
+        'article',
+        'article.article_code',
+        '=',
+        'supplier_return_det.article_code'
+    )
+    ->leftJoin(
+        'third_party',
+        'third_party.kode',
+        '=',
+        'supplier_return_hdr.supplier_id'
+    )
+    ->leftJoin(
+        'stock_location_master',
+        'stock_location_master.location_number',
+        '=',
+        'supplier_return_hdr.location_number'
+    )
+    ->where(function ($query) use (
+        $searchDn,
+        $searchStatus,
+        $returnDate,
+        $fromDate,
+        $toDate,
+        $searchSupplier,
+        $searchLocation
+    ) {
+        $searchDn
+            ? $query->where(
+                'supplier_return_hdr.return_number',
+                'ilike',
+                '%' . $searchDn . '%'
+            )
+            : '';
 
-    return Datatables::of($data)
-        ->addColumn('status', function ($data) {
-            $badges   = ['badge-primary', 'badge-info', 'badge-success', 'badge-warning', 'badge-danger', 'badge-dark', 'badge-secondary', 'badge-secondary'];
-            $statusPr = ['OPEN', '', 'CLOSED', 'CANCELED'];
-            return "<div class='badge " . $badges[$data->status - 1] . "'>" . $statusPr[$data->status - 1] . "</div>";
-        })
-        ->rawColumns(['status'])
-        ->make(true);
+        $searchStatus
+            ? $query->where(
+                'supplier_return_hdr.status',
+                $searchStatus
+            )
+            : '';
+
+        $returnDate
+            ? $query->whereBetween(
+                DB::raw("to_date(supplier_return_hdr.return_date,'DD-MM-YYYY')"),
+                [$fromDate, $toDate]
+            )
+            : '';
+
+        $searchSupplier
+            ? $query->where(
+                'supplier_return_hdr.supplier_id',
+                $searchSupplier
+            )
+            : '';
+
+        $searchLocation
+            ? $query->where(
+                'supplier_return_hdr.location_number',
+                $searchLocation
+            )
+            : '';
+    })
+    ->where('supplier_return_hdr.status', '!=', '4')
+    ->select(
+        'supplier_return_det.*',
+        'article.article_alternative_code',
+        'article.article_desc',
+        'supplier_return_hdr.status',
+        'supplier_return_hdr.return_date',
+        'supplier_return_hdr.note',
+        'supplier_return_hdr.supplier_id',
+        'supplier_return_hdr.po_number',
+        'supplier_return_hdr.location_number',
+        'stock_location_master.location_name as location_name',
+        'third_party.nama as supplier_name'
+    )
+    ->orderBy('supplier_return_det.id')
+    ->get();
+
+   return Datatables::of($data)
+    ->editColumn('qty', function ($data) {
+        return number_format((float) $data->qty, 2, '.', '');
+    })
+    ->addColumn('status', function ($data) {
+        $badges = [
+            'badge-primary',
+            'badge-info',
+            'badge-success',
+            'badge-warning',
+            'badge-danger',
+            'badge-dark',
+            'badge-secondary',
+            'badge-secondary'
+        ];
+
+        $statusPr = [
+            'OPEN',
+            '',
+            'CLOSED',
+            'CANCELED'
+        ];
+
+        return "<div class='badge " .
+            $badges[$data->status - 1] .
+            "'>" .
+            $statusPr[$data->status - 1] .
+            "</div>";
+    })
+    ->rawColumns(['status'])
+    ->make(true);
 }
 
     /**
@@ -1072,33 +1187,49 @@ public function listDetail(Request $request)
     $location     = $request->locationNumber;
     $siteCode     = $this->siteCode;
 
-    // Base query: SEMUA article yang berelasi dengan supplier ini (article.third_party = supplierCode)
-    // Left join ke warehouse_stock supaya article yang belum punya baris stok / stoknya 0 tetap muncul
     $data = DB::table('article')
-        ->leftJoin('warehouse_stock', function ($join) use ($siteCode, $location) {
-            $join->on('warehouse_stock.article_code', '=', 'article.article_code')
-                 ->where('warehouse_stock.site_code', $siteCode)
-                 ->where('warehouse_stock.location_number', $location);
+        ->join('article_supplier', function ($join) use ($supplierCode) {
+            $join->on(
+                'article_supplier.article_code',
+                '=',
+                'article.article_code'
+            );
+
+            if ($supplierCode) {
+                $join->where(
+                    'article_supplier.supplier_code',
+                    $supplierCode
+                );
+            }
         })
-        ->when($supplierCode, function ($q) use ($supplierCode) {
-            $q->where('article.third_party', $supplierCode);
+        ->leftJoin('warehouse_stock', function ($join) use ($siteCode, $location) {
+            $join->on(
+                'warehouse_stock.article_code',
+                '=',
+                'article.article_code'
+            )
+            ->where('warehouse_stock.site_code', $siteCode)
+            ->where('warehouse_stock.location_number', $location);
         })
         ->select(
             'article.article_code',
             'article.article_alternative_code',
             'article.article_desc',
             'article.uom',
-            DB::raw('coalesce(warehouse_stock.article_qty, 0) as stock_available')
+            DB::raw('COALESCE(warehouse_stock.article_qty, 0) as stock_available')
         )
+        ->distinct()
         ->orderBy('article.article_desc')
         ->get();
 
     $output = '<option value="">Choose article</option>';
+
     foreach ($data as $row) {
         $output .= '<option value="' . $row->article_code . '"'
-                 . ' data-uom="' . $row->uom . '"'
-                 . ' data-stock="' . $row->stock_available . '">'
-                 . $row->article_alternative_code . '-' . $row->article_desc . '</option>';
+            . ' data-uom="' . $row->uom . '"'
+            . ' data-stock="' . $row->stock_available . '">'
+            . $row->article_alternative_code . ' - ' . $row->article_desc
+            . '</option>';
     }
 
     return $output;

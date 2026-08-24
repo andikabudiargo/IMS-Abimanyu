@@ -3,25 +3,47 @@
         margin-bottom: 0rem;
     }
 </style>
+
 <div class="form-row d-flex align-items-end judul">
-    <div class="col-md-8 col-12 d-none d-md-block">
+
+    <div class="col-md-7 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block">Article Code</label>
+            <label class="d-none d-md-block">
+                Article Code
+            </label>
         </div>
     </div>
+
+    <div class="col-md-1 col-12 d-none d-md-block">
+        <div class="form-group">
+            <label class="d-none d-md-block text-right">
+                Stock
+            </label>
+        </div>
+    </div>
+
     <div class="col-md-2 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block text-right">Qty</label>
+            <label class="d-none d-md-block text-right">
+                Qty
+            </label>
         </div>
     </div>
+
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block text-left">UoM</label>
+            <label class="d-none d-md-block text-left">
+                UoM
+            </label>
         </div>
     </div>
+
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block">-</label>
+            <label class="d-none d-md-block">
+                -
+            </label>
         </div>
     </div>
+
 </div>
