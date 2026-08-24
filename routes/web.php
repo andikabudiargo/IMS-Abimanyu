@@ -405,8 +405,8 @@ Route::prefix('supplier-return')->name('supplierReturn.')->group(function () {
     Route::post('/update', 'SupplierReturnController@update')->name('update');
     Route::post('/destroy', 'SupplierReturnController@destroy')->name('destroy');
     Route::post('/close', 'SupplierReturnController@closed')->name('close');
-    Route::post('/list', 'SupplierReturnController@list')->name('list');
-    Route::post('/list-detail', 'SupplierReturnController@listDetail')->name('list.detail');
+    Route::get('/list', 'SupplierReturnController@list')->name('list');
+    Route::get('/list-detail', 'SupplierReturnController@listDetail')->name('list.detail');
     Route::get('/print', 'SupplierReturnController@print')->name('print');
     Route::post('/get-article', 'SupplierReturnController@getArticle')->name('get.article');
 });
