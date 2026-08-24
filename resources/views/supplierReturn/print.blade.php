@@ -116,7 +116,9 @@
                                                 <td class="tanpa-padding font-14">: {{ $suppliers ? $suppliers->nama : '-' }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="20%" valign="top" class="tanpa-padding font-14">Alamat</td>
+                                                <td width="20%" valign="top" class="tanpa-padding font-14">
+                                                    <div style="height:48px; display:table-cell; vertical-align:top;">Alamat</div>
+                                                </td>
                                                 <td class="tanpa-padding font-14">: {{ $suppliers ? ($suppliers->alamat_kirim_1 ?? $suppliers->alamat_kirim_2 ?? '') : '' }}</td>
                                             </tr>
                                             <tr>
@@ -147,7 +149,8 @@
                     </td>
                 </tr>
             </thead>
-             <tbody>
+
+            <tbody>
                 <tr>
                     <td>
                         <div class="content">
@@ -191,7 +194,52 @@
                                     <tr style="border: thin solid var(--line-color)">
                                         <td colspan="6">Catatan: {{ $tDnNote }}</td>
                                     </tr>
-                                </tbody></table><table width="100%"><tr><td colspan="5" height="3"></td></tr><tr><td align="center">Created By</td><td align="center">Checked By</td><td align="center">Shipped By</td><td align="center">Security</td><td align="center">Received By</td></tr><tr><td align="center" height="25"></td><td align="center"></td><td align="center"></td><td align="center"></td><td align="center"></td></tr><tr><td align="center">_____________</td><td align="center">_____________</td><td align="center">_____________</td><td align="center">_____________</td><td align="center">_____________</td></tr><tr><td align="left" style="padding-left:20px">Date:</td><td align="left" style="padding-left:20px">Date:</td><td align="left" style="padding-left:20px">Date:</td><td align="left" style="padding-left:20px">Date:</td><td align="left" style="padding-left:20px">Date:</td></tr></table></div></td></tr></tbody><tfoot><tr><td><div class="footer-space"></div></td></tr></tfoot></table>
+                                </tbody>
+                            </table>
+
+                            {{-- Tanda tangan --}}
+                            <table width="100%">
+                                <tr><td colspan="5" height="3"></td></tr>
+                                <tr>
+                                    <td align="center">Created By</td>
+                                    <td align="center">Checked By</td>
+                                    <td align="center">Shipped By</td>
+                                    <td align="center">Security</td>
+                                    <td align="center">Received By</td>
+                                </tr>
+                                <tr>
+                                    <td align="center" height="25"></td>
+                                    <td align="center"></td>
+                                    <td align="center"></td>
+                                    <td align="center"></td>
+                                    <td align="center"></td>
+                                </tr>
+                                <tr>
+                                    <td align="center">_____________</td>
+                                    <td align="center">_____________</td>
+                                    <td align="center">_____________</td>
+                                    <td align="center">_____________</td>
+                                    <td align="center">_____________</td>
+                                </tr>
+                                <tr>
+                                    <td align="left" style="padding-left:20px">Date:</td>
+                                    <td align="left" style="padding-left:20px">Date:</td>
+                                    <td align="left" style="padding-left:20px">Date:</td>
+                                    <td align="left" style="padding-left:20px">Date:</td>
+                                    <td align="left" style="padding-left:20px">Date:</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+
+            <tfoot>
+                <tr>
+                    <td><div class="footer-space"></div></td>
+                </tr>
+            </tfoot>
+        </table>
     </div>
 
     <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
