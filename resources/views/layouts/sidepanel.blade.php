@@ -327,7 +327,7 @@
                 <ul class="menu-content">
                     <li class="{{ \Request::segment(1) == 'supplierReturn'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('supplierReturn.index') }}"><span class="menu-item text-truncate" data-i18n="Supplier Return">Supplier Return</span></a>
                     </li>
-                    <li class="{{ \Request::segment(1) == 'dnReplace'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnReplace.index') }}"><span class="menu-item text-truncate" data-i18n="DN Replace">Supplier Replace</span></a>
+                    <li class="{{ \Request::segment(1) == 'supplierReplace'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('supplierReplace.index') }}"><span class="menu-item text-truncate" data-i18n="Supplier Replace">Supplier Replace</span></a>
                     </li>
                     
                 </ul>

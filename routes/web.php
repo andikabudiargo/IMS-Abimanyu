@@ -410,6 +410,31 @@ Route::prefix('supplier-return')->name('supplierReturn.')->group(function () {
     Route::get('/print', 'SupplierReturnController@print')->name('print');
     Route::post('/get-article', 'SupplierReturnController@getArticle')->name('get.article');
 });
+
+Route::prefix('supplier-replace')->group(function () {
+    Route::get('/',                'SupplierReplaceController@index')      ->name('supplierReplace.index');
+    Route::get('/create',          'SupplierReplaceController@create')     ->name('supplierReplace.create');
+    Route::post('/store',          'SupplierReplaceController@store')      ->name('supplierReplace.store');
+    Route::get('/show',            'SupplierReplaceController@show')        ->name('supplierReplace.show');
+    Route::get('/edit',            'SupplierReplaceController@edit')        ->name('supplierReplace.edit');
+    Route::post('/update',         'SupplierReplaceController@update')      ->name('supplierReplace.update');
+ 
+    // cancel (soft, status 3) & destroy (hard delete). Keduanya menghapus movement.
+    Route::post('/cancel',         'SupplierReplaceController@cancel')      ->name('supplierReplace.cancel');
+    Route::post('/destroy',        'SupplierReplaceController@destroy')     ->name('supplierReplace.destroy');
+    Route::post('/revision',       'SupplierReplaceController@revision')    ->name('supplierReplace.revision');
+ 
+    // datatables
+    Route::get('/list',            'SupplierReplaceController@list')        ->name('supplierReplace.list');
+    Route::post('/list-detail',    'SupplierReplaceController@listDetail')  ->name('supplierReplace.list.detail');
+ 
+    // ajax cascade supplier -> return -> detail
+    Route::get('/list-return',     'SupplierReplaceController@listReturn')  ->name('supplierReplace.list.return');
+    Route::get('/return-det',      'SupplierReplaceController@returnDetail')->name('supplierReplace.return.det');
+ 
+    // print
+    Route::get('/print',           'SupplierReplaceController@print')       ->name('supplierReplace.print');
+});
 	
 
 	Route::get('delivery',['as'=>'delivery.index','uses'=>'DeliveryController@index','middleware' => ['permission:delivery-index']]);
