@@ -101,48 +101,48 @@
                                 </tr>
                             </table>
 
-                            {{-- Info header Supplier Return --}}
-                            <table style="border-left: thin solid var(--line-color); border-right: thin solid var(--line-color); padding-left:10px" class="font-10 tanpa-padding">
-                                <tr>
-                                    <td colspan="4" align="center" class="font-20 huruf-tebal">
-                                        SURAT JALAN RETURN
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td width="50%" valign="top">
-                                        <table>
-                                            <tr>
-                                                <td width="20%" valign="top" class="tanpa-padding font-14">Kepada</td>
-                                                <td class="tanpa-padding font-14">: {{ $suppliers ? $suppliers->nama : '-' }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td width="20%" valign="top" class="tanpa-padding font-14">Alamat</td>
-                                                <td class="tanpa-padding font-14">: {{ $suppliers ? ($suppliers->alamat_kirim_1 ?? $suppliers->alamat_kirim_2 ?? '') : '' }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td width="20%" valign="top" class="tanpa-padding font-14">No. Polisi</td>
-                                                <td class="tanpa-padding font-14">: </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                    <td width="50%" valign="top">
-                                        <table>
-                                            <tr>
-                                                <td width="30%" valign="top" class="tanpa-padding font-14">Nomor</td>
-                                                <td class="tanpa-padding font-14">: {{ $tDnNumber }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td width="30%" valign="top" class="tanpa-padding font-14">Tanggal Kirim</td>
-                                                <td class="tanpa-padding font-14">: {{ $tDnDate }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td width="30%" valign="top" class="tanpa-padding font-14">Status</td>
-                                                <td class="tanpa-padding font-14">: {{ $status }}</td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
+                           {{-- Info header Supplier Return --}}
+<table style="border-left: thin solid var(--line-color); border-right: thin solid var(--line-color); border-bottom: thin solid var(--line-color); padding-left:10px; padding-bottom:5px" class="font-10 tanpa-padding">
+    <tr>
+        <td colspan="4" align="center" class="font-20 huruf-tebal">
+            SURAT JALAN RETUR SUPPLIER
+        </td>
+    </tr>
+    <tr>
+        <td width="50%" valign="top">
+            <table>
+                <tr>
+                    <td width="20%" valign="top" class="tanpa-padding font-14">Kepada</td>
+                    <td class="tanpa-padding font-14">: {{ $suppliers ? $suppliers->nama : '-' }}</td>
+                </tr>
+                <tr>
+                    <td width="20%" valign="top" class="tanpa-padding font-14">Alamat</td>
+                    <td class="tanpa-padding font-14">: {{ $suppliers ? ($suppliers->alamat_kirim_1 ?? $suppliers->alamat_kirim_2 ?? '') : '' }}</td>
+                </tr>
+                <tr>
+                    <td width="20%" valign="top" class="tanpa-padding font-14">No. Polisi</td>
+                    <td class="tanpa-padding font-14">: </td>
+                </tr>
+            </table>
+        </td>
+        <td width="50%" valign="top">
+            <table>
+                <tr>
+                    <td width="30%" valign="top" class="tanpa-padding font-14">Nomor</td>
+                    <td class="tanpa-padding font-14">: {{ $tDnNumber }}</td>
+                </tr>
+                <tr>
+                    <td width="30%" valign="top" class="tanpa-padding font-14">Tanggal Kirim</td>
+                    <td class="tanpa-padding font-14">: {{ $tDnDate }}</td>
+                </tr>
+                <tr>
+                    <td width="30%" valign="top" class="tanpa-padding font-14">Status</td>
+                    <td class="tanpa-padding font-14">: {{ $status }}</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
                         </div>
                     </td>
                 </tr>
