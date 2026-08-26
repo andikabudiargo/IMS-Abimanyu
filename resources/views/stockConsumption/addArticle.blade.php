@@ -11,7 +11,8 @@
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
                     <label for="stock" class="d-block d-md-none">Stock</label>
-                    <input type="text" class="form-control text-right font-weight-bold" id="stock" name="stock[]" readonly tabindex="-1" />
+                    <input type="text" class="form-control text-right font-weight-bold"
+                        id="stock" name="stock[]" readonly tabindex="-1" />
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -39,7 +40,8 @@
             </div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol text-center">
-                    <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal();">
+                    <a onmouseover="this.style.cursor='pointer'"
+                        onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal();">
                         <i data-feather="trash-2" class="remove_button feather-24"></i>
                     </a>
                 </div>
@@ -49,49 +51,63 @@
 </div>
 
 <style>
-    .margin-nol{ margin-bottom:0.5rem; }
-    label.titik-dua::after{ content:":"; position:absolute; right:1px; }
-    .qty-over-stock{ background-color:#f8d7da !important; border-color:#f5c2c7 !important; color:#842029 !important; }
+    .margin-nol { margin-bottom: 0.5rem; }
+    label.titik-dua::after { content: ":"; position: absolute; right: 1px; }
+    .qty-over-stock {
+        background-color: #f8d7da !important;
+        border-color: #f5c2c7 !important;
+        color: #842029 !important;
+    }
 </style>
 
 <script type="text/javascript">
 const QTY_DECIMAL = 2;
 
-function formatStock(v){
-    let n = parseFloat(String(v).replace(/,/g,''));
-    if (isNaN(n)) return '';
-    return parseFloat(n.toFixed(4)).toString();
-}
-function formatQty(v){
-    let n = parseFloat(String(v).replace(/,/g,''));
-    if (isNaN(n)) return '';
-    return parseFloat(n.toFixed(2)).toString();
+// ── Diisi dari server-side di masing-masing view (create/edit) ──
+// Kalau tidak ada, fallback ke hari ini via moment/js (jaga-jaga)
+if (typeof currentDate === 'undefined') {
+    var currentDate = new Date().toLocaleDateString('id-ID', {
+        day:'2-digit', month:'2-digit', year:'numeric'
+    }).replace(/\//g, '-');
 }
 
-const currentDate = "{{ $currentDateValue ?? date('d-m-Y') }}";
 let dataArticle = "";
 let cloneCount  = 0;
 
+// ============================================================
+// UTILITY
+// ============================================================
+function formatStock(v) {
+    let n = parseFloat(String(v).replace(/,/g, ''));
+    return isNaN(n) ? '' : parseFloat(n.toFixed(4)).toString();
+}
+function formatQty(v) {
+    let n = parseFloat(String(v).replace(/,/g, ''));
+    return isNaN(n) ? '' : parseFloat(n.toFixed(2)).toString();
+}
+
 btnLoading = ($btn, text) => {
     $btn.data('original-html', $btn.html()).prop('disabled', true)
-        .html('<span class="spinner-border spinner-border-sm mr-50" role="status"></span>' + (text || 'Menyimpan...'));
-}
+        .html('<span class="spinner-border spinner-border-sm mr-50" role="status"></span>'
+            + (text || 'Menyimpan...'));
+};
 btnReset = ($btn) => {
     $btn.prop('disabled', false).html($btn.data('original-html'));
     if (typeof feather !== 'undefined') feather.replace();
-}
+};
 
 // ============================================================
-// AMBIL ARTIKEL PER LOKASI
+// AMBIL ARTIKEL PER LOKASI — mengisi global dataArticle
 // ============================================================
-function isiArticleByLocation(location) {
+function isiArticleByLocation(locationCode) {
+    dataArticle = "";   // reset dulu biar polling di create.blade.php bisa detect selesai
     $.ajax({
-        url: "{{ route('stockConsumption.articleByLocation') }}",
-        method: "GET",
-        data: { location: location },
-        success: function(result) {
+        url    : "{{ route('stockConsumption.articleByLocation') }}",
+        method : "GET",
+        data   : { location: locationCode },
+        success: function (result) {
             let options = '<option value=""></option>';
-            $.each(result, function(i, item) {
+            $.each(result, function (i, item) {
                 options += `<option value="${item.article_code}"
                     data-uom="${item.uom}"
                     data-stock="${item.qty}"
@@ -99,115 +115,147 @@ function isiArticleByLocation(location) {
                     data-uom-member="${item.uom_member ?? item.uom ?? ''}"
                 >${item.article_alternative_code} - ${item.article_desc}</option>`;
             });
-            dataArticle = options;
+            dataArticle = options;   // set SETELAH response tiba → polling di create.blade detect ini
+        },
+        error: function (e) {
+            console.error('isiArticleByLocation error', e);
+            dataArticle = '<option value=""></option>';   // set supaya polling tidak hang
         }
     });
 }
 
+// ── Masukkan opsi artikel ke select dgn id tertentu ──
 function changeselect(obj, article) {
-    $('#'+obj).attr('disabled','disabled').html(dataArticle).select2();
-    $('#'+obj).val(article).trigger('change');
-    $('#'+obj).removeAttr('disabled');
+    let $sel = $('#' + obj);
+    $sel.attr('disabled', 'disabled').html(dataArticle).select2();
+    $sel.val(article).trigger('change');
+    $sel.removeAttr('disabled');
 }
 
 // ============================================================
-// ADD ROW
+// ADD ROW (create baru, tanpa nilai default)
 // ============================================================
 function add_new_row() {
     $("#article_row").append($("#new_row").clone().html());
     cloneCount++;
-    $("#article_row").find('#baru').attr('id','new_row'+cloneCount);
-    $("#new_row"+cloneCount).find('#articleId').attr('id','articleId'+cloneCount);
-    changeselect('articleId'+cloneCount, '');
-    $('#remove_button').tooltip();
+
+    let $newRow = $("#article_row").find('#baru').last();
+    $newRow.attr('id', 'new_row' + cloneCount);
+
+    $newRow.find('#articleId').attr('id', 'articleId' + cloneCount);
+    changeselect('articleId' + cloneCount, '');
+
+    $newRow.find('#qty').attr('id', 'qty' + cloneCount);
+    $newRow.find('#note').attr('id', 'note' + cloneCount);
+    $newRow.find('#stock').attr('id', 'stock' + cloneCount);
+    $newRow.find('#uom').attr('id', 'uom' + cloneCount);
+
     splitArticle();
     hitungTotal();
     hitungGrandTotal();
     if (typeof mask_thousand_digit === 'function') mask_thousand_digit(numberOfDecimalDigit);
+    if (typeof feather !== 'undefined') feather.replace();
     $('[data-toggle="tooltip"]').tooltip();
 }
 
-add_new_row_edit = (article, qty, uom, uomMember, note) => {
+// ============================================================
+// ADD ROW (mode edit — isi nilai dari DB)
+// ============================================================
+add_new_row_edit = function (article, qty, uom, uomMember, note) {
     $("#article_row").append($("#new_row").clone().html());
     cloneCount++;
-    $("#article_row").find('#baru').attr('id','new_row'+cloneCount);
-    $("#new_row"+cloneCount).find('#articleId').attr('id','articleId'+cloneCount);
-    changeselect('articleId'+cloneCount, article);
 
-    $("#new_row"+cloneCount).find('#qty').attr('id','qty'+cloneCount);
-    $("#new_row"+cloneCount).find('#note').attr('id','note'+cloneCount);
-    $("#note"+cloneCount).val(note);
+    let $newRow = $("#article_row").find('#baru').last();
+    $newRow.attr('id', 'new_row' + cloneCount);
 
-    let selStock = $("#articleId"+cloneCount).find(":selected").data("stock");
+    $newRow.find('#articleId').attr('id', 'articleId' + cloneCount);
+    changeselect('articleId' + cloneCount, article);
+
+    $newRow.find('#qty').attr('id', 'qty' + cloneCount);
+    $newRow.find('#note').attr('id', 'note' + cloneCount);
+    $newRow.find('#stock').attr('id', 'stock' + cloneCount);
+    $newRow.find('#uom').attr('id', 'uom' + cloneCount);
+
+    $("#note" + cloneCount).val(note);
+
+    // Ambil stok dari option yang sudah terselect
+    let selStock = $("#articleId" + cloneCount).find(":selected").data("stock");
     if (selStock !== undefined && selStock !== null && selStock !== '') {
-        $("#qty"+cloneCount).attr('data-stock', selStock);
+        $("#qty" + cloneCount).attr('data-stock', selStock);
+        $("#stock" + cloneCount).val(formatStock(selStock));
+        if (parseFloat(qty) > parseFloat(selStock)) {
+            $("#qty" + cloneCount).addClass('qty-over-stock');
+        }
     }
-    $("#qty"+cloneCount).val(formatQty(qty));
+    $("#qty" + cloneCount).val(formatQty(qty));
 
-    $("#new_row"+cloneCount).find('#stock').attr('id','stock'+cloneCount);
-    if (selStock !== undefined && selStock !== null && selStock !== '') {
-        $("#stock"+cloneCount).val(formatStock(selStock));
-        if (parseFloat(qty) > parseFloat(selStock)) $("#qty"+cloneCount).addClass('qty-over-stock');
-    }
-
+    // UOM options
     let uomOption = "";
     if (uomMember) {
-        $.each(uomMember.split(','), function(i,val){ uomOption += `<option>${val}</option>`; });
+        $.each(uomMember.split(','), function (i, val) { uomOption += `<option>${val}</option>`; });
     } else if (uom) {
         uomOption += `<option>${uom}</option>`;
     }
-    $("#new_row"+cloneCount).find('#uom').attr('id','uom'+cloneCount);
-    $("#uom"+cloneCount).html(uomOption);
-    $("#uom"+cloneCount).val(uom).trigger('change');
+    $("#uom" + cloneCount).html(uomOption).val(uom).trigger('change');
 
-    $("#remove_button").tooltip();
+    splitArticle();
     hitungTotal();
     hitungGrandTotal();
     if (typeof mask_thousand_digit === 'function') mask_thousand_digit(numberOfDecimalDigit);
-}
+    if (typeof feather !== 'undefined') feather.replace();
+};
 
-function splitArticle(){
-    let objArticle = $('#article_row select[name="articleId[]"]');
-    let objQty     = $('#article_row input[name="qty[]"]');
-    let objUom     = $('#article_row select[name="uom[]"]');
-    let objStock   = $('#article_row input[name="stock[]"]');
+// ============================================================
+// SPLIT ARTICLE — delegated change handler untuk kolom artikel
+// ============================================================
+function splitArticle() {
+    // off dulu supaya tidak double-bind setiap kali add_new_row dipanggil
+    $(document).off('change.sc-article', '#article_row select[name="articleId[]"]')
+               .on('change.sc-article',  '#article_row select[name="articleId[]"]', function () {
+        if (!$(this).val()) return;
 
-    objArticle.off('change.sc').on('change.sc', function() {
-        if ($(this).val()) {
-            let idx       = objArticle.index(this);
-            let uomMember = objArticle.eq(idx).find(":selected").data("uom-member");
-            let uom       = objArticle.eq(idx).find(":selected").data("uom");
-            let stock     = objArticle.eq(idx).find(":selected").data("stock");
+        let $allArticle = $('#article_row select[name="articleId[]"]');
+        let idx         = $allArticle.index(this);
+        let $qtyEq      = $('#article_row input[name="qty[]"]').eq(idx);
+        let $stockEq    = $('#article_row input[name="stock[]"]').eq(idx);
+        let $uomEq      = $('#article_row select[name="uom[]"]').eq(idx);
 
-            if (stock !== undefined && stock !== null && stock !== '') {
-                objQty.eq(idx).attr('data-stock', stock);
-                objStock.eq(idx).val(formatStock(stock));
-            } else {
-                objQty.eq(idx).removeAttr('data-stock');
-                objStock.eq(idx).val('');
-            }
-            objQty.eq(idx).val('').removeClass('qty-over-stock');
+        let uomMember = $(this).find(":selected").data("uom-member");
+        let uom       = $(this).find(":selected").data("uom");
+        let stock     = $(this).find(":selected").data("stock");
 
-            let uomOption = "";
-            if (uomMember) {
-                $.each(uomMember.split(','), function(i,val){ uomOption += `<option>${val}</option>`; });
-            } else if (uom) {
-                uomOption += `<option>${uom}</option>`;
-            }
-            objUom.eq(idx).html(uomOption);
-            objUom.eq(idx).val(uom).trigger('change');
-
-            if (uomMember) setTimeout(() => { objQty.eq(idx).focus().select(); }, 5);
+        if (stock !== undefined && stock !== null && stock !== '') {
+            $qtyEq.attr('data-stock', stock);
+            $stockEq.val(formatStock(stock));
+        } else {
+            $qtyEq.removeAttr('data-stock');
+            $stockEq.val('');
         }
+        $qtyEq.val('').removeClass('qty-over-stock');
+
+        let uomOption = "";
+        if (uomMember) {
+            $.each(uomMember.split(','), function (i, val) { uomOption += `<option>${val}</option>`; });
+        } else if (uom) {
+            uomOption += `<option>${uom}</option>`;
+        }
+        $uomEq.html(uomOption).val(uom).trigger('change');
+
+        // Auto-fokus ke qty setelah pilih artikel
+        if (uomMember) setTimeout(() => { $qtyEq.focus().select(); }, 5);
     });
 }
 
-// over-stock indicator (konsumsi TIDAK boleh melebihi stok)
-$(document).on('input', '#article_row input[name="qty[]"]', function() {
+// ============================================================
+// QTY OVER STOCK — delegated
+// ============================================================
+$(document).off('input.sc-qty', '#article_row input[name="qty[]"]')
+           .on('input.sc-qty',  '#article_row input[name="qty[]"]', function () {
     let stock = parseFloat($(this).attr('data-stock'));
-    let val   = parseFloat(($(this).val()||'0').toString().replace(/,/g,'')) || 0;
+    let val   = parseFloat(($(this).val() || '0').toString().replace(/,/g, '')) || 0;
     if (!isNaN(stock) && val > stock) {
-        $(this).addClass('qty-over-stock').attr('title','Qty melebihi stock tersedia ('+formatStock(stock)+')');
+        $(this).addClass('qty-over-stock')
+               .attr('title', 'Qty melebihi stock tersedia (' + formatStock(stock) + ')');
     } else {
         $(this).removeClass('qty-over-stock').removeAttr('title');
     }
@@ -215,25 +263,28 @@ $(document).on('input', '#article_row input[name="qty[]"]', function() {
 });
 
 // ============================================================
-// TOTAL
+// HITUNG TOTAL
 // ============================================================
-hitungTotal = () => {
-    $('#article_row input[name="qty[]"]').off('keyup.sc').on('keyup.sc', function(){ hitungGrandTotal(); });
-}
-hitungGrandTotal = () => {
+hitungTotal = function () {
+    // tidak perlu bind ulang; sudah pakai delegated di atas
+};
+
+hitungGrandTotal = function () {
     let objArticle = $('#article_row select[name="articleId[]"]');
     let objQTY     = $('#article_row input[name="qty[]"]');
-    let qty = objQTY.map(function(){ return $(this).val(); }).get();
+    let qty        = objQTY.map(function () { return $(this).val(); }).get();
     $("#totalRow").val(objArticle.length);
-    if (typeof sumFromArray === 'function') $("#totalQty").val(humanizeNumber(sumFromArray(qty)));
-}
+    if (typeof sumFromArray === 'function' && typeof humanizeNumber === 'function') {
+        $("#totalQty").val(humanizeNumber(sumFromArray(qty)));
+    }
+};
 
 // ============================================================
-// SIMPAN
+// SIMPAN — dipanggil dari tombol Save di masing-masing view
 // ============================================================
-simpanData = (oEdit) => {
+simpanData = function (oEdit) {
     let $btn = $('#cmdSave');
-    if (!$("#frmAdd")[0].checkValidity()){ $("#frmAdd").submit(); return; }
+    if (!$("#frmAdd")[0].checkValidity()) { $("#frmAdd").submit(); return; }
 
     btnLoading($btn, 'Menyimpan...');
     $('.disabled-el').removeAttr('disabled');
@@ -241,73 +292,78 @@ simpanData = (oEdit) => {
     let objQty  = $('#article_row input[name="qty[]"]');
     let objUom  = $('#article_row select[name="uom[]"]');
     let objNote = $('#article_row input[name="note[]"]');
-    let arr = [];
-    let flag = 0, pesan = "";
 
-    let location = $('#location').val();
-    let coa      = $('#coa').val();
-    if (!location) { pesan += "Location harus dipilih <br>"; flag = 1; }
-    if (!coa)      { pesan += "COA harus dipilih <br>"; flag = 1; }
+    let arr  = [];
+    let flag = 0;
+    let pesan = "";
 
-    $("#article_row select[name='articleId[]']").map(function(i){
+    // FIX: baca nilai location dari #location (fallback) ATAU #locSelect —
+    // pakai $('#location, #locSelect').first().val() supaya kompatibel dua nama id
+    let locVal = $('#locSelect').length ? $('#locSelect').val() : $('#location').val();
+    let coa    = $('#coa').val();
+
+    if (!locVal) { pesan += "Location harus dipilih <br>"; flag = 1; }
+    if (!coa)    { pesan += "COA harus dipilih <br>"; flag = 1; }
+
+    $("#article_row select[name='articleId[]']").each(function (i) {
         let $this = $(this);
         if ($this.val()) {
             let articleName = $this.select2('data')[0].text;
             let plu  = $this.val();
-            let qty  = (objQty.eq(i).val()||'0').replace(/,/gi,'') || 0;
+            let qty  = (objQty.eq(i).val() || '0').replace(/,/gi, '') || 0;
             let uom  = objUom.eq(i).val();
             let note = objNote.eq(i).val();
 
             let stock = parseFloat(objQty.eq(i).attr('data-stock'));
             if (!isNaN(stock) && parseFloat(qty) > stock) {
-                pesan += "Qty " + articleName + " (" + qty + ") melebihi stock tersedia (" + stock + ") <br>";
+                pesan += `Qty ${articleName} (${qty}) melebihi stock tersedia (${stock}) <br>`;
                 flag = 1;
             }
             if (parseFloat(qty) <= 0) {
-                pesan += "QTY " + articleName + " tidak boleh 0 <br>";
+                pesan += `QTY ${articleName} tidak boleh 0 <br>`;
                 flag = 1;
             }
             if (plu !== '' && parseFloat(qty) > 0) {
-                arr.push({ "article_code":plu, "qty":parseFloat(qty), "uom":uom, "note":note });
+                arr.push({ article_code: plu, qty: parseFloat(qty), uom: uom, note: note });
             }
         }
     });
 
     if (arr.length === 0) { pesan += "Artikel harus diisi <br>"; flag = 1; }
 
-    // gabung artikel+uom yang sama
-    let articles = arr;
-    if (flag === 0) {
-        let obj = {};
-        arr.forEach((item) => {
-            let key = item.article_code + '|' + item.uom;
-            if (obj[key]) obj[key].qty += item.qty; else obj[key] = { ...item };
-        });
-        articles = Object.values(obj);
-    }
-
     if (flag !== 0) { btnReset($btn); Swal.fire('Warning..', pesan, 'warning'); return; }
 
-    let url      = oEdit == 'true' || oEdit === true ? "{{ route('stockConsumption.update') }}" : "{{ route('stockConsumption.store') }}";
-    let scNumber = $('#scNumber').val();
+    // Gabung artikel+uom yang sama
+    let obj = {};
+    arr.forEach(function (item) {
+        let key = item.article_code + '|' + item.uom;
+        if (obj[key]) obj[key].qty += item.qty; else obj[key] = Object.assign({}, item);
+    });
+    let articles = Object.values(obj);
+
+    let isEdit = (oEdit === true || oEdit === 'true');
+    let url    = isEdit
+        ? "{{ route('stockConsumption.update') }}"
+        : "{{ route('stockConsumption.store') }}";
 
     $.ajax({
-        type: "post",
-        url: url,
-        data: {
+        type    : "POST",
+        url     : url,
+        data    : {
             articles   : JSON.stringify(articles),
-            scNumber   : scNumber,
+            scNumber   : $('#scNumber').val(),
             scDate     : $('#scDate').val(),
-            location   : location,
+            location   : locVal,
             coa        : coa,
             note       : $('#note').val(),
             editReason : $('#editReason').val(),
         },
         dataType: "json",
-        success: function(data) {
+        success : function (data) {
             if (data.status == 0) {
                 btnReset($btn);
-                for (let i = 0; i < data.message.length; i++) show_msg(data.title, data.message[i], data.alert);
+                let msgs = Array.isArray(data.message) ? data.message : [data.message];
+                msgs.forEach(m => show_msg(data.title, m, data.alert));
                 return;
             }
             show_msg(data.title, data.message, data.alert);
@@ -315,41 +371,42 @@ simpanData = (oEdit) => {
 
             if (data.redirect_url) {
                 window.location.href = data.redirect_url;
-            } else if (oEdit == false || oEdit == 'false') {
+            } else if (!isEdit) {
                 window.location.href = "{{ route('stockConsumption.create') }}";
             } else {
                 btnReset($btn);
             }
         },
-        error: function(error) {
+        error: function (error) {
             btnReset($btn);
-            console.log(error);
+            console.error(error);
             show_msg('Error', 'Terjadi kesalahan saat menyimpan, cek console.', 'error');
         }
     });
-}
+};
 
 // ============================================================
 // APPROVE
 // ============================================================
-approve = (scNumber, objButton) => {
-    $('#'+objButton).attr('disabled','disabled');
+approve = function (scNumber, objButton) {
+    $('#' + objButton).attr('disabled', 'disabled');
     $.ajax({
-        type: "GET",
-        url: "{{ route('stockConsumption.approve') }}",
-        data: { scNumber: scNumber },
+        type    : "GET",
+        url     : "{{ route('stockConsumption.approve') }}",
+        data    : { scNumber: scNumber },
         dataType: "json",
-        success: function(data) {
-            if (data.status == 0) {
-                for (let i = 0; i < data.message.length; i++) show_msg(data.title, data.message[i], data.alert);
-            } else {
-                show_msg(data.title, data.message, data.alert);
+        success : function (data) {
+            let msg = Array.isArray(data.message) ? data.message.join(', ') : data.message;
+            show_msg(data.title, msg, data.alert);
+            if (data.status == 1) {
                 window.location.reload();
+            } else {
+                $('#' + objButton).removeAttr('disabled');
             }
         },
-        error: function(error){ console.log(error); }
+        error: function (e) { console.error(e); $('#' + objButton).removeAttr('disabled'); }
     });
-}
+};
 
 $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
 </script>
