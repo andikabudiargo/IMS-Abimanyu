@@ -201,7 +201,7 @@
       doDate:doDate,
       recType:recType          // <-- tambahan
     },
-    orderColumn:[[ 4, 'desc' ]],
+    orderColumn:[[ 4, 'asc' ]],
     excelFileName:'receiving'
   });
 }
@@ -237,7 +237,7 @@ const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus
       doDate:doDate,
       recType:recType          // <-- tambahan
     },
-    orderColumn:[[ 2, 'desc' ]],
+    orderColumn:[[ 2, 'asc' ]],
     excelFileName:'receiving_detail'
   });
 }

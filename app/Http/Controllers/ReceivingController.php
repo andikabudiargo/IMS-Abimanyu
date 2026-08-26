@@ -2824,7 +2824,7 @@ public function unPosting($recNumber)
         ) as chemical_pending_rows")
     )
    ->orderByRaw("
-    to_date(nullif(do_date, ''), 'DD-MM-YYYY') DESC NULLS LAST
+    to_date(nullif(do_date, ''), 'DD-MM-YYYY') ASC NULLS LAST
 ");
 
     $lockDateToDate = date('Y-m-d',strtotime($this->lockDate));
@@ -2983,6 +2983,7 @@ public function unPosting($recNumber)
             return "<div class='badge " . $badges[$data->status - 1] . "'>" . $statusRec[$data->status - 1] . "</div>";
         })
         ->orderColumn('rec_date', "to_date(rec_date,'DD-MM-YYYY') \$1")
+        ->orderColumn('do_date', "to_date(nullif(do_date,''),'DD-MM-YYYY') \$1")
         ->rawColumns(['action', 'status', 'rec_number'])
         ->make(true);
 }
@@ -3315,7 +3316,7 @@ public function unPosting($recNumber)
     COALESCE(
         to_date(NULLIF(receiving_hdr.do_date, ''), 'DD-MM-YYYY'),
         to_date(NULLIF(receiving_hdr.rec_date, ''), 'DD-MM-YYYY')
-    ) DESC
+    ) ASC
 ");
 
    return Datatables::of($query)
@@ -3367,7 +3368,7 @@ public function unPosting($recNumber)
 
     ->orderColumn('rec_number', 'receiving_det.rec_number $1')
     ->orderColumn('rec_date', 'receiving_hdr.rec_date $1')
-    ->orderColumn('do_date', 'receiving_hdr.do_date $1')
+    ->orderColumn('do_date', "to_date(nullif(receiving_hdr.do_date,''),'DD-MM-YYYY') \$1")
     ->orderColumn('ap_number', 'ap_number $1')
     ->orderColumn('ap_date', 'ap_date $1')
     ->orderColumn('note', 'receiving_hdr.note $1')
