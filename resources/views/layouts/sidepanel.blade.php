@@ -463,7 +463,7 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Transfer out V1</span>
               </a>
             </li>
-            @endcan 
+            @endcan --}}
              
 
          @if(
@@ -477,7 +477,7 @@
             <span class="menu-item text-truncate">Transfer out</span>
         </a>
     </li>
-@endif --}}
+@endif
 
               <li class="{{ \Request::is(['stockMovement','stockMovement/create','stockMovement/show','stockMovement/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('stockMovement.index') }}">
