@@ -28,7 +28,7 @@ class DnGeneralController extends Controller
     'troli' => '011',   // Troli Kosong   -> TODO: konfirmasi kode lokasi asli
     'trial' => '011',   // Trial & Sample -> TODO: konfirmasi kode lokasi asli
     'ms'    => '011',   // Material Support -> TODO: konfirmasi kode lokasi asli
-    'cs'    => '011',   // Chemical Support -> TODO: konfirmasi kode lokasi asli
+    'cs'    => '005',   // Chemical Support -> TODO: konfirmasi kode lokasi asli
     'lb3'    => '011',   // Chemical Support -> TODO: konfirmasi kode lokasi asli
     'lnb3'  => '011',   // Limbah Non B3  -> TODO: konfirmasi kode lokasi asli
     'rig'   => '011',   // Return Isi Gas -> TODO: konfirmasi kode lokasi asli
