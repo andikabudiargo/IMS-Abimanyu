@@ -936,6 +936,21 @@ Route::get('stockReconciliation/print',['as'=>'stockReconciliation.print','uses'
 Route::post('stockReconciliation/posting',['as'=>'stockReconciliation.posting','uses'=>'StockReconciliationController@posting']);
 Route::post('stockReconciliation/cancel',['as'=>'stockReconciliation.cancel','uses'=>'StockReconciliationController@cancel']);
 
+
+Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () {
+    Route::get('/',                 'StockConsumptionController@index')->name('index');
+    Route::get('/list',             'StockConsumptionController@list')->name('list');
+    Route::get('/create',           'StockConsumptionController@create')->name('create');
+    Route::post('/store',           'StockConsumptionController@store')->name('store');
+    Route::get('/show',             'StockConsumptionController@show')->name('show');
+    Route::get('/edit',             'StockConsumptionController@edit')->name('edit');
+    Route::post('/update',          'StockConsumptionController@update')->name('update');
+    Route::get('/approve',          'StockConsumptionController@approve')->name('approve');
+    Route::post('/posting',         'StockConsumptionController@posting')->name('posting');
+    Route::post('/cancel',          'StockConsumptionController@cancel')->name('cancel');
+    Route::get('/article-location', 'StockConsumptionController@articleByLocation')->name('articleByLocation');
+});
+
 	Route::get('wosMixing',['as'=>'wosMixing.index','uses'=>'WosMixingController@index','middleware' => ['permission:wosMixing-index']]);
 	Route::get('wosMixing/create',['as'=>'wosMixing.create','uses'=>'WosMixingController@create','middleware' => ['permission:wosMixing-create']]);
 	Route::post('wosMixing/store',['as'=>'wosMixing.store','uses'=>'WosMixingController@store']);

@@ -491,6 +491,12 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Stock Transfer</span>
               </a>
             </li>
+             <li class="{{ \Request::is(['stockConsumption','stockConsumption/create','stockConsumption/show','stockConsumption/edit']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('stockConsumption.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Stock Consumption</span>
+              </a>
+            </li>
              <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Report">Stock Taking Order</span></a>
                 <ul class="menu-content">
                 
