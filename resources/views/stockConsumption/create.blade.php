@@ -70,7 +70,7 @@
 
                     <div class="container-list-item">
                         <div class="lebar-list-item">
-                            @include('consumption.stockConsumption.headerColumn')
+                            @include('stockConsumption.headerColumn')
                             <div id="article_row" style="max-height:18rem;overflow-x:hidden;scrollbar-width:thin;">
                                 <input type="text" id="last_row_number" class="d-none" value="0">
                             </div>
@@ -107,7 +107,7 @@
 @endsection
 
 @section('scripts')
-@include('consumption.stockConsumption.addArticle')
+@include('stockConsumption.addArticle')
 <script type="text/javascript">
     let location = $('#location');
 
