@@ -35,13 +35,14 @@
                                         <label class="form-label" for="type">Type*</label>
                                         <select class="select2 form-control" id="type" name="type" required>
                                             <option value="">Choose Type</option>
-                                            <option value="rm">Return RM</option>
+                                            <option value="rm">Return NG RM</option>
                                             <option value="ot">Return OT</option>
                                             <option value="box">Box Kosong</option>
                                             <option value="troli">Troli Kosong</option>
                                             <option value="trial">Trial & Sample</option>
                                             <option value="ms">Material Support</option>
                                             <option value="cs">Chemical Support</option>
+                                            <option value="ngcm">NG Chemical</option>
                                             <option value="lb3">Limbah B3</option>
                                             <option value="lnb3">Limbah Non B3</option>
                                             <option value="rig">Return Isi Gas</option>
@@ -149,6 +150,7 @@
     var partyData = {
     rm   : @json($suppliers),
     ot   : @json($customers),
+    ngcm : @json($allParties),
     box  : @json($allParties),
     troli: @json($allParties),
     trial: @json($allParties),
@@ -173,12 +175,12 @@
 
     function setBadge(type) {
     var label = {
-        rm:'Return RM', ot:'Return OT', box:'Box Kosong', troli:'Troli Kosong',
+        rm:'Return RM', ot:'Return OT', ngcm:'NG Chemical', box:'Box Kosong', troli:'Troli Kosong',
         trial:'Trial & Sample', ms:'Material Support', cs:'Chemical Support',  lb3:'Limbah B3',
         lnb3:'Limbah Non B3', rig:'Return Isi Gas', other:'Other'
     };
     var color = {
-        rm:'badge-danger', ot:'badge-info', box:'badge-secondary', troli:'badge-secondary',
+        rm:'badge-danger', ot:'badge-info', ngcm:'badge-danger', box:'badge-secondary', troli:'badge-secondary',
         trial:'badge-primary', ms:'badge-light-primary', cs:'badge-warning',  lb3:'badge-dark',
         lnb3:'badge-dark', rig:'badge-info', other:'badge-warning'
     };

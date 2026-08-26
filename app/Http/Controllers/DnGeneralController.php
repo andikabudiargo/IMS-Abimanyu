@@ -22,6 +22,7 @@ class DnGeneralController extends Controller
     private $gudangMap = [
     'rm'    => '037',   // Return NG RM   -> Supplier
     'ot'    => '008',   // Return OT      -> Customer
+    'ngcm'  => '042',   // Return OT      -> Customer
     'other' => '011',   // Other          -> bebas (third_party)
     'box'   => '011',   // Box Kosong     -> TODO: konfirmasi kode lokasi asli
     'troli' => '011',   // Troli Kosong   -> TODO: konfirmasi kode lokasi asli
@@ -34,8 +35,8 @@ class DnGeneralController extends Controller
 ];
 
     /** Jenis movement dipakai konsisten di store/update/destroy */
-    const MOVEMENT_TYPE        = 'SURAT JALAN UMUM';
-    const MOVEMENT_TYPE_DELETE = 'DELETE SURAT JALAN UMUM';
+    const MOVEMENT_TYPE        = 'DN UMUM';
+    const MOVEMENT_TYPE_DELETE = 'DELETE DN UMUM';
 
     /** Kode artikel manual (tanpa stok) */
     const MANUAL_CODE = 'OTHER';
@@ -230,6 +231,7 @@ private function visibleDepts()
 {
     $map = [
         'rm'    => "<span class='badge badge-danger'>RETURN NG RM</span>",
+        'ngcm'  => "<span class='badge badge-danger'>NG CHEMICAL</span>",
         'ot'    => "<span class='badge badge-info'>RETURN OT</span>",
         'box'   => "<span class='badge badge-secondary'>BOX KOSONG</span>",
         'troli' => "<span class='badge badge-secondary'>TROLI KOSONG</span>",
@@ -400,9 +402,18 @@ private function visibleDepts()
             abort(404);
         }
 
-        $this->assertDeptAccess($header);
+       $this->assertDeptAccess($header);
 
-        $tDnNumber = $header->tdn_number;
+// Cegah buka form edit untuk dokumen yang sudah posting
+if ($header->status !== '1') {
+    return redirect()->route('dnGeneral.index')->with([
+        'title'   => "Edit {$this->title}",
+        'alert'   => 'warning',
+        'message' => "Dokumen dengan status '" . $this->statusLabel($header->status) . "' tidak bisa direvisi. Silakan Cancel dokumen ini dan buat DN baru jika ada kesalahan.",
+    ]);
+}
+
+$tDnNumber = $header->tdn_number;
 
         $data['header']  = $header;
         $data['details'] = DB::table('dn_general_det')
@@ -738,219 +749,242 @@ $leadCode = $this->codeKeyMap[$prefix];
     */
 
     public function update(Request $request)
-    {
-        $username     = Auth::user()->username;
-        $articles     = json_decode($request->articles);
-        $tDnNumber    = $request->tDnNumber;
-        $customerId   = $request->customerId;
-        $deliveryDate = $request->deliveryDate;
-        $perihal      = $request->perihal;
-        $note         = $request->note;
-        $siteCode     = $this->siteCode;
+{
+    $username     = Auth::user()->username;
+    $articles     = json_decode($request->articles);
+    $tDnNumber    = $request->tDnNumber;
+    $customerId   = $request->customerId;
+    $deliveryDate = $request->deliveryDate;
+    $perihal      = $request->perihal;
+    $note         = $request->note;
+    $siteCode     = $this->siteCode;
 
-        $validation = Validator::make($request->all(), [
-            'deliveryDate' => 'required',
-            'customerId'   => 'required',
-        ], [
-            'required' => 'The field is required.',
+    $validation = Validator::make($request->all(), [
+        'deliveryDate' => 'required',
+        'customerId'   => 'required',
+    ], [
+        'required' => 'The field is required.',
+    ]);
+
+    if ($validation->fails()) {
+        $error_array = [];
+        foreach ($validation->messages()->getMessages() as $messages) {
+            $error_array[] = $messages;
+        }
+        return response()->json(['status' => 0, 'message' => $error_array, 'alert' => 'warning']);
+    }
+
+    $dnHdr = DB::table('dn_general_hdr')->where('tdn_number', $tDnNumber)->first();
+    if (!$dnHdr) {
+        return response()->json(['status' => 0, 'message' => ['Data tidak ditemukan.'], 'alert' => 'warning']);
+    }
+
+    $this->assertDeptAccess($dnHdr);
+
+    // ── Guard 1: hanya dokumen status NEW yang boleh direvisi ──
+    if ($dnHdr->status !== '1') {
+        return response()->json([
+            'status'  => 0,
+            'message' => [
+                "Dokumen dengan status '" . $this->statusLabel($dnHdr->status) . "' tidak bisa direvisi. " .
+                "Silakan Cancel dokumen ini dan buat DN baru jika ada kesalahan."
+            ],
+            'alert'   => 'warning',
         ]);
+    }
 
-        if ($validation->fails()) {
-            $error_array = [];
-            foreach ($validation->messages()->getMessages() as $messages) {
-                $error_array[] = $messages;
-            }
-            return response()->json(['status' => 0, 'message' => $error_array, 'alert' => 'warning']);
+    // ── Guard 2: delivery date tidak boleh dimundurkan (backdate) ──
+    $oldDate = \DateTime::createFromFormat('d-m-Y', $dnHdr->delivery_date);
+    $newDate = \DateTime::createFromFormat('d-m-Y', $deliveryDate);
+
+    if ($oldDate && $newDate && $newDate < $oldDate) {
+        return response()->json([
+            'status'  => 0,
+            'message' => [
+                "Tanggal tidak boleh dimundurkan dari tanggal sebelumnya ({$dnHdr->delivery_date}). " .
+                "Jika tanggal memang salah input, silakan Cancel dokumen ini dan buat DN baru dengan tanggal yang benar."
+            ],
+            'alert'   => 'warning',
+        ]);
+    }
+
+    $dnType   = $dnHdr->dn_type;
+    $location = $this->gudangMap[$dnType] ?? null;
+    if (!$location) {
+        return response()->json(['status' => 0, 'message' => ['Type tidak valid.'], 'alert' => 'warning']);
+    }
+
+    if (empty($articles)) {
+        return response()->json(['status' => 0, 'message' => ['Minimal 1 artikel harus diisi.'], 'alert' => 'warning']);
+    }
+
+    // ── Validasi dasar saja — TANPA cek stok gudang ──
+    $validErrors = [];
+    foreach ($articles as $val) {
+        if ($this->isManualArticle($val->article_code)) {
+            continue;
         }
 
-        $dnHdr = DB::table('dn_general_hdr')->where('tdn_number', $tDnNumber)->first();
-        if (!$dnHdr) {
-            return response()->json(['status' => 0, 'message' => ['Data tidak ditemukan.'], 'alert' => 'warning']);
+        $qty = (float) $val->qty;
+        if ($qty <= 0) {
+            $validErrors[] = "Qty untuk {$val->article_code} harus lebih dari 0.";
+            continue;
         }
 
-        $this->assertDeptAccess($dnHdr);
+        $exists = DB::table('article')
+            ->where('article_code', $val->article_code)
+            ->exists();
 
-        $dnType   = $dnHdr->dn_type;
-        $location = $this->gudangMap[$dnType] ?? null;
-        if (!$location) {
-            return response()->json(['status' => 0, 'message' => ['Type tidak valid.'], 'alert' => 'warning']);
-        }
-
-        if (empty($articles)) {
-            return response()->json(['status' => 0, 'message' => ['Minimal 1 artikel harus diisi.'], 'alert' => 'warning']);
-        }
-
-        // Detail lama non-manual (akan di-reverse stoknya)
-        $oldDetails = DB::table('dn_general_det')
-            ->where('tdn_number', $tDnNumber)
-            ->where('article_code', '!=', self::MANUAL_CODE)
-            ->get();
-
-        // ── Validasi dasar saja — TANPA cek stok gudang (overstock diizinkan, stok boleh minus) ──
-        $validErrors = [];
-        foreach ($articles as $val) {
-            if ($this->isManualArticle($val->article_code)) {
-                continue;
-            }
-
-            $qty = (float) $val->qty;
-            if ($qty <= 0) {
-                $validErrors[] = "Qty untuk {$val->article_code} harus lebih dari 0.";
-                continue;
-            }
-
-            $exists = DB::table('article')
-                ->where('article_code', $val->article_code)
-                ->exists();
-
-            if (!$exists) {
-                $validErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
-            }
-        }
-
-        if (!empty($validErrors)) {
-            return response()->json(['status' => 0, 'message' => $validErrors, 'alert' => 'warning']);
-        }
-
-        $partnerType = $this->resolvePartnerType($dnType, $customerId);
-
-        DB::beginTransaction();
-        try {
-            // 1. Update header
-            DB::table('dn_general_hdr')
-                ->where('tdn_number', $tDnNumber)
-                ->update([
-                    'customer_id'   => $customerId,
-                    'delivery_date' => $deliveryDate,
-                    'perihal'       => $perihal,
-                    'note'          => $note,
-                    'updated_by'    => $username,
-                    'updated_at'    => date('Y-m-d H:i:s'),
-                ]);
-
-            // 2. Reverse stok lama (kembalikan semua stok artikel lama non-manual)
-            foreach ($oldDetails as $old) {
-                $loc    = $old->location_number ?? $location;
-                $oldQty = (float) $old->qty;
-                DB::table('warehouse_stock')
-                    ->where('site_code', $siteCode)
-                    ->where('article_code', $old->article_code)
-                    ->where('location_number', $loc)
-                    ->update(['article_qty' => DB::raw('coalesce(article_qty,0) + ' . $oldQty)]);
-            }
-
-            // 3. Hapus movement lama (pakai konstanta yang sama dengan store)
-            DB::table('warehouse_movement')
-                ->where('movement_transnno', $tDnNumber)
-                ->where('movement_type', self::MOVEMENT_TYPE)
-                ->delete();
-
-            // 4. Hapus detail lama
-            DB::table('dn_general_det')->where('tdn_number', $tDnNumber)->delete();
-
-            // 5. Insert ulang detail + movement + potong stok baru
-            $dataSet     = [];
-            $movementSet = [];
-            $seq         = (int) DB::table('warehouse_movement')->max('movement_code');
-
-            foreach ($articles as $val) {
-                $qty = (float) $val->qty;
-
-                if ($this->isManualArticle($val->article_code)) {
-                    $dataSet[] = [
-                        'tdn_number'      => $tDnNumber,
-                        'article_code'    => self::MANUAL_CODE,
-                        'article_desc'    => $val->article_name,
-                        'qty'             => $qty,
-                        'uom'             => $val->uom,
-                        'stock_on_send'   => 0,
-                        'location_number' => $location,
-                        'created_by'      => $username,
-                        'updated_by'      => $username,
-                        'created_at'      => date('Y-m-d H:i:s'),
-                        'updated_at'      => date('Y-m-d H:i:s'),
-                    ];
-                    continue;
-                }
-
-                $articleInfo = DB::table('article')
-                    ->where('article_code', $val->article_code)
-                    ->select('article_desc', 'article_alternative_code', 'article_type', 'uom')
-                    ->first();
-
-                $stockBefore = $this->currentStock($val->article_code, $location);
-
-                $dataSet[] = [
-                    'tdn_number'      => $tDnNumber,
-                    'article_code'    => $val->article_code,
-                    'article_desc'    => $articleInfo->article_desc,
-                    'qty'             => $qty,
-                    'uom'             => $val->uom,
-                    'stock_on_send'   => $stockBefore,
-                    'location_number' => $location,
-                    'created_by'      => $username,
-                    'updated_by'      => $username,
-                    'created_at'      => date('Y-m-d H:i:s'),
-                    'updated_at'      => date('Y-m-d H:i:s'),
-                ];
-
-                DB::table('warehouse_stock')->updateOrInsert(
-                    ['site_code' => $siteCode, 'article_code' => $val->article_code, 'location_number' => $location],
-                    ['dept_code' => $articleInfo->article_type, 'uom' => $articleInfo->uom]
-                );
-
-                DB::table('warehouse_stock')
-                    ->where('site_code', $siteCode)
-                    ->where('article_code', $val->article_code)
-                    ->where('location_number', $location)
-                    ->update(['article_qty' => DB::raw('coalesce(article_qty,0) - ' . $qty)]);
-
-                $lastQtyAfter = $this->currentStock($val->article_code, $location);
-
-                $seq++;
-                $movementSet[] = [
-                    'movement_code'     => $seq,
-                    'movement_date'     => $deliveryDate,
-                    'artikel_code'      => $val->article_code,
-                    'artikel_desc'      => $articleInfo->article_desc,
-                    'movement_min'      => $qty,
-                    'movement_plus'     => 0,
-                    'movement_price'    => 0,
-                    'movement_transnno' => $tDnNumber,
-                    'movement_type'     => self::MOVEMENT_TYPE,
-                    'movement_desc'     => $perihal,
-                    'movement_from'     => $location,
-                    'partner_type'      => $partnerType,
-                    'movement_to'       => $customerId,
-                    'created_by'        => $username,
-                    'created_at'        => date('Y-m-d H:i:s'),
-                    'site_code'         => $siteCode,
-                    'location_number'   => $location,
-                    'last_qty'          => $lastQtyAfter,
-                ];
-            }
-
-            DB::table('dn_general_det')->insert($dataSet);
-            if (!empty($movementSet)) {
-                DB::table('warehouse_movement')->insert($movementSet);
-            }
-
-            DB::commit();
-
-            $title   = "Update {$this->title}";
-            $message = "{$title} {$tDnNumber} is successfully updated";
-            \LogActivity::addToLog($title, "username: {$username} Status {$message}");
-
-            return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success', 'tDnNumber' => $tDnNumber]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $title   = "Update {$this->title}";
-            $message = "{$title} {$tDnNumber} is failed to update - " . $e->getMessage();
-            \LogActivity::addToLog($title, "username: {$username} Status {$message}");
-
-            return response()->json(['status' => 0, 'title' => $title, 'message' => $message, 'alert' => 'warning', 'tDnNumber' => $tDnNumber]);
+        if (!$exists) {
+            $validErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
         }
     }
+
+    if (!empty($validErrors)) {
+        return response()->json(['status' => 0, 'message' => $validErrors, 'alert' => 'warning']);
+    }
+
+    $partnerType = $this->resolvePartnerType($dnType, $customerId);
+
+   DB::beginTransaction();
+try {
+    // 1. Update header
+    DB::table('dn_general_hdr')
+        ->where('tdn_number', $tDnNumber)
+        ->update([
+            'customer_id'   => $customerId,
+            'delivery_date' => $deliveryDate,
+            'perihal'       => $perihal,
+            'note'          => $note,
+            'updated_by'    => $username,
+            'updated_at'    => date('Y-m-d H:i:s'),
+        ]);
+
+    // ── Kumpulkan artikel yang terdampak (lama + baru) — lokasi selalu sama ──
+    $oldArticleCodes = DB::table('dn_general_det')
+        ->where('tdn_number', $tDnNumber)
+        ->where('article_code', '!=', self::MANUAL_CODE)
+        ->pluck('article_code')
+        ->all();
+
+    $newArticleCodes = collect($articles)
+        ->filter(fn($v) => !$this->isManualArticle($v->article_code))
+        ->pluck('article_code')
+        ->all();
+
+    $affectedArticles = array_unique(array_merge($oldArticleCodes, $newArticleCodes));
+
+    // ── Hapus movement lama SEPENUHNYA (jejak dibuang total) ──
+    DB::table('warehouse_movement')
+        ->where('movement_transnno', $tDnNumber)
+        ->where('movement_type', self::MOVEMENT_TYPE)
+        ->delete();
+
+    // ── Hapus detail lama ──
+    DB::table('dn_general_det')->where('tdn_number', $tDnNumber)->delete();
+
+    // ── Insert detail + movement BARU dari nol ──
+    $dataSet     = [];
+    $movementSet = [];
+    $seq         = (int) DB::table('warehouse_movement')->max('movement_code');
+
+    foreach ($articles as $val) {
+        $qty = (float) $val->qty;
+
+        if ($this->isManualArticle($val->article_code)) {
+            $dataSet[] = [
+                'tdn_number'      => $tDnNumber,
+                'article_code'    => self::MANUAL_CODE,
+                'article_desc'    => $val->article_name,
+                'qty'             => $qty,
+                'uom'             => $val->uom,
+                'stock_on_send'   => 0,
+                'location_number' => $location,
+                'created_by'      => $username,
+                'updated_by'      => $username,
+                'created_at'      => date('Y-m-d H:i:s'),
+                'updated_at'      => date('Y-m-d H:i:s'),
+            ];
+            continue;
+        }
+
+        $articleInfo = DB::table('article')
+            ->where('article_code', $val->article_code)
+            ->select('article_desc', 'article_type', 'uom')
+            ->first();
+
+        $stockBefore = $this->currentStock($val->article_code, $location); // snapshot informasional
+
+        $dataSet[] = [
+            'tdn_number'      => $tDnNumber,
+            'article_code'    => $val->article_code,
+            'article_desc'    => $articleInfo->article_desc,
+            'qty'             => $qty,
+            'uom'             => $val->uom,
+            'stock_on_send'   => $stockBefore,
+            'location_number' => $location,
+            'created_by'      => $username,
+            'updated_by'      => $username,
+            'created_at'      => date('Y-m-d H:i:s'),
+            'updated_at'      => date('Y-m-d H:i:s'),
+        ];
+
+        DB::table('warehouse_stock')->updateOrInsert(
+            ['site_code' => $siteCode, 'article_code' => $val->article_code, 'location_number' => $location],
+            ['dept_code' => $articleInfo->article_type, 'uom' => $articleInfo->uom]
+        );
+
+        $seq++;
+        $movementSet[] = [
+            'movement_code'     => $seq,
+            'movement_date'     => $deliveryDate,
+            'artikel_code'      => $val->article_code,
+            'artikel_desc'      => $articleInfo->article_desc,
+            'movement_min'      => $qty,
+            'movement_plus'     => 0,
+            'movement_price'    => 0,
+            'movement_transnno' => $tDnNumber,
+            'movement_type'     => self::MOVEMENT_TYPE,
+            'movement_desc'     => $perihal,
+            'movement_from'     => $location,
+            'partner_type'      => $partnerType,
+            'movement_to'       => $customerId,
+            'created_by'        => $username,
+            'created_at'        => date('Y-m-d H:i:s'),
+            'site_code'         => $siteCode,
+            'location_number'   => $location,
+            'last_qty'          => 0, // placeholder — ditimpa recalculate di bawah
+        ];
+    }
+
+    DB::table('dn_general_det')->insert($dataSet);
+    if (!empty($movementSet)) {
+        DB::table('warehouse_movement')->insert($movementSet);
+    }
+
+    // ── Recalculate stok + last_qty utk tiap artikel terdampak ──
+    // fromDate = tanggal delivery_date LAMA (sebelum edit) — deterministik karena
+    // backdate sudah diblokir Guard 2, jadi tanggal lama pasti <= tanggal baru.
+    foreach ($affectedArticles as $code) {
+        $this->recalculateMovementAndStock($code, $location, $dnHdr->delivery_date);
+    }
+
+    DB::commit();
+
+    $title   = "Update {$this->title}";
+    $message = "{$title} {$tDnNumber} is successfully updated";
+    \LogActivity::addToLog($title, "username: {$username} Status {$message}");
+
+    return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success', 'tDnNumber' => $tDnNumber]);
+} catch (\Exception $e) {
+    DB::rollBack();
+    $title   = "Update {$this->title}";
+    $message = "{$title} {$tDnNumber} is failed to update - " . $e->getMessage();
+    \LogActivity::addToLog($title, "username: {$username} Status {$message}");
+
+    return response()->json(['status' => 0, 'title' => $title, 'message' => $message, 'alert' => 'warning', 'tDnNumber' => $tDnNumber]);
+}
+}
 
     /*
     |--------------------------------------------------------------------------
@@ -959,139 +993,100 @@ $leadCode = $this->codeKeyMap[$prefix];
     */
 
     public function destroy(Request $request)
-    {
-        $id       = Crypt::decryptString($request->id);
-        $username = Auth::user()->username;
-        $siteCode = $this->siteCode;
+{
+    $id       = Crypt::decryptString($request->id);
+    $username = Auth::user()->username;
+    $siteCode = $this->siteCode;
 
-        $dnHdr = DB::table('dn_general_hdr')->where('id', $id)->first();
-        if (!$dnHdr) {
-            return redirect()->back()->with([
-                'title'   => "Delete {$this->title}",
-                'alert'   => 'warning',
-                'message' => 'Data tidak ditemukan.',
-            ]);
-        }
-
-        $this->assertDeptAccess($dnHdr);
-
-        // Cegah cancel ganda
-        if ($dnHdr->status === '4') {
-            return redirect()->back()->with([
-                'title'   => "Delete {$this->title}",
-                'alert'   => 'warning',
-                'message' => "{$this->title} {$dnHdr->tdn_number} sudah dibatalkan sebelumnya.",
-            ]);
-        }
-
-        $tDnNumber = $dnHdr->tdn_number;
-        $dnType    = $dnHdr->dn_type;
-        $location  = $this->gudangMap[$dnType] ?? null;
-        $cancelNo  = $tDnNumber . '(C)';
-
-        DB::beginTransaction();
-        try {
-            // 1. Header -> CANCELED (status 4), rename nomor
-            $rowAffected = DB::table('dn_general_hdr')
-                ->where('id', $id)
-                ->update([
-                    'status'            => '4',
-                    'tdn_number'        => $cancelNo,
-                    'origin_tdn_number' => $cancelNo,
-                    'updated_by'        => $username,
-                    'updated_at'        => date('Y-m-d H:i:s'),
-                ]);
-
-            if ($rowAffected < 1) {
-                DB::rollBack();
-                return redirect()->back()->with([
-                    'title'   => "Delete {$this->title}",
-                    'alert'   => 'warning',
-                    'message' => "{$this->title} {$tDnNumber} Failed to Cancel - Header not found.",
-                ]);
-            }
-
-            // 2. Rename detail
-            DB::table('dn_general_det')
-                ->where('tdn_number', $tDnNumber)
-                ->update([
-                    'tdn_number' => $cancelNo,
-                    'updated_by' => $username,
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-
-            // 3. Ambil detail untuk reverse stok (skip manual OTHER)
-            $details = DB::table('dn_general_det as d')
-                ->leftJoin('article', 'article.article_code', '=', 'd.article_code')
-                ->where('d.tdn_number', $cancelNo)
-                ->where('d.article_code', '!=', self::MANUAL_CODE)
-                ->select('d.article_code', 'd.qty', 'd.uom', 'd.location_number', 'article.article_desc', 'article.article_type')
-                ->get();
-
-            $reverseMovements = [];
-            $seq = (int) DB::table('warehouse_movement')->max('movement_code');
-
-            foreach ($details as $det) {
-                $loc = $det->location_number ?? $location;
-                $qty = (float) $det->qty;
-
-                // 4. Kembalikan stok
-                DB::table('warehouse_stock')
-                    ->where('site_code', $siteCode)
-                    ->where('article_code', $det->article_code)
-                    ->where('location_number', $loc)
-                    ->update(['article_qty' => DB::raw('coalesce(article_qty,0) + ' . $qty)]);
-
-                $lastQtyAfter = $this->currentStock($det->article_code, $loc);
-
-                $seq++;
-                $reverseMovements[] = [
-                    'movement_code'     => $seq,
-                    'movement_date'     => date('d-m-Y'),
-                    'artikel_code'      => $det->article_code,
-                    'artikel_desc'      => $det->article_desc,
-                    'movement_min'      => 0,
-                    'movement_plus'     => $qty,
-                    'movement_price'    => 0,
-                    'movement_transnno' => $cancelNo,
-                    'movement_type'     => self::MOVEMENT_TYPE_DELETE,
-                    'movement_desc'     => "Delete DN Umum: {$tDnNumber}",
-                    'movement_from'     => null,
-                    'partner_type'      => null,
-                    'movement_to'       => $dnHdr->customer_id,
-                    'created_by'        => $username,
-                    'created_at'        => date('Y-m-d H:i:s'),
-                    'site_code'         => $siteCode,
-                    'location_number'   => $loc,
-                    'last_qty'          => $lastQtyAfter,
-                ];
-            }
-
-            // 5. Insert reverse movement
-            if (!empty($reverseMovements)) {
-                DB::table('warehouse_movement')->insert($reverseMovements);
-            }
-
-            // 6. Rename movement asli (soft-delete referensi)
-            DB::table('warehouse_movement')
-                ->where('movement_transnno', $tDnNumber)
-                ->where('movement_type', self::MOVEMENT_TYPE)
-                ->update(['movement_transnno' => $cancelNo]);
-
-            DB::commit();
-
-            $title   = "Delete {$this->title}";
-            $message = "{$title} {$tDnNumber} Successfully Canceled";
-            \LogActivity::addToLog($title, "username: {$username} Status {$message}");
-            return redirect()->back()->with(['title' => $title, 'alert' => 'success', 'message' => $message]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $title   = "Delete {$this->title}";
-            $message = "{$title} {$tDnNumber} Failed to Cancel - " . $e->getMessage();
-            \LogActivity::addToLog($title, "username: {$username} Status {$message}");
-            return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => $message]);
-        }
+    $dnHdr = DB::table('dn_general_hdr')->where('id', $id)->first();
+    if (!$dnHdr) {
+        return redirect()->back()->with([
+            'title'   => "Delete {$this->title}",
+            'alert'   => 'warning',
+            'message' => 'Data tidak ditemukan.',
+        ]);
     }
+
+    $this->assertDeptAccess($dnHdr);
+
+    if ($dnHdr->status === '4') {
+        return redirect()->back()->with([
+            'title'   => "Delete {$this->title}",
+            'alert'   => 'warning',
+            'message' => "{$this->title} {$dnHdr->tdn_number} sudah dibatalkan sebelumnya.",
+        ]);
+    }
+
+    $tDnNumber = $dnHdr->tdn_number;
+    $dnType    = $dnHdr->dn_type;
+    $location  = $this->gudangMap[$dnType] ?? null;
+    $cancelNo  = $tDnNumber . '(C)';
+
+    DB::beginTransaction();
+try {
+    // 1. Header -> CANCELED (status 4), rename nomor
+    $rowAffected = DB::table('dn_general_hdr')
+        ->where('id', $id)
+        ->update([
+            'status'            => '4',
+            'tdn_number'        => $cancelNo,
+            'origin_tdn_number' => $cancelNo,
+            'updated_by'        => $username,
+            'updated_at'        => date('Y-m-d H:i:s'),
+        ]);
+
+    if ($rowAffected < 1) {
+        DB::rollBack();
+        return redirect()->back()->with([
+            'title'   => "Delete {$this->title}",
+            'alert'   => 'warning',
+            'message' => "{$this->title} {$tDnNumber} Failed to Cancel - Header not found.",
+        ]);
+    }
+
+    // 2. Rename detail
+    DB::table('dn_general_det')
+        ->where('tdn_number', $tDnNumber)
+        ->update([
+            'tdn_number' => $cancelNo,
+            'updated_by' => $username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+    // 3. Kumpulkan artikel non-manual yang terdampak (utk recalculate)
+    $affected = DB::table('dn_general_det')
+        ->where('tdn_number', $cancelNo)
+        ->where('article_code', '!=', self::MANUAL_CODE)
+        ->select('article_code', 'location_number')
+        ->get()
+        ->unique(fn($d) => $d->article_code . '|' . ($d->location_number ?? $location));
+
+    // 4. Hapus movement asli SEPENUHNYA — tanpa insert reverse movement
+    DB::table('warehouse_movement')
+        ->where('movement_transnno', $tDnNumber)
+        ->where('movement_type', self::MOVEMENT_TYPE)
+        ->delete();
+
+    // 5. Recalculate stok + last_qty dari tanggal dokumen ini
+    foreach ($affected as $det) {
+        $loc = $det->location_number ?? $location;
+        $this->recalculateMovementAndStock($det->article_code, $loc, $dnHdr->delivery_date);
+    }
+
+    DB::commit();
+
+    $title   = "Delete {$this->title}";
+    $message = "{$title} {$tDnNumber} Successfully Canceled";
+    \LogActivity::addToLog($title, "username: {$username} Status {$message}");
+    return redirect()->back()->with(['title' => $title, 'alert' => 'success', 'message' => $message]);
+} catch (\Exception $e) {
+    DB::rollBack();
+    $title   = "Delete {$this->title}";
+    $message = "{$title} {$tDnNumber} Failed to Cancel - " . $e->getMessage();
+    \LogActivity::addToLog($title, "username: {$username} Status {$message}");
+    return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => $message]);
+}
+}
 
     /*
     |--------------------------------------------------------------------------
@@ -1447,4 +1442,70 @@ $leadCode = $this->codeKeyMap[$prefix];
         ->orderBy('a.article_alternative_code')
         ->get();
 }
+/**
+ * Recalculate last_qty seluruh movement (dari sumber manapun: DN General,
+ * Transfer Stock, dll — tabel warehouse_movement dipakai bersama) mulai dari
+ * tanggal tertentu untuk 1 artikel + 1 lokasi, lalu sinkronkan article_qty.
+ */
+private function recalculateMovementAndStock(string $articleCode, string $location, string $fromDate): void
+{
+    // Normalisasi ke YYYY-MM-DD apapun format masuknya
+    if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $fromDate)) {
+        $fromDate = \Carbon\Carbon::createFromFormat('d-m-Y', $fromDate)->format('Y-m-d');
+    } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate)) {
+        // sudah benar
+    } else {
+        $fromDate = \Carbon\Carbon::parse($fromDate)->format('Y-m-d');
+    }
+
+    $balanceBefore = (float) DB::selectOne(
+        "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'YYYY-MM-DD') - INTERVAL '1 day', 'YYYY-MM-DD'), ?, ?) AS bal",
+        [$articleCode, $fromDate, $this->siteCode, $location]
+    )->bal;
+
+    $movements = DB::table('warehouse_movement')
+        ->where('artikel_code', $articleCode)
+        ->where('location_number', $location)
+        ->where('site_code', $this->siteCode)
+        ->where(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), '>=',
+            DB::raw("TO_DATE('$fromDate', 'YYYY-MM-DD')"))
+        ->whereNotIn('movement_type', ['RETURN-CANCEL', 'RETURN-REVERSE'])
+        ->where('movement_type', 'NOT LIKE', 'CANCEL %')
+        ->where('movement_type', 'NOT LIKE', 'DELETE%')
+        ->where('movement_type', 'NOT LIKE', 'REVISI %')
+        ->whereNotExists(function ($q) {
+            $q->select(DB::raw(1))
+              ->from('stock_adjustment_hdr')
+              ->whereColumn('stock_adjustment_hdr.adj_code', 'warehouse_movement.movement_transnno')
+              ->where('stock_adjustment_hdr.adj_type', 'OPENING BALANCE');
+        })
+        ->orderBy(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), 'asc')
+        ->orderBy('movement_code', 'asc')
+        ->select('movement_code', 'movement_min', 'movement_plus')
+        ->get();
+
+    if ($movements->isEmpty()) {
+        DB::table('warehouse_stock')
+            ->where('site_code', $this->siteCode)
+            ->where('article_code', $articleCode)
+            ->where('location_number', $location)
+            ->update(['article_qty' => $balanceBefore]);
+        return;
+    }
+
+    $running = $balanceBefore;
+    foreach ($movements as $mov) {
+        $running = $running - (float) $mov->movement_min + (float) $mov->movement_plus;
+        DB::table('warehouse_movement')
+            ->where('movement_code', $mov->movement_code)
+            ->update(['last_qty' => $running]);
+    }
+
+    DB::table('warehouse_stock')
+        ->where('site_code', $this->siteCode)
+        ->where('article_code', $articleCode)
+        ->where('location_number', $location)
+        ->update(['article_qty' => $running]);
+}
+
 }
