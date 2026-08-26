@@ -151,9 +151,9 @@ class StockConsumptionController extends Controller
             ->get();
 
         // ── ASUMSI: tabel COA = chart_of_account (coa_code, coa_name), hanya akun postable ──
-        $data['coas'] = DB::table('chart_of_account')
-            ->orderBy('coa_code')
-            ->select('coa_code', 'coa_name')
+        $data['coas'] = DB::table('accounts')
+            ->orderBy('account')
+            ->select('account', 'description')
             ->get();
 
         return view("stockConsumption.create", $data);
@@ -316,7 +316,7 @@ class StockConsumptionController extends Controller
             })
             ->orderBy('location_name')->get();
 
-        $data['coas'] = DB::table('chart_of_account')->orderBy('coa_code')->select('coa_code','coa_name')->get();
+        $data['coas'] = DB::table('accounts')->orderBy('account')->select('account','description')->get();
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode, $scNumber, $username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode, $scNumber, $username);
