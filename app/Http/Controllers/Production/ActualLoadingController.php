@@ -1446,27 +1446,12 @@ private function eligibleArticlesForBooth($locationCode)
         return collect();
     }
 
-    $fgList = DB::table('bom_hdr as bh')
+   $fgList = DB::table('bom_hdr as bh')
     ->join('bom_rm as br', 'br.bom_code', '=', 'bh.bom_code')
     ->join('article as arm', 'arm.article_code', '=', 'br.article_code')
     ->join('article as afg', 'afg.article_code', '=', 'bh.article_code')
     ->where('bh.status', '3')
     ->whereIn('arm.article_type', ['RMP', 'RMNP'])
-    ->whereExists(function ($q) use ($locationCode) {
-        $q->select(DB::raw(1))
-          ->from('bom_rm as br3')
-          ->join('article as arm3', 'arm3.article_code', '=', 'br3.article_code')
-          ->whereColumn('br3.bom_code', 'bh.bom_code')
-          ->whereIn('arm3.article_type', ['RMP', 'RMNP'])
-          ->whereRaw("
-              coalesce((
-                  select sum(article_qty)
-                  from warehouse_stock
-                  where article_code = br3.article_code
-                    and location_number = ?
-              ), 0) > 0
-          ", [$locationCode]);
-    })
     ->select(
             'afg.article_code',
             'afg.article_alternative_code',
@@ -1754,9 +1739,29 @@ public function importExcel(Request $request)
         continue;
     }
 
-    $article = $eligible->get($codeInput);
+       $article = $eligible->get($codeInput);
+
+    // ── BYPASS: kalau tidak ada di daftar eligible (BOM/stok RM),
+    //    coba cari langsung ke master artikel. Kalau ketemu, tetap
+    //    diizinkan masuk (max_fg dianggap 0 sebagai info saja). ──
     if (!$article) {
-        $errors[] = "Baris $baris: Article Code '$codeInput' tidak terdaftar / tidak eligible di Spray Booth ini";
+        $master = DB::table('article')
+            ->whereRaw('UPPER(article_alternative_code) = ?', [$codeInput])
+            ->first();
+
+        if ($master) {
+            $article = (object) [
+                'article_code'             => $master->article_code,
+                'article_alternative_code' => $master->article_alternative_code,
+                'article_desc'             => $master->article_desc,
+                'uom'                      => $master->uom,
+                'max_fg'                   => 0,
+            ];
+        }
+    }
+
+    if (!$article) {
+        $errors[] = "Baris $baris: Article Code '$codeInput' tidak terdaftar di master artikel";
         continue;
     }
 
