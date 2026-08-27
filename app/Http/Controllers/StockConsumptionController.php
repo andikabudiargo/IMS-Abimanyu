@@ -14,14 +14,28 @@ use AppHelpers;
  *
  * Alur: DRAFT(1) → POSTED(4) | CANCELED(5)
  *
- * - CREATE  : siapapun yg punya akses, COA boleh kosong.
+ * - CREATE  : siapapun yg punya akses.
  * - EDIT    : hanya status DRAFT, hanya pembuat / Superuser / accounting.
- * - POSTING : hanya Superuser / accounting. COA WAJIB diisi di form posting.
+ * - POSTING : hanya Superuser / accounting. Akun jurnal (debit/credit)
+ *             DITENTUKAN OTOMATIS berdasarkan article_type (CM1/CM2) —
+ *             tidak ada input COA manual di form.
  *             Saat posting: movement OUT terbentuk, stok dikurangi, jurnal dibuat.
+ *             Nomor voucher jurnal (kas_hdr.voucher_number) = sc_number
+ *             (di-reuse langsung, tidak generate nomor baru).
  * - CANCEL  : DRAFT → siapa saja yg berwenang (pembuat / super / acc).
  *             POSTED → hanya Superuser / accounting; movement + jurnal di-reverse.
  * - REVISI  : snapshot ke *_hist, delete-insert detail. Tidak ada reverse movement
  *             karena movement hanya terbentuk saat posting.
+ *
+ * CATATAN REFACTOR (lihat histori diskusi):
+ * - coa_code TIDAK LAGI diinput/dipilih user. Akun debit (beban) & credit
+ *   (persediaan) ditentukan otomatis lewat resolveConsumptionCoa() /
+ *   resolveInventoryCoa() berdasarkan article_type tiap baris.
+ * - Nomor voucher jurnal = sc_number (Opsi A) — tidak generate nomor
+ *   terpisah lagi, sehingga counter master_code tidak lagi rebutan antara
+ *   pembuatan dokumen SC dan posting jurnal.
+ * - last_qty pada movement dihitung di PHP (bukan raw SQL interpolation)
+ *   agar semua parameter lewat query binding.
  */
 class StockConsumptionController extends Controller
 {
@@ -29,10 +43,6 @@ class StockConsumptionController extends Controller
     private string $moduleCode = "SCO";
     private string $siteCode   = 'HO';
     private string $movementType = 'CONSUMPTION';
-
-    // ── ASUMSI jurnal — sesuaikan dengan skema kas kamu ──────────
-    private string $journalKey     = 'JV';
-    private string $defaultInvCoa  = '1-1300';   // fallback akun persediaan (Cr)
 
     // ============================================================
     // KOLOM DATATABLE
@@ -45,7 +55,6 @@ class StockConsumptionController extends Controller
             ['data'=>'sc_date',      'name'=>'sc_date',      'title'=>'Date'],
             ['data'=>'status',       'name'=>'status',       'title'=>'Status','orderable'=>false,'searchable'=>false],
             ['data'=>'location_name','name'=>'location_name','title'=>'Location'],
-            ['data'=>'coa_code',     'name'=>'coa_code',     'title'=>'COA'],
             ['data'=>'note',         'name'=>'note',         'title'=>'Note'],
             ['data'=>'created_by',   'name'=>'created_by',   'title'=>'Created By'],
             ['data'=>'created_at',   'name'=>'created_at',   'title'=>'Created Date'],
@@ -54,26 +63,25 @@ class StockConsumptionController extends Controller
     }
 
     public function getTableColoumnDetail(): string
-{
-    return json_encode([
-        ['data'=>'sc_number',                'name'=>'sc_number',                'title'=>'Number'],
-        ['data'=>'sc_date',                  'name'=>'sc_date',                  'title'=>'Date'],
-        ['data'=>'article_alternative_code', 'name'=>'article_alternative_code', 'title'=>'Article Code'],
-        ['data'=>'article_desc',             'name'=>'article_desc',             'title'=>'Article Desc'],
-        ['data'=>'qty',                      'name'=>'qty',                      'title'=>'Qty'],
-        ['data'=>'uom',                      'name'=>'uom',                      'title'=>'UOM'],
-        ['data'=>'note',                     'name'=>'note',                     'title'=>'Note'],
-        ['data'=>'status',                   'name'=>'status',                   'title'=>'Status'],
-        ['data'=>'location_name',            'name'=>'location_name',            'title'=>'Location'],
-        ['data'=>'coa_code',                 'name'=>'coa_code',                 'title'=>'COA'],
-        ['data'=>'created_by',               'name'=>'created_by',               'title'=>'Created By'],
-        ['data'=>'created_at',               'name'=>'created_at',               'title'=>'Created Date'],
-        ['data'=>'authorized_by',            'name'=>'authorized_by',            'title'=>'Posted By'],
-    ], true);
-}
+    {
+        return json_encode([
+            ['data'=>'sc_number',                'name'=>'sc_number',                'title'=>'Number'],
+            ['data'=>'sc_date',                  'name'=>'sc_date',                  'title'=>'Date'],
+            ['data'=>'article_alternative_code', 'name'=>'article_alternative_code', 'title'=>'Article Code'],
+            ['data'=>'article_desc',             'name'=>'article_desc',             'title'=>'Article Desc'],
+            ['data'=>'qty',                      'name'=>'qty',                      'title'=>'Qty'],
+            ['data'=>'uom',                      'name'=>'uom',                      'title'=>'UOM'],
+            ['data'=>'note',                     'name'=>'note',                     'title'=>'Note'],
+            ['data'=>'status',                   'name'=>'status',                   'title'=>'Status'],
+            ['data'=>'location_name',            'name'=>'location_name',            'title'=>'Location'],
+            ['data'=>'created_by',               'name'=>'created_by',               'title'=>'Created By'],
+            ['data'=>'created_at',               'name'=>'created_at',               'title'=>'Created Date'],
+            ['data'=>'authorized_by',            'name'=>'authorized_by',            'title'=>'Posted By'],
+        ], true);
+    }
 
     // ============================================================
-    // GENERATE NOMOR
+    // GENERATE NOMOR (dipakai hanya untuk sc_number — jurnal reuse sc_number)
     // ============================================================
     public function getLastCode(string $key, ?string $date = null, ?string $username = null): string
     {
@@ -100,8 +108,8 @@ class StockConsumptionController extends Controller
             )->code_number;
         } else {
             DB::select("SELECT pg_advisory_xact_lock(hashtext(?))", ["{$key}-backdate-{$year}-{$month}"]);
-            $like    = sprintf('%s/%d/%s/%%', $key, $year, $months[$month - 1]);
-            $maxSeq  = (int) DB::selectOne(
+            $like   = sprintf('%s/%d/%s/%%', $key, $year, $months[$month - 1]);
+            $maxSeq = (int) DB::selectOne(
                 "SELECT COALESCE(MAX((split_part(sc_number,'/',4))::int),0) AS mx FROM stock_consumption_hdr WHERE sc_number LIKE ?",
                 [$like]
             )->mx;
@@ -121,13 +129,12 @@ class StockConsumptionController extends Controller
     // ============================================================
     public function index(Request $request)
     {
-        $data['title']     = $this->title;
-        $data['subtitle']  = $this->title;
-        $data['kolom']     = $this->getTableColoumn();
-        $data['kolomDetail'] = $this->getTableColoumnDetail();
-        $data['status']    = ['1'=>'DRAFT','4'=>'POSTED','5'=>'CANCELED'];
-        $data['locations'] = DB::table('stock_location_master')->orderBy('location_name')->get();
-        $data['coas']      = DB::table('accounts')->orderBy('account')->select('account','description')->get();
+        $data['title']      = $this->title;
+        $data['subtitle']   = $this->title;
+        $data['kolom']      = $this->getTableColoumn();
+        $data['kolomDetail']= $this->getTableColoumnDetail();
+        $data['status']     = ['1'=>'DRAFT','4'=>'POSTED','5'=>'CANCELED'];
+        $data['locations']  = DB::table('stock_location_master')->orderBy('location_name')->get();
 
         return view("stockConsumption.index", $data);
     }
@@ -137,8 +144,8 @@ class StockConsumptionController extends Controller
     // ============================================================
     public function create(Request $request)
     {
-        $user      = Auth::user();
-        $userDepts = DB::table('user_dept')->where('username', $user->username)->pluck('dept')->toArray();
+        $user       = Auth::user();
+        $userDepts  = DB::table('user_dept')->where('username', $user->username)->pluck('dept')->toArray();
         $privileged = $user->hasAnyRole(['Superuser','accounting','finance']);
 
         $data['title']    = "Create {$this->title}";
@@ -151,19 +158,13 @@ class StockConsumptionController extends Controller
             ))
             ->orderBy('location_name')->get();
 
-        // COA untuk dropdown (tidak wajib di create — hanya sebagai opsi awal kalau mau isi)
-        $data['coas'] = DB::table('accounts')
-            ->orderBy('account')
-            ->select('account','description')
-            ->get();
-
         $data['currentDateValue'] = date('d-m-Y');
 
         return view("stockConsumption.create", $data);
     }
 
     // ============================================================
-    // STORE — simpan sebagai DRAFT, COA nullable
+    // STORE — simpan sebagai DRAFT
     // ============================================================
     public function store(Request $request)
     {
@@ -172,7 +173,6 @@ class StockConsumptionController extends Controller
 
         $scDate   = $request->scDate;
         $location = $request->location;
-        $coa      = $request->coa ?: null;          // boleh kosong
         $note     = $request->note;
         $articles = json_decode($request->articles, true) ?? [];
 
@@ -197,7 +197,6 @@ class StockConsumptionController extends Controller
                 'sc_number'    => $scNumber,
                 'sc_date'      => $scDate,
                 'location_code'=> $location,
-                'coa_code'     => $coa,
                 'note'         => $note,
                 'status'       => '1',
                 'dept_code'    => $deptCode,
@@ -258,9 +257,9 @@ class StockConsumptionController extends Controller
 
     public function showEdit($key, $editReason = null)
     {
-        $scNumber = Crypt::decryptString($key);
-        $user     = Auth::user();
-        $username = $user->username;
+        $scNumber   = Crypt::decryptString($key);
+        $user       = Auth::user();
+        $username   = $user->username;
         $privileged = $user->hasAnyRole(['Superuser','accounting','finance']);
         $userDepts  = DB::table('user_dept')->where('username',$username)->pluck('dept')->toArray();
 
@@ -296,7 +295,6 @@ class StockConsumptionController extends Controller
             ))
             ->orderBy('location_name')->get();
 
-        $data['coas'] = DB::table('accounts')->orderBy('account')->select('account','description')->get();
         $data['statusTr']   = $this->statusLabel($hdr->status);
         $data['editReason'] = $editReason;
         $data['currentDateValue'] = date('d-m-Y');
@@ -314,7 +312,6 @@ class StockConsumptionController extends Controller
         $scNumber   = $request->scNumber;
         $scDate     = $request->scDate;
         $location   = $request->location;
-        $coa        = $request->coa ?: null;
         $note       = $request->note;
         $editReason = $request->editReason;
         $articles   = json_decode($request->articles, true) ?? [];
@@ -344,14 +341,13 @@ class StockConsumptionController extends Controller
         try {
             $rev = $this->snapshotHistory($hdr, $username, $editReason);
 
-            // delete-insert detail — tidak perlu reverse movement (belum ada)
+            // delete-insert detail — tidak perlu reverse movement (belum ada, masih DRAFT)
             DB::table('stock_consumption_det')->where('sc_number', $scNumber)->delete();
             $this->insertDetails($scNumber, $articles, $username);
 
             DB::table('stock_consumption_hdr')->where('sc_number', $scNumber)->update([
                 'sc_date'      => $scDate,
                 'location_code'=> $location,
-                'coa_code'     => $coa,
                 'note'         => $note,
                 'status'       => '1',
                 'num_revision' => $rev,
@@ -384,7 +380,6 @@ class StockConsumptionController extends Controller
             'num_revision' => $rev,
             'sc_date'      => $hdr->sc_date,
             'location_code'=> $hdr->location_code,
-            'coa_code'     => $hdr->coa_code,
             'note'         => $hdr->note,
             'status'       => $hdr->status,
             'edit_reason'  => $reason ?? '-',
@@ -409,7 +404,7 @@ class StockConsumptionController extends Controller
     }
 
     // ============================================================
-    // POSTING — hanya Superuser/accounting; COA wajib diisi di sini
+    // POSTING — hanya Superuser/accounting. COA otomatis, tidak ada input.
     // ============================================================
     public function posting(Request $request)
     {
@@ -422,7 +417,6 @@ class StockConsumptionController extends Controller
         }
 
         $scNumber = Crypt::decryptString($request->id);
-        $coa      = trim($request->coa ?? '');
 
         $hdr = DB::table('stock_consumption_hdr')->where('sc_number', $scNumber)->first();
         if (!$hdr) {
@@ -438,23 +432,8 @@ class StockConsumptionController extends Controller
             return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>"$title gagal: status tidak valid"]);
         }
 
-        // COA wajib saat posting
-        if (!$coa) {
-            return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>"COA harus dipilih sebelum posting"]);
-        }
-
-        // Validasi COA ada di tabel
-        $coaExists = DB::table('accounts')->where('account', $coa)->exists();
-        if (!$coaExists) {
-            return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>"COA '$coa' tidak ditemukan"]);
-        }
-
         DB::beginTransaction();
         try {
-            // Update coa_code dulu di header (bisa jadi berbeda dari draft)
-            DB::table('stock_consumption_hdr')->where('sc_number', $scNumber)->update(['coa_code' => $coa]);
-            $hdr->coa_code = $coa;
-
             $result = $this->processPosting($hdr, $username);
             if (!$result['success']) {
                 DB::rollBack();
@@ -525,11 +504,21 @@ class StockConsumptionController extends Controller
         $details = DB::table('stock_consumption_det')
             ->leftJoin('article','article.article_code','=','stock_consumption_det.article_code')
             ->where('stock_consumption_det.sc_number', $hdr->sc_number)
-            ->select('stock_consumption_det.*','article.article_desc','article.uom as article_uom')
+            ->select('stock_consumption_det.*','article.article_desc','article.uom as article_uom','article.article_type')
             ->get();
 
         if ($details->isEmpty()) {
             throw new \RuntimeException("Consumption {$hdr->sc_number} gagal: tidak ada detail");
+        }
+
+        // Guard eksplisit — pesan jelas kalau ada artikel di luar scope CM1/CM2
+        $invalidTypes = $details->pluck('article_type')->unique()
+            ->reject(fn($t) => in_array($t, ['CM1', 'CM2']));
+        if ($invalidTypes->isNotEmpty()) {
+            throw new \RuntimeException(
+                "Consumption {$hdr->sc_number} berisi artikel di luar scope (tipe: " . $invalidTypes->implode(', ') . "). "
+                . "Stock Consumption hanya untuk CM1/CM2 — RMP/RMNP diproses lewat Actual Loading/Finish Goods."
+            );
         }
 
         $bag = [];
@@ -538,7 +527,14 @@ class StockConsumptionController extends Controller
             if ($base <= 0) continue;
             $c = $d->article_code;
             if (!isset($bag[$c])) {
-                $bag[$c] = ['article_code'=>$c,'article_desc'=>$d->article_desc ?? '','uom'=>$d->article_uom ?? $d->uom ?? 'PCS','qty'=>0.0,'notes'=>[]];
+                $bag[$c] = [
+                    'article_code' => $c,
+                    'article_desc' => $d->article_desc ?? '',
+                    'article_type' => $d->article_type,
+                    'uom'          => $d->article_uom ?? $d->uom ?? 'PCS',
+                    'qty'          => 0.0,
+                    'notes'        => [],
+                ];
             }
             $bag[$c]['qty'] += $base;
             if ($d->note) $bag[$c]['notes'][] = $d->note;
@@ -551,6 +547,12 @@ class StockConsumptionController extends Controller
     {
         $qty  = $line['qty'];
         $desc = trim(($hdr->note ?? '') . (!empty($line['notes']) ? ' ['.implode(', ', array_unique($line['notes'])).']' : ''));
+
+        // Dihitung di PHP lewat query binding — hindari raw string interpolation ke SQL.
+        $prevQty = (float) DB::selectOne(
+            "SELECT get_last_qty_new(?, ?, ?, ?) AS q",
+            [$line['article_code'], $hdr->sc_date, $this->siteCode, $locationNumber]
+        )->q;
 
         return [
             'movement_code'     => $seq,
@@ -570,50 +572,92 @@ class StockConsumptionController extends Controller
             'created_at'        => now(),
             'site_code'         => $this->siteCode,
             'location_number'   => $locationNumber,
-            'last_qty'          => DB::raw(
-                "get_last_qty_new('{$line['article_code']}','{$hdr->sc_date}','{$this->siteCode}','$locationNumber') - $qty"
-            ),
+            'last_qty'          => $prevQty - $qty,
         ];
     }
 
-    // ── Jurnal ke kas_hdr/kas_det ────────────────────────────────
+    // ── Jurnal ke kas_hdr/kas_det — akun ditentukan otomatis by article_type ──
     private function postJournal(object $hdr, array $lines, float $total, string $username): string
     {
-        AppHelpers::resetCode($this->journalKey);
-        $kasNumber = $this->getLastCode($this->journalKey, $hdr->sc_date, $username);
-        $kasDate   = \Carbon\Carbon::createFromFormat('d-m-Y', $hdr->sc_date)->format('Y-m-d');
-        $desc      = "Stock Consumption {$hdr->sc_number}" . ($hdr->note ? " - {$hdr->note}" : '');
-
-        $invCoa = DB::table('stock_location_master')
-            ->where('location_code', $hdr->location_code)
-            ->value('coa_inventory') ?: $this->defaultInvCoa;
+        // Opsi A: nomor voucher = nomor SC, tidak generate nomor baru.
+        $voucherNumber = $hdr->sc_number;
+        $voucherDate   = \Carbon\Carbon::createFromFormat('d-m-Y', $hdr->sc_date)->format('d-m-Y');
+        $desc          = "{$hdr->sc_number} - " . ($hdr->note ?: 'Stock Consumption');
 
         DB::table('kas_hdr')->insert([
-            'kas_number'  => $kasNumber,
-            'kas_date'    => $kasDate,
-            'kas_type'    => 'JV',
-            'ref_number'  => $hdr->sc_number,
-            'description' => $desc,
-            'total'       => $total,
-            'created_by'  => $username,
-            'updated_by'  => $username,
-            'created_at'  => now(),
-            'updated_at'  => now(),
+            'voucher_number' => $voucherNumber,
+            'voucher_type'   => 'SCO',
+            'voucher_date'   => $voucherDate,
+            'receive_from'   => null,
+            'paid_to'        => null,
+            'amount'         => $total,
+            'period'         => (int) \Carbon\Carbon::createFromFormat('d-m-Y', $hdr->sc_date)->format('n'),
+            'year'           => \Carbon\Carbon::createFromFormat('d-m-Y', $hdr->sc_date)->format('Y'),
+            'note'           => $hdr->note,
+            'status'         => '3',
+            'created_by'     => $username,
+            'updated_by'     => $username,
+            'created_at'     => now(),
+            'updated_at'     => now(),
+            'description'    => $desc,
+            'invoice_date'   => null,
+            'tax_number'     => null,
         ]);
 
-        DB::table('kas_det')->insert([
-            ['kas_number'=>$kasNumber,'coa_code'=>$hdr->coa_code,'debit'=>$total,'credit'=>0,'description'=>$desc,'created_by'=>$username,'created_at'=>now()],
-            ['kas_number'=>$kasNumber,'coa_code'=>$invCoa,'debit'=>0,'credit'=>$total,'description'=>$desc,'created_by'=>$username,'created_at'=>now()],
-        ]);
+        $debitByAccount  = [];
+        $creditByAccount = [];
 
-        return $kasNumber;
+        foreach ($lines as $line) {
+            $price  = $this->getAvgPrice($line['article_code'], $this->getStockLocation($hdr->location_code));
+            $amount = $line['qty'] * $price;
+
+            $debitAcc  = $this->resolveConsumptionCoa($line['article_type'] ?? '');
+            $creditAcc = $this->resolveInventoryCoa($line['article_type'] ?? '');
+
+            $debitByAccount[$debitAcc]   = ($debitByAccount[$debitAcc] ?? 0) + $amount;
+            $creditByAccount[$creditAcc] = ($creditByAccount[$creditAcc] ?? 0) + $amount;
+        }
+
+        foreach ($debitByAccount as $account => $amount) {
+            DB::table('kas_det')->insert([
+                'voucher_number' => $voucherNumber,
+                'account'        => $account,
+                'description'    => $desc,
+                'cost_center'    => $hdr->dept_code ?? null,
+                'debit'          => $amount,
+                'credit'         => 0,
+                'reference'      => $hdr->sc_number,
+                'created_by'     => $username,
+                'updated_by'     => $username,
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
+        }
+
+        foreach ($creditByAccount as $account => $amount) {
+            DB::table('kas_det')->insert([
+                'voucher_number' => $voucherNumber,
+                'account'        => $account,
+                'description'    => $desc,
+                'cost_center'    => $hdr->dept_code ?? null,
+                'debit'          => 0,
+                'credit'         => $amount,
+                'reference'      => $hdr->sc_number,
+                'created_by'     => $username,
+                'updated_by'     => $username,
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
+        }
+
+        return $voucherNumber;
     }
 
     private function reverseJournal(?string $kasNumber): void
     {
         if (!$kasNumber) return;
-        DB::table('kas_det')->where('kas_number', $kasNumber)->delete();
-        DB::table('kas_hdr')->where('kas_number', $kasNumber)->delete();
+        DB::table('kas_det')->where('voucher_number', $kasNumber)->delete();
+        DB::table('kas_hdr')->where('voucher_number', $kasNumber)->delete();
     }
 
     // ============================================================
@@ -726,7 +770,6 @@ class StockConsumptionController extends Controller
 
         $data['statusTr'] = $this->statusLabel($hdr->status);
         $data['canPost']  = $canPost;
-        $data['coas']     = DB::table('accounts')->orderBy('account')->select('account','description')->get();
 
         return view("stockConsumption.show", $data);
     }
@@ -756,7 +799,6 @@ class StockConsumptionController extends Controller
 
         $query = DB::table('stock_consumption_hdr')
             ->leftJoin('stock_location_master as loc','loc.location_code','=','stock_consumption_hdr.location_code')
-            ->leftJoin('accounts as coa', 'coa.account', '=', 'stock_consumption_hdr.coa_code')   // ⬅️ PASTIKAN BARIS INI ADA
             ->where(function ($q) use ($searchNo,$searchStatus,$searchLoc,$scDate,$fromDate,$toDate) {
                 if ($searchNo)     $q->where('stock_consumption_hdr.sc_number','ilike',"%$searchNo%");
                 if ($searchStatus) $q->where('stock_consumption_hdr.status',$searchStatus);
@@ -775,8 +817,6 @@ class StockConsumptionController extends Controller
             'stock_consumption_hdr.sc_number',
             'stock_consumption_hdr.sc_date',
             'stock_consumption_hdr.status',
-            'stock_consumption_hdr.coa_code',
-            'coa.description as coa_description',
             'stock_consumption_hdr.note',
             'stock_consumption_hdr.created_by',
             'stock_consumption_hdr.created_at',
@@ -799,7 +839,7 @@ class StockConsumptionController extends Controller
                     $b .= '<a href="'.route('stockConsumption.edit',['id'=>$encId]).'" class="dropdown-item"><i data-feather="edit-2"></i><span> Edit</span></a>';
                 }
 
-                // POSTING: hanya dari halaman detail (form COA ada di sana) — link ke show
+                // POSTING: hanya dari halaman detail — link ke show
                 if ($st == '1' && $canPost) {
                     $b .= '<a href="'.route('stockConsumption.show',['id'=>$encId]).'" class="dropdown-item text-success"><i data-feather="check-circle"></i><span> Posting</span></a>';
                 }
@@ -823,133 +863,121 @@ class StockConsumptionController extends Controller
                 [$cls, $lbl] = $cfg[$row->status] ?? ['badge-secondary', $row->status];
                 return "<div class='badge $cls'>$lbl</div>";
             })
-             ->editColumn('coa_code', function ($row) {                     // ⬅️ tambah editColumn ini
-        if (!$row->coa_code) return '-';
-        return $row->coa_code . ($row->coa_description ? " - {$row->coa_description}" : '');
-    })
             ->rawColumns(['action','status'])
             ->make(true);
     }
 
     public function listDetail(Request $request)
-{
-    $user       = Auth::user();
-    $username   = $user->username;
-    $userDepts  = DB::table('user_dept')->where('username', $username)->pluck('dept')->toArray();
-    $privileged = $user->hasAnyRole(['Superuser','accounting','finance']);
+    {
+        $user       = Auth::user();
+        $username   = $user->username;
+        $userDepts  = DB::table('user_dept')->where('username', $username)->pluck('dept')->toArray();
+        $privileged = $user->hasAnyRole(['Superuser','accounting','finance']);
 
-    $searchNo     = strtolower((string) $request->searchNo);
-    $searchStatus = $request->searchStatus;
-    $searchLoc    = $request->searchLoc;
-    $scDate       = $request->scDate;
+        $searchNo     = strtolower((string) $request->searchNo);
+        $searchStatus = $request->searchStatus;
+        $searchLoc    = $request->searchLoc;
+        $scDate       = $request->scDate;
 
-    $fromDate = $toDate = "";
-    if ($scDate) {
-        $d = explode("to", $scDate);
-        $fromDate = implode("/", array_reverse(explode("-", trim($d[0]))));
-        $toDate   = count($d) > 1 ? implode("/", array_reverse(explode("-", trim($d[1])))) : $fromDate;
+        $fromDate = $toDate = "";
+        if ($scDate) {
+            $d = explode("to", $scDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($d[0]))));
+            $toDate   = count($d) > 1 ? implode("/", array_reverse(explode("-", trim($d[1])))) : $fromDate;
+        }
+
+        $query = DB::table('stock_consumption_det')
+            ->leftJoin('stock_consumption_hdr', 'stock_consumption_hdr.sc_number', '=', 'stock_consumption_det.sc_number')
+            ->leftJoin('article', 'article.article_code', '=', 'stock_consumption_det.article_code')
+            ->leftJoin('stock_location_master as loc', 'loc.location_code', '=', 'stock_consumption_hdr.location_code')
+            ->where(function ($q) use ($searchNo, $searchStatus, $searchLoc, $scDate, $fromDate, $toDate) {
+                if ($searchNo)     $q->where('stock_consumption_det.sc_number', 'ilike', "%$searchNo%");
+                if ($searchStatus) $q->where('stock_consumption_hdr.status', $searchStatus);
+                if ($searchLoc)    $q->where('stock_consumption_hdr.location_code', $searchLoc);
+                if ($scDate)       $q->whereBetween(DB::raw("to_date(stock_consumption_hdr.sc_date,'DD-MM-YYYY')"), [$fromDate, $toDate]);
+            });
+
+        if (!$privileged) {
+            $query->where(function ($q) use ($userDepts, $username) {
+                $q->whereIn('loc.dept_code', $userDepts)->orWhere('stock_consumption_hdr.created_by', $username);
+            });
+        }
+
+        $data = $query->select(
+                'stock_consumption_hdr.sc_number',
+                'stock_consumption_hdr.sc_date',
+                'stock_consumption_hdr.status',
+                'stock_consumption_hdr.created_by',
+                'stock_consumption_hdr.created_at',
+                'stock_consumption_hdr.authorized_by',
+                'stock_consumption_det.id',
+                'stock_consumption_det.qty',
+                'stock_consumption_det.uom',
+                'stock_consumption_det.note',
+                'stock_consumption_det.article_code',
+                'article.article_alternative_code',
+                'article.article_desc',
+                'loc.location_name'
+            )
+            ->orderBy('stock_consumption_det.id')
+            ->get();
+
+        return DataTables::of($data)
+            ->editColumn('status', function ($row) {
+                $cfg = [
+                    '1' => ['badge-primary',  'DRAFT'],
+                    '4' => ['badge-success',  'POSTED'],
+                    '5' => ['badge-danger',   'CANCELED'],
+                ];
+                [$cls, $lbl] = $cfg[$row->status] ?? ['badge-secondary', $row->status];
+                return "<div class='badge $cls'>$lbl</div>";
+            })
+            ->rawColumns(['status'])
+            ->make(true);
     }
-
-    $query = DB::table('stock_consumption_det')
-        ->leftJoin('stock_consumption_hdr', 'stock_consumption_hdr.sc_number', '=', 'stock_consumption_det.sc_number')
-        ->leftJoin('article', 'article.article_code', '=', 'stock_consumption_det.article_code')
-        ->leftJoin('accounts as coa', 'coa.account', '=', 'stock_consumption_hdr.coa_code')
-        ->leftJoin('stock_location_master as loc', 'loc.location_code', '=', 'stock_consumption_hdr.location_code')
-        ->where(function ($q) use ($searchNo, $searchStatus, $searchLoc, $scDate, $fromDate, $toDate) {
-            if ($searchNo)     $q->where('stock_consumption_det.sc_number', 'ilike', "%$searchNo%");
-            if ($searchStatus) $q->where('stock_consumption_hdr.status', $searchStatus);
-            if ($searchLoc)    $q->where('stock_consumption_hdr.location_code', $searchLoc);
-            if ($scDate)       $q->whereBetween(DB::raw("to_date(stock_consumption_hdr.sc_date,'DD-MM-YYYY')"), [$fromDate, $toDate]);
-        });
-
-    if (!$privileged) {
-        $query->where(function ($q) use ($userDepts, $username) {
-            $q->whereIn('loc.dept_code', $userDepts)->orWhere('stock_consumption_hdr.created_by', $username);
-        });
-    }
-
-    $data = $query->select(
-            'stock_consumption_hdr.sc_number',
-            'stock_consumption_hdr.sc_date',
-            'stock_consumption_hdr.status',
-            'stock_consumption_hdr.coa_code',
-            'coa.description as coa_description',
-            'stock_consumption_hdr.created_by',
-            'stock_consumption_hdr.created_at',
-            'stock_consumption_hdr.authorized_by',
-            'stock_consumption_det.id',
-            'stock_consumption_det.qty',
-            'stock_consumption_det.uom',
-            'stock_consumption_det.note',
-            'stock_consumption_det.article_code',
-            'article.article_alternative_code',
-            'article.article_desc',
-            'loc.location_name'
-        )
-        ->orderBy('stock_consumption_det.id')
-        ->get();
-
-    return DataTables::of($data)
-        ->editColumn('status', function ($row) {
-            $cfg = [
-                '1' => ['badge-primary',  'DRAFT'],
-                '4' => ['badge-success',  'POSTED'],
-                '5' => ['badge-danger',   'CANCELED'],
-            ];
-            [$cls, $lbl] = $cfg[$row->status] ?? ['badge-secondary', $row->status];
-            return "<div class='badge $cls'>$lbl</div>";
-        })
-        ->editColumn('coa_code', function ($row) {
-            if (!$row->coa_code) return '-';
-            return $row->coa_code . ($row->coa_description ? " - {$row->coa_description}" : '');
-        })
-        ->rawColumns(['status', 'coa_code'])
-        ->make(true);
-}
 
     // ============================================================
     // ARTICLE BY LOCATION
     // ============================================================
-     public function articleByLocation(Request $request)
-{
-    $stockLoc = $this->getStockLocation($request->location);
-    $scNumber = $request->scNumber; // opsional — dikirim saat mode Edit
+    public function articleByLocation(Request $request)
+    {
+        $stockLoc = $this->getStockLocation($request->location);
+        $scNumber = $request->scNumber;
 
-    $existingCodes = [];
-    if ($scNumber) {
-        $existingCodes = DB::table('stock_consumption_det')
-            ->where('sc_number', $scNumber)
-            ->pluck('article_code')
-            ->toArray();
+        $existingCodes = [];
+        if ($scNumber) {
+            $existingCodes = DB::table('stock_consumption_det')
+                ->where('sc_number', $scNumber)
+                ->pluck('article_code')
+                ->toArray();
+        }
+
+        return DB::table('article as a')
+            ->leftJoin('warehouse_stock as s', function ($join) use ($stockLoc) {
+                $join->on('s.article_code', '=', 'a.article_code')
+                     ->where('s.site_code', $this->siteCode)
+                     ->where('s.location_number', $stockLoc);
+            })
+            ->where('a.status', '1')
+            ->whereIn('a.article_type', ['CM1', 'CM2'])   // batasi scope modul
+            ->where(function ($q) use ($existingCodes) {
+                $q->where(DB::raw('coalesce(s.article_qty,0)'), '>', 0);
+                if (!empty($existingCodes)) {
+                    $q->orWhereIn('a.article_code', $existingCodes);
+                }
+            })
+            ->select(
+                'a.article_code',
+                'a.article_alternative_code',
+                'a.article_desc',
+                'a.article_type',
+                'a.uom',
+                DB::raw('coalesce(s.article_qty,0) as qty'),
+                DB::raw("(select string_agg(unit_to,',' order by unit_from) from uom_con_v2 where article_code = a.article_code) as uom_member")
+            )
+            ->orderBy('a.article_alternative_code')
+            ->get();
     }
-
-    // Pakai LEFT JOIN dari article → warehouse_stock, supaya artikel yang
-    // tidak punya baris stok di lokasi ini pun tetap muncul jika ada di $existingCodes.
-    return DB::table('article as a')
-        ->leftJoin('warehouse_stock as s', function ($join) use ($stockLoc) {
-            $join->on('s.article_code', '=', 'a.article_code')
-                 ->where('s.site_code', $this->siteCode)
-                 ->where('s.location_number', $stockLoc);
-        })
-        ->where('a.status', '1')
-        ->where(function ($q) use ($existingCodes) {
-            $q->where(DB::raw('coalesce(s.article_qty,0)'), '>', 0);
-            if (!empty($existingCodes)) {
-                $q->orWhereIn('a.article_code', $existingCodes);
-            }
-        })
-        ->select(
-            'a.article_code',
-            'a.article_alternative_code',
-            'a.article_desc',
-            'a.article_type',
-            'a.uom',
-            DB::raw('coalesce(s.article_qty,0) as qty'),
-            DB::raw("(select string_agg(unit_to,',' order by unit_from) from uom_con_v2 where article_code = a.article_code) as uom_member")
-        )
-        ->orderBy('a.article_alternative_code')
-        ->get();
-}
 
     // ============================================================
     // HELPERS
@@ -1058,5 +1086,27 @@ class StockConsumptionController extends Controller
     private function statusLabel(string $status): string
     {
         return ['1'=>'DRAFT','4'=>'POSTED','5'=>'CANCELED'][$status] ?? $status;
+    }
+
+    private function resolveConsumptionCoa(string $articleType): string
+    {
+        return match ($articleType) {
+            'CM1' => '5000.33',
+            'CM2' => '5000.34',
+            default => throw new \RuntimeException(
+                "Article type '$articleType' tidak didukung di Stock Consumption. RMP/RMNP diproses lewat Actual Loading/Finish Goods."
+            ),
+        };
+    }
+
+    private function resolveInventoryCoa(string $articleType): string
+    {
+        return match ($articleType) {
+            'CM1' => '1100.32.1',
+            'CM2' => '1100.32.2',
+            default => throw new \RuntimeException(
+                "Article type '$articleType' tidak didukung di Stock Consumption. RMP/RMNP diproses lewat Actual Loading/Finish Goods."
+            ),
+        };
     }
 }

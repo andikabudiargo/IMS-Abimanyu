@@ -29,21 +29,12 @@
                                 </div>
                                 </div>
                                 <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="location">Location*</label>
                                     <select class="select2 form-control" id="location" name="location" required>
                                         <option value=""></option>
                                         @foreach($locations as $val)
                                             <option value="{{ $val->location_code }}" {{ $val->location_code == $header->location_code ? 'selected' : '' }}>{{ $val->location_name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <label class="form-label" for="coa">COA*</label>
-                                    <select class="select2 form-control" id="coa" name="coa" required>
-                                        <option value=""></option>
-                                        @foreach($coas as $c)
-                                            <option value="{{ $c->account }}" {{ $c->account == $header->coa_code ? 'selected' : '' }}>{{ $c->account }} - {{ $c->description }}</option>
                                         @endforeach
                                     </select>
                                 </div>

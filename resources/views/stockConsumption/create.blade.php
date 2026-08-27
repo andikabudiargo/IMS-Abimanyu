@@ -38,24 +38,13 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="locSelect">Location*</label>
                                     {{-- FIX 2: id diganti locSelect, hindari clash dgn reserved word 'location' di JS --}}
                                     <select class="select2 form-control" id="locSelect" name="location" required>
                                         <option value=""></option>
                                         @foreach($locations as $val)
                                             <option value="{{ $val->location_code }}">{{ $val->location_name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group col-md-3">
-                                   <label class="form-label" for="coa">
-    COA <small class="text-muted">(diisi oleh Accounting)</small>
-</label>
-                                    <select class="select2 form-control" id="coa" name="coa">
-                                        <option value=""></option>
-                                        @foreach($coas as $c)
-                                            <option value="{{ $c->account }}">{{ $c->account }} - {{ $c->description }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -161,7 +150,7 @@
         });
 
         // FIX 2: target id 'locSelect', bukan 'location'
-        $('#locSelect, #coa').select2({ placeholder: '- Pilih -', allowClear: true, width: '100%' });
+        $('#locSelect').select2({ placeholder: '- Pilih -', allowClear: true, width: '100%' });
 
         toggleArticleSection(false);
 

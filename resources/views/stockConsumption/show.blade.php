@@ -28,7 +28,6 @@
               <tr><th style="width:35%">Number</th><td>: {{ $header->sc_number }}</td></tr>
               <tr><th>Date</th><td>: {{ $header->sc_date }}</td></tr>
               <tr><th>Location</th><td>: {{ $header->location_name }}</td></tr>
-              <tr><th>COA</th><td>: {{ $header->coa_code ?? '<span class="text-muted">Belum diisi</span>' }}</td></tr>
             </table>
           </div>
           <div class="col-md-6">
