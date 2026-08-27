@@ -598,7 +598,24 @@ adjReviseReason = null;
    SAVE
 ══════════════════════════════════════════════════════════════════════ */
 document.querySelector('#cmdSave').addEventListener('click', () => {
-    if (!IS_REVISION) { simpanData(true); return; }
+    if (!IS_REVISION) {
+        const warn = checkDraftDataLoss();
+        if (warn) {
+            Swal.fire({
+                title: 'Artikel akan hilang dari dokumen',
+                html: warn,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Lanjut simpan',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#FF9F43',
+                reverseButtons: true,
+            }).then(r => { if (r.isConfirmed) simpanData(true); });
+            return;
+        }
+        simpanData(true);
+        return;
+    }
 
     const preview = buildRevisePreview();
     if (preview.error) {
@@ -657,6 +674,43 @@ function onSaveFailed() {
     adjReviseReason = null;
 }
 
+function checkDraftDataLoss() {
+    const seen = {};
+    const willBeRemoved = [];
+
+    $('#article_row .tanda-baris').each(function () {
+        const rowId   = $(this).attr('id').replace('new_row', '');
+        const artCode = $('#articleId' + rowId).val();
+        if (!artCode) return;
+
+        seen[artCode] = true;
+
+        const sbRaw   = parseFloat($('#stockBefore' + rowId).data('raw')) || 0;
+        const balance = parseFloat(String($('#balanceQty' + rowId).val()).replace(/,/g, '')) || 0;
+        const diff    = Math.round((balance - sbRaw) * 10000) / 10000;
+
+        if (diff === 0) {
+            const existing = EXISTING_DET.find(d => d.article_code === artCode);
+            if (existing) {
+                const label = $('#articleId' + rowId).find(':selected').text() || artCode;
+                willBeRemoved.push(label);
+            }
+        }
+    });
+
+    // Artikel yang dihapus total dari grid (baris-nya dibuang user)
+    EXISTING_DET.forEach(d => {
+        if (!seen[d.article_code]) willBeRemoved.push(d.label);
+    });
+
+    if (willBeRemoved.length === 0) return null;
+
+    return `<div class="text-left"><small>Artikel berikut akan <strong>hilang dari dokumen</strong> `
+         + `karena Saldo Akhir sama dengan Stock Before (atau baris dihapus dari grid). `
+         + `Dokumen ini belum diposting, jadi ini tidak akan tercatat di riwayat mana pun:<br><br>`
+         + `<span class="text-danger">${willBeRemoved.join('<br>')}</span></small></div>`;
+}
+
 /* ══════════════════════════════════════════════════════════════════════
    PREVIEW DAMPAK REVISI
 
@@ -675,6 +729,7 @@ function buildRevisePreview() {
     const changed = [];
     const added   = [];
     const removed = [];
+    const zeroNew = [];   // ⬅ baru: artikel ditambah tapi diff 0, TIDAK akan tersimpan
     let   kept    = 0;
 
     $('#article_row .tanda-baris').each(function () {
@@ -689,12 +744,11 @@ function buildRevisePreview() {
 
         seen[artCode] = true;
 
-        // Artikel baru (belum pernah ada di dokumen ini) SELALU dihitung
-        // sebagai perubahan — meski diff-nya 0 (mis. balance yang dientri
-        // kebetulan sama dengan stock saat ini). Menambah baris baru ke
-        // dokumen tetap perubahan yang perlu masuk revision history,
-        // beda kasus dengan artikel lama yang qty-nya dikembalikan ke 0.
         if (!(artCode in before)) {
+            // ⬅ ganti: kalau diff 0, collectRows() akan MEMBUANG baris ini
+            // saat submit — jadi jangan dihitung sebagai "added", supaya
+            // preview tidak berbohong ke user.
+            if (diff === 0) { zeroNew.push(label); return; }
             added.push(`${label} (${diff > 0 ? '+' : ''}${diff})`);
             return;
         }
@@ -709,10 +763,18 @@ function buildRevisePreview() {
         }
     });
 
-    // baris yang dihapus dari grid sama sekali
     EXISTING_DET.forEach(d => { if (!seen[d.article_code]) removed.push(d.label); });
 
     const total = changed.length + added.length + removed.length;
+
+    // ⬅ baru: kalau SATU-SATUNYA "perubahan" adalah artikel baru yang diff-nya
+    // 0, itu bukan perubahan sungguhan — kasih tahu kenapa, jangan lanjut ke modal alasan.
+    if (total === 0 && zeroNew.length) {
+        return { error: `Artikel berikut ditambahkan ke grid tapi Saldo Akhir-nya sama dengan `
+                       + `Stock Before, jadi tidak dianggap perubahan dan tidak akan tersimpan: `
+                       + `<strong>${zeroNew.join(', ')}</strong>. Isi Saldo Akhir yang berbeda `
+                       + `dari Stock Before untuk artikel yang mau ditambahkan.` };
+    }
 
     if (total === 0) {
         return { error: 'Tidak ada perubahan pada artikel. Ubah minimal satu saldo akhir, '
@@ -730,6 +792,8 @@ function buildRevisePreview() {
     if (added.length)   html += `<li>${added.length} artikel ditambah:<br><span class="text-success">${added.join('<br>')}</span></li>`;
     if (removed.length) html += `<li>${removed.length} artikel <strong>dihapus</strong> (movement-nya ikut hilang, stok dikembalikan):<br><span class="text-danger">${removed.join('<br>')}</span></li>`;
     if (kept)           html += `<li>${kept} artikel tidak berubah.</li>`;
+    // ⬅ baru: tampilkan juga di preview normal kalau kebetulan ada zeroNew campur perubahan lain
+    if (zeroNew.length) html += `<li class="text-muted">${zeroNew.length} artikel ditambah tapi diabaikan (Saldo Akhir = Stock Before): ${zeroNew.join(', ')}</li>`;
     html += '</ul></small></div>';
 
     return { html };

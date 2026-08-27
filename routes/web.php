@@ -940,6 +940,7 @@ Route::post('stockReconciliation/cancel',['as'=>'stockReconciliation.cancel','us
 Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () {
     Route::get('/',                 'StockConsumptionController@index')->name('index');
     Route::get('/list',             'StockConsumptionController@list')->name('list');
+	Route::get('/listDetail',       'StockConsumptionController@listDetail')->name('listDetail');
     Route::get('/create',           'StockConsumptionController@create')->name('create');
     Route::post('/store',           'StockConsumptionController@store')->name('store');
     Route::get('/show',             'StockConsumptionController@show')->name('show');
