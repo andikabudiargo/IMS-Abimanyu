@@ -173,7 +173,8 @@ function formatQty(v){
     const trDate = $('#trDate');
     let dataArticle = "";
     let dataLocationTo = "";
-    let isLocationToBooth = false; // ← flag booth
+    let isLocationToBooth = false; // ← flag booth (dipakai untuk FG Target)
+let isLocationToWip    = false; // ← flag wip (ikut memenuhi syarat WOS, TIDAK untuk FG Target)
     let isLocationFromRM  = false;  // ← Location From bertipe rm
     let isWosTransfer     = false;  // ← toggle header "Transfer ini WOS?"
 
@@ -199,8 +200,10 @@ function isChemicalLocation() {
 }
 
 /** Kombinasi lokasi yang MEMUNGKINKAN transfer WOS (belum tentu toggle-nya aktif) */
+/** Kombinasi lokasi yang MEMUNGKINKAN transfer WOS (belum tentu toggle-nya aktif).
+ *  WOS berlaku untuk Location To bertipe booth ATAU wip. */
 function isWosEligibleRoute() {
-    return isChemicalLocation() && isLocationToBooth;
+    return isChemicalLocation() && (isLocationToBooth || isLocationToWip);
 }
 
 /** Toggle switch "Transfer ini WOS?" hanya tampil kalau rute-nya memungkinkan WOS */

@@ -260,6 +260,7 @@
 
         if (!locFrom || !locTo) {
             isLocationToBooth = false;
+            isLocationToWip   = false;
             toggleFgTargetHeader();
             if (!preserveWosToggle) toggleQtyWosColumn();
             return;
@@ -273,6 +274,7 @@
 
             const boothData = boothRes && boothRes[0] ? boothRes[0] : { location_type: null };
             isLocationToBooth = (boothData.location_type === 'booth');
+            isLocationToWip   = (boothData.location_type === 'wip');
             toggleFgTargetHeader();
             refreshAllFgTarget();
 
@@ -288,6 +290,7 @@
         }).fail(function () {
             if (myToken !== locationChangeToken) return;
             isLocationToBooth = false;
+            isLocationToWip   = false;
             toggleFgTargetHeader();
             toggleQtyWosColumn();
             toggleArticleSection(false);
@@ -369,6 +372,7 @@
 
                 const boothData = boothRes && boothRes[0] ? boothRes[0] : { location_type: null };
                 isLocationToBooth = (boothData.location_type === 'booth');
+                isLocationToWip   = (boothData.location_type === 'wip');
                 toggleFgTargetHeader();
                 toggleQtyWosColumn();
 

@@ -57,13 +57,9 @@
                                             @endforeach
                                         </select>
                                 </div>
-                            </div>
-
-                            {{-- Toggle WOS: hanya tampil kalau rute Location From=Chemical & Location To=booth --}}
-                            <div class="form-row">
-                                <div class="form-group col-md-4" id="wosToggleWrapper" style="display:none;">
+                                 <div class="form-group col-md-4" id="wosToggleWrapper" style="display:none;">
                                     <label class="form-label d-block">
-                                        Transfer WOS?
+                                        Transfer Based on WOS?
                                         <i class="feather icon-info" data-toggle="tooltip"
                                            title="Aktifkan jika transfer ini termasuk WOS (Waste of Solvent). Jika tidak diaktifkan, kolom QTY WOS tidak akan diminta/disimpan."></i>
                                     </label>
@@ -74,7 +70,7 @@
                                         </label>
                                     </div>
                                 </div>
-                            </div>
+</div>
 
                             <div class="form-row d-none">
                                 <div class="form-group col-md-5">
@@ -252,6 +248,7 @@
 
         if (!locFrom || !locTo) {
             isLocationToBooth = false;
+            isLocationToWip   = false;
             toggleFgTargetHeader();
             toggleQtyWosColumn();
             return;
@@ -268,6 +265,7 @@
             // boothRes = [data, statusText, jqXHR] dari $.when
             const boothData = boothRes && boothRes[0] ? boothRes[0] : { location_type: null };
             isLocationToBooth = (boothData.location_type === 'booth');
+            isLocationToWip   = (boothData.location_type === 'wip');
             toggleFgTargetHeader();
             refreshAllFgTarget();
             toggleQtyWosColumn();
@@ -276,6 +274,7 @@
         }).fail(function () {
             if (myToken !== locationChangeToken) return;
             isLocationToBooth = false;
+            isLocationToWip   = false;
             toggleFgTargetHeader();
             toggleQtyWosColumn();
             toggleArticleSection(false);
