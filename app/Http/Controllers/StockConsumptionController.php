@@ -793,22 +793,22 @@ class StockConsumptionController extends Controller
 
                 $b  = '<div class="d-inline-flex"><a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a>';
                 $b .= '<div class="dropdown-menu dropdown-menu-right">';
-                $b .= '<a href="'.route('stockConsumption.show',['id'=>$encId]).'" class="dropdown-item"><i data-feather="eye"></i><span>Detail</span></a>';
+                $b .= '<a href="'.route('stockConsumption.show',['id'=>$encId]).'" class="dropdown-item"><i data-feather="eye"></i><span> Detail</span></a>';
 
                 if ($st == '1') {
-                    $b .= '<a href="'.route('stockConsumption.edit',['id'=>$encId]).'" class="dropdown-item"><i data-feather="edit-2"></i><span>Edit</span></a>';
+                    $b .= '<a href="'.route('stockConsumption.edit',['id'=>$encId]).'" class="dropdown-item"><i data-feather="edit-2"></i><span> Edit</span></a>';
                 }
 
                 // POSTING: hanya dari halaman detail (form COA ada di sana) — link ke show
                 if ($st == '1' && $canPost) {
-                    $b .= '<a href="'.route('stockConsumption.show',['id'=>$encId]).'" class="dropdown-item text-success"><i data-feather="check-circle"></i><span>Posting</span></a>';
+                    $b .= '<a href="'.route('stockConsumption.show',['id'=>$encId]).'" class="dropdown-item text-success"><i data-feather="check-circle"></i><span> Posting</span></a>';
                 }
 
                 if ($st != '5' && ($isCreator || $canPost)) {
                     $b .= "<a href='javascript:;' class='dropdown-item text-danger' data-ajax-delete='true'
                                 data-confirm='Batalkan konsumsi ini?|Stok & jurnal (jika sudah posting) akan dikembalikan.'
                                 data-url='".route('stockConsumption.cancel',['id'=>$encId])."'>
-                                <i data-feather='x-circle'></i><span>Cancel</span></a>";
+                                <i data-feather='x-circle'></i><span> Cancel</span></a>";
                 }
 
                 $b .= '</div></div>';
