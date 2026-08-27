@@ -49,8 +49,8 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-8">
-                                    <label class="form-label" for="note">Notes*</label>
+                                <div class="form-group col-md-6">
+                                    <label class="form-label" for="note">Notes</label>
                                     <textarea id="note" name="note" class="form-control" rows="3">{{ $header->note }}</textarea>
                                 </div>
                             </div>
