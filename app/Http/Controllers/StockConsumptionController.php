@@ -156,6 +156,7 @@ class StockConsumptionController extends Controller
             ->when(!$privileged, fn($q) => $q->where(fn($s) =>
                 $s->whereIn('dept_code', $userDepts)->orWhere('location_code','011')
             ))
+            ->where(fn($q) => $q->whereNull('parent_location')->orWhere('parent_location',''))
             ->orderBy('location_name')->get();
 
         $data['currentDateValue'] = date('d-m-Y');
@@ -293,6 +294,7 @@ class StockConsumptionController extends Controller
             ->when(!$privileged, fn($q) => $q->where(fn($s) =>
                 $s->whereIn('dept_code', $userDepts)->orWhere('location_code','011')
             ))
+            ->where(fn($q) => $q->whereNull('parent_location')->orWhere('parent_location',''))
             ->orderBy('location_name')->get();
 
         $data['statusTr']   = $this->statusLabel($hdr->status);
