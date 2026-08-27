@@ -463,7 +463,7 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Transfer out V1</span>
               </a>
             </li>
-            @endcan --}}
+            @endcan 
              
 
          @if(
@@ -477,7 +477,7 @@
             <span class="menu-item text-truncate">Transfer out</span>
         </a>
     </li>
-@endif
+@endif --}}
 
               <li class="{{ \Request::is(['stockMovement','stockMovement/create','stockMovement/show','stockMovement/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('stockMovement.index') }}">
@@ -539,7 +539,7 @@
             <li class="{{ \Request::is(['warehouse/location']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('location.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Location</span>
+                <span class="menu-item text-truncate" data-i18n="Input">Stock Location</span>
               </a>
             </li> 
 
