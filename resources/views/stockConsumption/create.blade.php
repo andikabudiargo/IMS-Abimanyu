@@ -63,7 +63,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label class="form-label" for="note">Notes*</label>
-                                    <textarea id="note" name="note" class="form-control" rows="1" required></textarea>
+                                    <textarea id="note" name="note" class="form-control" rows="3"></textarea>
                                 </div>
                             </div>
                         </form>

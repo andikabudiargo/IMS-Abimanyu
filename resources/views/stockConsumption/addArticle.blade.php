@@ -99,12 +99,12 @@ btnReset = ($btn) => {
 // ============================================================
 // AMBIL ARTIKEL PER LOKASI — mengisi global dataArticle
 // ============================================================
-function isiArticleByLocation(locationCode) {
-    dataArticle = "";   // reset dulu biar polling di create.blade.php bisa detect selesai
+function isiArticleByLocation(locationCode, scNumber) {
+    dataArticle = "";   // reset dulu biar polling di create/edit.blade.php bisa detect selesai
     $.ajax({
         url    : "{{ route('stockConsumption.articleByLocation') }}",
         method : "GET",
-        data   : { location: locationCode },
+        data   : { location: locationCode, scNumber: scNumber || '' },   // ⬅️ tambah scNumber
         success: function (result) {
             let options = '<option value=""></option>';
             $.each(result, function (i, item) {
@@ -115,11 +115,11 @@ function isiArticleByLocation(locationCode) {
                     data-uom-member="${item.uom_member ?? item.uom ?? ''}"
                 >${item.article_alternative_code} - ${item.article_desc}</option>`;
             });
-            dataArticle = options;   // set SETELAH response tiba → polling di create.blade detect ini
+            dataArticle = options;
         },
         error: function (e) {
             console.error('isiArticleByLocation error', e);
-            dataArticle = '<option value=""></option>';   // set supaya polling tidak hang
+            dataArticle = '<option value=""></option>';
         }
     });
 }

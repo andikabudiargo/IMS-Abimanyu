@@ -19,7 +19,7 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             <div class="form-row">
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-4">
                                     <label for="scNumber">Number</label> <small class="text-muted">automatic</small>
                                     <input type="text" id="scNumber" name="scNumber" value="{{ $header->sc_number }}" class="form-control disabled-el" disabled />
                                 </div>
@@ -27,7 +27,9 @@
                                     <label for="scDate">Date*</label>
                                     <input type="text" id="scDate" name="scDate" value="{{ $header->sc_date }}" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
-                                <div class="form-group col-md-4">
+                                </div>
+                                <div class="form-row">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="location">Location*</label>
                                     <select class="select2 form-control" id="location" name="location" required>
                                         <option value=""></option>
@@ -36,7 +38,7 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label class="form-label" for="coa">COA*</label>
                                     <select class="select2 form-control" id="coa" name="coa" required>
                                         <option value=""></option>
@@ -49,7 +51,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes*</label>
-                                    <textarea id="note" name="note" class="form-control" rows="1" required>{{ $header->note }}</textarea>
+                                    <textarea id="note" name="note" class="form-control" rows="3">{{ $header->note }}</textarea>
                                 </div>
                             </div>
                         </form>
@@ -110,29 +112,31 @@
     });
 
     $(document).ready(function () {
-        if (typeof validateFormToast === 'function') validateFormToast("frmAdd");
-        $('#scDate').flatpickr({ dateFormat:"d-m-Y", defaultDate: $('#scDate').val() || null, allowInput:true });
-        $('#location, #coa').select2({ placeholder:'- Pilih -', allowClear:true, width:'100%' });
+    if (typeof validateFormToast === 'function') validateFormToast("frmAdd");
+    $('#scDate').flatpickr({ dateFormat:"d-m-Y", defaultDate: $('#scDate').val() || null, allowInput:true });
+    $('#location, #coa').select2({ placeholder:'- Pilih -', allowClear:true, width:'100%' });
 
-        const initLoc = location.val();
-        if (initLoc) isiArticleByLocation(initLoc);
+    const initLoc = location.val();
+    if (initLoc) isiArticleByLocation(initLoc, "{{ $header->sc_number }}");   // ⬅️ kirim sc_number saat load awal
 
-        let timerId = setInterval(() => {
-            if (dataArticle.length > 0) {
-                clearInterval(timerId);
-                let detail = {!! json_encode($details) !!};
-                detail.forEach(function (d) {
-                    add_new_row_edit(d.article_code, d.qty, d.uom, d.uom_member ?? '', d.note ?? '');
-                });
-            }
-        }, 500);
+    let timerId = setInterval(() => {
+        if (dataArticle.length > 0) {
+            clearInterval(timerId);
+            let detail = {!! json_encode($details) !!};
+            detail.forEach(function (d) {
+                add_new_row_edit(d.article_code, d.qty, d.uom, d.uom_member ?? '', d.note ?? '');
+            });
+        }
+    }, 500);
 
-        location.on('change', function () {
-            const loc = $(this).val();
-            $('#article_row').html('<input type="text" id="last_row_number" class="d-none" value="0">');
-            hitungGrandTotal();
-            if (loc) isiArticleByLocation(loc);
-        });
+    location.on('change', function () {
+        const loc = $(this).val();
+        $('#article_row').html('<input type="text" id="last_row_number" class="d-none" value="0">');
+        hitungGrandTotal();
+        if (loc) isiArticleByLocation(loc);   // ⬅️ TANPA sc_number saat user ganti lokasi manual —
+                                               //     karena user memilih lokasi baru, artikel lama
+                                               //     dari lokasi sebelumnya tidak relevan lagi
     });
+});
 </script>
 @endsection

@@ -910,28 +910,46 @@ class StockConsumptionController extends Controller
     // ============================================================
     // ARTICLE BY LOCATION
     // ============================================================
-    public function articleByLocation(Request $request)
-    {
-        $stockLoc = $this->getStockLocation($request->location);
+    public public function articleByLocation(Request $request)
+{
+    $stockLoc = $this->getStockLocation($request->location);
+    $scNumber = $request->scNumber; // opsional — dikirim saat mode Edit
 
-        return DB::table('warehouse_stock as s')
-            ->join('article as a','a.article_code','=','s.article_code')
-            ->where('s.site_code', $this->siteCode)
-            ->where('s.location_number', $stockLoc)
-            ->where(DB::raw('coalesce(s.article_qty,0)'), '>', 0)
-            ->where('a.status', '1')
-            ->select(
-                'a.article_code',
-                'a.article_alternative_code',
-                'a.article_desc',
-                'a.article_type',
-                'a.uom',
-                DB::raw('coalesce(s.article_qty,0) as qty'),
-                DB::raw("(select string_agg(unit_to,',' order by unit_from) from uom_con_v2 where article_code = a.article_code) as uom_member")
-            )
-            ->orderBy('a.article_alternative_code')
-            ->get();
+    $existingCodes = [];
+    if ($scNumber) {
+        $existingCodes = DB::table('stock_consumption_det')
+            ->where('sc_number', $scNumber)
+            ->pluck('article_code')
+            ->toArray();
     }
+
+    // Pakai LEFT JOIN dari article → warehouse_stock, supaya artikel yang
+    // tidak punya baris stok di lokasi ini pun tetap muncul jika ada di $existingCodes.
+    return DB::table('article as a')
+        ->leftJoin('warehouse_stock as s', function ($join) use ($stockLoc) {
+            $join->on('s.article_code', '=', 'a.article_code')
+                 ->where('s.site_code', $this->siteCode)
+                 ->where('s.location_number', $stockLoc);
+        })
+        ->where('a.status', '1')
+        ->where(function ($q) use ($existingCodes) {
+            $q->where(DB::raw('coalesce(s.article_qty,0)'), '>', 0);
+            if (!empty($existingCodes)) {
+                $q->orWhereIn('a.article_code', $existingCodes);
+            }
+        })
+        ->select(
+            'a.article_code',
+            'a.article_alternative_code',
+            'a.article_desc',
+            'a.article_type',
+            'a.uom',
+            DB::raw('coalesce(s.article_qty,0) as qty'),
+            DB::raw("(select string_agg(unit_to,',' order by unit_from) from uom_con_v2 where article_code = a.article_code) as uom_member")
+        )
+        ->orderBy('a.article_alternative_code')
+        ->get();
+}
 
     // ============================================================
     // HELPERS
