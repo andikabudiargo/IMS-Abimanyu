@@ -191,15 +191,20 @@ function isStrictStockLocation() {
     return (typeof locationFrom !== 'undefined' && locationFrom.val() === CONSUMABLE_LOCATION);
 }
 
-// ── kolom QTY WOS hanya muncul kalau From = Gudang Chemical ──
+// ── kolom QTY WOS hanya muncul kalau From = Gudang Chemical DAN To = lokasi bertipe booth ──
 const CHEMICAL_LOCATION = '005';
 function isChemicalLocation() {
     return (typeof locationFrom !== 'undefined' && locationFrom.val() === CHEMICAL_LOCATION);
 }
 
-/** Toggle header + semua row kolom QTY WOS sesuai Location From saat ini */
+/** Syarat gabungan untuk menampilkan QTY WOS: From Chemical DAN To booth */
+function shouldShowQtyWos() {
+    return isChemicalLocation() && isLocationToBooth;
+}
+
+/** Toggle header + semua row kolom QTY WOS sesuai kondisi gabungan saat ini */
 function toggleQtyWosColumn() {
-    const show = isChemicalLocation();
+    const show = shouldShowQtyWos();
     $('#headerQtyWos').toggle(show);
     $('.qty-wos-wrapper').toggle(show);
     if (!show) {
@@ -266,13 +271,14 @@ function checkAndSetFromRmFlag(locCode) {
 
     /**
      * Cek location type ke server, set flag isLocationToBooth,
-     * lalu refresh semua row.
+     * lalu refresh semua row + kolom QTY WOS.
      */
     function checkAndSetBoothFlag(locCode) {
     if (!locCode) {
         isLocationToBooth = false;
         toggleFgTargetHeader();
         refreshAllFgTarget();
+        toggleQtyWosColumn();   // ← re-evaluasi QTY WOS saat booth flag berubah
         return;
     }
     $.ajax({
@@ -284,11 +290,13 @@ function checkAndSetFromRmFlag(locCode) {
             isLocationToBooth = (res.location_type === 'booth');
             toggleFgTargetHeader();
             refreshAllFgTarget();
+            toggleQtyWosColumn();   // ← re-evaluasi QTY WOS saat booth flag berubah
         },
         error: function() {
             isLocationToBooth = false;
             toggleFgTargetHeader();
             refreshAllFgTarget();
+            toggleQtyWosColumn();   // ← re-evaluasi QTY WOS saat booth flag berubah
         }
     });
 }
@@ -421,9 +429,9 @@ let arrArticles = [];
         let qty   = objQty.eq(i).val().replace(/,/gi, '') || 0;
         let note  = objNote.eq(i).val();
         let uom   = objUom.eq(i).val();
-        let qtyWos = isChemicalLocation()
+        let qtyWos = shouldShowQtyWos()
             ? (objQtyWos.eq(i).val() || '').toString().replace(/,/gi, '')
-            : null;   // ← kalau bukan gudang chemical, jangan kirim apa-apa
+            : null;   // ← kalau bukan kombinasi Chemical→booth, jangan kirim apa-apa
 
                    // let stock = parseFloat(objQty.eq(i).attr('data-stock'));
                     //if (!isNaN(stock) && parseFloat(qty) > stock) {
@@ -583,7 +591,7 @@ $.ajax({
     // ── QTY WOS ──
     $("#new_row" + cloneCount).find('#qtyWos').attr('id', 'qtyWos' + cloneCount);
     $("#qtyWos" + cloneCount).val(qtyWos ? formatQty(qtyWos) : '');
-    $("#new_row" + cloneCount).find('.qty-wos-wrapper').toggle(isChemicalLocation());
+    $("#new_row" + cloneCount).find('.qty-wos-wrapper').toggle(shouldShowQtyWos());
 
     let selStock = $("#articleId" + cloneCount).find(":selected").data("stock");
 if (selStock !== undefined && selStock !== null && selStock !== '') {
@@ -645,9 +653,9 @@ if (selStock !== undefined && selStock !== null && selStock !== '') {
     $("#new_row" + cloneCount).find('#articleId').attr('id', 'articleId' + cloneCount);
     changeselect('trArticle', 'articleId' + cloneCount, '');
 
-    // ── QTY WOS: kasih id unik + toggle sesuai lokasi ──
+    // ── QTY WOS: kasih id unik + toggle sesuai kondisi gabungan ──
     $("#new_row" + cloneCount).find('#qtyWos').attr('id', 'qtyWos' + cloneCount);
-    $("#new_row" + cloneCount).find('.qty-wos-wrapper').toggle(isChemicalLocation());
+    $("#new_row" + cloneCount).find('.qty-wos-wrapper').toggle(shouldShowQtyWos());
 
     $('#remove_button').tooltip();
     splitArticle();
