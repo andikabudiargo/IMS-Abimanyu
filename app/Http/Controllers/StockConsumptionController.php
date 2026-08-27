@@ -756,6 +756,7 @@ class StockConsumptionController extends Controller
 
         $query = DB::table('stock_consumption_hdr')
             ->leftJoin('stock_location_master as loc','loc.location_code','=','stock_consumption_hdr.location_code')
+            ->leftJoin('accounts as coa', 'coa.account', '=', 'stock_consumption_hdr.coa_code')   // ⬅️ PASTIKAN BARIS INI ADA
             ->where(function ($q) use ($searchNo,$searchStatus,$searchLoc,$scDate,$fromDate,$toDate) {
                 if ($searchNo)     $q->where('stock_consumption_hdr.sc_number','ilike',"%$searchNo%");
                 if ($searchStatus) $q->where('stock_consumption_hdr.status',$searchStatus);
