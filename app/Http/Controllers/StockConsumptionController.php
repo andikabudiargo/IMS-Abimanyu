@@ -1090,23 +1090,25 @@ class StockConsumptionController extends Controller
 
     private function resolveConsumptionCoa(string $articleType): string
     {
-        return match ($articleType) {
-            'CM1' => '5000.33',
-            'CM2' => '5000.34',
-            default => throw new \RuntimeException(
-                "Article type '$articleType' tidak didukung di Stock Consumption. RMP/RMNP diproses lewat Actual Loading/Finish Goods."
-            ),
-        };
+        switch ($articleType) {
+            case 'CM1': return '5000.33';
+            case 'CM2': return '5000.34';
+            default:
+                throw new \RuntimeException(
+                    "Article type '$articleType' tidak didukung di Stock Consumption. RMP/RMNP diproses lewat Actual Loading/Finish Goods."
+                );
+        }
     }
 
     private function resolveInventoryCoa(string $articleType): string
     {
-        return match ($articleType) {
-            'CM1' => '1100.32.1',
-            'CM2' => '1100.32.2',
-            default => throw new \RuntimeException(
-                "Article type '$articleType' tidak didukung di Stock Consumption. RMP/RMNP diproses lewat Actual Loading/Finish Goods."
-            ),
-        };
+        switch ($articleType) {
+            case 'CM1': return '1100.32.1';
+            case 'CM2': return '1100.32.2';
+            default:
+                throw new \RuntimeException(
+                    "Article type '$articleType' tidak didukung di Stock Consumption. RMP/RMNP diproses lewat Actual Loading/Finish Goods."
+                );
+        }
     }
 }
