@@ -5,11 +5,11 @@
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group"><label class="d-none d-md-block font-weight-bold text-right">Stock</label></div>
     </div>
+     <div class="col-md-1 col-12 qty-wos-wrapper" id="headerQtyWos" style="display:none;">
+        <div class="form-group"><label class="d-none d-md-block font-weight-bold text-right">QTY WOS</label></div>
+    </div>
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group"><label class="d-none d-md-block font-weight-bold text-right">QTY Out</label></div>
-    </div>
-    <div class="col-md-1 col-12 qty-wos-wrapper" id="headerQtyWos" style="display:none;">
-        <div class="form-group"><label class="d-none d-md-block font-weight-bold text-right">QTY WOS</label></div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group"><label class="d-none d-md-block font-weight-bold">UOM</label></div>

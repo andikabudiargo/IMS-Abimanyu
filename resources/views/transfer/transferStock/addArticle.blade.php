@@ -14,6 +14,13 @@
         <input type="text" class="form-control text-right font-weight-bold" id="stock" name="stock[]" readonly tabindex="-1" />
     </div>
 </div>
+<div class="col-md-1 col-12 qty-wos-wrapper" style="display:none;">
+    <div class="form-group margin-nol">
+        <label for="qtyWos" class="d-block d-md-none">QTY WOS</label>
+        <input type="text" class="form-control numeral-mask-digit text-right"
+            id="qtyWos" name="qtyWos[]" maxlength="10" />
+    </div>
+</div>
             <div class="col-md-1 col-12">
     <div class="form-group margin-nol">
         <label for="qty" class="d-block d-md-none">QTY</label>
@@ -23,13 +30,6 @@
             data-type-el-kanan='input'
             data-nama-el-kanan='note'
             id ="qty" name="qty[]" maxlength="10" />
-    </div>
-</div>
-<div class="col-md-1 col-12 qty-wos-wrapper" style="display:none;">
-    <div class="form-group margin-nol">
-        <label for="qtyWos" class="d-block d-md-none">QTY WOS</label>
-        <input type="text" class="form-control numeral-mask-digit text-right"
-            id="qtyWos" name="qtyWos[]" maxlength="10" />
     </div>
 </div>
             <div class="col-md-1 col-12">
