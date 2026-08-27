@@ -49,8 +49,8 @@
                                     </select>
                                 </div>
                                 <div class="form-group col-md-3">
-                                    <label class="form-label" for="coa">COA*</label>
-                                    <select class="select2 form-control" id="coa" name="coa" required>
+                                    <label class="form-label" for="coa">COA</label><small>(diisi oleh Accounting)</small>
+                                    <select class="select2 form-control" id="coa" name="coa">
                                         <option value=""></option>
                                         @foreach($coas as $c)
                                             <option value="{{ $c->account }}">{{ $c->account }} - {{ $c->description }}</option>
