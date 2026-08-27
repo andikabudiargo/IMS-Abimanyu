@@ -59,6 +59,23 @@
                                 </div>
                             </div>
 
+                            {{-- Toggle WOS: hanya tampil kalau rute Location From=Chemical & Location To=booth --}}
+                            <div class="form-row">
+                                <div class="form-group col-md-4" id="wosToggleWrapper" style="display:none;">
+                                    <label class="form-label d-block">
+                                        Transfer WOS?
+                                        <i class="feather icon-info" data-toggle="tooltip"
+                                           title="Aktifkan jika transfer ini termasuk WOS (Waste of Solvent). Jika tidak diaktifkan, kolom QTY WOS tidak akan diminta/disimpan."></i>
+                                    </label>
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="isWosTransfer">
+                                        <label class="custom-control-label" for="isWosTransfer">
+                                            <span id="wosToggleLabel">Non-WOS</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="form-row d-none">
                                 <div class="form-group col-md-5">
                                     <label class="form-label" for="noteSelect">Notes</label>
@@ -189,6 +206,13 @@
      */
     let stockByArticle = {};
 
+    /**
+     * Token pencegah race-condition: setiap kali locationFrom/locationTo berubah,
+     * token di-increment. Callback AJAX lama membandingkan tokennya sendiri
+     * dengan token terbaru sebelum mengubah UI — kalau sudah usang, diabaikan.
+     */
+    let locationChangeToken = 0;
+
     document.querySelector('#cmdSave').addEventListener('click', () => {
         let oEdit = document.getElementById('oEdit');
         simpanData(oEdit.value);
@@ -207,23 +231,66 @@
     function resetArticleRows(){
         $('#article_row').html('<input type="text" id="last_row_number" class="d-none" value="0">');
         if (typeof hitungGrandTotal === 'function') hitungGrandTotal();
-        if (typeof dataArticle !== 'undefined') dataArticle = [];
+        if (typeof dataArticle !== 'undefined') dataArticle = '';
         stockByArticle = {};
     }
 
    $(document).ready(function () {
 
+    /**
+     * Muat ulang daftar artikel + booth flag secara BERURUTAN dan AMAN dari race condition.
+     * Tombol Add Article / Upload Excel baru diaktifkan setelah SEMUA AJAX terkait selesai
+     * DAN hasilnya masih relevan (token belum usang oleh perubahan lokasi berikutnya).
+     */
     function refreshArticleList() {
         const locFrom = locationFrom.val();
         const locTo   = locationTo.val();
+        const myToken = ++locationChangeToken;   // tandai giliran ini
 
-        if (locFrom && locTo) {
-            resetArticleRows();
-            isiArticleByLocation('trArticleLocation', locFrom, locTo);
-            toggleArticleSection(true);
-        } else {
-            toggleArticleSection(false);
+        resetArticleRows();
+        toggleArticleSection(false);
+
+        if (!locFrom || !locTo) {
+            isLocationToBooth = false;
+            toggleFgTargetHeader();
+            toggleQtyWosColumn();
+            return;
         }
+
+        // Jalankan booth-flag check + article list secara paralel,
+        // tapi tunda semua efek UI sampai KEDUANYA selesai DAN token masih valid.
+        $.when(
+            checkLocationTypeAjax(locTo),
+            isiArticleByLocation('trArticleLocation', locFrom, locTo)
+        ).done(function (boothRes, articleRes) {
+            if (myToken !== locationChangeToken) return; // sudah usang, abaikan
+
+            // boothRes = [data, statusText, jqXHR] dari $.when
+            const boothData = boothRes && boothRes[0] ? boothRes[0] : { location_type: null };
+            isLocationToBooth = (boothData.location_type === 'booth');
+            toggleFgTargetHeader();
+            refreshAllFgTarget();
+            toggleQtyWosColumn();
+
+            toggleArticleSection(true);
+        }).fail(function () {
+            if (myToken !== locationChangeToken) return;
+            isLocationToBooth = false;
+            toggleFgTargetHeader();
+            toggleQtyWosColumn();
+            toggleArticleSection(false);
+            show_msg('Error', 'Gagal memuat data lokasi/artikel, silakan coba lagi.', 'error');
+        });
+    }
+
+    /** Versi checkLocationType yang mengembalikan jqXHR (bisa dipakai $.when) */
+    function checkLocationTypeAjax(locCode) {
+        return $.ajax({
+            url: "{{ route('transferStock.checkLocationType') }}",
+            method: "GET",
+            data: { location_code: locCode },
+            dataType: "json"
+        });
     }
 
     validateFormToast("frmAdd");
@@ -258,23 +325,24 @@
 
     // ===== SATU-SATUNYA handler locationFrom =====
     locationFrom.on('change', function () {
-    const loc = $(this).val();
+        const loc = $(this).val();
 
-    resetArticleRows();
-    toggleQtyWosColumn();   // ← tambah baris ini
+        ++locationChangeToken;  // batalkan request lama yang mungkin masih berjalan
+        resetArticleRows();
+        toggleArticleSection(false);
+        toggleQtyWosColumn();
 
-    locationTo.html(locationToOptions);
-    if (loc) {
-        locationTo.find('option[value="' + loc + '"]').prop('disabled', true);
-    }
-    locationTo.val('').prop('disabled', !loc).trigger('change');
+        locationTo.html(locationToOptions);
+        if (loc) {
+            locationTo.find('option[value="' + loc + '"]').prop('disabled', true);
+        }
+        locationTo.val('').prop('disabled', !loc).trigger('change');
 
-    checkAndSetFromRmFlag(loc);
-});
+        checkAndSetFromRmFlag(loc);
+    });
 
     // ===== SATU-SATUNYA handler locationTo =====
     locationTo.on('change', function () {
-        checkAndSetBoothFlag($(this).val());
         refreshArticleList();
     });
 

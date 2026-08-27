@@ -65,6 +65,24 @@
                                     </select>
                                 </div>
                             </div>
+
+                            {{-- Toggle WOS: hanya tampil kalau rute Location From=Chemical & Location To=booth --}}
+                            <div class="form-row">
+                                <div class="form-group col-md-4" id="wosToggleWrapper" style="display:none;">
+                                    <label class="form-label d-block">
+                                        Transfer WOS?
+                                        <i class="feather icon-info" data-toggle="tooltip"
+                                           title="Aktifkan jika transfer ini termasuk WOS (Waste of Solvent). Jika tidak diaktifkan, kolom QTY WOS tidak akan diminta/disimpan."></i>
+                                    </label>
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="isWosTransfer">
+                                        <label class="custom-control-label" for="isWosTransfer">
+                                            <span id="wosToggleLabel">Non-WOS</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
@@ -189,6 +207,13 @@
     let locationTo   = $('#locationTo');
     let objNote      = $('#note');
 
+    /**
+     * Token anti race-condition: sama seperti di create.blade.php.
+     * Setiap kali Location From/To berubah, token naik; response AJAX
+     * dari giliran lama yang telat datang akan diabaikan.
+     */
+    let locationChangeToken = 0;
+
     // ── Save & Approve ──────────────────────────────────────────
     const saveBtn    = document.querySelector('#cmdSave');
     const approveBtn = document.querySelector('#cmdApprove');
@@ -207,6 +232,85 @@
         }, { once: true });
     }
 
+    /** Versi checkLocationType yang mengembalikan jqXHR (bisa dipakai $.when) */
+    function checkLocationTypeAjax(locCode) {
+        return $.ajax({
+            url: "{{ route('transferStock.checkLocationType') }}",
+            method: "GET",
+            data: { location_code: locCode },
+            dataType: "json"
+        });
+    }
+
+    /**
+     * Muat ulang daftar artikel + booth flag secara BERURUTAN dan AMAN dari race condition.
+     * Dipanggil setiap kali Location From atau Location To berubah.
+     * @param {boolean} preserveWosToggle - true saat load awal (populate data existing),
+     *        supaya toggle WOS yang sudah di-set dari data lama tidak direset ke off.
+     */
+    function refreshArticleList(preserveWosToggle = false) {
+        const locFrom = locationFrom.val();
+        const locTo   = locationTo.val();
+        const myToken = ++locationChangeToken;
+
+        if (!preserveWosToggle) {
+            resetArticleRows();
+        }
+        toggleArticleSection(false);
+
+        if (!locFrom || !locTo) {
+            isLocationToBooth = false;
+            toggleFgTargetHeader();
+            if (!preserveWosToggle) toggleQtyWosColumn();
+            return;
+        }
+
+        $.when(
+            checkLocationTypeAjax(locTo),
+            isiArticleByLocation('trArticleLocation', locFrom, locTo)
+        ).done(function (boothRes) {
+            if (myToken !== locationChangeToken) return; // sudah usang, abaikan
+
+            const boothData = boothRes && boothRes[0] ? boothRes[0] : { location_type: null };
+            isLocationToBooth = (boothData.location_type === 'booth');
+            toggleFgTargetHeader();
+            refreshAllFgTarget();
+
+            if (preserveWosToggle) {
+                // Load awal: JANGAN reset toggle WOS yang sudah di-set dari data existing.
+                // Cukup sinkronkan visibility switch & kolom sesuai state isWosTransfer saat ini.
+                toggleQtyWosColumn();
+            } else {
+                toggleQtyWosColumn();
+            }
+
+            toggleArticleSection(true);
+        }).fail(function () {
+            if (myToken !== locationChangeToken) return;
+            isLocationToBooth = false;
+            toggleFgTargetHeader();
+            toggleQtyWosColumn();
+            toggleArticleSection(false);
+            show_msg('Error', 'Gagal memuat data lokasi/artikel, silakan coba lagi.', 'error');
+        });
+    }
+
+    function toggleArticleSection(enable) {
+        const disabled = !enable;
+        $('#addNewRow').prop('disabled', disabled);
+        $('#uploadExcel').prop('disabled', disabled);
+        $('#file').prop('disabled', disabled);
+        $('#cmdSave').prop('disabled', disabled);
+        $('#articleLockMsg').toggleClass('d-none', enable);
+    }
+
+    function resetArticleRows() {
+        $('#article_row').html('<input type="text" id="last_row_number" class="d-none" value="0">');
+        if (typeof hitungGrandTotal === 'function') hitungGrandTotal();
+        dataArticle = '';
+        cloneCount = 0;
+    }
+
     $(document).ready(function () {
         validateFormToast("frmAdd");
 
@@ -223,26 +327,52 @@
             width: '100%'
         });
 
-        // ── Hook locationTo untuk booth flag ────────────────────
-        locationTo.on('change', function () {
-            checkAndSetBoothFlag($(this).val());
+        // ── Toggle "Transfer ini WOS?" ────────────────────────────
+        $(document).on('change', '#isWosTransfer', function () {
+            isWosTransfer = $(this).is(':checked');
+            $('#wosToggleLabel').text(isWosTransfer ? 'WOS' : 'Non-WOS');
+            toggleQtyWosColumn();
         });
 
-        // ── Trigger booth flag sesuai nilai awal (edit) ─────────
-        checkAndSetBoothFlag(locationTo.val());
-         toggleQtyWosColumn();
+        // ── locationFrom / locationTo change: SATU jalur lewat refreshArticleList ──
+        locationFrom.on('change', function () {
+            refreshArticleList(false);
+        });
+        locationTo.on('change', function () {
+            refreshArticleList(false);
+        });
 
-        // ── Load artikel berdasarkan location_from ───────────────
-        const initLocFrom = locationFrom.val();
-        if (initLocFrom) {
-            isiArticleByLocation('trArticleLocation', initLocFrom);
+        // ── LOAD AWAL (data existing) ─────────────────────────────
+        // Data existing sudah punya location_from & location_to terisi (selected di HTML).
+        // Deteksi dulu apakah ada qty_wos terisi di detail, supaya toggle WOS langsung ON
+        // SEBELUM refreshArticleList mengevaluasi visibility kolom.
+        const detail = {!! json_encode($details) !!};
+        const hasWosData = detail.some(d => d.qty_wos !== null && d.qty_wos !== undefined && d.qty_wos !== '');
+        if (hasWosData) {
+            isWosTransfer = true;
+            $('#isWosTransfer').prop('checked', true);
+            $('#wosToggleLabel').text('WOS');
         }
 
-        // ── Tunggu dataArticle siap, lalu populate rows ──────────
-        let timerId = setInterval(() => {
-            if (dataArticle.length > 0) {
-                clearInterval(timerId);
-                let detail = {!! json_encode($details) !!};
+        const initLocFrom = locationFrom.val();
+        const initLocTo   = locationTo.val();
+
+        if (initLocFrom && initLocTo) {
+            const myToken = ++locationChangeToken;
+            toggleArticleSection(false);
+
+            $.when(
+                checkLocationTypeAjax(initLocTo),
+                isiArticleByLocation('trArticleLocation', initLocFrom, initLocTo)
+            ).done(function (boothRes) {
+                if (myToken !== locationChangeToken) return;
+
+                const boothData = boothRes && boothRes[0] ? boothRes[0] : { location_type: null };
+                isLocationToBooth = (boothData.location_type === 'booth');
+                toggleFgTargetHeader();
+                toggleQtyWosColumn();
+
+                // Populate baris dari data existing SETELAH dataArticle & flag booth siap
                 detail.forEach(function (d) {
                     add_new_row_edit(
                         d.article_code,
@@ -253,18 +383,19 @@
                         d.qty_wos ?? null,
                     );
                 });
-                $(".loading-spinner-container").removeClass("-show");
-            }
-        }, 500);
 
-        // ── locationFrom change ──────────────────────────────────
-        locationFrom.on('change', function () {
-            const loc = $(this).val();
-            toggleQtyWosColumn();  
-            if (loc) {
-                isiArticleByLocation('trArticleLocation', loc);
-            }
-        });
+                toggleArticleSection(true);
+                $(".loading-spinner-container").removeClass("-show");
+            }).fail(function () {
+                if (myToken !== locationChangeToken) return;
+                toggleArticleSection(false);
+                show_msg('Error', 'Gagal memuat data artikel awal.', 'error');
+                $(".loading-spinner-container").removeClass("-show");
+            });
+        } else {
+            toggleArticleSection(false);
+            $(".loading-spinner-container").removeClass("-show");
+        }
     });
 </script>
 @endsection

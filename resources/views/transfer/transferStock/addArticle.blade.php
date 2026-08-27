@@ -175,6 +175,7 @@ function formatQty(v){
     let dataLocationTo = "";
     let isLocationToBooth = false; // ← flag booth
     let isLocationFromRM  = false;  // ← Location From bertipe rm
+    let isWosTransfer     = false;  // ← toggle header "Transfer ini WOS?"
 
 /** True hanya kalau From=rm DAN To=booth */
 function shouldShowFgTarget() {
@@ -191,19 +192,36 @@ function isStrictStockLocation() {
     return (typeof locationFrom !== 'undefined' && locationFrom.val() === CONSUMABLE_LOCATION);
 }
 
-// ── kolom QTY WOS hanya muncul kalau From = Gudang Chemical DAN To = lokasi bertipe booth ──
+// ── kolom QTY WOS hanya BISA muncul kalau From = Gudang Chemical DAN To = lokasi bertipe booth ──
 const CHEMICAL_LOCATION = '005';
 function isChemicalLocation() {
     return (typeof locationFrom !== 'undefined' && locationFrom.val() === CHEMICAL_LOCATION);
 }
 
-/** Syarat gabungan untuk menampilkan QTY WOS: From Chemical DAN To booth */
-function shouldShowQtyWos() {
+/** Kombinasi lokasi yang MEMUNGKINKAN transfer WOS (belum tentu toggle-nya aktif) */
+function isWosEligibleRoute() {
     return isChemicalLocation() && isLocationToBooth;
+}
+
+/** Toggle switch "Transfer ini WOS?" hanya tampil kalau rute-nya memungkinkan WOS */
+function toggleWosSwitchVisibility() {
+    const show = isWosEligibleRoute();
+    $('#wosToggleWrapper').toggle(show);
+    if (!show) {
+        // rute tidak lagi mendukung WOS → matikan toggle & reset
+        isWosTransfer = false;
+        $('#isWosTransfer').prop('checked', false);
+    }
+}
+
+/** Syarat gabungan untuk menampilkan kolom QTY WOS: rute Chemical→booth DAN toggle diaktifkan user */
+function shouldShowQtyWos() {
+    return isWosEligibleRoute() && isWosTransfer;
 }
 
 /** Toggle header + semua row kolom QTY WOS sesuai kondisi gabungan saat ini */
 function toggleQtyWosColumn() {
+    toggleWosSwitchVisibility();
     const show = shouldShowQtyWos();
     $('#headerQtyWos').toggle(show);
     $('.qty-wos-wrapper').toggle(show);
@@ -216,6 +234,13 @@ function toggleQtyWosColumn() {
     if (trDate.length) {
         trDate.flatpickr({ dateFormat: "d-m-Y" });
     }
+
+    // ── Toggle "Transfer ini WOS?" — perubahan langsung mempengaruhi kolom QTY WOS ──
+    $(document).on('change', '#isWosTransfer', function () {
+        isWosTransfer = $(this).is(':checked');
+        $('#wosToggleLabel').text(isWosTransfer ? 'WOS' : 'Non-WOS');
+        toggleQtyWosColumn();
+    });
 
     function reloadPage(){
         window.location.reload();
@@ -240,6 +265,9 @@ function toggleQtyWosColumn() {
     /**
  * Cek location type untuk Location From, set flag isLocationFromRM,
  * lalu refresh header + semua row.
+ * (Dipakai HANYA oleh handler locationFrom — tidak terlibat race condition
+ *  dengan articleByLocation karena Location To di-reset kosong tiap kali
+ *  Location From berubah, sehingga urutannya alami: dari → reset to → user pilih to.)
  */
 function checkAndSetFromRmFlag(locCode) {
     if (!locCode) {
@@ -268,38 +296,6 @@ function checkAndSetFromRmFlag(locCode) {
     // ============================================================
     // FG TARGET HELPERS
     // ============================================================
-
-    /**
-     * Cek location type ke server, set flag isLocationToBooth,
-     * lalu refresh semua row + kolom QTY WOS.
-     */
-    function checkAndSetBoothFlag(locCode) {
-    if (!locCode) {
-        isLocationToBooth = false;
-        toggleFgTargetHeader();
-        refreshAllFgTarget();
-        toggleQtyWosColumn();   // ← re-evaluasi QTY WOS saat booth flag berubah
-        return;
-    }
-    $.ajax({
-        url: "{{ route('transferStock.checkLocationType') }}",
-        method: "GET",
-        data: { location_code: locCode },
-        dataType: "json",
-        success: function(res) {
-            isLocationToBooth = (res.location_type === 'booth');
-            toggleFgTargetHeader();
-            refreshAllFgTarget();
-            toggleQtyWosColumn();   // ← re-evaluasi QTY WOS saat booth flag berubah
-        },
-        error: function() {
-            isLocationToBooth = false;
-            toggleFgTargetHeader();
-            refreshAllFgTarget();
-            toggleQtyWosColumn();   // ← re-evaluasi QTY WOS saat booth flag berubah
-        }
-    });
-}
 
     /** Refresh semua row setelah flag booth berubah */
     function refreshAllFgTarget() {
@@ -612,21 +608,6 @@ if (selStock !== undefined && selStock !== null && selStock !== '') {
     }
 }
 
-       // let selStock = $("#articleId" + cloneCount).find(":selected").data("stock");
-        //if (selStock !== undefined && selStock !== null && selStock !== '') {
-          //  $("#qty" + cloneCount).attr('data-stock', selStock);
-           // if (parseFloat(qty) > parseFloat(selStock)) qty = selStock;
-        //}
-        //$("#qty" + cloneCount).val(qty);
-
-        //$("#new_row" + cloneCount).find('#stock').attr('id', 'stock' + cloneCount);
-        //if (selStock !== undefined && selStock !== null && selStock !== '') {
-          //  $("#stock" + cloneCount).val(formatStock(selStock));
-            //if (parseFloat(qty) > parseFloat(selStock)) {
-              //  $("#qty" + cloneCount).addClass('qty-over-stock');
-            //}
-        //}
-
         let uomOption = "";
         if (uomMember) {
             let arrUomMember = uomMember.split(',');
@@ -669,29 +650,32 @@ if (selStock !== undefined && selStock !== null && selStock !== '') {
     // ARTICLE & LOCATION HELPERS
     // ============================================================
 
-    // GANTI fungsi lama isiArticleByLocation dengan ini:
+    /**
+     * Ambil daftar artikel untuk Location From (+ filter article_type Location To bila ada).
+     * MENGEMBALIKAN jqXHR (promise) supaya pemanggil bisa menunggu dengan .done()/$.when().
+     * dataArticle di-assign SEKALI SAJA di sini saat response datang.
+     */
 function isiArticleByLocation(dependent, locationFrom, locationTo = '') {
-    $.ajax({
-        url: "{{ route('transferStock.articleByLocation') }}",  // ← ganti ke route kita
+    return $.ajax({
+        url: "{{ route('transferStock.articleByLocation') }}",
         method: "GET",
         data: {
             location:    locationFrom,
-            location_to: locationTo    // ← tambah param ini
+            location_to: locationTo
         },
-        success: function(result) {
-            // Bangun HTML options dari result (dulu dibangun oleh dynamic.dependent)
-            let options = '<option value=""></option>';
-            $.each(result, function(i, item) {
-                options += `<option value="${item.article_code}"
-                    data-uom="${item.uom}"
-                    data-stock="${item.qty}"
-                    data-article-type="${item.article_type}"
-                    data-group-of-material="${item.group_of_material ?? ''}"
-                    data-uom-member="${item.uom ?? ''}"
-                >${item.article_alternative_code} - ${item.article_desc}</option>`;
-            });
-            dataArticle = options;
-        }
+        dataType: "json"
+    }).done(function(result) {
+        let options = '<option value=""></option>';
+        $.each(result, function(i, item) {
+            options += `<option value="${item.article_code}"
+                data-uom="${item.uom}"
+                data-stock="${item.qty}"
+                data-article-type="${item.article_type}"
+                data-group-of-material="${item.group_of_material ?? ''}"
+                data-uom-member="${item.uom_member ?? item.uom ?? ''}"
+            >${item.article_alternative_code} - ${item.article_desc}</option>`;
+        });
+        dataArticle = options;
     });
 }
 
@@ -768,20 +752,6 @@ function isiArticleByLocation(dependent, locationFrom, locationTo = '') {
     }
     hitungGrandTotal();
 });
-
-   // $(document).on('input', '#article_row input[name="qty[]"]', function() {
-     //   let stock = parseFloat($(this).attr('data-stock'));
-       // let raw   = ($(this).val() || '0').toString().replace(/,/g, '');
-        //let val   = parseFloat(raw) || 0;
-        //if (!isNaN(stock) && val > stock) {
-          //  $(this).addClass('qty-over-stock')
-            //       .attr('title', 'Qty melebihi stock tersedia (' + formatStock(stock) + ')');
-            //show_msg('Warning', 'Qty transfer melebihi stock tersedia (' + stock + ') di gudang ini.', 'warning');
-        //} else {
-          //  $(this).removeClass('qty-over-stock').removeAttr('title');
-        //}
-        //hitungGrandTotal();
-    //});
 
     // ============================================================
     // HITUNG TOTAL

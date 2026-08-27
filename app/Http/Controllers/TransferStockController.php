@@ -2226,8 +2226,7 @@ if (!in_array($st, ['4', '5']) && $canPostThis) {
                  ->where('s.location_number', $locationFrom)
                  ->where('s.site_code', $this->siteCode);
         })
-        ->leftJoin('uom_con_v2 as u', 'u.article_code', '=', 'a.article_code')
-        ->where('a.status', '1');   // ← GANTI sesuai nama kolom & value "aktif" yang benar
+        ->where('a.status', '1');
 
     if (!empty($allowedTypes)) {
         $query->where(function ($q) use ($allowedTypes) {
@@ -2242,12 +2241,19 @@ if (!in_array($st, ['4', '5']) && $canPostThis) {
         'a.article_desc',
         'a.article_type',
         'a.group_of_material',
+        'a.uom as base_uom',
         DB::raw('coalesce(s.article_qty, 0) as qty'),
-        'u.unit_to as uom'
+        DB::raw("(select unit_to from uom_con_v2 where article_code = a.article_code order by unit_from limit 1) as uom"),
+        DB::raw("(select string_agg(unit_to,',' order by unit_from) from uom_con_v2 where article_code = a.article_code) as uom_member")
     )
     ->distinct()
     ->orderBy('a.article_alternative_code')
-    ->get();
+    ->get()
+    ->map(function ($row) {
+        if (empty($row->uom))        $row->uom        = $row->base_uom;
+        if (empty($row->uom_member)) $row->uom_member = $row->base_uom;
+        return $row;
+    });
 }
 
 /**
