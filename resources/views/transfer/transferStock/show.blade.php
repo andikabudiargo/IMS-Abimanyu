@@ -143,6 +143,9 @@
                                     <div class="col-md-3"><div class="form-group"><label class="font-weight-bold">Article Code</label></div></div>
                                     <div class="col-md-1"><div class="form-group"><label class="font-weight-bold text-right d-block">Min Package</label></div></div>
                                     <div class="col-md-1"><div class="form-group"><label class="font-weight-bold text-right d-block">QTY</label></div></div>
+                                    @if($header->location_from === '005')
+                                    <div class="col-md-1"><div class="form-group"><label class="font-weight-bold text-right d-block">QTY WOS</label></div></div>
+                                    @endif
                                     <div class="col-md-1"><div class="form-group"><label class="font-weight-bold text-right d-block">UOM</label></div></div>
                                     @if($header->tr_type === 'Supply')
                                     <div class="col-md-2"><div class="form-group"><label class="font-weight-bold d-block">FG Target</label></div></div>
@@ -193,6 +196,15 @@
                                                     value="{{ number_format($item->qty, 2) }}" disabled />
                                             </div>
                                         </div>
+                                        @if($header->location_from === '005')
+                                        <div class="col-md-1 col-12">
+                                            <div class="form-group margin-nol">
+                                                <label class="d-block d-md-none">QTY WOS</label>
+                                                <input type="text" class="form-control text-right"
+                                                    value="{{ $item->qty_wos !== null ? number_format($item->qty_wos, 2) : '-' }}" disabled />
+                                            </div>
+                                        </div>
+                                        @endif
                                         <div class="col-md-1 col-12">
                                             <div class="form-group margin-nol">
                                                 <label class="d-block d-md-none">UOM</label>
@@ -253,18 +265,19 @@
                                                         value="{{ number_format($gone->qty, 2) }}" disabled />
                                                 </div>
                                             </div>
+                                            @if($header->location_from === '005')
+                                            <div class="col-md-1 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <input type="text" class="form-control text-right"
+                                                        value="{{ $gone->qty_wos !== null ? number_format($gone->qty_wos, 2) : '-' }}" disabled />
+                                                </div>
+                                            </div>
+                                            @endif
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
                                                     <input type="text" class="form-control text-right" value="{{ $gone->uom }}" disabled />
                                                 </div>
                                             </div>
-                                            @if($header->tr_type === 'Supply')
-                                            <div class="col-md-2 col-12">
-                                                <div class="form-group margin-nol">
-                                                    <input type="text" class="form-control" value="{{ $gone->fg_target ?? '-' }}" disabled />
-                                                </div>
-                                            </div>
-                                            @endif
                                             <div class="col-md-3 col-12">
                                                 <div class="form-group margin-nol">
                                                     <input type="text" class="form-control" value="{{ $gone->note }}" disabled />
@@ -333,6 +346,9 @@
     @php
         $revDet = $revisionDetails->where('num_revision', $rev->num_revision);
         $dr     = $diffs[$rev->num_revision] ?? null;
+        // QTY WOS ditampilkan berdasar location_from PADA REVISI ITU SENDIRI,
+        // bukan location_from current — supaya konsisten kalau lokasi berubah antar revisi.
+        $revShowQtyWos = ($rev->location_from === '005');
     @endphp
     <div class="tab-pane" id="pane-rev{{ $rev->num_revision }}" role="tabpanel">
 
@@ -420,6 +436,9 @@
                                     <div class="col-md-3"><div class="form-group"><label class="font-weight-bold">Article Code</label></div></div>
                                     <div class="col-md-1"><div class="form-group"><label class="font-weight-bold text-right d-block">Min Package</label></div></div>
                                     <div class="col-md-1"><div class="form-group"><label class="font-weight-bold text-right d-block">QTY</label></div></div>
+                                    @if($revShowQtyWos)
+                                    <div class="col-md-1"><div class="form-group"><label class="font-weight-bold text-right d-block">QTY WOS</label></div></div>
+                                    @endif
                                     <div class="col-md-1"><div class="form-group"><label class="font-weight-bold text-right d-block">UOM</label></div></div>
                                     @if($rev->tr_type === 'Supply')
                                     <div class="col-md-2"><div class="form-group"><label class="font-weight-bold d-block">FG Target</label></div></div>
@@ -468,6 +487,15 @@
                                                     value="{{ number_format($item->qty, 2) }}" disabled />
                                             </div>
                                         </div>
+                                        @if($revShowQtyWos)
+                                        <div class="col-md-1 col-12">
+                                            <div class="form-group margin-nol">
+                                                <label class="d-block d-md-none">QTY WOS</label>
+                                                <input type="text" class="form-control text-right"
+                                                    value="{{ $item->qty_wos !== null ? number_format($item->qty_wos, 2) : '-' }}" disabled />
+                                            </div>
+                                        </div>
+                                        @endif
                                         <div class="col-md-1 col-12">
                                             <div class="form-group margin-nol">
                                                 <label class="d-block d-md-none">UOM</label>
@@ -529,6 +557,14 @@
                                                         value="{{ number_format($gone->qty, 2) }}" disabled />
                                                 </div>
                                             </div>
+                                            @if($revShowQtyWos)
+                                            <div class="col-md-1 col-12">
+                                                <div class="form-group margin-nol">
+                                                    <input type="text" class="form-control text-right"
+                                                        value="{{ $gone->qty_wos !== null ? number_format($gone->qty_wos, 2) : '-' }}" disabled />
+                                                </div>
+                                            </div>
+                                            @endif
                                             <div class="col-md-1 col-12">
                                                 <div class="form-group margin-nol">
                                                     <input type="text" class="form-control text-right" value="{{ $gone->uom }}" disabled />

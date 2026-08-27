@@ -258,20 +258,19 @@
 
     // ===== SATU-SATUNYA handler locationFrom =====
     locationFrom.on('change', function () {
-        const loc = $(this).val();
+    const loc = $(this).val();
 
-        resetArticleRows();
+    resetArticleRows();
+    toggleQtyWosColumn();   // ← tambah baris ini
 
-        locationTo.html(locationToOptions);
-        if (loc) {
-            locationTo.find('option[value="' + loc + '"]').prop('disabled', true);
-        }
-        locationTo.val('').prop('disabled', !loc).trigger('change');
+    locationTo.html(locationToOptions);
+    if (loc) {
+        locationTo.find('option[value="' + loc + '"]').prop('disabled', true);
+    }
+    locationTo.val('').prop('disabled', !loc).trigger('change');
 
-        checkAndSetFromRmFlag(loc);
-        // TIDAK manggil isiArticleByLocation di sini — biar handler locationTo yang urus,
-        // karena locationTo baru saja direset ke '' beberapa baris di atas.
-    });
+    checkAndSetFromRmFlag(loc);
+});
 
     // ===== SATU-SATUNYA handler locationTo =====
     locationTo.on('change', function () {
@@ -338,7 +337,7 @@
                                                 setTimeout(() => {
                                                     if (Swal.isVisible()) {
                                                         if (dataDetail[i].article_code) {
-                                                            add_new_row_edit(dataDetail[i].article_code, dataDetail[i].qty, dataDetail[i].uom, dataDetail[i].uom_member, '', dataDetail[i].location_code);
+                                                            add_new_row_edit(dataDetail[i].article_code, dataDetail[i].qty, dataDetail[i].uom, dataDetail[i].uom_member, '', null);
                                                             Swal.getHtmlContainer().innerHTML = `<b> ${jumlahData - i}/${jumlahData} </b> Loaded`;
                                                         }
                                                         if (i === 0) {

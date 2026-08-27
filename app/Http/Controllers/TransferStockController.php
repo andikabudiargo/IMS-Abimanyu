@@ -441,24 +441,26 @@ $data['locationsTo'] = DB::table('stock_location_master')
             ]);
 
             $dataSet = [];
-            foreach ($articles as $val) {
-                $ac  = is_array($val) ? ($val['article_code'] ?? null) : ($val->article_code ?? null);
-                $qty = is_array($val) ? ($val['qty']  ?? 0)    : ($val->qty  ?? 0);
-                $uom = is_array($val) ? ($val['uom']  ?? null) : ($val->uom  ?? null);
-                $nt  = is_array($val) ? ($val['note'] ?? null) : ($val->note ?? null);
+           foreach ($articles as $val) {
+    $ac  = is_array($val) ? ($val['article_code'] ?? null) : ($val->article_code ?? null);
+    $qty = is_array($val) ? ($val['qty']  ?? 0)    : ($val->qty  ?? 0);
+    $uom = is_array($val) ? ($val['uom']  ?? null) : ($val->uom  ?? null);
+    $nt  = is_array($val) ? ($val['note'] ?? null) : ($val->note ?? null);
+    $qtyWos = is_array($val) ? ($val['qty_wos'] ?? null) : ($val->qty_wos ?? null);   // ← tambah
 
-                $dataSet[] = [
-                    'tr_number'    => $trNumber,
-                    'article_code' => $ac,
-                    'qty'          => $qty,
-                    'uom'          => $uom,
-                    'note'         => $nt,
-                    'created_by'   => $username,
-                    'updated_by'   => $username,
-                    'created_at'   => date('Y-m-d H:i:s'),
-                    'updated_at'   => date('Y-m-d H:i:s'),
-                ];
-            }
+    $dataSet[] = [
+        'tr_number'    => $trNumber,
+        'article_code' => $ac,
+        'qty'          => $qty,
+        'qty_wos'      => $qtyWos,   // ← tambah
+        'uom'          => $uom,
+        'note'         => $nt,
+        'created_by'   => $username,
+        'updated_by'   => $username,
+        'created_at'   => date('Y-m-d H:i:s'),
+        'updated_at'   => date('Y-m-d H:i:s'),
+    ];
+}
             DB::table('transfer_stock_det')->insert($dataSet);
 
             $postResult = $this->processPosting($trNumber, $username);
@@ -1229,6 +1231,12 @@ $data['locationsTo'] = DB::table('stock_location_master')
             if ((float) $o->qty !== (float) $n->qty) {
                 $c['qty'] = ['old' => (float) $o->qty, 'new' => (float) $n->qty];
             }
+            if ((float) ($o->qty_wos ?? 0) !== (float) ($n->qty_wos ?? 0)) {
+                $c['qty_wos'] = [
+                    'old' => $o->qty_wos !== null ? (float) $o->qty_wos : '-',
+                    'new' => $n->qty_wos !== null ? (float) $n->qty_wos : '-',
+                ];
+            }
             if (trim((string) $o->uom) !== trim((string) $n->uom)) {
                 $c['uom'] = ['old' => $o->uom, 'new' => $n->uom];
             }
@@ -1321,19 +1329,20 @@ public function update(Request $request)
         // ── 2) Sinkron detail (hapus-insert) ──
         DB::table('transfer_stock_det')->where('tr_number', $trNumber)->delete();
         foreach ($articles as $val) {
-            DB::table('transfer_stock_det')->insert([
-                'tr_number'    => $trNumber,
-                'article_code' => $val->article_code,
-                'qty'          => $val->qty,          // qty MENTAH (sesuai keputusanmu)
-                'uom'          => $val->uom,
-                'note'         => $val->note ?? null,
-                'fg_target'    => $val->fg_target ?? null,
-                'created_by'   => $username,
-                'updated_by'   => $username,
-                'created_at'   => date('Y-m-d H:i:s'),
-                'updated_at'   => date('Y-m-d H:i:s'),
-            ]);
-        }
+    DB::table('transfer_stock_det')->insert([
+        'tr_number'    => $trNumber,
+        'article_code' => $val->article_code,
+        'qty'          => $val->qty,
+        'qty_wos'      => $val->qty_wos ?? null,   // ← tambah
+        'uom'          => $val->uom,
+        'note'         => $val->note ?? null,
+        'fg_target'    => $val->fg_target ?? null,
+        'created_by'   => $username,
+        'updated_by'   => $username,
+        'created_at'   => date('Y-m-d H:i:s'),
+        'updated_at'   => date('Y-m-d H:i:s'),
+    ]);
+}
 
         // ── 3) Update header. Status TETAP NEW. Tanpa authorized_*. ──
         DB::table('transfer_stock_hdr')
@@ -1470,6 +1479,8 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
  
 private function updateWarehouseStock(string $articleCode, string $location, float $qty): void
 {
+    $this->ensureStockRow($articleCode, $location, null, null);  // ← tambahkan ini
+
     DB::table('warehouse_stock')
         ->where('site_code', $this->siteCode)
         ->where('article_code', $articleCode)
@@ -2497,6 +2508,7 @@ private function parsePostgresArray(?string $pgArray): array
                 'num_revision' => $rev,
                 'article_code' => $d->article_code,
                 'qty'          => $d->qty,
+                'qty_wos'      => $d->qty_wos ?? null,
                 'uom'          => $d->uom,
                 'note'         => $d->note,
                 'fg_target'    => $d->fg_target ?? null,

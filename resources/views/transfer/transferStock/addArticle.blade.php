@@ -15,32 +15,39 @@
     </div>
 </div>
             <div class="col-md-1 col-12">
-                <div class="form-group margin-nol">
-                    <label for="qty" class="d-block d-md-none">QTY</label>
-                    <input type="text" class="form-control numeral-mask-digit text-right tombol-panah"
-                        data-type-el-kiri="select"
-                        data-nama-el-kiri='articleId'
-                        data-type-el-kanan='input'
-                        data-nama-el-kanan='note'
-                        id ="qty" name="qty[]" maxlength="10" />
-                </div>
-            </div>
+    <div class="form-group margin-nol">
+        <label for="qty" class="d-block d-md-none">QTY</label>
+        <input type="text" class="form-control numeral-mask-digit text-right tombol-panah"
+            data-type-el-kiri="select"
+            data-nama-el-kiri='articleId'
+            data-type-el-kanan='input'
+            data-nama-el-kanan='note'
+            id ="qty" name="qty[]" maxlength="10" />
+    </div>
+</div>
+<div class="col-md-1 col-12 qty-wos-wrapper" style="display:none;">
+    <div class="form-group margin-nol">
+        <label for="qtyWos" class="d-block d-md-none">QTY WOS</label>
+        <input type="text" class="form-control numeral-mask-digit text-right"
+            id="qtyWos" name="qtyWos[]" maxlength="10" />
+    </div>
+</div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
-                    <label for="uom" class="d-block d-md-none">Uom</label>
+                    <label for="uom" class="d-block d-md-none">UoM</label>
                     <select class="form-control" id="uom" name="uom[]">
                     </select>
                 </div>
             </div>
-            <div class="col-md-4 col-12">
-                <div class="form-group margin-nol">
-                    <label for="note" class="d-block d-md-none">Note</label>
-                    <input type="text" class="form-control tombol-panah"
-                        data-type-el-kiri="input"
-                        data-nama-el-kiri='qty'
-                        id = "note" name="note[]"  maxlength="150">
-                </div>
-            </div>
+            <div class="col-md-3 col-12">
+    <div class="form-group margin-nol">
+        <label for="note" class="d-block d-md-none">Note</label>
+        <input type="text" class="form-control tombol-panah"
+            data-type-el-kiri="input"
+            data-nama-el-kiri='qty'
+            id = "note" name="note[]"  maxlength="150">
+    </div>
+</div>
             <div class="col-md-1 col-12">
                 <div class="form-group margin-nol text-center">
                     <a onmouseover="this.style.cursor='pointer'" onclick="$(this).parents('.tanda-baris').remove();hitungGrandTotal();">
@@ -182,6 +189,23 @@ function toggleFgTargetHeader() {
 const CONSUMABLE_LOCATION = '006';
 function isStrictStockLocation() {
     return (typeof locationFrom !== 'undefined' && locationFrom.val() === CONSUMABLE_LOCATION);
+}
+
+// ── kolom QTY WOS hanya muncul kalau From = Gudang Chemical ──
+const CHEMICAL_LOCATION = '005';
+function isChemicalLocation() {
+    return (typeof locationFrom !== 'undefined' && locationFrom.val() === CHEMICAL_LOCATION);
+}
+
+/** Toggle header + semua row kolom QTY WOS sesuai Location From saat ini */
+function toggleQtyWosColumn() {
+    const show = isChemicalLocation();
+    $('#headerQtyWos').toggle(show);
+    $('.qty-wos-wrapper').toggle(show);
+    if (!show) {
+        // reset nilai kalau disembunyikan, biar tidak ikut kekirim nyasar
+        $('.qty-wos-wrapper input').val('');
+    }
 }
 
     if (trDate.length) {
@@ -372,10 +396,11 @@ btnLoading = ($btn, text) => {
         } else {
             btnLoading($btn, 'Menyimpan...');
             $('.disabled-el').removeAttr('disabled');
-            let objQty  = $('#article_row input[name="qty[]"]');
-            let objUom  = $('#article_row select[name="uom[]"]');
-            let objNote = $('#article_row input[name="note[]"]');
-            let arrArticles = [];
+            let objQty    = $('#article_row input[name="qty[]"]');
+let objQtyWos = $('#article_row input[name="qtyWos[]"]');   // ← tambah
+let objUom    = $('#article_row select[name="uom[]"]');
+let objNote   = $('#article_row input[name="note[]"]');
+let arrArticles = [];
             let articles;
             let flag  = 0;
             let pesan = "";
@@ -388,14 +413,17 @@ btnLoading = ($btn, text) => {
                 pesan += "Location From dan Location To tidak boleh sama <br>"; flag = 1;
             }
 
-            $("#article_row select[name='articleId[]']").map(function(i) {
-                let $this = $(this);
-                if ($this.val()) {
-                    let articleName = $this.select2('data')[0].text;
-                    let plu   = $this.val();
-                    let qty   = objQty.eq(i).val().replace(/,/gi, '') || 0;
-                    let note  = objNote.eq(i).val();
-                    let uom   = objUom.eq(i).val();
+           $("#article_row select[name='articleId[]']").map(function(i) {
+    let $this = $(this);
+    if ($this.val()) {
+        let articleName = $this.select2('data')[0].text;
+        let plu   = $this.val();
+        let qty   = objQty.eq(i).val().replace(/,/gi, '') || 0;
+        let note  = objNote.eq(i).val();
+        let uom   = objUom.eq(i).val();
+        let qtyWos = isChemicalLocation()
+            ? (objQtyWos.eq(i).val() || '').toString().replace(/,/gi, '')
+            : null;   // ← kalau bukan gudang chemical, jangan kirim apa-apa
 
                    // let stock = parseFloat(objQty.eq(i).attr('data-stock'));
                     //if (!isNaN(stock) && parseFloat(qty) > stock) {
@@ -413,14 +441,15 @@ if (!isNaN(stock) && parseFloat(qty) > stock) {
     // gudang lain: dibiarkan lolos (over-stock diperbolehkan), tidak menaikkan flag
 }
 
-                    if ((plu !== '') && (qty > 0)) {
-                        arrArticles.push({
-                            "article_code" : plu,
-                            "qty"          : parseFloat(qty),
-                            "uom"          : uom,
-                            "note"         : note,
-                        });
-                    }
+                   if ((plu !== '') && (qty > 0)) {
+            arrArticles.push({
+                "article_code" : plu,
+                "qty"          : parseFloat(qty),
+                "uom"          : uom,
+                "note"         : note,
+                "qty_wos"      : (qtyWos !== null && qtyWos !== '') ? parseFloat(qtyWos) : null,  // ← tambah
+            });
+        }
 
                     if (qty == 0) {
                         pesan += "QTY of items " + articleName + " cannot be 0 <br>";
@@ -541,17 +570,22 @@ $.ajax({
 
     let cloneCount = 0;
 
-    add_new_row_edit = (article, qty, uom, uomMember, note, locationTo) => {
-        $("#article_row").append($("#new_row").clone().html());
-        cloneCount++;
-        $("#article_row").find('#baru').attr('id', 'new_row' + cloneCount);
-        $("#new_row" + cloneCount).find('#articleId').attr('id', 'articleId' + cloneCount);
-        changeselect('trArticle', 'articleId' + cloneCount, article);
-        $("#new_row" + cloneCount).find('#qty').attr('id', 'qty' + cloneCount);
-        $("#new_row" + cloneCount).find('#note').attr('id', 'note' + cloneCount);
-        $("#note" + cloneCount).val(note);
+    add_new_row_edit = (article, qty, uom, uomMember, note, qtyWos) => {
+    $("#article_row").append($("#new_row").clone().html());
+    cloneCount++;
+    $("#article_row").find('#baru').attr('id', 'new_row' + cloneCount);
+    $("#new_row" + cloneCount).find('#articleId').attr('id', 'articleId' + cloneCount);
+    changeselect('trArticle', 'articleId' + cloneCount, article);
+    $("#new_row" + cloneCount).find('#qty').attr('id', 'qty' + cloneCount);
+    $("#new_row" + cloneCount).find('#note').attr('id', 'note' + cloneCount);
+    $("#note" + cloneCount).val(note);
 
-        let selStock = $("#articleId" + cloneCount).find(":selected").data("stock");
+    // ── QTY WOS ──
+    $("#new_row" + cloneCount).find('#qtyWos').attr('id', 'qtyWos' + cloneCount);
+    $("#qtyWos" + cloneCount).val(qtyWos ? formatQty(qtyWos) : '');
+    $("#new_row" + cloneCount).find('.qty-wos-wrapper').toggle(isChemicalLocation());
+
+    let selStock = $("#articleId" + cloneCount).find(":selected").data("stock");
 if (selStock !== undefined && selStock !== null && selStock !== '') {
     $("#qty" + cloneCount).attr('data-stock', selStock);
     // hanya clamp otomatis kalau gudang Consumable (006)
@@ -605,20 +639,23 @@ if (selStock !== undefined && selStock !== null && selStock !== '') {
     }
 
     function add_new_row() {
-        $("#article_row").append($("#new_row").clone().html());
-        cloneCount++;
-        $("#article_row").find('#baru').attr('id', 'new_row' + cloneCount);
-        $("#new_row" + cloneCount).find('#articleId').attr('id', 'articleId' + cloneCount);
-        changeselect('trArticle', 'articleId' + cloneCount, '');
-        // ───────────────────────────────────────────────────
+    $("#article_row").append($("#new_row").clone().html());
+    cloneCount++;
+    $("#article_row").find('#baru').attr('id', 'new_row' + cloneCount);
+    $("#new_row" + cloneCount).find('#articleId').attr('id', 'articleId' + cloneCount);
+    changeselect('trArticle', 'articleId' + cloneCount, '');
 
-        $('#remove_button').tooltip();
-        splitArticle();
-        hitungTotal();
-        hitungGrandTotal();
-        mask_thousand_digit(numberOfDecimalDigit);
-        $('[data-toggle="tooltip"]').tooltip();
-    }
+    // ── QTY WOS: kasih id unik + toggle sesuai lokasi ──
+    $("#new_row" + cloneCount).find('#qtyWos').attr('id', 'qtyWos' + cloneCount);
+    $("#new_row" + cloneCount).find('.qty-wos-wrapper').toggle(isChemicalLocation());
+
+    $('#remove_button').tooltip();
+    splitArticle();
+    hitungTotal();
+    hitungGrandTotal();
+    mask_thousand_digit(numberOfDecimalDigit);
+    $('[data-toggle="tooltip"]').tooltip();
+}
 
     // ============================================================
     // ARTICLE & LOCATION HELPERS

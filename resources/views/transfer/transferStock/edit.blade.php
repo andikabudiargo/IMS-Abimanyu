@@ -230,6 +230,7 @@
 
         // ── Trigger booth flag sesuai nilai awal (edit) ─────────
         checkAndSetBoothFlag(locationTo.val());
+         toggleQtyWosColumn();
 
         // ── Load artikel berdasarkan location_from ───────────────
         const initLocFrom = locationFrom.val();
@@ -249,6 +250,7 @@
                         d.uom,
                         d.uom_member ?? '',
                         d.note ?? '',
+                        d.qty_wos ?? null,
                     );
                 });
                 $(".loading-spinner-container").removeClass("-show");
@@ -258,6 +260,7 @@
         // ── locationFrom change ──────────────────────────────────
         locationFrom.on('change', function () {
             const loc = $(this).val();
+            toggleQtyWosColumn();  
             if (loc) {
                 isiArticleByLocation('trArticleLocation', loc);
             }
