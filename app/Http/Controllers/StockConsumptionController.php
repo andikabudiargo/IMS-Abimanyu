@@ -910,7 +910,7 @@ class StockConsumptionController extends Controller
     // ============================================================
     // ARTICLE BY LOCATION
     // ============================================================
-    public public function articleByLocation(Request $request)
+     public function articleByLocation(Request $request)
 {
     $stockLoc = $this->getStockLocation($request->location);
     $scNumber = $request->scNumber; // opsional — dikirim saat mode Edit
