@@ -14,11 +14,25 @@
      TARGET STOCK COUNT SAYA
 ════════════════════════════════════════════════ --}}
 <section id="stock-count-index">
-    <div class="card">
-        <div class="card-header">
-            <h4 class="card-title">List Stock Count Saya</h4>
+   <div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:.6rem;">
+        <h4 class="card-title mb-0">List Stock Count Saya</h4>
+
+        @if($isAcct)
+        <div class="d-flex align-items-center" style="gap:.5rem;">
+            @if(!$showAllPeriode)
+                <span class="badge badge-light-info" style="font-size:.7rem;">Periode terbaru</span>
+            @endif
+            <select class="form-control form-control-sm" id="filterMyPeriode" style="width:auto;min-width:180px;">
+                <option value="" {{ $showAllPeriode ? 'selected' : '' }}>Semua Periode (termasuk lama)</option>
+                @foreach($periodesForFilter as $p)
+                    <option value="{{ $p }}" {{ (!$showAllPeriode && $selectedPeriode == $p) ? 'selected' : '' }}>{{ $p }}</option>
+                @endforeach
+            </select>
         </div>
-        <div class="card-body">
+        @endif
+    </div>
+    <div class="card-body">
             @if($rows->isEmpty())
                 <div class="alert alert-warning mb-0">
                     Tidak ada list STO yang bisa diakses{{ $isAcct ? '' : ' hari ini' }}.
@@ -380,6 +394,17 @@ $(document).ready(function () {
     }
 });
 @endif
+
+$('#filterMyPeriode').on('change', function () {
+    const val = $(this).val();
+    const url = new URL(window.location.href);
+    if (val === '') {
+        url.searchParams.set('periode', ''); // eksplisit "Semua"
+    } else {
+        url.searchParams.set('periode', val);
+    }
+    window.location.href = url.toString();
+});
 
 $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
 </script>

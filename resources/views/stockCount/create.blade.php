@@ -783,19 +783,31 @@ $(document).ready(function () {
     $('#searchLine').on('input', applyAllFilters);
 
     // ════ FINISH ════
-    $('#btnFinish').on('click', function() {
-        Swal.fire({
-            title: 'Tandai Target Ini Selesai?',
-            text: 'Setelah selesai, baris tidak bisa ditambah lagi kecuali oleh Accounting.',
-            icon: 'question', showCancelButton: true, confirmButtonText: 'Ya, Selesai'
-        }).then(r => {
-            if (!r.isConfirmed) return;
-            $.post("{{ route('stockCount.finish') }}", { _token: "{{ csrf_token() }}", mapping_id: encMappingId }, function(res) {
-                show_msg(res.title, res.message, res.alert);
-                if (res.status == 1) setTimeout(() => window.location.href = res.redirect_url, 1200);
-            }, 'json');
-        });
+   $('#btnFinish').on('click', function() {
+    Swal.fire({
+        title: 'Tandai Target Ini Selesai?',
+        text: 'Setelah selesai, baris tidak bisa ditambah lagi kecuali oleh Accounting.',
+        icon: 'question', showCancelButton: true, confirmButtonText: 'Ya, Selesai'
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        $.post("{{ route('stockCount.finish') }}", { _token: "{{ csrf_token() }}", mapping_id: encMappingId }, function(res) {
+           if (res.status == 1) {
+    show_msg(res.title, res.message, res.alert);
+    setTimeout(() => window.location.href = res.redirect_url, 1200);
+} else if (Array.isArray(res.message) && res.message.length > 1) {
+    Swal.fire({
+        title: res.title,
+        icon: res.alert === 'warning' ? 'warning' : 'error',
+        html: '<ul style="text-align:left;padding-left:1.2rem;">' +
+              res.message.map(m => `<li>${m}</li>`).join('') +
+              '</ul>',
     });
+} else {
+    show_msg(res.title, Array.isArray(res.message) ? res.message[0] : res.message, res.alert);
+}
+        }, 'json');
+    });
+});
 
     // ════ INIT MODAL TAMBAH ARTIKEL ════
     initModalAddArticle();

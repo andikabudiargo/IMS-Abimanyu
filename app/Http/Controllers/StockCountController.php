@@ -375,37 +375,57 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
         $isAcct = in_array($userId, $allowedUserIds);
         $today  = date('d-m-Y');
  
-        $query = DB::table('sto_config_mapping as m')
-            ->join('sto_config as h', 'h.config_id', '=', 'm.config_id')
-            ->leftJoin('stock_location_master as l', function ($j) {
-                $j->on('l.location_code', '=', 'm.target_ref')->where('m.target_type', '=', 'LOCATION');
-            })
-            ->leftJoin('third_party as tp', function ($j) {
-                $j->on('tp.kode', '=', 'm.target_ref')->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
-            })
-            // ── FIX: sebelumnya whereIn('h.status', [1,2]) — itu nyembunyikan
-            // SEMUA target begitu config selesai (status=3). Sekarang cuma
-            // exclude config yang CANCELED (5); SCHEDULED/ONGOING/COMPLETED tetap lolos. ──
-            ->where('h.status', '!=', 5)
-            ->select(
-                'm.mapping_id', 'm.target_type', 'm.target_ref', 'm.sto_date',
-                'm.finish_time', 'm.counter1_user', 'm.counter2_user',
-                'h.sto_code', 'h.periode', 'h.status as config_status',
-                DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name")
-            );
- 
-        if (!$isAcct) {
-            // non-accounting: hanya tampil kalau TANGGAL cocok hari ini
-            // (terlepas dari sudah finish_time atau belum — aturan cuma tanggal)
-            $query->where('m.sto_date', $today)
-                  ->where(function ($q) use ($userId) {
-                      $q->where('m.counter1_user', $userId)
-                        ->orWhere('m.counter2_user', $userId)
-                        ->orWhere('m.counter3_user', $userId);
-                  });
+       // ── BARU: daftar periode untuk filter (accounting saja) ──
+    $periodesForFilter = collect();
+    $selectedPeriode   = null;
+    $showAllPeriode    = false;
+
+    if ($isAcct) {
+        $periodesForFilter = DB::table('sto_config')
+            ->where('status', '!=', 5)
+            ->selectRaw("DISTINCT SUBSTR(periode,1,7) as periode")
+            ->orderByDesc('periode')
+            ->pluck('periode');
+
+        if ($request->has('periode')) {
+            // user eksplisit memilih (bisa kosong = "Semua Periode")
+            $selectedPeriode = $request->input('periode');
+            $showAllPeriode  = $selectedPeriode === '';
+        } else {
+            // default: periode PALING BARU saja
+            $selectedPeriode = $periodesForFilter->first();
         }
- 
-        $rows = $query->orderBy('m.sto_date')->orderBy('target_name')->get();
+    }
+
+    $query = DB::table('sto_config_mapping as m')
+        ->join('sto_config as h', 'h.config_id', '=', 'm.config_id')
+        ->leftJoin('stock_location_master as l', function ($j) {
+            $j->on('l.location_code', '=', 'm.target_ref')->where('m.target_type', '=', 'LOCATION');
+        })
+        ->leftJoin('third_party as tp', function ($j) {
+            $j->on('tp.kode', '=', 'm.target_ref')->whereIn('m.target_type', ['SUPPLIER', 'CUSTOMER']);
+        })
+        ->where('h.status', '!=', 5)
+        ->select(
+            'm.mapping_id', 'm.target_type', 'm.target_ref', 'm.sto_date',
+            'm.finish_time', 'm.counter1_user', 'm.counter2_user',
+            'h.sto_code', 'h.periode', 'h.status as config_status',
+            DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name")
+        );
+
+    if (!$isAcct) {
+        $query->where('m.sto_date', $today)
+              ->where(function ($q) use ($userId) {
+                  $q->where('m.counter1_user', $userId)
+                    ->orWhere('m.counter2_user', $userId)
+                    ->orWhere('m.counter3_user', $userId);
+              });
+    } elseif (!$showAllPeriode && $selectedPeriode) {
+        // ── BARU: batasi ke periode terpilih (default = terbaru) ──
+        $query->whereRaw("SUBSTR(h.periode,1,7) = ?", [$selectedPeriode]);
+    }
+
+    $rows = $query->orderBy('m.sto_date')->orderBy('target_name')->get();
  
         $stoCodesForFilter = collect();
         $targetsForFilter  = collect();
@@ -436,6 +456,9 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     'kolomAuditDetail'  => $isAcct ? $this->getTableColoumnAuditDetail() : null, // ← tambahkan ini
     'stoCodesForFilter' => $stoCodesForFilter,
     'targetsForFilter'  => $targetsForFilter,
+    'periodesForFilter'  => $periodesForFilter,   // ← BARU
+        'selectedPeriode'    => $selectedPeriode,      // ← BARU
+        'showAllPeriode'     => $showAllPeriode,        // ← BARU
 ]);
     }
 
@@ -2018,10 +2041,26 @@ private function withinTolerance($counted, $qtySystem, $tolerance)
         }
  
         $pending = DB::table('sto_dtl')->whereIn('sto_id', $stoIds)
-            ->whereIn('count_status', ['INCOMPLETE', 'NOT MATCH'])->count();
-        if ($pending > 0 && $access['role'] !== 'accounting') {
-            return response()->json(['status'=>0,'title'=>'Belum Bisa Selesai','message'=>["Masih ada $pending baris berstatus INCOMPLETE/NOT MATCH."],'alert'=>'warning']);
-        }
+    ->whereIn('count_status', ['INCOMPLETE', 'NOT MATCH'])->count();
+if ($pending > 0 && $access['role'] !== 'accounting') {
+    return response()->json(['status'=>0,'title'=>'Belum Bisa Selesai','message'=>["Masih ada $pending baris berstatus INCOMPLETE/NOT MATCH."],'alert'=>'warning']);
+}
+
+// ── BARU: cek phantom (artikel punya stok tapi belum pernah diinput) ──
+$phantoms = $this->resolveOutstandingPhantoms($m);
+if ($phantoms->isNotEmpty() && $access['role'] !== 'accounting') {
+    $list = $phantoms->map(fn($p) => "{$p->article_code} - {$p->article_desc}")->values()->all();
+
+    return response()->json([
+        'status'  => 0,
+        'title'   => 'Belum Bisa Selesai',
+        'message' => array_merge(
+            ["Masih ada ".count($list)." artikel yang perlu konfirmasi stock:"],
+            $list
+        ),
+        'alert'   => 'warning',
+    ]);
+}
  
         $now = date('Y-m-d H:i:s');
         DB::table('sto_hdr')->whereIn('sto_id', $stoIds)->update(['status' => 2, 'updated_at' => $now]);
@@ -2656,5 +2695,57 @@ private function sumAdjustmentDeltaForPeriode($realCode, array $locations, $peri
     ->sum(DB::raw('COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'));
 
     return $this->adjDeltaCache[$key] = $delta;
+}
+
+// ══════════════════════════════════════════════
+// PHANTOM CHECK — dipakai saat finish() untuk memastikan
+// semua artikel yang punya stok sudah diinput sebelum bisa ditandai selesai
+// ══════════════════════════════════════════════
+private function resolveOutstandingPhantoms($m)
+{
+    // partner (SUPPLIER/CUSTOMER) tidak punya konsep phantom
+    if ($m->target_type !== 'LOCATION') {
+        return collect();
+    }
+
+    $family  = $this->resolveLocationFamily($m->target_ref);
+    $periode = DB::table('sto_config')->where('config_id', $m->config_id)->value('periode');
+    $periode = $periode ? substr($periode, 0, 7) : null;
+
+    if (count($family) > 1) {
+        // ── family: counted codes dari SEMUA sibling mapping dalam config ini ──
+        $siblingMappings = DB::table('sto_config_mapping')
+            ->where('config_id', $m->config_id)
+            ->where('target_type', 'LOCATION')
+            ->whereIn('target_ref', $family)
+            ->get();
+
+        $mappingIds = $siblingMappings->pluck('mapping_id');
+        $stoIds     = DB::table('sto_hdr')->whereIn('mapping_id', $mappingIds)->pluck('sto_id');
+
+        $countedCodes = DB::table('sto_dtl')
+            ->whereIn('sto_id', $stoIds)
+            ->whereNotNull('article_code')
+            ->pluck('article_code')
+            ->map(fn($c) => strtoupper($c))
+            ->unique()->values()->all();
+
+        $anchor = $this->resolveLocationAnchor($m->target_ref);
+        $repMapping = clone ($siblingMappings->first() ?? $m);
+        $repMapping->target_ref = $anchor;
+
+        return $this->buildPhantomArticlesForFamily($repMapping, $family, $countedCodes, $periode);
+    }
+
+    // ── standalone ──
+    $stoIds = DB::table('sto_hdr')->where('mapping_id', $m->mapping_id)->pluck('sto_id');
+    $countedCodes = DB::table('sto_dtl')
+        ->whereIn('sto_id', $stoIds)
+        ->whereNotNull('article_code')
+        ->pluck('article_code')
+        ->map(fn($c) => strtoupper($c))
+        ->unique()->values()->all();
+
+    return $this->buildPhantomArticlesForLocation($m, $countedCodes, $periode);
 }
 }
