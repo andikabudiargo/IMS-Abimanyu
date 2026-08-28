@@ -334,11 +334,17 @@ public function chemicalUnitStoreByRec(Request $request)
     }
 
     DB::beginTransaction();
-try {
-    $this->lockChemicalBarcodeSequence(); // TAMBAH INI
+    try {
+        $this->lockChemicalBarcodeSequence();
 
-    $allInserted = [];
-    $totalUnitCount = 0;
+        // Ambil starting barcode SEKALI di sini, sisanya increment murni di memory.
+        // Ini penting: nextChemicalBarcode() query ke DB, dan kalau dipanggil ulang
+        // di dalam loop sebelum insert terjadi, semua unit akan dapat nomor yang
+        // SAMA (karena DB belum ter-update) -> duplicate key error saat insert.
+        $currentBarcode = $this->nextChemicalBarcode();
+
+        $allInserted    = [];
+        $totalUnitCount = 0;
 
         foreach ($groups as $g) {
             if (empty($g->units)) continue;
@@ -359,7 +365,8 @@ try {
 
             $dataSet = [];
             foreach ($g->units as $u) {
-               $barcodeCode = $this->nextChemicalBarcode();
+                $barcodeCode    = $currentBarcode;
+                $currentBarcode = $this->incrementChemicalBarcode($currentBarcode);
 
                 $dataSet[] = [
                     'receiving_det_id' => $detail->id,
@@ -379,21 +386,21 @@ try {
                 ];
             }
 
-          DB::table('receiving_chemical_unit')->insert($dataSet);
+            DB::table('receiving_chemical_unit')->insert($dataSet);
 
-$barcodeCodes = array_column($dataSet, 'barcode_code');
-$insertedRows = DB::table('receiving_chemical_unit')
-    ->whereIn('barcode_code', $barcodeCodes)
-    ->get(['id', 'barcode_code', 'article_code', 'expired_date', 'print_status'])
-    ->keyBy('barcode_code');
+            $barcodeCodes = array_column($dataSet, 'barcode_code');
+            $insertedRows = DB::table('receiving_chemical_unit')
+                ->whereIn('barcode_code', $barcodeCodes)
+                ->get(['id', 'barcode_code', 'article_code', 'expired_date', 'print_status'])
+                ->keyBy('barcode_code');
 
-foreach ($dataSet as &$d) {
-    $d['id'] = $insertedRows[$d['barcode_code']]->id ?? null;
-}
-unset($d);   // <-- TAMBAH INI
+            foreach ($dataSet as &$d) {
+                $d['id'] = $insertedRows[$d['barcode_code']]->id ?? null;
+            }
+            unset($d);
 
-$allInserted = array_merge($allInserted, $dataSet);
-$totalUnitCount += count($dataSet);
+            $allInserted     = array_merge($allInserted, $dataSet);
+            $totalUnitCount += count($dataSet);
         }
 
         DB::commit();
@@ -402,17 +409,17 @@ $totalUnitCount += count($dataSet);
         $message = "$title untuk $recNumber berhasil disimpan ($totalUnitCount kaleng, " . count($groups) . " artikel)";
         \LogActivity::addToLog($title, "username: $username Status $message");
 
-       return response()->json([
-    'status'  => 1,
-    'message' => $message,
-    'units'   => array_map(fn($d) => [
-        'id'            => $d['id'] ?? null,   // perlu ambil id hasil insert, lihat catatan di bawah
-        'article_code'  => $d['article_code'],
-        'barcode_code'  => $d['barcode_code'],
-        'expired_date'  => $d['expired_date'],
-        'print_barcode' => $d['print_status'],
-    ], $allInserted),
-]);
+        return response()->json([
+            'status'  => 1,
+            'message' => $message,
+            'units'   => array_map(fn($d) => [
+                'id'            => $d['id'] ?? null,
+                'article_code'  => $d['article_code'],
+                'barcode_code'  => $d['barcode_code'],
+                'expired_date'  => $d['expired_date'],
+                'print_barcode' => $d['print_status'],
+            ], $allInserted),
+        ]);
 
     } catch (\Exception $e) {
         DB::rollBack();
@@ -420,6 +427,30 @@ $totalUnitCount += count($dataSet);
         \LogActivity::addToLog("Add Expired Date", "username: $username Status $message");
         return response()->json(['status' => 0, 'message' => $message]);
     }
+}
+
+/**
+ * Increment murni dari string barcode terakhir, TANPA query ke DB.
+ * Dipakai supaya generate banyak barcode sekaligus dalam satu request
+ * tidak saling tabrakan (beda dengan nextChemicalBarcode() yang query DB).
+ */
+private function incrementChemicalBarcode(string $last): string
+{
+    if (!preg_match('/^LOT-([A-Z]{3})-(\d{9})$/', $last, $m)) {
+        return 'LOT-AAA-' . str_pad(1, 9, '0', STR_PAD_LEFT);
+    }
+
+    $letters = $m[1];
+    $number  = (int) $m[2];
+
+    if ($number >= 999999999) {
+        $letters = $this->incrementLetterSeq($letters);
+        $number  = 1;
+    } else {
+        $number++;
+    }
+
+    return 'LOT-' . $letters . '-' . str_pad($number, 9, '0', STR_PAD_LEFT);
 }
 
 public function printChemicalUnitLabel(Request $request)
