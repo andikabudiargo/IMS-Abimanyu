@@ -506,6 +506,104 @@ public function printChemicalUnitLabel(Request $request)
     ]);
 }
 
+/**
+ * List semua kaleng yang sudah tercatat untuk satu rec_number.
+ * Dipakai di modal "Kelola Kaleng" (reprint barcode & extend expired date)
+ * yang muncul walau status sudah Complete.
+ */
+public function chemicalUnitListByRec(Request $request)
+{
+    $recNumber = trim($request->rec_number);
+
+    $units = DB::table('receiving_chemical_unit as rcu')
+        ->leftJoin('article', 'article.article_code', 'rcu.article_code')
+        ->where('rcu.rec_number', $recNumber)
+        ->where('rcu.status', '<>', 'cancelled')
+        ->select(
+            'rcu.id',
+            'rcu.article_code',
+            'article.article_alternative_code',
+            'article.article_desc',
+            'rcu.unit_sequence',
+            'rcu.qty',
+            'rcu.barcode_code',
+            'rcu.expired_date',
+            'rcu.print_count',
+            'rcu.status'
+        )
+        ->orderBy('article.article_desc')
+        ->orderBy('rcu.unit_sequence')
+        ->get();
+
+    if ($units->isEmpty()) {
+        return response()->json(['status' => 0, 'message' => 'Belum ada kaleng tercatat untuk rec_number ini']);
+    }
+
+    return response()->json(['status' => 1, 'rec_number' => $recNumber, 'units' => $units]);
+}
+
+/**
+ * Update expired date banyak kaleng sekaligus (dari modal Kelola Kaleng).
+ * Beda dengan extendExpiredDate() yang lama (cuma 1 id via barcode scan) —
+ * ini bulk update dari checklist di modal.
+ * Payload: units = [{id, expired_date}, ...]
+ */
+public function chemicalUnitBulkExtend(Request $request)
+{
+    $username = Auth::user()->username;
+    $units    = json_decode($request->units);
+
+    if (empty($units)) {
+        return response()->json(['status' => 0, 'message' => 'Tidak ada perubahan untuk disimpan']);
+    }
+
+    $updated = 0;
+    foreach ($units as $u) {
+        if (empty($u->id) || empty($u->expired_date)) continue;
+
+        $rowAffected = DB::table('receiving_chemical_unit')
+            ->where('id', $u->id)
+            ->update([
+                'expired_date' => date('Y-m-d', strtotime($u->expired_date)),
+                'updated_by'   => $username,
+                'updated_at'   => date('Y-m-d H:i:s'),
+            ]);
+
+        if ($rowAffected) $updated++;
+    }
+
+    $title   = "Extend Expired Date";
+    $message = "$title berhasil update $updated kaleng";
+    \LogActivity::addToLog($title, "username: $username Status $message");
+
+    return response()->json(['status' => 1, 'message' => $message, 'updated' => $updated]);
+}
+
+/**
+ * Reprint label untuk kaleng yang barcode-nya rusak/hilang/pudar.
+ * print_count dinaikkan supaya ada jejak berapa kali label dicetak ulang
+ * (berguna kalau nanti perlu audit kenapa satu kaleng di-print berkali-kali).
+ */
+public function reprintChemicalUnitLabel(Request $request)
+{
+    $unitIds = $request->unit_ids;
+
+    if (empty($unitIds) || !is_array($unitIds)) {
+        return response()->json(['status' => 0, 'message' => 'Pilih minimal satu kaleng untuk direprint.']);
+    }
+
+    DB::table('receiving_chemical_unit')
+        ->whereIn('id', $unitIds)
+        ->update([
+            'print_count' => DB::raw('coalesce(print_count,0) + 1'),
+            'updated_by'  => Auth::user()->username,
+            'updated_at'  => date('Y-m-d H:i:s'),
+        ]);
+
+    // reuse logic generate QR + label yang sudah ada
+    return $this->printChemicalUnitLabel($request);
+}
+
     private function ensureWarehouseStockRow(string $siteCode, string $articleCode, string $location, ?string $deptCode, ?string $uom): void
 {
     $exists = DB::table('warehouse_stock')
@@ -2920,16 +3018,16 @@ public function unPosting($recNumber)
                                     <i data-feather='clock' class='feather-14-red'></i>
                                     <span>" . __('Add Expired Date') . " <small>({$pending} pending)</small></span>
                                  </a>";
-                } else {
-                    $buttons .= "<a href='javascript:;'
-                                    class='dropdown-item text-success chemical-unit-button'
-                                    data-toggle='modal'
-                                    data-target='#chemicalUnitModal'
-                                    data-rec-number='{$data->rec_number}'>
-                                    <i data-feather='check-circle' class='feather-14-red'></i>
-                                    <span>" . __('Expired Date') . " <small>(Complete)</small></span>
-                                 </a>";
-                }
+               } else {
+    $buttons .= "<a href='javascript:;'
+                    class='dropdown-item text-success chemical-manage-button'
+                    data-toggle='modal'
+                    data-target='#chemicalManageModal'
+                    data-rec-number='{$data->rec_number}'>
+                    <i data-feather='refresh-cw' class='feather-14-red'></i>
+                    <span>" . __('Extend / Reprint Label') . "</span>
+                 </a>";
+}
             }
 
             // ----- REVISION -----

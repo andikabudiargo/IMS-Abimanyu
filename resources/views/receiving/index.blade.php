@@ -109,6 +109,56 @@
     </div>
   </div>
 </section>
+<div class="modal fade" id="chemicalManageModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Kelola Kaleng Chemical</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="chemicalManageRecNumber" class="font-weight-bold"></p>
+        <div id="chemicalManageLoading" class="text-center py-3">Memuat data...</div>
+        <div id="chemicalManageAlert" class="alert alert-warning" style="display:none;"></div>
+        <div class="table-responsive">
+          <table class="table table-sm" id="chemicalManageTable" style="display:none;">
+            <thead>
+              <tr>
+                <th width="30"><input type="checkbox" id="chkAllReprint"></th>
+                <th>Article</th>
+                <th>Barcode</th>
+                <th>Qty</th>
+                <th>Expired Date</th>
+                <th>Print Count</th>
+              </tr>
+            </thead>
+            <tbody id="chemicalManageBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-warning" id="btnSaveExtend">
+          <i data-feather="save"></i> Simpan Perubahan Expired Date
+        </button>
+        <button type="button" class="btn btn-primary" id="btnReprintSelected">
+          <i data-feather="printer"></i> Reprint Terpilih
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<template id="tplChemicalManageRow">
+  <tr data-id="__ID__" data-original-expired="__EXPIRED__">
+    <td><input type="checkbox" class="chk-reprint" value="__ID__"></td>
+    <td>__ALT_CODE__ - __ARTICLE_DESC__ <small class="text-muted">(#__UNIT_SEQUENCE__)</small></td>
+    <td><code>__BARCODE__</code></td>
+    <td>__QTY__ __UOM__</td>
+    <td><input type="text" class="form-control form-control-sm input-manage-expired flatpickr-date" value="__EXPIRED__" data-id="__ID__"></td>
+    <td class="text-center">__PRINT_COUNT__</td>
+  </tr>
+</template>
 @include('partials.delete-modal')
 @include('receiving.expired-date-modal')
 @endsection
@@ -459,6 +509,145 @@ $('#chemicalUnitModal').on('hidden.bs.modal', function () {
   $('#chemicalUnitAlert').hide();
   $('#chemicalUnitLoading').hide();
   chemicalUnitRecNumber = '';
+});
+
+let chemicalManageRecNumber = '';
+
+function loadChemicalManageModal(recNumber) {
+  chemicalManageRecNumber = recNumber;
+
+  $('#chemicalManageRecNumber').text('Rec Number: ' + recNumber);
+  $('#chemicalManageBody').empty();
+  $('#chemicalManageAlert').hide().text('');
+  $('#chemicalManageTable').hide();
+  $('#chemicalManageLoading').show();
+
+  $.ajax({
+    url: "{{ route('receiving.chemicalUnitListByRec') }}",
+    type: 'POST',
+    data: { rec_number: recNumber },
+    success: function (res) {
+      $('#chemicalManageLoading').hide();
+
+      if (res.status !== 1) {
+        $('#chemicalManageAlert').text(res.message).show();
+        return;
+      }
+
+      res.units.forEach(function (u) {
+        let rowHtml = tpl('#tplChemicalManageRow', {
+          ID: u.id,
+          ALT_CODE: u.article_alternative_code || u.article_code,
+          ARTICLE_DESC: u.article_desc || '',
+          UNIT_SEQUENCE: u.unit_sequence,
+          BARCODE: u.barcode_code,
+          QTY: u.qty,
+          UOM: '',
+          EXPIRED: u.expired_date,
+          PRINT_COUNT: u.print_count || 0
+        });
+        $('#chemicalManageBody').append(rowHtml);
+      });
+
+      $('#chemicalManageTable').show();
+
+      // aktifkan datepicker di kolom expired date
+      $('.input-manage-expired').flatpickr({ dateFormat: 'Y-m-d' });
+    },
+    error: function () {
+      $('#chemicalManageLoading').hide();
+      $('#chemicalManageAlert').text('Gagal memuat data. Silakan coba lagi.').show();
+    }
+  });
+}
+
+$(document).on('click', '.chemical-manage-button', function () {
+  let recNumber = $(this).data('rec-number');
+  loadChemicalManageModal(recNumber);
+});
+
+$('#chkAllReprint').on('change', function () {
+  $('.chk-reprint').prop('checked', $(this).is(':checked'));
+});
+
+// ---- Simpan perubahan expired date (extend, karena kemasan/label rusak dll) ----
+$('#btnSaveExtend').on('click', function () {
+  let changedUnits = [];
+
+  $('#chemicalManageBody tr').each(function () {
+    let id = $(this).data('id');
+    let original = $(this).data('original-expired');
+    let current = $(this).find('.input-manage-expired').val();
+
+    if (current && current !== original) {
+      changedUnits.push({ id: id, expired_date: current });
+    }
+  });
+
+  if (changedUnits.length === 0) {
+    Swal.fire('Info', 'Tidak ada perubahan expired date.', 'info');
+    return;
+  }
+
+  $('#btnSaveExtend').prop('disabled', true).text('Menyimpan...');
+
+  $.ajax({
+    url: "{{ route('receiving.chemicalUnitBulkExtend') }}",
+    type: 'POST',
+    data: { units: JSON.stringify(changedUnits) },
+    success: function (res) {
+      $('#btnSaveExtend').prop('disabled', false).html('<i data-feather="save"></i> Simpan Perubahan Expired Date');
+      if (res.status === 1) {
+        Swal.fire('Berhasil', res.message, 'success');
+        loadChemicalManageModal(chemicalManageRecNumber); // refresh data di modal
+      } else {
+        Swal.fire('Gagal', res.message, 'warning');
+      }
+    },
+    error: function () {
+      $('#btnSaveExtend').prop('disabled', false).html('<i data-feather="save"></i> Simpan Perubahan Expired Date');
+      Swal.fire('Error', 'Gagal menyimpan perubahan.', 'error');
+    }
+  });
+});
+
+// ---- Reprint kaleng yang dicentang (barcode rusak, dsb) ----
+$('#btnReprintSelected').on('click', function () {
+  let unitIds = $('.chk-reprint:checked').map(function () { return $(this).val(); }).get();
+
+  if (unitIds.length === 0) {
+    Swal.fire('Info', 'Pilih minimal satu kaleng untuk direprint.', 'info');
+    return;
+  }
+
+  $('#btnReprintSelected').prop('disabled', true).text('Mencetak...');
+
+  $.ajax({
+    url: "{{ route('receiving.reprintChemicalUnitLabel') }}",
+    type: 'POST',
+    data: { unit_ids: unitIds },
+    success: function (res) {
+      $('#btnReprintSelected').prop('disabled', false).html('<i data-feather="printer"></i> Reprint Terpilih');
+      if (res.status === 1) {
+        doBrowserPrintChemical(res); // reuse fungsi print yang sudah ada
+        loadChemicalManageModal(chemicalManageRecNumber); // refresh print_count
+      } else {
+        Swal.fire('Gagal Print', res.message, 'warning');
+      }
+    },
+    error: function (xhr) {
+      $('#btnReprintSelected').prop('disabled', false).html('<i data-feather="printer"></i> Reprint Terpilih');
+      console.error(xhr.responseText);
+      Swal.fire('Error Print', 'Gagal generate label. Cek console untuk detail.', 'error');
+    }
+  });
+});
+
+$('#chemicalManageModal').on('hidden.bs.modal', function () {
+  $('#chemicalManageBody').empty();
+  $('#chemicalManageAlert').hide();
+  $('#chemicalManageTable').hide();
+  chemicalManageRecNumber = '';
 });
 
 function doBrowserPrintChemical(data) {

@@ -396,6 +396,10 @@ Route::post('receiving/chemical-unit-store', [
     'as'   => 'receiving.chemicalUnitStore',
 ]);
 
+Route::post('receiving/chemical-unit/list-by-rec', 'ReceivingController@chemicalUnitListByRec')->name('receiving.chemicalUnitListByRec');
+Route::post('receiving/chemical-unit/bulk-extend', 'ReceivingController@chemicalUnitBulkExtend')->name('receiving.chemicalUnitBulkExtend');
+Route::post('receiving/chemical-unit/reprint', 'ReceivingController@reprintChemicalUnitLabel')->name('receiving.reprintChemicalUnitLabel');
+
 Route::prefix('supplier-return')->name('supplierReturn.')->group(function () {
     Route::get('/', 'SupplierReturnController@index')->name('index');
     Route::get('/create', 'SupplierReturnController@create')->name('create');
