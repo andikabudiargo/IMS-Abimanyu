@@ -520,8 +520,8 @@
               </a>
             </li>
 
-             <li class="{{ \Request::is(['stockAdjustment','stockAdjustment/create','stockAdjustment/show','stockAdjustment/edit']) ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('stockAdjustment.index') }}">
+              <li class="{{ \Request::segment(1) == 'storeport'  ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('stoReport.index') }}">
                 <span class="menu-item text-truncate" data-i18n="Input">Report</span>
               </a>
             </li>

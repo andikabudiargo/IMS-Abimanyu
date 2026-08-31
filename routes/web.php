@@ -925,6 +925,10 @@ Route::get('stockCount/getAvailableNumbers', ['as'=>'stockCount.getAvailableNumb
 Route::put('stockCount/line/{dtlId}', ['as'=>'stockCount.updateLine', 'uses'=>'StockCountController@updateLine']);
 Route::get('stock-count/audit-list-detail', ['as'=>'stockCount.auditListDetail', 'uses'=>'StockCountController@auditListDetail']);
 
+Route::get('/sto-report',            'StoReportController@index')->name('stoReport.index');
+Route::post('/sto-report/locations', 'StoReportController@getStoLocations')->name('stoReport.locations');
+Route::post('/sto-report/data',      'StoReportController@data')->name('stoReport.data');
+
 Route::get('stockReconciliation',['as'=>'stockReconciliation.index','uses'=>'StockReconciliationController@index','middleware' => ['permission:transferOut-index']]);
 Route::get('stockReconciliation/list',['as'=>'stockReconciliation.list','uses'=>'StockReconciliationController@list']);
 Route::get('stockReconciliation/list/detail',['as'=>'stockReconciliation.list.detail','uses'=>'StockReconciliationController@listDetail']);
