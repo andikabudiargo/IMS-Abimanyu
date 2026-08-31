@@ -51,7 +51,7 @@
                                     </div>
                                 </div>
                                 <div class="form-row">
-                                    <div class="form-group col-md-7">
+                                    <div class="form-group col-md-4">
                                         <label class="form-label" for="cust">
                                             <span id="custLabel">Customer / Supplier</span>*
                                         </label>
@@ -59,6 +59,23 @@
                                             <option value="">Choose Customer / Supplier</option>
                                         </select>
                                     </div>
+                                     <div class="form-group col-md-3">
+        <label class="form-label" for="armada">Armada*</label>
+        <select class="select2 form-control" id="armada" name="armada" required>
+            <option value="">Choose Armada</option>
+            <option value="CDD PAGI">CDD PAGI</option>
+            <option value="CDD MALAM">CDD MALAM</option>
+            <option value="VJB 1 PAGI">VJB 1 PAGI</option>
+            <option value="VJB 1 MALAM">VJB 1 MALAM</option>
+            <option value="VJB 2 PAGI">VJB 2 PAGI</option>
+            <option value="VJB 2 MALAM">VJB 2 MALAM</option>
+            <option value="GRANDMAX PAGI">GRANDMAX PAGI</option>
+            <option value="GRANDMAX MALAM">GRANDMAX MALAM</option>
+            <option value="LUXIO">LUXIO</option>
+            <option value="MOBIL SEWA PAGI">MOBIL SEWA PAGI</option>
+            <option value="PICKUP">PICKUP</option>
+        </select>
+    </div>      
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group col-md-7">
@@ -311,7 +328,8 @@ initDatePicker('#deliveryDate', { maxDate: "today" });
                     customerId  : $('#cust').val(),
                     perihal     : $('#perihal').val(),
                     note        : $('#note').val(),
-                    dnType      : currentType
+                    dnType      : currentType,
+                    armada      : $('#armada').val()   // baru
                 },
                 dataType: 'json',
                 success : function(data) {
@@ -322,7 +340,7 @@ initDatePicker('#deliveryDate', { maxDate: "today" });
                         show_msg(data.title, data.message, data.alert);
                         $('#tDnNumber').val(data.tDnNumber);
                         $('#cmdSave, #addNewRow').attr('disabled', 'disabled');
-                        $('#type, #cust').attr('disabled', 'disabled');
+                        $('#type, #cust, #armada').attr('disabled', 'disabled');   // tambah #armada
                     }
                     $('#tDnNumber').attr('disabled', 'disabled');
                 },
