@@ -369,40 +369,40 @@ class StoReportController extends Controller
             // ── IN ──
             // Receiving: desc ILIKE 'RECEIVING%'
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_desc ILIKE ? THEN COALESCE(wm.movement_plus,0) ELSE 0 END) as in_receiving",
+                "SUM(CASE WHEN wm.movement_type ILIKE ? THEN COALESCE(wm.movement_plus,0) ELSE 0 END) as in_receiving",
                 [$pReceiving]
             )
             // Return Transfer: desc ILIKE '%TRANSFER%' AND bukan SUPPLIER REPLACE/RETURN AND movement_plus > 0
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_desc ILIKE ?
-                          AND wm.movement_desc NOT ILIKE ?
+                "SUM(CASE WHEN wm.movement_type ILIKE ?
+                          AND wm.movement_type NOT ILIKE ?
                           AND COALESCE(wm.movement_plus,0) > 0
                      THEN wm.movement_plus ELSE 0 END) as in_return_transfer",
                 [$pTransfer, 'SUPPLIER%']
             )
             // Supplier Replace: desc ILIKE 'SUPPLIER REPLACE%'
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_desc ILIKE ? THEN COALESCE(wm.movement_plus,0) ELSE 0 END) as in_replace_supplier",
+                "SUM(CASE WHEN wm.movement_type ILIKE ? THEN COALESCE(wm.movement_plus,0) ELSE 0 END) as in_replace_supplier",
                 [$pReplace]
             )
 
             // ── OUT ──
             // Supply Transfer: desc ILIKE 'SUPPLY%' AND bukan 'SUPPLIER%' AND movement_min > 0
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_desc ILIKE ?
-                          AND wm.movement_desc NOT ILIKE ?
+                "SUM(CASE WHEN wm.movement_type ILIKE ?
+                          AND wm.movement_type NOT ILIKE ?
                           AND COALESCE(wm.movement_min,0) > 0
                      THEN wm.movement_min ELSE 0 END) as out_supply_transfer",
                 [$pSupply, 'SUPPLIER%']
             )
             // Return Supplier: desc ILIKE 'SUPPLIER RETURN%'
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_desc ILIKE ? THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_return_supplier",
+                "SUM(CASE WHEN wm.movement_type ILIKE ? THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_return_supplier",
                 [$pSuppRet]
             )
             // DN Umum: desc ILIKE 'DN UMUM%'
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_desc ILIKE ? THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_dn_umum",
+                "SUM(CASE WHEN wm.movement_type ILIKE ? THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_dn_umum",
                 [$pDnUmum]
             )
 
