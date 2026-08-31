@@ -44,10 +44,7 @@ class CheckStockAnomaly extends Command
         // scope delete log lama & (via return value) filter display di controller.
         // Movement tetap discan di lokasi asli (lihat $whereLocation di bawah),
         // tapi hasilnya selalu tersimpan di log dengan location_number = parent
-        // (efek fold di CTE ledger/diagnostic). Kalau delete-scope masih pakai
-        // $location mentah (child), baris log lama untuk parent yang sama tidak
-        // akan pernah ke-refresh/ke-hapus saat command dijalankan ulang dengan
-        // --location=child yang berbeda-beda.
+        // (efek fold di CTE ledger).
         $locationAnchor = $location;
         if ($location) {
             $parent = DB::table('stock_location_master')
@@ -61,7 +58,6 @@ class CheckStockAnomaly extends Command
             . ($hasArticleFilter ? ' | filter artikel aktif' : ''));
 
         // 0. Kalau ada filter artikel, resolve dulu daftar article_code yang match.
-        //    Kalau hasilnya kosong, gak perlu scan movement sama sekali.
         $articleCodes = [];
         if ($hasArticleFilter) {
             $articleCodes = DB::table('article')
@@ -84,148 +80,108 @@ class CheckStockAnomaly extends Command
             }
         }
 
-        // 1. Kosongkan log lama yang masih OPEN, sesuai scope filter yang aktif
-        //    (biar cek scope lain gak kehapus datanya)
-        //    Pakai $locationAnchor (parent), karena baris log selalu tersimpan
-        //    dengan location_number hasil fold — bukan lokasi child mentah.
+        // 1. Kosongkan log lama yang masih OPEN, sesuai scope filter yang aktif.
         DB::table('stock_anomaly_log')
             ->where('status', 'OPEN')
             ->when($locationAnchor, fn($q) => $q->where('location_number', $locationAnchor))
             ->when($hasArticleFilter, fn($q) => $q->whereIn('article_id', $articleCodes))
             ->delete();
 
-        // 2. Susun klausa WHERE dinamis untuk CTE ledger
-        //    Catatan: filter lokasi tetap dicek terhadap lokasi ASLI movement (wm.location_number),
-        //    bukan hasil fold ke parent — supaya --location=038 tetap bisa dipakai untuk
-        //    menelusuri movement di child tertentu, walau hasilnya nanti dilaporkan under parent-nya.
+        // 2. Klausa WHERE dinamis. Filter lokasi tetap dicek ke lokasi ASLI movement
+        //    (wm.location_number), bukan hasil fold ke parent — supaya --location=038
+        //    tetap bisa dipakai menelusuri child, walau hasilnya dilaporkan under parent-nya.
         $whereLocation = $location ? "AND wm.location_number = :location" : "";
         $whereArticle  = $hasArticleFilter ? "AND wm.artikel_code = ANY(:articleCodes)" : "";
 
-        // 3. Query utama: bandingkan ledger (warehouse_movement, net dari 2 lapis
-        //    exclude: status-header & net-value-pair) vs snapshot (warehouse_stock)
+        // 3. Query utama.
+        //    ============================================================
+        //    NET-LOGIC DISAMAKAN PERSIS DENGAN movement2() (Stock Movement):
+        //      - hdr_status via CASE lookup ke tabel header dokumen
+        //      - net_value ADJUSTMENT-AWARE (plus=min=0 -> baca stock_adjustment_det)
+        //      - dedup pakai ROW_NUMBER (artikel, transnno, location) ambil rn=1  (REVISI)
+        //      - exclude cancel: movement_type NOT LIKE 'CANCEL %'/'DELETE%'/'REVISI %'
+        //        + NOT IN ('RETURN-CANCEL','RETURN-REVERSE') + hdr_status <> '5'
+        //    ============================================================
+        //    CATATAN OPENING BALANCE:
+        //    movement2() meng-exclude OB dari CTE ledger-nya, TAPI menambahkannya lagi
+        //    sebagai saldoAwal — jadi TOTAL balance akhirnya = OB + movement. Karena
+        //    warehouse_stock (yang kita banding) juga = OB + semua movement, maka di sini
+        //    OB TIDAK di-exclude: dibiarkan ikut terjumlah sebagai delta. net_value
+        //    adjustment-aware memastikan delta OB kebaca benar dari det.
         //
-        //    Tambahan: fold lokasi child (WIP sub-lokasi fisik, mis. 038/039/040/041)
-        //    ke parent-nya (mis. 012) via stock_location_master.parent_location,
-        //    karena by design warehouse_stock hanya dicatat di level parent
-        //    (pool akuntansi), sementara warehouse_movement dicatat di lokasi child
-        //    fisik tempat transaksi sebenarnya terjadi. Tanpa fold ini, setiap movement
-        //    di child akan selalu terlihat sebagai anomaly (qty_ledger ada, qty_snapshot
-        //    tidak pernah ada) padahal itu bukan bug.
+        //    Fold lokasi child -> parent (stock_location_master.parent_location) tetap
+        //    dipertahankan, karena warehouse_stock dicatat di level parent (pool akuntansi),
+        //    sementara warehouse_movement dicatat di lokasi child fisik.
         $sql = "
             WITH
-            -- Peta lokasi child -> parent (accounting anchor). Lokasi tanpa parent
-            -- (termasuk parent itu sendiri, atau lokasi biasa non-WIP) memetakan ke dirinya sendiri.
+            -- Peta lokasi child -> parent (accounting anchor).
             loc_anchor AS (
                 SELECT location_code,
                        COALESCE(parent_location, location_code) AS stock_location
                 FROM stock_location_master
             ),
 
-            -- Lapis A: exclude by movement_type pattern + header status (dari baseSql logic)
-            excluded_by_status AS (
-                SELECT m.movement_code
-                FROM warehouse_movement m
-                WHERE m.movement_type LIKE 'CANCEL %'
-                   OR m.movement_type LIKE 'DELETE%'
-                   OR m.movement_type LIKE 'REVISI %'
-                   OR m.movement_type IN ('RETURN-CANCEL','RETURN-REVERSE')
-                   OR (m.movement_type = 'RECEIVING' AND EXISTS (
-                        SELECT 1 FROM receiving_hdr r WHERE r.rec_number = m.movement_transnno AND r.status = '5'))
-                   OR (m.movement_type IN ('TRANSFER','SUPPLY') AND EXISTS (
-                        SELECT 1 FROM transfer_stock_hdr t WHERE t.tr_number = m.movement_transnno AND t.status = '5'))
-                   OR (m.movement_type IN ('DELIVERY','Delivery') AND EXISTS (
-                        SELECT 1 FROM delivery_hdr d WHERE d.delivery_number = m.movement_transnno AND d.status = '5'))
-                   OR (m.movement_type = 'REPLACEMENT' AND EXISTS (
-                        SELECT 1 FROM dn_replace_hdr rp WHERE rp.replace_number = m.movement_transnno AND rp.status = '5'))
-                   OR (m.movement_type = 'RETURN' AND EXISTS (
-                        SELECT 1 FROM dn_return_hdr rt WHERE rt.return_number = m.movement_transnno AND rt.status = '5'))
-                   OR (m.movement_type = 'ADJUSTMENT' AND EXISTS (
-                        SELECT 1 FROM stock_adjustment_hdr a WHERE a.adj_code = m.movement_transnno AND a.status = '5'))
-                   OR (m.movement_type = 'DN SEMENTARA' AND EXISTS (
-                        SELECT 1 FROM temporary_dn_hdr tdn WHERE tdn.tdn_number = m.movement_transnno AND tdn.status = '5'))
-                   OR (m.movement_type IN ('DN UMUM','SURAT JALAN UMUM') AND EXISTS (
-                        SELECT 1 FROM dn_general_hdr dng WHERE dng.tdn_number = m.movement_transnno AND dng.status = '5'))
-            ),
-
-            -- Lapis B: exclude by net-value cancel-pair (dari movement2 logic)
-            movement_net AS (
-                SELECT wm.movement_code, wm.movement_transnno, wm.artikel_code,
-                       wm.location_number, wm.site_code, wm.movement_type,
-                       (wm.movement_plus - wm.movement_min) AS net_value,
-                       wm.created_at
+            -- Lapis mv: replikasi persis ledger movement2() (hdr_status + net_value adj-aware)
+            mv AS (
+                SELECT
+                    wm.movement_code,
+                    wm.artikel_code,
+                    wm.movement_transnno,
+                    wm.location_number,
+                    wm.created_at,
+                    CASE wm.movement_type
+                        WHEN 'RECEIVING'    THEN (SELECT status FROM receiving_hdr        WHERE rec_number      = wm.movement_transnno LIMIT 1)
+                        WHEN 'TRANSFER'     THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = wm.movement_transnno LIMIT 1)
+                        WHEN 'SUPPLY'       THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = wm.movement_transnno LIMIT 1)
+                        WHEN 'DELIVERY'     THEN (SELECT status FROM delivery_hdr         WHERE delivery_number = wm.movement_transnno LIMIT 1)
+                        WHEN 'RETURN'       THEN (SELECT status FROM dn_return_hdr        WHERE return_number   = wm.movement_transnno LIMIT 1)
+                        WHEN 'REPLACEMENT'  THEN (SELECT status FROM dn_replace_hdr       WHERE replace_number  = wm.movement_transnno LIMIT 1)
+                        WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = wm.movement_transnno LIMIT 1)
+                        WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = wm.movement_transnno LIMIT 1)
+                        WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = wm.movement_transnno LIMIT 1)
+                        ELSE NULL
+                    END AS hdr_status,
+                    CASE
+                        WHEN wm.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                             AND wm.movement_plus = 0 AND wm.movement_min = 0
+                        THEN (SELECT CASE WHEN det.direction = '-' THEN -det.qty_adjustment ELSE det.qty_adjustment END
+                              FROM stock_adjustment_det det
+                              WHERE det.adj_code = wm.movement_transnno AND det.article_code = wm.artikel_code LIMIT 1)
+                             * CASE WHEN wm.movement_type = 'CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
+                        ELSE (wm.movement_plus - wm.movement_min)
+                    END AS net_value
                 FROM warehouse_movement wm
+                WHERE wm.movement_type NOT LIKE 'CANCEL %'
+                  AND wm.movement_type NOT LIKE 'DELETE%'
+                  AND wm.movement_type NOT LIKE 'REVISI %'
+                  AND wm.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
+                  {$whereLocation}
+                  {$whereArticle}
             ),
-            orig AS (
-                SELECT *, ROW_NUMBER() OVER (
-                    PARTITION BY movement_transnno, artikel_code, location_number, site_code, movement_type, net_value
-                    ORDER BY created_at, movement_code
-                ) AS rn
-                FROM movement_net WHERE movement_type NOT LIKE 'CANCEL %'
-            ),
-            cancl AS (
-                SELECT *, regexp_replace(movement_type, '^CANCEL ', '') AS base_type,
+
+            -- dedup: buang cancel (hdr_status=5), lalu ambil baris terbaru per dokumen (REVISI)
+            dedup AS (
+                SELECT mv.*,
                     ROW_NUMBER() OVER (
-                        PARTITION BY movement_transnno, artikel_code, location_number, site_code,
-                                     regexp_replace(movement_type, '^CANCEL ', ''), -net_value
-                        ORDER BY created_at, movement_code
+                        PARTITION BY mv.artikel_code, mv.movement_transnno, mv.location_number
+                        ORDER BY mv.created_at DESC, mv.movement_code DESC
                     ) AS rn
-                FROM movement_net WHERE movement_type LIKE 'CANCEL %'
+                FROM mv
+                WHERE mv.hdr_status IS DISTINCT FROM '5'
             ),
-            excluded_by_pair AS (
-                SELECT o.movement_code FROM orig o
-                JOIN cancl c ON c.movement_transnno = o.movement_transnno
-                    AND c.artikel_code = o.artikel_code AND c.location_number = o.location_number
-                    AND c.site_code = o.site_code AND c.base_type = o.movement_type
-                    AND c.net_value = -o.net_value AND c.rn = o.rn
-                UNION
-                SELECT c.movement_code FROM orig o
-                JOIN cancl c ON c.movement_transnno = o.movement_transnno
-                    AND c.artikel_code = o.artikel_code AND c.location_number = o.location_number
-                    AND c.site_code = o.site_code AND c.base_type = o.movement_type
-                    AND c.net_value = -o.net_value AND c.rn = o.rn
+            kept AS (
+                SELECT * FROM dedup WHERE rn = 1
             ),
 
-            excluded_all AS (
-                SELECT movement_code FROM excluded_by_status
-                UNION
-                SELECT movement_code FROM excluded_by_pair
-            ),
-
-            -- Ledger bersih: net qty per artikel+lokasi (lokasi child sudah di-fold ke parent),
-            -- setelah exclude dua lapis + filter opsional lokasi & artikel dari form pencarian
+            -- Ledger bersih: net qty per artikel+lokasi (child sudah di-fold ke parent)
             ledger AS (
                 SELECT
-                    wm.artikel_code,
-                    COALESCE(la.stock_location, wm.location_number) AS location_number,
-                    SUM(wm.movement_plus - wm.movement_min) AS qty_ledger
-                FROM warehouse_movement wm
-                LEFT JOIN loc_anchor la ON la.location_code = wm.location_number
-                WHERE wm.movement_code NOT IN (SELECT movement_code FROM excluded_all)
-                {$whereLocation}
-                {$whereArticle}
-                GROUP BY wm.artikel_code, COALESCE(la.stock_location, wm.location_number)
-            ),
-
-            -- Diagnostic: movement yg cuma kena exclude di salah satu lapis
-            -- (kandidat kuat penyebab beda hasil antara baseSql() dan movement2())
-            diagnostic AS (
-                SELECT
-                    wm.artikel_code,
-                    COALESCE(la.stock_location, wm.location_number) AS location_number,
-                    COUNT(*) FILTER (
-                        WHERE s.movement_code IS NOT NULL AND p.movement_code IS NULL
-                    ) AS excluded_by_status_only,
-                    COUNT(*) FILTER (
-                        WHERE p.movement_code IS NOT NULL AND s.movement_code IS NULL
-                    ) AS excluded_by_pair_only
-                FROM warehouse_movement wm
-                LEFT JOIN loc_anchor la ON la.location_code = wm.location_number
-                LEFT JOIN excluded_by_status s ON s.movement_code = wm.movement_code
-                LEFT JOIN excluded_by_pair   p ON p.movement_code = wm.movement_code
-                WHERE (s.movement_code IS NOT NULL OR p.movement_code IS NOT NULL)
-                {$whereLocation}
-                {$whereArticle}
-                GROUP BY wm.artikel_code, COALESCE(la.stock_location, wm.location_number)
+                    k.artikel_code,
+                    COALESCE(la.stock_location, k.location_number) AS location_number,
+                    SUM(k.net_value) AS qty_ledger
+                FROM kept k
+                LEFT JOIN loc_anchor la ON la.location_code = k.location_number
+                GROUP BY k.artikel_code, COALESCE(la.stock_location, k.location_number)
             )
 
             SELECT
@@ -233,22 +189,16 @@ class CheckStockAnomaly extends Command
                 l.location_number,
                 l.qty_ledger,
                 ws.article_qty AS qty_snapshot,
-                (l.qty_ledger - ws.article_qty) AS diff,
-                COALESCE(d.excluded_by_status_only, 0) AS excluded_by_status_only,
-                COALESCE(d.excluded_by_pair_only, 0)   AS excluded_by_pair_only
+                (l.qty_ledger - ws.article_qty) AS diff
             FROM ledger l
             JOIN warehouse_stock ws
                 ON ws.article_code = l.artikel_code
                 AND ws.location_number = l.location_number
-            LEFT JOIN diagnostic d
-                ON d.artikel_code = l.artikel_code
-                AND d.location_number = l.location_number
             WHERE ABS(l.qty_ledger - ws.article_qty) > :threshold
             ORDER BY ABS(l.qty_ledger - ws.article_qty) DESC
         ";
 
-        // 4. Susun binding — named binding semua (PostgreSQL gak bisa campur
-        //    named & positional dalam satu query)
+        // 4. Binding — named binding semua (PostgreSQL gak bisa campur named & positional).
         $bind = ['threshold' => $threshold];
         if ($location) {
             $bind['location'] = $location;
@@ -262,7 +212,11 @@ class CheckStockAnomaly extends Command
 
         $rows = DB::select($sql, $bind);
 
-        // 5. Simpan tiap baris anomaly ke tabel log
+        // 5. Simpan tiap baris anomaly ke tabel log.
+        //    excluded_by_status_only / excluded_by_pair_only sudah tidak relevan
+        //    (dulu dipakai untuk membedakan dua lapis exclude yang kini digantikan
+        //    satu mekanisme ala movement2). Diisi 0 supaya schema tetap kompatibel.
+        //    -> boleh dibuat nullable / di-drop nanti kalau memang gak dipakai lagi.
         $now = now();
         foreach ($rows as $row) {
             DB::statement("
@@ -277,8 +231,8 @@ class CheckStockAnomaly extends Command
                 $row->qty_ledger,
                 $row->qty_snapshot,
                 $row->diff,
-                $row->excluded_by_status_only,
-                $row->excluded_by_pair_only,
+                0,
+                0,
                 $now,
                 $now,
                 $now,
