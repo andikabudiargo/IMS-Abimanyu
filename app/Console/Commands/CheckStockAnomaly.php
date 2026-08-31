@@ -7,18 +7,6 @@ use Illuminate\Support\Facades\DB;
 
 class CheckStockAnomaly extends Command
 {
-    /**
-     * Nama & signature command.
-     * Bisa dipanggil manual: php artisan stock:check-anomaly
-     * Atau dari controller: Artisan::call('stock:check-anomaly')
-     *
-     * Filter tambahan (opsional, meneruskan filter dari form pencarian article):
-     * --location  = kode lokasi gudang (location_number)
-     * --code      = article_alternative_code (partial match)
-     * --name      = article_desc (partial match)
-     * --type      = prefix article_alternative_code (article type)
-     * --supp      = kode supplier/customer (third_party)
-     */
     protected $signature = 'stock:check-anomaly
         {--threshold=0.01}
         {--location=}
@@ -27,7 +15,11 @@ class CheckStockAnomaly extends Command
         {--type=}
         {--supp=}';
 
-    protected $description = 'Deteksi selisih antara movement dan stock';
+    protected $description = 'Deteksi selisih antara movement dan stock (net-logic disamakan dengan movement2 / Stock Movement)';
+
+    // Cutoff date: movement sebelum tanggal ini diabaikan (kecuali ADJUSTMENT).
+    // Sesuai dengan floorDate di resolveOpeningBalance() — stok dimulai dari 1 Juli 2026.
+    const FLOOR_DATE = '2026-07-01'; // format YYYY-MM-DD
 
     public function handle()
     {
@@ -40,11 +32,6 @@ class CheckStockAnomaly extends Command
 
         $hasArticleFilter = $code || $name || $type || $supp;
 
-        // Resolusi lokasi ke parent (accounting anchor) — dipakai KHUSUS untuk
-        // scope delete log lama & (via return value) filter display di controller.
-        // Movement tetap discan di lokasi asli (lihat $whereLocation di bawah),
-        // tapi hasilnya selalu tersimpan di log dengan location_number = parent
-        // (efek fold di CTE ledger).
         $locationAnchor = $location;
         if ($location) {
             $parent = DB::table('stock_location_master')
@@ -55,9 +42,9 @@ class CheckStockAnomaly extends Command
 
         $this->info('Mulai pengecekan abnormality stock...'
             . ($location ? " | lokasi: $location" . ($locationAnchor !== $location ? " (anchor: $locationAnchor)" : '') : '')
-            . ($hasArticleFilter ? ' | filter artikel aktif' : ''));
+            . ($hasArticleFilter ? ' | filter artikel aktif' : '')
+            . ' | floor: ' . self::FLOOR_DATE);
 
-        // 0. Kalau ada filter artikel, resolve dulu daftar article_code yang match.
         $articleCodes = [];
         if ($hasArticleFilter) {
             $articleCodes = DB::table('article')
@@ -70,58 +57,43 @@ class CheckStockAnomaly extends Command
 
             if (empty($articleCodes)) {
                 $this->info('Tidak ada artikel yang cocok dengan filter. Selesai.');
-
                 DB::table('stock_anomaly_log')
                     ->where('status', 'OPEN')
                     ->when($locationAnchor, fn($q) => $q->where('location_number', $locationAnchor))
                     ->delete();
-
                 return 0;
             }
         }
 
-        // 1. Kosongkan log lama yang masih OPEN, sesuai scope filter yang aktif.
         DB::table('stock_anomaly_log')
             ->where('status', 'OPEN')
             ->when($locationAnchor, fn($q) => $q->where('location_number', $locationAnchor))
             ->when($hasArticleFilter, fn($q) => $q->whereIn('article_id', $articleCodes))
             ->delete();
 
-        // 2. Klausa WHERE dinamis. Filter lokasi tetap dicek ke lokasi ASLI movement
-        //    (wm.location_number), bukan hasil fold ke parent — supaya --location=038
-        //    tetap bisa dipakai menelusuri child, walau hasilnya dilaporkan under parent-nya.
         $whereLocation = $location ? "AND wm.location_number = :location" : "";
         $whereArticle  = $hasArticleFilter ? "AND wm.artikel_code = ANY(:articleCodes)" : "";
 
-        // 3. Query utama.
-        //    ============================================================
-        //    NET-LOGIC DISAMAKAN PERSIS DENGAN movement2() (Stock Movement):
-        //      - hdr_status via CASE lookup ke tabel header dokumen
-        //      - net_value ADJUSTMENT-AWARE (plus=min=0 -> baca stock_adjustment_det)
-        //      - dedup pakai ROW_NUMBER (artikel, transnno, location) ambil rn=1  (REVISI)
-        //      - exclude cancel: movement_type NOT LIKE 'CANCEL %'/'DELETE%'/'REVISI %'
-        //        + NOT IN ('RETURN-CANCEL','RETURN-REVERSE') + hdr_status <> '5'
-        //    ============================================================
-        //    CATATAN OPENING BALANCE:
-        //    movement2() meng-exclude OB dari CTE ledger-nya, TAPI menambahkannya lagi
-        //    sebagai saldoAwal — jadi TOTAL balance akhirnya = OB + movement. Karena
-        //    warehouse_stock (yang kita banding) juga = OB + semua movement, maka di sini
-        //    OB TIDAK di-exclude: dibiarkan ikut terjumlah sebagai delta. net_value
-        //    adjustment-aware memastikan delta OB kebaca benar dari det.
-        //
-        //    Fold lokasi child -> parent (stock_location_master.parent_location) tetap
-        //    dipertahankan, karena warehouse_stock dicatat di level parent (pool akuntansi),
-        //    sementara warehouse_movement dicatat di lokasi child fisik.
+        // URUTAN OPERASI — tidak boleh dibalik:
+        //   ① Filter baris mentah:
+        //      - exclude CANCEL/DELETE/REVISI type
+        //      - FLOOR DATE: movement_date >= FLOOR_DATE, KECUALI ADJUSTMENT
+        //        (adjustment tetap dibaca semua tanggal — OB Juni bisa di-post
+        //         belakangan tapi efektif untuk stok Juli)
+        //   ② Hitung hdr_status + net_value adjustment-aware   ← persis movement2()
+        //   ③ DEDUP pakai lokasi FISIK asli                    ← HARUS sebelum fold
+        //   ④ Exclude hdr_status = '5'
+        //   ⑤ BARU fold lokasi fisik ke parent
+        //   ⑥ SUM per artikel+lokasi_parent → bandingkan vs warehouse_stock
         $sql = "
             WITH
-            -- Peta lokasi child -> parent (accounting anchor).
             loc_anchor AS (
                 SELECT location_code,
                        COALESCE(parent_location, location_code) AS stock_location
                 FROM stock_location_master
             ),
 
-            -- Lapis mv: replikasi persis ledger movement2() (hdr_status + net_value adj-aware)
+            -- ① ② : filter + hdr_status + net_value adj-aware, persis movement2()
             mv AS (
                 SELECT
                     wm.movement_code,
@@ -155,11 +127,17 @@ class CheckStockAnomaly extends Command
                   AND wm.movement_type NOT LIKE 'DELETE%'
                   AND wm.movement_type NOT LIKE 'REVISI %'
                   AND wm.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
+                  -- FLOOR DATE: abaikan movement lama sesuai cutoff stok,
+                  -- KECUALI ADJUSTMENT (OB bisa bertanggal sebelum floor)
+                  AND (
+                      TO_DATE(wm.movement_date,'dd-mm-yyyy') >= :floor_date
+                      OR wm.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                  )
                   {$whereLocation}
                   {$whereArticle}
             ),
 
-            -- dedup: buang cancel (hdr_status=5), lalu ambil baris terbaru per dokumen (REVISI)
+            -- ③ ④ : DEDUP pakai lokasi FISIK (sebelum fold), exclude status 5
             dedup AS (
                 SELECT mv.*,
                     ROW_NUMBER() OVER (
@@ -169,11 +147,9 @@ class CheckStockAnomaly extends Command
                 FROM mv
                 WHERE mv.hdr_status IS DISTINCT FROM '5'
             ),
-            kept AS (
-                SELECT * FROM dedup WHERE rn = 1
-            ),
+            kept AS (SELECT * FROM dedup WHERE rn = 1),
 
-            -- Ledger bersih: net qty per artikel+lokasi (child sudah di-fold ke parent)
+            -- ⑤ ⑥ : BARU fold ke parent, lalu SUM
             ledger AS (
                 SELECT
                     k.artikel_code,
@@ -198,13 +174,12 @@ class CheckStockAnomaly extends Command
             ORDER BY ABS(l.qty_ledger - ws.article_qty) DESC
         ";
 
-        // 4. Binding — named binding semua (PostgreSQL gak bisa campur named & positional).
-        $bind = ['threshold' => $threshold];
-        if ($location) {
-            $bind['location'] = $location;
-        }
+        $bind = [
+            'threshold'  => $threshold,
+            'floor_date' => self::FLOOR_DATE,
+        ];
+        if ($location) $bind['location'] = $location;
         if ($hasArticleFilter) {
-            // format array literal PostgreSQL: {val1,val2,val3}
             $bind['articleCodes'] = '{' . implode(',', array_map(function ($v) {
                 return '"' . str_replace('"', '\"', $v) . '"';
             }, $articleCodes)) . '}';
@@ -212,11 +187,6 @@ class CheckStockAnomaly extends Command
 
         $rows = DB::select($sql, $bind);
 
-        // 5. Simpan tiap baris anomaly ke tabel log.
-        //    excluded_by_status_only / excluded_by_pair_only sudah tidak relevan
-        //    (dulu dipakai untuk membedakan dua lapis exclude yang kini digantikan
-        //    satu mekanisme ala movement2). Diisi 0 supaya schema tetap kompatibel.
-        //    -> boleh dibuat nullable / di-drop nanti kalau memang gak dipakai lagi.
         $now = now();
         foreach ($rows as $row) {
             DB::statement("
@@ -241,8 +211,6 @@ class CheckStockAnomaly extends Command
 
         $count = count($rows);
         $this->info("Selesai. Ditemukan {$count} abnormality.");
-
-        // return code 0 = sukses (standar Artisan)
         return 0;
     }
 }
