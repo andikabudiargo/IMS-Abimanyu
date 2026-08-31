@@ -16,24 +16,29 @@ class StoReportController extends Controller
     private $supportedLocations = ['005', '006', '009'];
 
     // ══════════════════════════════════════════════
-    // movement_desc patterns — disesuaikan dari hasil query DB
-    // IN  dari gudang chemical:
-    //   - RECEIVING   → barang masuk dari supplier
-    //   - TRANSFER    → return chemical dari lokasi lain (movement_plus > 0)
-    //   - SUPPLIER REPLACE → ganti barang dari supplier
+    // PENENTU KATEGORI = movement_type (bukan movement_desc)
+    // movement_desc = isi bebas (nama transaksi), tidak bisa diandalkan untuk filter
+    //
+    // IN ke gudang chemical:
+    //   movement_type = 'RECEIVING'        → Receiving dari supplier
+    //   movement_type = 'TRANSFER'         → Return chemical dari booth/lokasi lain (movement_plus)
+    //   movement_type = 'SUPPLIER REPLACE' → Penggantian barang dari supplier
+    //
     // OUT dari gudang chemical:
-    //   - SUPPLY      → supply ke booth/WOS (movement_min > 0)
-    //   - SUPPLIER RETURN → return ke supplier
-    //   - DN UMUM     → delivery note umum
+    //   movement_type = 'SUPPLY'           → Supply ke booth/WOS (movement_min)
+    //   movement_type = 'SUPPLIER RETURN'  → Return ke supplier
+    //   movement_type = 'DN'               → DN Umum (sesuaikan jika berbeda)
+    //
+    // CANCEL prefix (mis. 'CANCEL SUPPLY', 'CANCEL TRANSFER') → diabaikan
     // ══════════════════════════════════════════════
-    private $descReceiving       = 'RECEIVING';        // IN  — movement_desc ILIKE 'RECEIVING%'
-    private $descReturnTransfer  = 'TRANSFER';         // IN  — movement_desc ILIKE '%TRANSFER%' AND movement_plus > 0
-    private $descSupplierReplace = 'SUPPLIER REPLACE'; // IN  — movement_desc ILIKE 'SUPPLIER REPLACE%'
-    private $descSupplyOut       = 'SUPPLY';           // OUT — movement_desc ILIKE 'SUPPLY%' AND movement_min > 0
-    private $descSupplierReturn  = 'SUPPLIER RETURN';  // OUT — movement_desc ILIKE 'SUPPLIER RETURN%'
-    private $descDnUmum          = 'DN UMUM';          // OUT — movement_desc ILIKE 'DN UMUM%'
+    private $typeReceiving       = 'RECEIVING';         // IN
+    private $typeReturnTransfer  = 'TRANSFER';          // IN  (movement_plus > 0)
+    private $typeSupplierReplace = 'SUPPLIER REPLACE';  // IN
+    private $typeSupplyOut       = 'SUPPLY';            // OUT (movement_min > 0)
+    private $typeSupplierReturn  = 'SUPPLIER RETURN';   // OUT
+    private $typeDnUmum          = 'DN';                // OUT — SESUAIKAN jika perlu (DN UMUM, GI, dll)
 
-    // threshold akurasi: selisih <= 2% dari closing → dapat poin
+    // threshold akurasi: selisih <= N% dari closing → dapat poin
     private $accuracyThresholdPercent = 2.0;
 
     public function __construct()
@@ -100,7 +105,7 @@ class StoReportController extends Controller
     }
 
     // ══════════════════════════════════════════════
-    // DATA — hitung & kembalikan baris report (JSON)
+    // DATA
     // ══════════════════════════════════════════════
     public function data(Request $request)
     {
@@ -130,7 +135,6 @@ class StoReportController extends Controller
             ->where('location_code', $locationCode)
             ->value('location_name') ?? $locationCode;
 
-        // ── rentang tanggal ──
         [$dateFrom, $dateTo, $openingDate] = $this->resolveReportDateRange($config->periode, $mapping->sto_date ?? null);
 
         if ($request->filled('date_range')) {
@@ -147,21 +151,15 @@ class StoReportController extends Controller
             }
         }
 
-        // ── agregasi movement ──
-        $movements = $this->aggregateMovements($locationCode, $dateFrom, $dateTo);
-
-        // ── hasil STO counting ──
+        $movements  = $this->aggregateMovements($locationCode, $dateFrom, $dateTo);
         $stoResults = $this->aggregateStoResults($configId, $locationCode);
 
-        // ── kandidat artikel: union dari movement + stok aktif + STO ──
-        // Semua di-resolve ke article_code (real code)
         $stockCodes = DB::table('warehouse_stock')
             ->where('location_number', $locationCode)
             ->where('article_qty', '<>', 0)
             ->pluck('article_code');
 
-        // stoResults keyed by alt_code → convert ke real_code dulu
-        $stoAltCodes = $stoResults->keys();
+        $stoAltCodes  = $stoResults->keys();
         $stoRealCodes = DB::table('article')
             ->whereIn('article_alternative_code', $stoAltCodes)
             ->pluck('article_code');
@@ -169,9 +167,7 @@ class StoReportController extends Controller
         $realCodes = $movements->keys()
             ->merge($stockCodes)
             ->merge($stoRealCodes)
-            ->filter()
-            ->unique()
-            ->values();
+            ->filter()->unique()->values();
 
         $header = [
             'sto_code'        => $config->sto_code,
@@ -195,9 +191,7 @@ class StoReportController extends Controller
             ]);
         }
 
-        // ── metadata artikel — JOIN sekali, deduplikasi by article_code ──
-        // Kalau ada duplikasi alt_code di tabel article (lebih dari 1 real_code),
-        // kita ambil yang PERTAMA saja (ORDER BY article_code) supaya tidak double baris.
+        // metadata artikel — 1 real_code = 1 baris, deduplikasi by article_code
         $articles = DB::table('article as a')
             ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
             ->whereIn('a.article_code', $realCodes)
@@ -210,20 +204,12 @@ class StoReportController extends Controller
             )
             ->orderBy('a.article_code')
             ->get()
-            // deduplikasi: 1 real_code = 1 baris (article_code harusnya PK, aman)
             ->keyBy('article_code');
 
-        // alt_code → real_code map (untuk lookup stoResults)
-        $altToReal = $articles->mapWithKeys(fn($a) => [
-            $a->article_alternative_code => $a->article_code
-        ]);
-
-        // ── susun baris ──
         $rows         = collect();
         $totalPoin    = 0;
         $totalArtikel = 0;
 
-        // Pakai $realCodes sebagai iterator utama — sudah unik per real_code
         foreach ($realCodes as $rc) {
             $meta    = $articles->get($rc);
             $altCode = $meta->article_alternative_code ?? null;
@@ -243,22 +229,15 @@ class StoReportController extends Controller
             $totalOut = $outSup + $outRet + $outDn;
             $closing  = round($opening + $totalIn - $totalOut, 2);
 
-            // skip baris kosong total (tidak ada stok, tidak ada mutasi, tidak ada STO)
             if ($opening == 0 && $totalIn == 0 && $totalOut == 0 && $closing == 0 && !$stoRow) {
                 continue;
             }
 
-            // ── STO, Variance, Status, Akurasi ──
-            if ($stoRow) {
-                $stoQty    = round((float) $stoRow->qty_sto, 2);
-                $stoStatus = $stoRow->count_status ?? 'INCOMPLETE';
-            } else {
-                $stoQty    = null;
-                $stoStatus = 'INCOMPLETE';
-            }
+            $stoQty    = $stoRow ? round((float) $stoRow->qty_sto, 2) : null;
+            $stoStatus = $stoRow ? ($stoRow->count_status ?? 'INCOMPLETE') : 'INCOMPLETE';
+            $variance  = $stoQty !== null ? round($stoQty - $closing, 2) : null;
 
-            $variance = $stoQty !== null ? round($stoQty - $closing, 2) : null;
-
+            // akurasi
             $accurate = false;
             if ($stoStatus === 'MATCH') {
                 $accurate = true;
@@ -266,11 +245,9 @@ class StoReportController extends Controller
                 if ($closing == 0) {
                     $accurate = ($stoQty == 0);
                 } else {
-                    $pctDiff  = abs($variance) / abs($closing) * 100;
-                    $accurate = $pctDiff <= $this->accuracyThresholdPercent;
+                    $accurate = (abs($variance) / abs($closing) * 100) <= $this->accuracyThresholdPercent;
                 }
             }
-            // INCOMPLETE & NOT MATCH → false
 
             $totalArtikel++;
             if ($accurate) $totalPoin++;
@@ -318,95 +295,72 @@ class StoReportController extends Controller
         $targetPlan  = (float) ($mapping->target_plan_loc ?? 98);
         $actAccuracy = $totalArtikel > 0 ? round($totalPoin / $totalArtikel * 100, 2) : 0;
 
-        $summary = [
-            'total_artikel'  => $totalArtikel,
-            'total_accurate' => $totalPoin,
-            'total_not'      => $totalArtikel - $totalPoin,
-            'accuracy_pct'   => $actAccuracy,
-            'target_plan'    => $targetPlan,
-            'is_meet_target' => $actAccuracy >= $targetPlan,
-            'threshold_pct'  => $this->accuracyThresholdPercent,
-        ];
-
         return response()->json([
             'status'  => 1,
             'header'  => $header,
             'rows'    => $rows,
             'totals'  => $totals,
-            'summary' => $summary,
+            'summary' => [
+                'total_artikel'  => $totalArtikel,
+                'total_accurate' => $totalPoin,
+                'total_not'      => $totalArtikel - $totalPoin,
+                'accuracy_pct'   => $actAccuracy,
+                'target_plan'    => $targetPlan,
+                'is_meet_target' => $actAccuracy >= $targetPlan,
+                'threshold_pct'  => $this->accuracyThresholdPercent,
+            ],
         ]);
     }
 
     // ══════════════════════════════════════════════
     // AGGREGATE MOVEMENT
-    //
-    // IN:
-    //   Receiving       → movement_desc ILIKE 'RECEIVING%'      , movement_plus
-    //   Return Transfer → movement_desc ILIKE '%TRANSFER%'       , movement_plus > 0
-    //                     (exclude yang ILIKE 'SUPPLIER%' supaya SUPPLIER REPLACE tidak masuk)
-    //   Supplier Replace→ movement_desc ILIKE 'SUPPLIER REPLACE%', movement_plus
-    //
-    // OUT:
-    //   Supply Transfer → movement_desc ILIKE 'SUPPLY%'          , movement_min > 0
-    //                     (exclude SUPPLIER RETURN supaya tidak overlap)
-    //   Return Supplier → movement_desc ILIKE 'SUPPLIER RETURN%' , movement_min
-    //   DN Umum         → movement_desc ILIKE 'DN UMUM%'         , movement_min
-    //
-    // Semua exclude movement_type ILIKE 'CANCEL %'
+    // Filter utama: movement_type (bukan movement_desc)
+    // CANCEL prefix otomatis ter-exclude karena movement_type ILIKE 'CANCEL %'
+    // akan tidak cocok dengan tipe spesifik di bawah.
     // ══════════════════════════════════════════════
     private function aggregateMovements($locationCode, $dateFrom, $dateTo)
     {
-        $pReceiving = $this->descReceiving . '%';           // 'RECEIVING%'
-        $pTransfer  = '%' . $this->descReturnTransfer . '%'; // '%TRANSFER%'
-        $pReplace   = $this->descSupplierReplace . '%';     // 'SUPPLIER REPLACE%'
-        $pSupply    = $this->descSupplyOut . '%';           // 'SUPPLY%'
-        $pSuppRet   = $this->descSupplierReturn . '%';      // 'SUPPLIER RETURN%'
-        $pDnUmum    = $this->descDnUmum . '%';             // 'DN UMUM%'
-
         return DB::table('warehouse_movement as wm')
             ->select('wm.artikel_code')
 
             // ── IN ──
-            // Receiving: desc ILIKE 'RECEIVING%'
+            // Receiving: movement_type = 'RECEIVING' (exact, case-insensitive)
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_type ILIKE ? THEN COALESCE(wm.movement_plus,0) ELSE 0 END) as in_receiving",
-                [$pReceiving]
+                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) THEN COALESCE(wm.movement_plus,0) ELSE 0 END) as in_receiving",
+                [$this->typeReceiving]
             )
-            // Return Transfer: desc ILIKE '%TRANSFER%' AND bukan SUPPLIER REPLACE/RETURN AND movement_plus > 0
+            // Return Transfer: movement_type = 'TRANSFER', ambil movement_plus (masuk ke gudang)
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_type ILIKE ?
-                          AND wm.movement_type NOT ILIKE ?
-                          AND COALESCE(wm.movement_plus,0) > 0
+                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) AND COALESCE(wm.movement_plus,0) > 0
                      THEN wm.movement_plus ELSE 0 END) as in_return_transfer",
-                [$pTransfer, 'SUPPLIER%']
+                [$this->typeReturnTransfer]
             )
-            // Supplier Replace: desc ILIKE 'SUPPLIER REPLACE%'
+            // Supplier Replace: movement_type = 'SUPPLIER REPLACE'
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_type ILIKE ? THEN COALESCE(wm.movement_plus,0) ELSE 0 END) as in_replace_supplier",
-                [$pReplace]
+                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) THEN COALESCE(wm.movement_plus,0) ELSE 0 END) as in_replace_supplier",
+                [$this->typeSupplierReplace]
             )
 
             // ── OUT ──
-            // Supply Transfer: desc ILIKE 'SUPPLY%' AND bukan 'SUPPLIER%' AND movement_min > 0
+            // Supply Transfer: movement_type = 'SUPPLY', ambil movement_min (keluar dari gudang)
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_type ILIKE ?
-                          AND wm.movement_type NOT ILIKE ?
-                          AND COALESCE(wm.movement_min,0) > 0
+                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) AND COALESCE(wm.movement_min,0) > 0
                      THEN wm.movement_min ELSE 0 END) as out_supply_transfer",
-                [$pSupply, 'SUPPLIER%']
+                [$this->typeSupplyOut]
             )
-            // Return Supplier: desc ILIKE 'SUPPLIER RETURN%'
+            // Return Supplier: movement_type = 'SUPPLIER RETURN'
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_type ILIKE ? THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_return_supplier",
-                [$pSuppRet]
+                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_return_supplier",
+                [$this->typeSupplierReturn]
             )
-            // DN Umum: desc ILIKE 'DN UMUM%'
+            // DN Umum: movement_type = 'DN' (atau 'DN UMUM' — sesuaikan $typeDnUmum)
             ->selectRaw(
-                "SUM(CASE WHEN wm.movement_type ILIKE ? THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_dn_umum",
-                [$pDnUmum]
+                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_dn_umum",
+                [$this->typeDnUmum]
             )
 
             ->where('wm.location_number', $locationCode)
+            // exclude semua tipe CANCEL (CANCEL SUPPLY, CANCEL TRANSFER, dll)
             ->where('wm.movement_type', 'not ilike', 'CANCEL %')
             ->whereRaw(
                 "TO_DATE(wm.movement_date,'DD-MM-YYYY') BETWEEN TO_DATE(?,'DD-MM-YYYY') AND TO_DATE(?,'DD-MM-YYYY')",
@@ -414,12 +368,11 @@ class StoReportController extends Controller
             )
             ->groupBy('wm.artikel_code')
             ->get()
-            ->keyBy('artikel_code');  // keyed by real article_code
+            ->keyBy('artikel_code');
     }
 
     // ══════════════════════════════════════════════
-    // AGGREGATE STO RESULTS
-    // Keyed by article_alternative_code
+    // AGGREGATE STO RESULTS — keyed by alt_code
     // ══════════════════════════════════════════════
     private function aggregateStoResults($configId, $locationCode)
     {
@@ -429,13 +382,7 @@ class StoReportController extends Controller
             ->where('h.target_type', 'LOCATION')
             ->where('h.target_ref', $locationCode)
             ->whereNotNull('d.article_code')
-            ->select(
-                'd.article_code as alt_code',  // sto_dtl.article_code = alternative code
-                'd.qty_counter1',
-                'd.qty_counter2',
-                'd.qty_counter3',
-                'd.count_status'
-            )
+            ->select('d.article_code as alt_code', 'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3', 'd.count_status')
             ->get();
 
         if ($rows->isEmpty()) return collect();
@@ -446,21 +393,15 @@ class StoReportController extends Controller
             $hasC3 = $items->contains(fn($r) => $r->qty_counter3 !== null);
 
             $qty = null;
-            if ($hasC1)      $qty = $items->sum('qty_counter1');
-            elseif ($hasC2)  $qty = $items->sum('qty_counter2');
-            elseif ($hasC3)  $qty = $items->sum('qty_counter3');
+            if ($hasC1)     $qty = $items->sum('qty_counter1');
+            elseif ($hasC2) $qty = $items->sum('qty_counter2');
+            elseif ($hasC3) $qty = $items->sum('qty_counter3');
 
-            // status terburuk (INCOMPLETE > NOT MATCH > RECOUNT > MATCH)
             $priority = ['INCOMPLETE' => 0, 'NOT MATCH' => 1, 'RECOUNT' => 2, 'MATCH' => 3];
-            $worst = $items->pluck('count_status')
-                ->unique()
-                ->sortBy(fn($s) => $priority[$s] ?? 99)
-                ->first() ?? 'INCOMPLETE';
+            $worst = $items->pluck('count_status')->unique()
+                ->sortBy(fn($s) => $priority[$s] ?? 99)->first() ?? 'INCOMPLETE';
 
-            return (object) [
-                'qty_sto'      => $qty,
-                'count_status' => $worst,
-            ];
+            return (object) ['qty_sto' => $qty, 'count_status' => $worst];
         });
     }
 
@@ -482,7 +423,6 @@ class StoReportController extends Controller
     private function resolveReportDateRange($periode, $stoDate)
     {
         [$year, $month] = $this->parsePeriode($periode);
-
         $dateFrom = sprintf('01-%02d-%04d', $month, $year);
 
         if ($stoDate && preg_match('/^\d{2}-\d{2}-\d{4}$/', $stoDate)) {
@@ -493,7 +433,6 @@ class StoReportController extends Controller
         }
 
         $openingDate = date('Y-m-d', strtotime(sprintf('%04d-%02d-01', $year, $month) . ' -1 day'));
-
         return [$dateFrom, $dateTo, $openingDate];
     }
 
