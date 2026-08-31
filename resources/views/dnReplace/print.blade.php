@@ -243,7 +243,7 @@
                                                 </td><td class="tanpa-padding font-14">: {{ $customers ? $customers->alamat_kirim_1 : '' }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="15%" valign="top" class="tanpa-padding font-14">No.Polisi</td><td class="tanpa-padding">: </td>
+                                                <td width="15%" valign="top" class="tanpa-padding font-14">Armada</td><td class="tanpa-padding">: {{ $replaceHdr->armada ?? '-' }}</td>
                                             </tr>
                                         </table>
                                     </td>

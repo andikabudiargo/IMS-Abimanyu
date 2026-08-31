@@ -114,6 +114,7 @@ class DnReplaceController extends Controller
     ['data'=>'customer_id','name'=>'customer_id','title'=>'Customer Code'],
     ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
     ['data'=>'note','name'=>'note','title'=>'Note'],
+    ['data'=>'armada','name'=>'armada','title'=>'Armada'],
     ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
     ['data'=>'created_at','name'=>'created_at','title'=>'Created At']
 ];
@@ -137,6 +138,7 @@ class DnReplaceController extends Controller
     ['data'=>'sisa_qty_return','name'=>'sisa_qty_return','title'=>'Sisa Qty Return'], // 11
     ['data'=>'uom','name'=>'uom','title'=>'UOM'],
     ['data'=>'note','name'=>'note','title'=>'Note'],
+    ['data'=>'armada','name'=>'armada','title'=>'Armada'],
     ['data'=>'created_by_1','name'=>'created_by_1','title'=>'Created By'],
     ['data'=>'created_at_1','name'=>'created_at_1','title'=>'Created At'],
 ];
@@ -537,6 +539,7 @@ class DnReplaceController extends Controller
         $returnNumber = $request->returnNumber;
         $customer     = $request->customer;
         $note         = $request->note;
+        $armada       = $request->armada;   // baru
         $leadCode     = $this->moduleCode;
 
         $customMessages = [
@@ -575,6 +578,7 @@ class DnReplaceController extends Controller
                 'customer_id'           => $customer,
                 'status'                => '1',
                 'note'                  => $note,
+                'armada'                => $armada,   // baru
                 'origin_replace_number' => $replaceNumber,
                 'created_by'            => $username,
                 'updated_by'            => $username,
@@ -656,6 +660,7 @@ class DnReplaceController extends Controller
         $returnNumber = $request->returnNumber;
         $customer     = $request->customer;
         $note         = $request->note;
+        $armada       = $request->armada;   // baru
         $status       = '1';
         $leadCode     = $this->moduleCode;
 
@@ -703,6 +708,7 @@ class DnReplaceController extends Controller
                 'customer_id'           => $customer,
                 'status'                => $status,
                 'note'                  => $note,
+                 'armada'                => $armada,   // baru
                 'origin_replace_number' => $replaceNumber,
                 'created_by'            => $username,
                 'updated_by'            => $username,
@@ -935,6 +941,7 @@ class DnReplaceController extends Controller
         $returnNumber  = $request->returnNumber;
         $customer      = $request->customer;
         $note          = $request->note;
+         $armada        = $request->armada;   // baru
         $articles      = json_decode($request->articles);
 
         $locationFG = '007';
@@ -981,6 +988,7 @@ class DnReplaceController extends Controller
                     'customer_id'   => $customer,
                     'status'        => '1',
                     'note'          => $note,
+                    'armada'        => $armada,   // baru
                     'updated_by'    => $username,
                     'updated_at'    => date('Y-m-d H:i:s'),
                 ]);
@@ -1307,6 +1315,7 @@ class DnReplaceController extends Controller
         $returnNumber = $original->return_number;
         $customer     = $original->customer_id;
         $note         = $original->note;
+        $armada       = $original->armada;   // baru
 
         // Nomor revisi berikutnya (server-side, dari rantai origin).
         $numRevision = DB::table('dn_replace_hdr')
@@ -1345,6 +1354,7 @@ class DnReplaceController extends Controller
                 'customer_id'           => $customer,
                 'status'                => '1',
                 'note'                  => $noteBaru,
+                'armada'                => $armada,   // baru
                 'origin_replace_number' => $trueOrigin,
                 'created_by'            => $username,
                 'updated_by'            => $username,
@@ -1587,6 +1597,7 @@ class DnReplaceController extends Controller
     'dn_replace_hdr.replace_date',
     'dn_replace_hdr.status',
     'dn_replace_hdr.id',
+    'dn_replace_hdr.armada',
     'dn_replace_hdr.created_by as created_by_1',
     'dn_replace_hdr.created_at as created_at_1',
     'dn_return_hdr.id as return_id',

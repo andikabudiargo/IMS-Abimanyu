@@ -23,13 +23,13 @@
                                     <label for="replaceNumber">Replace Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="replaceNumber" name="replaceNumber" class="form-control text-hitam disabled-el" value="{{ $header->replace_number }}"  disabled />
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="replaceDate">Replace Date*</label>
                                     <input type="text" id="replaceDate" name="replaceDate" class="form-control" value="{{ $header->replace_date }}" placeholder="DD-MM-YYYY" required/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="customer">Customer*</label> <small class="text-muted">tidak dapat diubah saat edit</small>
                                     <select class="select2 form-control" id="customer" name="customer" required disabled>
                                         <option value=""></option>
@@ -38,6 +38,15 @@
                                         @endforeach
                                     </select>
                                 </div>
+<div class="form-group col-md-3">
+    <label class="form-label" for="armada">Armada*</label>
+    <select class="select2 form-control" id="armada" name="armada">
+        <option value="">Choose Armada</option>
+        @foreach(['CDD PAGI', 'CDD MALAM', 'VJB 1 PAGI', 'VJB 1 MALAM', 'VJB 2 PAGI', 'VJB 2 MALAM', 'GRANDMAX PAGI','GRANDMAX MALAM','LUXIO', 'MOBIL SEWA PAGI', 'PICKUP'] as $val)
+            <option value="{{ $val }}" {{ $header->armada == $val ? 'selected' : '' }}>{{ $val }}</option>
+        @endforeach
+    </select>
+</div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
@@ -46,13 +55,13 @@
                                         {!! $listReturn !!}
                                     </select>
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="dnNumber">Customer DN number</label>
                                     <input type="text" id="dnNumber" name="dnNumber" value="{{ $header->dn_number }}" class="form-control" disabled/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-7">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
@@ -252,6 +261,7 @@
                         returnNumber:dnReturnNumber,
                         customer:customer,
                         note:note,
+                        armada: $('#armada').val()   // baru
                     },
                     dataType: "json",
                     success: function(data) {
@@ -269,6 +279,7 @@
                             // dengan pola di halaman Create -- mencegah user
                             // mengira masih bisa lanjut edit padahal sudah tersubmit.
                             $('#dnReturnNumber').attr('disabled','disabled');
+                            $('#armada').attr('disabled','disabled');
                             $('#replaceDate').attr('disabled','disabled');
                             $('.input-qty').attr('disabled','disabled');
                             $btnUpdate.html(originalHtml).attr('disabled','disabled');

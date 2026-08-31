@@ -24,29 +24,33 @@
                                     <label for="replaceNumber">Replace Number</label>
                                     <input type="text" id="replaceNumber" name="replaceNumber" class="form-control text-hitam disabled-el" value="{{ $header->replace_number }}"  disabled />
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="replaceDate">Replace Date</label>
                                     <input type="text" id="replaceDate" name="replaceDate" class="form-control text-hitam" placeholder="DD-MM-YYYY" value="{{ $header->replace_date }}" disabled />
                                 </div>                               
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="customer">Customer</label>
                                     <input type="text" id="customer" name="customer" class="form-control text-hitam disabled-el" value="{{ $header->customer_name }}"  disabled />
                                 </div>
+                                <div class="form-group col-md-3">
+        <label class="form-label" for="armada">Armada</label>
+        <input type="text" id="armada" name="armada" class="form-control text-hitam disabled-el" value="{{ $header->armada }}" disabled/>
+    </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="returnNumber">Return Number</label>
                                     <input type="text" id="returnNumber" name="returnNumber" class="form-control text-hitam disabled-el" value="{{ $header->return_number }}"  disabled />
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="dnNumber">Customer DN Number</label>
                                     <input type="text" id="dnNumber" name="dnNumber" class="form-control disabled-el" value="{{ $header->dn_number }}" disabled/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-6">
+                                <div class="form-group col-md-7">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control text-hitam" rows="1" disabled>{{ $header->note }} </textarea>
                                 </div>

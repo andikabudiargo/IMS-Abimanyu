@@ -42,7 +42,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="locationFrom">Location From*</label>
-                                    <select class="select2 form-control" id="locationFrom" name="locationFrom" required>
+                                    <select class="select2 form-control" id="locationFrom" name="locationFrom" required readonly>
                                         <option value=""></option>
                                         @foreach($locationsFrom as $val)
                                             <option value="{{ $val->location_code }}"
@@ -54,7 +54,7 @@
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="locationTo">Location To*</label>
-                                    <select class="select2 form-control" id="locationTo" name="locationTo" required>
+                                    <select class="select2 form-control" id="locationTo" name="locationTo" required readonly>
                                         <option value=""></option>
                                         @foreach($locationsTo as $val)
                                             <option value="{{ $val->location_code }}"
