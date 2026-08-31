@@ -31,12 +31,16 @@
 #reportTable thead th {
     position: sticky;
     z-index: 3;
-    background: #eef2f7;
+    background: #eef2f7 !important;   /* SOLID — cegah isi tabel nembus saat scroll */
     height: 30px;
     vertical-align: middle;
 }
 #reportTable thead tr:first-child th  { top: 0; }
 #reportTable thead tr:nth-child(2) th { top: 30px; }
+
+/* override warna semi-transparan Vuexy (bg-light-*) di header jadi SOLID */
+#reportTable thead th.bg-light-primary { background: #e3ecfb !important; color: #4b6cb7; }
+#reportTable thead th.bg-light-danger  { background: #fbe4e4 !important; color: #b74b4b; }
 
 /* ── freeze 3 kolom kiri (No / Alt Code / Desc) ── */
 #reportTable .col-no,
@@ -54,11 +58,11 @@
 /* pojok header (frozen col + sticky top) paling atas */
 #reportTable thead th.col-no,
 #reportTable thead th.col-alt,
-#reportTable thead th.col-desc { z-index: 5; background: #e4e9f1; }
+#reportTable thead th.col-desc { z-index: 5; background: #e4e9f1 !important; }
 
 /* ── zebra striping ── */
-#reportTable tbody tr:nth-child(odd)  td { background: #ffffff; }
-#reportTable tbody tr:nth-child(even) td { background: #f4f7fb; }
+#reportTable tbody tr:nth-child(odd)  td { background: #ffffff !important; }
+#reportTable tbody tr:nth-child(even) td { background: #f4f7fb !important; }
 #reportTable tbody tr:hover td { background: #e8f1ff !important; }
 
 /* ── footer sticky bawah ── */
@@ -308,24 +312,25 @@ $(document).ready(function () {
     }
 
     // ── akurasi on-the-fly: balance vs hasil STO ──
-    // balance == sto        → 100%
-    // ada selisih           → 100 - (|selisih| / |balance| * 100), min 0%
+    // selisih <= toleransi  → 100% (ada toleransi, mis. 2%)
+    // selisih > toleransi   → 100 - (|selisih| / |balance| * 100), min 0%
     // balance 0 & sto 0     → 100%
     // balance 0 & sto != 0  → 0%
     // tidak ada data STO    → null
-    function rowAccuracyPct(r) {
+    function rowAccuracyPct(r, tolerance) {
         if (r.qty_sto === null || r.qty_sto === undefined) return null;
         let b = parseFloat(r.closing);
         let s = parseFloat(r.qty_sto);
         if (isNaN(b) || isNaN(s)) return null;
         if (b === 0) return (s === 0) ? 100 : 0;
         let diffPct = Math.abs(s - b) / Math.abs(b) * 100;
+        if (diffPct <= tolerance) return 100;   // ← dalam toleransi → dianggap 100%
         let acc = 100 - diffPct;
         return acc < 0 ? 0 : acc;
     }
 
-    function accuracyCell(r, target) {
-        let acc = rowAccuracyPct(r);
+    function accuracyCell(r, target, tolerance) {
+        let acc = rowAccuracyPct(r, tolerance);
         if (acc === null) return '<span class="badge badge-secondary" style="font-size:.7rem;">No STO</span>';
         let cls = acc >= target ? 'badge-light-success'
                 : (acc > 0 ? 'badge-light-warning' : 'badge-light-danger');
@@ -409,6 +414,7 @@ $(document).ready(function () {
         let s = res.summary;
         let t = res.totals;
         let target = s.target_plan;
+        let tolerance = (s.threshold_pct !== undefined && s.threshold_pct !== null) ? s.threshold_pct : 2;
 
         // info header
         $('#hSto').text(h.sto_code);
@@ -425,7 +431,7 @@ $(document).ready(function () {
             body = '<tr><td colspan="17" class="text-center text-muted py-1">Tidak ada data untuk lokasi/periode ini.</td></tr>';
         } else {
             res.rows.forEach(function (r) {
-                let acc = rowAccuracyPct(r);
+                let acc = rowAccuracyPct(r, tolerance);
                 if (acc !== null) {
                     accSum += acc;
                     accCount++;
@@ -455,7 +461,7 @@ $(document).ready(function () {
                     + '<td class="text-right">' + (r.qty_sto !== null ? fmt(r.qty_sto) : '<span class="text-muted">-</span>') + '</td>'
                     + '<td class="text-right ' + varCls + '">' + varVal + '</td>'
                     + '<td class="text-center">' + statusBadge(r.sto_status) + '</td>'
-                    + '<td class="text-center">' + accuracyCell(r, target) + '</td>'
+                    + '<td class="text-center">' + accuracyCell(r, target, tolerance) + '</td>'
                     + '</tr>';
             });
         }
@@ -544,8 +550,10 @@ $(document).ready(function () {
             + '.badge-light-success{background:#d4edda;color:#155724;}'
             + '.badge-light-warning{background:#fff3cd;color:#856404;}'
             + '.badge-light-danger{background:#f8d7da;color:#721c24;}'
-            + '.bg-light-primary{background:#e8f0fe;}'
-            + '.bg-light-danger{background:#fde8e8;}'
+            + 'thead th.bg-light-primary{background:#e3ecfb !important;}'
+            + 'thead th.bg-light-danger{background:#fbe4e4 !important;}'
+            + '.bg-light-primary{background:#e3ecfb;}'
+            + '.bg-light-danger{background:#fbe4e4;}'
             + 'hr{margin:6px 0;} .font-weight-bold{font-weight:bold;}'
             + '.text-success{color:#28c76f;}.text-danger{color:#ea5455;}'
             + '</style></head><body>');
