@@ -122,8 +122,8 @@
                                                 <td class="tanpa-padding font-14">: {{ $customer ? $customer->alamat_kirim_1 : '-' }}</td>
                                             </tr>
                                             <tr>
-                                                <td width="20%" valign="top" class="tanpa-padding font-14">No. Polisi</td>
-                                                <td class="tanpa-padding font-14">: </td>
+                                                <td width="20%" valign="top" class="tanpa-padding font-14">Armada</td>
+    <td class="tanpa-padding font-14">: {{ $dnHdr->armada ?? '-' }}</td>
                                             </tr>
                                         </table>
                                     </td>

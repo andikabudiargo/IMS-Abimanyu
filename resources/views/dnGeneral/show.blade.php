@@ -33,7 +33,7 @@
                         {{-- Header Info --}}
                         <form autocomplete="off">
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label>DN Number</label>
                                     <input type="text" class="form-control" value="{{ $dnHdr->tdn_number }}" disabled />
                                 </div>
@@ -57,24 +57,24 @@
                             </div>
 
                             <div class="form-row">
-                                <div class="form-group col-md-8">
+                                <div class="form-group col-md-4">
                                     <label>Customer</label>
                                     <input type="text" class="form-control" value="{{ $dnHdr->customer_name }}" disabled />
                                 </div>
-                                {{--<div class="form-group col-md-6">
-                                    <label>Alamat</label>
-                                    <input type="text" class="form-control" value="{{ $dnHdr->alamat_kirim_1 }}" disabled />
-                                </div>--}}
+                                 <div class="form-group col-md-3">
+        <label>Armada</label>
+        <input type="text" class="form-control" value="{{ $dnHdr->armada }}" disabled />
+    </div>
                             </div>
 
                             <div class="form-row">
-                                <div class="form-group col-md-8">
+                                <div class="form-group col-md-7">
                                     <label>Perihal</label>
                                     <textarea class="form-control" rows="2" disabled>{{ $dnHdr->perihal }}</textarea>
                                 </div>
                                 </div>
                                  <div class="form-row">
-                                <div class="form-group col-md-8">
+                                <div class="form-group col-md-7">
                                     <label>Note</label>
                                     <textarea class="form-control" rows="2" disabled>{{ $dnHdr->note }}</textarea>
                                 </div>

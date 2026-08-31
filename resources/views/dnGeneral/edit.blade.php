@@ -60,7 +60,7 @@
                             </div>
 
                             <div class="form-row">
-                                <div class="form-group col-md-7">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="cust">
                                         @if ($header->dn_type === 'rm') Supplier
                                         @elseif ($header->dn_type === 'ot') Customer
@@ -93,6 +93,19 @@
                                         @endif
                                     </select>
                                 </div>
+                                 <div class="form-group col-md-3">
+        <label class="form-label" for="armada">Armada*</label>
+        <select class="select2 form-control" id="armada" name="armada" required>
+            <option value="">Choose Armada</option>
+            @foreach([
+                'CDD PAGI', 'CDD MALAM', 'VJB 1 PAGI', 'VJB 1 MALAM',
+                'VJB 2 PAGI', 'VJB 2 MALAM', 'GRANDMAX PAGI', 'GRANDMAX MALAM',
+                'LUXIO', 'MOBILE SEWA PAGI', 'PICKUP'
+            ] as $val)
+                <option value="{{ $val }}" {{ $header->armada == $val ? 'selected' : '' }}>{{ $val }}</option>
+            @endforeach
+        </select>
+    </div>
                             </div>
 
                             <div class="form-row">
@@ -227,6 +240,7 @@ $(document).ready(function () {
                 customerId  : $('#cust').val(),
                 perihal     : $('#perihal').val(),
                 note        : $('#note').val(),
+                 armada      : $('#armada').val()   // baru
             },
             dataType: 'json',
             success : function (data) {
@@ -239,6 +253,7 @@ $(document).ready(function () {
                     $('#cmdUpdate').removeAttr('disabled');
                 } else {
                     show_msg(data.title, data.message, data.alert);
+                    $('#armada').attr('disabled', 'disabled');
                 }
                 $('#tDnNumber').attr('disabled', 'disabled');
             },

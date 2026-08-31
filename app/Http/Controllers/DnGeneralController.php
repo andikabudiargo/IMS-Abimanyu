@@ -275,6 +275,7 @@ private function visibleDepts()
             ['data' => 'perihal',       'name' => 'perihal',       'title' => 'Perihal'],
             ['data' => 'customer_name', 'name' => 'customer_name', 'title' => 'Customer'],
             ['data' => 'note',          'name' => 'note',          'title' => 'Note'],
+             ['data' => 'armada',        'name' => 'armada',        'title' => 'Armada'],   // baru
             ['data' => 'created_by',    'name' => 'created_by',    'title' => 'Created By'],
             ['data' => 'created_at',    'name' => 'created_at',    'title' => 'Created Date'],
             ['data' => 'updated_by',    'name' => 'updated_by',    'title' => 'Updated By'],
@@ -298,6 +299,7 @@ private function visibleDepts()
             ['data' => 'stock_on_send',            'name' => 'stock_on_send',            'title' => 'Stock Saat Kirim'],
             ['data' => 'status',                   'name' => 'status',                   'title' => 'Status'],
             ['data' => 'note',                     'name' => 'note',                     'title' => 'Note'],
+            ['data' => 'armada',        'name' => 'armada',        'title' => 'Armada'],   // baru
             ['data' => 'created_by',               'name' => 'created_by',               'title' => 'Created By'],
             ['data' => 'created_at',               'name' => 'created_at',               'title' => 'Created Date'],
             ['data' => 'updated_by',               'name' => 'updated_by',               'title' => 'Updated By'],
@@ -529,6 +531,7 @@ $tDnNumber = $header->tdn_number;
         $perihal      = $request->perihal;
         $note         = $request->note;
         $dnType       = $request->dnType;      // 'rm' | 'ot' | 'other'
+        $armada       = $request->armada;
         $status       = '1';
         $siteCode     = $this->siteCode;
         $location     = $this->gudangMap[$dnType] ?? null;
@@ -609,6 +612,7 @@ $leadCode = $this->codeKeyMap[$prefix];
                 'perihal'           => $perihal,
                 'note'              => $note,
                 'dn_type'           => $dnType,
+                'armada'            => $armada,   // baru
                 'origin_tdn_number' => $tDnNumber,
                 'status'            => $status,
                 'created_by'        => $username,
@@ -757,6 +761,7 @@ $leadCode = $this->codeKeyMap[$prefix];
     $deliveryDate = $request->deliveryDate;
     $perihal      = $request->perihal;
     $note         = $request->note;
+    $armada       = $request->armada; 
     $siteCode     = $this->siteCode;
 
     $validation = Validator::make($request->all(), [
@@ -856,6 +861,7 @@ try {
             'delivery_date' => $deliveryDate,
             'perihal'       => $perihal,
             'note'          => $note,
+            'armada'        => $armada,   // baru
             'updated_by'    => $username,
             'updated_at'    => date('Y-m-d H:i:s'),
         ]);
@@ -1266,6 +1272,7 @@ try {
                 'dn_general_hdr.delivery_date',
                 'dn_general_hdr.perihal',
                 'dn_general_hdr.note',
+                 'dn_general_hdr.armada',
                 'dn_general_hdr.status',
                 DB::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
             )

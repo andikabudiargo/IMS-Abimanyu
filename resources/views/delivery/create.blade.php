@@ -53,7 +53,7 @@
             <option value="GRANDMAX PAGI">GRANDMAX PAGI</option>
             <option value="GRANDMAX MALAM">GRANDMAX MALAM</option>
             <option value="LUXIO">LUXIO</option>
-            <option value="MOBILE SEWA PAGI">MOBIL SEWA PAGI</option>
+            <option value="MOBIL SEWA PAGI">MOBIL SEWA PAGI</option>
             <option value="PICKUP">PICKUP</option>
         </select>
     </div>      
