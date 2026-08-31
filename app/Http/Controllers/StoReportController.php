@@ -33,6 +33,7 @@ class StoReportController extends Controller
     // ══════════════════════════════════════════════
     private $typeReceiving       = 'RECEIVING';         // IN
     private $typeReturnTransfer  = 'TRANSFER';          // IN  (movement_plus > 0)
+    private $typeTransferOut = 'TRANSFER'; // OUT (movement_min > 0) — beda kondisi dari typeReturnTransfer
     private $typeSupplierReplace = 'SUPPLIER REPLACE';  // IN
     private $typeSupplyOut       = 'SUPPLY';            // OUT (movement_min > 0)
     private $typeSupplierReturn  = 'SUPPLIER RETURN';   // OUT
@@ -358,6 +359,12 @@ class StoReportController extends Controller
                 "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_dn_umum",
                 [$this->typeDnUmum]
             )
+
+            ->selectRaw(
+    "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) AND COALESCE(wm.movement_min,0) > 0
+         THEN wm.movement_min ELSE 0 END) as out_transfer",
+    [$this->typeTransferOut]
+)
 
             ->where('wm.location_number', $locationCode)
             // exclude semua tipe CANCEL (CANCEL SUPPLY, CANCEL TRANSFER, dll)
