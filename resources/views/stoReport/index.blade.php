@@ -4,6 +4,74 @@
 @include('layouts.breadcrumb')
 
 {{-- ════════════════════════════════════════════════
+     STYLE: sticky header + freeze kolom + zebra
+════════════════════════════════════════════════ --}}
+<style>
+#reportScroll {
+    max-height: 68vh;
+    overflow: auto;
+    position: relative;
+}
+#reportTable {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin-bottom: 0;
+}
+#reportTable th, #reportTable td {
+    box-sizing: border-box;
+    border-right: 1px solid #e3e6ec;
+    border-bottom: 1px solid #e3e6ec;
+    padding: 4px 6px;
+    white-space: nowrap;
+}
+#reportTable { border-top: 1px solid #e3e6ec; border-left: 1px solid #e3e6ec; }
+
+/* ── sticky header (2 baris) ── */
+#reportTable thead th {
+    position: sticky;
+    z-index: 3;
+    background: #eef2f7;
+    height: 30px;
+    vertical-align: middle;
+}
+#reportTable thead tr:first-child th  { top: 0; }
+#reportTable thead tr:nth-child(2) th { top: 30px; }
+
+/* ── freeze 3 kolom kiri (No / Alt Code / Desc) ── */
+#reportTable .col-no,
+#reportTable .col-alt,
+#reportTable .col-desc { position: sticky; }
+#reportTable .col-no   { left: 0;     min-width: 42px;  max-width: 42px;  }
+#reportTable .col-alt  { left: 42px;  min-width: 100px; max-width: 100px; }
+#reportTable .col-desc { left: 142px; min-width: 220px; max-width: 220px; white-space: normal; }
+
+/* body sticky cells di atas cell biasa */
+#reportTable tbody td.col-no,
+#reportTable tbody td.col-alt,
+#reportTable tbody td.col-desc { z-index: 2; }
+
+/* pojok header (frozen col + sticky top) paling atas */
+#reportTable thead th.col-no,
+#reportTable thead th.col-alt,
+#reportTable thead th.col-desc { z-index: 5; background: #e4e9f1; }
+
+/* ── zebra striping ── */
+#reportTable tbody tr:nth-child(odd)  td { background: #ffffff; }
+#reportTable tbody tr:nth-child(even) td { background: #f4f7fb; }
+#reportTable tbody tr:hover td { background: #e8f1ff !important; }
+
+/* ── footer sticky bawah ── */
+#reportTable tfoot td {
+    position: sticky;
+    bottom: 0;
+    background: #e9edf3 !important;
+    z-index: 3;
+    font-weight: bold;
+}
+</style>
+
+{{-- ════════════════════════════════════════════════
      FILTER
 ════════════════════════════════════════════════ --}}
 <section id="sto-report-filter">
@@ -65,7 +133,7 @@
 </section>
 
 {{-- ════════════════════════════════════════════════
-     SUMMARY AKURASI (muncul setelah generate)
+     SUMMARY AKURASI
 ════════════════════════════════════════════════ --}}
 <section id="sto-report-summary" class="d-none">
     <div class="row">
@@ -90,7 +158,7 @@
                     </div>
                     <div>
                         <h5 class="mb-0 font-weight-bold" id="sumAccurate">0</h5>
-                        <small class="text-muted">Akurat (dapat poin)</small>
+                        <small class="text-muted">Akurat (&ge; target)</small>
                     </div>
                 </div>
             </div>
@@ -103,7 +171,7 @@
                     </div>
                     <div>
                         <h5 class="mb-0 font-weight-bold" id="sumNot">0</h5>
-                        <small class="text-muted">Tidak Akurat</small>
+                        <small class="text-muted">Di Bawah Target</small>
                     </div>
                 </div>
             </div>
@@ -116,7 +184,7 @@
                     </div>
                     <div>
                         <h5 class="mb-0 font-weight-bold" id="sumAccuracyPct">0.00%</h5>
-                        <small class="text-muted">Akurasi &bull; Target: <span id="sumTarget">98%</span></small>
+                        <small class="text-muted">Akurasi Rata-rata &bull; Target: <span id="sumTarget">98%</span></small>
                     </div>
                 </div>
             </div>
@@ -153,38 +221,35 @@
                 Pilih <strong>STO Code</strong> &amp; <strong>Lokasi</strong>, lalu klik <strong>Generate Report</strong>.
             </div>
 
-            <div class="table-responsive d-none" id="reportTableWrap">
-                <table class="table table-bordered table-sm" id="reportTable" style="font-size:.78rem;">
-                    <thead class="text-center align-middle">
+            <div class="d-none" id="reportScroll">
+                <table class="table table-sm" id="reportTable" style="font-size:.78rem;">
+                    <thead class="text-center">
                         <tr>
-                            <th rowspan="2" style="vertical-align:middle;white-space:nowrap;">No</th>
-                            <th rowspan="2" style="vertical-align:middle;white-space:nowrap;">Alt. Code</th>
-                            <th rowspan="2" style="vertical-align:middle;">Article Desc</th>
-                            <th rowspan="2" style="vertical-align:middle;">Supp</th>
-                            <th rowspan="2" style="vertical-align:middle;">UoM</th>
-                            <th rowspan="2" style="vertical-align:middle;white-space:nowrap;">Opening</th>
-                            {{-- IN --}}
+                            <th rowspan="2" class="col-no">No</th>
+                            <th rowspan="2" class="col-alt">Alt. Code</th>
+                            <th rowspan="2" class="col-desc">Article Desc</th>
+                            <th rowspan="2">Supp</th>
+                            <th rowspan="2">UoM</th>
+                            <th rowspan="2">Opening</th>
                             <th colspan="3" class="bg-light-primary">IN</th>
-                            {{-- OUT --}}
                             <th colspan="3" class="bg-light-danger">OUT</th>
-                            {{-- Balance & STO --}}
-                            <th rowspan="2" style="vertical-align:middle;white-space:nowrap;">Balance</th>
-                            <th rowspan="2" style="vertical-align:middle;white-space:nowrap;">Hasil STO</th>
-                            <th rowspan="2" style="vertical-align:middle;white-space:nowrap;">Variance</th>
-                            <th rowspan="2" style="vertical-align:middle;">Status</th>
-                            <th rowspan="2" style="vertical-align:middle;">Akurasi</th>
+                            <th rowspan="2">Balance</th>
+                            <th rowspan="2">Hasil STO</th>
+                            <th rowspan="2">Variance</th>
+                            <th rowspan="2">Status</th>
+                            <th rowspan="2">Akurasi</th>
                         </tr>
                         <tr>
-                            <th class="bg-light-primary" style="white-space:nowrap;">Receiving</th>
-                            <th class="bg-light-primary" style="white-space:nowrap;">Return Transfer</th>
-                            <th class="bg-light-primary" style="white-space:nowrap;">Replace Supplier</th>
-                            <th class="bg-light-danger" style="white-space:nowrap;">Supply Transfer</th>
-                            <th class="bg-light-danger" style="white-space:nowrap;">Return Supplier</th>
-                            <th class="bg-light-danger" style="white-space:nowrap;">DN Umum</th>
+                            <th class="bg-light-primary">Receiving</th>
+                            <th class="bg-light-primary">Return Transfer</th>
+                            <th class="bg-light-primary">Replace Supplier</th>
+                            <th class="bg-light-danger">Supply Transfer</th>
+                            <th class="bg-light-danger">Return Supplier</th>
+                            <th class="bg-light-danger">DN Umum</th>
                         </tr>
                     </thead>
                     <tbody id="reportBody"></tbody>
-                    <tfoot class="font-weight-bold text-right" style="background:#f8f8f8;">
+                    <tfoot class="text-right">
                         <tr>
                             <td colspan="5" class="text-center">TOTAL</td>
                             <td id="tOpening">-</td>
@@ -197,7 +262,8 @@
                             <td id="tBalance">-</td>
                             <td id="tSto">-</td>
                             <td id="tVariance">-</td>
-                            <td colspan="2" class="text-center">-</td>
+                            <td class="text-center">-</td>
+                            <td id="tAkurasi" class="text-center">-</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -241,11 +307,29 @@ $(document).ready(function () {
         return '<span class="badge ' + d[0] + '">' + d[1] + '</span>';
     }
 
-    function accuracyBadge(accurate, hasData) {
-        if (!hasData) return '<span class="badge badge-light-secondary">N/A</span>';
-        return accurate
-            ? '<span class="badge badge-light-success"><i data-feather="check" style="width:10px;height:10px;"></i> Akurat</span>'
-            : '<span class="badge badge-light-danger"><i data-feather="x" style="width:10px;height:10px;"></i> Tidak</span>';
+    // ── akurasi on-the-fly: balance vs hasil STO ──
+    // balance == sto        → 100%
+    // ada selisih           → 100 - (|selisih| / |balance| * 100), min 0%
+    // balance 0 & sto 0     → 100%
+    // balance 0 & sto != 0  → 0%
+    // tidak ada data STO    → null
+    function rowAccuracyPct(r) {
+        if (r.qty_sto === null || r.qty_sto === undefined) return null;
+        let b = parseFloat(r.closing);
+        let s = parseFloat(r.qty_sto);
+        if (isNaN(b) || isNaN(s)) return null;
+        if (b === 0) return (s === 0) ? 100 : 0;
+        let diffPct = Math.abs(s - b) / Math.abs(b) * 100;
+        let acc = 100 - diffPct;
+        return acc < 0 ? 0 : acc;
+    }
+
+    function accuracyCell(r, target) {
+        let acc = rowAccuracyPct(r);
+        if (acc === null) return '<span class="badge badge-secondary" style="font-size:.7rem;">No STO</span>';
+        let cls = acc >= target ? 'badge-light-success'
+                : (acc > 0 ? 'badge-light-warning' : 'badge-light-danger');
+        return '<span class="badge ' + cls + '" style="font-size:.72rem;">' + acc.toFixed(2) + '%</span>';
     }
 
     // ── pilih STO → load lokasi ──
@@ -306,7 +390,6 @@ $(document).ready(function () {
         })
         .done(function (res) {
             $(".loading-spinner-container").removeClass("-show");
-
             if (res.status !== 1) {
                 Swal.fire('Ditolak', res.message || 'Gagal memuat report.', 'warning');
                 return;
@@ -325,6 +408,7 @@ $(document).ready(function () {
         let h = res.header;
         let s = res.summary;
         let t = res.totals;
+        let target = s.target_plan;
 
         // info header
         $('#hSto').text(h.sto_code);
@@ -333,40 +417,31 @@ $(document).ready(function () {
         $('#hRange').text(h.date_from + ' s/d ' + h.date_to);
         $('#reportHeaderInfo').removeClass('d-none');
 
-        // summary cards
-        $('#sumTotal').text(s.total_artikel);
-        $('#sumAccurate').text(s.total_accurate);
-        $('#sumNot').text(s.total_not);
-        $('#sumAccuracyPct').text(s.accuracy_pct.toFixed(2) + '%');
-        $('#sumTarget').text(s.target_plan.toFixed(2) + '%');
-
-        let metTarget = s.is_meet_target;
-        $('#sumAccuracyAvatar')
-            .removeClass('bg-light-success bg-light-danger')
-            .addClass(metTarget ? 'bg-light-success' : 'bg-light-danger');
-        $('#sumAccuracyIcon')
-            .removeClass('text-success text-danger')
-            .addClass(metTarget ? 'text-success' : 'text-danger');
-
-        $('#sto-report-summary').removeClass('d-none');
-
-        // tabel body
+        // tabel body + akumulasi akurasi
         let body = '';
+        let accSum = 0, accCount = 0, meetCount = 0;
+
         if (!res.rows || res.rows.length === 0) {
             body = '<tr><td colspan="17" class="text-center text-muted py-1">Tidak ada data untuk lokasi/periode ini.</td></tr>';
         } else {
             res.rows.forEach(function (r) {
-                let varCls  = '';
-                let varVal  = '-';
+                let acc = rowAccuracyPct(r);
+                if (acc !== null) {
+                    accSum += acc;
+                    accCount++;
+                    if (acc >= target) meetCount++;
+                }
+
+                let varCls = '', varVal = '-';
                 if (r.variance !== null) {
-                    varVal  = fmt(r.variance);
-                    varCls  = r.variance > 0 ? 'text-success' : (r.variance < 0 ? 'text-danger' : '');
+                    varVal = fmt(r.variance);
+                    varCls = r.variance > 0 ? 'text-success' : (r.variance < 0 ? 'text-danger' : '');
                 }
 
                 body += '<tr>'
-                    + '<td class="text-center">' + r.no + '</td>'
-                    + '<td style="white-space:nowrap;">' + (r.alt_code || '-') + '</td>'
-                    + '<td>' + (r.article_desc || '-') + '</td>'
+                    + '<td class="text-center col-no">' + r.no + '</td>'
+                    + '<td class="col-alt">' + (r.alt_code || '-') + '</td>'
+                    + '<td class="col-desc">' + (r.article_desc || '-') + '</td>'
                     + '<td>' + (r.supp || '-') + '</td>'
                     + '<td class="text-center">' + (r.uom || '-') + '</td>'
                     + '<td class="text-right">' + fmt(r.opening) + '</td>'
@@ -380,11 +455,28 @@ $(document).ready(function () {
                     + '<td class="text-right">' + (r.qty_sto !== null ? fmt(r.qty_sto) : '<span class="text-muted">-</span>') + '</td>'
                     + '<td class="text-right ' + varCls + '">' + varVal + '</td>'
                     + '<td class="text-center">' + statusBadge(r.sto_status) + '</td>'
-                    + '<td class="text-center">' + accuracyBadge(r.accurate, r.qty_sto !== null) + '</td>'
+                    + '<td class="text-center">' + accuracyCell(r, target) + '</td>'
                     + '</tr>';
             });
         }
         $('#reportBody').html(body);
+
+        // akumulasi persentase
+        let avgAcc = accCount > 0 ? (accSum / accCount) : 0;
+
+        // summary cards
+        $('#sumTotal').text(s.total_artikel);
+        $('#sumAccurate').text(meetCount);
+        $('#sumNot').text(accCount - meetCount);
+        $('#sumAccuracyPct').text(avgAcc.toFixed(2) + '%');
+        $('#sumTarget').text(target.toFixed(2) + '%');
+
+        let metTarget = avgAcc >= target;
+        $('#sumAccuracyAvatar').removeClass('bg-light-success bg-light-danger')
+            .addClass(metTarget ? 'bg-light-success' : 'bg-light-danger');
+        $('#sumAccuracyIcon').removeClass('text-success text-danger')
+            .addClass(metTarget ? 'text-success' : 'text-danger');
+        $('#sto-report-summary').removeClass('d-none');
 
         // footer totals
         $('#tOpening').text(fmt(t.opening));
@@ -396,11 +488,17 @@ $(document).ready(function () {
         $('#tOutDn').text(fmt(t.out_dn_umum));
         $('#tBalance').text(fmt(t.closing));
         $('#tSto').text(t.qty_sto !== null ? fmt(t.qty_sto) : '-');
+
         let tvc = t.variance !== null && t.variance < 0 ? 'text-danger' : (t.variance > 0 ? 'text-success' : '');
-        $('#tVariance').removeClass('text-danger text-success').addClass(tvc).text(t.variance !== null ? fmt(t.variance) : '-');
+        $('#tVariance').removeClass('text-danger text-success').addClass(tvc)
+            .text(t.variance !== null ? fmt(t.variance) : '-');
+
+        // akumulasi akurasi di footer
+        let accCls = avgAcc >= target ? 'text-success' : 'text-danger';
+        $('#tAkurasi').html('<span class="' + accCls + ' font-weight-bold">' + avgAcc.toFixed(2) + '%</span>');
 
         $('#reportEmpty').addClass('d-none');
-        $('#reportTableWrap').removeClass('d-none');
+        $('#reportScroll').removeClass('d-none');
         $('#btnPrint').removeClass('d-none');
 
         if (typeof feather !== 'undefined') feather.replace();
@@ -410,7 +508,7 @@ $(document).ready(function () {
     function resetDisplay() {
         $('#reportBody').empty();
         $('#reportHeaderInfo').addClass('d-none');
-        $('#reportTableWrap').addClass('d-none');
+        $('#reportScroll').addClass('d-none');
         $('#btnPrint').addClass('d-none');
         $('#reportEmpty').removeClass('d-none');
         $('#sto-report-summary').addClass('d-none');
@@ -429,13 +527,14 @@ $(document).ready(function () {
         let info  = $('#reportHeaderInfo').html();
         let cards = $('#sto-report-summary').html();
         let table = $('#reportTable').prop('outerHTML');
-        let w = window.open('', '', 'width=1200,height=800');
+        let w = window.open('', '', 'width=1300,height=800');
         w.document.write('<html><head><title>STO Report</title>');
         w.document.write('<style>'
             + 'body{font-family:Arial,sans-serif;font-size:10px;padding:16px;}'
             + 'table{width:100%;border-collapse:collapse;margin-top:10px;}'
             + 'th,td{border:1px solid #555;padding:2px 4px;}'
             + 'thead{background:#ddd;}'
+            + 'tbody tr:nth-child(even) td{background:#f4f7fb;-webkit-print-color-adjust:exact;}'
             + '.text-right{text-align:right;}.text-center{text-align:center;}'
             + '.badge{padding:1px 4px;border-radius:3px;font-size:9px;}'
             + '.badge-success{background:#28c76f;color:#fff;}'
@@ -443,8 +542,8 @@ $(document).ready(function () {
             + '.badge-danger{background:#ea5455;color:#fff;}'
             + '.badge-secondary{background:#82868b;color:#fff;}'
             + '.badge-light-success{background:#d4edda;color:#155724;}'
+            + '.badge-light-warning{background:#fff3cd;color:#856404;}'
             + '.badge-light-danger{background:#f8d7da;color:#721c24;}'
-            + '.badge-light-secondary{background:#e2e3e5;color:#383d41;}'
             + '.bg-light-primary{background:#e8f0fe;}'
             + '.bg-light-danger{background:#fde8e8;}'
             + 'hr{margin:6px 0;} .font-weight-bold{font-weight:bold;}'
