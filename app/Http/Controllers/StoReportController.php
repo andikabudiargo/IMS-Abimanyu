@@ -36,7 +36,7 @@ class StoReportController extends Controller
     private $typeSupplierReplace = 'SUPPLIER REPLACE';  // IN
     private $typeSupplyOut       = 'SUPPLY';            // OUT (movement_min > 0)
     private $typeSupplierReturn  = 'SUPPLIER RETURN';   // OUT
-    private $typeDnUmum          = 'DN';                // OUT — SESUAIKAN jika perlu (DN UMUM, GI, dll)
+    private $typeDnUmum          = 'DN UMUM';                // OUT — SESUAIKAN jika perlu (DN UMUM, GI, dll)
 
     // threshold akurasi: selisih <= N% dari closing → dapat poin
     private $accuracyThresholdPercent = 2.0;
