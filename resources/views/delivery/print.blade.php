@@ -238,7 +238,7 @@
                                             <td class="tanpa-padding">Jam</td><td class="tanpa-padding">: {{ $timeDelivery }}</td>
                                         </tr>
                                         <tr>
-                                            <td class="tanpa-padding">No mobil</td><td class="tanpa-padding">:</td>
+                                             <td class="tanpa-padding">Armada</td><td class="tanpa-padding">: {{ $dnHdr->armada ?? '-' }}</td>
                                         </tr>
                                     </table>
                                 </td>

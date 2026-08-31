@@ -38,21 +38,17 @@
                                     <form id="frmAdd" name="frmAdd" autocomplete="off">
                                         @csrf
                                         <div class="form-row">
-                                            <div class="form-group col-md-3">
+                                            <div class="form-group col-md-4">
                                                 <label for="dnNumber">Delivery Note Number</label> <small class="text-muted"> automatic</small>
                                                 <input type="text" id="dnNumber" name="dnNumber" class="form-control text-hitam disabled-el" value="{{ $header2->delivery_number }}" disabled />
                                             </div>
-                                            <div class="form-group col-md-2">
+                                            <div class="form-group col-md-3">
                                                 <label for="dnDate">Delivery Date</label>
                                                 <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header2->delivery_date }}" disabled />
                                             </div>
-                                            <div class="form-group col-md-3">
-                                                <label for="poNumber">PO Number</label>
-                                                <input type="text" id="poNumber" name="poNumber" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header2->po_number }}" disabled />
-                                            </div>                               
                                         </div>
                                         <div class="form-row">
-                                            <div class="form-group col-md-3">
+                                             <div class="form-group col-md-4">
                                                 <label class="form-label" for="customer">Customer</label>
                                                 <select class="select2 form-control" id="customer" name="customer" disabled>
                                                     <option value=""></option>
@@ -61,24 +57,34 @@
                                                     @endforeach
                                                 </select>
                                             </div>
+                                        <div class="form-group col-md-3">
+        <label class="form-label" for="armada">Armada</label>
+        <input type="text" id="armada" name="armada" class="form-control" value="{{ $header2->armada }}" disabled/>
+    </div>                   
+                                        </div>
+                                        <div class="form-row">
                                             <div class="form-group col-md-3">
                                                 <label class="form-label" for="soNumber">SO Number*</label>
                                                 <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header2->so_number }}" disabled />
                                             </div>
+                                             <div class="form-group col-md-2">
+                                                <label for="poNumber">PO Number</label>
+                                                <input type="text" id="poNumber" name="poNumber" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header2->po_number }}" disabled />
+                                            </div>       
                                             <div class="form-group col-md-2">
                                                 <label class="form-label" for="osNumber">OS/JTC</label>
                                                 <input type="text" id="osNumber" name="osNumber" class="form-control" value="{{ $header2->os_number }}" disabled/>
                                             </div>
                                         </div>
                                         <div class="form-row">
-                                            <div class="form-group col-md-8">
+                                            <div class="form-group col-md-7">
                                                 <label class="form-label" for="note">Notes</label>
                                                 <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header2->note }}</textarea>
                                             </div>
                                         </div>
                                         {{-- @if($key!=0) --}}
                                         <div class="form-row">
-                                            <div class="form-group col-md-8">
+                                            <div class="form-group col-md-7">
                                                 <label class="form-label" for="note">Revision reason</label>
                                                 <textarea type="text" id="rReason" name="rReason" class="form-control" rows="1" disabled >{{ $header2->reason }}</textarea>
                                             </div>

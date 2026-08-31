@@ -85,6 +85,7 @@ class DeliveryController extends Controller
             ['data'=> 'num_revision', 'name'=> 'num_revision','title'=>'Revision'],            
             ['data'=> 'note', 'name'=> 'note','title'=>'Note'],
             ['data'=> 'os_number', 'name'=> 'os_number','title'=>'OS Number'],
+            ['data'=> 'armada', 'name'=> 'armada','title'=>'Armada'],
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],
             ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'],
             ['data'=> 'reason', 'name'=> 'reason','title'=>'Revisi Reason'],
@@ -121,6 +122,7 @@ class DeliveryController extends Controller
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
             ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=> 'armada', 'name'=> 'armada','title'=>'Armada'],
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
@@ -320,6 +322,7 @@ class DeliveryController extends Controller
         $gudang = 'false';
         $kurs = 1;
         $osNumber = $request->osNumber;
+        $armada = $request->armada;
 
         $periodNomor=(int)explode('-', $dnDate)[1];
 
@@ -372,7 +375,8 @@ class DeliveryController extends Controller
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s'),
-                        'os_number' => $osNumber
+                        'os_number' => $osNumber,
+                        'armada' => $armada
                     ]);
 
                     $dataSet = [];
@@ -692,6 +696,7 @@ $data['detail'] = DB::table('delivery_det')
         $dnNumber=$request->dnNumber;
         $note=$request->note;
         $osNumber = $request->osNumber;
+        $armada = $request->armada;
         // $status = '2';
         // status
         // 1. Draft
@@ -745,7 +750,8 @@ $data['detail'] = DB::table('delivery_det')
                         'note' =>  $note,
                         'updated_by' => Auth::user()->username,
                         'updated_at' => date('Y-m-d H:i:s'),
-                        'os_number' => $osNumber
+                        'os_number' => $osNumber,
+                         'armada' => $armada
                         ]
                     );
 
@@ -1845,15 +1851,15 @@ public function posting(Request $request)
         $dnNew = $dnOrigin . '-R' . ($numRevision + 1);
     }
 
-    $sqlHdr = "INSERT into delivery_hdr
-    (delivery_number, delivery_date, customer_id, so_number, po_number, approved_by, approved_at,
-     status, note, created_by, updated_by, created_at, updated_at, origin_delivery_number,
-     num_revision, revised_by, revised_at, reason, os_number)
-    select
-        '$dnNew', delivery_date, customer_id, so_number, po_number, approved_by, approved_at,
-        '7', note, created_by, '$username', created_at, '" . date('Y-m-d H:i:s') . "', '$dnOrigin',
-        $numRevision, '$username', '" . date('Y-m-d H:i:s') . "', reason, os_number
-    from delivery_hdr where delivery_number = '$dnOrigin'";
+   $sqlHdr = "INSERT into delivery_hdr
+(delivery_number, delivery_date, customer_id, so_number, po_number, approved_by, approved_at,
+ status, note, created_by, updated_by, created_at, updated_at, origin_delivery_number,
+ num_revision, revised_by, revised_at, reason, os_number, armada)
+select
+    '$dnNew', delivery_date, customer_id, so_number, po_number, approved_by, approved_at,
+    '7', note, created_by, '$username', created_at, '" . date('Y-m-d H:i:s') . "', '$dnOrigin',
+    $numRevision, '$username', '" . date('Y-m-d H:i:s') . "', reason, os_number, armada
+from delivery_hdr where delivery_number = '$dnOrigin'";
 
     $sqlDet = "INSERT into delivery_det
     (delivery_number, article_code, so_number, po_number, qty, uom, created_by, created_at,

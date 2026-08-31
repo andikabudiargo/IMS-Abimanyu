@@ -21,21 +21,17 @@
                             <form id="frmAdd" name="frmAdd" autocomplete="off">
                                 @csrf
                                 <div class="form-row">
-                                    <div class="form-group col-md-3">
+                                    <div class="form-group col-md-4">
                                         <label for="dnNumber">Delivery Note Number</label> <small class="text-muted"> automatic</small>
                                         <input type="text" id="dnNumber" name="dnNumber" class="form-control text-hitam disabled-el"  disabled />
                                     </div>
-                                    <div class="form-group col-md-2">
+                                    <div class="form-group col-md-3">
                                         <label for="dnDate">Delivery Date*</label>
                                         <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                     </div>
-                                    <div class="form-group col-md-4">
-                                        <label class="form-label" for="poNumberHdr">PO Number</label>
-                                        <input type="text" id="poNumberHdr" name="poNumberHdr" class="form-control" disabled />
-                                    </div>                          
                                 </div>
-                                <div class="form-row">
-                                    <div class="form-group col-md-3">
+                                 <div class="form-row">
+                                      <div class="form-group col-md-4">
                                         <label class="form-label" for="customer">Customer*</label>
                                         <select class="select2 form-control" id="customer" name="customer" required>
                                             <option value=""></option>
@@ -44,18 +40,33 @@
                                             @endforeach
                                         </select>
                                     </div>
+                                     <div class="form-group col-md-3">
+        <label class="form-label" for="armada">Armada*</label>
+        <select class="select2 form-control" id="armada" name="armada" required>
+            <option value="">Choose Armada</option>
+            <option value="VJB PAGI">VJB PAGI</option>
+            <option value="VJB SIANG">VJB SIANG</option>
+            <option value="VJB MALAM">VJB MALAM</option>
+        </select>
+    </div>      
+                                </div>
+                                <div class="form-row">
                                     <div class="form-group col-md-3">
                                         <label class="form-label" for="soNumber">SO Number*</label>
                                         <select class="select2 form-control" id="soNumber" name="soNumber" required>
                                         </select>
                                     </div>
-                                    <div class="form-group col-md-3">
+                                     <div class="form-group col-md-2">
+                                        <label class="form-label" for="poNumberHdr">PO Number Customer</label>
+                                        <input type="text" id="poNumberHdr" name="poNumberHdr" class="form-control" disabled />
+                                    </div>       
+                                    <div class="form-group col-md-2">
                                         <label class="form-label" for="osNumber">OS/JTC</label>
                                         <input type="text" id="osNumber" name="osNumber" class="form-control" />
                                     </div>  
                                 </div>
                                 <div class="form-row">
-                                    <div class="form-group col-md-9">
+                                    <div class="form-group col-md-7">
                                         <label class="form-label" for="note">Notes</label>
                                         <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
                                     </div>
@@ -481,6 +492,7 @@
                     let poNumber = $('#soNumber').find(":selected").data("po-number");
                     let note = $('#note').val();
                     let osNumber = $('#osNumber').val();
+                    let armada = $('#armada').val();   // baru
 
                     $.ajax({
                         type: "post",
@@ -492,8 +504,8 @@
                             soNumber:soNumber,
                             poNumber:poNumber,
                             note:note,
-                            osNumber:osNumber
-
+                            osNumber:osNumber,
+                            armada:armada   // baru
                         },
                         dataType: "json",
                         success: function(data) {
@@ -586,6 +598,7 @@
                         $('#soNumber').attr('disabled','disabled');
                         $('#customer').attr('disabled','disabled');
                         $('#dnDate').attr('disabled','disabled');
+                        $('#armada').attr('disabled','disabled');   // baru
                         objQty.attr('disabled','disabled');
                         objUom.attr('disabled','disabled');
 

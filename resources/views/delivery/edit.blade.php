@@ -19,21 +19,17 @@
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label for="dnNumber">Delivery Note Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="dnNumber" name="dnNumber" class="form-control text-hitam disabled-el" value="{{ $header->delivery_number }}" disabled />
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="dnDate">Delivery Date*</label>
                                     <input type="text" id="dnDate" name="dnDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" required />
                                 </div>   
-                                <div class="form-group col-md-4">
-                                    <label class="form-label" for="poNumberHdr">PO Number</label>
-                                    <input type="text" id="poNumberHdr" name="poNumberHdr" class="form-control disabled-el" value="{{ $header->po_number }}" disabled />
-                                </div>                            
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="customer">Customer*</label>
                                     <select class="select2 form-control" id="customer" name="customer" required>
                                         @foreach($customers as $val)
@@ -41,25 +37,40 @@
                                         @endforeach
                                     </select>
                                 </div>
+                                      <div class="form-group col-md-3">
+    <label class="form-label" for="armada">Armada*</label>
+    <select class="select2 form-control" id="armada" name="armada" required>
+        <option value="">Choose Armada</option>
+        @foreach(['VJB PAGI', 'VJB SIANG', 'VJB MALAM'] as $val)
+            <option value="{{ $val }}" {{ $header->armada == $val ? 'selected' : '' }}>{{ $val }}</option>
+        @endforeach
+    </select>
+</div>
+                            </div>
+                            <div class="form-row">     
                                 <div class="form-group col-md-3">
                                     <label class="form-label" for="soNumber">SO Number*</label>
                                     <select class="select2 form-control" id="soNumber" name="soNumber" required>
                                     </select>
                                     {{-- <input type="text" id="soNumber" name="soNumber" class="form-control" value="{{ $header->so_number }}" data-po-number="{{ $header->po_number }}" required disabled/> --}}
                                 </div>
-                                <div class="form-group col-md-3">
+                                 <div class="form-group col-md-2">
+                                    <label class="form-label" for="poNumberHdr">PO Number</label>
+                                    <input type="text" id="poNumberHdr" name="poNumberHdr" class="form-control disabled-el" value="{{ $header->po_number }}" disabled />
+                                </div>      
+                                <div class="form-group col-md-2">
                                     <label class="form-label" for="osNumber">OS/JTC</label>
                                     <input type="text" id="osNumber" name="osNumber" class="form-control" value="{{ $header->os_number }}"/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-9">
+                                <div class="form-group col-md-7">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-9">
+                                <div class="form-group col-md-7">
                                     <label class="form-label" for="note">Revision reason</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header->reason }}</textarea>
                                 </div>
@@ -385,6 +396,8 @@ for(let i=0;i<detailSo.length;i++){
             let note = $('#note').val();
             let dnNumber = $('#dnNumber').val();
             let osNumber = $('#osNumber').val();
+            let armada = $('#armada').val();   // baru
+
 
             $.ajax({
                 type: "post",
@@ -397,7 +410,8 @@ for(let i=0;i<detailSo.length;i++){
                     poNumber:poNumber,
                     dnNumber:dnNumber,
                     note:note,
-                    osNumber:osNumber
+                    osNumber:osNumber,
+                    armada:armada   // baru
                 },
                 dataType: "json",
                 success: function(data) {
