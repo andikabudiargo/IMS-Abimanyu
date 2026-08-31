@@ -44,9 +44,17 @@
         <label class="form-label" for="armada">Armada*</label>
         <select class="select2 form-control" id="armada" name="armada" required>
             <option value="">Choose Armada</option>
-            <option value="VJB PAGI">VJB PAGI</option>
-            <option value="VJB SIANG">VJB SIANG</option>
-            <option value="VJB MALAM">VJB MALAM</option>
+            <option value="CDD PAGI">CDD PAGI</option>
+            <option value="CDD MALAM">CDD MALAM</option>
+            <option value="VJB 1 PAGI">VJB 1 PAGI</option>
+            <option value="VJB 1 MALAM">VJB 1 MALAM</option>
+            <option value="VJB 2 PAGI">VJB 2 PAGI</option>
+            <option value="VJB 2 MALAM">VJB 2 MALAM</option>
+            <option value="GRANDMAX PAGI">GRANDMAX PAGI</option>
+            <option value="GRANDMAX MALAM">GRANDMAX MALAM</option>
+            <option value="LUXIO">LUXIO</option>
+            <option value="MOBILE SEWA PAGI">MOBIL SEWA PAGI</option>
+            <option value="PICKUP">PICKUP</option>
         </select>
     </div>      
                                 </div>
