@@ -15,11 +15,7 @@ class CheckStockAnomaly extends Command
         {--type=}
         {--supp=}';
 
-    protected $description = 'Deteksi selisih antara movement dan stock (net-logic disamakan dengan movement2 / Stock Movement)';
-
-    // Cutoff date: movement sebelum tanggal ini diabaikan (kecuali ADJUSTMENT).
-    // Sesuai dengan floorDate di resolveOpeningBalance() — stok dimulai dari 1 Juli 2026.
-    const FLOOR_DATE = '2026-07-01'; // format YYYY-MM-DD
+    protected $description = 'Deteksi selisih antara movement dan stock (logic: OB terbaru + net movement setelah OB)';
 
     public function handle()
     {
@@ -42,8 +38,7 @@ class CheckStockAnomaly extends Command
 
         $this->info('Mulai pengecekan abnormality stock...'
             . ($location ? " | lokasi: $location" . ($locationAnchor !== $location ? " (anchor: $locationAnchor)" : '') : '')
-            . ($hasArticleFilter ? ' | filter artikel aktif' : '')
-            . ' | floor: ' . self::FLOOR_DATE);
+            . ($hasArticleFilter ? ' | filter artikel aktif' : ''));
 
         $articleCodes = [];
         if ($hasArticleFilter) {
@@ -74,17 +69,25 @@ class CheckStockAnomaly extends Command
         $whereLocation = $location ? "AND wm.location_number = :location" : "";
         $whereArticle  = $hasArticleFilter ? "AND wm.artikel_code = ANY(:articleCodes)" : "";
 
-        // URUTAN OPERASI — tidak boleh dibalik:
-        //   ① Filter baris mentah:
-        //      - exclude CANCEL/DELETE/REVISI type
-        //      - FLOOR DATE: movement_date >= FLOOR_DATE, KECUALI ADJUSTMENT
-        //        (adjustment tetap dibaca semua tanggal — OB Juni bisa di-post
-        //         belakangan tapi efektif untuk stok Juli)
-        //   ② Hitung hdr_status + net_value adjustment-aware   ← persis movement2()
-        //   ③ DEDUP pakai lokasi FISIK asli                    ← HARUS sebelum fold
-        //   ④ Exclude hdr_status = '5'
-        //   ⑤ BARU fold lokasi fisik ke parent
-        //   ⑥ SUM per artikel+lokasi_parent → bandingkan vs warehouse_stock
+        // FORMULA LEDGER:
+        //   qty_ledger = stock_after(OB terbaru per artikel+lokasi)
+        //              + SUM(net_movement NON-OB, tanggal > tanggal OB terbaru)
+        //
+        // Kenapa begini:
+        //   - warehouse_stock di-update rolling setiap movement
+        //   - OB terbaru (stock_after) sudah merepresentasikan semua history sebelumnya
+        //   - Movement setelah OB = delta yang belum ter-cover OB
+        //   - Jadi tidak perlu filter floor date — OB terbaru sudah jadi anchor-nya
+        //
+        // URUTAN OPERASI:
+        //   ① Cari OB terbaru per artikel+lokasi (via adj_date DESC)
+        //   ② Hitung net movement NON-OB setelah tanggal OB terbaru
+        //      - hdr_status + net_value adj-aware (persis movement2)
+        //      - DEDUP pakai lokasi FISIK (sebelum fold)
+        //      - exclude hdr_status = '5'
+        //   ③ Fold lokasi fisik ke parent
+        //   ④ qty_ledger = stock_after(OB) + SUM(net_movement)
+        //   ⑤ Bandingkan vs warehouse_stock
         $sql = "
             WITH
             loc_anchor AS (
@@ -93,7 +96,28 @@ class CheckStockAnomaly extends Command
                 FROM stock_location_master
             ),
 
-            -- ① ② : filter + hdr_status + net_value adj-aware, persis movement2()
+            -- ① OB terbaru per artikel+lokasi: ambil stock_after & tanggal OB-nya.
+            --   DISTINCT ON PostgreSQL → otomatis 1 baris per (article_code, location_code)
+            --   diurutkan adj_date DESC = OB terbaru yang aktif (status != 5).
+            latest_ob AS (
+                SELECT DISTINCT ON (det.article_code, hdr.location_code)
+                    det.article_code,
+                    hdr.location_code,
+                    hdr.adj_code,
+                    TO_DATE(hdr.adj_date, 'dd-mm-yyyy') AS ob_date,
+                    det.stock_after                      AS ob_qty
+                FROM stock_adjustment_hdr hdr
+                JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
+                WHERE hdr.adj_type = 'OPENING BALANCE'
+                  AND hdr.status  != '5'
+                ORDER BY det.article_code, hdr.location_code,
+                         TO_DATE(hdr.adj_date, 'dd-mm-yyyy') DESC, hdr.id DESC
+            ),
+
+            -- ② net movement NON-OB setelah tanggal OB terbaru.
+            --   Filter: tanggal movement > ob_date (pakai LEFT JOIN ke latest_ob,
+            --   kalau artikel tidak punya OB maka ob_date = NULL → semua movement masuk).
+            --   Logic hdr_status + net_value persis movement2().
             mv AS (
                 SELECT
                     wm.movement_code,
@@ -123,21 +147,28 @@ class CheckStockAnomaly extends Command
                         ELSE (wm.movement_plus - wm.movement_min)
                     END AS net_value
                 FROM warehouse_movement wm
-                WHERE wm.movement_type NOT LIKE 'CANCEL %'
+                -- exclude OB (sudah dihandle via latest_ob.ob_qty)
+                LEFT JOIN stock_adjustment_hdr ob_chk
+                    ON ob_chk.adj_code   = wm.movement_transnno
+                   AND ob_chk.adj_type   = 'OPENING BALANCE'
+                -- join ke latest_ob untuk dapat ob_date per artikel+lokasi
+                LEFT JOIN latest_ob lo
+                    ON lo.article_code   = wm.artikel_code
+                   AND lo.location_code  = wm.location_number
+                WHERE ob_chk.adj_code IS NULL                           -- bukan OB
+                  AND wm.movement_type NOT LIKE 'CANCEL %'
                   AND wm.movement_type NOT LIKE 'DELETE%'
                   AND wm.movement_type NOT LIKE 'REVISI %'
                   AND wm.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
-                  -- FLOOR DATE: abaikan movement lama sesuai cutoff stok,
-                  -- KECUALI ADJUSTMENT (OB bisa bertanggal sebelum floor)
-                  AND (
-                      TO_DATE(wm.movement_date,'dd-mm-yyyy') >= :floor_date
-                      OR wm.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
-                  )
+                  -- hanya movement SETELAH tanggal OB terbaru
+                  -- kalau tidak ada OB (lo.ob_date NULL) → semua movement masuk
+                  AND (lo.ob_date IS NULL
+                       OR TO_DATE(wm.movement_date, 'dd-mm-yyyy') > lo.ob_date)
                   {$whereLocation}
                   {$whereArticle}
             ),
 
-            -- ③ ④ : DEDUP pakai lokasi FISIK (sebelum fold), exclude status 5
+            -- dedup pakai lokasi FISIK (sebelum fold), exclude status 5
             dedup AS (
                 SELECT mv.*,
                     ROW_NUMBER() OVER (
@@ -149,15 +180,40 @@ class CheckStockAnomaly extends Command
             ),
             kept AS (SELECT * FROM dedup WHERE rn = 1),
 
-            -- ⑤ ⑥ : BARU fold ke parent, lalu SUM
-            ledger AS (
+            -- fold lokasi fisik ke parent, SUM net movement
+            net_mv AS (
                 SELECT
                     k.artikel_code,
                     COALESCE(la.stock_location, k.location_number) AS location_number,
-                    SUM(k.net_value) AS qty_ledger
+                    SUM(k.net_value) AS qty_net
                 FROM kept k
                 LEFT JOIN loc_anchor la ON la.location_code = k.location_number
                 GROUP BY k.artikel_code, COALESCE(la.stock_location, k.location_number)
+            ),
+
+            -- fold OB ke parent juga (OB dicatat di location_code = lokasi fisik/parent)
+            ob_folded AS (
+                SELECT
+                    lo.article_code,
+                    COALESCE(la.stock_location, lo.location_code) AS location_number,
+                    -- kalau satu parent punya beberapa child dengan OB masing-masing,
+                    -- SUM stock_after-nya (jarang terjadi, tapi aman)
+                    SUM(lo.ob_qty) AS ob_qty
+                FROM latest_ob lo
+                LEFT JOIN loc_anchor la ON la.location_code = lo.location_code
+                GROUP BY lo.article_code, COALESCE(la.stock_location, lo.location_code)
+            ),
+
+            -- gabungkan: qty_ledger = ob_qty + qty_net
+            ledger AS (
+                SELECT
+                    COALESCE(ob.article_code, nm.artikel_code)   AS artikel_code,
+                    COALESCE(ob.location_number, nm.location_number) AS location_number,
+                    COALESCE(ob.ob_qty, 0) + COALESCE(nm.qty_net, 0) AS qty_ledger
+                FROM ob_folded ob
+                FULL OUTER JOIN net_mv nm
+                    ON nm.artikel_code   = ob.article_code
+                   AND nm.location_number = ob.location_number
             )
 
             SELECT
@@ -168,16 +224,13 @@ class CheckStockAnomaly extends Command
                 (l.qty_ledger - ws.article_qty) AS diff
             FROM ledger l
             JOIN warehouse_stock ws
-                ON ws.article_code = l.artikel_code
-                AND ws.location_number = l.location_number
+                ON ws.article_code    = l.artikel_code
+               AND ws.location_number = l.location_number
             WHERE ABS(l.qty_ledger - ws.article_qty) > :threshold
             ORDER BY ABS(l.qty_ledger - ws.article_qty) DESC
         ";
 
-        $bind = [
-            'threshold'  => $threshold,
-            'floor_date' => self::FLOOR_DATE,
-        ];
+        $bind = ['threshold' => $threshold];
         if ($location) $bind['location'] = $location;
         if ($hasArticleFilter) {
             $bind['articleCodes'] = '{' . implode(',', array_map(function ($v) {
