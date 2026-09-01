@@ -534,6 +534,13 @@ function statusBadge(st) {
 }
 function isManualValue(v) { return !!v && v.indexOf(MANUAL_PREFIX) === 0; }
 
+// ── format angka ke max 2 desimal (dipakai di semua tampilan qty / min packing) ──
+function fmtNum(v, emptyVal = '') {
+    if (v === null || v === undefined || v === '') return emptyVal;
+    const n = parseFloat(String(v).replace(/,/g, ''));
+    return isNaN(n) ? v : n.toFixed(2);
+}
+
 function updateRealisasi(pct) {
     const $el = $('#realisasiValue');
     const plan = parseFloat($el.data('target-plan')) || 0;
@@ -702,7 +709,7 @@ $(document).ready(function () {
             else if (uom) uomOpt = `<option>${uom}</option>`;
             $('#inUom').html(uomOpt);
             const mp = opt.data('min-pkg');
-            $('#inMinPkg').val((mp === undefined || mp === null || mp === '') ? '0' : mp);
+            $('#inMinPkg').val(fmtNum(mp, '0'));
         });
 
         $('#btnAddLine').on('click', function() { submitLineAuto(false); });
@@ -746,7 +753,7 @@ $(document).ready(function () {
             else if (uom) uomOpt = `<option>${uom}</option>`;
             $uom.html(uomOpt);
             const mp = opt.data('min-pkg');
-            $pkg.val((mp === undefined || mp === null || mp === '') ? '0' : mp);
+            $pkg.val(fmtNum(mp, '0'));
         });
 
         $('#btnSaveSheet').on('click', submitSheet);
@@ -999,8 +1006,8 @@ function renderRowToSheet(r, stoNumber) {
         <td>${r.article_desc}</td>
         ${locCell}
         <td class="d-none d-md-table-cell">${r.uom ?? ''}</td>
-        <td class="d-none d-md-table-cell text-right">${r.min_package ?? ''}</td>
-        <td class="text-right font-weight-bold qty-cell">${r.my_qty ?? '-'}</td>
+        <td class="d-none d-md-table-cell text-right">${fmtNum(r.min_package, '')}</td>
+        <td class="text-right font-weight-bold qty-cell">${fmtNum(r.my_qty, '-')}</td>
         <td class="text-center">${statusBadge(r.count_status)}</td>
         <td class="d-none d-md-table-cell text-truncate" style="max-width:120px;" title="${r.note??''}">${r.note??''}</td>
         <td class="text-center">
@@ -1157,20 +1164,20 @@ function editLine(dtlId, el) {
         <div class="form-row mt-50">
             <div class="col-4">
                 <label class="scc-field-label">Qty C1</label>
-                <input type="text" id="editQtyC1" class="form-control text-right" value="${curQtyC1 ?? ''}">
+                <input type="text" id="editQtyC1" class="form-control text-right" value="${fmtNum(curQtyC1, '')}">
             </div>
             <div class="col-4">
                 <label class="scc-field-label">Qty C2</label>
-                <input type="text" id="editQtyC2" class="form-control text-right" value="${curQtyC2 ?? ''}">
+                <input type="text" id="editQtyC2" class="form-control text-right" value="${fmtNum(curQtyC2, '')}">
             </div>
             <div class="col-4">
                 <label class="scc-field-label">Qty C3</label>
-                <input type="text" id="editQtyC3" class="form-control text-right" value="${curQtyC3 ?? ''}">
+                <input type="text" id="editQtyC3" class="form-control text-right" value="${fmtNum(curQtyC3, '')}">
             </div>
         </div>` : `
         <div class="col-4">
             <label class="scc-field-label">QTY*</label>
-            <input type="text" id="editQty" class="form-control text-right" value="${curQty ?? ''}">
+            <input type="text" id="editQty" class="form-control text-right" value="${fmtNum(curQty, '')}">
         </div>`;
 
     Swal.fire({
@@ -1249,7 +1256,7 @@ function editLine(dtlId, el) {
                     }
                     $('#editArticleSelect').val(manualVal).trigger('change');
                     $('#editUomWrap').html(`<input type="text" id="editUomSelect" class="form-control" placeholder="UOM* (wajib diisi)" value="${curUom}">`);
-                    $('#editMinPkg').val(curMinPkg ?? '0');
+                    $('#editMinPkg').val(fmtNum(curMinPkg, '0'));
                 } else {
                     $('#editArticleSelect').val(curArticleCode).trigger('change');
                     const $opt = $('#editArticleSelect').find(`option[value="${curArticleCode}"]`);
@@ -1260,7 +1267,7 @@ function editLine(dtlId, el) {
                     else if (uomSingle) uomOpt = `<option selected>${uomSingle}</option>`;
                     else uomOpt = `<option selected>${curUom}</option>`;
                     $('#editUomSelect').html(uomOpt);
-                    $('#editMinPkg').val(curMinPkg ?? $opt.data('min-pkg') ?? '');
+                    $('#editMinPkg').val(fmtNum(curMinPkg ?? $opt.data('min-pkg'), ''));
                 }
 
                 $('#editArticleSelect').off('change.editform').on('change.editform', function() {
@@ -1284,7 +1291,7 @@ function editLine(dtlId, el) {
                     else if (uom) uomOpt = `<option>${uom}</option>`;
                     $('#editUomSelect').html(uomOpt);
                     const mp = opt.data('min-pkg');
-                    $('#editMinPkg').val((mp === undefined || mp === null || mp === '') ? '0' : mp);
+                    $('#editMinPkg').val(fmtNum(mp, '0'));
                 });
             });
         },
@@ -1458,7 +1465,7 @@ $(document).on('click', '.scc-btn-add-article', function () {
                     else if (uom) uomOpt = `<option>${uom}</option>`;
                     $('#maUom').html(uomOpt);
                     const mp = opt.data('min-pkg');
-                    $('#maMinPkg').val((mp === undefined || mp === null || mp === '') ? '0' : mp);
+                    $('#maMinPkg').val(fmtNum(mp, '0'));
                 });
             });
         },
