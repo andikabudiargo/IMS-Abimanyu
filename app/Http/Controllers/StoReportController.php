@@ -168,7 +168,7 @@ class StoReportController extends Controller
         $realCodes = $movements->keys()
             ->merge($stockCodes)
             ->merge($stoRealCodes)
-            ->filter()->unique()->values();
+            ->filter() ->map(fn($c) => (string) $c)->unique()->values();
 
         $header = [
             'sto_code'        => $config->sto_code,
