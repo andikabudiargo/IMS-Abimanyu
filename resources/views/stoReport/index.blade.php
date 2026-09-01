@@ -72,6 +72,10 @@
     background: #e9edf3 !important;
     z-index: 3;
     font-weight: bold;
+    height: 34px;
+    vertical-align: middle;
+    padding: 6px 6px;
+    border-top: 2px solid #c8cfda; /* penegas batas footer vs body */
 }
 </style>
 
@@ -231,49 +235,12 @@
 
             <div class="d-none" id="reportScroll">
                 <table class="table table-sm" id="reportTable" style="font-size:.78rem;">
-                    <thead class="text-center">
-                        <tr>
-                            <th rowspan="2" class="col-no">No</th>
-                            <th rowspan="2" class="col-alt">Alt. Code</th>
-                            <th rowspan="2" class="col-desc">Article Desc</th>
-                            <th rowspan="2">Supp</th>
-                            <th rowspan="2">UoM</th>
-                            <th rowspan="2">Opening</th>
-                            <th colspan="3" class="bg-light-primary">IN</th>
-                            <th colspan="3" class="bg-light-danger">OUT</th>
-                            <th rowspan="2">Balance</th>
-                            <th rowspan="2">Hasil STO</th>
-                            <th rowspan="2">Variance</th>
-                            <th rowspan="2">Status</th>
-                            <th rowspan="2">Akurasi</th>
-                        </tr>
-                        <tr>
-                            <th class="bg-light-primary">Receiving</th>
-                            <th class="bg-light-primary">Return Transfer</th>
-                            <th class="bg-light-primary">Replace Supplier</th>
-                            <th class="bg-light-danger">Supply Transfer</th>
-                            <th class="bg-light-danger">Return Supplier</th>
-                            <th class="bg-light-danger">DN Umum</th>
-                        </tr>
-                    </thead>
+                    {{-- thead & tfoot baris kolom movement (IN/OUT) dibangun dinamis via JS
+                         berdasarkan res.columns yang dikirim backend, karena tiap grup lokasi
+                         (CHEMICAL vs WIP/FG/OT) punya kategori movement berbeda. --}}
+                    <thead class="text-center" id="reportThead"></thead>
                     <tbody id="reportBody"></tbody>
-                    <tfoot class="text-right">
-                        <tr>
-                            <td colspan="5" class="text-center">TOTAL</td>
-                            <td id="tOpening">-</td>
-                            <td id="tInRcv">-</td>
-                            <td id="tInRet">-</td>
-                            <td id="tInRep">-</td>
-                            <td id="tOutSup">-</td>
-                            <td id="tOutRet">-</td>
-                            <td id="tOutDn">-</td>
-                            <td id="tBalance">-</td>
-                            <td id="tSto">-</td>
-                            <td id="tVariance">-</td>
-                            <td class="text-center">-</td>
-                            <td id="tAkurasi" class="text-center">-</td>
-                        </tr>
-                    </tfoot>
+                    <tfoot class="text-right" id="reportTfoot"></tfoot>
                 </table>
             </div>
 
@@ -339,6 +306,56 @@ $(document).ready(function () {
         let cls = acc >= target ? 'badge-light-success'
                 : (acc > 0 ? 'badge-light-warning' : 'badge-light-danger');
         return '<span class="badge ' + cls + '" style="font-size:.72rem;">' + acc.toFixed(2) + '%</span>';
+    }
+
+    // ── bangun header tabel dinamis (kolom IN/OUT beda-beda per grup lokasi) ──
+    // columns = { in: [{key,label}, ...], out: [{key,label}, ...] }
+    function buildTableHead(columns) {
+        let inCols  = (columns && columns.in)  ? columns.in  : [];
+        let outCols = (columns && columns.out) ? columns.out : [];
+
+        let row1 = '<tr>'
+            + '<th rowspan="2" class="col-no">No</th>'
+            + '<th rowspan="2" class="col-alt">Alt. Code</th>'
+            + '<th rowspan="2" class="col-desc">Article Desc</th>'
+            + '<th rowspan="2">Supp</th>'
+            + '<th rowspan="2">UoM</th>'
+            + '<th rowspan="2">Opening</th>'
+            + (inCols.length  ? '<th colspan="' + inCols.length  + '" class="bg-light-primary">IN</th>'  : '')
+            + (outCols.length ? '<th colspan="' + outCols.length + '" class="bg-light-danger">OUT</th>' : '')
+            + '<th rowspan="2">Balance</th>'
+            + '<th rowspan="2">Hasil STO</th>'
+            + '<th rowspan="2">Variance</th>'
+            + '<th rowspan="2">Status</th>'
+            + '<th rowspan="2">Akurasi</th>'
+            + '</tr>';
+
+        let row2 = '<tr>';
+        inCols.forEach(function (c) { row2 += '<th class="bg-light-primary">' + c.label + '</th>'; });
+        outCols.forEach(function (c) { row2 += '<th class="bg-light-danger">' + c.label + '</th>'; });
+        row2 += '</tr>';
+
+        $('#reportThead').html(row1 + row2);
+    }
+
+    // ── bangun baris footer total, dinamis ikut kolom yang sama ──
+    function buildTableFoot(columns) {
+        let inCols  = (columns && columns.in)  ? columns.in  : [];
+        let outCols = (columns && columns.out) ? columns.out : [];
+
+        let cells = '<td colspan="5" class="text-center">TOTAL</td>'
+            + '<td id="tOpening">-</td>';
+
+        inCols.forEach(function (c) { cells += '<td id="tCol_' + c.key + '">-</td>'; });
+        outCols.forEach(function (c) { cells += '<td id="tCol_' + c.key + '">-</td>'; });
+
+        cells += '<td id="tBalance">-</td>'
+            + '<td id="tSto">-</td>'
+            + '<td id="tVariance">-</td>'
+            + '<td class="text-center">-</td>'
+            + '<td id="tAkurasi" class="text-center">-</td>';
+
+        $('#reportTfoot').html('<tr>' + cells + '</tr>');
     }
 
     // ── pilih STO → load lokasi ──
@@ -419,6 +436,14 @@ $(document).ready(function () {
         let t = res.totals;
         let target = s.target_plan;
         let tolerance = (s.threshold_pct !== undefined && s.threshold_pct !== null) ? s.threshold_pct : 2;
+        let columns = res.columns || { in: [], out: [] };
+        let inCols  = columns.in  || [];
+        let outCols = columns.out || [];
+
+        // header & footer tabel dibangun ulang tiap generate, karena kolom
+        // movement (IN/OUT) beda-beda tergantung grup lokasi yang dipilih
+        buildTableHead(columns);
+        buildTableFoot(columns);
 
         // info header
         $('#hSto').text(h.sto_code);
@@ -430,9 +455,10 @@ $(document).ready(function () {
         // tabel body + akumulasi akurasi
         let body = '';
         let accSum = 0, accCount = 0, meetCount = 0;
+        let totalCols = 11 + inCols.length + outCols.length; // 6 kolom kiri statis + movement + 5 kolom kanan statis
 
         if (!res.rows || res.rows.length === 0) {
-            body = '<tr><td colspan="17" class="text-center text-muted py-1">Tidak ada data untuk lokasi/periode ini.</td></tr>';
+            body = '<tr><td colspan="' + totalCols + '" class="text-center text-muted py-1">Tidak ada data untuk lokasi/periode ini.</td></tr>';
         } else {
             res.rows.forEach(function (r) {
                 let acc = rowAccuracyPct(r, tolerance);
@@ -448,6 +474,10 @@ $(document).ready(function () {
                     varCls = r.variance > 0 ? 'text-success' : (r.variance < 0 ? 'text-danger' : '');
                 }
 
+                let moveCells = '';
+                inCols.forEach(function (c) { moveCells += '<td class="text-right">' + fmt(r[c.key]) + '</td>'; });
+                outCols.forEach(function (c) { moveCells += '<td class="text-right">' + fmt(r[c.key]) + '</td>'; });
+
                 body += '<tr>'
                     + '<td class="text-center col-no">' + r.no + '</td>'
                     + '<td class="col-alt">' + (r.alt_code || '-') + '</td>'
@@ -455,12 +485,7 @@ $(document).ready(function () {
                     + '<td>' + (r.supp || '-') + '</td>'
                     + '<td class="text-center">' + (r.uom || '-') + '</td>'
                     + '<td class="text-right">' + fmt(r.opening) + '</td>'
-                    + '<td class="text-right">' + fmt(r.in_receiving) + '</td>'
-                    + '<td class="text-right">' + fmt(r.in_return_transfer) + '</td>'
-                    + '<td class="text-right">' + fmt(r.in_replace_supplier) + '</td>'
-                    + '<td class="text-right">' + fmt(r.out_supply_transfer) + '</td>'
-                    + '<td class="text-right">' + fmt(r.out_return_supplier) + '</td>'
-                    + '<td class="text-right">' + fmt(r.out_dn_umum) + '</td>'
+                    + moveCells
                     + '<td class="text-right font-weight-bold">' + fmt(r.closing) + '</td>'
                     + '<td class="text-right">' + (r.qty_sto !== null ? fmt(r.qty_sto) : '<span class="text-muted">-</span>') + '</td>'
                     + '<td class="text-right ' + varCls + '">' + varVal + '</td>'
@@ -490,12 +515,9 @@ $(document).ready(function () {
 
         // footer totals
         $('#tOpening').text(fmt(t.opening));
-        $('#tInRcv').text(fmt(t.in_receiving));
-        $('#tInRet').text(fmt(t.in_return_transfer));
-        $('#tInRep').text(fmt(t.in_replace_supplier));
-        $('#tOutSup').text(fmt(t.out_supply_transfer));
-        $('#tOutRet').text(fmt(t.out_return_supplier));
-        $('#tOutDn').text(fmt(t.out_dn_umum));
+        inCols.concat(outCols).forEach(function (c) {
+            $('#tCol_' + c.key).text(fmt(t[c.key]));
+        });
         $('#tBalance').text(fmt(t.closing));
         $('#tSto').text(t.qty_sto !== null ? fmt(t.qty_sto) : '-');
 

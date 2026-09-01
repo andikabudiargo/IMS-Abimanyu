@@ -13,31 +13,70 @@ class StoReportController extends Controller
     private $title;
     private $moduleCode;
 
-    private $supportedLocations = ['005', '006', '009'];
+    // Semua lokasi yang didukung format report-nya (gabungan dari semua grup)
+    private $supportedLocations = ['005', '006', '009', '012', '007', '008'];
 
     // ══════════════════════════════════════════════
+    // GRUP LOKASI
+    // Tiap grup punya kategori IN/OUT movement_type yang berbeda,
+    // makanya di-pisah biar report bisa nampilin kolom yang relevan
+    // per grup tanpa saling ganggu.
+    // ══════════════════════════════════════════════
+    private $locationGroups = [
+        'CHEMICAL'   => ['005', '006', '009'],
+        'WIP_FG_OT'  => ['012', '007', '008'], // WIP, Finish Goods, OT
+    ];
+
+    // ══════════════════════════════════════════════
+    // KONFIGURASI KATEGORI MOVEMENT PER GRUP
+    //
     // PENENTU KATEGORI = movement_type (bukan movement_desc)
     // movement_desc = isi bebas (nama transaksi), tidak bisa diandalkan untuk filter
     //
-    // IN ke gudang chemical:
-    //   movement_type = 'RECEIVING'        → Receiving dari supplier
-    //   movement_type = 'TRANSFER'         → Return chemical dari booth/lokasi lain (movement_plus)
-    //   movement_type = 'SUPPLIER REPLACE' → Penggantian barang dari supplier
+    // Tiap kolom:
+    //   'label' => nama tampilan
+    //   'types' => daftar movement_type yang match (dibandingkan UPPER(), jadi case-insensitive)
+    //   'qty'   => kolom qty yang dipakai: movement_plus (IN) atau movement_min (OUT)
     //
-    // OUT dari gudang chemical:
-    //   movement_type = 'SUPPLY'           → Supply ke booth/WOS (movement_min)
-    //   movement_type = 'SUPPLIER RETURN'  → Return ke supplier
-    //   movement_type = 'DN'               → DN Umum (sesuaikan jika berbeda)
+    // CANCEL prefix (mis. 'CANCEL SUPPLY', 'CANCEL TRANSFER') selalu diabaikan
+    // lewat filter global movement_type NOT ILIKE 'CANCEL %'.
     //
-    // CANCEL prefix (mis. 'CANCEL SUPPLY', 'CANCEL TRANSFER') → diabaikan
+    // Catatan: movement_type 'TRANSFER' dipakai baik untuk IN maupun OUT
+    // (transfer masuk pakai movement_plus, transfer keluar pakai movement_min) —
+    // jadi satu movement_type bisa muncul di 2 kolom berbeda, dibedakan dari
+    // qty field mana yang dipakai dan diisi.
     // ══════════════════════════════════════════════
-    private $typeReceiving       = 'RECEIVING';         // IN
-    private $typeReturnTransfer  = 'TRANSFER';          // IN  (movement_plus > 0)
-    private $typeTransferOut = 'TRANSFER'; // OUT (movement_min > 0) — beda kondisi dari typeReturnTransfer
-    private $typeSupplierReplace = 'SUPPLIER REPLACE';  // IN
-    private $typeSupplyOut       = 'SUPPLY';            // OUT (movement_min > 0)
-    private $typeSupplierReturn  = 'SUPPLIER RETURN';   // OUT
-    private $typeDnUmum          = 'DN UMUM';                // OUT — SESUAIKAN jika perlu (DN UMUM, GI, dll)
+    private $movementConfig = [
+        'CHEMICAL' => [
+            'in' => [
+                'in_receiving'        => ['label' => 'Receiving',        'types' => ['RECEIVING'],        'qty' => 'movement_plus'],
+                'in_return_transfer'  => ['label' => 'Return',  'types' => ['TRANSFER'],         'qty' => 'movement_plus'],
+                'in_replace_supplier' => ['label' => 'Supplier Replace', 'types' => ['SUPPLIER REPLACE'], 'qty' => 'movement_plus'],
+            ],
+            'out' => [
+                // Digabung SUPPLY + TRANSFER (movement_min) jadi 1 kolom, sesuai perilaku asli
+                // sebelum refactor (dulu outSup = out_supply_transfer + out_transfer di PHP).
+                'out_supply_transfer' => ['label' => 'Supply', 'types' => ['SUPPLY', 'TRANSFER'], 'qty' => 'movement_min'],
+                'out_return_supplier' => ['label' => 'Return Supplier', 'types' => ['SUPPLIER RETURN'],    'qty' => 'movement_min'],
+                'out_dn_umum'         => ['label' => 'DN Umum',         'types' => ['DN UMUM'],            'qty' => 'movement_min'],
+            ],
+        ],
+
+        // WIP (012), Finish Goods (007), OT (008)
+        'WIP_FG_OT' => [
+            'in' => [
+                'in_transfer'        => ['label' => 'Transfer In',     'types' => ['TRANSFER'], 'qty' => 'movement_plus'],
+                'in_return_customer' => ['label' => 'Return Customer', 'types' => ['RETURN'],    'qty' => 'movement_plus'],
+            ],
+            'out' => [
+                'out_transfer'     => ['label' => 'Transfer Out', 'types' => ['TRANSFER'],      'qty' => 'movement_min'],
+                'out_delivery'     => ['label' => 'Delivery',     'types' => ['DELIVERY'],      'qty' => 'movement_min'],
+                'out_dn_umum'      => ['label' => 'DN Umum',      'types' => ['DN UMUM'],       'qty' => 'movement_min'],
+                'out_dn_sementara' => ['label' => 'DN Sementara', 'types' => ['DN SEMENTARA'],  'qty' => 'movement_min'],
+                'out_replacement'  => ['label' => 'Replacement',  'types' => ['REPLACEMENT'],   'qty' => 'movement_min'],
+            ],
+        ],
+    ];
 
     // threshold akurasi: selisih <= N% dari closing → dapat poin
     private $accuracyThresholdPercent = 2.0;
@@ -46,6 +85,34 @@ class StoReportController extends Controller
     {
         $this->title      = 'STO Report';
         $this->moduleCode = 'STO_REPORT';
+    }
+
+    // ══════════════════════════════════════════════
+    // HELPER GRUP LOKASI
+    // ══════════════════════════════════════════════
+    private function getLocationGroup($locationCode)
+    {
+        foreach ($this->locationGroups as $group => $codes) {
+            if (in_array($locationCode, $codes, true)) {
+                return $group;
+            }
+        }
+        return null;
+    }
+
+    private function getGroupConfig($locationCode)
+    {
+        $group = $this->getLocationGroup($locationCode);
+        return $this->movementConfig[$group] ?? ['in' => [], 'out' => []];
+    }
+
+    private function getColumnKeys($locationCode)
+    {
+        $config = $this->getGroupConfig($locationCode);
+        return [
+            'in'  => array_keys($config['in']),
+            'out' => array_keys($config['out']),
+        ];
     }
 
     // ══════════════════════════════════════════════
@@ -109,297 +176,63 @@ class StoReportController extends Controller
     // DATA
     // ══════════════════════════════════════════════
     public function data(Request $request)
-{
-    $configId     = Crypt::decryptString($request->config_id);
-    $locationCode = $request->location_code;
-
-    $result = $this->buildReport($configId, $locationCode, $request->date_range);
-
-    if ($result['status'] === 0) {
-        return response()->json(
-            ['status' => 0, 'message' => $result['message']],
-            $result['code'] ?? 422
-        );
-    }
-
-    // rows/totals sudah collection/array → json-kan apa adanya
-    return response()->json([
-        'status'  => 1,
-        'header'  => $result['header'],
-        'rows'    => $result['rows']->values(),
-        'totals'  => $result['totals'],
-        'summary' => $result['summary'],
-    ]);
-}
-
-    public function dataOld(Request $request)
     {
         $configId     = Crypt::decryptString($request->config_id);
         $locationCode = $request->location_code;
 
-        if (!in_array($locationCode, $this->supportedLocations)) {
-            return response()->json(['status' => 0, 'message' => 'Lokasi ini belum didukung format reportnya.'], 422);
+        $result = $this->buildReport($configId, $locationCode, $request->date_range);
+
+        if ($result['status'] === 0) {
+            return response()->json(
+                ['status' => 0, 'message' => $result['message']],
+                $result['code'] ?? 422
+            );
         }
 
-        $config = DB::table('sto_config')->where('config_id', $configId)->first();
-        if (!$config) {
-            return response()->json(['status' => 0, 'message' => 'STO tidak ditemukan.'], 404);
-        }
-
-        $mapping = DB::table('sto_config_mapping')
-            ->where('config_id', $configId)
-            ->where('target_type', 'LOCATION')
-            ->where('target_ref', $locationCode)
-            ->first();
-
-        if (!$mapping) {
-            return response()->json(['status' => 0, 'message' => 'Lokasi tidak terdaftar pada STO ini.'], 404);
-        }
-
-        $locationName = DB::table('stock_location_master')
-            ->where('location_code', $locationCode)
-            ->value('location_name') ?? $locationCode;
-
-        [$dateFrom, $dateTo, $openingDate] = $this->resolveReportDateRange($config->periode, $mapping->sto_date ?? null);
-
-        if ($request->filled('date_range')) {
-            $parts = explode(' to ', $request->date_range);
-            $from  = trim($parts[0] ?? '');
-            $to    = trim($parts[1] ?? $from);
-            if ($from && $to) {
-                $dateFrom = $from;
-                $dateTo   = $to;
-                $dt = \DateTime::createFromFormat('d-m-Y', $from);
-                if ($dt) {
-                    $openingDate = date('Y-m-d', strtotime($dt->format('Y-m-d') . ' -1 day'));
-                }
-            }
-        }
-
-        $movements  = $this->aggregateMovements($locationCode, $dateFrom, $dateTo);
-        $stoResults = $this->aggregateStoResults($configId, $locationCode);
-
-        $stockCodes = DB::table('warehouse_stock')
-            ->where('location_number', $locationCode)
-            ->where('article_qty', '<>', 0)
-            ->pluck('article_code');
-
-        $stoAltCodes  = $stoResults->keys();
-        $stoRealCodes = DB::table('article')
-            ->whereIn('article_alternative_code', $stoAltCodes)
-            ->pluck('article_code');
-
-        $realCodes = $movements->keys()
-            ->merge($stockCodes)
-            ->merge($stoRealCodes)
-            ->filter() ->map(fn($c) => (string) $c)->unique()->values();
-
-        $header = [
-            'sto_code'        => $config->sto_code,
-            'sto_type'        => $config->sto_type,
-            'periode'         => $config->periode,
-            'location_code'   => $locationCode,
-            'location_name'   => $locationName,
-            'date_from'       => $dateFrom,
-            'date_to'         => $dateTo,
-            'sto_date'        => $mapping->sto_date ?? null,
-            'target_plan_loc' => $mapping->target_plan_loc ?? 98,
-        ];
-
-        if ($realCodes->isEmpty()) {
-            return response()->json([
-                'status'  => 1,
-                'header'  => $header,
-                'rows'    => [],
-                'totals'  => $this->emptyTotals(),
-                'summary' => $this->emptySummary($mapping->target_plan_loc ?? 98),
-            ]);
-        }
-
-        // metadata artikel — 1 real_code = 1 baris, deduplikasi by article_code
-        $articles = DB::table('article as a')
-            ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
-            ->whereIn('a.article_code', $realCodes)
-            ->select(
-                'a.article_code',
-                'a.article_alternative_code',
-                'a.article_desc',
-                'a.uom',
-                DB::raw('COALESCE(tp.nama, a.third_party) as supp_name')
-            )
-            ->orderBy('a.article_code')
-            ->get()
-            ->keyBy('article_code');
-
-        $rows         = collect();
-        $totalPoin    = 0;
-        $totalArtikel = 0;
-
-        foreach ($realCodes as $rc) {
-            $meta    = $articles->get($rc);
-            $altCode = $meta->article_alternative_code ?? null;
-            $mv      = $movements->get($rc);
-            $stoRow  = $altCode ? $stoResults->get($altCode) : null;
-
-            $opening = round((float) $this->getOpeningBalance($rc, $openingDate, $locationCode), 2);
-
-            $inRcv  = $mv ? (float) $mv->in_receiving        : 0;
-            $inRet  = $mv ? (float) $mv->in_return_transfer  : 0;
-            $inRep  = $mv ? (float) $mv->in_replace_supplier : 0;
-            $outSup = $mv ? (float) $mv->out_supply_transfer + (float) $mv->out_transfer : 0;
-            $outRet = $mv ? (float) $mv->out_return_supplier : 0;
-            $outDn  = $mv ? (float) $mv->out_dn_umum         : 0;
-
-            $totalIn  = $inRcv + $inRet + $inRep;
-            $totalOut = $outSup + $outRet + $outDn;
-            $closing  = round($opening + $totalIn - $totalOut, 2);
-
-            if ($opening == 0 && $totalIn == 0 && $totalOut == 0 && $closing == 0 && !$stoRow) {
-                continue;
-            }
-
-            $stoQty    = $stoRow ? round((float) $stoRow->qty_sto, 2) : null;
-            $stoStatus = $stoRow ? ($stoRow->count_status ?? 'INCOMPLETE') : 'INCOMPLETE';
-            $variance  = $stoQty !== null ? round($stoQty - $closing, 2) : null;
-
-            // akurasi
-            $accurate = false;
-            if ($stoStatus === 'MATCH') {
-                $accurate = true;
-            } elseif ($stoStatus === 'RECOUNT' && $variance !== null) {
-                if ($closing == 0) {
-                    $accurate = ($stoQty == 0);
-                } else {
-                    $accurate = (abs($variance) / abs($closing) * 100) <= $this->accuracyThresholdPercent;
-                }
-            }
-
-            $totalArtikel++;
-            if ($accurate) $totalPoin++;
-
-            $rows->push((object) [
-                'article_code'        => $rc,
-                'alt_code'            => $altCode ?? $rc,
-                'article_desc'        => $meta->article_desc ?? $rc,
-                'supp'                => $meta->supp_name ?? '-',
-                'uom'                 => $meta->uom ?? '-',
-                'opening'             => $opening,
-                'in_receiving'        => round($inRcv, 2),
-                'in_return_transfer'  => round($inRet, 2),
-                'in_replace_supplier' => round($inRep, 2),
-                'out_supply_transfer' => round($outSup, 2),
-                'out_return_supplier' => round($outRet, 2),
-                'out_dn_umum'         => round($outDn, 2),
-                'closing'             => $closing,
-                'qty_sto'             => $stoQty,
-                'variance'            => $variance,
-                'sto_status'          => $stoStatus,
-                'accurate'            => $accurate,
-            ]);
-        }
-
-        $rows = $rows->sortBy('article_desc')->values();
-
-        $totals = $this->emptyTotals();
-        $no = 1;
-        $rows = $rows->map(function ($r) use (&$no, &$totals) {
-            $r->no = $no++;
-            foreach (['opening','in_receiving','in_return_transfer','in_replace_supplier',
-                      'out_supply_transfer','out_return_supplier','out_dn_umum','closing'] as $k) {
-                $totals[$k] = round($totals[$k] + $r->{$k}, 2);
-            }
-            if ($r->qty_sto !== null) {
-                $totals['qty_sto'] = round(($totals['qty_sto'] ?? 0) + $r->qty_sto, 2);
-            }
-            if ($r->variance !== null) {
-                $totals['variance'] = round(($totals['variance'] ?? 0) + $r->variance, 2);
-            }
-            return $r;
-        });
-
-        $targetPlan  = (float) ($mapping->target_plan_loc ?? 98);
-        $actAccuracy = $totalArtikel > 0 ? round($totalPoin / $totalArtikel * 100, 2) : 0;
-
+        // rows/totals sudah collection/array → json-kan apa adanya
         return response()->json([
             'status'  => 1,
-            'header'  => $header,
-            'rows'    => $rows,
-            'totals'  => $totals,
-            'summary' => [
-                'total_artikel'  => $totalArtikel,
-                'total_accurate' => $totalPoin,
-                'total_not'      => $totalArtikel - $totalPoin,
-                'accuracy_pct'   => $actAccuracy,
-                'target_plan'    => $targetPlan,
-                'is_meet_target' => $actAccuracy >= $targetPlan,
-                'threshold_pct'  => $this->accuracyThresholdPercent,
-            ],
+            'header'  => $result['header'],
+            'rows'    => $result['rows']->values(),
+            'totals'  => $result['totals'],
+            'summary' => $result['summary'],
+            'columns' => $result['columns'], // definisi kolom in/out dinamis, dipakai FE buat render header tabel
         ]);
     }
 
     // ══════════════════════════════════════════════
-    // AGGREGATE MOVEMENT
-    // Filter utama: movement_type (bukan movement_desc)
-    // CANCEL prefix otomatis ter-exclude karena movement_type ILIKE 'CANCEL %'
-    // akan tidak cocok dengan tipe spesifik di bawah.
+    // AGGREGATE MOVEMENT — dinamis berdasarkan konfigurasi grup lokasi
     // ══════════════════════════════════════════════
     private function aggregateMovements($locationCode, $dateFrom, $dateTo)
     {
-        return DB::table('warehouse_movement as wm')
-            ->select('wm.artikel_code')
+        $config = $this->getGroupConfig($locationCode);
 
-            // ── IN ──
-            // Receiving: movement_type = 'RECEIVING' (exact, case-insensitive)
-            ->selectRaw(
-                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) THEN COALESCE(wm.movement_plus,0) ELSE 0 END) as in_receiving",
-                [$this->typeReceiving]
-            )
-            // Return Transfer: movement_type = 'TRANSFER', ambil movement_plus (masuk ke gudang)
-            ->selectRaw(
-                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) AND COALESCE(wm.movement_plus,0) > 0
-                     THEN wm.movement_plus ELSE 0 END) as in_return_transfer",
-                [$this->typeReturnTransfer]
-            )
-            // Supplier Replace: movement_type = 'SUPPLIER REPLACE'
-            ->selectRaw(
-                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) THEN COALESCE(wm.movement_plus,0) ELSE 0 END) as in_replace_supplier",
-                [$this->typeSupplierReplace]
-            )
+        $query = DB::table('warehouse_movement as wm')->select('wm.artikel_code');
 
-            // ── OUT ──
-            // Supply Transfer: movement_type = 'SUPPLY', ambil movement_min (keluar dari gudang)
-            ->selectRaw(
-                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) AND COALESCE(wm.movement_min,0) > 0
-                     THEN wm.movement_min ELSE 0 END) as out_supply_transfer",
-                [$this->typeSupplyOut]
-            )
-            // Return Supplier: movement_type = 'SUPPLIER RETURN'
-            ->selectRaw(
-                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_return_supplier",
-                [$this->typeSupplierReturn]
-            )
-            // DN Umum: movement_type = 'DN' (atau 'DN UMUM' — sesuaikan $typeDnUmum)
-            ->selectRaw(
-                "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) THEN COALESCE(wm.movement_min,0) ELSE 0 END) as out_dn_umum",
-                [$this->typeDnUmum]
-            )
+        foreach (['in', 'out'] as $direction) {
+            foreach (($config[$direction] ?? []) as $colKey => $def) {
+                $qtyField  = $def['qty']; // movement_plus | movement_min
+                $types     = array_map('strtoupper', $def['types']);
+                $placeholders = implode(',', array_fill(0, count($types), '?'));
 
-            ->selectRaw(
-    "SUM(CASE WHEN UPPER(wm.movement_type) = UPPER(?) AND COALESCE(wm.movement_min,0) > 0
-         THEN wm.movement_min ELSE 0 END) as out_transfer",
-    [$this->typeTransferOut]
-)
+                $query->selectRaw(
+                    "SUM(CASE WHEN UPPER(wm.movement_type) IN ($placeholders) AND COALESCE(wm.$qtyField,0) > 0
+                         THEN wm.$qtyField ELSE 0 END) as $colKey",
+                    $types
+                );
+            }
+        }
 
-            ->where('wm.location_number', $locationCode)
+        $query->where('wm.location_number', $locationCode)
             // exclude semua tipe CANCEL (CANCEL SUPPLY, CANCEL TRANSFER, dll)
             ->where('wm.movement_type', 'not ilike', 'CANCEL %')
             ->whereRaw(
                 "TO_DATE(wm.movement_date,'DD-MM-YYYY') BETWEEN TO_DATE(?,'DD-MM-YYYY') AND TO_DATE(?,'DD-MM-YYYY')",
                 [$dateFrom, $dateTo]
             )
-            ->groupBy('wm.artikel_code')
-            ->get()
-            ->keyBy('artikel_code');
+            ->groupBy('wm.artikel_code');
+
+        return $query->get()->keyBy('artikel_code');
     }
 
     // ══════════════════════════════════════════════
@@ -441,6 +274,11 @@ class StoReportController extends Controller
     // ══════════════════════════════════════════════
     private function getOpeningBalance($realCode, $openingDate, $location)
     {
+        // NOTE: parameter ke-3 'HO' dari get_last_qty_new() dipertahankan apa
+        // adanya sesuai kode lama. Kalau ternyata parameter itu spesifik untuk
+        // grup CHEMICAL saja (bukan berlaku umum), perlu dicek ke definisi
+        // function get_last_qty_new_grouped / get_last_qty_new di database
+        // untuk lokasi WIP/FG/OT.
         $row = DB::selectOne(
             "SELECT get_last_qty_new(?, ?, 'HO', ?) AS q",
             [$realCode, $openingDate, $location]
@@ -474,20 +312,25 @@ class StoReportController extends Controller
         return [(int) date('Y'), (int) date('n')];
     }
 
-    private function emptyTotals()
+    // ══════════════════════════════════════════════
+    // TOTALS / SUMMARY KOSONG — dinamis per lokasi
+    // ══════════════════════════════════════════════
+    private function emptyTotals($locationCode = null)
     {
-        return [
-            'opening'             => 0,
-            'in_receiving'        => 0,
-            'in_return_transfer'  => 0,
-            'in_replace_supplier' => 0,
-            'out_supply_transfer' => 0,
-            'out_return_supplier' => 0,
-            'out_dn_umum'         => 0,
-            'closing'             => 0,
-            'qty_sto'             => null,
-            'variance'            => null,
-        ];
+        $totals = ['opening' => 0];
+
+        if ($locationCode) {
+            $cols = $this->getColumnKeys($locationCode);
+            foreach (array_merge($cols['in'], $cols['out']) as $key) {
+                $totals[$key] = 0;
+            }
+        }
+
+        $totals['closing']  = 0;
+        $totals['qty_sto']  = null;
+        $totals['variance'] = null;
+
+        return $totals;
     }
 
     private function emptySummary($targetPlan = 98)
@@ -504,236 +347,263 @@ class StoReportController extends Controller
     }
 
     // ══════════════════════════════════════════════
-// CORE — bangun report (dipakai data() & export())
-// return: ['status'=>1, 'header'=>..., 'rows'=>..., 'totals'=>..., 'summary'=>...]
-//         atau ['status'=>0, 'message'=>..., 'code'=>...]
-// ══════════════════════════════════════════════
-private function buildReport($configId, $locationCode, $dateRange = null)
-{
-    if (!in_array($locationCode, $this->supportedLocations)) {
-        return ['status' => 0, 'message' => 'Lokasi ini belum didukung format reportnya.', 'code' => 422];
-    }
+    // DEFINISI KOLOM (buat header tabel di FE) — dinamis per lokasi
+    // ══════════════════════════════════════════════
+    private function buildColumnDefs($locationCode)
+    {
+        $config = $this->getGroupConfig($locationCode);
+        $defs   = ['in' => [], 'out' => []];
 
-    $config = DB::table('sto_config')->where('config_id', $configId)->first();
-    if (!$config) {
-        return ['status' => 0, 'message' => 'STO tidak ditemukan.', 'code' => 404];
-    }
-
-    $mapping = DB::table('sto_config_mapping')
-        ->where('config_id', $configId)
-        ->where('target_type', 'LOCATION')
-        ->where('target_ref', $locationCode)
-        ->first();
-
-    if (!$mapping) {
-        return ['status' => 0, 'message' => 'Lokasi tidak terdaftar pada STO ini.', 'code' => 404];
-    }
-
-    $locationName = DB::table('stock_location_master')
-        ->where('location_code', $locationCode)
-        ->value('location_name') ?? $locationCode;
-
-    [$dateFrom, $dateTo, $openingDate] = $this->resolveReportDateRange($config->periode, $mapping->sto_date ?? null);
-
-    if ($dateRange) {
-        $parts = explode(' to ', $dateRange);
-        $from  = trim($parts[0] ?? '');
-        $to    = trim($parts[1] ?? $from);
-        if ($from && $to) {
-            $dateFrom = $from;
-            $dateTo   = $to;
-            $dt = \DateTime::createFromFormat('d-m-Y', $from);
-            if ($dt) {
-                $openingDate = date('Y-m-d', strtotime($dt->format('Y-m-d') . ' -1 day'));
+        foreach (['in', 'out'] as $direction) {
+            foreach (($config[$direction] ?? []) as $key => $def) {
+                $defs[$direction][] = ['key' => $key, 'label' => $def['label']];
             }
         }
+
+        return $defs;
     }
 
-    $movements  = $this->aggregateMovements($locationCode, $dateFrom, $dateTo);
-    $stoResults = $this->aggregateStoResults($configId, $locationCode);
+    // ══════════════════════════════════════════════
+    // CORE — bangun report (dipakai data() & export())
+    // return: ['status'=>1, 'header'=>..., 'rows'=>..., 'totals'=>..., 'summary'=>..., 'columns'=>...]
+    //         atau ['status'=>0, 'message'=>..., 'code'=>...]
+    // ══════════════════════════════════════════════
+    private function buildReport($configId, $locationCode, $dateRange = null)
+    {
+        if (!in_array($locationCode, $this->supportedLocations)) {
+            return ['status' => 0, 'message' => 'Lokasi ini belum didukung format reportnya.', 'code' => 422];
+        }
 
-    $stockCodes = DB::table('warehouse_stock')
-        ->where('location_number', $locationCode)
-        ->where('article_qty', '<>', 0)
-        ->pluck('article_code');
+        $config = DB::table('sto_config')->where('config_id', $configId)->first();
+        if (!$config) {
+            return ['status' => 0, 'message' => 'STO tidak ditemukan.', 'code' => 404];
+        }
 
-    $stoAltCodes  = $stoResults->keys();
-    $stoRealCodes = DB::table('article')
-        ->whereIn('article_alternative_code', $stoAltCodes)
-        ->pluck('article_code');
+        $mapping = DB::table('sto_config_mapping')
+            ->where('config_id', $configId)
+            ->where('target_type', 'LOCATION')
+            ->where('target_ref', $locationCode)
+            ->first();
 
-    $realCodes = $movements->keys()
-        ->merge($stockCodes)
-        ->merge($stoRealCodes)
-        ->filter()
-        ->map(fn($c) => (string) $c)
-        ->unique()->values();
+        if (!$mapping) {
+            return ['status' => 0, 'message' => 'Lokasi tidak terdaftar pada STO ini.', 'code' => 404];
+        }
 
-    $header = [
-        'sto_code'        => $config->sto_code,
-        'sto_type'        => $config->sto_type,
-        'periode'         => $config->periode,
-        'location_code'   => $locationCode,
-        'location_name'   => $locationName,
-        'date_from'       => $dateFrom,
-        'date_to'         => $dateTo,
-        'sto_date'        => $mapping->sto_date ?? null,
-        'target_plan_loc' => $mapping->target_plan_loc ?? 98,
-    ];
+        $locationName = DB::table('stock_location_master')
+            ->where('location_code', $locationCode)
+            ->value('location_name') ?? $locationCode;
 
-    if ($realCodes->isEmpty()) {
+        [$dateFrom, $dateTo, $openingDate] = $this->resolveReportDateRange($config->periode, $mapping->sto_date ?? null);
+
+        if ($dateRange) {
+            $parts = explode(' to ', $dateRange);
+            $from  = trim($parts[0] ?? '');
+            $to    = trim($parts[1] ?? $from);
+            if ($from && $to) {
+                $dateFrom = $from;
+                $dateTo   = $to;
+                $dt = \DateTime::createFromFormat('d-m-Y', $from);
+                if ($dt) {
+                    $openingDate = date('Y-m-d', strtotime($dt->format('Y-m-d') . ' -1 day'));
+                }
+            }
+        }
+
+        $cols       = $this->getColumnKeys($locationCode);
+        $columnDefs = $this->buildColumnDefs($locationCode);
+
+        $movements  = $this->aggregateMovements($locationCode, $dateFrom, $dateTo);
+        $stoResults = $this->aggregateStoResults($configId, $locationCode);
+
+        $stockCodes = DB::table('warehouse_stock')
+            ->where('location_number', $locationCode)
+            ->where('article_qty', '<>', 0)
+            ->pluck('article_code');
+
+        $stoAltCodes  = $stoResults->keys();
+        $stoRealCodes = DB::table('article')
+            ->whereIn('article_alternative_code', $stoAltCodes)
+            ->pluck('article_code');
+
+        $realCodes = $movements->keys()
+            ->merge($stockCodes)
+            ->merge($stoRealCodes)
+            ->filter()
+            ->map(fn($c) => (string) $c)
+            ->unique()->values();
+
+        $header = [
+            'sto_code'        => $config->sto_code,
+            'sto_type'        => $config->sto_type,
+            'periode'         => $config->periode,
+            'location_code'   => $locationCode,
+            'location_name'   => $locationName,
+            'date_from'       => $dateFrom,
+            'date_to'         => $dateTo,
+            'sto_date'        => $mapping->sto_date ?? null,
+            'target_plan_loc' => $mapping->target_plan_loc ?? 98,
+        ];
+
+        if ($realCodes->isEmpty()) {
+            return [
+                'status'  => 1,
+                'header'  => $header,
+                'rows'    => collect(),
+                'totals'  => $this->emptyTotals($locationCode),
+                'summary' => $this->emptySummary($mapping->target_plan_loc ?? 98),
+                'columns' => $columnDefs,
+            ];
+        }
+
+        $articles = DB::table('article as a')
+            ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
+            ->whereIn('a.article_code', $realCodes)
+            ->select(
+                'a.article_code',
+                'a.article_alternative_code',
+                'a.article_desc',
+                'a.uom',
+                DB::raw('COALESCE(tp.nama, a.third_party) as supp_name')
+            )
+            ->orderBy('a.article_code')
+            ->get()
+            ->keyBy('article_code');
+
+        $rows         = collect();
+        $totalPoin    = 0;
+        $totalArtikel = 0;
+
+        foreach ($realCodes as $rc) {
+            $meta    = $articles->get($rc);
+            $altCode = $meta->article_alternative_code ?? null;
+            $mv      = $movements->get($rc);
+            $stoRow  = $altCode ? $stoResults->get($altCode) : null;
+
+            $opening = round((float) $this->getOpeningBalance($rc, $openingDate, $locationCode), 2);
+
+            $inTotal  = 0;
+            $outTotal = 0;
+            $moveVals = [];
+
+            foreach ($cols['in'] as $key) {
+                $val = $mv ? (float) ($mv->{$key} ?? 0) : 0;
+                $moveVals[$key] = round($val, 2);
+                $inTotal += $val;
+            }
+            foreach ($cols['out'] as $key) {
+                $val = $mv ? (float) ($mv->{$key} ?? 0) : 0;
+                $moveVals[$key] = round($val, 2);
+                $outTotal += $val;
+            }
+
+            $closing = round($opening + $inTotal - $outTotal, 2);
+
+            if ($opening == 0 && $inTotal == 0 && $outTotal == 0 && $closing == 0 && !$stoRow) {
+                continue;
+            }
+
+            $stoQty    = $stoRow ? round((float) $stoRow->qty_sto, 2) : null;
+            $stoStatus = $stoRow ? ($stoRow->count_status ?? 'INCOMPLETE') : 'INCOMPLETE';
+            $variance  = $stoQty !== null ? round($stoQty - $closing, 2) : null;
+
+            // akurasi
+            $accurate = false;
+            if ($stoStatus === 'MATCH') {
+                $accurate = true;
+            } elseif ($stoStatus === 'RECOUNT' && $variance !== null) {
+                if ($closing == 0) {
+                    $accurate = ($stoQty == 0);
+                } else {
+                    $accurate = (abs($variance) / abs($closing) * 100) <= $this->accuracyThresholdPercent;
+                }
+            }
+
+            $totalArtikel++;
+            if ($accurate) $totalPoin++;
+
+            $rowData = array_merge([
+                'article_code' => $rc,
+                'alt_code'     => $altCode ?? $rc,
+                'article_desc' => $meta->article_desc ?? $rc,
+                'supp'         => $meta->supp_name ?? '-',
+                'uom'          => $meta->uom ?? '-',
+                'opening'      => $opening,
+            ], $moveVals, [
+                'closing'      => $closing,
+                'qty_sto'      => $stoQty,
+                'variance'     => $variance,
+                'sto_status'   => $stoStatus,
+                'accurate'     => $accurate,
+            ]);
+
+            $rows->push((object) $rowData);
+        }
+
+        $rows = $rows->sortBy('article_desc')->values();
+
+        $totals  = $this->emptyTotals($locationCode);
+        $sumKeys = array_merge(['opening'], $cols['in'], $cols['out'], ['closing']);
+
+        $no = 1;
+        $rows = $rows->map(function ($r) use (&$no, &$totals, $sumKeys) {
+            $r->no = $no++;
+            foreach ($sumKeys as $k) {
+                $totals[$k] = round(($totals[$k] ?? 0) + ($r->{$k} ?? 0), 2);
+            }
+            if ($r->qty_sto !== null) {
+                $totals['qty_sto'] = round(($totals['qty_sto'] ?? 0) + $r->qty_sto, 2);
+            }
+            if ($r->variance !== null) {
+                $totals['variance'] = round(($totals['variance'] ?? 0) + $r->variance, 2);
+            }
+            return $r;
+        });
+
+        $targetPlan  = (float) ($mapping->target_plan_loc ?? 98);
+        $actAccuracy = $totalArtikel > 0 ? round($totalPoin / $totalArtikel * 100, 2) : 0;
+
         return [
             'status'  => 1,
             'header'  => $header,
-            'rows'    => collect(),
-            'totals'  => $this->emptyTotals(),
-            'summary' => $this->emptySummary($mapping->target_plan_loc ?? 98),
+            'rows'    => $rows,
+            'totals'  => $totals,
+            'summary' => [
+                'total_artikel'  => $totalArtikel,
+                'total_accurate' => $totalPoin,
+                'total_not'      => $totalArtikel - $totalPoin,
+                'accuracy_pct'   => $actAccuracy,
+                'target_plan'    => $targetPlan,
+                'is_meet_target' => $actAccuracy >= $targetPlan,
+                'threshold_pct'  => $this->accuracyThresholdPercent,
+            ],
+            'columns' => $columnDefs,
         ];
     }
 
-    $articles = DB::table('article as a')
-        ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
-        ->whereIn('a.article_code', $realCodes)
-        ->select(
-            'a.article_code',
-            'a.article_alternative_code',
-            'a.article_desc',
-            'a.uom',
-            DB::raw('COALESCE(tp.nama, a.third_party) as supp_name')
-        )
-        ->orderBy('a.article_code')
-        ->get()
-        ->keyBy('article_code');
+    public function export(Request $request)
+    {
+        $configId     = Crypt::decryptString($request->config_id);
+        $locationCode = $request->location_code;
 
-    $rows         = collect();
-    $totalPoin    = 0;
-    $totalArtikel = 0;
+        $result = $this->buildReport($configId, $locationCode, $request->date_range);
 
-    foreach ($realCodes as $rc) {
-        $meta    = $articles->get($rc);
-        $altCode = $meta->article_alternative_code ?? null;
-        $mv      = $movements->get($rc);
-        $stoRow  = $altCode ? $stoResults->get($altCode) : null;
-
-        $opening = round((float) $this->getOpeningBalance($rc, $openingDate, $locationCode), 2);
-
-        $inRcv  = $mv ? (float) $mv->in_receiving        : 0;
-        $inRet  = $mv ? (float) $mv->in_return_transfer  : 0;
-        $inRep  = $mv ? (float) $mv->in_replace_supplier : 0;
-        $outSup = $mv ? (float) $mv->out_supply_transfer + (float) $mv->out_transfer : 0;
-        $outRet = $mv ? (float) $mv->out_return_supplier : 0;
-        $outDn  = $mv ? (float) $mv->out_dn_umum         : 0;
-
-        $totalIn  = $inRcv + $inRet + $inRep;
-        $totalOut = $outSup + $outRet + $outDn;
-        $closing  = round($opening + $totalIn - $totalOut, 2);
-
-        if ($opening == 0 && $totalIn == 0 && $totalOut == 0 && $closing == 0 && !$stoRow) {
-            continue;
+        if ($result['status'] === 0) {
+            return back()->with('error', $result['message']);
         }
 
-        $stoQty    = $stoRow ? round((float) $stoRow->qty_sto, 2) : null;
-        $stoStatus = $stoRow ? ($stoRow->count_status ?? 'INCOMPLETE') : 'INCOMPLETE';
-        $variance  = $stoQty !== null ? round($stoQty - $closing, 2) : null;
+        $h = $result['header'];
+        $fileName = 'STO_Report_' . $h['sto_code'] . '_' . $h['location_code'] . '.xlsx';
+        $fileName = preg_replace('/[\/\\\\?%*:|"<>]/', '-', $fileName);
 
-        $accurate = false;
-        if ($stoStatus === 'MATCH') {
-            $accurate = true;
-        } elseif ($stoStatus === 'RECOUNT' && $variance !== null) {
-            if ($closing == 0) {
-                $accurate = ($stoQty == 0);
-            } else {
-                $accurate = (abs($variance) / abs($closing) * 100) <= $this->accuracyThresholdPercent;
-            }
-        }
-
-        $totalArtikel++;
-        if ($accurate) $totalPoin++;
-
-        $rows->push((object) [
-            'article_code'        => $rc,
-            'alt_code'            => $altCode ?? $rc,
-            'article_desc'        => $meta->article_desc ?? $rc,
-            'supp'                => $meta->supp_name ?? '-',
-            'uom'                 => $meta->uom ?? '-',
-            'opening'             => $opening,
-            'in_receiving'        => round($inRcv, 2),
-            'in_return_transfer'  => round($inRet, 2),
-            'in_replace_supplier' => round($inRep, 2),
-            'out_supply_transfer' => round($outSup, 2),
-            'out_return_supplier' => round($outRet, 2),
-            'out_dn_umum'         => round($outDn, 2),
-            'closing'             => $closing,
-            'qty_sto'             => $stoQty,
-            'variance'            => $variance,
-            'sto_status'          => $stoStatus,
-            'accurate'            => $accurate,
-        ]);
+        return \Excel::download(
+            new \App\Exports\StoReportExport(
+                $result['header'],
+                $result['rows'],
+                $result['totals'],
+                $result['summary'],
+                $result['columns'] // export perlu tahu kolom mana yang aktif untuk lokasi ini
+            ),
+            $fileName
+        );
     }
-
-    $rows = $rows->sortBy('article_desc')->values();
-
-    $totals = $this->emptyTotals();
-    $no = 1;
-    $rows = $rows->map(function ($r) use (&$no, &$totals) {
-        $r->no = $no++;
-        foreach (['opening','in_receiving','in_return_transfer','in_replace_supplier',
-                  'out_supply_transfer','out_return_supplier','out_dn_umum','closing'] as $k) {
-            $totals[$k] = round($totals[$k] + $r->{$k}, 2);
-        }
-        if ($r->qty_sto !== null) {
-            $totals['qty_sto'] = round(($totals['qty_sto'] ?? 0) + $r->qty_sto, 2);
-        }
-        if ($r->variance !== null) {
-            $totals['variance'] = round(($totals['variance'] ?? 0) + $r->variance, 2);
-        }
-        return $r;
-    });
-
-    $targetPlan  = (float) ($mapping->target_plan_loc ?? 98);
-    $actAccuracy = $totalArtikel > 0 ? round($totalPoin / $totalArtikel * 100, 2) : 0;
-
-    return [
-        'status'  => 1,
-        'header'  => $header,
-        'rows'    => $rows,
-        'totals'  => $totals,
-        'summary' => [
-            'total_artikel'  => $totalArtikel,
-            'total_accurate' => $totalPoin,
-            'total_not'      => $totalArtikel - $totalPoin,
-            'accuracy_pct'   => $actAccuracy,
-            'target_plan'    => $targetPlan,
-            'is_meet_target' => $actAccuracy >= $targetPlan,
-            'threshold_pct'  => $this->accuracyThresholdPercent,
-        ],
-    ];
-}
-
-public function export(Request $request)
-{
-    $configId     = Crypt::decryptString($request->config_id);
-    $locationCode = $request->location_code;
-
-    $result = $this->buildReport($configId, $locationCode, $request->date_range);
-
-    if ($result['status'] === 0) {
-        return back()->with('error', $result['message']);
-    }
-
-    $h = $result['header'];
-    $fileName = 'STO_Report_' . $h['sto_code'] . '_' . $h['location_code'] . '.xlsx';
-    $fileName = preg_replace('/[\/\\\\?%*:|"<>]/', '-', $fileName);
-
-    return \Excel::download(
-        new \App\Exports\StoReportExport(
-            $result['header'],
-            $result['rows'],
-            $result['totals'],
-            $result['summary']
-        ),
-        $fileName
-    );
-}
-
 }
