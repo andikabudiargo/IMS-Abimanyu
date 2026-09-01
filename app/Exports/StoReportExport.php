@@ -137,69 +137,77 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
     }
 
     public function styles(Worksheet $sheet)
-    {
-        // judul
-        $sheet->mergeCells("A1:{$this->lastCol}1");
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+{
+    // judul (posisi fix baris 1)
+    $sheet->mergeCells("A1:{$this->lastCol}1");
+    $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+    $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        // label info bold
-        $sheet->getStyle('A3:A4')->getFont()->setBold(true);
-        $sheet->getStyle('D3:D4')->getFont()->setBold(true);
+    // label info (posisi fix baris 3-4)
+    $sheet->getStyle('A3:A4')->getFont()->setBold(true);
+    $sheet->getStyle('D3:D4')->getFont()->setBold(true);
 
-        // header tabel
-        $hr = $this->headerRowIndex;
-        $sheet->getStyle("A{$hr}:{$this->lastCol}{$hr}")->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4B6CB7']],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-        ]);
-
-        return [];
-    }
+    // header tabel dipindah ke registerEvents (deteksi otomatis) — jangan di sini
+    return [];
+}
 
     public function registerEvents(): array
-    {
-        return [
-            AfterSheet::class => function (AfterSheet $event) {
-                $sheet = $event->sheet->getDelegate();
+{
+    return [
+        AfterSheet::class => function (AfterSheet $event) {
+            $sheet = $event->sheet->getDelegate();
+            $last  = $this->lastCol;
 
-                $hr    = $this->headerRowIndex;
-                $start = $this->dataStartIndex;
-                $total = $this->totalRowIndex;
-                $last  = $this->lastCol;
+            // ── deteksi baris header: cari sel kolom A yang isinya 'No' ──
+            $hr = null;
+            $highest = $sheet->getHighestRow();
+            for ($r = 1; $r <= $highest; $r++) {
+                if (trim((string) $sheet->getCell("A{$r}")->getValue()) === 'No') {
+                    $hr = $r;
+                    break;
+                }
+            }
+            if (!$hr) return;   // header tak ketemu, jangan styling apa-apa
 
-                // border seluruh tabel (header s/d total)
-                $sheet->getStyle("A{$hr}:{$last}{$total}")
-                    ->getBorders()->getAllBorders()
-                    ->setBorderStyle(Border::BORDER_THIN)
-                    ->getColor()->setRGB('C9D2DF');
+            $start = $hr + 1;        // baris data pertama
+            $total = $highest;       // baris TOTAL = baris terakhir
 
-                // baris total: bold + fill abu
-                $sheet->getStyle("A{$total}:{$last}{$total}")->applyFromArray([
-                    'font' => ['bold' => true],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E9EDF3']],
-                ]);
+            // ── styling header tabel ──
+            $sheet->getStyle("A{$hr}:{$last}{$hr}")->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4B6CB7']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            ]);
 
-                // rata kanan kolom angka (F s/d Q) untuk data + total
-                $sheet->getStyle("F{$start}:Q{$total}")
-                    ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            // ── border seluruh tabel ──
+            $sheet->getStyle("A{$hr}:{$last}{$total}")
+                ->getBorders()->getAllBorders()
+                ->setBorderStyle(Border::BORDER_THIN)
+                ->getColor()->setRGB('C9D2DF');
 
-                // rata tengah No & Status
-                $sheet->getStyle("A{$start}:A{$total}")
-                    ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle("P{$start}:P{$total}")
-                    ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            // ── baris total: bold + fill abu ──
+            $sheet->getStyle("A{$total}:{$last}{$total}")->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E9EDF3']],
+            ]);
 
-                // freeze pane: header tabel tetap kelihatan saat scroll
-                $sheet->freezePane('A' . ($hr + 1));
+            // ── alignment ──
+            $sheet->getStyle("F{$start}:Q{$total}")
+                ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle("A{$start}:A{$total}")
+                ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("P{$start}:P{$total}")
+                ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                // number format 2 desimal untuk kolom angka
-                $sheet->getStyle("F{$start}:O{$total}")
-                    ->getNumberFormat()->setFormatCode('#,##0.00');
-                $sheet->getStyle("Q{$start}:Q{$total}")
-                    ->getNumberFormat()->setFormatCode('0.00');
-            },
-        ];
-    }
+            // ── freeze TEPAT di bawah header ──
+            $sheet->freezePane('A' . $start);
+
+            // ── number format ──
+            $sheet->getStyle("F{$start}:O{$total}")
+                ->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle("Q{$start}:Q{$total}")
+                ->getNumberFormat()->setFormatCode('0.00');
+        },
+    ];
+}
 }
