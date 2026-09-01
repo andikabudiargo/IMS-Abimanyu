@@ -70,7 +70,7 @@ class StoReportController extends Controller
             ],
             'out' => [
                 'out_transfer'     => ['label' => 'Transfer Out', 'types' => ['TRANSFER'],      'qty' => 'movement_min'],
-                'out_delivery'     => ['label' => 'Delivery',     'types' => ['DELIVERY'],      'qty' => 'movement_min'],
+                'out_delivery'     => ['label' => 'Delivery',     'types' => ['DELIVERY','Delivery'],      'qty' => 'movement_min'],
                 'out_dn_umum'      => ['label' => 'DN Umum',      'types' => ['DN UMUM'],       'qty' => 'movement_min'],
                 'out_dn_sementara' => ['label' => 'DN Sementara', 'types' => ['DN SEMENTARA'],  'qty' => 'movement_min'],
                 'out_replacement'  => ['label' => 'Replacement',  'types' => ['REPLACEMENT'],   'qty' => 'movement_min'],
