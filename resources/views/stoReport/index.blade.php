@@ -124,15 +124,15 @@
                         </button>
                         <button type="button" class="btn btn-light" id="btnReset">Reset</button>
                         <span class="float-right">
-                            <button type="button" class="btn btn-outline-secondary d-none" id="btnPrint">
-                                <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i>
-                                <span class="align-middle">Print</span>
-                            </button>
-                            <button type="button" class="btn btn-outline-success d-none mr-50" id="btnExport">
-    <i data-feather="download" class="align-middle mr-sm-25 mr-0"></i>
-    <span class="align-middle d-sm-inline-block d-none">Export Excel</span>
-</button>
-                        </span>
+    <button type="button" class="btn btn-outline-success d-none mr-50" id="btnExport">
+        <i data-feather="download" class="align-middle mr-sm-25 mr-0"></i>
+        <span class="align-middle d-sm-inline-block d-none">Export</span>
+    </button>
+    <button type="button" class="btn btn-outline-secondary d-none" id="btnPrint">
+        <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i>
+        <span class="align-middle">Print</span>
+    </button>
+</span>
                     </div>
                 </div>
             </div>
@@ -510,19 +510,21 @@ $(document).ready(function () {
         $('#reportEmpty').addClass('d-none');
         $('#reportScroll').removeClass('d-none');
         $('#btnPrint').removeClass('d-none');
+        $('#btnExport').removeClass('d-none');
 
         if (typeof feather !== 'undefined') feather.replace();
     }
 
     // ── reset ──
     function resetDisplay() {
-        $('#reportBody').empty();
-        $('#reportHeaderInfo').addClass('d-none');
-        $('#reportScroll').addClass('d-none');
-        $('#btnPrint').addClass('d-none');
-        $('#reportEmpty').removeClass('d-none');
-        $('#sto-report-summary').addClass('d-none');
-    }
+    $('#reportBody').empty();
+    $('#reportHeaderInfo').addClass('d-none');
+    $('#reportScroll').addClass('d-none');
+    $('#btnPrint').addClass('d-none');
+    $('#btnExport').addClass('d-none');
+    $('#reportEmpty').removeClass('d-none');
+    $('#sto-report-summary').addClass('d-none');
+}
 
     $('#btnReset').on('click', function () {
         $('#repStoCode').val('').trigger('change');
