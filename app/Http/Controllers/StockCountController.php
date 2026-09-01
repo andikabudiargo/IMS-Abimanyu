@@ -701,9 +701,9 @@ public function auditListDetail(Request $request)
         return ['ok' => false, 'message' => 'Anda tidak terdaftar sebagai counter untuk target ini.'];
     }
 
-    if ($m->sto_date !== $today) {
-        return ['ok' => false, 'message' => "Hari ini bukan tanggal STO untuk target ini ($m->sto_date)."];
-    }
+   // if ($m->sto_date !== $today) {
+     //   return ['ok' => false, 'message' => "Hari ini bukan tanggal STO untuk target ini ($m->sto_date)."];
+    // }
     if ($m->counter1_user == $userId) return ['ok' => true, 'role' => 'counter1', 'mapping' => $m];
     if ($m->counter2_user == $userId) return ['ok' => true, 'role' => 'counter2', 'mapping' => $m];
     if (($m->counter3_user ?? null) == $userId) return ['ok' => true, 'role' => 'counter3', 'mapping' => $m];
