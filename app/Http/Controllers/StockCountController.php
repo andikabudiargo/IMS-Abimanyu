@@ -2846,18 +2846,6 @@ private function getBalanceAtDate($article, $location, $targetDate, $mapping = n
     return $qty;
 }
 
-// getLastQty() sekarang jadi wrapper tipis, perilaku pemanggil lain TIDAK berubah
-private function getLastQty($article, $location, $stoDate, $mapping = null)
-{
-    $target = $stoDate
-        ? \DateTime::createFromFormat('d-m-Y', $stoDate)
-        : new \DateTime();
-    if (!$target) return 0;
-    $target->modify('-1 day');
-
-    return $this->getBalanceAtDate($article, $location, $target->format('Y-m-d'), $mapping);
-}
-
 // tanggal saldo AWAL periode = hari terakhir bulan sebelumnya
 private function resolvePeriodeOpeningDate($periode)
 {
