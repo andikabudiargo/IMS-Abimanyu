@@ -222,7 +222,7 @@ class StoReportController extends Controller
             $inRcv  = $mv ? (float) $mv->in_receiving        : 0;
             $inRet  = $mv ? (float) $mv->in_return_transfer  : 0;
             $inRep  = $mv ? (float) $mv->in_replace_supplier : 0;
-            $outSup = $mv ? (float) $mv->out_supply_transfer : 0;
+            $outSup = $mv ? (float) $mv->out_supply_transfer + (float) $mv->out_transfer : 0;
             $outRet = $mv ? (float) $mv->out_return_supplier : 0;
             $outDn  = $mv ? (float) $mv->out_dn_umum         : 0;
 
