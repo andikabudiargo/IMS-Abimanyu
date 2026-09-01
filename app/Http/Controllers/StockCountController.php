@@ -1876,11 +1876,16 @@ private function buildPhantomArticlesForFamily($repMapping, array $family, array
         ->join('article as a', 'a.article_code', '=', 'wm.artikel_code')
         ->whereIn('wm.location_number', $family)
         ->where('wm.movement_type', 'not ilike', 'CANCEL %')
-        ->select('a.article_alternative_code as article_code')
+        ->select(
+            'a.article_alternative_code as article_code',
+            'a.article_desc',
+            'a.uom',
+            'a.min_package'
+        )
         ->distinct();
 
     if ($types) {
-        $movementQuery->whereIn('a.article_type', $types); // ← hanya FG utk WIP
+        $movementQuery->whereIn('a.article_type', $types);
     }
 
     if ($periode) {
@@ -1891,7 +1896,13 @@ private function buildPhantomArticlesForFamily($repMapping, array $family, array
     foreach ($movementQuery->get() as $sa) {
         if (!$sa->article_code) continue;
         if (in_array(strtoupper($sa->article_code), $countedCodes)) continue;
-        $phantoms->push((object) ['article_code' => $sa->article_code, 'location_number' => $anchor]);
+        $phantoms->push((object) [
+            'article_code'    => $sa->article_code,
+            'article_desc'    => $sa->article_desc,
+            'uom'             => $sa->uom,
+            'min_package'     => $sa->min_package,
+            'location_number' => $anchor,
+        ]);
     }
     return $phantoms;
 }
