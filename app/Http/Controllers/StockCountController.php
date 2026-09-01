@@ -928,7 +928,10 @@ return $this->storeLineInline($mappingId, $m, $access, $userId, $locationNumber,
 {
     return DB::transaction(function () use ($mappingId, $m, $access, $userId, $locationNumber, $isManual, $article, $request, $qty, $confirmAccumulate, $now) {
 
-        $dbRole = $this->dbRole($access['role']); // accounting → counter1
+        // ── FIX: kunci baris mapping SEBELUM cek existing, biar request lain nunggu ──
+        DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->lockForUpdate()->first();
+
+        $dbRole = $this->dbRole($access['role']);
 
         if ($isManual) {
             $existingDtl = DB::table('sto_dtl as d')
@@ -937,6 +940,7 @@ return $this->storeLineInline($mappingId, $m, $access, $userId, $locationNumber,
                 ->whereNull('d.article_code')
                 ->whereRaw('UPPER(d.article_desc) = ?', [strtoupper(trim($request->article_desc))])
                 ->select('d.*', 'h.sto_id', 'h.sto_number', 'h.status as hdr_status')
+                ->lockForUpdate()   // ← tambahkan juga di sini
                 ->first();
         } else {
             $existingDtl = DB::table('sto_dtl as d')
@@ -944,6 +948,7 @@ return $this->storeLineInline($mappingId, $m, $access, $userId, $locationNumber,
                 ->where('h.mapping_id', $mappingId)
                 ->where('d.article_code', $article)
                 ->select('d.*', 'h.sto_id', 'h.sto_number', 'h.status as hdr_status')
+                ->lockForUpdate()   // ← tambahkan juga di sini
                 ->first();
         }
 
@@ -1869,9 +1874,10 @@ private function isFamilyGroupAccurate($items, $repMapping, $siblingMappings, $t
 
 private function buildPhantomArticlesForFamily($repMapping, array $family, array $countedCodes, $periode)
 {
-    $anchor = $repMapping->target_ref;                    // sudah anchor (parent)
+    $anchor = $repMapping->target_ref;
     $types  = $this->phantomArticleTypeMap[$anchor] ?? null;
 
+    // ── grup 1: ada transaksi (perilaku lama) ──
     $movementQuery = DB::table('warehouse_movement as wm')
         ->join('article as a', 'a.article_code', '=', 'wm.artikel_code')
         ->whereIn('wm.location_number', $family)
@@ -1887,13 +1893,16 @@ private function buildPhantomArticlesForFamily($repMapping, array $family, array
     if ($types) {
         $movementQuery->whereIn('a.article_type', $types);
     }
-
     if ($periode) {
         $movementQuery->whereRaw("TO_CHAR(TO_DATE(wm.movement_date,'DD-MM-YYYY'), 'YYYY-MM') = ?", [$periode]);
     }
 
+    $movedArticles   = $movementQuery->get();
+    $movedCodesUpper = $movedArticles->pluck('article_code')->map(fn($c) => strtoupper($c))->all();
+
     $phantoms = collect();
-    foreach ($movementQuery->get() as $sa) {
+
+    foreach ($movedArticles as $sa) {
         if (!$sa->article_code) continue;
         if (in_array(strtoupper($sa->article_code), $countedCodes)) continue;
         $phantoms->push((object) [
@@ -1904,6 +1913,39 @@ private function buildPhantomArticlesForFamily($repMapping, array $family, array
             'location_number' => $anchor,
         ]);
     }
+
+    // ── grup 2: tidak ada transaksi, tapi saldo awal (grouped family) > 0 ──
+    $openingDate = $this->resolvePeriodeOpeningDate($periode);
+    if ($openingDate) {
+        $stockQuery = DB::table('warehouse_stock as ws')
+            ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
+            ->whereIn('ws.location_number', $family)
+            ->select('a.article_alternative_code as article_code', 'a.article_desc', 'a.uom', 'a.min_package')
+            ->distinct();
+
+        if ($types) {
+            $stockQuery->whereIn('a.article_type', $types);
+        }
+
+        foreach ($stockQuery->get() as $sa) {
+            if (!$sa->article_code) continue;
+            $upper = strtoupper($sa->article_code);
+            if (in_array($upper, $countedCodes)) continue;
+            if (in_array($upper, $movedCodesUpper)) continue;
+
+                        $openingBalance = $this->getBalanceAtDate($sa->article_code, $anchor, $openingDate, null); // ← null, bukan $repMapping
+            if ($openingBalance == 0) continue;
+
+            $phantoms->push((object) [
+                'article_code'    => $sa->article_code,
+                'article_desc'    => $sa->article_desc,
+                'uom'             => $sa->uom,
+                'min_package'     => $sa->min_package,
+                'location_number' => $anchor,
+            ]);
+        }
+    }
+
     return $phantoms;
 }
 
@@ -2211,6 +2253,8 @@ private function isChildLocation($locationCode)
 // ══════════════════════════════════════════════
 private function appendPhantomArticlesForFilters($rows, Request $request)
 {
+    $articleCodeFilter = $request->filled('searchArticleCode') ? strtoupper(trim($request->searchArticleCode)) : null; // ← BARU
+
     $mapQuery = DB::table('sto_config_mapping as m')
         ->join('sto_config as c', 'c.config_id', '=', 'm.config_id')
         ->where('m.target_type', 'LOCATION')
@@ -2279,12 +2323,19 @@ private function appendPhantomArticlesForFilters($rows, Request $request)
             $allPhantoms = $allPhantoms->concat(
                 $this->hydratePhantomRows($famPhantoms, $repMapping)
             );
-        } else {
+              } else {
             // standalone: perilaku lama
             $allPhantoms = $allPhantoms->concat(
                 $this->buildPhantomArticlesForLocation($m, $counted, $periode)
             );
         }
+    }
+
+    // ── BARU: filter phantom berdasarkan searchArticleCode, konsisten dengan filter baris asli ──
+    if ($articleCodeFilter) {
+        $allPhantoms = $allPhantoms->filter(function ($p) use ($articleCodeFilter) {
+            return $p->article_code && str_contains(strtoupper($p->article_code), $articleCodeFilter);
+        })->values();
     }
 
     return $rows->concat($allPhantoms);
@@ -2357,13 +2408,19 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
 {
     $targetRef    = $m->target_ref;
     $locationName = $this->resolveLocationName($targetRef);
+    $types        = $this->locationArticleTypeMap[$targetRef] ?? null;  // ← dipindah ke atas, dipakai grup 1 & 2
 
+    // ── grup 1: ADA transaksi di periode ini ──
     $movementQuery = DB::table('warehouse_movement as wm')
         ->join('article as a', 'a.article_code', '=', 'wm.artikel_code')
         ->where('wm.location_number', $targetRef)
         ->where('wm.movement_type', 'not ilike', 'CANCEL %')
         ->select('a.article_alternative_code as article_code', 'a.article_desc', 'a.uom', 'a.min_package')
         ->distinct();
+
+    if ($types) {
+        $movementQuery->whereIn('a.article_type', $types); // ← BARU: selaraskan dengan filter grup 2
+    }
 
     if ($periode) {
         $movementQuery->whereRaw(
@@ -2372,44 +2429,76 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
         );
     }
 
-    $movedArticles = $movementQuery->get();
+    $movedArticles    = $movementQuery->get();
+    $movedCodesUpper  = $movedArticles->pluck('article_code')->map(fn($c) => strtoupper($c))->all();
 
     $phantoms = collect();
+
     foreach ($movedArticles as $sa) {
         if (!$sa->article_code) continue;
         if (in_array(strtoupper($sa->article_code), $countedCodes)) continue;
+        $phantoms->push($this->makePhantomRowForLocation($m, $targetRef, $locationName, $sa));
+    }
 
-        $phantoms->push((object) [
-            'dtl_id'            => 'phantom-'.$targetRef.'-'.$sa->article_code,
-            'target_type'       => 'LOCATION',
-            'target_ref'        => $targetRef,
-            'is_blind'          => $m->is_blind ?? true,
-            'sto_date'          => $m->sto_date ?? null,   // ← tambahkan
-            'map_counter1_user' => $m->counter1_user,
-            'map_counter2_user' => $m->counter2_user,
-            'map_counter3_user' => $m->counter3_user ?? null,
-            'target_name'       => $locationName,
-            'location_name'     => $locationName,   // ← BARU
-            'partner_name'      => null,            // ← BARU
-            'sto_code'          => null,
-            'config_id'         => $m->config_id ??null,
-            'periode'           => null,
-            'article_code'      => $sa->article_code,
-            'article_desc'      => $sa->article_desc,
-            'min_package'       => $sa->min_package,
-            'uom'               => $sa->uom,
-            'location_number'   => $targetRef,
-            'qty_counter1'      => 0,
-            'qty_counter2'      => 0,
-            'qty_counter3'      => 0,
-            'sto_number'        => null,
-            'counter1_name' => null, 'counter1_at' => null,
-            'counter2_name' => null, 'counter2_at' => null,
-            'counter3_name' => null, 'counter3_at' => null,
-        ]);
+        // ── grup 2: TIDAK ada transaksi periode ini, tapi saldo AWAL periode > 0 ──
+    $openingDate = $this->resolvePeriodeOpeningDate($periode);
+    if ($openingDate) {
+        $stockQuery = DB::table('warehouse_stock as ws')
+            ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
+            ->where('ws.location_number', $targetRef)
+            ->select('a.article_alternative_code as article_code', 'a.article_desc', 'a.uom', 'a.min_package')
+            ->distinct();
+
+        if ($types) {
+            $stockQuery->whereIn('a.article_type', $types);
+        }
+
+        foreach ($stockQuery->get() as $sa) {
+            if (!$sa->article_code) continue;
+            $upper = strtoupper($sa->article_code);
+            if (in_array($upper, $countedCodes)) continue;
+            if (in_array($upper, $movedCodesUpper)) continue; // sudah ke-cover grup 1
+
+            $openingBalance = $this->getBalanceAtDate($sa->article_code, $targetRef, $openingDate, null); // ← null, bukan $m
+            if ($openingBalance == 0) continue; // saldo awal 0 & tanpa transaksi → tetap skip
+
+            $phantoms->push($this->makePhantomRowForLocation($m, $targetRef, $locationName, $sa));
+        }
     }
 
     return $phantoms;
+}
+
+private function makePhantomRowForLocation($m, $targetRef, $locationName, $sa)
+{
+    return (object) [
+        'dtl_id'            => 'phantom-'.$targetRef.'-'.$sa->article_code,
+        'target_type'       => 'LOCATION',
+        'target_ref'        => $targetRef,
+        'is_blind'          => $m->is_blind ?? true,
+        'sto_date'          => $m->sto_date ?? null,
+        'map_counter1_user' => $m->counter1_user,
+        'map_counter2_user' => $m->counter2_user,
+        'map_counter3_user' => $m->counter3_user ?? null,
+        'target_name'       => $locationName,
+        'location_name'     => $locationName,
+        'partner_name'      => null,
+        'sto_code'          => null,
+        'config_id'         => $m->config_id ?? null,
+        'periode'           => null,
+        'article_code'      => $sa->article_code,
+        'article_desc'      => $sa->article_desc,
+        'min_package'       => $sa->min_package,
+        'uom'               => $sa->uom,
+        'location_number'   => $targetRef,
+        'qty_counter1'      => 0,
+        'qty_counter2'      => 0,
+        'qty_counter3'      => 0,
+        'sto_number'        => null,
+        'counter1_name' => null, 'counter1_at' => null,
+        'counter2_name' => null, 'counter2_at' => null,
+        'counter3_name' => null, 'counter3_at' => null,
+    ];
 }
 
 // ══════════════════════════════════════════════
@@ -2718,6 +2807,66 @@ private function sumAdjustmentDeltaForPeriode($realCode, array $locations, $peri
     ->sum(DB::raw('COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'));
 
     return $this->adjDeltaCache[$key] = $delta;
+}
+
+private function getBalanceAtDate($article, $location, $targetDate, $mapping = null)
+{
+    $realCode = DB::table('article')
+        ->where('article_alternative_code', $article)
+        ->value('article_code');
+    if (!$realCode) return 0;
+
+    $family = $this->resolveLocationFamily($location);
+
+    if (count($family) <= 1) {
+        $row = DB::selectOne(
+            "SELECT get_last_qty_new(?, ?, 'HO', ?) AS q",
+            [$realCode, $targetDate, $location]
+        );
+    } else {
+        $pgArray = '{' . implode(',', array_map(function ($c) {
+            return '"' . str_replace('"', '\\"', $c) . '"';
+        }, $family)) . '}';
+
+        $row = DB::selectOne(
+            "SELECT get_last_qty_new_grouped(?, ?, 'HO', ?::varchar[]) AS q",
+            [$realCode, $targetDate, $pgArray]
+        );
+    }
+
+    $qty = $row ? (float) $row->q : 0;
+
+    if ($mapping) {
+        $configId = $mapping->config_id
+            ?? DB::table('sto_config_mapping')->where('mapping_id', $mapping->mapping_id ?? 0)->value('config_id');
+        $periode = $this->resolveStoPeriode($configId);
+        $qty -= $this->sumAdjustmentDeltaForPeriode($realCode, $family, $periode);
+    }
+
+    return $qty;
+}
+
+// getLastQty() sekarang jadi wrapper tipis, perilaku pemanggil lain TIDAK berubah
+private function getLastQty($article, $location, $stoDate, $mapping = null)
+{
+    $target = $stoDate
+        ? \DateTime::createFromFormat('d-m-Y', $stoDate)
+        : new \DateTime();
+    if (!$target) return 0;
+    $target->modify('-1 day');
+
+    return $this->getBalanceAtDate($article, $location, $target->format('Y-m-d'), $mapping);
+}
+
+// tanggal saldo AWAL periode = hari terakhir bulan sebelumnya
+private function resolvePeriodeOpeningDate($periode)
+{
+    // $periode format 'YYYY-MM'
+    if (!$periode || !preg_match('/^(\d{4})-(\d{2})/', $periode, $mt)) return null;
+    $firstOfMonth = \DateTime::createFromFormat('Y-m-d', $mt[1].'-'.$mt[2].'-01');
+    if (!$firstOfMonth) return null;
+    $firstOfMonth->modify('-1 day');
+    return $firstOfMonth->format('Y-m-d');
 }
 
 // ══════════════════════════════════════════════

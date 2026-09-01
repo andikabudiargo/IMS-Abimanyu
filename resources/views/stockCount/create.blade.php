@@ -349,9 +349,9 @@
                                                 <a class="text-primary" style="cursor:pointer" onclick="editLine({{ $l->dtl_id }}, this)" title="Edit">
                                                     <i data-feather="edit-2" style="width:14px;height:14px;"></i>
                                                 </a>
-                                                {{--<a class="text-danger" style="cursor:pointer" onclick="deleteLine({{ $l->dtl_id }}, this)" title="Hapus">
+                                                <a class="text-danger" style="cursor:pointer" onclick="deleteLine({{ $l->dtl_id }}, this)" title="Hapus">
                                                     <i data-feather="trash-2" style="width:14px;height:14px;"></i>
-                                                </a>--}}
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>
