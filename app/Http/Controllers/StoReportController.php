@@ -6,10 +6,13 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
+use App\Traits\HasStoLocationFamily;
 use DB;
 
 class StoReportController extends Controller
 {
+    use HasStoLocationFamily; // ← BARU: family/anchor/adjustment logic sama persis dgn StockCountController
+
     private $title;
     private $moduleCode;
 
@@ -18,9 +21,6 @@ class StoReportController extends Controller
 
     // ══════════════════════════════════════════════
     // GRUP LOKASI
-    // Tiap grup punya kategori IN/OUT movement_type yang berbeda,
-    // makanya di-pisah biar report bisa nampilin kolom yang relevan
-    // per grup tanpa saling ganggu.
     // ══════════════════════════════════════════════
     private $locationGroups = [
         'CHEMICAL'   => ['005', '006', '009'],
@@ -28,23 +28,28 @@ class StoReportController extends Controller
     ];
 
     // ══════════════════════════════════════════════
-    // KONFIGURASI KATEGORI MOVEMENT PER GRUP
+    // BARU: article_type valid per lokasi — DISALIN 1:1 dari
+    // StockCountController::$locationArticleTypeMap supaya report tidak
+    // menghitung artikel yang secara definisi tidak relevan untuk lokasi ini
+    // (mis. artikel FG ikut ke-agregasi di lokasi chemical 006).
     //
-    // PENENTU KATEGORI = movement_type (bukan movement_desc)
-    // movement_desc = isi bebas (nama transaksi), tidak bisa diandalkan untuk filter
-    //
-    // Tiap kolom:
-    //   'label' => nama tampilan
-    //   'types' => daftar movement_type yang match (dibandingkan UPPER(), jadi case-insensitive)
-    //   'qty'   => kolom qty yang dipakai: movement_plus (IN) atau movement_min (OUT)
-    //
-    // CANCEL prefix (mis. 'CANCEL SUPPLY', 'CANCEL TRANSFER') selalu diabaikan
-    // lewat filter global movement_type NOT ILIKE 'CANCEL %'.
-    //
-    // Catatan: movement_type 'TRANSFER' dipakai baik untuk IN maupun OUT
-    // (transfer masuk pakai movement_plus, transfer keluar pakai movement_min) —
-    // jadi satu movement_type bisa muncul di 2 kolom berbeda, dibedakan dari
-    // qty field mana yang dipakai dan diisi.
+    // PENTING: kalau map di StockCountController berubah, update juga di sini.
+    // Idealnya dipindah ke satu config/service bersama — lihat catatan di akhir file.
+    // ══════════════════════════════════════════════
+    private $locationArticleTypeMap = [
+        '042' => ['CM1'],
+        '009' => ['RMP', 'RMNP'],
+        '007' => ['FG'],
+        '008' => ['FG'],
+        '006' => ['CM2', 'CM3', 'RMP', 'RMNP'],
+        '005' => ['CM1'],
+        '049' => ['CM1'],
+        // '012' (WIP parent) sengaja tidak dibatasi types-nya di StockCountController
+        // (phantomArticleTypeMap-nya cuma FG), jadi di sini juga dibiarkan null → semua tipe.
+    ];
+
+    // ══════════════════════════════════════════════
+    // KONFIGURASI KATEGORI MOVEMENT PER GRUP (tidak berubah)
     // ══════════════════════════════════════════════
     private $movementConfig = [
         'CHEMICAL' => [
@@ -54,15 +59,11 @@ class StoReportController extends Controller
                 'in_replace_supplier' => ['label' => 'Supplier Replace', 'types' => ['SUPPLIER REPLACE'], 'qty' => 'movement_plus'],
             ],
             'out' => [
-                // Digabung SUPPLY + TRANSFER (movement_min) jadi 1 kolom, sesuai perilaku asli
-                // sebelum refactor (dulu outSup = out_supply_transfer + out_transfer di PHP).
                 'out_supply_transfer' => ['label' => 'Supply', 'types' => ['SUPPLY', 'TRANSFER'], 'qty' => 'movement_min'],
                 'out_return_supplier' => ['label' => 'Return Supplier', 'types' => ['SUPPLIER RETURN'],    'qty' => 'movement_min'],
                 'out_dn_umum'         => ['label' => 'DN Umum',         'types' => ['DN UMUM'],            'qty' => 'movement_min'],
             ],
         ],
-
-        // WIP (012), Finish Goods (007), OT (008)
         'WIP_FG_OT' => [
             'in' => [
                 'in_transfer'        => ['label' => 'Transfer In',     'types' => ['TRANSFER'], 'qty' => 'movement_plus'],
@@ -70,7 +71,7 @@ class StoReportController extends Controller
             ],
             'out' => [
                 'out_transfer'     => ['label' => 'Transfer Out', 'types' => ['TRANSFER'],      'qty' => 'movement_min'],
-                'out_delivery'     => ['label' => 'Delivery',     'types' => ['DELIVERY','Delivery'],      'qty' => 'movement_min'],
+                'out_delivery'     => ['label' => 'Delivery',     'types' => ['DELIVERY'],      'qty' => 'movement_min'],
                 'out_dn_umum'      => ['label' => 'DN Umum',      'types' => ['DN UMUM'],       'qty' => 'movement_min'],
                 'out_dn_sementara' => ['label' => 'DN Sementara', 'types' => ['DN SEMENTARA'],  'qty' => 'movement_min'],
                 'out_replacement'  => ['label' => 'Replacement',  'types' => ['REPLACEMENT'],   'qty' => 'movement_min'],
@@ -78,7 +79,6 @@ class StoReportController extends Controller
         ],
     ];
 
-    // threshold akurasi: selisih <= N% dari closing → dapat poin
     private $accuracyThresholdPercent = 2.0;
 
     public function __construct()
@@ -116,7 +116,7 @@ class StoReportController extends Controller
     }
 
     // ══════════════════════════════════════════════
-    // INDEX
+    // INDEX (tidak berubah)
     // ══════════════════════════════════════════════
     public function index()
     {
@@ -145,9 +145,6 @@ class StoReportController extends Controller
         ]);
     }
 
-    // ══════════════════════════════════════════════
-    // GET LOCATIONS — AJAX
-    // ══════════════════════════════════════════════
     public function getStoLocations(Request $request)
     {
         $configId = Crypt::decryptString($request->config_id);
@@ -172,9 +169,6 @@ class StoReportController extends Controller
         return response()->json($rows);
     }
 
-    // ══════════════════════════════════════════════
-    // DATA
-    // ══════════════════════════════════════════════
     public function data(Request $request)
     {
         $configId     = Crypt::decryptString($request->config_id);
@@ -189,31 +183,32 @@ class StoReportController extends Controller
             );
         }
 
-        // rows/totals sudah collection/array → json-kan apa adanya
         return response()->json([
             'status'  => 1,
             'header'  => $result['header'],
             'rows'    => $result['rows']->values(),
             'totals'  => $result['totals'],
             'summary' => $result['summary'],
-            'columns' => $result['columns'], // definisi kolom in/out dinamis, dipakai FE buat render header tabel
+            'columns' => $result['columns'],
         ]);
     }
 
     // ══════════════════════════════════════════════
-    // AGGREGATE MOVEMENT — dinamis berdasarkan konfigurasi grup lokasi
+    // AGGREGATE MOVEMENT — BARU: family-aware (whereIn family, bukan single location)
     // ══════════════════════════════════════════════
-    private function aggregateMovements($locationCode, $dateFrom, $dateTo)
+    private function aggregateMovements(array $family, $dateFrom, $dateTo, $locationCode)
     {
+        // group config tetap ditentukan dari lokasi yang DIPILIH user (anchor),
+        // karena itu yang menentukan kolom in/out mana yang relevan
         $config = $this->getGroupConfig($locationCode);
 
         $query = DB::table('warehouse_movement as wm')->select('wm.artikel_code');
 
         foreach (['in', 'out'] as $direction) {
             foreach (($config[$direction] ?? []) as $colKey => $def) {
-                $qtyField  = $def['qty']; // movement_plus | movement_min
-                $types     = array_map('strtoupper', $def['types']);
-                $placeholders = implode(',', array_fill(0, count($types), '?'));
+                $qtyField      = $def['qty'];
+                $types         = array_map('strtoupper', $def['types']);
+                $placeholders  = implode(',', array_fill(0, count($types), '?'));
 
                 $query->selectRaw(
                     "SUM(CASE WHEN UPPER(wm.movement_type) IN ($placeholders) AND COALESCE(wm.$qtyField,0) > 0
@@ -223,8 +218,7 @@ class StoReportController extends Controller
             }
         }
 
-        $query->where('wm.location_number', $locationCode)
-            // exclude semua tipe CANCEL (CANCEL SUPPLY, CANCEL TRANSFER, dll)
+        $query->whereIn('wm.location_number', $family) // ← BARU: dulu ->where('wm.location_number', $locationCode)
             ->where('wm.movement_type', 'not ilike', 'CANCEL %')
             ->whereRaw(
                 "TO_DATE(wm.movement_date,'DD-MM-YYYY') BETWEEN TO_DATE(?,'DD-MM-YYYY') AND TO_DATE(?,'DD-MM-YYYY')",
@@ -236,15 +230,24 @@ class StoReportController extends Controller
     }
 
     // ══════════════════════════════════════════════
-    // AGGREGATE STO RESULTS — keyed by alt_code
+    // AGGREGATE STO RESULTS — BARU: family-aware.
+    // Dulu hanya baca sto_dtl dari sto_hdr yang h.target_ref = $locationCode.
+    // Sekarang ikut semua sibling mapping dalam config yang sama (child+parent),
+    // sama seperti syncArticleStatus()/collectFamilyDtlRowsByLocation() di STO.
     // ══════════════════════════════════════════════
-    private function aggregateStoResults($configId, $locationCode)
+    private function aggregateStoResults($configId, array $family)
     {
+        $siblingMappingIds = DB::table('sto_config_mapping')
+            ->where('config_id', $configId)
+            ->where('target_type', 'LOCATION')
+            ->whereIn('target_ref', $family)
+            ->pluck('mapping_id');
+
+        if ($siblingMappingIds->isEmpty()) return collect();
+
         $rows = DB::table('sto_dtl as d')
             ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
-            ->where('h.config_id', $configId)
-            ->where('h.target_type', 'LOCATION')
-            ->where('h.target_ref', $locationCode)
+            ->whereIn('h.mapping_id', $siblingMappingIds)
             ->whereNotNull('d.article_code')
             ->select('d.article_code as alt_code', 'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3', 'd.count_status')
             ->get();
@@ -270,25 +273,15 @@ class StoReportController extends Controller
     }
 
     // ══════════════════════════════════════════════
-    // OPENING BALANCE
+    // OPENING BALANCE — BARU: pakai resolveFamilyBalance() dari trait
+    // (family-aware + exclude adjustment periode berjalan, sama seperti getLastQty()
+    // di StockCountController; dulu di sini adjustment TIDAK dikecualikan sama sekali).
     // ══════════════════════════════════════════════
-    private function getOpeningBalance($realCode, $openingDate, $location)
+    private function getOpeningBalance($realCode, $openingDate, $location, $configId)
     {
-        // NOTE: parameter ke-3 'HO' dari get_last_qty_new() dipertahankan apa
-        // adanya sesuai kode lama. Kalau ternyata parameter itu spesifik untuk
-        // grup CHEMICAL saja (bukan berlaku umum), perlu dicek ke definisi
-        // function get_last_qty_new_grouped / get_last_qty_new di database
-        // untuk lokasi WIP/FG/OT.
-        $row = DB::selectOne(
-            "SELECT get_last_qty_new(?, ?, 'HO', ?) AS q",
-            [$realCode, $openingDate, $location]
-        );
-        return $row ? (float) $row->q : 0;
+        return $this->resolveFamilyBalance($realCode, $location, $openingDate, $configId);
     }
 
-    // ══════════════════════════════════════════════
-    // RESOLVE DATE RANGE
-    // ══════════════════════════════════════════════
     private function resolveReportDateRange($periode, $stoDate)
     {
         [$year, $month] = $this->parsePeriode($periode);
@@ -312,9 +305,6 @@ class StoReportController extends Controller
         return [(int) date('Y'), (int) date('n')];
     }
 
-    // ══════════════════════════════════════════════
-    // TOTALS / SUMMARY KOSONG — dinamis per lokasi
-    // ══════════════════════════════════════════════
     private function emptyTotals($locationCode = null)
     {
         $totals = ['opening' => 0];
@@ -346,9 +336,6 @@ class StoReportController extends Controller
         ];
     }
 
-    // ══════════════════════════════════════════════
-    // DEFINISI KOLOM (buat header tabel di FE) — dinamis per lokasi
-    // ══════════════════════════════════════════════
     private function buildColumnDefs($locationCode)
     {
         $config = $this->getGroupConfig($locationCode);
@@ -365,8 +352,6 @@ class StoReportController extends Controller
 
     // ══════════════════════════════════════════════
     // CORE — bangun report (dipakai data() & export())
-    // return: ['status'=>1, 'header'=>..., 'rows'=>..., 'totals'=>..., 'summary'=>..., 'columns'=>...]
-    //         atau ['status'=>0, 'message'=>..., 'code'=>...]
     // ══════════════════════════════════════════════
     private function buildReport($configId, $locationCode, $dateRange = null)
     {
@@ -393,6 +378,10 @@ class StoReportController extends Controller
             ->where('location_code', $locationCode)
             ->value('location_name') ?? $locationCode;
 
+        // ── BARU: resolve family & anchor sekali di awal, dipakai di semua langkah ──
+        $family = $this->resolveLocationFamily($locationCode);
+        $anchor = $this->resolveLocationAnchor($locationCode);
+
         [$dateFrom, $dateTo, $openingDate] = $this->resolveReportDateRange($config->periode, $mapping->sto_date ?? null);
 
         if ($dateRange) {
@@ -412,20 +401,40 @@ class StoReportController extends Controller
         $cols       = $this->getColumnKeys($locationCode);
         $columnDefs = $this->buildColumnDefs($locationCode);
 
-        $movements  = $this->aggregateMovements($locationCode, $dateFrom, $dateTo);
-        $stoResults = $this->aggregateStoResults($configId, $locationCode);
+        $movements  = $this->aggregateMovements($family, $dateFrom, $dateTo, $locationCode);
+        $stoResults = $this->aggregateStoResults($configId, $family);
 
-        $stockCodes = DB::table('warehouse_stock')
-            ->where('location_number', $locationCode)
-            ->where('article_qty', '<>', 0)
-            ->pluck('article_code');
+        // ── BARU: article_type filter, konsisten dengan locationArticleTypeMap di STO ──
+        $allowedTypes = $this->locationArticleTypeMap[$anchor] ?? null;
+
+        $stockQuery = DB::table('warehouse_stock as ws')
+            ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
+            ->whereIn('ws.location_number', $family) // ← BARU: family, dulu single location
+            ->where('ws.article_qty', '<>', 0);
+
+        if ($allowedTypes) {
+            $stockQuery->whereIn('a.article_type', $allowedTypes); // ← BARU
+        }
+
+        $stockCodes = $stockQuery->pluck('a.article_code');
 
         $stoAltCodes  = $stoResults->keys();
-        $stoRealCodes = DB::table('article')
-            ->whereIn('article_alternative_code', $stoAltCodes)
-            ->pluck('article_code');
+        $stoRealCodesQuery = DB::table('article')->whereIn('article_alternative_code', $stoAltCodes);
+        if ($allowedTypes) {
+            $stoRealCodesQuery->whereIn('article_type', $allowedTypes); // ← BARU
+        }
+        $stoRealCodes = $stoRealCodesQuery->pluck('article_code');
 
-        $realCodes = $movements->keys()
+        $movementRealCodes = $movements->keys();
+        if ($allowedTypes) {
+            // movement query tidak join article, filter type-nya belakangan di sini
+            $movementRealCodes = DB::table('article')
+                ->whereIn('article_code', $movementRealCodes)
+                ->whereIn('article_type', $allowedTypes)
+                ->pluck('article_code');
+        }
+
+        $realCodes = $movementRealCodes
             ->merge($stockCodes)
             ->merge($stoRealCodes)
             ->filter()
@@ -479,7 +488,8 @@ class StoReportController extends Controller
             $mv      = $movements->get($rc);
             $stoRow  = $altCode ? $stoResults->get($altCode) : null;
 
-            $opening = round((float) $this->getOpeningBalance($rc, $openingDate, $locationCode), 2);
+            // ── BARU: family-aware + adjustment-excluded, via trait ──
+            $opening = round((float) $this->getOpeningBalance($rc, $openingDate, $anchor, $configId), 2);
 
             $inTotal  = 0;
             $outTotal = 0;
@@ -506,7 +516,6 @@ class StoReportController extends Controller
             $stoStatus = $stoRow ? ($stoRow->count_status ?? 'INCOMPLETE') : 'INCOMPLETE';
             $variance  = $stoQty !== null ? round($stoQty - $closing, 2) : null;
 
-            // akurasi
             $accurate = false;
             if ($stoStatus === 'MATCH') {
                 $accurate = true;
@@ -601,9 +610,18 @@ class StoReportController extends Controller
                 $result['rows'],
                 $result['totals'],
                 $result['summary'],
-                $result['columns'] // export perlu tahu kolom mana yang aktif untuk lokasi ini
+                $result['columns']
             ),
             $fileName
         );
     }
 }
+
+/**
+ * CATATAN SELANJUTNYA (opsional, ga wajib sekarang):
+ * $locationArticleTypeMap masih double-maintained (di sini & di StockCountController).
+ * Kalau mau bener2 satu sumber kebenaran, pindahin array itu ke trait
+ * HasStoLocationFamily juga (atau config/db table), lalu kedua controller
+ * baca dari situ. Sekarang saya biarkan terpisah supaya diff-nya kebaca jelas
+ * dan gampang di-review dulu.
+ */
