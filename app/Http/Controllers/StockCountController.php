@@ -371,7 +371,7 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     public function index(Request $request)
     {
         $userId = Auth::id();
-        $allowedUserIds = [58, 75, 23, 163, 176, 52, 66, 152, 185, 187, 67, 53];
+        $allowedUserIds = [58, 75, 23, 163, 176, 52, 66, 152, 185, 187, 67, 53, 30];
         $isAcct = in_array($userId, $allowedUserIds);
         $today  = date('d-m-Y');
  
@@ -507,7 +507,7 @@ private function collectFamilyDtlRowsByLocation($configId, array $family, $artic
     // ══════════════════════════════════════════════
     public function auditList(Request $request)
 {
-    $allowedUserIds = [58, 75, 23, 163, 176, 52, 66, 152, 185, 187, 67, 53];
+    $allowedUserIds = [58, 75, 23, 163, 176, 52, 66, 152, 185, 187, 67, 53, 30];
     if (!in_array(Auth::id(), $allowedUserIds)) {
         abort(403, 'Anda tidak memiliki akses ke halaman ini.');
     }
@@ -639,7 +639,7 @@ private function collectFamilyDtlRowsByLocation($configId, array $family, $artic
 // ══════════════════════════════════════════════
 public function auditListDetail(Request $request)
 {
-    $allowedUserIds = [58, 75, 23, 163, 176, 52, 66, 152, 185, 187, 67, 53];
+    $allowedUserIds = [58, 75, 23, 163, 176, 52, 66, 152, 185, 187, 67, 53, 30];
     if (!in_array(Auth::id(), $allowedUserIds)) {
         abort(403, 'Anda tidak memiliki akses ke halaman ini.');
     }
