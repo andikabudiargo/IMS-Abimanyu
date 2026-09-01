@@ -425,17 +425,17 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     });
 }
 
-    //if (!$isAcct) {
-      //  $query->where('m.sto_date', $today)
-        //      ->where(function ($q) use ($userId) {
-          //        $q->where('m.counter1_user', $userId)
-            //        ->orWhere('m.counter2_user', $userId)
-              //      ->orWhere('m.counter3_user', $userId);
-              // });
-   // } elseif (!$showAllPeriode && $selectedPeriode) {
+    if (!$isAcct) {
+        $query->where('m.sto_date', $today)
+              ->where(function ($q) use ($userId) {
+                  $q->where('m.counter1_user', $userId)
+                    ->orWhere('m.counter2_user', $userId)
+                    ->orWhere('m.counter3_user', $userId);
+               });
+    } elseif (!$showAllPeriode && $selectedPeriode) {
         // ── BARU: batasi ke periode terpilih (default = terbaru) ──
-     //   $query->whereRaw("SUBSTR(h.periode,1,7) = ?", [$selectedPeriode]);
-    //}
+        $query->whereRaw("SUBSTR(h.periode,1,7) = ?", [$selectedPeriode]);
+    }
 
     $rows = $query->orderBy('m.sto_date')->orderBy('target_name')->get();
  
