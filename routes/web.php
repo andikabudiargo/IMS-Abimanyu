@@ -928,6 +928,7 @@ Route::get('stock-count/audit-list-detail', ['as'=>'stockCount.auditListDetail',
 Route::get('/sto-report',            'StoReportController@index')->name('stoReport.index');
 Route::post('/sto-report/locations', 'StoReportController@getStoLocations')->name('stoReport.locations');
 Route::post('/sto-report/data',      'StoReportController@data')->name('stoReport.data');
+Route::post('sto-report/export', 'StoReportController@export')->name('stoReport.export');
 
 Route::get('stockReconciliation',['as'=>'stockReconciliation.index','uses'=>'StockReconciliationController@index','middleware' => ['permission:transferOut-index']]);
 Route::get('stockReconciliation/list',['as'=>'stockReconciliation.list','uses'=>'StockReconciliationController@list']);

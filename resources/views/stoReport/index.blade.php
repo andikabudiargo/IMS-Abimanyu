@@ -128,6 +128,10 @@
                                 <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i>
                                 <span class="align-middle">Print</span>
                             </button>
+                            <button type="button" class="btn btn-outline-success d-none mr-50" id="btnExport">
+    <i data-feather="download" class="align-middle mr-sm-25 mr-0"></i>
+    <span class="align-middle d-sm-inline-block d-none">Export Excel</span>
+</button>
                         </span>
                     </div>
                 </div>
@@ -566,6 +570,28 @@ $(document).ready(function () {
         w.focus();
         setTimeout(function () { w.print(); w.close(); }, 400);
     });
+});
+
+// ── export excel (backend) ──
+$('#btnExport').on('click', function () {
+    let encId = $('#repStoCode').val();
+    let loc   = $('#repLocation').val();
+    if (!encId || !loc) {
+        Swal.fire('Warning', 'Generate report dulu sebelum export.', 'warning');
+        return;
+    }
+
+    let $f = $('<form>', {
+        method: 'POST',
+        action: "{{ route('stoReport.export') }}"
+    });
+    $f.append($('<input>', { type: 'hidden', name: '_token', value: $('meta[name="csrf-token"]').attr('content') }));
+    $f.append($('<input>', { type: 'hidden', name: 'config_id',     value: encId }));
+    $f.append($('<input>', { type: 'hidden', name: 'location_code', value: loc }));
+    $f.append($('<input>', { type: 'hidden', name: 'date_range',    value: $('#repDate').val() }));
+    $('body').append($f);
+    $f.submit();
+    $f.remove();
 });
 
 $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
