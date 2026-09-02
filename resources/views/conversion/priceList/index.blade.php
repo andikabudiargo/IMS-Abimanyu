@@ -121,17 +121,17 @@ $(function () {
   $('#tblPriceList').DataTable({
     processing: true, serverSide: true, ajax: URL_DATA,
     columns: [
-      { data: null, render: (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
-      { data: 'article_alternative_code' },
-      { data: 'article_desc' },
-      { data: 'pl_date' },
-      { data: 'sales_price',       className: 'text-right' },
-      { data: 'material_price',    className: 'text-right' },
-      { data: 'margin',            className: 'text-right' },
-      { data: 'conversion_result', className: 'text-right' },
-      { data: 'created_by' },
-      { data: 'action', orderable: false, searchable: false },
-    ],
+  { data: null, orderable: false, searchable: false, render: (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
+  { data: 'article_alternative_code' },
+  { data: 'article_desc' },
+  { data: 'pl_date' },
+  { data: 'sales_price',       className: 'text-right' },
+  { data: 'material_price',    className: 'text-right' },
+  { data: 'margin',            className: 'text-right' },
+  { data: 'conversion_result', className: 'text-right' },
+  { data: 'created_by' },
+  { data: 'action', orderable: false, searchable: false },
+],
     drawCallback: function () { if (window.feather) feather.replace(); }
   });
 
