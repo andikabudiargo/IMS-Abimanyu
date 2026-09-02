@@ -241,26 +241,33 @@ class CheckStockAnomaly extends Command
         $rows = DB::select($sql, $bind);
 
         $now = now();
-        foreach ($rows as $row) {
-            DB::statement("
-                INSERT INTO stock_anomaly_log
-                    (article_id, location_number, qty_ledger, qty_snapshot, diff,
-                     excluded_by_status_only, excluded_by_pair_only,
-                     status, detected_at, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?)
-            ", [
-                $row->artikel_code,
-                $row->location_number,
-                $row->qty_ledger,
-                $row->qty_snapshot,
-                $row->diff,
-                0,
-                0,
-                $now,
-                $now,
-                $now,
-            ]);
-        }
+       foreach ($rows as $row) {
+    DB::statement("
+        INSERT INTO stock_anomaly_log
+            (article_id, location_number, qty_ledger, qty_snapshot, diff,
+             excluded_by_status_only, excluded_by_pair_only,
+             status, detected_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?)
+        ON CONFLICT (article_id, location_number, status)
+        DO UPDATE SET
+            qty_ledger   = EXCLUDED.qty_ledger,
+            qty_snapshot = EXCLUDED.qty_snapshot,
+            diff         = EXCLUDED.diff,
+            detected_at  = EXCLUDED.detected_at,
+            updated_at   = EXCLUDED.updated_at
+    ", [
+        $row->artikel_code,
+        $row->location_number,
+        $row->qty_ledger,
+        $row->qty_snapshot,
+        $row->diff,
+        0,
+        0,
+        $now,
+        $now,
+        $now,
+    ]);
+}
 
         $count = count($rows);
         $this->info("Selesai. Ditemukan {$count} abnormality.");
