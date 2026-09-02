@@ -515,6 +515,12 @@
        <div class="foot-actions">
     <a href="{{ route('stockTakingOrder.index') }}" class="btn btn-light">Back</a>
 
+    <a href="{{ route('stockTakingOrder.print', ['id' => Crypt::encryptString($hdr->config_id)]) }}"
+   target="_blank" class="btn btn-outline-primary">
+    <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i>
+    <span class="align-middle">Print PDF</span>
+</a>
+
     @if(Auth::user()->username === 'leo' || Auth::user()->hasRole('Superuser'))
     <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modalRecalcAccuracy">
     <i data-feather="refresh-cw" class="align-middle mr-sm-25 mr-0" style="color:#fff;stroke:#fff;"></i>

@@ -898,6 +898,7 @@ Route::get('stockTakingOrder/listDetail',['as'=>'stockTakingOrder.list.detail','
 Route::get('stockTakingOrder/create',   ['as'=>'stockTakingOrder.create',     'uses'=>'StockTakingOrderController@create']);
 Route::post('stockTakingOrder/store',   ['as'=>'stockTakingOrder.store',      'uses'=>'StockTakingOrderController@store']);
 Route::get('stockTakingOrder/{id}/show',['as'=>'stockTakingOrder.show',       'uses'=>'StockTakingOrderController@show']);
+Route::get('stockTakingOrder/{id}/print',['as'=>'stockTakingOrder.print',     'uses'=>'StockTakingOrderController@printPdf']);
 Route::get('stockTakingOrder/{id}/edit',['as'=>'stockTakingOrder.edit',       'uses'=>'StockTakingOrderController@edit']);
 Route::post('stockTakingOrder/update',  ['as'=>'stockTakingOrder.update',     'uses'=>'StockTakingOrderController@update']);
 Route::post('stockTakingOrder/cancel/{id}', ['as'=>'stockTakingOrder.cancel', 'uses'=>'StockTakingOrderController@cancel']);
