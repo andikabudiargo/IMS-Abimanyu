@@ -136,28 +136,28 @@ class PriceListController extends Controller
     }
 
     // weighted average bulan berjalan; kalau kosong mundur 1 bulan
-    private function avgPrice($articleCode)
-    {
-        $cur = DB::selectOne("
+    // weighted average bulan berjalan; kalau kosong, mundur bulan demi bulan
+// sampai menemukan bulan terakhir yang punya data receiving.
+// Batas maksimum mundur $maxMonthsBack bulan untuk mencegah loop tak berujung
+// kalau artikel memang belum pernah ada receiving-nya sama sekali.
+private function avgPrice($articleCode, int $maxMonthsBack = 24)
+{
+    for ($i = 0; $i <= $maxMonthsBack; $i++) {
+        $row = DB::selectOne("
             SELECT COALESCE(SUM(price*qty)/NULLIF(SUM(qty),0),0) AS avg_price, COUNT(*) AS n
             FROM receiving_det
             WHERE article_code = ?
-              AND date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE)
-        ", [$articleCode]);
+              AND date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE - (? || ' months')::interval)
+        ", [$articleCode, $i]);
 
-        if ($cur && $cur->n > 0) {
-            return (float) $cur->avg_price;
+        if ($row && $row->n > 0) {
+            return (float) $row->avg_price;
         }
-
-        $prev = DB::selectOne("
-            SELECT COALESCE(SUM(price*qty)/NULLIF(SUM(qty),0),0) AS avg_price, COUNT(*) AS n
-            FROM receiving_det
-            WHERE article_code = ?
-              AND date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE - INTERVAL '1 month')
-        ", [$articleCode]);
-
-        return $prev ? (float) $prev->avg_price : 0.0;
     }
+
+    // Tidak ditemukan receiving sama sekali dalam rentang $maxMonthsBack bulan
+    return 0.0;
+}
 
     private function calcMaterialPrice($mats)
     {
