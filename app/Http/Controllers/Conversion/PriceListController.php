@@ -24,9 +24,9 @@ class PriceListController extends Controller
 
         // FG list buat Select2 (kalau kebanyakan, ubah ke Select2 ajax)
         $data['fgList'] = DB::table('article')
-            ->where('article_type', 'FG')
-            ->orderBy('article_code')
-            ->get(['article_code', 'article_name']);
+    ->where('article_type', 'FG')
+    ->orderBy('alternative_code')
+    ->get(['article_code', 'alternative_code', 'article_desc']);
 
         // conversion value aktif
         $conv = DB::table('conversion_setting')->where('status', '1')->orderByDesc('id')->first();
@@ -72,46 +72,50 @@ class PriceListController extends Controller
 
         $fgArticle = DB::table('article')->where('article_code', $fg)->first();
 
-        // RM dari bom_rm (tipe diambil dari master article)
-        $rm = DB::table('bom_rm as b')
-            ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
-            ->where('b.bom_code', $hdr->bom_code)
-            ->select('b.article_code', 'a.article_name', 'a.article_type', 'b.qty', DB::raw("'RM' as source"))
-            ->get();
+      // RM dari bom_rm
+$rm = DB::table('bom_rm as b')
+    ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
+    ->where('b.bom_code', $hdr->bom_code)
+    ->select('b.article_code', 'a.alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'RM' as source"))
+    ->get();
 
-        // child part dari bom_det, hanya RMP/RMNP
-        $det = DB::table('bom_det as b')
-            ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
-            ->where('b.bom_code', $hdr->bom_code)
-            ->whereIn('a.article_type', ['RMP', 'RMNP'])
-            ->select('b.article_code', 'a.article_name', 'a.article_type', 'b.qty', DB::raw("'DET' as source"))
-            ->get();
+// child part dari bom_det
+$det = DB::table('bom_det as b')
+    ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
+    ->where('b.bom_code', $hdr->bom_code)
+    ->whereIn('a.article_type', ['RMP', 'RMNP'])
+    ->select('b.article_code', 'a.alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'DET' as source"))
+    ->get();
 
-        $materials = [];
-        foreach ($rm->concat($det) as $m) {
-            $type  = strtoupper($m->article_type ?? '');
-            $qty   = (float) $m->qty;
-            $price = ($type === 'RMNP') ? 0 : $this->avgPrice($m->article_code); // RMNP = 0
-            $materials[] = [
-                'article_code' => $m->article_code,
-                'article_name' => $m->article_name,
-                'article_type' => $type,
-                'source'       => $m->source,
-                'qty'          => $qty,
-                'unit_price'   => round($price, 4),
-                'line_total'   => round($price * $qty, 2),
-            ];
-        }
+$materials = [];
+foreach ($rm->concat($det) as $m) {
+    $type  = strtoupper($m->article_type ?? '');
+    $qty   = (float) $m->qty;
+    $price = ($type === 'RMNP') ? 0 : $this->avgPrice($m->article_code); // join pakai article_code
+    $materials[] = [
+        'article_code'     => $m->article_code,       // buat simpan/join, hidden di UI
+        'alternative_code' => $m->alternative_code,   // yang tampil
+        'article_name'     => $m->article_desc,
+        'article_type'     => $type,
+        'source'           => $m->source,
+        'qty'              => $qty,
+        'unit_price'       => round($price, 4),
+        'line_total'       => round($price * $qty, 2),
+    ];
+}
 
-        return response()->json([
-            'status' => 1,
-            'fg' => [
-                'article_code' => $fg,
-                'article_name' => $fgArticle->article_name ?? $fg,
-                'bom_code'     => $hdr->bom_code,
-            ],
-            'materials' => $materials,
-        ]);
+$fgArticle = DB::table('article')->where('article_code', $fg)->first();
+
+return response()->json([
+    'status' => 1,
+    'fg' => [
+        'article_code'     => $fg,
+        'alternative_code' => $fgArticle->alternative_code ?? $fg,
+        'article_name'     => $fgArticle->article_desc ?? $fg,
+        'bom_code'         => $hdr->bom_code,
+    ],
+    'materials' => $materials,
+]);
     }
 
     // weighted average bulan berjalan; kalau kosong mundur 1 bulan
