@@ -1206,6 +1206,11 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::get('conversionSetting',['as'=>'conversionSetting.index','uses'=>'Conversion\ConversionSettingController@index']);
 	Route::post('conversionSetting/store',['as'=>'conversionSetting.store','uses'=>'Conversion\ConversionSettingController@store']);
 
+	Route::get('conversion/price-list',           'Conversion\PriceListController@index')->name('conversion.priceList.index');
+Route::get('conversion/price-list/data',      'Conversion\PriceListController@data')->name('conversion.priceList.data');
+Route::post('conversion/price-list/get-bom',  'Conversion\PriceListController@getBom')->name('conversion.priceList.getBom');
+Route::post('conversion/price-list/store',    'Conversion\PriceListController@store')->name('conversion.priceList.store');
+
 	Route::get('balanceSheet',['as'=>'balanceSheet.index','uses'=>'Accounting\BalanceSheetController@index']);
 	Route::get('balanceSheet/print',['as'=>'balanceSheet.print','uses'=>'Accounting\BalanceSheetController@print']);
 

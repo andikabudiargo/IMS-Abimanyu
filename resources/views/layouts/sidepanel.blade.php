@@ -155,7 +155,7 @@
               </a>
               <ul class="menu-content">
                 <li class="{{ \Request::segment(1) == 'conversion'  ? 'active' : '' }}">
-                  <a class="d-flex align-items-center" href="{{ route('conversion.index') }}">
+                  <a class="d-flex align-items-center" href="{{ route('conversion.priceList.index') }}">
                     <span class="menu-item text-truncate" data-i18n="Conversion">Conversion</span>
                   </a>
                 </li>
