@@ -163,7 +163,7 @@ class CheckStockAnomaly extends Command
                   -- hanya movement SETELAH tanggal OB terbaru
                   -- kalau tidak ada OB (lo.ob_date NULL) → semua movement masuk
                   AND (lo.ob_date IS NULL
-                       OR TO_DATE(wm.movement_date, 'dd-mm-yyyy') > '2026-06-30')
+                       OR TO_DATE(wm.movement_date, 'dd-mm-yyyy') > lo.ob_date)
                   {$whereLocation}
                   {$whereArticle}
             ),
