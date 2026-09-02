@@ -1532,7 +1532,7 @@ private function resolveTolerancePercent($targetPlanLoc)
         $configId = $mapping->config_id
             ?? DB::table('sto_config_mapping')->where('mapping_id', $mapping->mapping_id ?? 0)->value('config_id');
         $periode = $this->resolveStoPeriode($configId);
-        $qty -= $this->sumAdjustmentDeltaForPeriode($realCode, $family, $periode);
+        $qty -= $this->sumAdjustmentDeltaForPeriode($realCode, $family, $periode, $target->format('Y-m-d'));
     }
 
     return $qty;
@@ -2787,8 +2787,29 @@ private function resolveStoPeriode($configId)
     return $this->stoPeriodeCache[$configId] = $val;
 }
 
+private function sumAdjustmentDeltaForPeriode($realCode, array $locations, $periode, $cutoffDate = null)
+{
+    if (!$periode || !$realCode || empty($locations)) return 0;
+
+    $query = DB::table('warehouse_movement as wm')
+        ->join('stock_adjustment_hdr as sa', 'sa.adj_code', '=', 'wm.movement_transnno')
+        ->where('wm.artikel_code', $realCode)
+        ->whereIn('wm.location_number', $locations)
+        ->whereIn('wm.movement_type', ['ADJUSTMENT', 'CANCEL ADJUSTMENT'])
+        ->where('sa.periode', $periode['month'])
+        ->whereRaw("RIGHT(sa.adj_date, 4) = ?", [(string) $periode['year']]);
+
+    // ← TAMBAHAN: hanya adjustment yang tanggalnya <= cutoff (H-1),
+    // karena yang > cutoff sudah otomatis ter-exclude oleh get_last_qty_new()
+    if ($cutoffDate) {
+        $query->whereRaw("TO_DATE(wm.movement_date, 'DD-MM-YYYY') <= ?", [$cutoffDate]);
+    }
+
+    return (float) $query->sum(DB::raw('COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'));
+}
+
 /** Total delta movement adjustment milik periode STO ini (yang harus dibuang) */
-private function sumAdjustmentDeltaForPeriode($realCode, array $locations, $periode)
+private function sumAdjustmentDeltaForPeriodeOld($realCode, array $locations, $periode)
 {
     if (!$periode || !$realCode || empty($locations)) return 0;
 
