@@ -25,8 +25,8 @@ class PriceListController extends Controller
         // FG list buat Select2 (kalau kebanyakan, ubah ke Select2 ajax)
         $data['fgList'] = DB::table('article')
     ->where('article_type', 'FG')
-    ->orderBy('alternative_code')
-    ->get(['article_code', 'alternative_code', 'article_desc']);
+    ->orderBy('article_article_alternative_code')
+    ->get(['article_code', 'article_article_alternative_code', 'article_desc']);
 
         // conversion value aktif
         $conv = DB::table('conversion_setting')->where('status', '1')->orderByDesc('id')->first();
@@ -76,7 +76,7 @@ class PriceListController extends Controller
 $rm = DB::table('bom_rm as b')
     ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
     ->where('b.bom_code', $hdr->bom_code)
-    ->select('b.article_code', 'a.alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'RM' as source"))
+    ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'RM' as source"))
     ->get();
 
 // child part dari bom_det
@@ -84,7 +84,7 @@ $det = DB::table('bom_det as b')
     ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
     ->where('b.bom_code', $hdr->bom_code)
     ->whereIn('a.article_type', ['RMP', 'RMNP'])
-    ->select('b.article_code', 'a.alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'DET' as source"))
+    ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'DET' as source"))
     ->get();
 
 $materials = [];
@@ -94,7 +94,7 @@ foreach ($rm->concat($det) as $m) {
     $price = ($type === 'RMNP') ? 0 : $this->avgPrice($m->article_code); // join pakai article_code
     $materials[] = [
         'article_code'     => $m->article_code,       // buat simpan/join, hidden di UI
-        'alternative_code' => $m->alternative_code,   // yang tampil
+        'article_alternative_code' => $m->article_alternative_code,   // yang tampil
         'article_name'     => $m->article_desc,
         'article_type'     => $type,
         'source'           => $m->source,
@@ -110,7 +110,7 @@ return response()->json([
     'status' => 1,
     'fg' => [
         'article_code'     => $fg,
-        'article_alternative_code' => $fgArticle->alternative_code ?? $fg,
+        'article_article_alternative_code' => $fgArticle->article_alternative_code ?? $fg,
         'article_name'     => $fgArticle->article_desc ?? $fg,
         'bom_code'         => $hdr->bom_code,
     ],
