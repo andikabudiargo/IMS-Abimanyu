@@ -83,7 +83,7 @@ class PriceListController extends Controller
 
         $hdr = DB::table('bom_hdr')
             ->where('article_code', $fg)
-            ->where('status', '1')
+            ->where('status', '!=', '5')
             ->orderByDesc('id')
             ->first();
 
