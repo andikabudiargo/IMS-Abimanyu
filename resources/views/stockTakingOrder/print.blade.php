@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>STO {{ $hdr->sto_code }}</title>
     <style>
-        @page { margin: 22px 24px; }
+        @page { margin: 24px 26px; }
         * { box-sizing: border-box; }
         body {
             font-family: 'DejaVu Sans', sans-serif;
@@ -17,22 +17,22 @@
         .doc-header {
             width: 100%;
             border-bottom: 2px solid #2b2f38;
-            padding-bottom: 8px;
-            margin-bottom: 10px;
+            padding-bottom: 9px;
+            margin-bottom: 12px;
         }
         .doc-header table { width: 100%; border-collapse: collapse; }
         .doc-title { font-size: 16px; font-weight: bold; color: #2b2f38; }
         .doc-sub { font-size: 9px; color: #6b7280; margin-top: 2px; }
         .doc-status {
             font-size: 9px; font-weight: bold; letter-spacing: .5px;
-            padding: 3px 10px; border-radius: 3px; text-transform: uppercase;
+            padding: 4px 12px; border-radius: 3px; text-transform: uppercase;
             border: 1px solid;
         }
 
-        /* ── INFO GRID (table-based) ── */
+        /* ── INFO GRID ── */
         .info-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
         .info-table td {
-            padding: 5px 10px;
+            padding: 6px 10px;
             border: 1px solid #dfe2e8;
             vertical-align: top;
         }
@@ -40,13 +40,13 @@
             font-size: 7.5px; font-weight: bold; text-transform: uppercase;
             letter-spacing: .4px; color: #9aa0ab; margin-bottom: 2px;
         }
-        .info-value { font-size: 10px; font-weight: bold; color: #2b2f38; }
+        .info-value { font-size: 10.5px; font-weight: bold; color: #2b2f38; }
 
         /* ── METRIC STRIP ── */
-        .metric-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        .metric-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
         .metric-table td {
             border: 1px solid #dfe2e8;
-            padding: 6px 8px;
+            padding: 7px 8px;
             text-align: center;
             width: 16.66%;
         }
@@ -54,7 +54,7 @@
             font-size: 7px; font-weight: bold; text-transform: uppercase;
             letter-spacing: .4px; color: #9aa0ab;
         }
-        .metric-table .m-value { font-size: 13px; font-weight: bold; margin-top: 2px; }
+        .metric-table .m-value { font-size: 14px; font-weight: bold; margin-top: 3px; }
         .m-total   .m-value { color: #2b2f38; }
         .m-match   .m-value { color: #1e7e34; }
         .m-notmatch .m-value { color: #c62828; }
@@ -64,7 +64,7 @@
         /* ── SECTION TITLE ── */
         .section-title {
             font-size: 11px; font-weight: bold; color: #2b2f38;
-            margin: 10px 0 5px; padding-bottom: 3px;
+            margin: 0 0 6px; padding-bottom: 4px;
             border-bottom: 1px solid #dfe2e8;
         }
 
@@ -75,11 +75,11 @@
             border: 1px solid #d1d5db;
             font-size: 7.5px; font-weight: bold; text-transform: uppercase;
             letter-spacing: .3px; color: #4b5563;
-            padding: 5px 4px; text-align: left;
+            padding: 6px 5px; text-align: left;
         }
         table.mapping-table tbody td {
             border: 1px solid #e5e7eb;
-            padding: 4px;
+            padding: 5px;
             font-size: 8.5px;
             vertical-align: middle;
         }
@@ -97,37 +97,21 @@
         .text-danger  { color: #c62828; }
         .text-warning { color: #b7791f; }
 
-        .badge {
-            display: inline-block;
-            font-size: 7px; font-weight: bold; padding: 1px 5px;
-            border-radius: 3px; text-transform: uppercase;
-        }
-        .badge-location { background: #e7f1ff; color: #3b7ddd; }
-        .badge-supplier { background: #fff4e5; color: #b7791f; }
-        .badge-customer { background: #e5f9fb; color: #0e8fa3; }
-        .badge-blind    { background: #ece9ff; color: #7367f0; }
-        .badge-nonblind { background: #eef0f3; color: #6b7280; }
+        .accuracy-value { font-size: 10px; font-weight: bold; }
+        .acc-good { color: #1e7e34; }
+        .acc-mid  { color: #b7791f; }
+        .acc-bad  { color: #c62828; }
 
-        .progress-bar-wrap {
-            width: 100%; height: 6px; background: #eceff3;
-            border-radius: 4px; overflow: hidden;
-        }
-        .progress-bar-fill { height: 6px; }
-        .bar-good { background: #28a745; }
-        .bar-mid  { background: #ff9f43; }
-        .bar-bad  { background: #ea5455; }
+        .counter-line { font-size: 8px; line-height: 1.4; }
 
-        .counter-line { font-size: 8px; margin-bottom: 1px; }
-
-        /* ── FOOTER ── */
         .doc-footer {
-            margin-top: 14px; padding-top: 6px;
+            margin-top: 16px; padding-top: 6px;
             border-top: 1px solid #dfe2e8;
             font-size: 7.5px; color: #9aa0ab;
         }
         .doc-footer table { width: 100%; }
 
-        .indent-child { padding-left: 14px !important; }
+        .indent-child { padding-left: 16px !important; color: #4b5563; }
     </style>
 </head>
 <body>
@@ -245,35 +229,30 @@
         <p class="text-muted">Belum ada target yang dimapping.</p>
     @else
         @php
-            $typeBadgeClass = [
-                'LOCATION' => 'badge-location',
-                'SUPPLIER' => 'badge-supplier',
-                'CUSTOMER' => 'badge-customer',
-            ];
-            $typeBadgeLabel = [
-                'LOCATION' => 'Lokasi',
-                'SUPPLIER' => 'Supplier',
-                'CUSTOMER' => 'Customer',
-            ];
             $groupedMappings = collect($mappings)->groupBy(function ($m) {
                 return $m->parent_location ?: '__no_parent__';
             });
+
+            $accClass = function ($pct) {
+                if ($pct >= 98) return 'acc-good';
+                if ($pct >= 50) return 'acc-mid';
+                return 'acc-bad';
+            };
         @endphp
 
         <table class="mapping-table">
             <thead>
                 <tr>
                     <th style="width: 3%;">#</th>
-                    <th style="width: 7%;">Sumber</th>
-                    <th style="width: 20%;">Target</th>
+                    <th style="width: 24%;">Target</th>
                     <th style="width: 8%;">STO Date</th>
-                    <th style="width: 14%;">Counter</th>
-                    <th style="width: 6%;" class="text-center">Total</th>
-                    <th style="width: 6%;" class="text-center">Match</th>
-                    <th style="width: 7%;" class="text-center">Not Match</th>
-                    <th style="width: 7%;" class="text-center">Recount</th>
-                    <th style="width: 7%;" class="text-center">Incomplete</th>
-                    <th style="width: 10%;" class="text-center">Progress</th>
+                    <th style="width: 16%;">Counter</th>
+                    <th style="width: 7%;" class="text-center">Total</th>
+                    <th style="width: 7%;" class="text-center">Match</th>
+                    <th style="width: 8%;" class="text-center">Not Match</th>
+                    <th style="width: 8%;" class="text-center">Recount</th>
+                    <th style="width: 8%;" class="text-center">Incomplete</th>
+                    <th style="width: 8%;" class="text-center">Akurasi</th>
                     <th style="width: 10%;">Finish Time</th>
                 </tr>
             </thead>
@@ -286,18 +265,10 @@
                             @php
                                 $rowNo++;
                                 $pct = (float) $m->target_act_loc;
-                                $barClass = $pct >= 98 ? 'bar-good' : ($pct >= 50 ? 'bar-mid' : 'bar-bad');
-                                $tbClass = $typeBadgeClass[$m->target_type] ?? 'badge-location';
-                                $tbLabel = $typeBadgeLabel[$m->target_type] ?? $m->target_type;
-                                $isBlind = in_array($m->is_blind, [true, 1, '1', 't', 'true'], true);
                             @endphp
                             <tr>
                                 <td class="text-center text-muted">{{ $rowNo }}</td>
-                                <td><span class="badge {{ $tbClass }}">{{ $tbLabel }}</span></td>
-                                <td>
-                                    <strong>{{ $m->target_name }}</strong>
-                                    <span class="badge {{ $isBlind ? 'badge-blind' : 'badge-nonblind' }}">{{ $isBlind ? 'BLIND' : 'NON-BLIND' }}</span>
-                                </td>
+                                <td><strong>{{ $m->target_name }}</strong></td>
                                 <td>{{ $m->sto_date }}</td>
                                 <td>
                                     <div class="counter-line">1. {{ $m->counter1_name }}</div>
@@ -314,11 +285,8 @@
                                     @endif
                                 </td>
                                 <td class="text-center text-muted">{{ $m->incomplete_lines }}</td>
-                                <td>
-                                    <div class="progress-bar-wrap">
-                                        <div class="progress-bar-fill {{ $barClass }}" style="width:{{ $pct }}%;"></div>
-                                    </div>
-                                    <div class="text-center" style="font-size:7px; margin-top:1px;">{{ number_format($pct, 1) }}%</div>
+                                <td class="text-center">
+                                    <span class="accuracy-value {{ $accClass($pct) }}">{{ number_format($pct, 1) }}%</span>
                                 </td>
                                 <td>{{ $m->finish_time ?? '-' }}</td>
                             </tr>
@@ -336,16 +304,11 @@
                             $gIncomplete = $group->sum('incomplete_lines');
                             $gAccurate   = $gMatch + $gRecountTol;
                             $gPct        = $gTotal > 0 ? round(($gAccurate / $gTotal) * 100, 2) : 0;
-                            $gBarClass   = $gPct >= 98 ? 'bar-good' : ($gPct >= 50 ? 'bar-mid' : 'bar-bad');
                             $gFinishTime = $group->pluck('finish_time')->filter()->sort()->last();
                         @endphp
                         <tr class="group-parent-row">
                             <td class="text-center text-muted">{{ $rowNo }}</td>
-                            <td><span class="badge badge-location">Lokasi</span></td>
-                            <td>
-                                <strong>{{ $parentName }}</strong>
-                                <span class="badge badge-nonblind">{{ $group->count() }} sub-lokasi</span>
-                            </td>
+                            <td><strong>{{ $parentName }}</strong> <span class="text-muted">({{ $group->count() }} sub-lokasi)</span></td>
                             <td class="text-muted">-</td>
                             <td class="text-muted">-</td>
                             <td class="text-center">{{ $gTotal }}</td>
@@ -358,25 +321,15 @@
                                 @endif
                             </td>
                             <td class="text-center text-muted">{{ $gIncomplete }}</td>
-                            <td>
-                                <div class="progress-bar-wrap">
-                                    <div class="progress-bar-fill {{ $gBarClass }}" style="width:{{ $gPct }}%;"></div>
-                                </div>
-                                <div class="text-center" style="font-size:7px; margin-top:1px;">{{ number_format($gPct, 1) }}%</div>
+                            <td class="text-center">
+                                <span class="accuracy-value {{ $accClass($gPct) }}">{{ number_format($gPct, 1) }}%</span>
                             </td>
                             <td>{{ $gFinishTime ?? '-' }}</td>
                         </tr>
                         @foreach($group as $m)
-                            @php
-                                $isBlind = in_array($m->is_blind, [true, 1, '1', 't', 'true'], true);
-                            @endphp
                             <tr class="group-child-row">
                                 <td class="text-center text-muted">&middot;</td>
-                                <td class="text-muted">-</td>
-                                <td class="indent-child">
-                                    {{ $m->target_name }}
-                                    <span class="badge {{ $isBlind ? 'badge-blind' : 'badge-nonblind' }}">{{ $isBlind ? 'BLIND' : 'NON-BLIND' }}</span>
-                                </td>
+                                <td class="indent-child">{{ $m->target_name }}</td>
                                 <td>{{ $m->sto_date }}</td>
                                 <td>
                                     <div class="counter-line">1. {{ $m->counter1_name }}</div>
@@ -403,7 +356,7 @@
         <table>
             <tr>
                 <td style="width:50%;">Dicetak oleh: {{ $printedBy }} &middot; {{ $printedAt }}</td>
-                <td style="width:50%; text-align:right;">IMS &mdash; Integrated Management System</td>
+                <td style="width:50%; text-align:right;">IMS &mdash; integrated Management System</td>
             </tr>
         </table>
     </div>
