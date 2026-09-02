@@ -15,10 +15,10 @@
         <table class="table table-striped" id="tblPriceList" style="width:100%">
           <thead>
             <tr>
-              <th>No</th><th>FG Code</th><th>FG Name</th><th>Date</th>
+              <th>Action</th><th>No</th><th>Product Code</th><th>Product Name</th>
               <th class="text-right">Sales Price</th><th class="text-right">Material Price</th>
               <th class="text-right">Margin</th><th class="text-right">Conversion</th>
-              <th>By</th><th>Action</th>
+              <th>By</th><th>Updated Date</th>
             </tr>
           </thead>
         </table>
@@ -121,16 +121,16 @@ $(function () {
   $('#tblPriceList').DataTable({
     processing: true, serverSide: true, ajax: URL_DATA,
     columns: [
+      { data: 'action', orderable: false, searchable: false },
   { data: null, orderable: false, searchable: false, render: (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
   { data: 'article_alternative_code' },
   { data: 'article_desc' },
-  { data: 'pl_date' },
   { data: 'sales_price',       className: 'text-right' },
   { data: 'material_price',    className: 'text-right' },
   { data: 'margin',            className: 'text-right' },
   { data: 'conversion_result', className: 'text-right' },
   { data: 'created_by' },
-  { data: 'action', orderable: false, searchable: false },
+  { data: 'pl_date' },
 ],
     drawCallback: function () { if (window.feather) feather.replace(); }
   });
