@@ -110,7 +110,7 @@ return response()->json([
     'status' => 1,
     'fg' => [
         'article_code'     => $fg,
-        'alternative_code' => $fgArticle->alternative_code ?? $fg,
+        'article_alternative_code' => $fgArticle->alternative_code ?? $fg,
         'article_name'     => $fgArticle->article_desc ?? $fg,
         'bom_code'         => $hdr->bom_code,
     ],

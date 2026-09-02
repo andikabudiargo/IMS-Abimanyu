@@ -39,7 +39,7 @@
             <label>Finish Goods (bisa pilih beberapa)</label>
            <select id="selFg" class="form-control select2" multiple>
   @foreach($fgList as $fg)
-    <option value="{{ $fg->article_code }}">{{ $fg->alternative_code }} - {{ $fg->article_desc }}</option>
+    <option value="{{ $fg->article_code }}">{{ $fg->article_alternative_code }} - {{ $fg->article_desc }}</option>
   @endforeach
 </select>
           </div>
@@ -105,10 +105,10 @@ function renderCard(fg, mats) {
     rows += `
       <tr class="mat-row"
           data-code="${m.article_code}"
-          data-alt="${m.alternative_code ?? ''}"
+          data-alt="${m.article_alternative_code ?? ''}"
           data-type="${m.article_type}"
           data-source="${m.source}" data-qty="${m.qty}">
-        <td>${m.alternative_code ?? ''}</td>
+        <td>${m.article_alternative_code ?? ''}</td>
         <td>${m.article_name ?? ''}</td>
         <td><span class="badge badge-${m.article_type==='RMNP'?'secondary':'success'}">${m.article_type}</span></td>
         <td class="text-right">${m.qty}</td>
@@ -121,10 +121,10 @@ function renderCard(fg, mats) {
   const html = `
   <div class="card fg-card border"
        data-fg="${fg.article_code}"
-       data-alt="${fg.alternative_code ?? ''}"
+       data-alt="${fg.article_alternative_code ?? ''}"
        data-bom="${fg.bom_code}">
     <div class="card-header d-flex justify-content-between align-items-center py-1">
-      <b>${fg.alternative_code ?? fg.article_code} - ${fg.article_name}</b>
+      <b>${fg.article_alternative_code ?? fg.article_code} - ${fg.article_name}</b>
       <button type="button" class="btn btn-sm btn-outline-danger btn-remove">&times;</button>
     </div>
     <div class="card-body">
