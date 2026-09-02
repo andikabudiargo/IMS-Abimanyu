@@ -13,8 +13,10 @@
         <table class="table table-striped" id="tblPriceList" style="width:100%">
           <thead>
             <tr>
-              <th>No</th><th>PL Number</th><th>Date</th><th>Total FG</th>
-              <th>Conv. Value</th><th>Created By</th><th>Action</th>
+              <th>No</th><th>FG Code</th><th>FG Name</th><th>Date</th>
+              <th class="text-right">Sales Price</th><th class="text-right">Material Price</th>
+              <th class="text-right">Margin</th><th class="text-right">Conversion</th>
+              <th>By</th><th>Action</th>
             </tr>
           </thead>
         </table>
@@ -37,11 +39,11 @@
         <div class="modal-body">
           <div class="form-group">
             <label>Finish Goods (bisa pilih beberapa)</label>
-           <select id="selFg" class="form-control select2" multiple>
-  @foreach($fgList as $fg)
-    <option value="{{ $fg->article_code }}">{{ $fg->article_alternative_code }} - {{ $fg->article_desc }}</option>
-  @endforeach
-</select>
+            <select id="selFg" class="form-control select2" multiple>
+              @foreach($fgList as $fg)
+                <option value="{{ $fg->article_code }}">{{ $fg->article_alternative_code }} - {{ $fg->article_desc }}</option>
+              @endforeach
+            </select>
           </div>
           <div class="alert alert-info py-1">
             Conversion Value: <b>{{ number_format($conversionValue,2) }}</b>
@@ -57,6 +59,24 @@
     </div>
   </div>
 </div>
+
+<!-- MODAL DETAIL -->
+<div class="modal fade" id="modalDetail" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detail Price List</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body" id="detailBody">
+        <div class="text-center py-3 text-muted">Loading...</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 @endsection
 
 @section('page-script')
@@ -64,39 +84,125 @@
 const TOKEN      = '{{ csrf_token() }}';
 const URL_DATA   = '{{ route("conversion.priceList.data") }}';
 const URL_GETBOM = '{{ route("conversion.priceList.getBom") }}';
+const URL_SHOW   = '{{ route("conversion.priceList.show") }}';
 const CONV_VALUE = parseFloat($('#convValue').val()) || 0;
+// URL edit/update
+const URL_EDIT   = '{{ route("conversion.priceList.edit") }}';
+const URL_UPDATE = '{{ route("conversion.priceList.update") }}';
+
+// re-render feather icon tiap tabel selesai draw
+$('#tblPriceList').on('draw.dt', function () {
+  if (window.feather) feather.replace();
+});
+
+// Edit
+$('#tblPriceList').on('click', '.btn-edit', function () {
+  loadEdit($(this).data('id'));
+});
 
 $(function () {
   $('#tblPriceList').DataTable({
     processing: true, serverSide: true, ajax: URL_DATA,
     columns: [
       { data: null, render: (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
-      { data: 'pl_number' },
+      { data: 'article_alternative_code' },
+      { data: 'article_desc' },
       { data: 'pl_date' },
-      { data: 'total_fg' },
-      { data: 'conversion_value' },
+      { data: 'sales_price',       className: 'text-right' },
+      { data: 'material_price',    className: 'text-right' },
+      { data: 'margin',            className: 'text-right' },
+      { data: 'conversion_result', className: 'text-right' },
       { data: 'created_by' },
       { data: 'action', orderable: false, searchable: false },
     ]
   });
 
   $('#selFg').select2({ dropdownParent: $('#modalCreate'), width: '100%', placeholder: 'Pilih FG' });
-
   $('#selFg').on('select2:select', e => loadBom(e.params.data.id));
   $('#selFg').on('select2:unselect', e => $('.fg-card[data-fg="'+e.params.data.id+'"]').remove());
+
+  // Detail
+  $('#tblPriceList').on('click', '.btn-detail', function () {
+    showDetail($(this).data('id'));
+  });
 });
 
+/* ---------- DETAIL ---------- */
+function showDetail(id) {
+  $('#detailBody').html('<div class="text-center py-3 text-muted">Loading...</div>');
+  $('#modalDetail').modal('show');
+  $.ajax({ url: URL_SHOW, method: 'POST', dataType: 'json', data: { _token: TOKEN, id: id } })
+    .done(function (res) {
+      if (res.status != 1) { $('#detailBody').html('<div class="text-danger">'+(res.message||'Gagal')+'</div>'); return; }
+      renderDetail(res.fg, res.materials);
+    })
+    .fail(function (xhr) {
+      $('#detailBody').html('<div class="text-danger">Error '+xhr.status+'</div>');
+    });
+}
+
+function renderDetail(fg, mats) {
+  let rows = '';
+  mats.forEach(m => {
+    rows += `
+      <tr>
+        <td>${m.article_alternative_code ?? m.article_code}</td>
+        <td>${m.article_desc ?? ''}</td>
+        <td><span class="badge badge-${m.article_type==='RMNP'?'secondary':'success'}">${m.article_type ?? ''}</span></td>
+        <td class="text-right">${fmt(m.qty)}</td>
+        <td class="text-right">${fmt(m.unit_price)}</td>
+        <td class="text-right">${fmt(m.line_total)}</td>
+      </tr>`;
+  });
+
+  const html = `
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <b>${fg.article_alternative_code ?? fg.article_code}</b><br>
+        <small class="text-muted">${fg.article_desc ?? ''}</small>
+      </div>
+      <div class="col-sm-6 text-right">
+        <div>Date: <b>${fmtDate(fg.pl_date)}</b></div>
+        <div>Conv. Value: <b>${fmt(fg.conversion_value)}</b></div>
+      </div>
+    </div>
+    <table class="table table-sm table-bordered">
+      <thead class="thead-light">
+        <tr><th>Code</th><th>Name</th><th>Type</th><th class="text-right">Qty</th>
+            <th class="text-right">Unit Price</th><th class="text-right">Line Total</th></tr>
+      </thead>
+      <tbody>${rows || '<tr><td colspan="6" class="text-center text-muted">No material</td></tr>'}</tbody>
+    </table>
+    <div class="row text-right">
+      <div class="col-sm-6 offset-sm-6">
+        <div>Sales Price: <b>${fmt(fg.sales_price)}</b></div>
+        <div>Material Price: <b>${fmt(fg.material_price)}</b></div>
+        <div>Sales - Material: <b>${fmt(fg.margin)}</b></div>
+        <div>Conversion: <b class="text-primary">${fmt(fg.conversion_result)}</b></div>
+      </div>
+    </div>`;
+  $('#detailBody').html(html);
+}
+
+/* ---------- CREATE ---------- */
 function loadBom(code) {
   if ($('.fg-card[data-fg="'+code+'"]').length) return;
-  $.post(URL_GETBOM, { _token: TOKEN, article_code: code }, function (res) {
-    if (res.status != 1) {
-      Swal.fire('Info', res.message, 'warning');
+  $.ajax({ url: URL_GETBOM, method: 'POST', dataType: 'json', data: { _token: TOKEN, article_code: code } })
+    .done(function (res) {
+      if (res.status != 1) {
+        Swal.fire('Info', res.message || 'BOM tidak ditemukan', 'warning');
+        let v = ($('#selFg').val() || []).filter(x => x != code);
+        $('#selFg').val(v).trigger('change');
+        return;
+      }
+      renderCard(res.fg, res.materials);
+    })
+    .fail(function (xhr) {
+      console.error('getBom error', xhr.status, xhr.responseText);
+      Swal.fire('Error', 'getBom gagal ('+xhr.status+'). Cek console.', 'error');
       let v = ($('#selFg').val() || []).filter(x => x != code);
       $('#selFg').val(v).trigger('change');
-      return;
-    }
-    renderCard(res.fg, res.materials);
-  }, 'json');
+    });
 }
 
 function renderCard(fg, mats) {
@@ -105,7 +211,6 @@ function renderCard(fg, mats) {
     rows += `
       <tr class="mat-row"
           data-code="${m.article_code}"
-          data-alt="${m.article_alternative_code ?? ''}"
           data-type="${m.article_type}"
           data-source="${m.source}" data-qty="${m.qty}">
         <td>${m.article_alternative_code ?? ''}</td>
@@ -119,10 +224,7 @@ function renderCard(fg, mats) {
   });
 
   const html = `
-  <div class="card fg-card border"
-       data-fg="${fg.article_code}"
-       data-alt="${fg.article_alternative_code ?? ''}"
-       data-bom="${fg.bom_code}">
+  <div class="card fg-card border" data-fg="${fg.article_code}" data-bom="${fg.bom_code}">
     <div class="card-header d-flex justify-content-between align-items-center py-1">
       <b>${fg.article_alternative_code ?? fg.article_code} - ${fg.article_name}</b>
       <button type="button" class="btn btn-sm btn-outline-danger btn-remove">&times;</button>
@@ -179,8 +281,10 @@ function recalc($card) {
   $card.find('.conv-result').text(fmt(conv));
 }
 
-function fmt(n) { return (n || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }); }
+function fmt(n) { return (parseFloat(n) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }); }
+function fmtDate(d) { if (!d) return '-'; const p = String(d).substr(0,10).split('-'); return p.length===3 ? p[2]+'-'+p[1]+'-'+p[0] : d; }
 
+/* ---------- SAVE ---------- */
 $('#btnSave').on('click', function () {
   let items = [];
   $('.fg-card').each(function () {
