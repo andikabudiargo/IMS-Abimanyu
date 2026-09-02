@@ -163,7 +163,7 @@ class CheckStockAnomaly extends Command
                   -- hanya movement SETELAH tanggal OB terbaru
                   -- kalau tidak ada OB (lo.ob_date NULL) → semua movement masuk
                   AND (lo.ob_date IS NULL
-                       OR TO_DATE(wm.movement_date, 'dd-mm-yyyy') > lo.ob_date)
+     OR TO_DATE(wm.movement_date, 'dd-mm-yyyy') > GREATEST(lo.ob_date, '2026-06-30'::DATE))
                   {$whereLocation}
                   {$whereArticle}
             ),
@@ -205,16 +205,16 @@ class CheckStockAnomaly extends Command
             ),
 
             -- gabungkan: qty_ledger = ob_qty + qty_net
-            ledger AS (
-                SELECT
-                    COALESCE(ob.article_code, nm.artikel_code)   AS artikel_code,
-                    COALESCE(ob.location_number, nm.location_number) AS location_number,
-                    COALESCE(ob.ob_qty, 0) + COALESCE(nm.qty_net, 0) AS qty_ledger
-                FROM ob_folded ob
-                FULL OUTER JOIN net_mv nm
-                    ON nm.artikel_code   = ob.article_code
-                   AND nm.location_number = ob.location_number
-            )
+ledger AS (
+    SELECT
+        ob.article_code                                      AS artikel_code,
+        ob.location_number,
+        ob.ob_qty + COALESCE(nm.qty_net, 0)                 AS qty_ledger
+    FROM ob_folded ob
+    LEFT JOIN net_mv nm                          -- ← ganti FULL OUTER JOIN jadi LEFT JOIN
+        ON nm.artikel_code    = ob.article_code
+       AND nm.location_number = ob.location_number
+)
 
             SELECT
                 l.artikel_code,
