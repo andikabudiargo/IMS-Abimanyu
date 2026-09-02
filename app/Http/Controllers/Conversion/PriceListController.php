@@ -25,8 +25,8 @@ class PriceListController extends Controller
         // FG list buat Select2 (kalau kebanyakan, ubah ke Select2 ajax)
         $data['fgList'] = DB::table('article')
     ->where('article_type', 'FG')
-    ->orderBy('article_article_alternative_code')
-    ->get(['article_code', 'article_article_alternative_code', 'article_desc']);
+    ->orderBy('article_alternative_code')
+    ->get(['article_code', 'article_alternative_code', 'article_desc']);
 
         // conversion value aktif
         $conv = DB::table('conversion_setting')->where('status', '1')->orderByDesc('id')->first();
@@ -110,7 +110,7 @@ return response()->json([
     'status' => 1,
     'fg' => [
         'article_code'     => $fg,
-        'article_article_alternative_code' => $fgArticle->article_alternative_code ?? $fg,
+        'article_alternative_code' => $fgArticle->article_alternative_code ?? $fg,
         'article_name'     => $fgArticle->article_desc ?? $fg,
         'bom_code'         => $hdr->bom_code,
     ],
