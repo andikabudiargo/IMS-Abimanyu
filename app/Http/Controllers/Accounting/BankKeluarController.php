@@ -1295,10 +1295,14 @@ public function paidTransaction($supplierCode, $vcNumber, $extraRefs = [])
         $f = $this->analyticsFilters($request);
 
         // ==== Outstanding: dari ap_invoice, ikut filter supplier saja ====
-        $invQuery = DB::table('ap_invoice')->where('status', '<>', '5');
-        if ($f['paidTo']) {
-            $invQuery->where('supplier_id', $f['paidTo']);
-        }
+      $invQuery = DB::table('ap_invoice')->where('status', '<>', '5');
+
+// hanya invoice tahun 2024 ke atas
+$invQuery->whereRaw("extract(year from to_date(ap_date,'DD-MM-YYYY')) >= 2024");
+
+if ($f['paidTo']) {
+    $invQuery->where('supplier_id', $f['paidTo']);
+}
         $invoices = $invQuery->select('grand_total', 'status',
             DB::raw("(select coalesce(sum(kd.debit),0)
                       from kas_det kd
@@ -1350,12 +1354,12 @@ public function paidTransaction($supplierCode, $vcNumber, $extraRefs = [])
         $baseYear = $f['year'] ? (int) $f['year'] : (int) date('Y');
         if ($f['vcDate'] && $f['fromDate']) {
             $parts = explode('/', $f['fromDate']);
-            $baseYear = isset($parts[2]) ? (int) $parts[2] : $baseYear;
+           $baseYear = isset($parts[0]) ? (int) $parts[0] : $baseYear;
         }
         $year = $request->year_chart ? (int) $request->year_chart : $baseYear;
 
         if ($view === 'monthly') {
-            $rows = (clone $this->analyticsBkQuery($f))
+            $rows = (clone $this->analyticsBkQueryNoDate($f))
                 ->whereRaw("to_date(voucher_date,'DD-MM-YYYY') between to_date(?,'DD-MM-YYYY') and to_date(?,'DD-MM-YYYY')", ["01-01-$year", "31-12-$year"])
                 ->select(
                     DB::raw("extract(month from to_date(voucher_date,'DD-MM-YYYY'))::int as bucket"),
@@ -1455,5 +1459,21 @@ public function paidTransaction($supplierCode, $vcNumber, $extraRefs = [])
             'data'   => $rows->pluck('total')->map(fn($v) => (float) $v),
         ]);
     }
+
+    // sama seperti analyticsBkQuery TAPI tanpa filter vcDate (chart pakai sumbu bulan/tahun sendiri)
+private function analyticsBkQueryNoDate($f)
+{
+    return DB::table('kas_hdr')
+        ->where('voucher_type', $this->moduleCode)
+        ->where('kas_hdr.status', '<>', '5')
+        ->where(function ($query) use ($f) {
+            $f['seachVc'] ? $query->where('voucher_number','ilike','%'.$f['seachVc'].'%') : '';
+            // vcDate SENGAJA tidak dipakai di chart
+            $f['period1'] ? $query->whereBetween(DB::raw("period::integer"), [$f['period1'], $f['period2']]) : '';
+            $f['year'] ? $query->where('year', $f['year']) : '';
+            $f['searchStatus'] ? $query->where('status', $f['searchStatus']) : '';
+            $f['paidTo'] ? $query->where('paid_to', $f['paidTo']) : '';
+        });
+}
 
 }
