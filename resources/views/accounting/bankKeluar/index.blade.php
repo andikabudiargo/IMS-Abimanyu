@@ -88,6 +88,67 @@
   </div>
 </section>
 
+<section id="bk-analytics">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">Analytics / Overview</h4>
+      <div class="heading-elements">
+        <ul class="list-inline mb-0">
+            <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-content collapse" id="bkAnalyticsBody">
+      <div class="card-body">
+        <div class="row match-height mb-2">
+          <div class="col-md-3 col-sm-6">
+            <div class="card border shadow-none h-100 mb-0">
+              <div class="card-body">
+                <h6 class="text-muted mb-1">Outstanding</h6>
+                <h3 class="mb-0" id="anlOutstandingAmount">Rp 0</h3>
+                <small class="text-muted" id="anlOutstandingCount">0 dari 0 invoice belum dibayar (Hutang)</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="card border shadow-none h-100 mb-0">
+              <div class="card-body">
+                <h6 class="text-muted mb-1">Total Payment</h6>
+                <h3 class="mb-0" id="anlPaidAmount">Rp 0</h3>
+                <small class="text-muted" id="anlPaidCount">0 invoice terbayar via BK ini</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border shadow-none h-100 mb-0">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <h6 class="text-muted mb-0">Trend Bank Keluar</h6>
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary active" id="btnViewMonthly">Bulanan</button>
+                    <button type="button" class="btn btn-outline-secondary" id="btnViewYearly">Tahunan</button>
+                  </div>
+                </div>
+                <div id="chartSpendTrend"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-5">
+            <div class="card border shadow-none mb-0">
+              <div class="card-body">
+                <h6 class="text-muted mb-1">Distribusi Cost Center</h6>
+                <div id="chartCostCenter"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="table-article">
   <div class="card">
     <div class="card-header">
@@ -124,6 +185,7 @@
 </style>
 @endsection
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
 <script type="text/javascript">
   let currentDate = todayDate('dd-mm-yyyy');   
   $(document).ready(function(){    
@@ -201,6 +263,115 @@
       excelFileName:'bank_pembayaran'
     });
   }
+
+  // ==== ANALYTICS ====
+let bkTrendChart = null;
+let bkCostCenterChart = null;
+let bkAnalyticsLoaded = false;
+let bkCurrentView = 'monthly';
+
+function bkCurrentFilters(){
+  return {
+    seachVc: $('#seachVc').val(),
+    vcDate: $('#vcDate').val(),
+    period1: $('#period1').val(),
+    period2: $('#period2').val(),
+    year: $('#year').val(),
+    searchStatus: $('#searchStatus').val(),
+    searchPaidTo: $('#paidTo').val(),
+    view: bkCurrentView
+  };
+}
+
+function formatRupiah(num){
+  return 'Rp ' + Number(num || 0).toLocaleString('id-ID', {maximumFractionDigits:0});
+}
+
+function loadAnalyticsSummary(){
+  $.get("{{ route('bankKeluar.analytics.summary') }}", bkCurrentFilters(), function(res){
+    $('#anlOutstandingAmount').text(formatRupiah(res.outstanding_amount));
+    $('#anlOutstandingCount').text(res.outstanding_count + ' dari ' + res.total_invoice + ' invoice belum dibayar');
+    $('#anlPaidAmount').text(formatRupiah(res.paid_amount));
+    $('#anlPaidCount').text(res.paid_count + ' invoice terbayar via BK ini');
+  });
+}
+
+function loadAnalyticsChart(){
+  $.get("{{ route('bankKeluar.analytics.chart') }}", bkCurrentFilters(), function(res){
+    const options = {
+      chart: { type: 'bar', height: 260, toolbar: { show: false } },
+      series: [{ name: 'Total Bayar', data: res.data }],
+      xaxis: { categories: res.labels },
+      colors: ['#5e5873'],
+      plotOptions: { bar: { borderRadius: 4, columnWidth: '45%' } },
+      dataLabels: { enabled: false },
+      grid: { strokeDashArray: 4 },
+      yaxis: { labels: { formatter: (v) => formatRupiah(v) } },
+      tooltip: { y: { formatter: (v) => formatRupiah(v) } }
+    };
+
+    if (bkTrendChart) {
+      bkTrendChart.updateOptions(options);
+    } else {
+      bkTrendChart = new ApexCharts(document.querySelector("#chartSpendTrend"), options);
+      bkTrendChart.render();
+    }
+  });
+}
+
+function loadAnalyticsCostCenter(){
+  $.get("{{ route('bankKeluar.analytics.costCenter') }}", bkCurrentFilters(), function(res){
+    const options = {
+      chart: { type: 'donut', height: 280 },
+      series: res.data,
+      labels: res.labels,
+      colors: ['#5e5873','#82868b','#a8aaae','#babfc7','#d8d6de','#6e6b7b'],
+      legend: { position: 'bottom' },
+      dataLabels: { enabled: false },
+      tooltip: { y: { formatter: (v) => formatRupiah(v) } }
+    };
+
+    if (bkCostCenterChart) {
+      bkCostCenterChart.updateOptions(options);
+    } else {
+      bkCostCenterChart = new ApexCharts(document.querySelector("#chartCostCenter"), options);
+      bkCostCenterChart.render();
+    }
+  });
+}
+
+function loadAllAnalytics(){
+  loadAnalyticsSummary();
+  loadAnalyticsChart();
+  loadAnalyticsCostCenter();
+}
+
+// load pertama kali saat accordion Analytics dibuka
+$('#bk-analytics [data-action="collapse"]').on('click', function(){
+  if (!bkAnalyticsLoaded) {
+    bkAnalyticsLoaded = true;
+    setTimeout(loadAllAnalytics, 300);
+  }
+});
+
+$('#btnViewMonthly').on('click', function(){
+  bkCurrentView = 'monthly';
+  $(this).addClass('active');
+  $('#btnViewYearly').removeClass('active');
+  loadAnalyticsChart();
+});
+
+$('#btnViewYearly').on('click', function(){
+  bkCurrentView = 'yearly';
+  $(this).addClass('active');
+  $('#btnViewMonthly').removeClass('active');
+  loadAnalyticsChart();
+});
+
+// ikut refresh saat tombol Search filter utama dipencet
+$("#btnSearch").click(function(){
+  if (bkAnalyticsLoaded) loadAllAnalytics();
+});
 
   $.ajaxSetup({
     headers: {

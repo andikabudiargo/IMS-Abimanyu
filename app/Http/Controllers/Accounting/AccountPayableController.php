@@ -186,7 +186,7 @@ class AccountPayableController extends Controller
         $data['kolomDetail'] = $this->getTableColoumnDetail();        
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'CLOSED','7'=>'PAID'];
-        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','6'=>'PAID'];
+       $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','6'=>'PAID','7'=>'PARTIALLY PAID'];
 
         $data['lockDate'] = $this->lockDateIndex;
             
@@ -1066,7 +1066,7 @@ class AccountPayableController extends Controller
         ->orderBy('nama')
         ->get();
 
-        $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
+       $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PARTIALLY PAID'];
                 
         $data['status'] = $status[$data['header']->status -1];
         $data['currency'] = ['IDR','USD'];
@@ -1090,7 +1090,7 @@ class AccountPayableController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$apNumber,$username);
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
-        $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PAID'];
+       $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PARTIALLY PAID'];
         $data['status'] = $status[$data['header']->status-1];
 
         return view("accounting.accountPayable.show",$data);
@@ -1141,7 +1141,7 @@ class AccountPayableController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$apNumber,$username);
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
-        $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
+        $status = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','CLOSED','PARTIALLY PAID'];
         $data['status'] = $status[$data['header']->status-1];
 
         $data['currency'] = ['IDR','USD'];
@@ -2204,15 +2204,18 @@ class AccountPayableController extends Controller
     $query = DB::table('ap_invoice')
         ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
         ->leftJoin(DB::raw("(
-            select kd.reference, kd.account, kd.voucher_number, kd.debit as voucher_amount,
-                   kh.id as voucher_hdr_id, kh.voucher_date
-            from kas_det kd
-            left join kas_hdr kh on kd.voucher_number = kh.voucher_number
-            where kh.status not in ('5','6')
-        ) as vch"), function ($join) {
-            $join->on('vch.reference', '=', 'ap_invoice.inv_number')
-                 ->on('vch.account', '=', 'third_party.account');
-        })
+    select kd.reference, kd.account,
+           sum(kd.debit) as voucher_amount,
+           string_agg(kh.id::text || '::' || kd.voucher_number, ',' order by kh.voucher_date) as voucher_list,
+           max(kh.voucher_date) as voucher_date
+    from kas_det kd
+    join kas_hdr kh on kd.voucher_number = kh.voucher_number
+    where kh.status <> '5'
+    group by kd.reference, kd.account
+) as vch"), function ($join) {
+    $join->on('vch.reference', '=', 'ap_invoice.inv_number')
+         ->on('vch.account', '=', 'third_party.account');
+})
         // subquery untuk id PO (dipakai hyperlink) - sesuaikan nama tabel/kolom kalau beda
         ->leftJoin(DB::raw("(
             select id as po_id, po_number from purchase_order_hdr
@@ -2249,11 +2252,10 @@ class AccountPayableController extends Controller
             DB::raw("case when pph23_type = 'PPH21' then pph23 else 0 end as pph21"),
             DB::raw("case when pph23_type = 'PPH23' then pph23 else 0 end as pph23"),
             DB::raw("case when pph23_type = 'PPH42' then pph23 else 0 end as pph42"),
-            DB::raw("case when ap_invoice.status = '6' then vch.voucher_date else '' end as voucher_date"),
-            DB::raw("case when ap_invoice.status = '6' then vch.voucher_number else '' end as voucher_number"),
-            DB::raw("case when ap_invoice.status = '6' then vch.voucher_hdr_id else null end as voucher_hdr_id"),
-            DB::raw("case when ap_invoice.status = '6' then vch.voucher_amount else 0 end as voucher_amount"),
-            DB::raw("grand_total - coalesce(case when ap_invoice.status = '6' then vch.voucher_amount else 0 end, 0) as balance"),
+            DB::raw("case when ap_invoice.status in ('6','7') then vch.voucher_list else '' end as voucher_list"),
+DB::raw("case when ap_invoice.status in ('6','7') then vch.voucher_date else '' end as voucher_date"),
+DB::raw("case when ap_invoice.status in ('6','7') then vch.voucher_amount else 0 end as voucher_amount"),
+DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vch.voucher_amount else 0 end, 0) as balance"),
             DB::raw("to_char(to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * top_batas_1), 'DD/MM/YYYY') as due_date")
         )
         ->orderBy('ap_invoice.id', 'DESC');
@@ -2384,34 +2386,43 @@ class AccountPayableController extends Controller
             return implode(', ', $links);
         })
 
-        ->addColumn('status', function ($data) {
-            $badges = ['badge-light-primary','badge-light-info','badge-light-success','badge-light-warning','badge-light-danger','badge-light-dark','badge-light-secondary','badge-light-danger'];
-            $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID'];
-            return "<div class='badge badge-pill " . $badges[$data->status - 1] . "'>" . $statusCode[$data->status - 1] . "</div>";
-        })
+    ->addColumn('status', function ($data) {
+    $badges = ['badge-light-primary','badge-light-info','badge-light-success','badge-light-warning','badge-light-danger','badge-light-dark','badge-light-warning'];
+    $statusCode = ['DRAFT','VALIDATED','APPROVED','POSTED','CANCELED','PAID','PARTIALLY PAID'];
+    $idx = (int)$data->status - 1;
+    if ($idx < 0 || $idx >= count($statusCode)) $idx = 0;
+    return "<div class='badge badge-pill ".$badges[$idx]."'>".$statusCode[$idx]."</div>";
+})
 
-        ->addColumn('voucher_number', function ($data) {
-            $voucherNumber = (string) ($data->voucher_number ?? '');
-            if ($voucherNumber === '') {
-                return '-';
-            }
+       ->addColumn('voucher_number', function ($data) {
+    if (empty($data->voucher_list)) {
+        return '-';
+    }
+    $pairs = explode(',', $data->voucher_list);
+    $links = [];
+    foreach ($pairs as $pair) {
+        [$vId, $vNumber] = array_pad(explode('::', $pair), 2, '');
+        if ($vNumber === '') continue;
 
-            if (strpos($voucherNumber, 'KK') === 0) {
-                $routeName = 'kasKeluar.show';
-            } elseif (strpos($voucherNumber, 'BK') === 0) {
-                $routeName = 'bankKeluar.show';
-            } else {
-                return $voucherNumber;
-            }
+        // tentukan route dari prefix nomor voucher
+        if (strpos($vNumber, 'KK') === 0) {
+            $routeName = 'kasKeluar.show';
+        } elseif (strpos($vNumber, 'BK') === 0) {
+            $routeName = 'bankKeluar.show';
+        } else {
+            $links[] = $vNumber;   // prefix tak dikenal, tampilkan teks saja
+            continue;
+        }
 
-            if (empty($data->voucher_hdr_id)) {
-                return $voucherNumber;
-            }
-
-            return '<a href="' . route($routeName, ['id' => Crypt::encryptString($data->voucher_hdr_id)]) . '" target="_blank">
-                        ' . $voucherNumber . '
-                    </a>';
-        })
+        if ($vId === '' || $vId === null) {
+            $links[] = $vNumber;   // id tidak ada, fallback teks
+        } else {
+            $links[] = '<a href="' . route($routeName, ['id' => Crypt::encryptString($vId)]) . '" target="_blank">'
+                     . $vNumber . '</a>';
+        }
+    }
+    return implode(', ', $links);
+})
 
          // === BARU: custom search untuk kolom hasil subquery/raw ===
     ->filterColumn('pr_number', function ($query, $keyword) {
@@ -2430,9 +2441,17 @@ class AccountPayableController extends Controller
               ->where('ap_invoice_detail.rec_number', 'ilike', "%{$keyword}%");
         });
     })
-    ->filterColumn('voucher_number', function ($query, $keyword) {
-        $query->where('vch.voucher_number', 'ilike', "%{$keyword}%");
-    })
+   ->filterColumn('voucher_number', function ($query, $keyword) {
+    $query->whereExists(function ($q) use ($keyword) {
+        $q->select(DB::raw(1))
+          ->from('kas_det as kd_s')
+          ->join('kas_hdr as kh_s', 'kh_s.voucher_number', '=', 'kd_s.voucher_number')
+          ->whereColumn('kd_s.reference', 'ap_invoice.inv_number')
+          ->whereColumn('kd_s.account', 'third_party.account')
+          ->where('kh_s.status', '<>', '5')
+          ->where('kd_s.voucher_number', 'ilike', "%{$keyword}%");
+    });
+})
 
     // === BARU: custom order untuk kolom hasil raw/CASE/alias yang tidak punya kolom fisik sama nama ===
     ->orderColumn('ap_date_1', function ($query, $order) {

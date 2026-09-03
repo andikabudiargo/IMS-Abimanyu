@@ -172,6 +172,68 @@
     }   
 
     function getAmountValue(vRef,objIndex,jenis) {
+    let objVcDebit= $('#item_row input[name="vcDebit[]"]');
+    let objVcCredit= $('#item_row input[name="vcCredit[]"]');
+    let url ="{{ route('bankKeluar.get.invoice.amount') }}"; 
+    let paidTo = $('#paidTo').val();
+
+    if(jenis === 'piutang'){
+        url ="{{ route('bankPenerimaan.get.invoice.amount') }}"; 
+    }
+
+    $.ajax({
+        type: "get",
+        url: url,
+        data: {
+            vRef:vRef,
+            supplierCode:paidTo
+        },
+        dataType: "json",
+        success: function(data) {
+            objVcCredit.eq(objIndex).val('');
+            objVcDebit.eq(objIndex).val('');
+
+            // pakai sisa (remaining) kalau ada; fallback ke amount penuh biar AR/piutang lama tetap jalan
+            let nilaiIsi = (data.remaining !== undefined && data.remaining !== null)
+                            ? data.remaining
+                            : data.amount;
+
+            if(nilaiIsi){
+                let fixAmount = parseFloat(nilaiIsi).toFixed(2);
+
+                if(jenis === 'piutang'){
+                    objVcCredit.eq(objIndex).val(humanizeNumber(fixAmount));
+                    objVcDebit.eq(objIndex).val('');
+                }else{
+                    objVcDebit.eq(objIndex).val(humanizeNumber(fixAmount));
+                    objVcCredit.eq(objIndex).val('');
+                }
+
+                // simpan sisa di elemen debit buat validasi sebelum submit
+                objVcDebit.eq(objIndex).attr('data-remaining', data.remaining ?? '');
+
+                // kasih tau user kalau invoice ini sudah dibayar sebagian
+                if(data.paid && parseFloat(data.paid) > 0){
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sudah dibayar sebagian',
+                        html: 'Invoice <b>'+vRef+'</b><br>Total: '+humanizeNumber(parseFloat(data.grandTotal).toFixed(2))
+                             +'<br>Sudah dibayar: '+humanizeNumber(parseFloat(data.paid).toFixed(2))
+                             +'<br>Sisa: <b>'+humanizeNumber(parseFloat(data.remaining).toFixed(2))+'</b>',
+                        timer: 4000
+                    });
+                }
+
+                hitungGrandTotal();
+            }
+        },
+        error: function(error) {
+            console.log(error);
+        }
+    });
+}
+
+    function getAmountValueOld(vRef,objIndex,jenis) {
         let objVcDebit= $('#item_row input[name="vcDebit[]"]');
         let objVcCredit= $('#item_row input[name="vcCredit[]"]');
         let url ="{{ route('bankKeluar.get.invoice.amount') }}"; 

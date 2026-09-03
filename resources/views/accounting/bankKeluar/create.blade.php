@@ -258,6 +258,7 @@
                         let sCc=objVcCc.eq(i).val();
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
                         let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
+                         let remaining = objVcDebit.eq(i).attr('data-remaining');
 
                         if ((sDesc!=='') && ((sDebit + sCredit) != 0) && (sAccount!=='') && (sCc!=='')){
                             details.push({
@@ -269,6 +270,16 @@
                                 "credit":sCredit,
                             });
                         }
+
+                          // === validasi partial: tolak bayar > sisa ===
+       
+        if (remaining !== undefined && remaining !== '' && sRef) {
+            if (parseFloat(sDebit) > parseFloat(remaining) + 0.01) {
+                pesan += "Invoice " + sRef + ": bayar melebihi sisa "
+                       + humanizeNumber(parseFloat(remaining).toFixed(2)) + "<br>";
+                flag = 1;
+            }
+        }
 
                         if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
                             cekIsi++;
@@ -552,6 +563,7 @@
                 }
             }
         });
+
 
         if (details.length > 0){
             Swal.fire({

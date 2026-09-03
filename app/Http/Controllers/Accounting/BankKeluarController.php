@@ -42,6 +42,16 @@ class BankKeluarController extends Controller
     private $lockDate;
     private $lockDateIndex;
 
+    // === tambahan partial payment ===
+// kolom di kas_det yang menyimpan nilai bayar ke invoice.
+// Bank Keluar = bayar hutang => biasanya DEBIT (Dr AP, Cr Bank).
+// kalau di sistemmu kebalik, ganti ke 'credit'.
+private $invoicePaidColumn = 'debit';
+
+// status ap_invoice yang dianggap "belum lunas / masih bisa dipanggil".
+// dipakai buat balikin status kalau invoice yang tadinya LUNAS (6) jadi ada sisa lagi karena diedit.
+private $invoiceOpenStatus = '4'; // POSTED — sesuaikan sama filter dropdown invoice-mu
+
     public function __construct()
     {
         $this->title = "Bank Pembayaran";
@@ -341,10 +351,12 @@ class BankKeluarController extends Controller
             // 'pcNumber'  => 'required',
             'period'  => 'required'
         ]);
+
         
         $error_array = array();
         $success_output = '';
         // return $validation;
+        
         if ($validation->fails()){
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
@@ -354,9 +366,21 @@ class BankKeluarController extends Controller
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
             // $hasilUpdate = AppHelpers::resetCode($leadCode);
-            $inputYear = substr($vcDate,-2);
-            $vcNumber = $this->getLastCode($leadCode,$periodNomor,$inputYear);
-            DB::beginTransaction();
+           $inputYear = substr($vcDate,-2);
+$vcNumber = $this->getLastCode($leadCode,$periodNomor,$inputYear);
+
+// === validasi partial ===
+$paymentErrors = $this->assertNotExceedRemaining($details, $paidTo);
+if (count($paymentErrors) > 0) {
+    return response()->json([
+        'status'  => 0,
+        'title'   => "Save $this->title",
+        'message' => array_map(fn($e) => [$e], $paymentErrors),
+        'alert'   => 'error',
+    ]);
+}
+
+DB::beginTransaction();
             try {
                     DB::table('kas_hdr')->insert([
                         'voucher_number' => $vcNumber,
@@ -552,8 +576,24 @@ class BankKeluarController extends Controller
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
                         
-            DB::beginTransaction();
-            try {
+           DB::beginTransaction();
+try {
+    // === validasi partial (exclude voucher ini) ===
+    $paymentErrors = $this->assertNotExceedRemaining($details, $paidTo, $vcNumber);
+    if (count($paymentErrors) > 0) {
+        DB::rollBack();
+        return response()->json([
+            'status'  => 0,
+            'title'   => "Update $this->title",
+            'message' => array_map(fn($e) => [$e], $paymentErrors),
+            'alert'   => 'error',
+        ]);
+    }
+
+    $oldRefs = DB::table('kas_det')
+        ->where('voucher_number', $vcNumber)
+        ->whereNotNull('reference')->where('reference', '<>', '')
+        ->pluck('reference')->toArray();
 
                     $row_affected=DB::table('kas_hdr')
                     ->where('voucher_number',$vcNumber)
@@ -601,14 +641,11 @@ class BankKeluarController extends Controller
                     // ->where('voucher_number',$vcNumber)
                     // ->pluck('reference')->toArray();
     
-                    $status=DB::table('kas_hdr')
-                    ->where('voucher_number',$vcNumber)
-                    ->value('status');
-
-                    $supplierId = $paidTo;
-                    if($status == '3'){
-                        $this->paidTransaction($supplierId,$vcNumber);
-                    }
+                       $status = DB::table('kas_hdr')->where('voucher_number', $vcNumber)->value('status');
+    $supplierId = $paidTo;
+    if ($status == '3') {
+        $this->paidTransaction($supplierId, $vcNumber, $oldRefs);
+    }
 
                     DB::commit();
                     $title ="Update $this->title";
@@ -1036,20 +1073,139 @@ class BankKeluarController extends Controller
     }
 
     public function getInvoiceAmount(Request $request)
-    {
-        $refNumber = $request->vRef;
-        $supplierCode = $request->supplierCode;
+{
+    $refNumber    = $request->vRef;
+    $supplierCode = $request->supplierCode;
 
-        $amount = db::table('ap_invoice')
-        ->where('inv_number',$refNumber)
-        ->where('supplier_id',$supplierCode)
-        ->select(db::raw("grand_total as amount"))
-        ->value('amount');
+    $grandTotal = (float) DB::table('ap_invoice')
+        ->where('inv_number', $refNumber)
+        ->where('supplier_id', $supplierCode)
+        ->value('grand_total');
 
-        return response()->json(array('amount' => $amount));
+    $paid      = $this->getInvoicePaid($refNumber, $supplierCode);
+    $remaining = $grandTotal - $paid;
+
+    return response()->json([
+        'amount'     => $grandTotal,               // dikirim biar JS lama gak error
+        'grandTotal' => $grandTotal,
+        'paid'       => $paid,
+        'remaining'  => $remaining < 0 ? 0 : $remaining,
+    ]);
+}
+
+    private function getInvoicePaid($reference, $supplierCode, $excludeVcNumber = null)
+{
+    if ($reference === null || $reference === '') return 0;
+
+    $col = $this->invoicePaidColumn;
+
+    return (float) DB::table('kas_det')
+        ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
+        ->where('kas_det.reference', $reference)
+        ->where('kas_hdr.paid_to', $supplierCode)
+        ->where('kas_hdr.voucher_type', $this->moduleCode)   // 'BK'
+        ->where('kas_hdr.status', '<>', '5')                 // voucher deleted tidak dihitung
+        ->when($excludeVcNumber, function ($q) use ($excludeVcNumber) {
+            $q->where('kas_det.voucher_number', '<>', $excludeVcNumber);
+        })
+        ->sum(DB::raw("coalesce(kas_det.$col, 0)"));
+}
+
+private function assertNotExceedRemaining($details, $supplierCode, $excludeVcNumber = null)
+{
+    $col = $this->invoicePaidColumn;
+    $errors = [];
+
+    // gabung nominal per reference (jaga-jaga 1 invoice muncul di 2 baris)
+    $perRef = [];
+    foreach ($details as $val) {
+        $ref = $val->reference ?? null;
+        if ($ref === null || $ref === '') continue;
+        $amt = (float) ($val->{$col} ?? 0);
+        $perRef[$ref] = ($perRef[$ref] ?? 0) + $amt;
     }
 
-    public function paidTransaction($supplierCode,$vcNumber)
+    foreach ($perRef as $ref => $amt) {
+        $inv = DB::table('ap_invoice')
+            ->where('inv_number', $ref)
+            ->where('supplier_id', $supplierCode)
+            ->first();
+
+        if (!$inv) continue;   // bukan AP (mis. refund AR) → lewati validasi sisa
+
+        $grandTotal = (float) $inv->grand_total;
+        $paidOther  = $this->getInvoicePaid($ref, $supplierCode, $excludeVcNumber);
+        $remaining  = $grandTotal - $paidOther;
+
+        if ($amt > $remaining + 0.01) {
+            $errors[] = "Invoice $ref: bayar " . number_format($amt, 2)
+                      . " melebihi sisa " . number_format(max($remaining, 0), 2);
+        }
+    }
+
+    return $errors;
+}
+
+public function paidTransaction($supplierCode, $vcNumber, $extraRefs = [])
+{
+    $refs = DB::table('kas_det')
+        ->where('voucher_number', $vcNumber)
+        ->whereNotNull('reference')->where('reference', '<>', '')
+        ->pluck('reference')->toArray();
+
+    $refs = array_values(array_unique(array_merge($refs, $extraRefs)));
+
+    // === AP (hutang supplier): partial-aware ===
+    foreach ($refs as $ref) {
+        if ($ref === null || $ref === '') continue;
+
+        $inv = DB::table('ap_invoice')
+            ->where('inv_number', $ref)
+            ->where('supplier_id', $supplierCode)
+            ->first();
+
+        if (!$inv) continue;   // bukan AP → ditangani blok AR di bawah, JANGAN diapa-apakan di sini
+
+        $grandTotal = (float) $inv->grand_total;
+        $paid       = $this->getInvoicePaid($ref, $supplierCode);
+
+        if ($paid >= $grandTotal - 0.01) {
+            $newStatus = '6';                        // PAID (lunas)
+        } elseif ($paid > 0.01) {
+            $newStatus = '7';                        // PARTIALLY PAID
+        } else {
+            $newStatus = $this->invoiceOpenStatus;   // '4' POSTED (balik terbuka, mis. voucher dicancel)
+        }
+
+        DB::table('ap_invoice')
+            ->where('inv_number', $ref)
+            ->where('supplier_id', $supplierCode)
+            ->update([
+                'status'     => $newStatus,
+                'updated_by' => Auth::user()->username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+    }
+
+    // === AR refund & DN: BIARKAN apa adanya (kepakai, jangan diubah) ===
+    DB::table('invoice_hdr')
+        ->whereIn('invoice_number', $refs)
+        ->update([
+            'status'     => '6',
+            'updated_by' => Auth::user()->username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+    DB::table('debit_note_hdr')
+        ->whereIn('dn_number', $refs)
+        ->update([
+            'status'     => '6',
+            'updated_by' => Auth::user()->username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+}
+
+    public function paidTransactionOld($supplierCode,$vcNumber)
     {
 
         $listInvoice=DB::table('kas_det')
@@ -1087,6 +1243,182 @@ class BankKeluarController extends Controller
                 'updated_at' => date('Y-m-d H:i:s'),
             ]
         );
+    }
+
+        /* ================= ANALYTICS ================= */
+
+    private function analyticsFilters(Request $request)
+    {
+        $seachVc = strtolower($request->seachVc);
+        $vcDate = $request->vcDate;
+        $period1 = $request->period1;
+        $period2 = $request->period2;
+        $year = $request->year;
+        $searchStatus = $request->searchStatus;
+        $paidTo = $request->searchPaidTo;
+
+        $fromDate = "";
+        $toDate = "";
+
+        if ($vcDate) {
+            $date = explode("to", $vcDate);
+            if (count($date) > 1) {
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            } else {
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate;
+            }
+        }
+
+        return compact('seachVc','vcDate','fromDate','toDate','period1','period2','year','searchStatus','paidTo');
+    }
+
+    // dasar query kas_hdr BK yang sudah kena semua filter form (kecuali Outstanding)
+    private function analyticsBkQuery($f)
+    {
+        return DB::table('kas_hdr')
+            ->where('voucher_type', $this->moduleCode) // 'BK'
+            ->where('kas_hdr.status', '<>', '5')
+            ->where(function ($query) use ($f) {
+                $f['seachVc'] ? $query->where('voucher_number','ilike','%'.$f['seachVc'].'%') : '';
+                $f['vcDate'] ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$f['fromDate'], $f['toDate']]) : '';
+                $f['period1'] ? $query->whereBetween(DB::raw("period::integer"), [$f['period1'], $f['period2']]) : '';
+                $f['year'] ? $query->where('year', $f['year']) : '';
+                $f['searchStatus'] ? $query->where('status', $f['searchStatus']) : '';
+                $f['paidTo'] ? $query->where('paid_to', $f['paidTo']) : '';
+            });
+    }
+
+    public function analyticsSummary(Request $request)
+    {
+        $f = $this->analyticsFilters($request);
+
+        // ==== Outstanding: dari ap_invoice, ikut filter supplier saja ====
+        $invQuery = DB::table('ap_invoice')->where('status', '<>', '5');
+        if ($f['paidTo']) {
+            $invQuery->where('supplier_id', $f['paidTo']);
+        }
+        $invoices = $invQuery->select('grand_total', 'status',
+            DB::raw("(select coalesce(sum(kd.debit),0)
+                      from kas_det kd
+                      join kas_hdr kh on kh.voucher_number = kd.voucher_number
+                      where kd.reference = ap_invoice.inv_number
+                        and kh.voucher_type = '$this->moduleCode'
+                        and kh.status <> '5') as paid_amount")
+        )->get();
+
+        $totalInvoice = $invoices->count();
+        $outstanding  = $invoices->filter(fn($r) => ($r->grand_total - $r->paid_amount) > 0.01);
+
+        // ==== Total Payment: dari kas_hdr BK yang kena filter form ====
+        $bkAmount = (clone $this->analyticsBkQuery($f))->sum('amount');
+
+        $paidInvoiceCount = DB::table('kas_det')
+            ->join('kas_hdr','kas_hdr.voucher_number','=','kas_det.voucher_number')
+            ->whereIn('kas_hdr.id', function($q) use ($f) {
+                $q->select('id')->fromSub(function($sub) use ($f) {
+                    $sub->from('kas_hdr')->select('id');
+                    // reuse filter via analyticsBkQuery below instead (lihat catatan)
+                }, 'tmp');
+            })
+            ->count(); // placeholder, diganti pendekatan lebih simple di bawah
+
+        // pendekatan lebih simple & aman: ambil voucher_number yang lolos filter dulu
+        $vcNumbers = (clone $this->analyticsBkQuery($f))->pluck('voucher_number');
+
+        $paidInvoiceCount = DB::table('kas_det')
+            ->whereIn('voucher_number', $vcNumbers)
+            ->whereNotNull('reference')->where('reference','<>','')
+            ->distinct()
+            ->count('reference');
+
+        return response()->json([
+            'outstanding_amount' => (float) $outstanding->sum(fn($r) => $r->grand_total - $r->paid_amount),
+            'outstanding_count'  => $outstanding->count(),
+            'total_invoice'      => $totalInvoice,
+            'paid_amount'        => (float) $bkAmount,
+            'paid_count'         => $paidInvoiceCount,
+        ]);
+    }
+
+    public function analyticsChart(Request $request)
+    {
+        $f = $this->analyticsFilters($request);
+        $view = $request->view === 'yearly' ? 'yearly' : 'monthly';
+
+        $baseYear = $f['year'] ? (int) $f['year'] : (int) date('Y');
+        if ($f['vcDate'] && $f['fromDate']) {
+            $parts = explode('/', $f['fromDate']);
+            $baseYear = isset($parts[2]) ? (int) $parts[2] : $baseYear;
+        }
+        $year = $request->year_chart ? (int) $request->year_chart : $baseYear;
+
+        if ($view === 'monthly') {
+            $rows = (clone $this->analyticsBkQuery($f))
+                ->whereRaw("to_date(voucher_date,'DD-MM-YYYY') between to_date(?,'DD-MM-YYYY') and to_date(?,'DD-MM-YYYY')", ["01-01-$year", "31-12-$year"])
+                ->select(
+                    DB::raw("extract(month from to_date(voucher_date,'DD-MM-YYYY'))::int as bucket"),
+                    DB::raw("sum(amount) as total")
+                )
+                ->groupBy('bucket')
+                ->pluck('total','bucket');
+
+            $labels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+            $data = [];
+            for ($m = 1; $m <= 12; $m++) {
+                $data[] = (float) ($rows[$m] ?? 0);
+            }
+        } else {
+            $minYear = DB::table('kas_hdr')
+                ->where('voucher_type', $this->moduleCode)
+                ->where('status', '<>', '5')
+                ->min(DB::raw("extract(year from to_date(voucher_date,'DD-MM-YYYY'))"));
+
+            $yearFrom = $request->yearFrom ? (int) $request->yearFrom : ((int) $minYear ?: (int) date('Y'));
+            $yearTo   = $request->yearTo ? (int) $request->yearTo : (int) date('Y');
+
+            $rows = (clone $this->analyticsBkQuery($f))
+                ->whereRaw("extract(year from to_date(voucher_date,'DD-MM-YYYY')) between ? and ?", [$yearFrom, $yearTo])
+                ->select(
+                    DB::raw("extract(year from to_date(voucher_date,'DD-MM-YYYY'))::int as bucket"),
+                    DB::raw("sum(amount) as total")
+                )
+                ->groupBy('bucket')
+                ->pluck('total','bucket');
+
+            $labels = [];
+            $data = [];
+            for ($y = $yearFrom; $y <= $yearTo; $y++) {
+                $labels[] = (string) $y;
+                $data[] = (float) ($rows[$y] ?? 0);
+            }
+        }
+
+        return response()->json(['view' => $view, 'labels' => $labels, 'data' => $data]);
+    }
+
+    public function analyticsCostCenter(Request $request)
+    {
+        $f = $this->analyticsFilters($request);
+        $vcNumbers = (clone $this->analyticsBkQuery($f))->pluck('voucher_number');
+
+        $rows = DB::table('kas_det')
+            ->leftJoin('depts', 'depts.code', '=', 'kas_det.cost_center')
+            ->whereIn('kas_det.voucher_number', $vcNumbers)
+            ->where('kas_det.cost_center', '<>', '')
+            ->select(
+                DB::raw("coalesce(depts.name, kas_det.cost_center) as dept_name"),
+                DB::raw("sum(kas_det.debit) as total")
+            )
+            ->groupBy('dept_name')
+            ->orderByDesc('total')
+            ->get();
+
+        return response()->json([
+            'labels' => $rows->pluck('dept_name'),
+            'data'   => $rows->pluck('total')->map(fn($v) => (float) $v),
+        ]);
     }
 
 }
