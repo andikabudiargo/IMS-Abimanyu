@@ -1421,4 +1421,36 @@ public function paidTransaction($supplierCode, $vcNumber, $extraRefs = [])
         ]);
     }
 
+        public function analyticsTopSuppliers(Request $request)
+    {
+        $f = $this->analyticsFilters($request);
+
+        $rows = DB::table('kas_hdr')
+            ->join('kas_det','kas_det.voucher_number','=','kas_hdr.voucher_number')
+            ->leftJoin('third_party','third_party.kode','=','kas_hdr.paid_to')
+            ->where('kas_hdr.voucher_type', $this->moduleCode)
+            ->where('kas_hdr.status', '<>', '5')
+            ->where(function ($query) use ($f) {
+                $f['seachVc'] ? $query->where('kas_hdr.voucher_number','ilike','%'.$f['seachVc'].'%') : '';
+                $f['vcDate'] ? $query->whereBetween(DB::raw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY')"), [$f['fromDate'], $f['toDate']]) : '';
+                $f['period1'] ? $query->whereBetween(DB::raw("kas_hdr.period::integer"), [$f['period1'], $f['period2']]) : '';
+                $f['year'] ? $query->where('kas_hdr.year', $f['year']) : '';
+                $f['searchStatus'] ? $query->where('kas_hdr.status', $f['searchStatus']) : '';
+                $f['paidTo'] ? $query->where('kas_hdr.paid_to', $f['paidTo']) : '';
+            })
+            ->select(
+                DB::raw("coalesce(third_party.nama, kas_hdr.paid_to) as supplier_name"),
+                DB::raw("sum(kas_det.debit) as total")
+            )
+            ->groupBy('kas_hdr.paid_to','third_party.nama')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        return response()->json([
+            'labels' => $rows->pluck('supplier_name'),
+            'data'   => $rows->pluck('total')->map(fn($v) => (float) $v),
+        ]);
+    }
+
 }

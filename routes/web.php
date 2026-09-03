@@ -1049,6 +1049,7 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::get('bankKeluar/analytics/summary',['as'=>'bankKeluar.analytics.summary','uses'=>'Accounting\BankKeluarController@analyticsSummary']);
 	Route::get('bankKeluar/analytics/chart',['as'=>'bankKeluar.analytics.chart','uses'=>'Accounting\BankKeluarController@analyticsChart']);
 	Route::get('bankKeluar/analytics/cost-center',['as'=>'bankKeluar.analytics.costCenter','uses'=>'Accounting\BankKeluarController@analyticsCostCenter']);
+		Route::get('bankKeluar/analytics/top-suppliers',['as'=>'bankKeluar.analytics.topSuppliers','uses'=>'Accounting\BankKeluarController@analyticsTopSuppliers']);
 
 	Route::get('jurnalUmum',['as'=>'jurnalUmum.index','uses'=>'Accounting\GeneralJournalController@index']);
 	Route::get('jurnalUmum/create',['as'=>'jurnalUmum.create','uses'=>'Accounting\GeneralJournalController@create']);

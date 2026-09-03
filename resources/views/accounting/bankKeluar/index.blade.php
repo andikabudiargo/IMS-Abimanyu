@@ -134,12 +134,20 @@
             </div>
           </div>
         </div>
-        <div class="row">
+         <div class="row">
           <div class="col-md-5">
             <div class="card border shadow-none mb-0">
               <div class="card-body">
-                <h6 class="text-muted mb-1">Distribusi Cost Center</h6>
+                <h6 class="text-muted mb-1">Distribusi cost center</h6>
                 <div id="chartCostCenter"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-7">
+            <div class="card border shadow-none mb-0">
+              <div class="card-body">
+                <h6 class="text-muted mb-1">Top 5 supplier dibayar terbesar</h6>
+                <div id="chartTopSuppliers"></div>
               </div>
             </div>
           </div>
@@ -269,6 +277,7 @@ let bkTrendChart = null;
 let bkCostCenterChart = null;
 let bkAnalyticsLoaded = false;
 let bkCurrentView = 'monthly';
+let bkTopSupplierChart = null;
 
 function bkCurrentFilters(){
   return {
@@ -340,10 +349,33 @@ function loadAnalyticsCostCenter(){
   });
 }
 
+function loadAnalyticsTopSuppliers(){
+  $.get("{{ route('bankKeluar.analytics.topSuppliers') }}", bkCurrentFilters(), function(res){
+    const options = {
+      chart: { type: 'bar', height: 260, toolbar: { show: false } },
+      series: [{ name: 'Total dibayar', data: res.data }],
+      xaxis: { categories: res.labels, labels: { formatter: (v) => formatRupiah(v) } },
+      plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '55%' } },
+      colors: ['#5e5873'],
+      dataLabels: { enabled: false },
+      grid: { strokeDashArray: 4 },
+      tooltip: { y: { formatter: (v) => formatRupiah(v) } }
+    };
+
+    if (bkTopSupplierChart) {
+      bkTopSupplierChart.updateOptions(options);
+    } else {
+      bkTopSupplierChart = new ApexCharts(document.querySelector("#chartTopSuppliers"), options);
+      bkTopSupplierChart.render();
+    }
+  });
+}
+
 function loadAllAnalytics(){
   loadAnalyticsSummary();
   loadAnalyticsChart();
   loadAnalyticsCostCenter();
+  loadAnalyticsTopSuppliers();
 }
 
 // load pertama kali saat accordion Analytics dibuka
@@ -372,6 +404,10 @@ $('#btnViewYearly').on('click', function(){
 $("#btnSearch").click(function(){
   if (bkAnalyticsLoaded) loadAllAnalytics();
 });
+
+
+
+
 
   $.ajaxSetup({
     headers: {
