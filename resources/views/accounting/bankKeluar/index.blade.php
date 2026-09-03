@@ -390,7 +390,7 @@ function loadAnalyticsTopSuppliers(){
         }
       },
       plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '55%' } },
-      colors: ['#7367f0'],
+      colors: ['#1e3a5f'],
       dataLabels: { enabled: false },
       grid: { strokeDashArray: 4, padding: { left: 10 } },
       tooltip: {
