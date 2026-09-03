@@ -124,10 +124,10 @@
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                   <h6 class="text-muted mb-0">Trend Bank Keluar</h6>
-                  <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-secondary active" id="btnViewMonthly">Bulanan</button>
-                    <button type="button" class="btn btn-outline-secondary" id="btnViewYearly">Tahunan</button>
-                  </div>
+                 <div class="btn-group btn-group-sm" role="group">
+  <button type="button" class="btn btn-outline-secondary btn-analytics-toggle active" id="btnViewMonthly">Bulanan</button>
+  <button type="button" class="btn btn-outline-secondary btn-analytics-toggle" id="btnViewYearly">Tahunan</button>
+</div>
                 </div>
                 <div id="chartSpendTrend"></div>
               </div>
@@ -190,6 +190,11 @@
 @endsection
 @section('styles')
 <style>
+.btn-analytics-toggle.active {
+  background-color: #1e3a5f;
+  color: #fff;
+  border-color: #1e3a5f;
+}
 </style>
 @endsection
 @section('scripts')
@@ -272,6 +277,24 @@
     });
   }
 
+  function wrapLabel(text, maxCharsPerLine = 16) {
+  const words = String(text).split(' ');
+  const lines = [];
+  let current = '';
+
+  words.forEach(word => {
+    if ((current + ' ' + word).trim().length > maxCharsPerLine && current) {
+      lines.push(current.trim());
+      current = word;
+    } else {
+      current = (current + ' ' + word).trim();
+    }
+  });
+  if (current) lines.push(current);
+
+  return lines;
+}
+
   // ==== ANALYTICS ====
 let bkTrendChart = null;
 let bkCostCenterChart = null;
@@ -311,7 +334,7 @@ function loadAnalyticsChart(){
       chart: { type: 'bar', height: 260, toolbar: { show: false } },
       series: [{ name: 'Total Bayar', data: res.data }],
       xaxis: { categories: res.labels },
-      colors: ['#5e5873'],
+      colors: ['#1e3a5f'],
       plotOptions: { bar: { borderRadius: 4, columnWidth: '45%' } },
       dataLabels: { enabled: false },
       grid: { strokeDashArray: 4 },
@@ -334,7 +357,7 @@ function loadAnalyticsCostCenter(){
       chart: { type: 'donut', height: 280 },
       series: res.data,
       labels: res.labels,
-      colors: ['#5e5873','#82868b','#a8aaae','#babfc7','#d8d6de','#6e6b7b'],
+      colors: ['#1e3a5f', '#7367f0', '#00cfe8', '#5f9ea0', '#9b8afb', '#82868b'],
       legend: { position: 'bottom' },
       dataLabels: { enabled: false },
       tooltip: { y: { formatter: (v) => formatRupiah(v) } }
@@ -351,19 +374,33 @@ function loadAnalyticsCostCenter(){
 
 function loadAnalyticsTopSuppliers(){
   $.get("{{ route('bankKeluar.analytics.topSuppliers') }}", bkCurrentFilters(), function(res){
+    const wrappedLabels = res.labels.map(l => wrapLabel(l));
+
     const options = {
-      chart: { type: 'bar', height: 260, toolbar: { show: false } },
+      chart: { type: 'bar', height: 280, toolbar: { show: false } },
       series: [{ name: 'Total dibayar', data: res.data }],
-      xaxis: { categories: res.labels, labels: { formatter: (v) => formatRupiah(v) } },
+      xaxis: {
+        categories: wrappedLabels,
+        labels: { formatter: (v) => formatRupiah(v) }
+      },
+      yaxis: {
+        labels: {
+          trim: false,
+          style: { fontSize: '12px' }
+        }
+      },
       plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '55%' } },
-      colors: ['#5e5873'],
+      colors: ['#7367f0'],
       dataLabels: { enabled: false },
-      grid: { strokeDashArray: 4 },
-      tooltip: { y: { formatter: (v) => formatRupiah(v) } }
+      grid: { strokeDashArray: 4, padding: { left: 10 } },
+      tooltip: {
+        y: { formatter: (v) => formatRupiah(v) },
+        x: { formatter: (val, opts) => res.labels[opts.dataPointIndex] }
+      }
     };
 
     if (bkTopSupplierChart) {
-      bkTopSupplierChart.updateOptions(options);
+      bkTopSupplierChart.updateOptions(options, true, true);
     } else {
       bkTopSupplierChart = new ApexCharts(document.querySelector("#chartTopSuppliers"), options);
       bkTopSupplierChart.render();
