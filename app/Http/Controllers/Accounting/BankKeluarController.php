@@ -1421,7 +1421,7 @@ public function paidTransaction($supplierCode, $vcNumber, $extraRefs = [])
         ]);
     }
 
-        public function analyticsTopSuppliers(Request $request)
+            public function analyticsTopSuppliers(Request $request)
     {
         $f = $this->analyticsFilters($request);
 
@@ -1439,10 +1439,13 @@ public function paidTransaction($supplierCode, $vcNumber, $extraRefs = [])
                 $f['paidTo'] ? $query->where('kas_hdr.paid_to', $f['paidTo']) : '';
             })
             ->select(
-                DB::raw("coalesce(third_party.nama, kas_hdr.paid_to) as supplier_name"),
+                // kunci pengelompokan: case-insensitive, trim spasi
+                DB::raw("lower(trim(coalesce(third_party.nama, nullif(trim(kas_hdr.description), ''), kas_hdr.paid_to))) as group_key"),
+                // nama yang ditampilkan: ambil salah satu casing asli secara konsisten
+                DB::raw("min(coalesce(third_party.nama, nullif(trim(kas_hdr.description), ''), kas_hdr.paid_to)) as supplier_name"),
                 DB::raw("sum(kas_det.debit) as total")
             )
-            ->groupBy('kas_hdr.paid_to','third_party.nama')
+            ->groupBy('group_key')
             ->orderByDesc('total')
             ->limit(5)
             ->get();
