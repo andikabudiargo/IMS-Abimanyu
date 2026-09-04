@@ -1818,29 +1818,32 @@ private function doPosting($recNumber, $username)
     }
 
     DB::statement("INSERT into kas_hdr (voucher_number,voucher_type,voucher_date,receive_from,amount,period,year,note,status,created_by,updated_by,created_at,updated_at,description)
-        select rec_number,'REC',do_date,supplier_id
-        ,(select sum((qty+qty_free)*price) from receiving_det where rec_number = receiving_hdr.rec_number)
-        ,substring(do_date,4,2)::integer,substring(do_date,7),note,'3'
-        ,created_by,updated_by,now(),now(),rec_number
-        from receiving_hdr
-        where status = '4'
-        and rec_number in (select rec_number from receiving_det
-            left join article on article.article_code = receiving_det.article_code
-            where article_type in ('RMP','CM1','CM2','RM'))
-        and rec_number = '$recNumber'
-        order by created_at");
-
-    DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at,cost_center)
-        select rec_number
-        ,case when article_type in ('RMP','RM') then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end
-        ,concat(rec_number,' ',article_desc),(qty+qty_free)*price
-        ,receiving_det.created_by,receiving_det.updated_by,now(),now(),'003'
-        from receiving_det
+    select rec_number,'REC',do_date,supplier_id
+    ,(select sum((qty+qty_free)*price) from receiving_det where rec_number = receiving_hdr.rec_number)
+    ,substring(do_date,4,2)::integer,substring(do_date,7),note,'3'
+    ,created_by,updated_by,now(),now(),rec_number
+    from receiving_hdr
+    where status = '4'
+    and rec_type <> 'TEMP'
+    and rec_number in (select rec_number from receiving_det
         left join article on article.article_code = receiving_det.article_code
-        where article_type in ('RMP','CM1','CM2','RM')
-        and (qty+qty_free) > 0
-        and rec_number in (select rec_number from receiving_hdr where status = '4' and rec_number = '$recNumber')
-        order by receiving_det.created_at");
+        where article_type in ('RMP','CM1','CM2','RM'))
+    and rec_number = '$recNumber'
+    order by created_at");
+
+DB::statement("INSERT into kas_det (voucher_number,account,description,debit,created_by,updated_by,created_at,updated_at,cost_center)
+    select rec_number
+    ,case when article_type in ('RMP','RM') then '1100.31' when article_type='CM1' then '1100.32.1' when article_type='CM2' then '1100.32.2' else '' end
+    ,concat(rec_number,' ',article_desc),(qty+qty_free)*price
+    ,receiving_det.created_by,receiving_det.updated_by,now(),now(),'003'
+    from receiving_det
+    left join article on article.article_code = receiving_det.article_code
+    where article_type in ('RMP','CM1','CM2','RM')
+    and (qty+qty_free) > 0
+    and rec_number in (
+        select rec_number from receiving_hdr where status = '4' and rec_type <> 'TEMP' and rec_number = '$recNumber'
+    )
+    order by receiving_det.created_at");
 
     return ['success' => true, 'message' => "$recNumber Successfully Posted"];
 }
@@ -2822,6 +2825,18 @@ public function unPosting($recNumber)
                              </a>";
             }
 
+            if ($data->rec_type === 'TEMP' && $data->status == '4' && empty($data->po_number) && $bisaEdit) {
+    $buttons .= "<a href='javascript:;'
+                    class='dropdown-item text-primary link-po-button'
+                    data-toggle='modal'
+                    data-target='#linkPoModal'
+                    data-rec-number='{$data->rec_number}'
+                    data-supplier='{$data->supplier_id}'>
+                    <i data-feather='link' class='feather-14-red'></i>
+                    <span>" . __('Link to PO') . "</span>
+                 </a>";
+}
+
             if ($data->status == '4' && $bisaChemical && (int) $data->chemical_total_rows > 0) {
                 $pending = (int) $data->chemical_pending_rows;
                 if ($pending > 0) {
@@ -3321,63 +3336,68 @@ public function unPosting($recNumber)
 }
 
     public function print(Request $request)
-    {
-        $id=Crypt::decryptString($request->id);
+{
+    $id=Crypt::decryptString($request->id);
 
-        $data['companies']=DB::table('company')
-        ->where('code','ASN')
-        ->select('name as nama', 'address as alamat', DB::RAW('(select region_name from regions where region_code = city::integer)  as kota'),'tlp')
-        ->get()->first();
-                
-        $recHdr=DB::table('receiving_hdr')
-        ->where('id',$id)
-        ->first();
+    $data['companies']=DB::table('company')
+    ->where('code','ASN')
+    ->select('name as nama', 'address as alamat', DB::RAW('(select region_name from regions where region_code = city::integer)  as kota'),'tlp')
+    ->get()->first();
+            
+    $recHdr=DB::table('receiving_hdr')
+    ->where('id',$id)
+    ->first();
 
-        $data['recHdr']=DB::table('receiving_hdr')
-        ->where('id',$id)
-        ->first();
+    $data['recHdr']=DB::table('receiving_hdr')
+    ->where('id',$id)
+    ->first();
 
-        $recNumber=$recHdr -> rec_number;
-       
-        $data['details']=DB::table('receiving_det')
-        ->leftJoin('article','article.article_code','receiving_det.article_code')
-        ->where('rec_number',$recNumber)
-        ->where('qty','>',0)
-        ->get();
+    $recNumber=$recHdr -> rec_number;
 
-        $data['totals']=DB::select("SELECT * from (
-            select a.rec_number,authorized_by,prepared_by,sum(qty) as qty from receiving_det a
-            left join receiving_hdr b
-            on a.rec_number = b.rec_number 
-            where a.rec_number = '$recNumber'
-            group by a.rec_number,authorized_by,prepared_by) as oki");
-
-        $data['suppliers']=DB::table('third_party')
-        ->where('kode',$recHdr -> supplier_id)
-        ->get();
-
-        $data['approved'] = DB::table('approval_history')
-        ->leftJoin('users','users.username','approval_history.username')
-        ->where('module_number',$recNumber)
-        ->orderBy('approval_order','desc')
-        ->value('users.name');
-        
-        // $statusRec = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'];
-        $statusRec = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI'];
-        $data['status'] = $statusRec[$recHdr ->status-1];
-
-        $data['no'] =0;
-
-        $data['title'] =$recNumber;
-
-        return view('receiving.print2',$data);
-
-        // view()->share($data);
-
-        // $pdf = PDF::loadView('receiving.print');
-        // return $pdf->stream("PO_$recNumber.pdf");
-
+    // ── BARU: kalau TEMP, tentukan komposisinya barang/jasa untuk judul print ──
+    $data['isJasaTemp'] = false;
+    if ($recHdr->rec_type === 'TEMP') {
+        $hasJasa = DB::table('receiving_det')
+            ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+            ->where('receiving_det.rec_number', $recNumber)
+            ->where('receiving_det.qty', '>', 0)
+            ->where('article.group_of_material', 'JS')
+            ->exists();
+        $data['isJasaTemp'] = $hasJasa;
     }
+   
+    $data['details']=DB::table('receiving_det')
+    ->leftJoin('article','article.article_code','receiving_det.article_code')
+    ->where('rec_number',$recNumber)
+    ->where('qty','>',0)
+    ->get();
+
+    $data['totals']=DB::select("SELECT * from (
+        select a.rec_number,authorized_by,prepared_by,sum(qty) as qty from receiving_det a
+        left join receiving_hdr b
+        on a.rec_number = b.rec_number 
+        where a.rec_number = '$recNumber'
+        group by a.rec_number,authorized_by,prepared_by) as oki");
+
+    $data['suppliers']=DB::table('third_party')
+    ->where('kode',$recHdr -> supplier_id)
+    ->get();
+
+    $data['approved'] = DB::table('approval_history')
+    ->leftJoin('users','users.username','approval_history.username')
+    ->where('module_number',$recNumber)
+    ->orderBy('approval_order','desc')
+    ->value('users.name');
+    
+    $statusRec = ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI'];
+    $data['status'] = $statusRec[$recHdr ->status-1];
+
+    $data['no'] =0;
+
+    $data['title'] =$recNumber;
+
+    return view('receiving.print2',$data);
+}
 
     public function listPo(Request $request)
     {
@@ -3436,6 +3456,249 @@ public function unPosting($recNumber)
         }
     }
     return $output;
+}
+
+public function listPoForLink(Request $request)
+{
+    $supp   = $request->supp;
+    $output = "";
+
+    $data = DB::table("purchase_order_hdr")
+        ->where("supplier_id", $supp)
+        ->where("status", "3")
+        ->orderBy("po_number")
+        ->select("po_number")
+        ->get();
+
+    if (count($data) > 0) {
+        $output .= '<option value="">Pilih PO</option>';
+        foreach ($data as $row) {
+            $output .= '<option value="'.$row->po_number.'">'.$row->po_number.'</option>';
+        }
+    }
+    return $output;
+}
+
+public function linkToPoPreview(Request $request)
+{
+    $recNumber = trim($request->recNumber);
+    $poNumber  = trim($request->poNumber);
+
+    $recHdr = DB::table('receiving_hdr')->where('rec_number', $recNumber)->first();
+    if (!$recHdr) {
+        return response()->json(['status' => 0, 'message' => 'Receiving tidak ditemukan']);
+    }
+    if ($recHdr->rec_type !== 'TEMP' || $recHdr->status != '4' || !empty($recHdr->po_number)) {
+        return response()->json(['status' => 0, 'message' => 'Dokumen ini tidak eligible untuk Link to PO']);
+    }
+
+    $poHdr = DB::table('purchase_order_hdr')->where('po_number', $poNumber)->first();
+    if (!$poHdr) {
+        return response()->json(['status' => 0, 'message' => 'PO tidak ditemukan']);
+    }
+    if ($poHdr->supplier_id !== $recHdr->supplier_id) {
+        return response()->json(['status' => 0, 'message' => 'Supplier PO tidak sama dengan Supplier Receiving']);
+    }
+
+    $tempLines = DB::table('receiving_det')
+        ->where('rec_number', $recNumber)
+        ->where('qty', '>', 0)
+        ->get(['article_code', 'qty', 'qty_free', 'uom_rec', 'price']);
+
+    $rows        = [];
+    $blockers    = [];
+
+    foreach ($tempLines as $line) {
+        $poLine = DB::table('purchase_order_det')
+            ->where('po_number', $poNumber)
+            ->where('article_code', $line->article_code)
+            ->first();
+
+        if (!$poLine) {
+            $blockers[] = "Artikel {$line->article_code} tidak ada di PO {$poNumber}";
+            $rows[] = [
+                'article_code' => $line->article_code,
+                'temp_qty'      => $line->qty,
+                'po_qty'        => null,
+                'po_consumed'   => null,
+                'po_remaining'  => null,
+                'po_price'      => null,
+                'ok'            => false,
+            ];
+            continue;
+        }
+
+        // sisa qty PO — pola sama seperti poDetail2()
+        $consumed = (float) DB::table('receiving_det as a')
+            ->leftJoin('receiving_hdr as h', 'h.rec_number', 'a.rec_number')
+            ->where('h.po_number', $poNumber)
+            ->where('h.status', '<>', '5')
+            ->where('h.status', '<>', '7')
+            ->where('a.article_code', $line->article_code)
+            ->where('a.qty', '>', 0)
+            ->sum('a.qty');
+
+        $remaining = (float) $poLine->qty - $consumed;
+        $ok        = $line->qty <= $remaining;
+
+        if (!$ok) {
+            $blockers[] = "Qty TEMP {$line->article_code} ({$line->qty}) melebihi sisa PO ({$remaining})";
+        }
+
+        $rows[] = [
+            'article_code' => $line->article_code,
+            'temp_qty'     => (float) $line->qty,
+            'po_qty'       => (float) $poLine->qty,
+            'po_consumed'  => $consumed,
+            'po_remaining' => $remaining,
+            'po_price'     => (float) $poLine->price,
+            'ok'           => $ok,
+        ];
+    }
+
+    return response()->json([
+        'status'   => empty($blockers) ? 1 : 0,
+        'rows'     => $rows,
+        'blockers' => $blockers,
+    ]);
+}
+
+public function linkToPurchaseOrder(Request $request)
+{
+    $username  = Auth::user()->username;
+    $recNumber = trim($request->recNumber);
+    $poNumber  = trim($request->poNumber);
+    $title     = "Link to PO $this->title";
+
+    $recHdr = DB::table('receiving_hdr')->where('rec_number', $recNumber)->first();
+    if (!$recHdr) {
+        return response()->json(['status' => 0, 'title' => $title, 'message' => ['Receiving tidak ditemukan'], 'alert' => 'error']);
+    }
+    if ($recHdr->rec_type !== 'TEMP' || $recHdr->status != '4' || !empty($recHdr->po_number)) {
+        return response()->json(['status' => 0, 'title' => $title, 'message' => ['Dokumen tidak eligible untuk Link to PO'], 'alert' => 'error']);
+    }
+
+    $poHdr = DB::table('purchase_order_hdr')->where('po_number', $poNumber)->first();
+    if (!$poHdr || $poHdr->supplier_id !== $recHdr->supplier_id) {
+        return response()->json(['status' => 0, 'title' => $title, 'message' => ['PO tidak valid / supplier tidak sama'], 'alert' => 'error']);
+    }
+
+    // ── BARU: tentukan target rec_type dari komposisi artikel ──
+    $lineTypes = DB::table('receiving_det')
+        ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+        ->where('receiving_det.rec_number', $recNumber)
+        ->where('receiving_det.qty', '>', 0)
+        ->select(DB::raw("
+            case when article.group_of_material = 'JS' then 'JASA' else 'NORMAL' end as line_type
+        "))
+        ->distinct()
+        ->pluck('line_type');
+
+    if ($lineTypes->count() > 1) {
+        return response()->json([
+            'status' => 0, 'title' => $title,
+            'message' => ['Dokumen ini berisi campuran Barang dan Jasa — pisahkan dulu ke dua dokumen sebelum Link to PO (barang dan jasa tidak bisa dalam satu PO-attachment yang sama).'],
+            'alert' => 'error',
+        ]);
+    }
+
+    $targetRecType = $lineTypes->first() ?? 'NORMAL';   // ← ditentukan otomatis, bukan dipilih user
+
+    $tempLines = DB::table('receiving_det')
+        ->where('rec_number', $recNumber)
+        ->where('qty', '>', 0)
+        ->get(['id', 'article_code', 'qty']);
+
+    foreach ($tempLines as $line) {
+        $poLine = DB::table('purchase_order_det')
+            ->where('po_number', $poNumber)
+            ->where('article_code', $line->article_code)
+            ->first();
+
+        if (!$poLine) {
+            return response()->json([
+                'status' => 0, 'title' => $title,
+                'message' => ["Artikel {$line->article_code} tidak ada di PO {$poNumber}"], 'alert' => 'error',
+            ]);
+        }
+
+        $consumed = (float) DB::table('receiving_det as a')
+            ->leftJoin('receiving_hdr as h', 'h.rec_number', 'a.rec_number')
+            ->where('h.po_number', $poNumber)
+            ->where('h.status', '<>', '5')
+            ->where('h.status', '<>', '7')
+            ->where('a.article_code', $line->article_code)
+            ->where('a.qty', '>', 0)
+            ->sum('a.qty');
+
+        $remaining = (float) $poLine->qty - $consumed;
+        if ($line->qty > $remaining) {
+            return response()->json([
+                'status' => 0, 'title' => $title,
+                'message' => ["Qty {$line->article_code} ({$line->qty}) melebihi sisa PO ({$remaining})"], 'alert' => 'error',
+            ]);
+        }
+    }
+
+    $now = date('Y-m-d H:i:s');
+
+    DB::beginTransaction();
+    try {
+        // Untuk baris JASA, unPosting() sebenarnya tidak akan menemukan movement apapun
+        // (karena memang tidak pernah dibuat) — snapshot kosong, fungsi tetap aman dipanggil.
+        $this->unPosting($recNumber);
+
+       $linkNote = "(Linked to PO $poNumber)";
+$newNote  = trim(($recHdr->note ?? '') . ' ' . $linkNote);
+
+DB::table('receiving_hdr')
+    ->where('rec_number', $recNumber)
+    ->update([
+        'po_number'       => $poNumber,
+        'origin_rec_type' => 'TEMP',
+        'rec_type'        => $targetRecType,
+        'status'          => '10',
+        'linked_po_by'    => $username,
+        'linked_po_at'    => $now,
+        'note'            => $newNote,
+        'updated_by'      => $username,
+        'updated_at'      => $now,
+    ]);
+
+        DB::statement("
+            UPDATE receiving_det r SET price = 
+                (SELECT price FROM purchase_order_det po 
+                 WHERE po.po_number = ? AND po.article_code = r.article_code)
+            WHERE rec_number = ?
+        ", [$poNumber, $recNumber]);
+
+        $postResult = $this->doPosting($recNumber, $username);
+        if (!$postResult['success']) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0, 'title' => $title,
+                'message' => [$postResult['message']], 'alert' => 'error',
+            ]);
+        }
+
+        DB::commit();
+
+        $message = "$title $recNumber berhasil di-link ke PO $poNumber sebagai $targetRecType";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return response()->json([
+            'status' => 1, 'title' => $title,
+            'message' => $message, 'alert' => 'success', 'recNumber' => $recNumber,
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $message = "$title $recNumber gagal: " . $e->getMessage();
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return response()->json([
+            'status' => 0, 'title' => $title,
+            'message' => [$message], 'alert' => 'error',
+        ]);
+    }
 }
 
     public function poDetail(Request $request)
@@ -3769,11 +4032,13 @@ public function listArticle(Request $request)
 
     $rows = DB::table('article')
         ->when($recType === 'TRIAL', function($w){
-            // Trial & Project: semua tipe boleh KECUALI FG/GA
             $w->whereNotIn('article.article_type', ['FG','GA']);
         })
-        ->when($recType !== 'TRIAL' && $recType !== 'NORMAL', function($w) use ($recType){
-            // NP (dan default lain selain TRIAL): tetap whitelist lama
+        ->when($recType === 'TEMP', function($w){
+            // TEMP: barang fisik yang lazim diterima via PO — exclude FG/GA/JASA
+            $w->whereNotIn('article.article_type', ['FG']);
+        })
+        ->when(!in_array($recType, ['TRIAL','NORMAL','TEMP']), function($w) use ($recType){
             $w->whereIn('article.article_type', ['CM3','RMNP']);
         })
         ->where(function($w) use ($supp){

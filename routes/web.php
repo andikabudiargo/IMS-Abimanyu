@@ -380,6 +380,9 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('receiving/check-do-number', ['as' => 'receiving.check.donumber', 'uses' => 'ReceivingController@checkDoNumberDuplicate']); // ← TAMBAH INI
 
 	Route::get('receiving/prosesUlangKas',['as'=>'receiving.prosesUlangKas','uses'=>'ReceivingController@prosesReInsertIntoKas']);
+	Route::get('receiving/list-po-for-link', ['as' => 'receiving.listPoForLink', 'uses' => 'ReceivingController@listPoForLink']);
+Route::post('receiving/link-po-preview', ['as' => 'receiving.linkPoPreview', 'uses' => 'ReceivingController@linkToPoPreview']);
+Route::post('receiving/link-po', ['as' => 'receiving.linkPo', 'uses' => 'ReceivingController@linkToPurchaseOrder']);
 
 	// Rec v2 (Handle Non Purchase, UoM Conversion & Gudang Transit)
 	Route::get('receivings/createv2',['as'=>'receiving.createv2','uses'=>'ReceivingController@create','middleware' => ['permission:receiving-create']]);

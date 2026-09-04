@@ -187,7 +187,15 @@
                             <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 90%;"> 
                         </td>
                         <td valign="top" style="text-align:center">
-    <h3>{{ $recHdr->rec_type === 'JASA' ? 'LEMBAR PENERIMAAN JASA' : 'LEMBAR PENERIMAAN BARANG' }}</h3>
+    <h3>
+        @if($recHdr->rec_type === 'TEMP')
+            {{ $isJasaTemp ? 'LEMBAR PENERIMAAN JASA SEMENTARA' : 'LEMBAR PENERIMAAN BARANG SEMENTARA' }}
+        @elseif($recHdr->rec_type === 'JASA')
+            LEMBAR PENERIMAAN JASA
+        @else
+            LEMBAR PENERIMAAN BARANG
+        @endif
+    </h3>
 </td>
                         <td width="30%" ></td>
                     </tr>
@@ -277,14 +285,33 @@
                 </table>
             </div>
         </td></tr></tbody>
-        <tfoot><tr><td>
-            <div class="footer-space" style="display:flex; flex-direction:column; justify-content:flex-end; height:170px;">
-                <hr style="border:none; border-top:1px solid #ccc; margin:0 0 4px 0;">
-               <div style="font-size:9px; color:#999; text-align:left;">
-    Dokumen Laporan {{ $recHdr->rec_type === 'JASA' ? 'Penerimaan Jasa' : 'Penerimaan Barang' }} (LP{{ $recHdr->rec_type === 'JASA' ? 'J' : 'B' }}) Dibuat oleh <strong>{{ $recHdr->created_by }}</strong> pada <strong>{{ \Carbon\Carbon::parse($recHdr->created_at)->format('d-m-Y H:i') }} WIB</strong>
-</div>
+       <tfoot><tr><td>
+    <div class="footer-space" style="display:flex; flex-direction:column; justify-content:flex-end; height:170px;">
+        <hr style="border:none; border-top:1px solid #ccc; margin:0 0 4px 0;">
+        @if(!empty($recHdr->origin_rec_type) && $recHdr->origin_rec_type === 'TEMP')
+            <div style="font-size:9px; color:#c0392b; text-align:left; margin-bottom:2px;">
+                *Dokumen ini awalnya diterima sebagai Receiving Sementara, di-link ke PO
+                <strong>{{ $recHdr->po_number }}</strong>
+                oleh <strong>{{ $recHdr->linked_po_by }}</strong>
+                pada <strong>{{ \Carbon\Carbon::parse($recHdr->linked_po_at)->format('d-m-Y H:i') }} WIB</strong>
             </div>
-        </td></tr></tfoot>
+        @endif
+        <div style="font-size:9px; color:#999; text-align:left;">
+            @php
+                $docLabel = 'Penerimaan Barang';
+                $docCode  = 'LPB';
+                if ($recHdr->rec_type === 'TEMP') {
+                    $docLabel = $isJasaTemp ? 'Penerimaan Jasa Sementara' : 'Penerimaan Barang Sementara';
+                    $docCode  = $isJasaTemp ? 'LPJS' : 'LPBS';
+                } elseif ($recHdr->rec_type === 'JASA') {
+                    $docLabel = 'Penerimaan Jasa';
+                    $docCode  = 'LPJ';
+                }
+            @endphp
+            Dokumen Laporan {{ $docLabel }} ({{ $docCode }}) Dibuat oleh <strong>{{ $recHdr->created_by }}</strong> pada <strong>{{ \Carbon\Carbon::parse($recHdr->created_at)->format('d-m-Y H:i') }} WIB</strong>
+        </div>
+    </div>
+</td></tr></tfoot>
     </table>
 </div>
 

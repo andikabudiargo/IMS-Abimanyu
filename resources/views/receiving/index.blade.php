@@ -36,6 +36,7 @@
                                 <option value="NP">Non Purchase</option>
                                  <option value="TRIAL">Trial & Project</option>
                                 <option value="JASA">Jasa</option>
+                                <option value="TEMP">Receiving Sementara</option>
                             </select>
                         </div>
     </div>
@@ -153,6 +154,54 @@
         </button>
         <button type="button" class="btn btn-primary" id="btnReprintSelected">
           <i data-feather="printer"></i> Reprint Terpilih
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="linkPoModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Link Receiving Sementara ke PO</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="linkPoRecNumber" class="font-weight-bold"></p>
+
+        <div class="form-group">
+          <label for="linkPoSelect">Pilih PO Number</label>
+          <select class="form-control" id="linkPoSelect">
+            <option value="">Pilih PO</option>
+          </select>
+        </div>
+
+        <div id="linkPoLoading" class="text-center py-3" style="display:none;">Memuat data preview...</div>
+        <div id="linkPoAlert" class="alert alert-warning" style="display:none;"></div>
+        <div id="linkPoBlockers" class="alert alert-danger" style="display:none;"></div>
+
+        <div class="table-responsive">
+          <table class="table table-sm" id="linkPoTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>Article</th>
+                <th class="text-right">Qty TEMP</th>
+                <th class="text-right">Qty PO</th>
+                <th class="text-right">Sudah Kepakai</th>
+                <th class="text-right">Sisa PO</th>
+                <th class="text-right">Harga PO</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="linkPoBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmLinkPo" disabled>
+          <i data-feather="link"></i> Link ke PO Ini
         </button>
       </div>
     </div>
@@ -664,6 +713,179 @@ $('#chemicalManageModal').on('hidden.bs.modal', function () {
   $('#chemicalManageAlert').hide();
   $('#chemicalManageTable').hide();
   chemicalManageRecNumber = '';
+});
+
+// =========================================================
+// LINK TO PO (Receiving Sementara / TEMP) — modal handler
+// =========================================================
+let linkPoRecNumber   = '';
+let linkPoSupplier    = '';
+let linkPoIsValid     = false;
+
+function loadLinkPoModal(recNumber, supplier){
+  linkPoRecNumber = recNumber;
+  linkPoSupplier  = supplier;
+  linkPoIsValid   = false;
+
+  $('#linkPoRecNumber').text('Rec Number: ' + recNumber);
+  $('#linkPoSelect').empty().append('<option value="">Memuat PO...</option>').prop('disabled', true);
+  $('#linkPoAlert').hide().text('');
+  $('#linkPoBlockers').hide().empty();
+  $('#linkPoTable').hide();
+  $('#linkPoBody').empty();
+  $('#btnConfirmLinkPo').prop('disabled', true);
+
+  $.ajax({
+    url: "{{ route('receiving.listPoForLink') }}",
+    type: 'GET',
+    data: { supp: supplier },
+    success: function(result){
+      $('#linkPoSelect').html(result).prop('disabled', false);
+    },
+    error: function(){
+      $('#linkPoSelect').empty().append('<option value="">Gagal memuat PO</option>');
+      Swal.fire('Error', 'Gagal memuat daftar PO untuk supplier ini.', 'error');
+    }
+  });
+}
+
+$(document).on('click', '.link-po-button', function () {
+  let recNumber = $(this).data('rec-number');
+  let supplier  = $(this).data('supplier');
+  loadLinkPoModal(recNumber, supplier);
+});
+
+$('#linkPoSelect').on('change', function(){
+  let poNumber = $(this).val();
+
+  $('#linkPoAlert').hide().text('');
+  $('#linkPoBlockers').hide().empty();
+  $('#linkPoTable').hide();
+  $('#linkPoBody').empty();
+  $('#btnConfirmLinkPo').prop('disabled', true);
+  linkPoIsValid = false;
+
+  if (!poNumber) return;
+
+  $('#linkPoLoading').show();
+
+  $.ajax({
+    url: "{{ route('receiving.linkPoPreview') }}",
+    type: 'POST',
+    data: { recNumber: linkPoRecNumber, poNumber: poNumber },
+    success: function(res){
+      $('#linkPoLoading').hide();
+
+      if (!res.rows || res.rows.length === 0){
+        $('#linkPoAlert').text('Tidak ada baris artikel untuk ditampilkan.').show();
+        return;
+      }
+
+      res.rows.forEach(function(r){
+        let statusBadge = r.ok
+          ? '<span class="badge badge-success">OK</span>'
+          : '<span class="badge badge-danger">Tidak Valid</span>';
+
+        let row = `<tr class="${r.ok ? '' : 'table-danger'}">
+          <td>${r.article_code}</td>
+          <td class="text-right">${Number(r.temp_qty).toLocaleString()}</td>
+          <td class="text-right">${r.po_qty !== null ? Number(r.po_qty).toLocaleString() : '-'}</td>
+          <td class="text-right">${r.po_consumed !== null ? Number(r.po_consumed).toLocaleString() : '-'}</td>
+          <td class="text-right">${r.po_remaining !== null ? Number(r.po_remaining).toLocaleString() : '-'}</td>
+          <td class="text-right">${r.po_price !== null ? Number(r.po_price).toLocaleString() : '-'}</td>
+          <td>${statusBadge}</td>
+        </tr>`;
+        $('#linkPoBody').append(row);
+      });
+
+      $('#linkPoTable').show();
+
+      if (res.status === 1){
+        linkPoIsValid = true;
+        $('#btnConfirmLinkPo').prop('disabled', false);
+      } else {
+        linkPoIsValid = false;
+        $('#btnConfirmLinkPo').prop('disabled', true);
+        if (res.blockers && res.blockers.length > 0){
+          let html = '<strong>Tidak bisa di-link, alasan:</strong><ul class="mb-0">';
+          res.blockers.forEach(function(b){ html += '<li>' + b + '</li>'; });
+          html += '</ul>';
+          $('#linkPoBlockers').html(html).show();
+        }
+      }
+
+      if (typeof feather !== 'undefined') feather.replace();
+    },
+    error: function(){
+      $('#linkPoLoading').hide();
+      $('#linkPoAlert').text('Gagal memuat preview. Silakan coba lagi.').show();
+    }
+  });
+});
+
+$('#btnConfirmLinkPo').on('click', function(){
+  if (!linkPoIsValid) return;
+
+  let poNumber = $('#linkPoSelect').val();
+  if (!poNumber) return;
+
+  Swal.fire({
+    title: 'Konfirmasi Link to PO',
+    html: `Receiving <b>${linkPoRecNumber}</b> akan di-link ke PO <b>${poNumber}</b>.<br>
+           Stok yang sudah masuk akan direcalculate dengan harga resmi dari PO.<br>
+           Aksi ini tidak bisa dibatalkan secara langsung.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Link Sekarang',
+    cancelButtonText: 'Batal',
+    reverseButtons: true,
+  }).then(function(result){
+    if (!result.isConfirmed) return;
+
+    $('#btnConfirmLinkPo').prop('disabled', true).text('Memproses...');
+
+    $.ajax({
+      url: "{{ route('receiving.linkPo') }}",
+      type: 'POST',
+      data: { recNumber: linkPoRecNumber, poNumber: poNumber },
+      success: function(res){
+        $('#btnConfirmLinkPo').prop('disabled', false).html('<i data-feather="link"></i> Link ke PO Ini');
+
+        if (res.status === 1){
+          $('#linkPoModal').modal('hide');
+          Swal.fire({
+            title: 'Berhasil',
+            text: res.message,
+            icon: 'success',
+            confirmButtonText: 'OK'
+          }).then(() => {
+            showList(searchRec.val(), searchPo.val(), searchInv.val(), searchSupplier.val(), searchStatus.val(), recDate.val(), doDate.val(), recType.val(), searchArticleCode.val(), searchArticleDesc.val());
+          });
+        } else {
+          let msg = Array.isArray(res.message) ? res.message.join('<br>') : res.message;
+          Swal.fire('Gagal', msg, 'warning');
+        }
+      },
+      error: function(xhr){
+        $('#btnConfirmLinkPo').prop('disabled', false).html('<i data-feather="link"></i> Link ke PO Ini');
+        console.error(xhr.responseText);
+        Swal.fire('Error', 'Gagal memproses Link to PO. Silakan coba lagi.', 'error');
+      }
+    });
+  });
+});
+
+// Reset modal saat ditutup
+$('#linkPoModal').on('hidden.bs.modal', function () {
+  linkPoRecNumber = '';
+  linkPoSupplier  = '';
+  linkPoIsValid   = false;
+  $('#linkPoSelect').empty().append('<option value="">Pilih PO</option>');
+  $('#linkPoAlert').hide().text('');
+  $('#linkPoBlockers').hide().empty();
+  $('#linkPoTable').hide();
+  $('#linkPoBody').empty();
+  $('#btnConfirmLinkPo').prop('disabled', true);
 });
 
 function doBrowserPrintChemical(data) {

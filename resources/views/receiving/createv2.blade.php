@@ -35,6 +35,7 @@
                                         <option value="NP">Non Purchase</option>
                                         <option value="TRIAL">Trial & Project</option>
                                         <option value="JASA">Jasa</option>
+                                        <option value="TEMP">Receiving Sementara (Belum ada PO)</option>
                                     </select>
                                 </div>
                             </div>
@@ -254,21 +255,21 @@
     /* =====================================================================
        RECTYPE CHANGE
        ===================================================================== */
-   $('#recType').change(function(){
+ $('#recType').change(function(){
     let val     = $(this).val();
     let isNp    = val === 'NP';
     let isTrial = val === 'TRIAL';
+    let isTemp  = val === 'TEMP';
 
     $('#supplier').val(null).trigger('change.select2');
     $('#poNumber').empty().append('<option value=""></option>').val('').trigger('change.select2');
     resetArticleArea();
 
     $('label[for="poNumber"]').text(isNp ? 'PR Number' : 'PO Number*');
-    $('#lblQtyRef').text((isNp || isTrial) ? 'QTY PR' : 'QTY PO');
-    $('#lblQtyRefHeader').text((isNp || isTrial) ? 'QTY PR' : 'QTY PO');
+    $('#lblQtyRef').text((isNp || isTrial || isTemp) ? 'QTY PR' : 'QTY PO');
+    $('#lblQtyRefHeader').text((isNp || isTrial || isTemp) ? 'QTY PR' : 'QTY PO');
 
-    if (isTrial){
-        // Trial & Project: full manual, tidak butuh PO/PR sama sekali
+    if (isTrial || isTemp){
         $('#poNumber').closest('.form-group').addClass('d-none').removeAttr('required');
         $('#cmdAddRow').removeClass('d-none');
     } else {
@@ -287,16 +288,16 @@
     /* =====================================================================
        SUPPLIER CHANGE — refresh dropdown PO/PR dan bersihkan artikel
        ===================================================================== */
-   $('#supplier').change(function(){
+ $('#supplier').change(function(){
     let value   = $(this).val();
     let recType = $('#recType').val();
     let isNp    = recType === 'NP';
     let isTrial = recType === 'TRIAL';
+    let isTemp  = recType === 'TEMP';   // ← BARU
 
     resetArticleArea();
 
-    if (isTrial){
-        // langsung manual, tidak fetch PO/PR apapun
+    if (isTrial || isTemp){
         $('#cmdAddRow').removeClass('d-none');
     } else if (isNp){
         $('#cmdAddRow').removeClass('d-none');
