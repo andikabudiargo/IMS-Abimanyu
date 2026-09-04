@@ -15,67 +15,77 @@
     <div class="card-content collapse show">
       <div class="card-body">
         <form class="needs-validation" novalidate>
-            <div class="form-row">
-              <div class="form-group col-md-3"> 
-                <label for="searchRec">Rec Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchRec" name="searchRec" placeholder=""  />
-              </div>
-              <div class="form-group col-md-3"> 
-                <label for="searchPo">PO Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
-              </div>
-              <div class="form-group col-md-3"> 
-                <label for="searchInv">Invoice Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchInv" name="searchInv" placeholder=""  />
-              </div>
-               <div class="form-group col-md-3">
-                <label class="form-label" for="recType">Receive Type</label>
-                                    <select class="select2 form-control" id="recType" name="recType" required>
-                                       <option value="">All</option>
-                                        <option value="NORMAL">Purchase Order</option>
-                                        <option value="NP">Non Purchase</option>
-                                         <option value="TRIAL">Trial & Project</option>
-                                        <option value="JASA">Jasa</option>
-                                    </select>
-                                </div>
-            </div>
-             <div class="form-row">
-            <div class="form-group col-md-3"> 
-                <label class="form-label" for="searchSupplier">Supplier</label>
-                <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
-                    <option value="">All</option>
-                    @foreach($supps as $val)
-                        <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                    @endforeach
-                </select>
-              </div>
-              <div class="col-md-3 form-group">
-                <label for="recDate">Receiving Date</label>
-                <input type="text" id="recDate" name="recDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
-              </div>
-              <div class="col-md-3 form-group">
-                <label for="doDate">DO Date</label>
-                <input type="text" id="doDate" name="doDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
-              </div>
-              <div class="form-group col-md-3"> 
-                <label class="form-label" for="searchStatus">Rec Status</label>
-                <select class="select2 form-control" id="searchStatus" name="searchStatus">
-                    <option value="">All</option>
-                    @foreach($status as $index=>$val)
-                        <option value="{{ $index }}">{{ $val }}</option>
-                    @endforeach
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-                <div class="col-12"> 
-                    <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
-                    @can('receiving-create')
-                    <a href="{{ route('receiving.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    @endcan
-                </div>
-            </div>
-        </form>
+    <div class="form-row">
+      <div class="form-group col-md-3"> 
+        <label for="searchRec">Rec Number</label>
+        <input type="text" class="form-control text-uppercase" id="searchRec" name="searchRec" placeholder=""  />
+      </div>
+      <div class="form-group col-md-3"> 
+        <label for="searchPo">PO Number</label>
+        <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
+      </div>
+      <div class="form-group col-md-3"> 
+        <label for="searchInv">Invoice Number</label>
+        <input type="text" class="form-control text-uppercase" id="searchInv" name="searchInv" placeholder=""  />
+      </div>
+       <div class="form-group col-md-3">
+        <label class="form-label" for="recType">Receive Type</label>
+                            <select class="select2 form-control" id="recType" name="recType" required>
+                               <option value="">All</option>
+                                <option value="NORMAL">Purchase Order</option>
+                                <option value="NP">Non Purchase</option>
+                                 <option value="TRIAL">Trial & Project</option>
+                                <option value="JASA">Jasa</option>
+                            </select>
+                        </div>
+    </div>
+     <div class="form-row">
+    <div class="form-group col-md-3"> 
+        <label class="form-label" for="searchSupplier">Supplier</label>
+        <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
+            <option value="">All</option>
+            @foreach($supps as $val)
+                <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
+            @endforeach
+        </select>
+      </div>
+      <div class="col-md-3 form-group">
+        <label for="recDate">Receiving Date</label>
+        <input type="text" id="recDate" name="recDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+      </div>
+      <div class="col-md-3 form-group">
+        <label for="doDate">DO Date</label>
+        <input type="text" id="doDate" name="doDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+      </div>
+      <div class="form-group col-md-3"> 
+        <label class="form-label" for="searchStatus">Rec Status</label>
+        <select class="select2 form-control" id="searchStatus" name="searchStatus">
+            <option value="">All</option>
+            @foreach($status as $index=>$val)
+                <option value="{{ $index }}">{{ $val }}</option>
+            @endforeach
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-3"> 
+        <label for="searchArticleCode">Article Code</label>
+        <input type="text" class="form-control" id="searchArticleCode" name="searchArticleCode" placeholder="" />
+      </div>
+      <div class="form-group col-md-3"> 
+        <label for="searchArticleDesc">Article Desc</label>
+        <input type="text" class="form-control" id="searchArticleDesc" name="searchArticleDesc" placeholder="" />
+      </div>
+    </div>
+    <div class="form-row">
+        <div class="col-12"> 
+            <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
+            @can('receiving-create')
+            <a href="{{ route('receiving.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+            @endcan
+        </div>
+    </div>
+</form>
       </div>
     </div>
   </div>
@@ -168,18 +178,20 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
-  let searchRec = $("#searchRec");
-  let searchPo = $("#searchPo");
-  let searchInv = $("#searchInv");
-  let searchSupplier = $("#searchSupplier"); 
-  let searchStatus = $("#searchStatus");
-  let recType = $("#recType");   // <-- tambahan
-  let recDate = $("#recDate");
-  let doDate = $("#doDate");
-  let btnSummary = $('#btnSummary');
-  let btnDetail = $('#btnDetail');
+ let searchRec = $("#searchRec");
+let searchPo = $("#searchPo");
+let searchInv = $("#searchInv");
+let searchSupplier = $("#searchSupplier"); 
+let searchStatus = $("#searchStatus");
+let recType = $("#recType");
+let searchArticleCode = $("#searchArticleCode");
+let searchArticleDesc = $("#searchArticleDesc");
+let recDate = $("#recDate");
+let doDate = $("#doDate");
+let btnSummary = $('#btnSummary');
+let btnDetail = $('#btnDetail');
 
-  $(document).ready(function(){    
+$(document).ready(function(){    
     let href;
     $(document).on('click', '#cancelReasonButton', function(event) {
         event.preventDefault();
@@ -190,42 +202,42 @@
     btnSummary.hide();
     btnDetail.hide();
 
-  });
+});
 
-  //refresh di cards
-  $('a[data-action="reload"]').on('click', function () {
+//refresh di cards
+$('a[data-action="reload"]').on('click', function () {
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val());
-  });
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
+});
 
-  rangePickr = $('.flatpickr-range');
-  if (rangePickr.length) {
+rangePickr = $('.flatpickr-range');
+if (rangePickr.length) {
     rangePickr.flatpickr({
       dateFormat: "d-m-Y",
       mode: 'range'
     });
-  }
+}
 
-  $("#btnSearch").click(function(e){
+$("#btnSearch").click(function(e){
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val());
-  });
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
+});
 
-  btnSummary.click(function(e){
+btnSummary.click(function(e){
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val());
-  });
+    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
+});
 
-  btnDetail.click(function(e){
+btnDetail.click(function(e){
     btnSummary.show();
     btnDetail.hide();
-    showListDetail(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val());
-  });
+    showListDetail(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
+});
 
-  const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate,recType) => {
+const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate,recType,searchArticleCode,searchArticleDesc) => {
   if ($('#detailedTable tr').length >0){
       let table= $('#detailedTable').DataTable();
       table.destroy();
@@ -249,14 +261,16 @@
       searchStatus:searchStatus,
       recDate:recDate,
       doDate:doDate,
-      recType:recType          // <-- tambahan
+      recType:recType,
+      searchArticleCode:searchArticleCode,
+      searchArticleDesc:searchArticleDesc
     },
     orderColumn:[[ 4, 'asc' ]],
     excelFileName:'receiving'
   });
 }
 
-const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate,recType) => {
+const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate,recType,searchArticleCode,searchArticleDesc) => {
   if ($('#detailedTable tr').length >0){
       let table= $('#detailedTable').DataTable();
       table.destroy();
@@ -285,7 +299,9 @@ const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus
       searchStatus:searchStatus,
       recDate:recDate,
       doDate:doDate,
-      recType:recType          // <-- tambahan
+      recType:recType,
+      searchArticleCode:searchArticleCode,
+      searchArticleDesc:searchArticleDesc
     },
     orderColumn:[[ 2, 'asc' ]],
     excelFileName:'receiving_detail'

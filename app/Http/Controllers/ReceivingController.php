@@ -2659,14 +2659,16 @@ public function unPosting($recNumber)
 
     public function list(Request $request)
 {
-    $searchRec      = strtolower($request->searchRec);
-    $searchPo       = strtolower($request->searchPo);
-    $searchInv      = strtolower($request->searchInv);
-    $searchSupplier = $request->searchSupplier;
-    $searchStatus   = $request->searchStatus;
-    $searchRecType  = $request->recType;
-    $recDate        = $request->recDate;
-    $doDate         = $request->doDate;
+    $searchRec         = strtolower($request->searchRec);
+    $searchPo          = strtolower($request->searchPo);
+    $searchInv         = strtolower($request->searchInv);
+    $searchSupplier    = $request->searchSupplier;
+    $searchStatus      = $request->searchStatus;
+    $searchRecType     = $request->recType;
+    $searchArticleCode = strtolower($request->searchArticleCode);
+    $searchArticleDesc = strtolower($request->searchArticleDesc);
+    $recDate           = $request->recDate;
+    $doDate            = $request->doDate;
     $fromDate = ""; $toDate = ""; $fromDateDo = ""; $toDateDo = "";
 
     if ($recDate){
@@ -2694,7 +2696,8 @@ public function unPosting($recNumber)
     $query = DB::table('receiving_hdr')
     ->where(function ($q) use (
         $searchRec, $searchPo, $searchInv, $searchSupplier, $searchStatus,
-        $searchRecType, $recDate, $fromDate, $toDate, $doDate, $fromDateDo, $toDateDo
+        $searchRecType, $searchArticleCode, $searchArticleDesc,
+        $recDate, $fromDate, $toDate, $doDate, $fromDateDo, $toDateDo
     ) {
         $searchPo       ? $q->where('po_number','ilike','%'.$searchPo.'%') : '';
         $searchInv      ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
@@ -2702,6 +2705,23 @@ public function unPosting($recNumber)
         $searchRec      ? $q->where('rec_number','ilike','%'.$searchRec.'%') : '';
         $searchStatus   ? $q->where('status',$searchStatus) : '';
         $searchRecType  ? $q->where('rec_type',$searchRecType) : '';
+
+        $searchArticleCode ? $q->whereExists(function ($sub) use ($searchArticleCode) {
+            $sub->select(DB::raw(1))
+                ->from('receiving_det')
+                ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+                ->whereColumn('receiving_det.rec_number', 'receiving_hdr.rec_number')
+                ->where('article.article_alternative_code', 'ilike', '%'.$searchArticleCode.'%');
+        }) : '';
+
+        $searchArticleDesc ? $q->whereExists(function ($sub) use ($searchArticleDesc) {
+            $sub->select(DB::raw(1))
+                ->from('receiving_det')
+                ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+                ->whereColumn('receiving_det.rec_number', 'receiving_hdr.rec_number')
+                ->where('article.article_desc', 'ilike', '%'.$searchArticleDesc.'%');
+        }) : '';
+
         $recDate        ? $q->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         $doDate         ? $q->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
     })
@@ -2727,8 +2747,6 @@ public function unPosting($recNumber)
                     and status in ('4','6')
                     limit 1) as ap_date"),
         DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do"),
-
-        // ===== TAMBAHAN: hitung baris CM1 & sisa yang belum diinput expired date =====
         DB::raw("(
             select count(*)
             from receiving_det rd
@@ -2762,7 +2780,7 @@ public function unPosting($recNumber)
     $bisaDelete   = Auth::user()->can('receiving-delete');
     $bisaApprove  = Auth::user()->can('receiving-approve');
     $bisaPosting  = Auth::user()->can('receiving-posting');
-    $bisaChemical = Auth::user()->can('receiving-edit'); // FIX: ganti ke permission khusus kalau nanti dibuat, mis. 'receiving-chemical-unit'
+    $bisaChemical = Auth::user()->can('receiving-edit');
 
     return Datatables::of($query)
         ->addColumn('action', function ($data) use ($lockDateToDate, $bisaEdit, $bisaDelete, $bisaPosting, $bisaApprove, $bisaChemical) {
@@ -2776,7 +2794,6 @@ public function unPosting($recNumber)
                             </a>';
             $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
 
-            // ----- EDIT -----
             if ($data->status == '10' && $bisaUbah && $bisaEdit) {
                 $buttons .= '<a href="' . route('receiving.edit', ['id' => Crypt::encryptString($data->id)]) . '" class="dropdown-item">
                                 <i data-feather="file-text"></i>
@@ -2784,7 +2801,6 @@ public function unPosting($recNumber)
                              </a>';
             }
 
-            // ----- APPROVE -----
             if ($data->status == '10' && $bisaApprove) {
                 $buttons .= '<a href="' . route('receiving.edit', ['id' => Crypt::encryptString($data->id)]) . '" class="dropdown-item">
                                 <i data-feather="file-text"></i>
@@ -2792,7 +2808,6 @@ public function unPosting($recNumber)
                              </a>';
             }
 
-            // ----- POSTING -----
             if (in_array($data->status, ['1', '3', '10']) && $bisaPosting) {
                 $buttons .= "<a href='javascript:;'
                                 class='dropdown-item'
@@ -2807,7 +2822,6 @@ public function unPosting($recNumber)
                              </a>";
             }
 
-            // ----- ADD EXPIRED DATE (khusus CM1, cuma muncul kalau POSTED & ada baris chemical) -----
             if ($data->status == '4' && $bisaChemical && (int) $data->chemical_total_rows > 0) {
                 $pending = (int) $data->chemical_pending_rows;
                 if ($pending > 0) {
@@ -2831,7 +2845,6 @@ public function unPosting($recNumber)
 }
             }
 
-            // ----- REVISION -----
             if (in_array($data->status, ['1', '2', '3', '4']) && $bisaUbah) {
                 if ($adaAp) {
                     $buttons .= "<a href='javascript:;' class='dropdown-item text-muted' 
@@ -2854,19 +2867,16 @@ public function unPosting($recNumber)
                 }
             }
 
-            // ----- PRINT -----
             $buttons .= "<a href='" . route('receiving.print', ['id' => Crypt::encryptString($data->id)]) . "' target='_blank' class='dropdown-item'>
                             <i data-feather='printer'></i>
                             <span>" . __('Print') . "</span>
                          </a>";
 
-            // ----- DETAIL -----
             $buttons .= '<a href="' . route('receiving.show', ['id' => Crypt::encryptString($data->id)]) . '" class="dropdown-item">
                             <i data-feather="list"></i>
                             Detail
                          </a>';
 
-            // ----- CANCEL -----
             if ($data->status == '4' && $bisaUbah && $bisaDelete) {
                 if ($adaAp) {
                     $buttons .= "<a href='javascript:;' class='dropdown-item text-muted'
@@ -2889,7 +2899,6 @@ public function unPosting($recNumber)
                 }
             }
 
-            // ----- DELETE -----
             if (!in_array($data->status, ['4', '5', '7']) && $bisaUbah && $bisaDelete) {
                 $buttons .= "<a href='javascript:;'
                                 class='dropdown-item'
@@ -3134,12 +3143,14 @@ public function unPosting($recNumber)
 
     public function listDetail(Request $request)
 {
-    $searchRec = strtolower($request->searchRec);
-    $searchPo = strtolower($request->searchPo);
-    $searchInv = strtolower($request->searchInv);
-    $searchSupplier = $request->searchSupplier;
-    $searchStatus = $request->searchStatus;
-    $searchRecType = $request->recType;
+    $searchRec         = strtolower($request->searchRec);
+    $searchPo          = strtolower($request->searchPo);
+    $searchInv         = strtolower($request->searchInv);
+    $searchSupplier    = $request->searchSupplier;
+    $searchStatus      = $request->searchStatus;
+    $searchRecType     = $request->recType;
+    $searchArticleCode = strtolower($request->searchArticleCode);
+    $searchArticleDesc = strtolower($request->searchArticleDesc);
     $recDate = $request->recDate;
     $doDate = $request->doDate;
 
@@ -3193,15 +3204,17 @@ public function unPosting($recNumber)
     ->leftJoin('article','article.article_code','receiving_det.article_code')
     ->leftJoin('article_types','article_types.code','article.article_type')
     ->leftJoin('uom','uom.code','receiving_det.uom_rec')
-    ->where(function ($q) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$searchRecType,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
-        $searchPo       ? $q->where('receiving_hdr.po_number','ilike','%'.$searchPo.'%') : '';
-        $searchInv      ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
-        $searchSupplier ? $q->where('receiving_hdr.supplier_id','ilike','%'.$searchSupplier.'%') : '';
-        $searchRec      ? $q->where('receiving_det.rec_number','ilike','%'.$searchRec.'%') : '';
-        $searchStatus   ? $q->where('status',$searchStatus) : '';
-        $searchRecType  ? $q->where('receiving_hdr.rec_type',$searchRecType) : '';
-        $recDate        ? $q->whereBetween(DB::raw("to_date(rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-        $doDate         ? $q->whereBetween(DB::raw("to_date(do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
+    ->where(function ($q) use ($searchRec,$searchPo,$searchInv,$searchSupplier,$searchStatus,$searchRecType,$searchArticleCode,$searchArticleDesc,$recDate,$fromDate,$toDate,$doDate,$fromDateDo,$toDateDo) {
+        $searchPo          ? $q->where('receiving_hdr.po_number','ilike','%'.$searchPo.'%') : '';
+        $searchInv         ? $q->where('inv_number','ilike','%'.$searchInv.'%') : '';
+        $searchSupplier    ? $q->where('receiving_hdr.supplier_id','ilike','%'.$searchSupplier.'%') : '';
+        $searchRec         ? $q->where('receiving_det.rec_number','ilike','%'.$searchRec.'%') : '';
+        $searchStatus      ? $q->where('status',$searchStatus) : '';
+        $searchRecType     ? $q->where('receiving_hdr.rec_type',$searchRecType) : '';
+        $searchArticleCode ? $q->where('article.article_alternative_code','ilike','%'.$searchArticleCode.'%') : '';
+        $searchArticleDesc ? $q->where('article.article_desc','ilike','%'.$searchArticleDesc.'%') : '';
+        $recDate           ? $q->whereBetween(DB::raw("to_date(receiving_hdr.rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        $doDate            ? $q->whereBetween(DB::raw("to_date(receiving_hdr.do_date,'DD-MM-YYYY')"), [$fromDateDo, $toDateDo]) : '';
     })
     ->where('receiving_det.qty','>',0)
     ->whereNotIn('receiving_hdr.status',['5','7'])
@@ -3216,11 +3229,6 @@ public function unPosting($recNumber)
         ,DB::raw("((price*qty)*((coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*(purchase_order_hdr.ppn::numeric))/100))+(price*qty) as total_plus_ppn")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
-        // FIX: department untuk NP dan TRIAL di-hardcode karena po_number
-        // pada kedua tipe itu bukan PO Number asli (NP = PR Number/kosong,
-        // TRIAL = kosong/manual), jadi lookup lewat purchase_order_det ->
-        // purchase_request_hdr selalu gagal (NULL). NORMAL/JASA tetap pakai
-        // lookup asli lewat PR.
         ,DB::raw("
             CASE
                 WHEN receiving_hdr.rec_type = 'NP' THEN 'Logistic'
@@ -3240,7 +3248,7 @@ public function unPosting($recNumber)
                     where ap_invoice_detail.rec_number = receiving_hdr.rec_number
                     and ap_invoice.status in ('4','6') limit 1 ) as ap_number")
         ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) and status in('4','6') limit 1) as ap_date")
-        ,DB::raw("to_date(do_date,'DD-MM-YYYY') as tanggal_do")
+        ,DB::raw("to_date(receiving_hdr.do_date,'DD-MM-YYYY') as tanggal_do")
     )
     ->orderByRaw("
     COALESCE(
