@@ -641,7 +641,7 @@ function doActualSave(){
             },
             error: function(e){ console.log(e); }
         });
-    });
+    }
 
     /* =====================================================================
        TAMBAH BARIS DARI PO / PR
