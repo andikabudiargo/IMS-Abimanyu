@@ -186,7 +186,9 @@
                         <td width="30%" >
                             <img src="{{ asset('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 90%;"> 
                         </td>
-                        <td valign="top" style="text-align:center"><h3>LEMBAR PENERIMAAN BARANG</h3></td>
+                        <td valign="top" style="text-align:center">
+    <h3>{{ $recHdr->rec_type === 'JASA' ? 'LEMBAR PENERIMAAN JASA' : 'LEMBAR PENERIMAAN BARANG' }}</h3>
+</td>
                         <td width="30%" ></td>
                     </tr>
                 </table>
@@ -209,7 +211,7 @@
                         <td width="60%">
                             <table class="tableHeader">
                                 <tr>
-                                    <td width="20%">Customer </td><td>: {{ $suppliers[0]->nama }}</td>
+                                    <td width="20%">Supplier </td><td>: {{ $suppliers[0]->nama }}</td>
                                 </tr>
                                 <tr>
                                     <td>DO Number </td><td>: {{ $recHdr->do_number }}</td>
@@ -278,9 +280,9 @@
         <tfoot><tr><td>
             <div class="footer-space" style="display:flex; flex-direction:column; justify-content:flex-end; height:170px;">
                 <hr style="border:none; border-top:1px solid #ccc; margin:0 0 4px 0;">
-                <div style="font-size:9px; color:#999; text-align:left;">
-                    Dokumen Laporan Penerimaan Barang (LPB) Dibuat oleh <strong>{{ $recHdr->created_by }}</strong> pada <strong>{{ \Carbon\Carbon::parse($recHdr->created_at)->format('d-m-Y H:i') }} WIB</strong>
-                </div>
+               <div style="font-size:9px; color:#999; text-align:left;">
+    Dokumen Laporan {{ $recHdr->rec_type === 'JASA' ? 'Penerimaan Jasa' : 'Penerimaan Barang' }} (LP{{ $recHdr->rec_type === 'JASA' ? 'J' : 'B' }}) Dibuat oleh <strong>{{ $recHdr->created_by }}</strong> pada <strong>{{ \Carbon\Carbon::parse($recHdr->created_at)->format('d-m-Y H:i') }} WIB</strong>
+</div>
             </div>
         </td></tr></tfoot>
     </table>
