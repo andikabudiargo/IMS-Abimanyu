@@ -35,7 +35,6 @@
                                         <label class="form-label" for="type">Type*</label>
                                         <select class="select2 form-control" id="type" name="type" required>
                                             <option value="">Choose Type</option>
-                                            <option value="rm">Return NG RM</option>
                                             <option value="ot">Return OT</option>
                                             <option value="box">Box Kosong</option>
                                             <option value="troli">Troli Kosong</option>
