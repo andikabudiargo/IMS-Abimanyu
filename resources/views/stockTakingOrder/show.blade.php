@@ -326,15 +326,16 @@
                     {{-- ── Baris biasa, tanpa grouping ── --}}
                     <tbody>
                         @foreach($group as $m)
-                            @php
-                                $rowNo++;
-                                $pct = (float) $m->target_act_loc;
-                                $barColor = $pct >= 98 ? 'bg-success' : ($pct >= 50 ? 'bg-warning' : 'bg-danger');
-                                $tb = $typeBadge[$m->target_type] ?? ['label'=>$m->target_type,'class'=>'badge-light-secondary'];
-                                $counter3Name = $m->counter3_name ?? null;
-                                $accurateLines = $m->match_lines + $m->recount_in_tolerance;
-                                $isBlind = in_array($m->is_blind, [true, 1, '1', 't', 'true'], true);
-                            @endphp
+                          @php
+    $rowNo++;
+    $pct = (float) $m->target_act_loc;
+    $barColor = $pct >= 98 ? 'bg-success' : ($pct >= 50 ? 'bg-warning' : 'bg-danger');
+    $tb = $typeBadge[$m->target_type] ?? ['label'=>$m->target_type,'class'=>'badge-light-secondary'];
+    $counter3Name = $m->counter3_name ?? null;
+    $accurateLines = $m->match_lines + $m->recount_in_tolerance;
+    $isBlind = in_array($m->is_blind, [true, 1, '1', 't', 'true'], true);
+    $isLocationType = $m->target_type === 'LOCATION';
+@endphp
                             <tr>
                                 <td></td>
                                 <td class="text-muted">{{ $rowNo }}</td>
@@ -376,14 +377,18 @@
                                     @endif
                                 </td>
                                 <td class="text-center text-secondary">{{ $m->incomplete_lines }}</td>
-                                <td class="progress-cell">
-                                    <div class="d-flex align-items-center" style="gap:.5rem;">
-                                        <div class="progress flex-grow-1" style="height:7px;border-radius:6px;">
-                                            <div class="progress-bar {{ $barColor }}" style="width:{{ $pct }}%"></div>
-                                        </div>
-                                        <small class="text-muted">{{ number_format($pct, 1) }}%</small>
-                                    </div>
-                                </td>
+                               <td class="progress-cell">
+    @if($isLocationType)
+        <div class="d-flex align-items-center" style="gap:.5rem;">
+            <div class="progress flex-grow-1" style="height:7px;border-radius:6px;">
+                <div class="progress-bar {{ $barColor }}" style="width:{{ $pct }}%"></div>
+            </div>
+            <small class="text-muted">{{ number_format($pct, 1) }}%</small>
+        </div>
+    @else
+        <span class="text-muted">-</span>
+    @endif
+</td>
                                 <td>
                                     @if($m->finish_time)
                                         <span class="text-success">{{ $m->finish_time }}</span>
