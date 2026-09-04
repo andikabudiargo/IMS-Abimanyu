@@ -377,6 +377,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('receiving/notif/approve',['as'=>'receiving.notif.approve','uses'=>'ReceivingController@approve']);
 	Route::get('receiving/list/article', ['as' => 'receiving.list.article', 'uses' => 'ReceivingController@listArticle']);
 	Route::get('receiving/uom/conv',     ['as' => 'receiving.uom.conv', 'uses' => 'ReceivingController@uomConv']);
+	Route::get('receiving/check-do-number', ['as' => 'receiving.check.donumber', 'uses' => 'ReceivingController@checkDoNumberDuplicate']); // ← TAMBAH INI
 
 	Route::get('receiving/prosesUlangKas',['as'=>'receiving.prosesUlangKas','uses'=>'ReceivingController@prosesReInsertIntoKas']);
 

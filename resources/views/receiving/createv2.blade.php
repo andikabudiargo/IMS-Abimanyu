@@ -347,7 +347,7 @@
         $.ajax({
             url:"{{ route('receiving.po.det2') }}",
             method:"GET",
-            data:{ value: value },
+            data:{ value: value, recType: $('#recType').val() },
             success:function(result){
                 cloneCount = 0;
                 if (result.length > 0){
@@ -536,23 +536,28 @@
        SAVE
        ===================================================================== */
     $("#cmdSave").click(function(){
-        if (!$("#frmAdd")[0].checkValidity()){
-            $("#frmAdd").submit();
-            return;
-        }
+    if (!$("#frmAdd")[0].checkValidity()){
+        $("#frmAdd").submit();
+        return;
+    }
+    checkDoNumberDuplicate(function(){
+        doActualSave();
+    });
+});
 
-        $("#cmdSave").attr('disabled','disabled');
-        $('.disabled-el').removeAttr('disabled');
+function doActualSave(){
+    $("#cmdSave").attr('disabled','disabled');
+    $('.disabled-el').removeAttr('disabled');
 
-        let objQty     = $('input[name="qty_rec[]"]');
-        let objUom     = $('select[name="uom[]"]');
-        let objQtyFree = $('input[name="qty_free[]"]');
-        let objUomFree = $('select[name="uomFree[]"]');
-        let objQtyPo   = $('input[name="qty_po[]"]');
+    let objQty     = $('input[name="qty_rec[]"]');
+    let objUom     = $('select[name="uom[]"]');
+    let objQtyFree = $('input[name="qty_free[]"]');
+    let objUomFree = $('select[name="uomFree[]"]');
+    let objQtyPo   = $('input[name="qty_po[]"]');
 
-        let articles = [], flag = 0, pesan = "";
+    let articles = [], flag = 0, pesan = "";
 
-        $("#article_row [name='article_id[]']").map(function(i){
+    $("#article_row [name='article_id[]']").map(function(i){
             let $this = $(this);
             if (!$this.val()) return;
 
@@ -592,19 +597,19 @@
             });
         });
 
-        if (articles.length === 0){ pesan += "Articles must be filled in completely <br>"; flag = 1; }
-        if ($("#grandTotalQty").val() == 0){ pesan += "Total Qty cannot be 0 <br>"; flag = 1; }
+         if (articles.length === 0){ pesan += "Articles must be filled in completely <br>"; flag = 1; }
+    if ($("#grandTotalQty").val() == 0){ pesan += "Total Qty cannot be 0 <br>"; flag = 1; }
 
-        if (flag !== 0){
-            $('#cmdSave').removeAttr('disabled');
-            $('#cmdPrint').hide();
-            Swal.fire('Warning..', pesan, 'warning');
-            return;
-        }
+    if (flag !== 0){
+        $('#cmdSave').removeAttr('disabled');
+        $('#cmdPrint').hide();
+        Swal.fire('Warning..', pesan, 'warning');
+        return;
+    }
 
-        $.ajax({
-            type:"post",
-            url:"{{ route('receiving.store') }}",
+    $.ajax({
+        type:"post",
+        url:"{{ route('receiving.store') }}",
             data:{
                 invNumber: $('#invNumber').val() || 0,
                 invDate:   $('#invDate').val(),
@@ -842,6 +847,62 @@
         $("#convQtyFree").val(fmt(convQtyFree));
         $("#convGrandTotalQty").val(fmt(convQty + convQtyFree));
     }
+
+    /* =====================================================================
+   CEK DUPLIKAT DO NUMBER (khusus NP)
+   ===================================================================== */
+function checkDoNumberDuplicate(callback){
+    let recType   = $('#recType').val();
+    let doNumber  = $('#doNumber').val();
+
+    if (recType !== 'NP' || !doNumber){ callback(); return; }
+
+    $.ajax({
+        url: "{{ route('receiving.check.donumber') }}",
+        method: "GET",
+        data: { doNumber: doNumber },
+        dataType: "json",
+        success: function(res){
+            if (res.matches && res.matches.length > 0){
+                showDuplicateDoNumberModal(res.matches, callback);
+            } else {
+                callback();
+            }
+        },
+        error: function(){ callback(); } // gagal cek -> jangan blokir user, tetap lanjut
+    });
+}
+
+function showDuplicateDoNumberModal(matches, onContinue){
+    let html = '<div class="text-left">';
+    html += '<p>DO Number ini terindikasi sama/mirip dengan receiving berikut:</p><ul class="mb-0">';
+    matches.forEach(function(m){
+        let url = "{{ route('receiving.show', ['id'=>':id']) }}".replace(':id', m.id_enc);
+        let badge = m.match_type === 'IDENTIK' ? 'text-danger' : 'text-warning';
+        html += `<li>
+                    <span class="${badge} font-weight-bold">${m.match_type}</span> —
+                    DO <code>${m.do_number}</code> pada
+                    <a href="${url}" target="_blank">${m.rec_number}</a>
+                    <small class="text-muted">(${m.status}, ${m.rec_date})</small>
+                 </li>`;
+    });
+    html += '</ul></div>';
+
+    Swal.fire({
+        title: 'DO Number Terindikasi Duplikat',
+        html: html,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Lanjutkan Simpan',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then(function(result){
+        if (result.isConfirmed){
+            onContinue();
+        }
+        // Batal -> tidak melakukan apa-apa; user bisa edit DO Number
+    });
+}
 
     /* =====================================================================
        PRINT (= POSTING langsung dari halaman create)
