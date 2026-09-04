@@ -21,17 +21,17 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label for="tDnNumber">Temporary DN Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="tDnNumber" name="tDnNumber" class="form-control disabled-el" value="{{ $header->tdn_number }}" disabled />
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="deliveryDate">Delivery Date*</label>
                                     <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" required/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-7">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="cust">Customer*</label>
                                     <select class="select2 form-control" id="cust" name="cust" required>
                                         <option value="">Choose Customer</option>
@@ -40,6 +40,23 @@
                                         @endforeach
                                     </select>
                                 </div>
+                               <div class="form-group col-md-3">
+    <label class="form-label" for="armada">Armada*</label>
+    <select class="select2 form-control" id="armada" name="armada" required>
+        <option value="">Choose Armada</option>
+        <option value="CDD PAGI" {{$header->armada == "CDD PAGI" ? "selected" : ""}}>CDD PAGI</option>
+        <option value="CDD MALAM" {{$header->armada == "CDD MALAM" ? "selected" : ""}}>CDD MALAM</option>
+        <option value="VJB 1 PAGI" {{$header->armada == "VJB 1 PAGI" ? "selected" : ""}}>VJB 1 PAGI</option>
+        <option value="VJB 1 MALAM" {{$header->armada == "VJB 1 MALAM" ? "selected" : ""}}>VJB 1 MALAM</option>
+        <option value="VJB 2 PAGI" {{$header->armada == "VJB 2 PAGI" ? "selected" : ""}}>VJB 2 PAGI</option>
+        <option value="VJB 2 MALAM" {{$header->armada == "VJB 2 MALAM" ? "selected" : ""}}>VJB 2 MALAM</option>
+        <option value="GRANDMAX PAGI" {{$header->armada == "GRANDMAX PAGI" ? "selected" : ""}}>GRANDMAX PAGI</option>
+        <option value="GRANDMAX MALAM" {{$header->armada == "GRANDMAX MALAM" ? "selected" : ""}}>GRANDMAX MALAM</option>
+        <option value="LUXIO" {{$header->armada == "LUXIO" ? "selected" : ""}}>LUXIO</option>
+        <option value="MOBIL SEWA PAGI" {{$header->armada == "MOBIL SEWA PAGI" ? "selected" : ""}}>MOBIL SEWA PAGI</option>
+        <option value="PICKUP" {{$header->armada == "PICKUP" ? "selected" : ""}}>PICKUP</option>
+    </select>
+</div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-7">
@@ -191,26 +208,28 @@
                 flag=1;
             }
 
-            if (flag==0){
-                let tDnNumber = $('#tDnNumber').val();
-                let deliveryDate = $('#deliveryDate').val();
-                let customerId = $('#cust').val();
-                let perihal = $('#perihal').val();
-                let note = $('#note').val();
+           if (flag==0){
+    let tDnNumber = $('#tDnNumber').val();
+    let deliveryDate = $('#deliveryDate').val();
+    let customerId = $('#cust').val();
+    let perihal = $('#perihal').val();
+    let note = $('#note').val();
+    let armada = $('#armada').val();
 
-                $.ajax({
-                    type: "post",
-                    url: "{{ route('suratJalanSementara.update') }}",
-                    data: {
-                        articles:JSON.stringify(articles),
-                        deliveryDate:deliveryDate,
-                        customerId:customerId,
-                        perihal:perihal,
-                        note:note,
-                        tDnNumber:tDnNumber
-                    },
-                    dataType: "json",
-                    success: function(data) {
+    $.ajax({
+        type: "post",
+        url: "{{ route('suratJalanSementara.update') }}",
+        data: {
+            articles:JSON.stringify(articles),
+            deliveryDate:deliveryDate,
+            customerId:customerId,
+            perihal:perihal,
+            note:note,
+            tDnNumber:tDnNumber,
+            armada:armada
+        },
+        dataType: "json",
+        success: function(data) {
                      if (data.status == 0 ){
     let msgs = Array.isArray(data.message) ? data.message : [data.message];
     for (let i = 0; i < msgs.length; i++) {

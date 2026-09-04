@@ -20,17 +20,17 @@
                             @csrf
                             <input type="text" id="article" name="article" hidden>
                             <div class="form-row">
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label for="tDnNumber">Temporary DN Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="tDnNumber" name="tDnNumber" class="form-control disabled-el"  disabled />
                                 </div>
-                                <div class="form-group col-md-2">
+                                <div class="form-group col-md-3">
                                     <label for="deliveryDate">Delivery Date*</label>
                                     <input type="text" id="deliveryDate" name="deliveryDate" class="form-control" placeholder="DD-MM-YYYY" required/>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-7">
+                                <div class="form-group col-md-4">
                                     <label class="form-label" for="cust">Customer*</label>
                                     <select class="select2 form-control" id="cust" name="cust" required>
                                         <option value="">Choose Customer</option>
@@ -39,6 +39,23 @@
                                         @endforeach
                                     </select>
                                 </div>
+                                 <div class="form-group col-md-3">
+    <label class="form-label" for="armada">Armada*</label>
+    <select class="select2 form-control" id="armada" name="armada" required>
+        <option value="">Choose Armada</option>
+        <option value="CDD PAGI">CDD PAGI</option>
+        <option value="CDD MALAM">CDD MALAM</option>
+        <option value="VJB 1 PAGI">VJB 1 PAGI</option>
+        <option value="VJB 1 MALAM">VJB 1 MALAM</option>
+        <option value="VJB 2 PAGI">VJB 2 PAGI</option>
+        <option value="VJB 2 MALAM">VJB 2 MALAM</option>
+        <option value="GRANDMAX PAGI">GRANDMAX PAGI</option>
+        <option value="GRANDMAX MALAM">GRANDMAX MALAM</option>
+        <option value="LUXIO">LUXIO</option>
+        <option value="MOBIL SEWA PAGI">MOBIL SEWA PAGI</option>
+        <option value="PICKUP">PICKUP</option>
+    </select>
+</div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-7">
@@ -150,24 +167,26 @@
                 flag=1;
             }
 
-            if (flag==0){
-                let deliveryDate = $('#deliveryDate').val();
-                let customerId = $('#cust').val();
-                let perihal = $('#perihal').val();
-                let note = $('#note').val();
+           if (flag==0){
+    let deliveryDate = $('#deliveryDate').val();
+    let customerId = $('#cust').val();
+    let perihal = $('#perihal').val();
+    let note = $('#note').val();
+    let armada = $('#armada').val();
 
-                $.ajax({
-                    type: "POST",
-                    url: "{{ route('suratJalanSementara.store') }}",
-                    data: {
-                        articles:JSON.stringify(articles),
-                        deliveryDate:deliveryDate,
-                        customerId:customerId,
-                        perihal:perihal,
-                        note:note
-                    },
-                    dataType: "json",
-                    success: function(data) {
+    $.ajax({
+        type: "POST",
+        url: "{{ route('suratJalanSementara.store') }}",
+        data: {
+            articles:JSON.stringify(articles),
+            deliveryDate:deliveryDate,
+            customerId:customerId,
+            perihal:perihal,
+            note:note,
+            armada:armada
+        },
+        dataType: "json",
+        success: function(data) {
                         if (data.status == 0 ){
                             for(let i = 0; i < data.message.length; i++) {
                                 show_msg(data.title, data.message[i], data.alert);

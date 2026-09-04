@@ -146,6 +146,7 @@ class TemporaryDnController extends Controller
     $deliveryDate = $request->deliveryDate;
     $perihal      = $request->perihal;
     $note         = $request->note;
+    $armada       = $request->armada;
     $status       = '1';
     $tDnNumber    = '';
     $leadCode     = $this->moduleCode;
@@ -184,12 +185,13 @@ class TemporaryDnController extends Controller
 
     DB::beginTransaction();
     try {
-        DB::table('temporary_dn_hdr')->insert([
+               DB::table('temporary_dn_hdr')->insert([
             'tdn_number'        => $tDnNumber,
             'customer_id'       => $customerId,
             'delivery_date'     => $deliveryDate,
             'perihal'           => $perihal,
             'note'              => $note,
+            'armada'            => $armada,
             'origin_tdn_number' => $tDnNumber,
             'status'            => $status,
             'created_by'        => $username,
@@ -910,6 +912,7 @@ private function updateWarehouseStock(string $articleCode, string $location, flo
     $deliveryDate = $request->deliveryDate;
     $perihal      = $request->perihal;
     $note         = $request->note;
+    $armada       = $request->armada;
     $siteCode     = $this->siteCode;
     $location     = $this->locationFg;
 
@@ -967,6 +970,7 @@ private function updateWarehouseStock(string $articleCode, string $location, flo
         }
 
         // ── 2) Update header ──
+              // ── 2) Update header ──
         DB::table('temporary_dn_hdr')
             ->where('tdn_number', $tDnNumber)
             ->update([
@@ -974,6 +978,7 @@ private function updateWarehouseStock(string $articleCode, string $location, flo
                 'delivery_date' => $deliveryDate,
                 'perihal'       => $perihal,
                 'note'          => $note,
+                'armada'        => $armada,
                 'updated_by'    => $username,
                 'updated_at'    => date('Y-m-d H:i:s'),
             ]);
@@ -1657,28 +1662,30 @@ private function minDeliveryDate(string $a, string $b): string
     DB::beginTransaction();
     try {
         // Insert delivery_hdr dari data TDN
-        $sqlHdr = "INSERT into delivery_hdr
-            (delivery_number, origin_delivery_number, delivery_date, customer_id, so_number, po_number, status, note, created_by, updated_by, created_at, updated_at)
-            select
-            '$dnNew', '$dnNew', delivery_date, customer_id, so_number, '$poNumber', '4', note, '$username', '$username', '" . date('Y-m-d H:i:s') . "', '" . date('Y-m-d H:i:s') . "'
-            from temporary_dn_hdr where tdn_number = '$tDnNumber'";
-
-        $sqlDet = "INSERT into delivery_det
-            (delivery_number, article_code, so_number, po_number, qty, uom, created_by, created_at, qty_so)
-            select
-            '$dnNew',
-            a.article_code,
-            '$soNumber',
-            '$poNumber',
-            a.qty,
-            a.uom,
-            '$username',
-            '" . date('Y-m-d H:i:s') . "',
-            (select coalesce((select qty from sales_order_det where so_code = b.so_number and article_code = a.article_code),0)
-            - coalesce((select sum(qty) from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = b.so_number and status not in ('5','7')) and article_code = a.article_code),0)) as qty_so
-            from temporary_dn_det a
-            left join temporary_dn_hdr b on b.tdn_number = a.tdn_number
-            where a.tdn_number = '$tDnNumber'";
+       $sqlHdr = "INSERT into delivery_hdr
+    (delivery_number, origin_delivery_number, delivery_date, customer_id, so_number, po_number, status, note, armada, created_by, updated_by, created_at, updated_at)
+    select
+    '$dnNew', '$dnNew', delivery_date, customer_id, so_number, '$poNumber', '4', note, armada, '$username', '$username', '" . date('Y-m-d H:i:s') . "', '" . date('Y-m-d H:i:s') . "'
+    from temporary_dn_hdr where tdn_number = '$tDnNumber'";
+$sqlDet = "INSERT into delivery_det
+    (delivery_number, article_code, so_number, po_number, qty, uom, created_by, created_at, qty_so, sisa_so)
+    select
+    '$dnNew',
+    a.article_code,
+    '$soNumber',
+    '$poNumber',
+    a.qty,
+    a.uom,
+    '$username',
+    '" . date('Y-m-d H:i:s') . "',
+    (select coalesce((select qty from sales_order_det where so_code = b.so_number and article_code = a.article_code),0)
+    - coalesce((select sum(qty) from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = b.so_number and status not in ('5','7','10')) and article_code = a.article_code),0)) as qty_so,
+    (select coalesce((select qty from sales_order_det where so_code = b.so_number and article_code = a.article_code),0)
+    - coalesce((select sum(qty) from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = b.so_number and status not in ('5','7','10')) and article_code = a.article_code),0)
+    - a.qty) as sisa_so
+    from temporary_dn_det a
+    left join temporary_dn_hdr b on b.tdn_number = a.tdn_number
+    where a.tdn_number = '$tDnNumber'";
 
         $rowAffected = DB::select($sqlHdr);
 
