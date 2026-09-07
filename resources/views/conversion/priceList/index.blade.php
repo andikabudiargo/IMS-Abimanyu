@@ -6,9 +6,9 @@
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
       <h4 class="card-title">{{ $title }}</h4>
-      <button class="btn btn-primary" data-toggle="modal" data-target="#modalCreate">
+      <a href="{{ route('conversion.priceList.create') }}" class="btn btn-primary">
         <i class="feather icon-plus"></i> Create
-      </button>
+      </a>
     </div>
     <div class="card-body">
       <div class="table-responsive">
@@ -23,41 +23,6 @@
           </thead>
         </table>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL CREATE -->
-<div class="modal fade" id="modalCreate" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-xl" role="document">
-    <div class="modal-content">
-      <form id="formSave" action="{{ route('conversion.priceList.store') }}" method="POST">
-        @csrf
-        <input type="hidden" name="items" id="itemsJson">
-        <div class="modal-header">
-          <h5 class="modal-title">Create Price List</h5>
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Finish Goods (bisa pilih beberapa)</label>
-            <select id="selFg" class="form-control select2" multiple>
-              @foreach($fgList as $fg)
-                <option value="{{ $fg->article_code }}">{{ $fg->article_alternative_code }} - {{ $fg->article_desc }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="alert alert-info py-1">
-            Conversion Value: <b>{{ number_format($conversionValue,2) }}</b>
-            <input type="hidden" id="convValue" value="{{ $conversionValue }}">
-          </div>
-          <div id="fgContainer"></div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" id="btnSave">Save</button>
-        </div>
-      </form>
     </div>
   </div>
 </div>
@@ -111,11 +76,10 @@ $.ajaxSetup({
 });
 
 const URL_DATA   = '{{ route("conversion.priceList.data") }}';
-const URL_GETBOM = '{{ route("conversion.priceList.getBom") }}';
 const URL_SHOW   = '{{ route("conversion.priceList.show") }}';
 const URL_EDIT   = '{{ route("conversion.priceList.edit") }}';
 const URL_UPDATE = '{{ route("conversion.priceList.update") }}';
-const CONV_VALUE = parseFloat($('#convValue').val()) || 0;
+const CONV_VALUE = {{ (float) $conversionValue }};
 
 $(function () {
   $('#tblPriceList').DataTable({
@@ -134,10 +98,6 @@ $(function () {
 ],
     drawCallback: function () { if (window.feather) feather.replace(); }
   });
-
-  $('#selFg').select2({ dropdownParent: $('#modalCreate'), width: '100%', placeholder: 'Pilih FG' });
-  $('#selFg').on('select2:select', e => loadBom(e.params.data.id));
-  $('#selFg').on('select2:unselect', e => $('.fg-card[data-fg="'+e.params.data.id+'"]').remove());
 
   $('#tblPriceList').on('click', '.btn-detail', function () { showDetail($(this).data('id')); });
   $('#tblPriceList').on('click', '.btn-edit',   function () { loadEdit($(this).data('id')); });
@@ -197,27 +157,6 @@ function renderDetail(fg, mats) {
   $('#detailBody').html(html);
 }
 
-/* ---------- CREATE ---------- */
-function loadBom(code) {
-  if ($('.fg-card[data-fg="'+code+'"]').length) return;
-  $.ajax({ url: URL_GETBOM, method: 'POST', dataType: 'json', data: { article_code: code } })
-    .done(function (res) {
-      if (res.status != 1) {
-        Swal.fire('Info', res.message || 'BOM tidak ditemukan', 'warning');
-        let v = ($('#selFg').val() || []).filter(x => x != code);
-        $('#selFg').val(v).trigger('change');
-        return;
-      }
-      renderCard('#fgContainer', res.fg, res.materials, false);
-    })
-    .fail(function (xhr) {
-      console.error('getBom error', xhr.status, xhr.responseText);
-      Swal.fire('Error', 'getBom gagal ('+xhr.status+'). Cek console.', 'error');
-      let v = ($('#selFg').val() || []).filter(x => x != code);
-      $('#selFg').val(v).trigger('change');
-    });
-}
-
 /* ---------- EDIT ---------- */
 function loadEdit(idEnc) {
   $('#editContainer').html('<div class="text-center py-3 text-muted">Loading...</div>');
@@ -238,7 +177,7 @@ function loadEdit(idEnc) {
     .fail(function (xhr) { $('#editContainer').html('<div class="text-danger">Error '+xhr.status+'</div>'); });
 }
 
-/* ---------- CARD (dipakai create & edit) ---------- */
+/* ---------- CARD (dipakai edit) ---------- */
 function renderCard(container, fg, mats, isEdit, salesVal) {
   let rows = '';
   mats.forEach(m => {
@@ -263,7 +202,6 @@ function renderCard(container, fg, mats, isEdit, salesVal) {
   <div class="card fg-card border" data-fg="${fg.article_code}" data-bom="${fg.bom_code}">
     <div class="card-header d-flex justify-content-between align-items-center py-1">
       <b>${fg.article_alternative_code ?? fg.article_code} - ${fg.article_name}</b>
-      ${isEdit ? '' : '<button type="button" class="btn btn-sm btn-outline-danger btn-remove">&times;</button>'}
     </div>
     <div class="card-body">
       <div class="form-group row">
@@ -292,12 +230,6 @@ function renderCard(container, fg, mats, isEdit, salesVal) {
   const $card = $(container + ' .fg-card').last();
   recalc($card);
   $card.find('.unit-price, .sales-price').on('input', () => recalc($card));
-  $card.find('.btn-remove').on('click', function () {
-    const code = $card.data('fg');
-    $card.remove();
-    let v = ($('#selFg').val() || []).filter(x => x != code);
-    $('#selFg').val(v).trigger('change');
-  });
 }
 
 function recalc($card) {
@@ -338,15 +270,6 @@ function collectCard($c) {
     materials:    mats,
   };
 }
-
-/* ---------- SAVE (create) ---------- */
-$('#btnSave').on('click', function () {
-  let items = [];
-  $('#fgContainer .fg-card').each(function () { items.push(collectCard($(this))); });
-  if (!items.length) { Swal.fire('Info', 'Pilih minimal 1 FG', 'warning'); return; }
-  $('#itemsJson').val(JSON.stringify(items));
-  $('#formSave').submit();
-});
 
 /* ---------- UPDATE (edit) ---------- */
 $('#btnUpdate').on('click', function () {
