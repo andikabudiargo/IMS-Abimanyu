@@ -4,30 +4,19 @@
 @include('layouts.breadcrumb')
 
 <style>
-  .step-nav { display:flex; align-items:center; margin-bottom:1.5rem; }
-  .step-nav .step { display:flex; align-items:center; color:#b9b9c3; font-weight:600; }
-  .step-nav .step.active { color:#7367f0; }
-  .step-nav .step.done { color:#28c76f; }
-  .step-nav .circle {
-    width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    border:2px solid #b9b9c3; margin-right:.5rem; font-size:13px; flex-shrink:0;
+  .fg-row { border:1px solid #e0e0e5; border-left:4px solid #ff9f43; border-radius:.5rem; margin-bottom:1rem; }
+  .fg-row.complete { border-left-color:#28c76f; }
+  .fg-row .row-label { font-size:11px; text-transform:uppercase; color:#b9b9c3; margin-bottom:.25rem; display:block; }
+  .fg-row .readonly-figure {
+    background:#f8f8f8; border-radius:.357rem; padding:.438rem 1rem; text-align:right; font-weight:600;
   }
-  .step-nav .step.active .circle { border-color:#7367f0; background:#7367f0; color:#fff; }
-  .step-nav .step.done .circle { border-color:#28c76f; background:#28c76f; color:#fff; }
-  .step-nav .line { flex:1; height:2px; background:#e0e0e5; margin:0 1rem; }
+  .fg-row .conv-result { color:#7367f0; }
+  .mat-tbl th, .mat-tbl td { font-size:13px; }
+  .unit-price[readonly] { background:#f8f8f8; }
 
   .fg-empty-state { border:2px dashed #d8d6de; border-radius:.5rem; padding:2.5rem 1rem; text-align:center; color:#b9b9c3; }
 
-  .fg-card { border:1px solid #e0e0e5; border-radius:.5rem; margin-bottom:1rem; overflow:hidden; }
-  .fg-card .fg-card-header {
-    padding:.75rem 1rem; background:#f8f8f8; cursor:pointer;
-    display:flex; justify-content:between; align-items:center;
-  }
-  .fg-card .fg-card-header:hover { background:#f1f1f2; }
-  .fg-card.incomplete .fg-card-header { border-left:3px solid #ff9f43; }
-  .fg-card.complete .fg-card-header { border-left:3px solid #28c76f; }
-  .fg-card-body { padding:1rem; }
-  .fg-status-badge { font-size:11px; }
+  .conv-info-box { background:#f1effe; border:1px solid #d8d3fc; border-radius:.5rem; padding:.75rem 1rem; }
 
   .summary-bar {
     position: sticky; bottom:0; left:0; right:0; background:#fff;
@@ -35,12 +24,9 @@
     display:flex; justify-content:space-between; align-items:center; z-index:10;
     box-shadow: 0 -2px 8px rgba(0,0,0,.04);
   }
-  .summary-bar .summary-count { font-weight:600; }
-  .summary-bar .summary-count .num { color:#7367f0; font-size:1.1rem; }
+  .summary-bar .summary-count .num { color:#7367f0; font-size:1.1rem; font-weight:600; }
 
-  .conv-info-box { background:#f1effe; border:1px solid #d8d3fc; border-radius:.5rem; padding:.75rem 1rem; }
-
-  .unit-price[readonly] { background:#f8f8f8; }
+  .select2-container { z-index: 1056; }
 </style>
 
 <div class="content-body">
@@ -51,97 +37,62 @@
     </a>
     <h4 class="mb-0">Create Price List</h4>
   </div>
-  <p class="text-muted mb-2">Pilih Finish Goods, lalu atur harga jual tiap FG sebelum disimpan.</p>
+  <p class="text-muted mb-2">Tambahkan artikel satu per satu, isi Sales Price, sisanya terhitung otomatis.</p>
 
   <div class="card">
     <div class="card-body">
 
-      <!-- STEP INDICATOR -->
-      <div class="step-nav">
-        <div class="step active" id="stepNav1">
-          <div class="circle">1</div> Pilih Finish Goods
+      <div class="conv-info-box mb-3 d-flex justify-content-between align-items-center">
+        <div>
+          <i class="feather icon-info mr-1"></i>
+          Conversion Value yang dipakai untuk perhitungan: <b>{{ number_format($conversionValue,2) }}</b>
         </div>
-        <div class="line"></div>
-        <div class="step" id="stepNav2">
-          <div class="circle">2</div> Atur Harga &amp; Simpan
-        </div>
+        <input type="hidden" id="convValue" value="{{ $conversionValue }}">
       </div>
 
       <form id="formSave" action="{{ route('conversion.priceList.store') }}" method="POST">
         @csrf
         <input type="hidden" name="items" id="itemsJson">
 
-        <!-- ===================== STEP 1: PILIH FG ===================== -->
-        <div id="panelStep1">
-          <div class="form-group">
-            <label class="font-weight-bold">Cari &amp; Pilih Finish Goods</label>
-            <select id="selFg" class="form-control select2" multiple style="width:100%">
-              @foreach($fgList as $fg)
-                <option value="{{ $fg->article_code }}">{{ $fg->article_alternative_code }} - {{ $fg->article_desc }}</option>
-              @endforeach
-            </select>
-            <small class="text-muted">Ketik kode atau nama produk. Bisa pilih lebih dari satu.</small>
-          </div>
+        <div id="fgRowContainer"></div>
 
-          <div class="conv-info-box mb-3 d-flex justify-content-between align-items-center">
-            <div>
-              <i class="feather icon-info mr-1"></i>
-              Conversion Value yang dipakai untuk perhitungan: <b>{{ number_format($conversionValue,2) }}</b>
-            </div>
-            <input type="hidden" id="convValue" value="{{ $conversionValue }}">
-          </div>
-
-          <div id="fgSelectedList"></div>
-
-          <div id="fgEmptyState" class="fg-empty-state">
-            <i class="feather icon-package" style="font-size:32px;"></i>
-            <p class="mt-2 mb-0">Belum ada Finish Goods yang dipilih.<br>Gunakan kolom pencarian di atas untuk mulai menambahkan.</p>
-          </div>
-
-          <div class="text-right mt-3">
-            <button type="button" class="btn btn-primary" id="btnToStep2" disabled>
-              Lanjut ke Atur Harga <i class="feather icon-arrow-right ml-50"></i>
-            </button>
-          </div>
+        <div id="fgEmptyState" class="fg-empty-state">
+          <i class="feather icon-package" style="font-size:32px;"></i>
+          <p class="mt-2 mb-3">Belum ada artikel ditambahkan.</p>
+          <button type="button" class="btn btn-primary btn-sm" id="btnAddRowEmpty">
+            <i class="feather icon-plus mr-50"></i> Tambah Artikel
+          </button>
         </div>
 
-        <!-- ===================== STEP 2: ATUR HARGA ===================== -->
-        <div id="panelStep2" style="display:none">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <button type="button" class="btn btn-flat-secondary btn-sm" id="btnBackToStep1">
-              <i class="feather icon-arrow-left mr-50"></i> Kembali pilih FG
-            </button>
-            <div>
-              <button type="button" class="btn btn-flat-primary btn-sm" id="btnExpandAll">Buka Semua</button>
-              <button type="button" class="btn btn-flat-secondary btn-sm" id="btnCollapseAll">Tutup Semua</button>
-            </div>
-          </div>
-
-          <div class="alert alert-warning py-2 px-3" id="incompleteWarning" style="display:none">
-            <i class="feather icon-alert-triangle mr-1"></i>
-            <span id="incompleteWarningText"></span>
-          </div>
-
-          <div id="fgContainer"></div>
-        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddRow" style="display:none">
+          <i class="feather icon-plus mr-50"></i> Tambah Artikel
+        </button>
       </form>
     </div>
 
     <!-- STICKY SUMMARY / ACTION BAR -->
     <div class="summary-bar">
       <div class="summary-count">
-        <span class="num" id="sumCount">0</span> Finish Goods dipilih
-        <span class="text-muted font-weight-normal ml-2" id="sumMargin"></span>
+        <span class="num" id="sumCount">0</span> artikel ditambahkan
       </div>
       <div>
         <a href="{{ route('conversion.priceList.index') }}" class="btn btn-outline-secondary mr-1">Batal</a>
-        <button type="button" class="btn btn-primary" id="btnSave" style="display:none">
+        <button type="button" class="btn btn-primary" id="btnSave">
           <i class="feather icon-save mr-50"></i> Simpan Price List
         </button>
       </div>
     </div>
   </div>
 </div>
+
+<!-- template option list, dipakai tiap row select -->
+<template id="fgOptionsTemplate">
+  @foreach($fgList as $fg)
+    <option value="{{ $fg->article_code }}" data-name="{{ $fg->article_alternative_code }} - {{ $fg->article_desc }}">
+      {{ $fg->article_alternative_code }} - {{ $fg->article_desc }}
+    </option>
+  @endforeach
+</template>
 @endsection
 
 @section('scripts')
@@ -153,116 +104,148 @@ $.ajaxSetup({
 const URL_GETBOM = '{{ route("conversion.priceList.getBom") }}';
 const CONV_VALUE = parseFloat($('#convValue').val()) || 0;
 
-/* fgState: code -> { fg, materials, loaded, complete } used to know save-readiness */
-const fgState = {};
+let rowSeq = 0;
 
 $(function () {
-  $('#selFg').select2({ width: '100%', placeholder: 'Cari kode / nama Finish Goods...' });
-  $('#selFg').on('select2:select', e => addFg(e.params.data.id));
-  $('#selFg').on('select2:unselect', e => removeFg(e.params.data.id));
-
-  $('#btnToStep2').on('click', goToStep2);
-  $('#btnBackToStep1').on('click', goToStep1);
-
-  $('#btnExpandAll').on('click', () => $('.fg-card-body').slideDown(150));
-  $('#btnCollapseAll').on('click', () => $('.fg-card-body').slideUp(150));
-
+  $('#btnAddRow, #btnAddRowEmpty').on('click', addRow);
   $('#btnSave').on('click', doSave);
+  addRow(); // mulai dengan 1 baris kosong
 });
 
-/* ---------- STEP NAVIGATION ---------- */
-function goToStep2() {
-  if (!Object.keys(fgState).length) return;
-  $('#panelStep1').hide();
-  $('#panelStep2').show();
-  $('#btnSave').show();
-  $('#stepNav1').removeClass('active').addClass('done');
-  $('#stepNav2').addClass('active');
-  refreshIncompleteWarning();
-}
-function goToStep1() {
-  $('#panelStep2').hide();
-  $('#panelStep1').show();
-  $('#btnSave').hide();
-  $('#stepNav2').removeClass('active');
-  $('#stepNav1').addClass('active').removeClass('done');
+/* ---------- ADD ROW ---------- */
+function addRow() {
+  rowSeq++;
+  const rowId = 'row' + rowSeq;
+  const optionsHtml = $('#fgOptionsTemplate').html();
+
+  const html = `
+  <div class="fg-row" id="${rowId}" data-code="">
+    <div class="card-body py-3">
+      <div class="row align-items-end">
+        <div class="col-lg-4 mb-2 mb-lg-0">
+          <span class="row-label">Article</span>
+          <select class="form-control fg-select" style="width:100%">
+            <option value=""></option>
+            ${optionsHtml}
+          </select>
+        </div>
+        <div class="col-lg-2 col-6 mb-2 mb-lg-0">
+          <span class="row-label">Sales Price</span>
+          <input type="number" step="any" class="form-control sales-price text-right" value="0" disabled>
+        </div>
+        <div class="col-lg-2 col-6 mb-2 mb-lg-0">
+          <span class="row-label">Material Price</span>
+          <div class="readonly-figure mat-price">0</div>
+        </div>
+        <div class="col-lg-2 col-6">
+          <span class="row-label">Margin</span>
+          <div class="readonly-figure margin">0</div>
+        </div>
+        <div class="col-lg-1 col-4">
+          <span class="row-label">Conversion</span>
+          <div class="readonly-figure conv-result">0</div>
+        </div>
+        <div class="col-lg-1 col-2 text-right">
+          <span class="row-label d-none d-lg-block">&nbsp;</span>
+          <button type="button" class="btn btn-icon btn-flat-danger btn-remove-row" title="Hapus baris">
+            <i class="feather icon-trash-2"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="mat-table-wrap mt-3" style="display:none">
+        <table class="table table-sm table-bordered mat-tbl mb-1">
+          <thead class="thead-light">
+            <tr><th>Code</th><th>Name</th><th>Type</th><th class="text-right">Qty</th>
+                <th style="width:130px">Unit Price</th><th class="text-right">Line Total</th></tr>
+          </thead>
+          <tbody class="mat-tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty-row-hint text-muted small mt-2">Pilih artikel di atas untuk memuat komposisi material.</div>
+    </div>
+  </div>`;
+
+  $('#fgRowContainer').append(html);
+  const $row = $('#' + rowId);
+
+  $row.find('.fg-select').select2({
+    dropdownParent: $row,
+    width: '100%',
+    placeholder: 'Cari kode / nama artikel...'
+  }).on('select2:select', function (e) {
+    onArticleSelected($row, e.params.data.id);
+  });
+
+  $row.find('.btn-remove-row').on('click', function () {
+    $row.remove();
+    updateEmptyState();
+    updateSummary();
+  });
+
+  $row.find('.sales-price').on('input', function () {
+    recalcRow($row);
+    updateSummary();
+  });
+
+  updateEmptyState();
 }
 
-/* ---------- ADD / REMOVE FG (Step 1 preview list) ---------- */
-function addFg(code) {
-  if (fgState[code]) return;
-  fgState[code] = { loading: true };
-  updateEmptyState();
-  renderStep1Preview();
+/* ---------- ARTICLE SELECTED -> LOAD BOM ---------- */
+function onArticleSelected($row, code) {
+  if (!code) return;
+
+  // cegah artikel yang sama dipilih di baris lain
+  const used = [];
+  $('.fg-row').not($row).each(function () { if ($(this).data('code')) used.push(String($(this).data('code'))); });
+  if (used.includes(String(code))) {
+    Swal.fire('Info', 'Artikel ini sudah ditambahkan di baris lain.', 'warning');
+    $row.find('.fg-select').val(null).trigger('change');
+    return;
+  }
+
+  $row.data('code', code);
+  $row.find('.mat-tbody').html('<tr><td colspan="6" class="text-center text-muted py-2">Memuat...</td></tr>');
+  $row.find('.mat-table-wrap').show();
+  $row.find('.empty-row-hint').hide();
 
   $.ajax({ url: URL_GETBOM, method: 'POST', dataType: 'json', data: { article_code: code } })
     .done(function (res) {
       if (res.status != 1) {
-        Swal.fire('Info', res.message || 'BOM tidak ditemukan untuk FG ini', 'warning');
-        delete fgState[code];
-        let v = ($('#selFg').val() || []).filter(x => x != code);
-        $('#selFg').val(v).trigger('change.select2');
-        renderStep1Preview();
-        updateEmptyState();
+        Swal.fire('Info', res.message || 'BOM tidak ditemukan untuk artikel ini', 'warning');
+        resetRow($row);
         return;
       }
-      fgState[code] = { fg: res.fg, materials: res.materials, loading: false, salesPrice: 0 };
-      renderStep1Preview();
-      renderCard(code);
+      $row.data('fg', res.fg);
+      $row.data('materials', res.materials);
+      renderMaterials($row, res.materials);
+      $row.find('.sales-price').prop('disabled', false);
+      recalcRow($row);
       updateSummary();
     })
     .fail(function (xhr) {
       console.error('getBom error', xhr.status, xhr.responseText);
       Swal.fire('Error', 'Gagal mengambil data BOM (' + xhr.status + '). Cek console.', 'error');
-      delete fgState[code];
-      let v = ($('#selFg').val() || []).filter(x => x != code);
-      $('#selFg').val(v).trigger('change.select2');
-      renderStep1Preview();
-      updateEmptyState();
+      resetRow($row);
     });
 }
 
-function removeFg(code) {
-  delete fgState[code];
-  $('.fg-card[data-fg="' + code + '"]').remove();
-  renderStep1Preview();
-  updateEmptyState();
+function resetRow($row) {
+  $row.data('code', '');
+  $row.data('fg', null);
+  $row.data('materials', null);
+  $row.find('.fg-select').val(null).trigger('change');
+  $row.find('.mat-table-wrap').hide();
+  $row.find('.mat-tbody').empty();
+  $row.find('.empty-row-hint').show();
+  $row.find('.sales-price').prop('disabled', true).val(0);
+  recalcRow($row);
   updateSummary();
-  if (!Object.keys(fgState).length) goToStep1();
 }
 
-function updateEmptyState() {
-  const has = Object.keys(fgState).length > 0;
-  $('#fgEmptyState').toggle(!has);
-  $('#btnToStep2').prop('disabled', !has);
-}
-
-function renderStep1Preview() {
-  let html = '';
-  Object.keys(fgState).forEach(code => {
-    const s = fgState[code];
-    if (s.loading) {
-      html += `<div class="d-flex align-items-center border rounded p-2 mb-2">
-                 <div class="spinner-border spinner-border-sm text-primary mr-2"></div> Memuat BOM untuk ${code}...
-               </div>`;
-    } else {
-      html += `<div class="d-flex align-items-center justify-content-between border rounded p-2 mb-2">
-                 <div><b>${s.fg.article_alternative_code ?? s.fg.article_code}</b> - ${s.fg.article_desc ?? ''}
-                   <span class="badge badge-light-secondary ml-1">${s.materials.length} material</span>
-                 </div>
-                 <i class="feather icon-check-circle text-success"></i>
-               </div>`;
-    }
-  });
-  $('#fgSelectedList').html(html);
-}
-
-/* ---------- STEP 2: CARD PER FG ---------- */
-function renderCard(code) {
-  const s = fgState[code];
-  const fg = s.fg;
+function renderMaterials($row, mats) {
   let rows = '';
-  s.materials.forEach(m => {
+  mats.forEach(m => {
     const alt  = m.article_alternative_code ?? '';
     const name = m.article_name ?? m.article_desc ?? '';
     rows += `
@@ -279,100 +262,50 @@ function renderCard(code) {
         <td class="text-right line-total">0</td>
       </tr>`;
   });
-
-  const html = `
-  <div class="fg-card incomplete" data-fg="${fg.article_code}" data-bom="${fg.bom_code}">
-    <div class="fg-card-header" data-toggle-body>
-      <div class="flex-grow-1">
-        <b>${fg.article_alternative_code ?? fg.article_code}</b> - ${fg.article_desc ?? fg.article_name ?? ''}
-        <span class="badge badge-light-warning fg-status-badge ml-1">Belum ada harga jual</span>
-      </div>
-      <i class="feather icon-chevron-down"></i>
-    </div>
-    <div class="fg-card-body">
-      <div class="form-group row align-items-center">
-        <label class="col-sm-3 col-form-label font-weight-bold">Sales Price <span class="text-danger">*</span></label>
-        <div class="col-sm-4">
-          <input type="number" step="any" class="form-control sales-price text-right" placeholder="Masukkan harga jual" value="0">
-        </div>
-        <div class="col-sm-5 text-muted small">Wajib diisi sebelum disimpan.</div>
-      </div>
-      <table class="table table-sm table-bordered mb-2">
-        <thead class="thead-light">
-          <tr><th>Code</th><th>Name</th><th>Type</th><th class="text-right">Qty</th>
-              <th style="width:140px">Unit Price</th><th class="text-right">Line Total</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div class="row text-right">
-        <div class="col-sm-6 offset-sm-6">
-          <div>Material Price: <b class="mat-price">0</b></div>
-          <div>Sales - Material: <b class="margin">0</b></div>
-          <div>Conversion: <b class="conv-result text-primary">0</b></div>
-        </div>
-      </div>
-    </div>
-  </div>`;
-  $('#fgContainer').append(html);
-
-  const $card = $('#fgContainer .fg-card[data-fg="' + code + '"]');
-  recalc($card);
-  $card.find('.unit-price, .sales-price').on('input', () => { recalc($card); refreshIncompleteWarning(); updateSummary(); });
-  $card.find('[data-toggle-body]').on('click', function () {
-    $card.find('.fg-card-body').slideToggle(150);
-    $(this).find('.feather').toggleClass('icon-chevron-down icon-chevron-up');
-  });
+  $row.find('.mat-tbody').html(rows || '<tr><td colspan="6" class="text-center text-muted py-2">Tidak ada material</td></tr>');
+  $row.find('.unit-price').on('input', function () { recalcRow($row); updateSummary(); });
 }
 
-function recalc($card) {
+/* ---------- CALC ---------- */
+function recalcRow($row) {
   let matPrice = 0;
-  $card.find('.mat-row').each(function () {
+  $row.find('.mat-row').each(function () {
     const qty = parseFloat($(this).data('qty')) || 0;
     const up  = parseFloat($(this).find('.unit-price').val()) || 0;
     const lt  = qty * up;
     $(this).find('.line-total').text(fmt(lt));
     matPrice += lt;
   });
-  const sales  = parseFloat($card.find('.sales-price').val()) || 0;
+  const sales  = parseFloat($row.find('.sales-price').val()) || 0;
   const margin = sales - matPrice;
   const conv   = CONV_VALUE > 0 ? margin / CONV_VALUE : 0;
-  $card.find('.mat-price').text(fmt(matPrice));
-  $card.find('.margin').text(fmt(margin));
-  $card.find('.conv-result').text(fmt(conv));
 
-  const complete = sales > 0;
-  $card.toggleClass('incomplete', !complete).toggleClass('complete', complete);
-  $card.find('.fg-status-badge')
-    .toggleClass('badge-light-warning', !complete)
-    .toggleClass('badge-light-success', complete)
-    .text(complete ? 'Siap disimpan' : 'Belum ada harga jual');
+  $row.find('.mat-price').text(fmt(matPrice));
+  $row.find('.margin').text(fmt(margin));
+  $row.find('.conv-result').text(fmt(conv));
+
+  const complete = !!$row.data('code') && sales > 0;
+  $row.toggleClass('complete', complete);
 }
 
-/* ---------- WARNINGS / SUMMARY ---------- */
-function refreshIncompleteWarning() {
-  const incomplete = $('#fgContainer .fg-card.incomplete').length;
-  $('#incompleteWarning').toggle(incomplete > 0);
-  if (incomplete > 0) {
-    $('#incompleteWarningText').text(incomplete + ' Finish Goods belum diisi Sales Price. Lengkapi sebelum menyimpan.');
-  }
+/* ---------- EMPTY STATE / SUMMARY ---------- */
+function updateEmptyState() {
+  const has = $('.fg-row').length > 0;
+  $('#fgEmptyState').toggle(!has);
+  $('#btnAddRow').toggle(has);
 }
 
 function updateSummary() {
-  const codes = Object.keys(fgState).filter(c => !fgState[c].loading);
-  $('#sumCount').text(codes.length);
-  let totalMargin = 0;
-  $('#fgContainer .fg-card').each(function () {
-    totalMargin += parseFloat($(this).find('.margin').text().replace(/\./g, '').replace(',', '.')) || 0;
-  });
-  $('#sumMargin').text(codes.length ? '• Total margin: ' + fmt(totalMargin) : '');
+  const count = $('.fg-row').filter(function () { return !!$(this).data('code'); }).length;
+  $('#sumCount').text(count);
 }
 
 /* ---------- HELPERS ---------- */
 function fmt(n) { return (parseFloat(n) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }); }
 
-function collectCard($c) {
+function collectRow($row) {
   const mats = [];
-  $c.find('.mat-row').each(function () {
+  $row.find('.mat-row').each(function () {
     mats.push({
       article_code: $(this).data('code'),
       article_type: $(this).data('type'),
@@ -381,36 +314,40 @@ function collectCard($c) {
       unit_price:   parseFloat($(this).find('.unit-price').val()) || 0,
     });
   });
+  const fg = $row.data('fg');
   return {
-    article_code: $c.data('fg'),
-    bom_code:     $c.data('bom'),
-    sales_price:  parseFloat($c.find('.sales-price').val()) || 0,
+    article_code: fg.article_code,
+    bom_code:     fg.bom_code,
+    sales_price:  parseFloat($row.find('.sales-price').val()) || 0,
     materials:    mats,
   };
 }
 
 /* ---------- SAVE ---------- */
 function doSave() {
-  let items = [];
+  const $rows = $('.fg-row').filter(function () { return !!$(this).data('code'); });
+
+  if (!$rows.length) {
+    Swal.fire('Info', 'Tambahkan minimal 1 artikel', 'warning');
+    return;
+  }
+
   let incomplete = 0;
-  $('#fgContainer .fg-card').each(function () {
-    const item = collectCard($(this));
+  const items = [];
+  $rows.each(function () {
+    const item = collectRow($(this));
     if (item.sales_price <= 0) incomplete++;
     items.push(item);
   });
 
-  if (!items.length) {
-    Swal.fire('Info', 'Pilih minimal 1 Finish Goods', 'warning');
-    return;
-  }
   if (incomplete > 0) {
-    Swal.fire('Belum Lengkap', incomplete + ' Finish Goods belum diisi Sales Price.', 'warning');
+    Swal.fire('Belum Lengkap', incomplete + ' artikel belum diisi Sales Price.', 'warning');
     return;
   }
 
   Swal.fire({
     title: 'Simpan Price List?',
-    text: items.length + ' Finish Goods akan disimpan.',
+    text: items.length + ' artikel akan disimpan.',
     icon: 'question',
     showCancelButton: true,
     confirmButtonText: 'Ya, simpan',
