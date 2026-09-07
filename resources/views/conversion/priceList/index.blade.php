@@ -304,7 +304,7 @@ function renderCard(container, fg, mats, isEdit, salesVal) {
     </div>
     <div class="card-body">
       <div class="form-group row">
-        <label class="col-sm-3 col-form-label">Sales Price (manual)</label>
+        <label class="col-sm-3 col-form-label">Sales Price</label>
         <div class="col-sm-4">
           <input type="number" step="any" class="form-control sales-price text-right" value="${salesVal ?? 0}">
         </div>
