@@ -418,14 +418,16 @@ public function importExcel(Request $request)
 {
     $this->validate($request, ['file' => 'required|mimes:xls,xlsx'], ['required' => 'File is required']);
 
-    $import = new PriceListImport();
-    Excel::import($import, $request->file('file'));
+    // toCollection() selalu mengembalikan Collection-of-sheets, tidak seperti
+    // Excel::import() yang ambigu kalau file punya lebih dari 1 sheet.
+    $sheets = Excel::toCollection(new PriceListImport(), $request->file('file'));
+    $rows   = $sheets->get(0, collect()); // sheet pertama = 'template'
 
     $dataDetail = [];
     $errors     = [];
     $usedCodes  = [];
 
-    foreach ($import->rows as $i => $row) {
+    foreach ($rows as $i => $row) {
         $lineNo     = $i + 2; // baris asli di Excel (setelah heading)
         $code       = trim((string) ($row['article_code'] ?? ''));
         $salesPrice = $row['sales_price'] ?? null;
