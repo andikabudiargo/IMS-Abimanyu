@@ -52,6 +52,22 @@ public function index(Request $request)
     return view('conversion.priceList.index', $data);
 }
 
+public function create(Request $request)
+{
+    $data['title']    = "Create " . $this->title;
+    $data['subtitle'] = $this->title;
+
+    $data['fgList'] = DB::table('article')
+        ->where('article_type', 'FG')
+        ->orderBy('article_alternative_code')
+        ->get(['article_code', 'article_alternative_code', 'article_desc']);
+
+    $conv = DB::table('conversion_setting')->where('status', '1')->orderByDesc('id')->first();
+    $data['conversionValue'] = $conv ? (float) $conv->conversion_value : 0;
+
+    return view('conversion.priceList.create', $data);
+}
+
 public function list(Request $request)
 {
     $searchArticle  = strtolower((string) $request->searchArticle);
