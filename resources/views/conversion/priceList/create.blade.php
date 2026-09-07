@@ -70,6 +70,14 @@
     </option>
   @endforeach
 </template>
+
+<template id="customerOptionsTemplate">
+  @foreach($customerList as $c)
+    <option value="{{ $c->kode }}" data-name="{{ $c->nama }}">
+      {{ $c->nama }}
+    </option>
+  @endforeach
+</template>
 @endsection
 
 @section('scripts')
@@ -94,23 +102,33 @@ function addRow() {
   rowSeq++;
   const rowId = 'row' + rowSeq;
   const optionsHtml = $('#fgOptionsTemplate').html();
+  const customerOptionsHtml = $('#customerOptionsTemplate').html();
 
   const html = `
   <div class="fg-row" id="${rowId}" data-code="">
     <div class="card-body py-3">
-      <div class="row align-items-end">
-        <div class="col-lg-4 mb-2 mb-lg-0">
+      <div class="row mb-2">
+        <div class="col-lg-6 mb-2 mb-lg-0">
           <span class="row-label">Article</span>
           <select class="form-control fg-select" style="width:100%">
             <option value=""></option>
             ${optionsHtml}
           </select>
         </div>
-        <div class="col-lg-2 col-6 mb-2 mb-lg-0">
+        <div class="col-lg-6">
+          <span class="row-label">Customer</span>
+          <select class="form-control customer-select" style="width:100%">
+            <option value=""></option>
+            ${customerOptionsHtml}
+          </select>
+        </div>
+      </div>
+      <div class="row align-items-end">
+        <div class="col-lg-3 col-6 mb-2 mb-lg-0">
           <span class="row-label">Sales Price</span>
           <input type="number" step="any" class="form-control sales-price text-right" value="0" disabled>
         </div>
-        <div class="col-lg-2 col-6 mb-2 mb-lg-0">
+        <div class="col-lg-3 col-6 mb-2 mb-lg-0">
           <span class="row-label">Material Price</span>
           <div class="readonly-figure mat-price">0</div>
         </div>
@@ -118,11 +136,11 @@ function addRow() {
           <span class="row-label">Margin</span>
           <div class="readonly-figure margin">0</div>
         </div>
-        <div class="col-lg-1 col-4">
+        <div class="col-lg-2 col-4">
           <span class="row-label">Conversion</span>
           <div class="readonly-figure conv-result">0</div>
         </div>
-        <div class="col-lg-1 col-2 text-right">
+        <div class="col-lg-2 col-2 text-right">
           <span class="row-label d-none d-lg-block">&nbsp;</span>
           <button type="button" class="btn btn-icon btn-flat-danger btn-remove-row" title="Hapus baris">
             <i class="feather icon-trash-2"></i>
@@ -154,6 +172,12 @@ function addRow() {
     onArticleSelected($row, e.params.data.id);
   });
 
+  $row.find('.customer-select').select2({
+    dropdownParent: $row,
+    width: '100%',
+    placeholder: 'Pilih customer (opsional)'
+  });
+
   $row.find('.btn-remove-row').on('click', function () {
     $row.remove();
     updateEmptyState();
@@ -170,11 +194,14 @@ function addRow() {
 function onArticleSelected($row, code) {
   if (!code) return;
 
+  const $selectedOpt = $row.find('.fg-select option:selected');
+  const label = $selectedOpt.length ? $selectedOpt.text().split(' - ')[0] : code;
+
   // cegah artikel yang sama dipilih di baris lain
   const used = [];
   $('.fg-row').not($row).each(function () { if ($(this).data('code')) used.push(String($(this).data('code'))); });
   if (used.includes(String(code))) {
-    Swal.fire('Info', 'Artikel ini sudah ditambahkan di baris lain.', 'warning');
+    Swal.fire('Info', 'Artikel ' + label + ' sudah ditambahkan di baris lain.', 'warning');
     $row.find('.fg-select').val(null).trigger('change');
     return;
   }
@@ -222,7 +249,7 @@ function renderMaterials($row, mats) {
     const alt  = m.article_alternative_code ?? '';
     const name = m.article_name ?? m.article_desc ?? '';
     const lastRecText = m.article_type === 'RMNP'
-      ? 'Manual (RMNP)'
+      ? 'Non Purchase (RMNP)'
       : (m.last_receiving_date ? 'Last: ' + fmtDate(m.last_receiving_date) : 'Belum pernah receiving');
     rows += `
       <tr class="mat-row"
@@ -290,11 +317,14 @@ function collectRow($row) {
     });
   });
   const fg = $row.data('fg');
+  const $custOpt = $row.find('.customer-select option:selected');
   return {
-    article_code: fg.article_code,
-    bom_code:     fg.bom_code,
-    sales_price:  parseFloat($row.find('.sales-price').val()) || 0,
-    materials:    mats,
+    article_code:  fg.article_code,
+    bom_code:      fg.bom_code,
+    customer_code: $row.find('.customer-select').val() || null,
+    customer_name: $custOpt.data('name') || null,
+    sales_price:   parseFloat($row.find('.sales-price').val()) || 0,
+    materials:     mats,
   };
 }
 

@@ -44,6 +44,11 @@ class PriceListController extends Controller
         ->orderBy('article_alternative_code')
         ->get(['article_code', 'article_alternative_code', 'article_desc']);
 
+    // sesuaikan nama tabel/kolom customer di sini
+    $data['customerList'] = DB::table('third_party')
+        ->orderBy('nama')
+        ->get(['kode', 'nama']);
+
     $conv = DB::table('conversion_setting')->where('status', '1')->orderByDesc('id')->first();
     $data['conversionValue'] = $conv ? (float) $conv->conversion_value : 0;
 
@@ -94,33 +99,34 @@ class PriceListController extends Controller
 
     // ambil RM (bom_rm) + child part (bom_det) beserta harga rata-rata
     public function getBom(Request $request)
-    {
-        $fg = $request->article_code;
+{
+    $fg = $request->article_code;
 
-        $hdr = DB::table('bom_hdr')
-            ->where('article_code', $fg)
-            ->where('status', '!=', '5')
-            ->orderByDesc('id')
-            ->first();
+    $fgArticle = DB::table('article')->where('article_code', $fg)->first();
+    $fgLabel   = $fgArticle->article_alternative_code ?? $fg;
 
-        if (!$hdr) {
-            return response()->json(['status' => 0, 'message' => "BOM aktif untuk $fg tidak ditemukan"]);
-        }
+    $hdr = DB::table('bom_hdr')
+        ->where('article_code', $fg)
+        ->where('status', '!=', '5')
+        ->orderByDesc('id')
+        ->first();
 
-        $fgArticle = DB::table('article')->where('article_code', $fg)->first();
+    if (!$hdr) {
+        return response()->json(['status' => 0, 'message' => "BOM aktif untuk $fgLabel tidak ditemukan"]);
+    }
 
-        $rm = DB::table('bom_rm as b')
-            ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
-            ->where('b.bom_code', $hdr->bom_code)
-            ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'RM' as source"))
-            ->get();
+    $rm = DB::table('bom_rm as b')
+        ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
+        ->where('b.bom_code', $hdr->bom_code)
+        ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'RM' as source"))
+        ->get();
 
-        $det = DB::table('bom_det as b')
-            ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
-            ->where('b.bom_code', $hdr->bom_code)
-            ->whereIn('a.article_type', ['RMP', 'RMNP'])
-            ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'DET' as source"))
-            ->get();
+    $det = DB::table('bom_det as b')
+        ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
+        ->where('b.bom_code', $hdr->bom_code)
+        ->whereIn('a.article_type', ['RMP', 'RMNP'])
+        ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'DET' as source"))
+        ->get();
 
        $materials = [];
 foreach ($rm->concat($det) as $m) {
@@ -149,17 +155,17 @@ foreach ($rm->concat($det) as $m) {
     ];
 }
 
-        return response()->json([
-            'status' => 1,
-            'fg' => [
-                'article_code'             => $fg,
-                'article_alternative_code' => $fgArticle->article_alternative_code ?? $fg,
-                'article_name'             => $fgArticle->article_desc ?? $fg,
-                'bom_code'                 => $hdr->bom_code,
-            ],
-            'materials' => $materials,
-        ]);
-    }
+       return response()->json([
+        'status' => 1,
+        'fg' => [
+            'article_code'             => $fg,
+            'article_alternative_code' => $fgArticle->article_alternative_code ?? $fg,
+            'article_name'             => $fgArticle->article_desc ?? $fg,
+            'bom_code'                 => $hdr->bom_code,
+        ],
+        'materials' => $materials,
+    ]);
+}
 
     // weighted average bulan berjalan; kalau kosong mundur 1 bulan
     // weighted average bulan berjalan; kalau kosong, mundur bulan demi bulan
@@ -213,38 +219,39 @@ private function avgPrice($articleCode, int $maxMonthsBack = 24): array
         DB::beginTransaction();
         try {
             foreach ($items as $fg) {
-                $salesPrice    = (float) preg_replace('/[^0-9.\-]/', '', (string)($fg['sales_price'] ?? 0));
-                $mats          = $fg['materials'] ?? [];
-                $materialPrice = $this->calcMaterialPrice($mats);
-                $margin        = $salesPrice - $materialPrice;
-                $convResult    = $convVal > 0 ? $margin / $convVal : 0;
+    $salesPrice    = (float) preg_replace('/[^0-9.\-]/', '', (string)($fg['sales_price'] ?? 0));
+    $mats          = $fg['materials'] ?? [];
+    $materialPrice = $this->calcMaterialPrice($mats);
+    $margin        = $salesPrice - $materialPrice;
+    $convResult    = $convVal > 0 ? $margin / $convVal : 0;
 
-                // nonaktifkan versi lama FG ini
-                DB::table('price_list_fg')
-                    ->where('article_code', $fg['article_code'])
-                    ->where('status', '1')
-                    ->update([
-                        'status'     => '0',
-                        'updated_by' => $username,
-                        'updated_at' => date('Y-m-d H:i:s'),
-                    ]);
+    DB::table('price_list_fg')
+        ->where('article_code', $fg['article_code'])
+        ->where('status', '1')
+        ->update([
+            'status'     => '0',
+            'updated_by' => $username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
 
-                $fgId = DB::table('price_list_fg')->insertGetId([
-                    'article_code'      => $fg['article_code'],
-                    'bom_code'          => $fg['bom_code'] ?? null,
-                    'pl_date'           => date('Y-m-d'),
-                    'sales_price'       => $salesPrice,
-                    'material_price'    => $materialPrice,
-                    'margin'            => $margin,
-                    'conversion_value'  => $convVal,
-                    'conversion_result' => $convResult,
-                    'status'            => '1',
-                    'created_by'        => $username,
-                    'created_at'        => date('Y-m-d H:i:s'),
-                ]);
+    $fgId = DB::table('price_list_fg')->insertGetId([
+        'article_code'      => $fg['article_code'],
+        'bom_code'          => $fg['bom_code'] ?? null,
+        'customer_code'     => $fg['customer_code'] ?? null,
+        'customer_name'     => $fg['customer_name'] ?? null,
+        'pl_date'           => date('Y-m-d'),
+        'sales_price'       => $salesPrice,
+        'material_price'    => $materialPrice,
+        'margin'            => $margin,
+        'conversion_value'  => $convVal,
+        'conversion_result' => $convResult,
+        'status'            => '1',
+        'created_by'        => $username,
+        'created_at'        => date('Y-m-d H:i:s'),
+    ]);
 
-                $this->insertMaterials($fgId, $mats, $username);
-            }
+    $this->insertMaterials($fgId, $mats, $username);
+}
 
             DB::commit();
             $title = "Save $this->title";
@@ -340,15 +347,17 @@ private function avgPrice($articleCode, int $maxMonthsBack = 24): array
 
         DB::beginTransaction();
         try {
-            DB::table('price_list_fg')->where('id', $id)->update([
-                'sales_price'       => $salesPrice,
-                'material_price'    => $materialPrice,
-                'margin'            => $margin,
-                'conversion_value'  => $convVal,
-                'conversion_result' => $convResult,
-                'updated_by'        => $username,
-                'updated_at'        => date('Y-m-d H:i:s'),
-            ]);
+           DB::table('price_list_fg')->where('id', $id)->update([
+    'customer_code'     => $fg['customer_code'] ?? null,
+    'customer_name'     => $fg['customer_name'] ?? null,
+    'sales_price'       => $salesPrice,
+    'material_price'    => $materialPrice,
+    'margin'            => $margin,
+    'conversion_value'  => $convVal,
+    'conversion_result' => $convResult,
+    'updated_by'        => $username,
+    'updated_at'        => date('Y-m-d H:i:s'),
+]);
 
             // refresh material lines
             DB::table('price_list_mat')->where('fg_id', $id)->delete();
