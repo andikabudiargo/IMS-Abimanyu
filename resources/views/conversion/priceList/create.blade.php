@@ -17,28 +17,9 @@
   .fg-empty-state { border:2px dashed #d8d6de; border-radius:.5rem; padding:2.5rem 1rem; text-align:center; color:#b9b9c3; }
 
   .conv-info-box { background:#f1effe; border:1px solid #d8d3fc; border-radius:.5rem; padding:.75rem 1rem; }
-
-  .summary-bar {
-    position: sticky; bottom:0; left:0; right:0; background:#fff;
-    border-top:1px solid #e0e0e5; padding:.85rem 1.25rem; margin:0 -1.5rem -1.5rem;
-    display:flex; justify-content:space-between; align-items:center; z-index:10;
-    box-shadow: 0 -2px 8px rgba(0,0,0,.04);
-  }
-  .summary-bar .summary-count .num { color:#7367f0; font-size:1.1rem; font-weight:600; }
-
-  .select2-container { z-index: 1056; }
 </style>
 
 <div class="content-body">
-
-  <div class="d-flex align-items-center mb-1">
-    <a href="{{ route('conversion.priceList.index') }}" class="btn btn-icon btn-flat-secondary mr-1">
-      <i class="feather icon-arrow-left"></i>
-    </a>
-    <h4 class="mb-0">Create Price List</h4>
-  </div>
-  <p class="text-muted mb-2">Tambahkan artikel satu per satu, isi Sales Price, sisanya terhitung otomatis.</p>
-
   <div class="card">
     <div class="card-body">
 
@@ -68,19 +49,15 @@
           <i class="feather icon-plus mr-50"></i> Add Article
         </button>
       </form>
-    </div>
 
-    <!-- STICKY SUMMARY / ACTION BAR -->
-    <div class="summary-bar">
-      <div class="summary-count">
-        <span class="num" id="sumCount">0</span> artikel ditambahkan
+      <hr>
+      <div class="form-row mt-75">
+        <div class="col-md-12">
+          <a href="{{ route('conversion.priceList.index') }}" class="btn btn-light">Back</a>
+          <button class="btn btn-primary" type="button" id="btnSave">Save</button>
+        </div>
       </div>
-      <div>
-        <a href="{{ route('conversion.priceList.index') }}" class="btn btn-outline-secondary mr-1">Batal</a>
-        <button type="button" class="btn btn-primary" id="btnSave">
-          <i class="feather icon-save mr-50"></i> Simpan Price List
-        </button>
-      </div>
+
     </div>
   </div>
 </div>
@@ -180,12 +157,10 @@ function addRow() {
   $row.find('.btn-remove-row').on('click', function () {
     $row.remove();
     updateEmptyState();
-    updateSummary();
   });
 
   $row.find('.sales-price').on('input', function () {
     recalcRow($row);
-    updateSummary();
   });
 
   updateEmptyState();
@@ -221,7 +196,6 @@ function onArticleSelected($row, code) {
       renderMaterials($row, res.materials);
       $row.find('.sales-price').prop('disabled', false);
       recalcRow($row);
-      updateSummary();
     })
     .fail(function (xhr) {
       console.error('getBom error', xhr.status, xhr.responseText);
@@ -240,7 +214,6 @@ function resetRow($row) {
   $row.find('.empty-row-hint').show();
   $row.find('.sales-price').prop('disabled', true).val(0);
   recalcRow($row);
-  updateSummary();
 }
 
 function renderMaterials($row, mats) {
@@ -248,6 +221,9 @@ function renderMaterials($row, mats) {
   mats.forEach(m => {
     const alt  = m.article_alternative_code ?? '';
     const name = m.article_name ?? m.article_desc ?? '';
+    const lastRecText = m.article_type === 'RMNP'
+      ? 'Manual (RMNP)'
+      : (m.last_receiving_date ? 'Last: ' + fmtDate(m.last_receiving_date) : 'Belum pernah receiving');
     rows += `
       <tr class="mat-row"
           data-code="${m.article_code}"
@@ -257,13 +233,16 @@ function renderMaterials($row, mats) {
         <td>${name}</td>
         <td><span class="badge badge-${m.article_type==='RMNP'?'secondary':'success'}">${m.article_type}</span></td>
         <td class="text-right">${m.qty}</td>
-        <td><input type="number" step="any" class="form-control form-control-sm unit-price text-right"
-             value="${m.unit_price}" ${m.article_type==='RMNP'?'readonly':''}></td>
+        <td>
+          <input type="number" step="any" class="form-control form-control-sm unit-price text-right"
+               value="${m.unit_price}" ${m.article_type==='RMNP'?'readonly':''}>
+          <small class="text-muted d-block mt-25">${lastRecText}</small>
+        </td>
         <td class="text-right line-total">0</td>
       </tr>`;
   });
   $row.find('.mat-tbody').html(rows || '<tr><td colspan="6" class="text-center text-muted py-2">Tidak ada material</td></tr>');
-  $row.find('.unit-price').on('input', function () { recalcRow($row); updateSummary(); });
+  $row.find('.unit-price').on('input', function () { recalcRow($row); });
 }
 
 /* ---------- CALC ---------- */
@@ -288,20 +267,16 @@ function recalcRow($row) {
   $row.toggleClass('complete', complete);
 }
 
-/* ---------- EMPTY STATE / SUMMARY ---------- */
+/* ---------- EMPTY STATE ---------- */
 function updateEmptyState() {
   const has = $('.fg-row').length > 0;
   $('#fgEmptyState').toggle(!has);
   $('#btnAddRow').toggle(has);
 }
 
-function updateSummary() {
-  const count = $('.fg-row').filter(function () { return !!$(this).data('code'); }).length;
-  $('#sumCount').text(count);
-}
-
 /* ---------- HELPERS ---------- */
 function fmt(n) { return (parseFloat(n) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }); }
+function fmtDate(d) { if (!d) return '-'; const p = String(d).substr(0,10).split('-'); return p.length===3 ? p[2]+'-'+p[1]+'-'+p[0] : d; }
 
 function collectRow($row) {
   const mats = [];
