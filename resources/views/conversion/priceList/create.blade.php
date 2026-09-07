@@ -25,7 +25,7 @@
 
       <div class="conv-info-box mb-3 d-flex justify-content-between align-items-center">
         <div>
-          <i class="feather icon-info mr-1"></i>
+          <i data-feather="info" class="mr-1"></i>
           Conversion Value yang dipakai untuk perhitungan: <b>{{ number_format($conversionValue,2) }}</b>
         </div>
         <input type="hidden" id="convValue" value="{{ $conversionValue }}">
@@ -45,7 +45,7 @@
               <i class="fa fa-download"></i> Download Template
             </a>
             <button type="button" class="btn btn-primary" id="uploadExcel">
-              <i class="feather icon-upload mr-50"></i> Upload Excel
+              <i data-feather="upload" class="mr-50"></i> Upload Excel
             </button>
           </div>
         </div>
@@ -59,15 +59,15 @@
         <div id="fgRowContainer"></div>
 
         <div id="fgEmptyState" class="fg-empty-state">
-          <i class="feather icon-package" style="font-size:32px;"></i>
+          <i data-feather="package" style="width:32px;height:32px;"></i>
           <p class="mt-2 mb-3">Belum ada artikel ditambahkan.</p>
           <button type="button" class="btn btn-primary btn-sm" id="btnAddRowEmpty">
-            <i class="feather icon-plus mr-50"></i> Add Article
+            <i data-feather="plus" class="mr-50"></i> Add Article
           </button>
         </div>
 
         <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddRow" style="display:none">
-          <i class="feather icon-plus mr-50"></i> Add Article
+          <i data-feather="plus" class="mr-50"></i> Add Article
         </button>
       </form>
 
@@ -123,7 +123,8 @@ function doImportExcel() {
     return;
   }
 
-  $('#uploadExcel').prop('disabled', true).html('<i class="feather icon-loader mr-50"></i> Memproses...');
+  $('#uploadExcel').prop('disabled', true).html('<i data-feather="loader" class="mr-50"></i> Memproses...');
+  if (window.feather) feather.replace({ width: 14, height: 14 });
 
   $.ajax({
     url: '{{ route("conversion.priceList.import.excel") }}',
@@ -166,7 +167,8 @@ function doImportExcel() {
     Swal.fire('Error', 'Gagal upload Excel (' + xhr.status + '). Cek console.', 'error');
   })
   .always(function () {
-    $('#uploadExcel').prop('disabled', false).html('<i class="feather icon-upload mr-50"></i> Upload Excel');
+    $('#uploadExcel').prop('disabled', false).html('<i data-feather="upload" class="mr-50"></i> Upload Excel');
+    if (window.feather) feather.replace({ width: 14, height: 14 });
   });
 }
 
@@ -251,7 +253,7 @@ function addRow() {
         <div class="col-lg-2 col-2 text-right">
           <span class="row-label d-none d-lg-block">&nbsp;</span>
           <button type="button" class="btn btn-icon btn-flat-danger btn-remove-row" title="Hapus baris">
-            <i class="feather icon-trash-2"></i>
+            <i data-feather="trash-2"></i>
           </button>
         </div>
       </div>
@@ -406,6 +408,7 @@ function updateEmptyState() {
   const has = $('.fg-row').length > 0;
   $('#fgEmptyState').toggle(!has);
   $('#btnAddRow').toggle(has);
+  if (window.feather) feather.replace({ width: 14, height: 14 });
 }
 
 /* ---------- HELPERS ---------- */
