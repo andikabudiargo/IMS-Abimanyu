@@ -2,30 +2,79 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
-<div class="content-body">
+
+<section id="pricelist-index">
   <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h4 class="card-title">{{ $title }}</h4>
-      <a href="{{ route('conversion.priceList.create') }}" class="btn btn-primary">
-        <i class="feather icon-plus"></i> Create
-      </a>
+    <div class="card-header">
+      <h4 class="card-title">Filter</h4>
+      <div class="heading-elements">
+        <ul class="list-inline mb-0">
+          <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+        </ul>
+      </div>
     </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-striped" id="tblPriceList" style="width:100%">
-          <thead>
-            <tr>
-              <th>Action</th><th>No</th><th>Product Code</th><th>Product Name</th>
-              <th class="text-right">Sales Price</th><th class="text-right">Material Price</th>
-              <th class="text-right">Margin</th><th class="text-right">Conversion</th>
-              <th>By</th><th>Updated Date</th>
-            </tr>
-          </thead>
-        </table>
+    <div class="card-content collapse show">
+      <div class="card-body">
+        <form class="needs-validation" novalidate>
+          <div class="form-row">
+            <div class="form-group col-md-4">
+              <label for="searchArticle">Article Code</label>
+              <input type="text" class="form-control text-uppercase" id="searchArticle" name="searchArticle" placeholder="">
+            </div>
+            <div class="form-group col-md-4">
+              <label for="searchDesc">Article Desc</label>
+              <input type="text" class="form-control" id="searchDesc" name="searchDesc" placeholder="">
+            </div>
+            <div class="form-group col-md-4">
+              <label class="form-label" for="searchCustomer">Customer</label>
+              <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
+                <option value="">All</option>
+                @foreach($customerList as $c)
+                  <option value="{{ $c->kode }}">{{ $c->nama }}</option>
+                @endforeach
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="col-12">
+              <button type="button" class="btn btn-primary" id="btnSearch" name="btnSearch">Search</button>
+              <a href="{{ route('conversion.priceList.create') }}" class="btn btn-info">
+                <i class="fa fa-plus"></i> Create
+              </a>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   </div>
-</div>
+</section>
+
+<section id="table-pricelist">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">{{ $title }} List</h4>
+      <div class="heading-elements">
+        <ul class="list-inline mb-0">
+          <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+          <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-content collapse show">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-sm-12">
+            <div class="card-datatable table-responsive pt-0">
+              <table id="detailedTable" class="table">
+                <thead class="thead-light"></thead>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- MODAL EDIT -->
 <div class="modal fade" id="modalEdit" tabindex="-1" role="dialog">
@@ -67,6 +116,7 @@
     </div>
   </div>
 </div>
+@include('partials.delete-modal')
 @endsection
 
 @section('scripts')
@@ -75,32 +125,55 @@ $.ajaxSetup({
   headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
 });
 
-const URL_DATA   = '{{ route("conversion.priceList.data") }}';
 const URL_SHOW   = '{{ route("conversion.priceList.show") }}';
 const URL_EDIT   = '{{ route("conversion.priceList.edit") }}';
 const URL_UPDATE = '{{ route("conversion.priceList.update") }}';
 const CONV_VALUE = {{ (float) $conversionValue }};
 
-$(function () {
-  $('#tblPriceList').DataTable({
-    processing: true, serverSide: true, ajax: URL_DATA,
-    columns: [
-      { data: 'action', orderable: false, searchable: false },
-  { data: null, orderable: false, searchable: false, render: (d,t,r,m) => m.row + m.settings._iDisplayStart + 1 },
-  { data: 'article_alternative_code' },
-  { data: 'article_desc' },
-  { data: 'sales_price',       className: 'text-right' },
-  { data: 'material_price',    className: 'text-right' },
-  { data: 'margin',            className: 'text-right' },
-  { data: 'conversion_result', className: 'text-right' },
-  { data: 'created_by' },
-  { data: 'pl_date' },
-],
-    drawCallback: function () { if (window.feather) feather.replace(); }
-  });
+let searchArticle  = document.querySelector('#searchArticle');
+let searchDesc     = document.querySelector('#searchDesc');
+let searchCustomer = document.querySelector('#searchCustomer');
+let search  = document.querySelector('#btnSearch');
+let refresh = document.querySelector('a[data-action="reload"]');
 
-  $('#tblPriceList').on('click', '.btn-detail', function () { showDetail($(this).data('id')); });
-  $('#tblPriceList').on('click', '.btn-edit',   function () { loadEdit($(this).data('id')); });
+function dataSearch() {
+  $(".loading-spinner-container").addClass("-show");
+  showList(searchArticle.value, searchDesc.value, searchCustomer.value);
+}
+
+refresh.addEventListener("click", function () { dataSearch(); });
+search.addEventListener("click", function () { dataSearch(); });
+
+const showList = (searchArticle, searchDesc, searchCustomer) => {
+  if ($('#detailedTable tr').length > 0) {
+    let table = $('#detailedTable').DataTable();
+    table.destroy();
+    $('#detailedTable tbody > tr').remove();
+    $('#detailedTable thead > tr').remove();
+  }
+  showDataTables({
+    tableId: "detailedTable",
+    route: "{{ route('conversion.priceList.list') }}",
+    kolom: {!! $kolom !!},
+    arrColPrint: [1,2,3,4,5,6,7,8,9],
+    dataSearch: {
+      searchArticle: searchArticle,
+      searchDesc: searchDesc,
+      searchCustomer: searchCustomer,
+    },
+    initComplete: function () {
+      $(".loading-spinner-container").removeClass("-show");
+    },
+    orderColumn: [[ 1, 'asc' ]],
+    excelFileName: 'price_list'
+  });
+}
+
+$(function () {
+  showList('', '', '');
+
+  $(document).on('click', '.btn-detail', function () { showDetail($(this).data('id')); });
+  $(document).on('click', '.btn-edit',   function () { loadEdit($(this).data('id')); });
 });
 
 /* ---------- DETAIL ---------- */
@@ -133,6 +206,7 @@ function renderDetail(fg, mats) {
       <div class="col-sm-6">
         <b>${fg.article_alternative_code ?? fg.article_code}</b><br>
         <small class="text-muted">${fg.article_desc ?? ''}</small>
+        ${fg.customer_name ? '<div class="text-muted small mt-25">Customer: <b>'+fg.customer_name+'</b></div>' : ''}
       </div>
       <div class="col-sm-6 text-right">
         <div>Date: <b>${fmtDate(fg.pl_date)}</b></div>
@@ -284,7 +358,7 @@ $('#btnUpdate').on('click', function () {
     if (res.status == 1) {
       Swal.fire('Success', res.message, 'success').then(() => {
         $('#modalEdit').modal('hide');
-        $('#tblPriceList').DataTable().ajax.reload(null, false);
+        $('#detailedTable').DataTable().ajax.reload(null, false);
       });
     } else {
       Swal.fire('Warning', res.message || 'Gagal update', 'warning');

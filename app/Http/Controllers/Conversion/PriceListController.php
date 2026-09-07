@@ -21,84 +21,121 @@ class PriceListController extends Controller
         $this->title = "Price List";
     }
 
-    public function index(Request $request)
-    {
-        $data['title']    = $this->title;
-        $data['subtitle'] = $this->title;
-
-        $data['fgList'] = DB::table('article')
-            ->where('article_type', 'FG')
-            ->orderBy('article_alternative_code')
-            ->get(['article_code', 'article_alternative_code', 'article_desc']);
-
-        $conv = DB::table('conversion_setting')->where('status', '1')->orderByDesc('id')->first();
-        $data['conversionValue'] = $conv ? (float) $conv->conversion_value : 0;
-
-        return view('conversion.priceList.index', $data);
-    }
-
-    public function create(Request $request)
+   public function getTableColoumn()
 {
-    $data['title']    = "Create " . $this->title;
+    $kolom = [
+        ['data'=>'action',                    'name'=>'action',                    'title'=>'Action', 'orderable'=>false, 'searchable'=>false],
+        ['data'=>'article_alternative_code',  'name'=>'article_alternative_code',  'title'=>'Article Code'],
+        ['data'=>'article_desc',              'name'=>'article_desc',              'title'=>'Article Desc'],
+        ['data'=>'customer_name',             'name'=>'customer_name',             'title'=>'Customer'],
+        ['data'=>'sales_price',               'name'=>'sales_price',               'title'=>'Sales Price'],
+        ['data'=>'material_price',            'name'=>'material_price',            'title'=>'Material Price'],
+        ['data'=>'margin',                    'name'=>'margin',                    'title'=>'Margin'],
+        ['data'=>'conversion_result',         'name'=>'conversion_result',         'title'=>'Conversion'],
+        ['data'=>'created_by',                'name'=>'created_by',                'title'=>'Created By'],
+        ['data'=>'pl_date',                   'name'=>'pl_date',                   'title'=>'Date'],
+    ];
+    return json_encode($kolom, true);
+}
+
+public function index(Request $request)
+{
+    $data['title']    = $this->title;
     $data['subtitle'] = $this->title;
+    $data['kolom']    = $this->getTableColoumn();
 
-    $data['fgList'] = DB::table('article')
-        ->where('article_type', 'FG')
-        ->orderBy('article_alternative_code')
-        ->get(['article_code', 'article_alternative_code', 'article_desc']);
-
-    // sesuaikan nama tabel/kolom customer di sini
-    $data['customerList'] = DB::table('third_party')
-        ->orderBy('nama')
-        ->get(['kode', 'nama']);
+    $data['customerList'] = DB::table('third_party')->orderBy('nama')->get(['kode', 'nama']);
 
     $conv = DB::table('conversion_setting')->where('status', '1')->orderByDesc('id')->first();
     $data['conversionValue'] = $conv ? (float) $conv->conversion_value : 0;
 
-    return view('conversion.priceList.create', $data);
+    return view('conversion.priceList.index', $data);
 }
 
-    public function data(Request $request)
-    {
-        $q = DB::table('price_list_fg as f')
-            ->leftJoin('article as a', 'a.article_code', '=', 'f.article_code')
-            ->where('f.status', '1')
-            ->select(
-                'f.id', 'f.article_code', 'a.article_alternative_code', 'a.article_desc',
-                'f.pl_date', 'f.sales_price', 'f.material_price', 'f.margin',
-                'f.conversion_value', 'f.conversion_result', 'f.created_by'
-            )
-            ->orderBy('a.article_alternative_code');
+public function list(Request $request)
+{
+    $searchArticle  = strtolower((string) $request->searchArticle);
+    $searchDesc     = strtolower((string) $request->searchDesc);
+    $searchCustomer = (string) $request->searchCustomer;
 
-        $bisaEdit = Auth::user()->can('pricelist-edit');
+    $query = DB::table('price_list_fg as f')
+        ->leftJoin('article as a', 'a.article_code', '=', 'f.article_code')
+        ->where('f.status', '1')
+        ->where(function ($q) use ($searchArticle, $searchDesc, $searchCustomer) {
+            $searchArticle  ? $q->where('a.article_alternative_code', 'ilike', '%' . $searchArticle . '%') : '';
+            $searchDesc     ? $q->where('a.article_desc', 'ilike', '%' . $searchDesc . '%') : '';
+            $searchCustomer ? $q->where('f.customer_code', $searchCustomer) : '';
+        })
+        ->select(
+            'f.id', 'f.article_code', 'a.article_alternative_code', 'a.article_desc',
+            'f.customer_name', 'f.pl_date', 'f.sales_price', 'f.material_price', 'f.margin',
+            'f.conversion_value', 'f.conversion_result', 'f.created_by'
+        )
+        ->orderBy('a.article_alternative_code');
 
-        return DataTables::of($q)
-            ->editColumn('pl_date', fn($r) => date('d-m-Y', strtotime($r->pl_date)))
-            ->editColumn('sales_price',       fn($r) => number_format($r->sales_price, 2))
-            ->editColumn('material_price',    fn($r) => number_format($r->material_price, 2))
-            ->editColumn('margin',            fn($r) => number_format($r->margin, 2))
-            ->editColumn('conversion_result', fn($r) => number_format($r->conversion_result, 2))
-            ->addColumn('action', function ($r) use ($bisaEdit) {
-                $id = Crypt::encryptString($r->id);
-                $buttons  = '<div class="d-inline-flex">
-                                <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
-                                    <i data-feather="menu"></i>
-                                </a>';
-                $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
-                $buttons .=     '<a href="javascript:;" class="dropdown-item btn-detail" data-id="'.$r->id.'">
-                                    <i data-feather="list"></i> Detail
-                                </a>';
-                if ($bisaEdit) {
-                    $buttons .= '<a href="javascript:;" class="dropdown-item btn-edit" data-id="'.$r->id.'">
-                                    <i data-feather="file-text"></i> Edit
-                                </a>';
-                }
-                $buttons .= '</div></div>';
-                return $buttons;
-            })
-            ->rawColumns(['action'])
-            ->make(true);
+    $bisaEdit = Auth::user()->can('pricelist-edit');
+
+    return DataTables::of($query)
+        ->editColumn('pl_date',           fn($r) => date('d-m-Y', strtotime($r->pl_date)))
+        ->editColumn('sales_price',       fn($r) => number_format($r->sales_price, 2))
+        ->editColumn('material_price',    fn($r) => number_format($r->material_price, 2))
+        ->editColumn('margin',            fn($r) => number_format($r->margin, 2))
+        ->editColumn('conversion_result', fn($r) => number_format($r->conversion_result, 2))
+        ->editColumn('customer_name',     fn($r) => $r->customer_name ?? '-')
+        ->addColumn('action', function ($r) use ($bisaEdit) {
+            $id = Crypt::encryptString($r->id);
+
+            $buttons  = '<div class="d-inline-flex">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a>';
+            $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
+
+            $buttons .= '<a href="javascript:;" class="dropdown-item btn-detail" data-id="' . $r->id . '">
+                            <i data-feather="list"></i><span>' . __('Detail') . '</span></a>';
+
+            if ($bisaEdit) {
+                $buttons .= '<a href="javascript:;" class="dropdown-item btn-edit" data-id="' . $r->id . '">
+                                <i data-feather="edit-2"></i><span>' . __('Edit') . '</span></a>';
+
+                $buttons .= "<form id='delete-form-{$r->id}' action='" . route('conversion.priceList.destroy') . "' method='POST' class='d-none'>
+                                " . csrf_field() . "
+                                <input type='hidden' name='id' value='{$id}'>
+                            </form>
+                            <a href='javascript:;' class='dropdown-item' data-size='sm' data-ajax-delete='true'
+                                data-confirm='Hapus Price List ini?|Data akan dinonaktifkan dan tidak muncul lagi di daftar.'
+                                data-confirm-yes='document.getElementById(\"delete-form-{$r->id}\").submit();'
+                                data-modal-id='{$r->id}'
+                                data-url='" . route('conversion.priceList.destroy') . "'>
+                                <i data-feather='trash-2' class='feather-14-red'></i><span class='text-danger'>" . __('Delete') . "</span></a>";
+            }
+
+            $buttons .= '</div></div>';
+            return $buttons;
+        })
+        ->rawColumns(['action'])
+        ->make(true);
+}
+
+public function destroy(Request $request)
+{
+    $username = Auth::user()->username;
+    $title    = "Delete $this->title";
+    $id       = Crypt::decryptString($request->id);
+
+    $row = DB::table('price_list_fg')->where('id', $id)->where('status', '1')->first();
+    if (!$row) {
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Data tidak ditemukan / sudah tidak aktif']);
     }
+
+    DB::table('price_list_fg')->where('id', $id)->update([
+        'status'     => '0',
+        'updated_by' => $username,
+        'updated_at' => date('Y-m-d H:i:s'),
+    ]);
+
+    $message = "$title untuk artikel {$row->article_code} berhasil dihapus";
+    \LogActivity::addToLog($title, "username: $username deleted price list id $id");
+    return redirect()->back()->with(['title' => $title, 'alert' => 'success', 'message' => $message]);
+}
 
     // ambil RM (bom_rm) + child part (bom_det) beserta harga rata-rata
     public function getBom(Request $request)
