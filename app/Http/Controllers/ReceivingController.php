@@ -2096,39 +2096,74 @@ if ($snapshot->isNotEmpty()) {
     }
   
     public function destroy(Request $request)
-    {
-        /* Hapus permanen kalau status nya bukan Canceled, Revised, Canceled */
+{
+    /* Hapus permanen kalau status nya bukan Canceled, Revised, Posted,
+       DAN tidak punya histori movement (guard tambahan supaya tidak
+       menimbulkan orphan movement — lihat kasus REC-ASN/2026/IX/4121:
+       status REVISI lolos filter status lama, padahal origin-nya pernah
+       POSTED dan movement-nya masih ada di warehouse_movement) */
 
-        // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
-        //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
+    // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
+    //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI'];
 
-        $username =  Auth::user()->username;       
-        $id=Crypt::decryptString($request->id);
-        
-        $recNumber = DB::table('receiving_hdr')->where('id',$id)
-        ->whereNotIn('status',['4','5','7'])
-        ->value('rec_number');
+    $username = Auth::user()->username;
+    $id = Crypt::decryptString($request->id);
+    $title = "Delete $this->title";
 
-        $rowAffected = DB::table('receiving_hdr')->where('rec_number',$recNumber)->delete();
+    $recHdr = DB::table('receiving_hdr')->where('id', $id)
+        ->whereNotIn('status', ['4', '5', '7'])
+        ->first();
 
-        if($rowAffected>0){
-            DB::table('receiving_det')->where('rec_number',$recNumber)->delete();
-            DB::table('kas_det')->where('voucher_number',$recNumber)->delete();
-            DB::table('kas_hdr')->where('voucher_number',$recNumber)->delete();
-            
-            $title ="Delete $this->title";
-            $alert  ="success";
-            $message  = "$title $recNumber Successfully Deleted";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);  
-        }else{
-            $title ="Delete $this->title";
-            $alert  ="warning";
-            $message  = "$title $recNumber Failed to Delete";
-            \LogActivity::addToLog($title,"username: $username Status $message");
-            return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);
-        }
+    if (!$recHdr) {
+        $message = "$title Failed to Delete (data tidak ditemukan atau status tidak eligible untuk dihapus)";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['alert' => 'warning', 'title' => $title, 'message' => $message]);
     }
+
+    $recNumber = $recHdr->rec_number;
+
+    // BARU: guard tambahan — tolak kalau dokumen ini pernah punya jejak movement
+    // (bisa terjadi pada status REVISI (10) yang originnya pernah POSTED
+    // sebelum direvisi, meskipun status saat ini bukan 4/5/7)
+    $adaMovement = DB::table('warehouse_movement')
+        ->where('movement_transnno', $recNumber)
+        ->exists();
+
+    if ($adaMovement) {
+        $message = "$title $recNumber tidak dapat dihapus karena memiliki histori movement (pernah POSTED sebelum direvisi). "
+                  . "Gunakan Cancel pada dokumen POSTED terkait, atau hubungi admin untuk penanganan lebih lanjut.";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['alert' => 'warning', 'title' => $title, 'message' => $message]);
+    }
+
+    DB::beginTransaction();
+    try {
+        $rowAffected = DB::table('receiving_hdr')->where('rec_number', $recNumber)->delete();
+
+        if ($rowAffected > 0) {
+            DB::table('receiving_det')->where('rec_number', $recNumber)->delete();
+            DB::table('kas_det')->where('voucher_number', $recNumber)->delete();
+            DB::table('kas_hdr')->where('voucher_number', $recNumber)->delete();
+
+            DB::commit();
+
+            $message = "$title $recNumber Successfully Deleted";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['alert' => 'success', 'title' => $title, 'message' => $message]);
+        } else {
+            DB::rollBack();
+
+            $message = "$title $recNumber Failed to Delete";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['alert' => 'warning', 'title' => $title, 'message' => $message]);
+        }
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $message = "$title $recNumber error: " . $e->getMessage();
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return redirect()->back()->with(['alert' => 'error', 'title' => $title, 'message' => $message]);
+    }
+}
 
      
 public function revision(Request $request)
@@ -2772,7 +2807,8 @@ public function unPosting($recNumber)
               and a.article_type = 'CM1'
               and (rd.qty + rd.qty_free) > 0
               and coalesce(us.allocated_qty,0) < (rd.qty + rd.qty_free)
-        ) as chemical_pending_rows")
+        ) as chemical_pending_rows"),
+         DB::raw("(select exists(select 1 from warehouse_movement where movement_transnno = receiving_hdr.rec_number and movement_type = 'RECEIVING'))::int as has_movement")
     )
    ->orderByRaw("
     to_date(nullif(do_date, ''), 'DD-MM-YYYY') ASC NULLS LAST
@@ -2914,19 +2950,28 @@ public function unPosting($recNumber)
                 }
             }
 
-            if (!in_array($data->status, ['4', '5', '7']) && $bisaUbah && $bisaDelete) {
-                $buttons .= "<a href='javascript:;'
-                                class='dropdown-item'
-                                data-size='sm'
-                                data-ajax-delete='true'
-                                data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?'
-                                data-confirm-yes='document.getElementById(\"delete-form-{$data->id}\").submit();'
-                                data-modal-id='{$data->id}'
-                                data-url='" . route('receiving.destroy', ['id' => Crypt::encryptString($data->id)]) . "'>
-                                <i data-feather='trash-2' class='feather-14-red'></i>
-                                <span>" . __('Delete') . "</span>
-                             </a>";
-            }
+           if (!in_array($data->status, ['4', '5', '7']) && !$data->has_movement && $bisaUbah && $bisaDelete) {
+    $buttons .= "<a href='javascript:;'
+                    class='dropdown-item'
+                    data-size='sm'
+                    data-ajax-delete='true'
+                    data-confirm='Are You Sure want to Delete?|This action can not be undone. Do you want to continue?'
+                    data-confirm-yes='document.getElementById(\"delete-form-{$data->id}\").submit();'
+                    data-modal-id='{$data->id}'
+                    data-url='" . route('receiving.destroy', ['id' => Crypt::encryptString($data->id)]) . "'>
+                    <i data-feather='trash-2' class='feather-14-red'></i>
+                    <span>" . __('Delete') . "</span>
+                 </a>";
+} elseif (!in_array($data->status, ['4', '5', '7']) && $data->has_movement && $bisaUbah) {
+    // Opsional: tampilkan info kenapa tidak bisa delete, biar user tidak bingung
+    $buttons .= "<a href='javascript:;' class='dropdown-item text-muted'
+                    data-toggle='tooltip'
+                    data-placement='left'
+                    title='Tidak dapat dihapus, dokumen ini memiliki histori movement (pernah POSTED sebelum direvisi). Silahkan Cancel dokumen ini jika ingin menghapusnya.'>
+                    <i data-feather='trash-2' class='feather-14-red'></i>
+                    <span>" . __('Delete') . " <small>(ada movement)</small></span>
+                 </a>";
+}
 
             $buttons .= '</div></div>';
             return $buttons;
