@@ -211,6 +211,7 @@ function renderDetail(fg, mats, history) {
         <td class="text-right">${fmt(h.sales_price_old)}</td>
         <td class="text-right">${fmt(h.material_price_old)}</td>
         <td class="text-right">${fmt(h.margin_old)}</td>
+        <td class="text-right">${fmt(h.conversion_value_old)}</td>
         <td class="text-right">${fmt(h.conversion_result_old)}</td>
       </tr>`;
   });
@@ -249,7 +250,7 @@ function renderDetail(fg, mats, history) {
       <thead class="thead-light">
         <tr><th>Diubah Pada</th><th>Oleh</th><th class="text-right">Sales Price (lama)</th>
             <th class="text-right">Material Price (lama)</th><th class="text-right">Margin (lama)</th>
-            <th class="text-right">Conversion (lama)</th></tr>
+            <th class="text-right">Conv. Value (lama)</th><th class="text-right">Conversion (lama)</th></tr>
       </thead>
       <tbody>${histRows}</tbody>
     </table>` : '<div class="text-muted small">Belum pernah diedit sejak dibuat.</div>'}`;
@@ -270,6 +271,8 @@ function loadEdit(idEnc) {
         article_alternative_code: res.fg.article_alternative_code,
         article_name: res.fg.article_desc,
         bom_code: res.fg.bom_code,
+        customer_code: res.fg.customer_code,
+        customer_name: res.fg.customer_name,
       };
       renderCard('#editContainer', fg, res.materials, true, res.fg.sales_price);
     })
@@ -304,7 +307,11 @@ function renderCard(container, fg, mats, isEdit, salesVal) {
     </div>
     <div class="card-body">
       <div class="form-group row">
-        <label class="col-sm-3 col-form-label">Sales Price</label>
+        <label class="col-sm-3 col-form-label">Customer</label>
+        <div class="col-sm-4 pt-1 text-muted">${fg.customer_name || fg.customer_code || '-'}</div>
+      </div>
+      <div class="form-group row">
+        <label class="col-sm-3 col-form-label">Sales Price (manual)</label>
         <div class="col-sm-4">
           <input type="number" step="any" class="form-control sales-price text-right" value="${salesVal ?? 0}">
         </div>
@@ -327,6 +334,8 @@ function renderCard(container, fg, mats, isEdit, salesVal) {
   </div>`;
   $(container).append(html);
   const $card = $(container + ' .fg-card').last();
+  $card.data('customer_code', fg.customer_code || null);
+  $card.data('customer_name', fg.customer_name || null);
   recalc($card);
   $card.find('.unit-price, .sales-price').on('input', () => recalc($card));
 }
@@ -370,10 +379,12 @@ function collectCard($c) {
     });
   });
   return {
-    article_code: $c.data('fg'),
-    bom_code:     $c.data('bom'),
-    sales_price:  parseFloat($c.find('.sales-price').val()) || 0,
-    materials:    mats,
+    article_code:  $c.data('fg'),
+    bom_code:      $c.data('bom'),
+    customer_code: $c.data('customer_code') || null,
+    customer_name: $c.data('customer_name') || null,
+    sales_price:   parseFloat($c.find('.sales-price').val()) || 0,
+    materials:     mats,
   };
 }
 

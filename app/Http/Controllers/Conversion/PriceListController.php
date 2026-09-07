@@ -419,29 +419,30 @@ private function avgPrice($articleCode, int $maxMonthsBack = 24): array
 try {
     // ── catat kondisi SEBELUM diubah ke tabel log ──
     DB::table('price_list_fg_hist')->insert([
-        'fg_id'                 => $id,
-        'article_code'          => $row->article_code,
-        'customer_code_old'     => $row->customer_code,
-        'customer_name_old'     => $row->customer_name,
-        'sales_price_old'       => $row->sales_price,
-        'material_price_old'    => $row->material_price,
-        'margin_old'            => $row->margin,
-        'conversion_result_old' => $row->conversion_result,
-        'changed_by'            => $username,
-        'changed_at'            => date('Y-m-d H:i:s'),
-    ]);
+    'fg_id'                 => $id,
+    'article_code'          => $row->article_code,
+    'customer_code_old'     => $row->customer_code,
+    'customer_name_old'     => $row->customer_name,
+    'sales_price_old'       => $row->sales_price,
+    'material_price_old'    => $row->material_price,
+    'margin_old'            => $row->margin,
+    'conversion_value_old'  => $row->conversion_value,   // ← TAMBAHKAN
+    'conversion_result_old' => $row->conversion_result,
+    'changed_by'            => $username,
+    'changed_at'            => date('Y-m-d H:i:s'),
+]);
 
-    DB::table('price_list_fg')->where('id', $id)->update([
-        'customer_code'     => $fg['customer_code'] ?? null,
-        'customer_name'     => $fg['customer_name'] ?? null,
-        'sales_price'       => $salesPrice,
-        'material_price'    => $materialPrice,
-        'margin'            => $margin,
-        'conversion_value'  => $convVal,
-        'conversion_result' => $convResult,
-        'updated_by'        => $username,
-        'updated_at'        => date('Y-m-d H:i:s'),
-    ]);
+   DB::table('price_list_fg')->where('id', $id)->update([
+    'customer_code'     => $fg['customer_code'] ?? $row->customer_code,   // ← fallback ke data lama
+    'customer_name'     => $fg['customer_name'] ?? $row->customer_name,   // ← fallback ke data lama
+    'sales_price'       => $salesPrice,
+    'material_price'    => $materialPrice,
+    'margin'            => $margin,
+    'conversion_value'  => $convVal,
+    'conversion_result' => $convResult,
+    'updated_by'        => $username,
+    'updated_at'        => date('Y-m-d H:i:s'),
+]);
 
     // refresh material lines
     DB::table('price_list_mat')->where('fg_id', $id)->delete();
