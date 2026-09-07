@@ -408,28 +408,27 @@ class PurchaseOrderController extends Controller
     }
 
     public function detail(Request $request)
-    {
-        $poNumber=$request->poNumber;
-        $detail = DB::table('purchase_order_det')
+{
+    $poNumber = $request->poNumber;
+    $detail = DB::table('purchase_order_det')
         ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
+        // hapus leftJoin article_stock
         ->leftJoin('purchase_request_det', function($join) {
             $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
-            ->on('purchase_request_det.article_code','purchase_order_det.article_code');
+                 ->on('purchase_request_det.article_code','purchase_order_det.article_code');
         })
         ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
         ->where('purchase_order_det.po_number',$poNumber)
         ->select('purchase_order_det'.'.*'
             ,'purchase_order_det.pr_number'
-            ,'article_stock.article_qty as qty_stock'
+            ,DB::raw($this->stockSubquery('purchase_order_det.article_code').' as qty_stock')
             ,'uom.uom_group'
             , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
         ->orderBy('id')
         ->get();
 
-        return response()->json(array('status' => 0, 'data' => $detail));
-
-    }
+    return response()->json(array('status' => 0, 'data' => $detail));
+}
     public function showEdit($key)
     {
         $id=Crypt::decryptString($key);
@@ -451,47 +450,41 @@ class PurchaseOrderController extends Controller
         ->distinct('pr_number')
         ->get();
 
-        $data['articles'] = DB::table('purchase_request_det')
-        ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_request_det'.'.article_code')
-        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
-        ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
-        ->where('supp_code',$data['header']->supplier_id)
-        ->where('po_number','=',$poNumber)
-        // ->where('pr_number','=',$data['header']->pr_number)
-        ->orderBy('article.article_desc')
-        ->distinct('article.article_desc')
-        ->select('purchase_request_det'.'.*'
-            ,'article.article_alternative_code'
-            ,'article.article_code as artikel_code'
-            ,'article.article_desc'
-            ,'article.costprice'
-            ,'article_stock.article_qty as qty_stock'
-            ,'purchase_request_det.uom as uom1'
-            ,'uom.uom_group'
-            ,'group_materials.name as group')
-        // ->orderBy('purchase_request_det.id')
-        ->get();
+       $data['articles'] = DB::table('purchase_request_det')
+    ->leftJoin('article','article.article_code','=','purchase_request_det'.'.article_code')
+    // hapus leftJoin article_stock
+    ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+    ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
+    ->where('supp_code',$data['header']->supplier_id)
+    ->where('po_number','=',$poNumber)
+    ->orderBy('article.article_desc')
+    ->distinct('article.article_desc')
+    ->select('purchase_request_det'.'.*'
+        ,'article.article_alternative_code'
+        ,'article.article_code as artikel_code'
+        ,'article.article_desc'
+        ,'article.costprice'
+        ,DB::raw($this->stockSubquery('purchase_request_det.article_code').' as qty_stock')
+        ,'purchase_request_det.uom as uom1'
+        ,'uom.uom_group'
+        ,'group_materials.name as group')
+    ->get();
 
-        $data['detail'] = DB::table('purchase_order_det')
-        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        // ->leftJoin('purchase_request_det', function($join) {
-        //     $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
-        //     ->on('purchase_request_det.article_code','purchase_order_det.article_code');
-        // })
-        ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
-        ->where('purchase_order_det.po_number',$poNumber)
-        ->select('purchase_order_det'.'.*'
-            ,'article.article_alternative_code'
-            ,'article.article_code as artikel_code'
-            ,'article.article_desc'
-            ,'purchase_order_det.pr_number'
-            ,'article_stock.article_qty as qty_stock'
-            ,'uom.uom_group'
-            , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
-        ->orderBy('purchase_order_det.id')
-        ->get();       
+$data['detail'] = DB::table('purchase_order_det')
+    ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
+    // hapus leftJoin article_stock
+    ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
+    ->where('purchase_order_det.po_number',$poNumber)
+    ->select('purchase_order_det'.'.*'
+        ,'article.article_alternative_code'
+        ,'article.article_code as artikel_code'
+        ,'article.article_desc'
+        ,'purchase_order_det.pr_number'
+        ,DB::raw($this->stockSubquery('purchase_order_det.article_code').' as qty_stock')
+        ,'uom.uom_group'
+        , DB::raw('(SELECT name from group_materials where code = group_of_material) as group'))
+    ->orderBy('purchase_order_det.id')
+    ->get();      
 
         $data['cekReceiving'] = DB::table('receiving_hdr')
         ->where('po_number',$poNumber)
@@ -1644,6 +1637,45 @@ private function stockSubquery($articleCodeColumn = 'purchase_order_det.article_
     }
 
     public function listArticleByPr(Request $request)
+{
+    $prNumber = $request->prNumber;
+    $suppCode = $request->suppCode;
+
+    $data = DB::table('purchase_request_det')
+        ->leftJoin('article','article.article_code','=','purchase_request_det.article_code')
+        // hapus leftJoin warehouse_stock langsung
+        ->leftJoin('group_materials','group_materials.code','=','article.group_of_material')
+        ->leftJoin('article_supplier','article_supplier.article_code','=','purchase_request_det.article_code')
+        ->leftJoin('uom','uom.code','=','purchase_request_det.uom')
+        ->where('article_supplier.supplier_code',$suppCode)
+        ->where('pr_number','=',$prNumber)
+        ->orderBy('article.article_desc')
+        ->distinct('article.article_desc')
+        ->select(DB::raw("concat(article.article_alternative_code,' - ',article.article_desc) as article_description")
+            ,'article.article_code as artikel_code'
+            ,'article.article_desc','article.costprice'
+            ,DB::raw($this->stockSubquery('purchase_request_det.article_code').' as qty_stock')
+            ,'purchase_request_det.uom as uom1'
+            ,'group_materials.name as group'
+            ,'uom.uom_group'
+            ,DB::raw("(SELECT price as last_price from purchase_order_det where article_code = purchase_request_det.article_code and updated_at is not null and po_number not like '%-R%' order by updated_at desc limit 1) as last_price")
+            ,DB::raw("(select coalesce(sum(qty),0) from purchase_order_det 
+                where article_code = purchase_request_det.article_code 
+                and pr_number = purchase_request_det.pr_number
+                and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
+                ) as qty_po")
+            ,DB::raw("purchase_request_det.qty - (select coalesce(sum(qty),0) from purchase_order_det 
+                where article_code = purchase_request_det.article_code 
+                and pr_number = purchase_request_det.pr_number
+                and po_number in (select po_number from purchase_order_hdr where status not in ('5','6','7','8'))
+                ) as qty")
+        )
+        ->get();
+
+    return response()->json(array('data' => $data));
+}
+
+    public function listArticleByPrOld(Request $request)
     {
         $prNumber = $request->prNumber;
         $suppCode = $request->suppCode;
