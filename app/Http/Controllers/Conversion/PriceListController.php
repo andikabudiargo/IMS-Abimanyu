@@ -92,7 +92,6 @@ public function list(Request $request)
             $buttons .= '<a href="javascript:;" class="dropdown-item btn-detail" data-id="' . $r->id . '">
                             <i data-feather="list"></i><span>' . __('Detail') . '</span></a>';
 
-            if ($bisaEdit) {
                 $buttons .= '<a href="javascript:;" class="dropdown-item btn-edit" data-id="' . $r->id . '">
                                 <i data-feather="edit-2"></i><span>' . __('Edit') . '</span></a>';
 
@@ -106,7 +105,6 @@ public function list(Request $request)
                                 data-modal-id='{$r->id}'
                                 data-url='" . route('conversion.priceList.destroy') . "'>
                                 <i data-feather='trash-2' class='feather-14-red'></i><span class='text-danger'>" . __('Delete') . "</span></a>";
-            }
 
             $buttons .= '</div></div>';
             return $buttons;
