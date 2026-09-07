@@ -92,8 +92,8 @@ public function list(Request $request)
             $buttons .= '<a href="javascript:;" class="dropdown-item btn-detail" data-id="' . $r->id . '">
                             <i data-feather="list"></i><span>' . __('Detail') . '</span></a>';
 
-                $buttons .= '<a href="javascript:;" class="dropdown-item btn-edit" data-id="' . $r->id . '">
-                                <i data-feather="edit-2"></i><span>' . __('Edit') . '</span></a>';
+               $buttons .= '<a href="javascript:;" class="dropdown-item btn-edit" data-id="' . $id . '">
+                <i data-feather="edit-2"></i><span>' . __('Edit') . '</span></a>';
 
                 $buttons .= "<form id='delete-form-{$r->id}' action='" . route('conversion.priceList.destroy') . "' method='POST' class='d-none'>
                                 " . csrf_field() . "
