@@ -375,27 +375,23 @@ class PurchaseOrderController extends Controller
 
         $poNumber = $data['headers'][0]->origin_po_number;
         
-        $data['details'] = DB::table('purchase_order_det')
-        ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
-        ->leftJoin('article_stock','article_stock.article_code','=','purchase_order_det.article_code')
-        // ->leftJoin('purchase_request_det', function($join) {
-        //     $join->on('purchase_request_det.po_number','purchase_order_det.po_number')
-        //     ->on('purchase_request_det.article_code','purchase_order_det.article_code');
-        // })
-        ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
-        ->whereIn('purchase_order_det.po_number', function($query) use ($poNumber){
-            $query->select('po_number')->from('purchase_order_hdr')->where('origin_po_number',$poNumber);
-        })
-        ->select('purchase_order_det'.'.*'
-            ,'purchase_order_det.pr_number'
-            ,'article_stock.article_qty as qty_stock'
-            ,'article.uom as article_uom'
-            ,'uom.uom_group'
-            , DB::raw('(SELECT name from group_materials where code = group_of_material) as group')
-            ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
-        )
-        ->orderBy('id')
-        ->get();
+      $data['details'] = DB::table('purchase_order_det')
+    ->leftJoin('article','article.article_code','=','purchase_order_det.article_code')
+    // hapus leftJoin article_stock
+    ->leftJoin('uom','uom.code','=','purchase_order_det.uom')
+    ->whereIn('purchase_order_det.po_number', function($query) use ($poNumber){
+        $query->select('po_number')->from('purchase_order_hdr')->where('origin_po_number',$poNumber);
+    })
+    ->select('purchase_order_det'.'.*'
+        ,'purchase_order_det.pr_number'
+        ,DB::raw($this->stockSubquery('purchase_order_det.article_code').' as qty_stock')
+        ,'article.uom as article_uom'
+        ,'uom.uom_group'
+        , DB::raw('(SELECT name from group_materials where code = group_of_material) as group')
+        ,DB::raw("concat(article_alternative_code,'-',article_desc) as article")
+    )
+    ->orderBy('id')
+    ->get();
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$poNumber,$username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$poNumber,$username);
@@ -1512,6 +1508,28 @@ class PurchaseOrderController extends Controller
         ->make(true);
     }
 
+    // Reusable stock subquery — taruh sebagai method private di controller atau helper
+private function stockSubquery($articleCodeColumn = 'purchase_order_det.article_code')
+{
+    return "(
+        SELECT COALESCE(SUM(ws.article_qty), 0)
+        FROM warehouse_stock ws
+        JOIN article a ON a.article_code = ws.article_code
+        WHERE ws.article_code = $articleCodeColumn
+          AND ws.site_code = 'HO'
+          AND (
+              (a.article_type = 'CM1' AND ws.location_number = '005')
+              OR (a.article_type IN ('CM2','CM3') AND ws.location_number = '006')
+              OR (a.article_type IN ('RMP','RMNP') AND (
+                    (a.group_of_material = 'CPA' AND ws.location_number = '006')
+                    OR (a.group_of_material != 'CPA' AND ws.location_number = '009')
+                    OR ws.location_number = '012'
+              ))
+              OR (a.article_type NOT IN ('CM1','CM2','CM3','RMP','RMNP') AND ws.location_number = '006')
+          )
+    )";
+}
+
     public function print(Request $request)
     {
         $id=Crypt::decryptString($request->id);
@@ -1907,5 +1925,7 @@ class PurchaseOrderController extends Controller
         }
         return 'selesai';
     }
+
+    
 
 }
