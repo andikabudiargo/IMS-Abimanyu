@@ -183,12 +183,12 @@ function showDetail(id) {
   $.ajax({ url: URL_SHOW, method: 'POST', dataType: 'json', data: { id: id } })
     .done(function (res) {
       if (res.status != 1) { $('#detailBody').html('<div class="text-danger">'+(res.message||'Gagal')+'</div>'); return; }
-      renderDetail(res.fg, res.materials);
+      renderDetail(res.fg, res.materials, res.history);
     })
     .fail(function (xhr) { $('#detailBody').html('<div class="text-danger">Error '+xhr.status+'</div>'); });
 }
 
-function renderDetail(fg, mats) {
+function renderDetail(fg, mats, history) {
   let rows = '';
   mats.forEach(m => {
     rows += `
@@ -201,6 +201,20 @@ function renderDetail(fg, mats) {
         <td class="text-right">${fmt(m.line_total)}</td>
       </tr>`;
   });
+
+  let histRows = '';
+  (history || []).forEach(h => {
+    histRows += `
+      <tr>
+        <td>${fmtDateTime(h.changed_at)}</td>
+        <td>${h.changed_by}</td>
+        <td class="text-right">${fmt(h.sales_price_old)}</td>
+        <td class="text-right">${fmt(h.material_price_old)}</td>
+        <td class="text-right">${fmt(h.margin_old)}</td>
+        <td class="text-right">${fmt(h.conversion_result_old)}</td>
+      </tr>`;
+  });
+
   const html = `
     <div class="row mb-2">
       <div class="col-sm-6">
@@ -220,14 +234,25 @@ function renderDetail(fg, mats) {
       </thead>
       <tbody>${rows || '<tr><td colspan="6" class="text-center text-muted">No material</td></tr>'}</tbody>
     </table>
-    <div class="row text-right">
+    <div class="row text-right mb-3">
       <div class="col-sm-6 offset-sm-6">
         <div>Sales Price: <b>${fmt(fg.sales_price)}</b></div>
         <div>Material Price: <b>${fmt(fg.material_price)}</b></div>
         <div>Sales - Material: <b>${fmt(fg.margin)}</b></div>
         <div>Conversion: <b class="text-primary">${fmt(fg.conversion_result)}</b></div>
       </div>
-    </div>`;
+    </div>
+    <hr>
+    <h6 class="mb-1">Riwayat Perubahan Harga</h6>
+    ${(history && history.length) ? `
+    <table class="table table-sm table-bordered">
+      <thead class="thead-light">
+        <tr><th>Diubah Pada</th><th>Oleh</th><th class="text-right">Sales Price (lama)</th>
+            <th class="text-right">Material Price (lama)</th><th class="text-right">Margin (lama)</th>
+            <th class="text-right">Conversion (lama)</th></tr>
+      </thead>
+      <tbody>${histRows}</tbody>
+    </table>` : '<div class="text-muted small">Belum pernah diedit sejak dibuat.</div>'}`;
   $('#detailBody').html(html);
 }
 
@@ -325,6 +350,13 @@ function recalc($card) {
 
 function fmt(n) { return (parseFloat(n) || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 }); }
 function fmtDate(d) { if (!d) return '-'; const p = String(d).substr(0,10).split('-'); return p.length===3 ? p[2]+'-'+p[1]+'-'+p[0] : d; }
+function fmtDateTime(d) {
+  if (!d) return '-';
+  const dt = new Date(String(d).replace(' ', 'T'));
+  if (isNaN(dt.getTime())) return d;
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(dt.getDate())}-${pad(dt.getMonth()+1)}-${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+}
 
 function collectCard($c) {
   const mats = [];
