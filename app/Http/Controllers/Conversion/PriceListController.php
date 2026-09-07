@@ -122,22 +122,32 @@ class PriceListController extends Controller
             ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'DET' as source"))
             ->get();
 
-        $materials = [];
-        foreach ($rm->concat($det) as $m) {
-            $type  = strtoupper($m->article_type ?? '');
-            $qty   = (float) $m->qty;
-            $price = ($type === 'RMNP') ? 0 : $this->avgPrice($m->article_code);
-            $materials[] = [
-                'article_code'             => $m->article_code,
-                'article_alternative_code' => $m->article_alternative_code,
-                'article_name'             => $m->article_desc,
-                'article_type'             => $type,
-                'source'                   => $m->source,
-                'qty'                      => $qty,
-                'unit_price'               => round($price, 4),
-                'line_total'               => round($price * $qty, 2),
-            ];
-        }
+       $materials = [];
+foreach ($rm->concat($det) as $m) {
+    $type = strtoupper($m->article_type ?? '');
+    $qty  = (float) $m->qty;
+
+    if ($type === 'RMNP') {
+        $price = 0;
+        $lastReceivingDate = null;
+    } else {
+        $ap    = $this->avgPrice($m->article_code);
+        $price = $ap['price'];
+        $lastReceivingDate = $ap['last_date'];
+    }
+
+    $materials[] = [
+        'article_code'             => $m->article_code,
+        'article_alternative_code' => $m->article_alternative_code,
+        'article_name'             => $m->article_desc,
+        'article_type'             => $type,
+        'source'                   => $m->source,
+        'qty'                      => $qty,
+        'unit_price'               => round($price, 4),
+        'line_total'               => round($price * $qty, 2),
+        'last_receiving_date'      => $lastReceivingDate,
+    ];
+}
 
         return response()->json([
             'status' => 1,
@@ -156,23 +166,24 @@ class PriceListController extends Controller
 // sampai menemukan bulan terakhir yang punya data receiving.
 // Batas maksimum mundur $maxMonthsBack bulan untuk mencegah loop tak berujung
 // kalau artikel memang belum pernah ada receiving-nya sama sekali.
-private function avgPrice($articleCode, int $maxMonthsBack = 24)
+private function avgPrice($articleCode, int $maxMonthsBack = 24): array
 {
     for ($i = 0; $i <= $maxMonthsBack; $i++) {
         $row = DB::selectOne("
-            SELECT COALESCE(SUM(price*qty)/NULLIF(SUM(qty),0),0) AS avg_price, COUNT(*) AS n
+            SELECT COALESCE(SUM(price*qty)/NULLIF(SUM(qty),0),0) AS avg_price,
+                   COUNT(*) AS n,
+                   MAX(created_at) AS last_date
             FROM receiving_det
             WHERE article_code = ?
               AND date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE - (? || ' months')::interval)
         ", [$articleCode, $i]);
 
         if ($row && $row->n > 0) {
-            return (float) $row->avg_price;
+            return ['price' => (float) $row->avg_price, 'last_date' => $row->last_date];
         }
     }
 
-    // Tidak ditemukan receiving sama sekali dalam rentang $maxMonthsBack bulan
-    return 0.0;
+    return ['price' => 0.0, 'last_date' => null];
 }
 
     private function calcMaterialPrice($mats)

@@ -60,12 +60,12 @@
           <i class="feather icon-package" style="font-size:32px;"></i>
           <p class="mt-2 mb-3">Belum ada artikel ditambahkan.</p>
           <button type="button" class="btn btn-primary btn-sm" id="btnAddRowEmpty">
-            <i class="feather icon-plus mr-50"></i> Tambah Artikel
+            <i class="feather icon-plus mr-50"></i> Add Article
           </button>
         </div>
 
         <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddRow" style="display:none">
-          <i class="feather icon-plus mr-50"></i> Tambah Artikel
+          <i class="feather icon-plus mr-50"></i> Add Article
         </button>
       </form>
     </div>
