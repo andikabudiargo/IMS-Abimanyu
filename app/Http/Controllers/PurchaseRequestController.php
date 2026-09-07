@@ -167,10 +167,44 @@ class PurchaseRequestController extends Controller
             ->orderBy('nama')
             ->get();
 
-        $data['stockByArticle'] = DB::table('warehouse_stock')
-            ->select('article_code', DB::raw('SUM(article_qty) as article_qty'))
-            ->groupBy('article_code')
-            ->pluck('article_qty', 'article_code');
+        $data['stockByArticle'] = DB::table('warehouse_stock as ws')
+    ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+    ->where('ws.site_code', 'HO')
+    ->where(function ($q) {
+        $q->where(function ($q2) {
+            // CM1 -> lokasi 005
+            $q2->where('a.article_type', 'CM1')
+               ->where('ws.location_number', '005');
+        })
+        ->orWhere(function ($q2) {
+            // CM2 / CM3 -> lokasi 006
+            $q2->whereIn('a.article_type', ['CM2', 'CM3'])
+               ->where('ws.location_number', '006');
+        })
+        ->orWhere(function ($q2) {
+            // RMP / RMNP, group_of_material = CPA -> 006, selain itu -> 009; plus 012
+            $q2->whereIn('a.article_type', ['RMP', 'RMNP'])
+               ->where(function ($q3) {
+                   $q3->where(function ($q4) {
+                       $q4->where('a.group_of_material', 'CPA')
+                          ->where('ws.location_number', '006');
+                   })
+                   ->orWhere(function ($q4) {
+                       $q4->where('a.group_of_material', '!=', 'CPA')
+                          ->where('ws.location_number', '009');
+                   })
+                   ->orWhere('ws.location_number', '012');
+               });
+        })
+        ->orWhere(function ($q2) {
+            // article_type lain / null -> default 006
+            $q2->whereNotIn('a.article_type', ['CM1', 'CM2', 'CM3', 'RMP', 'RMNP'])
+               ->where('ws.location_number', '006');
+        });
+    })
+    ->select('ws.article_code', DB::raw('SUM(ws.article_qty) as article_qty'))
+    ->groupBy('ws.article_code')
+    ->pluck('article_qty', 'article_code');
 
             $data['depts'] = DB::table('depts')
         ->whereIn('depts.code', function($query) use ($username) {
