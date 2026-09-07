@@ -71,13 +71,6 @@
   @endforeach
 </template>
 
-<template id="customerOptionsTemplate">
-  @foreach($customerList as $c)
-    <option value="{{ $c->kode }}" data-name="{{ $c->nama }}">
-      {{ $c->nama }}
-    </option>
-  @endforeach
-</template>
 @endsection
 
 @section('scripts')
@@ -102,7 +95,6 @@ function addRow() {
   rowSeq++;
   const rowId = 'row' + rowSeq;
   const optionsHtml = $('#fgOptionsTemplate').html();
-  const customerOptionsHtml = $('#customerOptionsTemplate').html();
 
   const html = `
   <div class="fg-row" id="${rowId}" data-code="">
@@ -117,10 +109,7 @@ function addRow() {
         </div>
         <div class="col-lg-6">
           <span class="row-label">Customer</span>
-          <select class="form-control customer-select" style="width:100%">
-            <option value=""></option>
-            ${customerOptionsHtml}
-          </select>
+          <div class="readonly-figure text-left customer-display text-muted">-</div>
         </div>
       </div>
       <div class="row align-items-end">
@@ -152,7 +141,7 @@ function addRow() {
         <table class="table table-sm table-bordered mat-tbl mb-1">
           <thead class="thead-light">
             <tr><th>Code</th><th>Name</th><th>Type</th><th class="text-right">Qty</th>
-                <th style="width:130px">Unit Price</th><th class="text-right">Line Total</th></tr>
+                <th style="width:130px">Unit Price</th><th class="text-right">SubTotal</th></tr>
           </thead>
           <tbody class="mat-tbody"></tbody>
         </table>
@@ -170,12 +159,6 @@ function addRow() {
     placeholder: 'Cari kode / nama artikel...'
   }).on('select2:select', function (e) {
     onArticleSelected($row, e.params.data.id);
-  });
-
-  $row.find('.customer-select').select2({
-    dropdownParent: $row,
-    width: '100%',
-    placeholder: 'Pilih customer (opsional)'
   });
 
   $row.find('.btn-remove-row').on('click', function () {
@@ -222,6 +205,10 @@ function onArticleSelected($row, code) {
       $row.data('materials', res.materials);
       renderMaterials($row, res.materials);
       $row.find('.sales-price').prop('disabled', false);
+
+      const custText = res.fg.customer_name || res.fg.customer_code || '-';
+      $row.find('.customer-display').text(custText).toggleClass('text-muted', !res.fg.customer_name);
+
       recalcRow($row);
     })
     .fail(function (xhr) {
@@ -239,6 +226,7 @@ function resetRow($row) {
   $row.find('.mat-table-wrap').hide();
   $row.find('.mat-tbody').empty();
   $row.find('.empty-row-hint').show();
+  $row.find('.customer-display').text('-').addClass('text-muted');
   $row.find('.sales-price').prop('disabled', true).val(0);
   recalcRow($row);
 }
@@ -317,12 +305,11 @@ function collectRow($row) {
     });
   });
   const fg = $row.data('fg');
-  const $custOpt = $row.find('.customer-select option:selected');
   return {
     article_code:  fg.article_code,
     bom_code:      fg.bom_code,
-    customer_code: $row.find('.customer-select').val() || null,
-    customer_name: $custOpt.data('name') || null,
+    customer_code: fg.customer_code || null,
+    customer_name: fg.customer_name || null,
     sales_price:   parseFloat($row.find('.sales-price').val()) || 0,
     materials:     mats,
   };

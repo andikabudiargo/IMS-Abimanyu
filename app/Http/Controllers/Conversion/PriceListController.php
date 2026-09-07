@@ -115,6 +115,11 @@ class PriceListController extends Controller
         return response()->json(['status' => 0, 'message' => "BOM aktif untuk $fgLabel tidak ditemukan"]);
     }
 
+    // customer diambil dari bom_hdr.customer -> third_party.kode
+    $customer = DB::table('third_party')
+        ->where('kode', $hdr->customer)
+        ->first();
+
     $rm = DB::table('bom_rm as b')
         ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
         ->where('b.bom_code', $hdr->bom_code)
@@ -128,40 +133,42 @@ class PriceListController extends Controller
         ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'DET' as source"))
         ->get();
 
-       $materials = [];
-foreach ($rm->concat($det) as $m) {
-    $type = strtoupper($m->article_type ?? '');
-    $qty  = (float) $m->qty;
+    $materials = [];
+    foreach ($rm->concat($det) as $m) {
+        $type = strtoupper($m->article_type ?? '');
+        $qty  = (float) $m->qty;
 
-    if ($type === 'RMNP') {
-        $price = 0;
-        $lastReceivingDate = null;
-    } else {
-        $ap    = $this->avgPrice($m->article_code);
-        $price = $ap['price'];
-        $lastReceivingDate = $ap['last_date'];
+        if ($type === 'RMNP') {
+            $price = 0;
+            $lastReceivingDate = null;
+        } else {
+            $ap    = $this->avgPrice($m->article_code);
+            $price = $ap['price'];
+            $lastReceivingDate = $ap['last_date'];
+        }
+
+        $materials[] = [
+            'article_code'             => $m->article_code,
+            'article_alternative_code' => $m->article_alternative_code,
+            'article_name'             => $m->article_desc,
+            'article_type'             => $type,
+            'source'                   => $m->source,
+            'qty'                      => $qty,
+            'unit_price'               => round($price, 4),
+            'line_total'               => round($price * $qty, 2),
+            'last_receiving_date'      => $lastReceivingDate,
+        ];
     }
 
-    $materials[] = [
-        'article_code'             => $m->article_code,
-        'article_alternative_code' => $m->article_alternative_code,
-        'article_name'             => $m->article_desc,
-        'article_type'             => $type,
-        'source'                   => $m->source,
-        'qty'                      => $qty,
-        'unit_price'               => round($price, 4),
-        'line_total'               => round($price * $qty, 2),
-        'last_receiving_date'      => $lastReceivingDate,
-    ];
-}
-
-       return response()->json([
+    return response()->json([
         'status' => 1,
         'fg' => [
             'article_code'             => $fg,
             'article_alternative_code' => $fgArticle->article_alternative_code ?? $fg,
             'article_name'             => $fgArticle->article_desc ?? $fg,
             'bom_code'                 => $hdr->bom_code,
+            'customer_code'            => $hdr->customer ?? null,
+            'customer_name'            => $customer->nama ?? null,
         ],
         'materials' => $materials,
     ]);
