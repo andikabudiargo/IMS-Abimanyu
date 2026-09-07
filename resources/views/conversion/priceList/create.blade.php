@@ -31,6 +31,27 @@
         <input type="hidden" id="convValue" value="{{ $conversionValue }}">
       </div>
 
+      <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data" class="mb-3">
+        @csrf
+        <div class="form-row align-items-center">
+          <div class="col-lg-3 col-md-12">
+            <div class="form-group mb-0">
+              <input type="file" class="custom-file-input" name="file" id="file" accept=".xls,.xlsx" required>
+              <label class="custom-file-label" for="file" id="fileLabel">Choose file</label>
+            </div>
+          </div>
+          <div class="col-lg-6 col-md-12">
+            <a href="{{ route('conversion.priceList.export.excel') }}" class="btn btn-light">
+              <i class="fa fa-download"></i> Download Template
+            </a>
+            <button type="button" class="btn btn-primary" id="uploadExcel">
+              <i class="feather icon-upload mr-50"></i> Upload Excel
+            </button>
+          </div>
+        </div>
+      </form>
+      <hr style="margin-top:0">
+
       <form id="formSave" action="{{ route('conversion.priceList.store') }}" method="POST">
         @csrf
         <input type="hidden" name="items" id="itemsJson">
@@ -87,8 +108,106 @@ let rowSeq = 0;
 $(function () {
   $('#btnAddRow, #btnAddRowEmpty').on('click', addRow);
   $('#btnSave').on('click', doSave);
+  $('#uploadExcel').on('click', doImportExcel);
+  $('#file').on('change', function () {
+    const name = $(this).val().split('\\').pop() || 'Choose file';
+    $('#fileLabel').text(name);
+  });
   addRow(); // mulai dengan 1 baris kosong
 });
+
+/* ---------- IMPORT EXCEL ---------- */
+function doImportExcel() {
+  if (!$('#file').val()) {
+    Swal.fire('Error', 'Pilih file Excel terlebih dahulu.', 'error');
+    return;
+  }
+
+  $('#uploadExcel').prop('disabled', true).html('<i class="feather icon-loader mr-50"></i> Memproses...');
+
+  $.ajax({
+    url: '{{ route("conversion.priceList.import.excel") }}',
+    method: 'POST',
+    data: new FormData($('#frmExcel')[0]),
+    dataType: 'json',
+    contentType: false,
+    cache: false,
+    processData: false,
+  })
+  .done(function (res) {
+    if (res.status != 1) {
+      Swal.fire('Error', res.message || 'Gagal memproses file.', 'error');
+      return;
+    }
+
+    let added = 0, skipped = 0;
+    const usedCodes = [];
+    $('.fg-row').each(function () { if ($(this).data('code')) usedCodes.push(String($(this).data('code'))); });
+
+    res.dataDetail.forEach(item => {
+      const code = String(item.fg.article_code);
+      if (usedCodes.includes(code)) { skipped++; return; }
+      usedCodes.push(code);
+      fillRowFromImport(getOrCreateEmptyRow(), item);
+      added++;
+    });
+
+    let html = `<div>${added} artikel berhasil diimpor.</div>`;
+    if (skipped > 0) html += `<div class="text-warning mt-1">${skipped} artikel dilewati (duplikat dengan baris yang sudah ada).</div>`;
+    if (res.errors && res.errors.length) {
+      html += `<div class="text-danger mt-2 text-left" style="font-size:12px; max-height:150px; overflow-y:auto;">${res.errors.join('<br>')}</div>`;
+    }
+    Swal.fire({ title: 'Hasil Import', html: html, icon: (res.errors && res.errors.length) ? 'warning' : 'success' });
+
+    clearFileInput('file');
+  })
+  .fail(function (xhr) {
+    console.error('import error', xhr.status, xhr.responseText);
+    Swal.fire('Error', 'Gagal upload Excel (' + xhr.status + '). Cek console.', 'error');
+  })
+  .always(function () {
+    $('#uploadExcel').prop('disabled', false).html('<i class="feather icon-upload mr-50"></i> Upload Excel');
+  });
+}
+
+function clearFileInput(id) {
+  const $inp = $('#' + id);
+  $inp.wrap('<form>').closest('form').get(0).reset();
+  $inp.unwrap();
+  $('#fileLabel').text('Choose file');
+}
+
+/* pakai baris kosong (belum ada artikel) yang sudah ada dulu, baru bikin baru kalau habis */
+function getOrCreateEmptyRow() {
+  const $empty = $('.fg-row').filter(function () { return !$(this).data('code'); }).first();
+  if ($empty.length) return $empty;
+  addRow();
+  return $('#fgRowContainer .fg-row').last();
+}
+
+function fillRowFromImport($row, item) {
+  const fg = item.fg;
+  const optionText = (fg.article_alternative_code ?? fg.article_code) + ' - ' + (fg.article_name ?? '');
+
+  const $select = $row.find('.fg-select');
+  if (!$select.find('option[value="' + fg.article_code + '"]').length) {
+    $select.append(new Option(optionText, fg.article_code, true, true));
+  }
+  $select.val(fg.article_code).trigger('change.select2');
+
+  $row.data('code', fg.article_code);
+  $row.data('fg', fg);
+  $row.data('materials', item.materials);
+  renderMaterials($row, item.materials);
+  $row.find('.mat-table-wrap').show();
+  $row.find('.empty-row-hint').hide();
+  $row.find('.sales-price').prop('disabled', false).val(fg.sales_price || 0);
+
+  const custText = fg.customer_name || fg.customer_code || '-';
+  $row.find('.customer-display').text(custText).toggleClass('text-muted', !fg.customer_name);
+
+  recalcRow($row);
+}
 
 /* ---------- ADD ROW ---------- */
 function addRow() {
@@ -141,7 +260,7 @@ function addRow() {
         <table class="table table-sm table-bordered mat-tbl mb-1">
           <thead class="thead-light">
             <tr><th>Code</th><th>Name</th><th>Type</th><th class="text-right">Qty</th>
-                <th style="width:130px">Unit Price</th><th class="text-right">SubTotal</th></tr>
+                <th style="width:130px">Unit Price</th><th class="text-right">Line Total</th></tr>
           </thead>
           <tbody class="mat-tbody"></tbody>
         </table>

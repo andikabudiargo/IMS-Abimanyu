@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
+use App\Exports\PriceListExport;
+use App\Imports\PriceListImport;
+use Maatwebsite\Excel\Facades\Excel;
 use DataTables;
 use DB;
 
@@ -100,10 +103,17 @@ class PriceListController extends Controller
     // ambil RM (bom_rm) + child part (bom_det) beserta harga rata-rata
     public function getBom(Request $request)
 {
-    $fg = $request->article_code;
+    return response()->json($this->buildBomPayload($request->article_code));
+}
 
+// dipakai bareng oleh getBom() (AJAX pilih artikel) dan importExcel()
+private function buildBomPayload($fg): array
+{
     $fgArticle = DB::table('article')->where('article_code', $fg)->first();
-    $fgLabel   = $fgArticle->article_alternative_code ?? $fg;
+    if (!$fgArticle) {
+        return ['status' => 0, 'message' => "Artikel '$fg' tidak ditemukan"];
+    }
+    $fgLabel = $fgArticle->article_alternative_code ?? $fg;
 
     $hdr = DB::table('bom_hdr')
         ->where('article_code', $fg)
@@ -112,13 +122,10 @@ class PriceListController extends Controller
         ->first();
 
     if (!$hdr) {
-        return response()->json(['status' => 0, 'message' => "BOM aktif untuk $fgLabel tidak ditemukan"]);
+        return ['status' => 0, 'message' => "BOM aktif untuk $fgLabel tidak ditemukan"];
     }
 
-    // customer diambil dari bom_hdr.customer -> third_party.kode
-    $customer = DB::table('third_party')
-        ->where('kode', $hdr->customer)
-        ->first();
+    $customer = DB::table('third_party')->where('kode', $hdr->customer)->first();
 
     $rm = DB::table('bom_rm as b')
         ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
@@ -160,7 +167,7 @@ class PriceListController extends Controller
         ];
     }
 
-    return response()->json([
+    return [
         'status' => 1,
         'fg' => [
             'article_code'             => $fg,
@@ -171,7 +178,7 @@ class PriceListController extends Controller
             'customer_name'            => $customer->nama ?? null,
         ],
         'materials' => $materials,
-    ]);
+    ];
 }
 
     // weighted average bulan berjalan; kalau kosong mundur 1 bulan
@@ -401,4 +408,60 @@ private function avgPrice($articleCode, int $maxMonthsBack = 24): array
             ]);
         }
     }
+
+    public function exportExcelTemplate()
+{
+    return Excel::download(new PriceListExport(), 'template_price_list.xlsx');
+}
+
+public function importExcel(Request $request)
+{
+    $this->validate($request, ['file' => 'required|mimes:xls,xlsx'], ['required' => 'File is required']);
+
+    $import = new PriceListImport();
+    Excel::import($import, $request->file('file'));
+
+    $dataDetail = [];
+    $errors     = [];
+    $usedCodes  = [];
+
+    foreach ($import->rows as $i => $row) {
+        $lineNo     = $i + 2; // baris asli di Excel (setelah heading)
+        $code       = trim((string) ($row['article_code'] ?? ''));
+        $salesPrice = $row['sales_price'] ?? null;
+
+        if ($code === '') continue;
+
+        $article = DB::table('article')
+            ->where('article_alternative_code', $code)
+            ->orWhere('article_code', $code)
+            ->first();
+
+        if (!$article) {
+            $errors[] = "Baris $lineNo: artikel '$code' tidak ditemukan";
+            continue;
+        }
+
+        if (in_array($article->article_code, $usedCodes)) {
+            $errors[] = "Baris $lineNo: artikel '$code' duplikat, dilewati";
+            continue;
+        }
+
+        $bom = $this->buildBomPayload($article->article_code);
+        if ($bom['status'] != 1) {
+            $errors[] = "Baris $lineNo: " . $bom['message'];
+            continue;
+        }
+
+        $bom['fg']['sales_price'] = (float) preg_replace('/[^0-9.\-]/', '', (string) $salesPrice);
+        $usedCodes[] = $article->article_code;
+        $dataDetail[] = $bom;
+    }
+
+    return response()->json([
+        'status'     => 1,
+        'dataDetail' => $dataDetail,
+        'errors'     => $errors,
+    ]);
+}
 }
