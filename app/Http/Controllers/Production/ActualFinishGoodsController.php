@@ -305,11 +305,11 @@ class ActualFinishGoodsController extends Controller
                 $s012 = (float) DB::table('warehouse_stock')
                     ->where('article_code', $ac)->where('location_number', $this->whWip)->sum('article_qty');
 
-                if ($need > $s047 + $s012) {
-                    throw new \Exception(
-                        "Stok untuk {$acLabel} tidak cukup. Butuh {$need}, tersedia Hasil Loading={$s047} + WIP={$s012}."
-                    );
-                }
+                //if ($need > $s047 + $s012) {
+                    //throw new \Exception(
+                        //"Stok untuk {$acLabel} tidak cukup. Butuh {$need}, tersedia Hasil Loading={$s047} + WIP={$s012}."
+                    //);
+                //}
 
                 // Ambil 047 dulu, lalu 012
                 $from047 = min($need, $s047);
@@ -841,9 +841,9 @@ class ActualFinishGoodsController extends Controller
                 $s047 = (float) DB::table('warehouse_stock')->where('article_code',$ac)->where('location_number',$this->whLoading)->sum('article_qty');
                 $s012 = (float) DB::table('warehouse_stock')->where('article_code',$ac)->where('location_number',$this->whWip)->sum('article_qty');
 
-                if ($need > $s047 + $s012) {
-                    throw new \Exception("Stok untuk {$acLabel} tidak cukup. Butuh {$need}, tersedia Hasil Loading={$s047} + WIP={$s012}.");
-                }
+                //if ($need > $s047 + $s012) {
+                  //  throw new \Exception("Stok untuk {$acLabel} tidak cukup. Butuh {$need}, tersedia Hasil Loading={$s047} + WIP={$s012}.");
+                //}
 
                 $from047 = min($need, $s047);
                 $wipQty  = ($s047 > $need) ? ($s047 - $need) : 0.0;
