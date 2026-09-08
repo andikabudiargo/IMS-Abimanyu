@@ -59,53 +59,30 @@ class SupplierReturnController extends Controller
  */
 private function getUserDeptCodes(): array
 {
-    $user = Auth::user();
-
-    // ===== OPSI A: pakai tabel pivot user_dept (paling umum utk multi-dept) =====
     return DB::table('user_dept')
-        ->where('username', $user->username)   // ganti ke user_id kalau pivot pakai id
-        ->pluck('dept_code')
+        ->where('username', Auth::user()->username)
+        ->pluck('dept')          // ← cocokkan dengan kolom yang benar-benar dipakai TransferStock
         ->unique()
         ->values()
         ->all();
-
-    // ===== OPSI B: kalau dept_code di users isinya CSV "ACC,PUR" =====
-    // return collect(explode(',', (string) $user->dept_code))
-    //     ->map(fn ($d) => trim($d))
-    //     ->filter()
-    //     ->unique()
-    //     ->values()
-    //     ->all();
-
-    // ===== OPSI C: kalau ada relasi Eloquent =====
-    // return $user->departments()->pluck('dept_code')->all();
 }
 
-/**
- * Ambil lokasi sesuai dept user. Role accounting & Superuser lihat semua.
- */
 private function getUserLocations()
 {
     $user = Auth::user();
+    $privileged = $user->hasAnyRole(['Superuser', 'accounting']);  // ← tambah finance
 
-    $query = DB::table('stock_location_master')
+    return DB::table('stock_location_master')
         ->orderBy('location_name')
-        ->select('location_code as location_number', 'location_name');
-
-    // Bypass: accounting & Superuser lihat semua lokasi
-    if ($user->hasRole(['accounting', 'Superuser'])) {
-        return $query->get();
-    }
-
-    $deptCodes = $this->getUserDeptCodes();
-
-    if (empty($deptCodes)) {
-        // User tanpa dept = tidak lihat lokasi apapun (ketat).
-        // Kalau mau sebaliknya (lihat semua), ganti jadi: return $query->get();
-        return collect();
-    }
-
-    return $query->whereIn('dept_code', $deptCodes)->get();
+        ->select('location_code as location_number', 'location_name')
+        ->when(!$privileged, function ($q) {
+            $deptCodes = $this->getUserDeptCodes();
+            $q->where(function ($sub) use ($deptCodes) {
+                $sub->whereIn('dept_code', $deptCodes)
+                    ->orWhere('location_code', '011');   // ← fallback konsisten
+            });
+        })
+        ->get();
 }
 
     public function getTableColoumn()
