@@ -1399,8 +1399,11 @@ private array $refMap = [
     'RETURN'            => ['dn_return_hdr',      'return_number',   'dnReturn.show'],
     'REPLACEMENT'       => ['dn_replace_hdr',     'replace_number',  'dnReplace.show'],
     'ADJUSTMENT'        => ['stock_adjustment_hdr','adj_code',       'stockAdjustment.show'],
-    'DN SEMENTARA'      => ['temporary_dn_hdr',   'tdn_number',      'temporaryDn.show'],
+    'DN SEMENTARA'      => ['temporary_dn_hdr',   'tdn_number',      'suratJalanSementara.show'],
     'DN UMUM'           => ['dn_general_hdr',     'tdn_number',      'dnGeneral.show'],
+    'LOADING PROSES'    => ['actual_loading_hdr', 'prod_code',      'actualLoading.show'],
+    'SUPPLIER RETURN'   => ['supplier_return_hdr',     'return_number',      'supplierReturn.show'],
+    'SUPPLIER REPLACE'   => ['supplier_replace_hdr',     'replace_number',      'supplierReplace.show'],
 ];
 
 private function renderRefLink($type, $ref)
