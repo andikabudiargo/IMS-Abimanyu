@@ -1924,6 +1924,7 @@ view()->share($data);
 
 $pdf = PDF::loadView('transfer.transferStock.print');
 return $pdf->stream("$trNumber.pdf");
+        }
 
             public function articleTso(Request $request)
             {
