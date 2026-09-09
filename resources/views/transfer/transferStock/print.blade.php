@@ -88,16 +88,18 @@
 <footer>
     <table border="0">
         <tr>
-            <td width="40%">Created By: {{ $createdBy }}</td>
-            <td width="40%">Approved By: {{ $approved }}</td>
+            <td width="50%">Created by: {{ $createdBy }} . {{ $createdAt }}</td>
+            <td width="30%">
+                Approved by:
+                @if($authorizedBy)
+                    {{ $authorizedBy }} . {{ $approvedAt }}
+                @else
+                    Belum diposting oleh penerima
+                @endif
+            </td>
             <td width="20%" style="text-align:right;">
                 Page: <span class="pagenum"></span>
             </td>
-        </tr>
-        <tr>
-            <td width="40%">Created At: {{ $createdAt }}</td>
-            <td width="40%">Approved At: {{ $approvedAt }}</td>
-            <td width="20%"></td>
         </tr>
     </table>
 </footer>

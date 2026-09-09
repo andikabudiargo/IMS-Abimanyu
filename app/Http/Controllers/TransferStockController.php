@@ -1864,38 +1864,42 @@ if (!in_array($st, ['4', '5']) && $canPostThis) {
                     DB::raw('(select region_name from regions where region_code = city::integer) as kota'), 'tlp')
                 ->first();
 
-            $trHdr = DB::table('transfer_stock_hdr')
-                ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
-                ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to')
-                ->where('transfer_stock_hdr.id', $id)
-                ->select(
-                    'transfer_stock_hdr.*',
-                    'locFrom.location_name as location_from_name',
-                    'locTo.location_name as location_to_name'
-                )
-                ->first();
+           $trHdr = DB::table('transfer_stock_hdr')
+    ->leftJoin('stock_location_master as locFrom', 'locFrom.location_code', '=', 'transfer_stock_hdr.location_from')
+    ->leftJoin('stock_location_master as locTo',   'locTo.location_code',   '=', 'transfer_stock_hdr.location_to')
+    ->leftJoin('users as uCreate', 'uCreate.username', '=', 'transfer_stock_hdr.created_by')
+    ->leftJoin('users as uAuth',   'uAuth.username',   '=', 'transfer_stock_hdr.authorized_by')
+    ->where('transfer_stock_hdr.id', $id)
+    ->select(
+        'transfer_stock_hdr.*',
+        'locFrom.location_name as location_from_name',
+        'locTo.location_name as location_to_name',
+        'uCreate.name as created_name',
+        'uAuth.name as authorized_name'
+    )
+    ->first();
 
-            if (!$trHdr) {
-                return redirect()->back()->with(['title'=>'Print','alert'=>'warning','message'=>'Data tidak ditemukan']);
-            }
+if (!$trHdr) {
+    return redirect()->back()->with(['title'=>'Print','alert'=>'warning','message'=>'Data tidak ditemukan']);
+}
 
-            $trNumber = $trHdr->tr_number;
+$trNumber = $trHdr->tr_number;
 
-            $data['details'] = DB::table('transfer_stock_det')
-                ->leftJoin('article', 'article.article_code', '=', 'transfer_stock_det.article_code')
-                ->leftJoin('article as fgArt', 'fgArt.article_code', '=', 'transfer_stock_det.fg_target')
-                ->where('transfer_stock_det.tr_number', $trNumber)
-                ->select(
-                    'transfer_stock_det.*',
-                    'article.article_alternative_code',
-                    'article.article_desc',
-                    'fgArt.article_alternative_code as fg_alt_code',
-                    'fgArt.article_desc as fg_desc'
-                )
-                ->orderBy('transfer_stock_det.id')
-                ->get();
+$data['details'] = DB::table('transfer_stock_det')
+    ->leftJoin('article', 'article.article_code', '=', 'transfer_stock_det.article_code')
+    ->leftJoin('article as fgArt', 'fgArt.article_code', '=', 'transfer_stock_det.fg_target')
+    ->where('transfer_stock_det.tr_number', $trNumber)
+    ->select(
+        'transfer_stock_det.*',
+        'article.article_alternative_code',
+        'article.article_desc',
+        'fgArt.article_alternative_code as fg_alt_code',
+        'fgArt.article_desc as fg_desc'
+    )
+    ->orderBy('transfer_stock_det.id')
+    ->get();
 
-          $data['trNumber']      = $trNumber;
+$data['trNumber']      = $trNumber;
 $data['trDate']        = $trHdr->tr_date;
 $data['trType']        = $trHdr->tr_type;
 $data['locationFrom']  = $trHdr->location_from_name;
@@ -1903,28 +1907,23 @@ $data['locationTo']    = $trHdr->location_to_name;
 $data['keterangan']    = $trHdr->note;
 $data['status']        = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'][$trHdr->status - 1];
 $data['penerima']      = $trHdr->penerima;
-$data['createdBy']     = $trHdr->created_by;
 $data['no']            = 0;
 
-$data['createdAt']  = $trHdr->created_at
+$data['createdBy'] = $trHdr->created_name ?: $trHdr->created_by;
+$data['createdAt'] = $trHdr->created_at
     ? \Carbon\Carbon::parse($trHdr->created_at)->format('d-m-Y H:i')
     : '-';
 
-$data['approvedAt'] = $trHdr->authorized_at
+// Belum di-authorize/posting -> anggap belum approved
+$data['authorizedBy'] = $trHdr->authorized_by ? ($trHdr->authorized_name ?: $trHdr->authorized_by) : null;
+$data['approvedAt']   = $trHdr->authorized_at
     ? \Carbon\Carbon::parse($trHdr->authorized_at)->format('d-m-Y H:i')
-    : ($trHdr->updated_at ? \Carbon\Carbon::parse($trHdr->updated_at)->format('d-m-Y H:i') : '-');
-    
-            $data['approved'] = DB::table('approval_history')
-                ->leftJoin('users', 'users.username', '=', 'approval_history.username')
-                ->where('module_number', $trNumber)
-                ->orderBy('approval_order', 'desc')
-                ->value('users.name');
+    : null;
 
-            view()->share($data);
+view()->share($data);
 
-            $pdf = PDF::loadView('transfer.transferStock.print');
-            return $pdf->stream("$trNumber.pdf");
-        }
+$pdf = PDF::loadView('transfer.transferStock.print');
+return $pdf->stream("$trNumber.pdf");
 
             public function articleTso(Request $request)
             {
