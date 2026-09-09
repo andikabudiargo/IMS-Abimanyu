@@ -4,7 +4,7 @@
     <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
     <title>{{ $trNumber }}</title>
     <style>
-        @page { margin: 120px 25px 60px 25px; }
+        @page { margin: 120px 25px 90px 25px; }
 
         header {
             position: fixed;
@@ -14,8 +14,8 @@
 
         footer {
             position: fixed;
-            bottom: -60px; left: 0; right: 0;
-            height: 50px;
+            bottom: -90px; left: 0; right: 0;
+            height: 80px;
             font-size: x-small;
             border-top: 1px solid #ccc;
         }
@@ -30,6 +30,11 @@
             padding-left: 8px;
             padding-right: 8px;
             border-bottom: 1px solid #ddd;
+        }
+
+        .note-section td {
+            padding-top: 10px;
+            vertical-align: top;
         }
 
         .badge {
@@ -69,13 +74,12 @@
             <td width="50%" valign="top">
                 Number &nbsp;&nbsp;&nbsp;: {{ $trNumber }}<br>
                 Date &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $trDate }}<br>
-                Status &nbsp;&nbsp;&nbsp;: {{ $status }}
-                
+                Penerima &nbsp;: {{ $penerima }}
             </td>
             <td width="50%" valign="top">
                 From &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $locationFrom }}<br>
                 To &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $locationTo }}<br>
-                Note &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $keterangan }}
+                Status &nbsp;&nbsp;&nbsp;: {{ $status }}
             </td>
         </tr>
     </table>
@@ -89,6 +93,11 @@
             <td width="20%" style="text-align:right;">
                 Page: <span class="pagenum"></span>
             </td>
+        </tr>
+        <tr>
+            <td width="40%">Created At: {{ $createdAt }}</td>
+            <td width="40%">Approved At: {{ $approvedAt }}</td>
+            <td width="20%"></td>
         </tr>
     </table>
 </footer>
@@ -126,6 +135,15 @@
             @endforeach
         </tbody>
     </table>
+
+    @if($keterangan)
+    <table class="note-section">
+        <tr>
+            <td width="10%"><strong>Note</strong></td>
+            <td>: {{ $keterangan }}</td>
+        </tr>
+    </table>
+    @endif
 </main>
 
 </body>

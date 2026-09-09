@@ -261,6 +261,15 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
             return ['success' => false, 'message' => ["Transfer $trNumber tidak ditemukan"]];
         }
 
+        $alreadyPosted = DB::table('warehouse_movement')
+        ->where('movement_transnno', $trNumber)
+        ->whereIn('movement_type', ['SUPPLY', 'TRANSFER'])
+        ->exists();
+
+        if ($alreadyPosted) {
+            return ['success' => false, 'message' => ["Transfer $trNumber sudah diproses"]];
+        }
+
         try {
             $lines = $this->resolveTransferLines($hdrQ);
         } catch (\RuntimeException $e) {
@@ -1886,16 +1895,25 @@ if (!in_array($st, ['4', '5']) && $canPostThis) {
                 ->orderBy('transfer_stock_det.id')
                 ->get();
 
-            $data['trNumber']      = $trNumber;
-            $data['trDate']        = $trHdr->tr_date;
-            $data['trType']        = $trHdr->tr_type;
-            $data['locationFrom']  = $trHdr->location_from_name;
-            $data['locationTo']    = $trHdr->location_to_name;
-            $data['keterangan']    = $trHdr->note;
-            $data['status']        = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'][$trHdr->status - 1];
-            $data['createdBy']     = $trHdr->created_by;
-            $data['no']            = 0;
+          $data['trNumber']      = $trNumber;
+$data['trDate']        = $trHdr->tr_date;
+$data['trType']        = $trHdr->tr_type;
+$data['locationFrom']  = $trHdr->location_from_name;
+$data['locationTo']    = $trHdr->location_to_name;
+$data['keterangan']    = $trHdr->note;
+$data['status']        = ['NEW','VALIDATED','APPROVED','POSTED','CANCELED'][$trHdr->status - 1];
+$data['penerima']      = $trHdr->penerima;
+$data['createdBy']     = $trHdr->created_by;
+$data['no']            = 0;
 
+$data['createdAt']  = $trHdr->created_at
+    ? \Carbon\Carbon::parse($trHdr->created_at)->format('d-m-Y H:i')
+    : '-';
+
+$data['approvedAt'] = $trHdr->authorized_at
+    ? \Carbon\Carbon::parse($trHdr->authorized_at)->format('d-m-Y H:i')
+    : ($trHdr->updated_at ? \Carbon\Carbon::parse($trHdr->updated_at)->format('d-m-Y H:i') : '-');
+    
             $data['approved'] = DB::table('approval_history')
                 ->leftJoin('users', 'users.username', '=', 'approval_history.username')
                 ->where('module_number', $trNumber)
