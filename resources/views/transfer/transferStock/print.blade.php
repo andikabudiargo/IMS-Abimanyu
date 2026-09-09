@@ -69,20 +69,36 @@
         </tr>
     </table>
     <hr style="margin:4px 0;">
-    <table border="0">
-        <tr>
-            <td width="50%" valign="top">
-                Number &nbsp;&nbsp;&nbsp;: {{ $trNumber }}<br>
-                Date &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $trDate }}<br>
-                Penerima &nbsp;: {{ $penerima }}
-            </td>
-            <td width="50%" valign="top">
-                From &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $locationFrom }}<br>
-                To &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $locationTo }}<br>
-                Status &nbsp;&nbsp;&nbsp;: {{ $status }}
-            </td>
-        </tr>
-    </table>
+   <table border="0">
+    <tr>
+        <td width="50%" valign="top">
+            <table border="0" style="width:100%;">
+                <tr>
+                    <td width="60px">Number</td><td width="10px">:</td><td>{{ $trNumber }}</td>
+                </tr>
+                <tr>
+                    <td width="60px">Date</td><td width="10px">:</td><td>{{ $trDate }}</td>
+                </tr>
+                <tr>
+                    <td width="60px">Penerima</td><td width="10px">:</td><td>{{ $penerima }}</td>
+                </tr>
+            </table>
+        </td>
+        <td width="50%" valign="top">
+            <table border="0" style="width:100%;">
+                <tr>
+                    <td width="60px">From</td><td width="10px">:</td><td>{{ $locationFrom }}</td>
+                </tr>
+                <tr>
+                    <td width="60px">To</td><td width="10px">:</td><td>{{ $locationTo }}</td>
+                </tr>
+                <tr>
+                    <td width="60px">Status</td><td width="10px">:</td><td>{{ $status }}</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
 </header>
 
 <footer>
