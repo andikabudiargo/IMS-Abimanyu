@@ -1187,6 +1187,16 @@ $hasOldMovement = $this->snapshotMovementLocations($originRec)->isNotEmpty();
 
     DB::beginTransaction();
     try {
+        // GUARD: kunci header, pastikan masih status REVISI (belum diproses request lain)
+        $locked = DB::table('receiving_hdr')->where('rec_number', $recNumber)->lockForUpdate()->first();
+        if (!$locked || $locked->status != '10') {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 0, 'title' => "Update $this->title",
+                'message' => ["Data $recNumber sudah diproses (status bukan REVISI lagi)"], 'alert' => 'warning',
+            ]);
+        }
+
         // ── update header draft revisi (SAMA seperti kode asli) ──
         DB::table('receiving_hdr')
             ->where('rec_number', $recNumber)
@@ -1679,12 +1689,20 @@ public function posting2(Request $request)
 
 private function doPosting($recNumber, $username)
 {
-    $recHdrq = DB::table('receiving_hdr')->where('rec_number', $recNumber)->first();
+    $recHdrq = DB::table('receiving_hdr')->where('rec_number', $recNumber)->lockForUpdate()->first();
     if (!$recHdrq) {
         return ['success' => false, 'message' => "Data $recNumber tidak ditemukan"];
     }
-    if ($recHdrq->status == '4') {
-        return ['success' => false, 'message' => "$recNumber sudah POSTED sebelumnya"];
+    if (!in_array($recHdrq->status, ['1','3','10'])) {
+    return ['success' => false, 'message' => "$recNumber status {$recHdrq->status} tidak bisa diposting"];
+}
+
+    // Guard: movement RECEIVING dokumen ini sudah ada → batal sebelum sentuh stok
+    if (DB::table('warehouse_movement')
+            ->where('movement_transnno', $recNumber)
+            ->where('movement_type', 'RECEIVING')
+            ->exists()) {
+        return ['success' => false, 'message' => "$recNumber sudah punya movement RECEIVING (double-post dicegah)"];
     }
 
     $recType    = $recHdrq->rec_type;
@@ -1781,7 +1799,6 @@ private function doPosting($recNumber, $username)
         'receiving_det.pr_number'          // ← TAMBAH
     )
     ->get();
-
     $this->lockMovementSequence();
     $seq = (int) DB::table('warehouse_movement')->max('movement_code');
     $dataSetMovement = [];
@@ -1903,6 +1920,14 @@ public function cancel(Request $request)
 
     DB::beginTransaction();
     try {
+          $locked = DB::table('receiving_hdr')->where('id', $id)->lockForUpdate()->first();
+        if (!$locked || $locked->status != '4') {
+            DB::rollBack();
+            return redirect()->back()->with([
+                'title' => $title, 'alert' => 'warning',
+                'message' => "$title $recNumber gagal — status sudah berubah",
+            ]);
+        }
         // ----- 1) snapshot artikel+lokasi dari movement LAMA -----
         $snapshot = $this->snapshotMovementLocations($recNumber);
 
@@ -2122,22 +2147,37 @@ if ($snapshot->isNotEmpty()) {
 
     $recNumber = $recHdr->rec_number;
 
-    // BARU: guard tambahan — tolak kalau dokumen ini pernah punya jejak movement
-    // (bisa terjadi pada status REVISI (10) yang originnya pernah POSTED
-    // sebelum direvisi, meskipun status saat ini bukan 4/5/7)
+    // BARU: guard — tolak kalau dokumen INI ATAU ORIGIN-nya (rantai revisi) punya
+    // jejak movement. Deleting dokumen di rantai revisi yang originnya pernah
+    // POSTED = movement asli tidak ikut ke-reverse → phantom stock.
+    $recChain = array_values(array_unique(array_filter([
+        $recNumber,
+        $recHdr->origin_rec_number ?? null,
+    ])));
+
     $adaMovement = DB::table('warehouse_movement')
-        ->where('movement_transnno', $recNumber)
+        ->whereIn('movement_transnno', $recChain)
         ->exists();
 
     if ($adaMovement) {
-        $message = "$title $recNumber tidak dapat dihapus karena memiliki histori movement (pernah POSTED sebelum direvisi). "
-                  . "Gunakan Cancel pada dokumen POSTED terkait, atau hubungi admin untuk penanganan lebih lanjut.";
+        $message = "$title $recNumber tidak dapat dihapus karena dokumen ini / origin-nya memiliki histori movement (pernah POSTED). "
+                  . "Gunakan Cancel pada dokumen POSTED terkait, jangan Delete.";
         \LogActivity::addToLog($title, "username: $username Status $message");
         return redirect()->back()->with(['alert' => 'warning', 'title' => $title, 'message' => $message]);
     }
 
     DB::beginTransaction();
     try {
+        // GUARD: kunci header + re-cek di dalam transaksi (cegah race dengan posting)
+        $locked = DB::table('receiving_hdr')->where('id', $id)->lockForUpdate()->first();
+        if (!$locked || in_array($locked->status, ['4', '5', '7'])
+            || DB::table('warehouse_movement')->whereIn('movement_transnno', $recChain)->exists()) {
+            DB::rollBack();
+            $message = "$title $recNumber gagal — status/histori berubah, tidak bisa dihapus";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['alert' => 'warning', 'title' => $title, 'message' => $message]);
+        }
+
         $rowAffected = DB::table('receiving_hdr')->where('rec_number', $recNumber)->delete();
 
         if ($rowAffected > 0) {
@@ -2288,6 +2328,15 @@ and article_code not in (select article_code from purchase_order_det where po_nu
 DB::beginTransaction();
 try {
     $now = date('Y-m-d H:i:s');
+
+     $lockedHdr = DB::table('receiving_hdr')->where('id', $id)->lockForUpdate()->first();
+    if (!$lockedHdr || in_array($lockedHdr->status, ['5','10'])) {
+        DB::rollBack();
+        return redirect()->back()->with(['alert'=>'warning','message'=>"$recOrigin sudah direvisi atau dibatalkan"]);
+    }
+    if (DB::table('receiving_hdr')->where('rec_number', $recNew)->exists()) {
+        $recNew = $recOrigin . '-R' . ($numRevision + 1);
+    }
 
     $rowAffected = DB::select($sqlHdr, [
         $recNew, $username, $now, $recOrigin, $numRevision, $username, $now, $reason, $recOrigin,
@@ -3689,6 +3738,14 @@ public function linkToPurchaseOrder(Request $request)
 
     DB::beginTransaction();
     try {
+         $locked = DB::table('receiving_hdr')->where('rec_number', $recNumber)->lockForUpdate()->first();
+        if (!$locked || $locked->rec_type !== 'TEMP' || $locked->status != '4' || !empty($locked->po_number)) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0, 'title' => $title,
+                'message' => ['Dokumen sudah diproses atau tidak eligible'], 'alert' => 'error',
+            ]);
+        }
         // Untuk baris JASA, unPosting() sebenarnya tidak akan menemukan movement apapun
         // (karena memang tidak pernah dibuat) — snapshot kosong, fungsi tetap aman dipanggil.
         $this->unPosting($recNumber);
@@ -3923,10 +3980,33 @@ public function prDetail(Request $request)
     $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode, $recNumber, $username);
     $nextLevel     = $statusLevelApproval[0]->next_level;
     $isFinalLevel  = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level; // FIX: dipisah biar jelas
-    $statusRec     = $isFinalLevel ? '3' : '10';
+
+    // Revisi dari dokumen yang PERNAH POSTED → jejak movement lama masih ada.
+    // Dokumen begini di-post HANYA lewat tombol Update (update() = unPost + repost
+    // atomik). approve() tidak auto-post & tidak menaikkan status ke APPROVED,
+    // biar status tetap '10' (REVISI) supaya tombol Update tetap aktif.
+    $originRec          = DB::table('receiving_hdr')->where('rec_number', $recNumber)
+        ->value('origin_rec_number') ?? $recNumber;
+    $adalahRevisiPosted = $this->snapshotMovementLocations($originRec)->isNotEmpty();
+
+    $statusRec = ($isFinalLevel && !$adalahRevisiPosted) ? '3' : '10';
 
     DB::beginTransaction();
     try {
+        // GUARD: kunci header, tolak kalau sudah POSTED/CANCELED
+        $locked = DB::table('receiving_hdr')->where('rec_number', $recNumber)->lockForUpdate()->first();
+        if (!$locked) {
+            DB::rollBack();
+            return response()->json(['status' => 0, 'title' => 'Approve', 'message' => 'Data tidak ditemukan', 'alert' => 'warning']);
+        }
+        if (in_array($locked->status, ['4', '5'])) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0, 'title' => 'Approve',
+                'message' => "Dokumen sudah " . ($locked->status == '4' ? 'POSTED' : 'CANCELED'), 'alert' => 'warning',
+            ]);
+        }
+
         $row_affected = DB::table('receiving_hdr')
             ->where('rec_number', $recNumber)
             ->update([
@@ -3961,7 +4041,10 @@ public function prDetail(Request $request)
         // kalau posting gagal (mis. semua item jasa/tidak ada detail),
         // approval tetap sah (status APPROVED / '3') dan user masih bisa
         // klik tombol Posting manual — tidak kehilangan histori approval.
-        if ($isFinalLevel) {
+        // Auto-post HANYA untuk dokumen fresh. Revisi di-post lewat tombol Update.
+        if ($isFinalLevel && $adalahRevisiPosted) {
+            $message .= " — revisi sudah full-approved. Klik tombol Update untuk menerapkan ke stok.";
+        } elseif ($isFinalLevel) {
             DB::beginTransaction();
             try {
                 $postResult = $this->doPosting($recNumber, $username);

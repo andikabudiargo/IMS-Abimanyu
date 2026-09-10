@@ -156,7 +156,15 @@
   </div>
 </div>
 
-<script type="text/javascript">     
+<script type="text/javascript">   
+['modalReasonCancel','modalReasonRevision','modalReasonReject'].forEach(function (id) {
+    var f = document.getElementById(id);
+    if (!f) return;
+    f.addEventListener('submit', function () {
+        var b = f.querySelector('button[type="submit"]');
+        if (b) { b.disabled = true; b.textContent = 'Memproses...'; }
+    });
+});  
   // $('#reasonModalRevision').on('shown.bs.modal', function(e) {
   //   alert('oki');
   //    $('#reason').focus();

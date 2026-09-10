@@ -1700,7 +1700,7 @@ $sqlDet = "INSERT into delivery_det
                 ->where('movement_type', 'DN SEMENTARA')
                 ->update([
                     'movement_transnno' => $dnNew,
-                    'movement_type'     => 'Delivery',
+                    'movement_type'     => 'DELIVERY',
                     'movement_desc'     => "Generate dari DN Sementara dengan Nomor: $tDnNumber",
                 ]);
 

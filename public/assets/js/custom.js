@@ -271,9 +271,17 @@ $(document).on('click', 'a[data-ajax-delete="true"]', function () {
                 },
                 {
                     text: me.data('confirm-text-yes') || 'Yes',
-                    class: 'btn btn-danger btn-shadow',
-                    handler: function() {
-                        eval(me.data('confirm-yes'));
+    class: 'btn btn-danger btn-shadow',
+    handler: function () {
+        if (me.data('_firing')) return;                 // cegah double-klik
+        me.data('_firing', true);
+        $('.modal.show .modal-footer button').prop('disabled', true);
+        setTimeout(function () { me.removeData('_firing'); }, 8000); // reset kalau gagal
+        eval(me.data('confirm-yes'));
+                    //text: me.data('confirm-text-yes') || 'Yes',
+                    //class: 'btn btn-danger btn-shadow',
+                    //handler: function() {
+                        //eval(me.data('confirm-yes'));
                     }
                 },
             ]
