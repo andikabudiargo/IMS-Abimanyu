@@ -41,6 +41,27 @@ class ActualLoadingController extends Controller
 
     private $loadingLocation = '047';   // gudang tujuan Actual Loading
 
+    /**
+     * Resolusi lokasi stok akuntansi: kalau booth punya parent (mis. 034 → 059)
+     * maka stok & movement dicatat di parent (pool), booth fisik hanya jadi
+     * jejak operasi (spray_booth di header, movement_from/to). Pola sama dengan
+     * TransferStockController::getStockLocation().
+     */
+    private array $stockLocationCache = [];
+
+    private function resolveStockLocation(string $locationCode): string
+    {
+        if (array_key_exists($locationCode, $this->stockLocationCache)) {
+            return $this->stockLocationCache[$locationCode];
+        }
+
+        $parent = DB::table('stock_location_master')
+            ->where('location_code', $locationCode)
+            ->value('parent_location');
+
+        return $this->stockLocationCache[$locationCode] = ($parent ?: $locationCode);
+    }
+
     public function __construct()
     {
         $this->title = "Actual Loading";
@@ -138,6 +159,12 @@ class ActualLoadingController extends Controller
 
         $data['sprayBooths'] = DB::table('stock_location_master')
             ->where('location_type', 'booth')
+            // sembunyikan booth yang jadi parent (mis. SPRAY BOOTH 5) — user pilih child 5A/5B/5C
+            ->whereNotIn('location_code', function ($q) {
+                $q->select('parent_location')
+                  ->from('stock_location_master')
+                  ->whereNotNull('parent_location');
+            })
             ->orderBy('location_name')
             ->get();
 
@@ -449,6 +476,8 @@ class ActualLoadingController extends Controller
         $rows = $this->getBomRm($fgArticle);
         if ($rows->isEmpty()) return 0;
 
+        $stockLoc = $this->resolveStockLocation($sprayBooth);
+
         $maxFg = null;
         foreach ($rows as $rm) {
             $perFg = (float)$rm->qty_per_fg;
@@ -456,7 +485,7 @@ class ActualLoadingController extends Controller
 
             $have = (float) DB::table('warehouse_stock')
                 ->where('article_code', $rm->article_code)
-                ->where('location_number', $sprayBooth)
+                ->where('location_number', $stockLoc)
                 ->sum('article_qty');
 
             $have    = max(0, $have);                  // saldo minus dianggap 0
@@ -517,16 +546,33 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
         $now = date('Y-m-d H:i:s');
         $adesc = DB::table('article')->where('article_code',$article)->value('article_desc');
 
-        DB::table('warehouse_stock')
-            ->where('article_code',$article)->where('location_number',$fromLoc)
+        // Lokasi stok akuntansi: booth child → parent (pool). $fromLoc tetap fisik
+        // untuk jejak movement_from.
+        $stockLoc = $this->resolveStockLocation($fromLoc);
+
+        $affected = DB::table('warehouse_stock')
+            ->where('article_code',$article)->where('location_number',$stockLoc)
             ->update([
                 'article_qty' => DB::raw('coalesce(article_qty,0) - '.$qty),
                 'updated_by'  => $username,
                 'updated_at'  => $now,
             ]);
 
-        // location_number = fromLoc (yang saldonya turun); from/to = jejak operasi
-        $this->writeMovement($seq, $article, $adesc, $qty, $fromLoc, 'out',
+        if ($affected === 0) {
+            DB::table('warehouse_stock')->insert([
+                'site_code'       => 'HO',
+                'article_code'    => $article,
+                'location_number' => $stockLoc,
+                'article_qty'     => -$qty,
+                'created_by'      => $username,
+                'updated_by'      => $username,
+                'created_at'      => $now,
+                'updated_at'      => $now,
+            ]);
+        }
+
+        // location_number = pool akuntansi; movement_from/to = jejak operasi (fisik)
+        $this->writeMovement($seq, $article, $adesc, $qty, $stockLoc, 'out',
                              $fromLoc, $toLoc, $movementType, $transno, $desc, $username);
     }
 
@@ -541,12 +587,16 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
         $adesc = $art->article_desc ?? null;
         $dept  = $art->article_type ?? null;
 
+        // Lokasi stok akuntansi: booth child → parent (pool). $fromLoc/$toLoc tetap
+        // fisik untuk jejak movement_from/to.
+        $stockLoc = $this->resolveStockLocation($toLoc);
+
         $exists = DB::table('warehouse_stock')
-            ->where('article_code',$article)->where('location_number',$toLoc)->exists();
+            ->where('article_code',$article)->where('location_number',$stockLoc)->exists();
 
         if ($exists) {
             DB::table('warehouse_stock')
-                ->where('article_code',$article)->where('location_number',$toLoc)
+                ->where('article_code',$article)->where('location_number',$stockLoc)
                 ->update([
                     'article_qty' => DB::raw('coalesce(article_qty,0) + '.$qty),
                     'updated_by'  => $username,
@@ -556,7 +606,7 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
             DB::table('warehouse_stock')->insert([
                 'site_code'       => 'HO',
                 'article_code'    => $article,
-                'location_number' => $toLoc,
+                'location_number' => $stockLoc,
                 'article_qty'     => $qty,
                 'uom'             => $uom,
                 'dept_code'       => $dept,
@@ -567,8 +617,8 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
             ]);
         }
 
-        // location_number = toLoc (yang saldonya naik); from/to = jejak operasi
-        $this->writeMovement($seq, $article, $adesc, $qty, $toLoc, 'in',
+        // location_number = pool akuntansi; movement_from/to = jejak operasi (fisik)
+        $this->writeMovement($seq, $article, $adesc, $qty, $stockLoc, 'in',
                              $fromLoc, $toLoc, $movementType, $transno, $desc, $username);
     }
 
@@ -845,6 +895,12 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
 
         $data['sprayBooths'] = DB::table('stock_location_master')
             ->where('location_type', 'booth')
+            // sembunyikan booth yang jadi parent (mis. SPRAY BOOTH 5) — user pilih child 5A/5B/5C
+            ->whereNotIn('location_code', function ($q) {
+                $q->select('parent_location')
+                  ->from('stock_location_master')
+                  ->whereNotNull('parent_location');
+            })
             ->orderBy('location_name')
             ->get();
 
@@ -1446,6 +1502,9 @@ private function eligibleArticlesForBooth($locationCode)
         return collect();
     }
 
+    // Stok RM dilihat dari pool akuntansi (parent) kalau booth punya parent.
+    $locationCode = $this->resolveStockLocation($locationCode);
+
    $fgList = DB::table('bom_hdr as bh')
     ->join('bom_rm as br', 'br.bom_code', '=', 'bh.bom_code')
     ->join('article as arm', 'arm.article_code', '=', 'br.article_code')
@@ -1494,6 +1553,8 @@ private function eligibleArticlesForBooth($locationCode)
 /** Stok RM (RMP/RMNP) yang ada di Spray Booth tertentu, qty > 0 */
 private function rmStockAtBooth($locationCode)
 {
+    $locationCode = $this->resolveStockLocation($locationCode);
+
     return DB::table('warehouse_stock as ws')
         ->join('article as a', 'a.article_code', '=', 'ws.article_code')
         ->where('ws.location_number', $locationCode)
