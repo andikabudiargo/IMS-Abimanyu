@@ -3981,30 +3981,38 @@ public function prDetail(Request $request)
     $nextLevel     = $statusLevelApproval[0]->next_level;
     $isFinalLevel  = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level; // FIX: dipisah biar jelas
 
-    // Revisi dari dokumen yang PERNAH POSTED → jejak movement lama masih ada.
-    // Dokumen begini di-post HANYA lewat tombol Update (update() = unPost + repost
-    // atomik). approve() tidak auto-post & tidak menaikkan status ke APPROVED,
-    // biar status tetap '10' (REVISI) supaya tombol Update tetap aktif.
     $originRec          = DB::table('receiving_hdr')->where('rec_number', $recNumber)
         ->value('origin_rec_number') ?? $recNumber;
     $adalahRevisiPosted = $this->snapshotMovementLocations($originRec)->isNotEmpty();
 
-    $statusRec = ($isFinalLevel && !$adalahRevisiPosted) ? '3' : '10';
-
     DB::beginTransaction();
     try {
-        // GUARD: kunci header, tolak kalau sudah POSTED/CANCELED
+        // GUARD: kunci header
         $locked = DB::table('receiving_hdr')->where('rec_number', $recNumber)->lockForUpdate()->first();
         if (!$locked) {
             DB::rollBack();
             return response()->json(['status' => 0, 'title' => 'Approve', 'message' => 'Data tidak ditemukan', 'alert' => 'warning']);
         }
-        if (in_array($locked->status, ['4', '5'])) {
+        if ($locked->status === '5') {
             DB::rollBack();
-            return response()->json([
-                'status' => 0, 'title' => 'Approve',
-                'message' => "Dokumen sudah " . ($locked->status == '4' ? 'POSTED' : 'CANCELED'), 'alert' => 'warning',
-            ]);
+            return response()->json(['status' => 0, 'title' => 'Approve', 'message' => 'Dokumen sudah CANCELED', 'alert' => 'warning']);
+        }
+
+        // Status setelah approve:
+        //  - sudah POSTED ('4')  → biarkan '4' (revisi yang sudah di-Update): cuma catat
+        //    approval, TIDAK re-post.
+        //  - belum final level   → '10'.
+        //  - final + masih ada movement lama (revisi belum di-Update) → '10', user klik Update.
+        //  - final + fresh (belum ada movement) → '3', lalu auto-post di bawah.
+        $sudahPosted = ($locked->status === '4');
+        if ($sudahPosted) {
+            $statusRec = '4';
+        } elseif (!$isFinalLevel) {
+            $statusRec = '10';
+        } elseif ($adalahRevisiPosted) {
+            $statusRec = '10';
+        } else {
+            $statusRec = '3';
         }
 
         $row_affected = DB::table('receiving_hdr')
@@ -4036,15 +4044,12 @@ public function prDetail(Request $request)
         $message = "$title $recNumber is successfully Approve-$nextLevel";
         $alert   = "success";
 
-        // FIX: auto-posting kalau ini approval level terakhir.
-        // Dijalankan sebagai transaction TERPISAH dari approval di atas:
-        // kalau posting gagal (mis. semua item jasa/tidak ada detail),
-        // approval tetap sah (status APPROVED / '3') dan user masih bisa
-        // klik tombol Posting manual — tidak kehilangan histori approval.
-        // Auto-post HANYA untuk dokumen fresh. Revisi di-post lewat tombol Update.
-        if ($isFinalLevel && $adalahRevisiPosted) {
+        // Auto-post HANYA kalau final level & dokumen fresh ($statusRec '3').
+        //  - $statusRec '4' → revisi sudah di-Update, movement sudah benar, cukup catat approval.
+        //  - $statusRec '10' + final → revisi belum di-Update → user klik Update.
+        if ($isFinalLevel && $statusRec === '10') {
             $message .= " — revisi sudah full-approved. Klik tombol Update untuk menerapkan ke stok.";
-        } elseif ($isFinalLevel) {
+        } elseif ($isFinalLevel && $statusRec === '3') {
             DB::beginTransaction();
             try {
                 $postResult = $this->doPosting($recNumber, $username);
