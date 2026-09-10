@@ -395,12 +395,16 @@ btnLoading = ($btn, text) => {
     // SIMPAN DATA
     // ============================================================
 
+  window._trxSubmitting = window._trxSubmitting || false;
   simpanData = (oEdit) => {
         let $btn = $('#cmdSave');
+
+        if (window._trxSubmitting) return;   // cegah double-submit (klik ganda / listener dobel)
 
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         } else {
+            window._trxSubmitting = true;
             btnLoading($btn, 'Menyimpan...');
             $('.disabled-el').removeAttr('disabled');
             let objQty    = $('#article_row input[name="qty[]"]');
@@ -512,6 +516,7 @@ $.ajax({
     dataType: "json",
     success: function(data) {
         if (data.status == 0) {
+            window._trxSubmitting = false;
             btnReset($btn);                       // ← WAJIB, biar tombol hidup lagi
             for (let i = 0; i < data.message.length; i++) {
                 show_msg(data.title, data.message[i], data.alert);
@@ -529,10 +534,12 @@ $.ajax({
         } else if (oEdit == false) {              // ← CREATE: balik ke form kosong
             window.location.href = "{{ route('transferStock.create') }}";
         } else {
+            window._trxSubmitting = false;
             btnReset($btn);
         }
     },
     error: function(error) {
+        window._trxSubmitting = false;
         btnReset($btn);                           // ← WAJIB
         console.log(error);
         show_msg('Error', 'Terjadi kesalahan saat menyimpan, cek console.', 'error');
@@ -540,6 +547,7 @@ $.ajax({
 });
 
             } else {
+                 window._trxSubmitting = false;
                  btnReset($btn);
                 Swal.fire('Warning..', pesan, 'warning');
             }

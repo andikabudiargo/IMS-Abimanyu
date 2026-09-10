@@ -429,6 +429,34 @@ $data['locationsTo'] = DB::table('stock_location_master')
         ) {
             DB::select("SELECT pg_advisory_xact_lock(hashtext(?))", [$poLeadCode]);
 
+            // GUARD anti double-submit: kalau user yang sama baru saja membuat transfer
+            // rute+tanggal+artikel yang sama persis (< 120 detik) → kembalikan yang itu,
+            // jangan bikin dokumen kembar.
+            $sig = collect($articles)->map(function ($v) {
+                $ac  = is_array($v) ? ($v['article_code'] ?? '') : ($v->article_code ?? '');
+                $qty = is_array($v) ? ($v['qty'] ?? 0)          : ($v->qty ?? 0);
+                return $ac . ':' . (float) $qty;
+            })->sort()->values()->implode('|');
+
+            $recent = DB::table('transfer_stock_hdr')
+                ->where('created_by', $username)
+                ->where('location_from', $locationCode)
+                ->where('location_to', $locationTo)
+                ->where('tr_date', $trDate)
+                ->whereIn('status', ['1', '2', '3', '4'])
+                ->where('created_at', '>=', now()->subSeconds(120))
+                ->pluck('tr_number');
+
+            foreach ($recent as $rn) {
+                $existingSig = DB::table('transfer_stock_det')->where('tr_number', $rn)
+                    ->get()->map(fn ($d) => $d->article_code . ':' . (float) $d->qty)
+                    ->sort()->values()->implode('|');
+                if ($existingSig === $sig) {
+                    \LogActivity::addToLog("Save $this->title", "username: $username double-submit terdeteksi, pakai $rn");
+                    return $rn;
+                }
+            }
+
             AppHelpers::resetCode($poLeadCode);
             $trNumber = $this->getLastCode($poLeadCode, $trDate, $username);
 
@@ -901,6 +929,13 @@ $data['locationsTo'] = DB::table('stock_location_master')
         $reason = "($reasonLabel by $username)";
 
         $runner = function () use ($hdrQ, $trNumber, $username, $reason) {
+            // GUARD: kunci header, re-cek status (cegah race dengan update/cancel lain)
+            $locked = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->lockForUpdate()->first();
+            if (!$locked || $locked->status == '5') {
+                return; // sudah dicancel oleh request lain — idempotent, tidak error
+            }
+            $hdrQ = $locked;
+
             $reverse = $this->reverseStock($hdrQ, $username, 'Cancel');
             if (!$reverse['success']) {
                 $msg = is_array($reverse['message']) ? implode(' | ', $reverse['message']) : $reverse['message'];
@@ -943,14 +978,17 @@ $data['locationsTo'] = DB::table('stock_location_master')
 
         $trNumber = DB::table('transfer_stock_hdr')->where('id', $id)->value('tr_number');
         if (!$trNumber) {
-            return response()->json(['status'=>0,'title'=>$title,'message'=>['Data tidak ditemukan'],'alert'=>'error']);
+            return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Data tidak ditemukan']);
         }
 
         $res = $this->cancelTransferProgrammatically($trNumber, 'Cancel', true, true);
-        if (!$res['success']) {
-            return response()->json(['status'=>0,'title'=>$title,'message'=>(array)$res['message'],'alert'=>'warning']);
-        }
-        return response()->json(['status'=>1,'title'=>$title,'message'=>$res['message'],'alert'=>'success']);
+
+        $msg = is_array($res['message']) ? implode(' | ', $res['message']) : $res['message'];
+        return redirect()->back()->with([
+            'title'   => $title,
+            'alert'   => $res['success'] ? 'success' : 'warning',
+            'message' => $msg,
+        ]);
     }
 
          public function cancel1(Request $request)
@@ -1324,6 +1362,17 @@ public function update(Request $request)
 
     DB::beginTransaction();
     try {
+        // GUARD: kunci header, pastikan masih NEW (belum diproses request lain)
+        $locked = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->lockForUpdate()->first();
+        if (!$locked || $locked->status != '1') {
+            DB::rollBack();
+            return response()->json([
+                'status' => 0, 'title' => $title,
+                'message' => ["Transfer $trNumber sudah diproses, tidak bisa diedit (klik ganda?)"], 'alert' => 'warning',
+            ]);
+        }
+        $hdr = $locked;
+
         // ── 0) Snapshot history sebelum diubah ──
         $rev = $this->snapshotHistory($hdr, $username, $editReason);
 
@@ -1613,6 +1662,14 @@ private function getArticleDesc(string $articleCode): string
 
             DB::beginTransaction();
             try {
+                // GUARD: kunci header, re-cek status
+                $locked = DB::table('transfer_stock_hdr')->where('tr_number', $trNumber)->lockForUpdate()->first();
+                if (!$locked || $locked->status == '5') {
+                    DB::rollBack();
+                    return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>"$title: sudah dicancel"]);
+                }
+                $hdrQ = $locked;
+
                 // ===== Reverse stok & movement (untuk SEMUA status non-cancel) =====
                 $reverse = $this->reverseStock($hdrQ, $username, 'Delete');
                 if (!$reverse['success']) {
