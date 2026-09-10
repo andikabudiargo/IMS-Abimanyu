@@ -1883,7 +1883,7 @@ DB::raw("
         $printType = '2';
     }
     $data['printType'] = $printType;
-$capacityPage1 = 30;
+$capacityPage1 = 22;
   //$capacityPage1 = ($printType == '12') ? 21 : 26;
 
 
