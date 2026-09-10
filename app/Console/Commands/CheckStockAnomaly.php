@@ -205,13 +205,16 @@ class CheckStockAnomaly extends Command
             ),
 
             -- gabungkan: qty_ledger = ob_qty + qty_net
+            -- FULL OUTER JOIN: artikel yang punya movement TAPI tanpa OB (mis. semua
+            -- lokasi booth yang tidak pernah diberi OB) tetap ikut dicek. Kalau pakai
+            -- LEFT JOIN dari ob_folded, artikel tanpa OB hilang total dari hasil.
 ledger AS (
     SELECT
-        ob.article_code                                      AS artikel_code,
-        ob.location_number,
-        ob.ob_qty + COALESCE(nm.qty_net, 0)                 AS qty_ledger
+        COALESCE(ob.article_code, nm.artikel_code)            AS artikel_code,
+        COALESCE(ob.location_number, nm.location_number)      AS location_number,
+        COALESCE(ob.ob_qty, 0) + COALESCE(nm.qty_net, 0)      AS qty_ledger
     FROM ob_folded ob
-    LEFT JOIN net_mv nm                          -- ← ganti FULL OUTER JOIN jadi LEFT JOIN
+    FULL OUTER JOIN net_mv nm
         ON nm.artikel_code    = ob.article_code
        AND nm.location_number = ob.location_number
 )
