@@ -413,6 +413,8 @@ function fetchStockBefore(articleCode, locationCode, rowId) {
             article_code:  articleCode,
             location_code: locationCode,
             adjDate:       adjDate,
+            adjType:       $('#adjType').val(),
+            periode:       $('#periode').val(),
             adjCode:       adjRevisionCode   // null di jalur create
         },
         success: function (data) { setStockBefore(rowId, data.stock ?? 0); },
@@ -477,6 +479,8 @@ function fetchStockBulk(rowMeta, done, onProg) {
             data:   {
                 adjDate:           adjDate,
                 location_code:     locCode,
+                adjType:           $('#adjType').val(),
+                periode:           $('#periode').val(),
                 adjCode:           adjRevisionCode,
                 'article_codes[]': chunks[ci]
             },

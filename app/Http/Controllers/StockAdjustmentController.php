@@ -385,6 +385,8 @@ class StockAdjustmentController extends Controller
             return $this->fail($title, $err);
         }
 
+        $adjDate = $this->normalizeAdjDate($request->adjType, $request->adjDate, $request->periode);
+
         AppHelpers::resetCode($this->moduleCode);
         $adjCode = $this->getLastCode($this->moduleCode);
 
@@ -392,7 +394,7 @@ class StockAdjustmentController extends Controller
         try {
             DB::table('stock_adjustment_hdr')->insert([
                 'adj_code'      => $adjCode,
-                'adj_date'      => $request->adjDate,
+                'adj_date'      => $adjDate,
                 'adj_type'      => $request->adjType,
                 'location_code' => $request->location,
                 'description'   => $request->description,
@@ -574,10 +576,12 @@ class StockAdjustmentController extends Controller
             return $this->fail($title, $err);
         }
 
+        $adjDate = $this->normalizeAdjDate($request->adjType, $request->adjDate, $request->periode);
+
         DB::beginTransaction();
         try {
             DB::table('stock_adjustment_hdr')->where('adj_code', $adjCode)->update([
-                'adj_date'      => $request->adjDate,
+                'adj_date'      => $adjDate,
                 'adj_type'      => $request->adjType,
                 'location_code' => $request->location,
                 'description'   => $request->description,
@@ -647,7 +651,7 @@ class StockAdjustmentController extends Controller
             $newDets = collect($articles)->keyBy('article_code');
 
             $newHdr = [
-                'adj_date'    => $request->adjDate,
+                'adj_date'    => $this->normalizeAdjDate($request->adjType, $request->adjDate, $request->periode),
                 'adj_type'    => $request->adjType,
                 'description' => $request->description,
                 'note'        => $request->note,
@@ -746,6 +750,15 @@ class StockAdjustmentController extends Controller
 
         DB::beginTransaction();
         try {
+             // GUARD anti double-post: kunci baris header, pastikan belum diposting
+            // oleh request lain yang datang berbarengan (klik ganda / retry).
+            $hdr = DB::table('stock_adjustment_hdr')->where('id', $hdr->id)->lockForUpdate()->first();
+            if (!in_array($hdr->status, self::ST_EDITABLE, true)) {
+                DB::rollBack();
+                return $this->backWarn($title, "{$hdr->adj_code} sudah diproses (status: "
+                    . (self::STATUS_LABEL[$hdr->status] ?? $hdr->status) . "). Kemungkinan klik ganda.");
+            }
+
             $this->lockStockRows($details->pluck('article_code')->all(), $hdr->location_code);
 
             $movementSeq = (int) DB::table('warehouse_movement')->max('movement_code');
@@ -803,6 +816,12 @@ class StockAdjustmentController extends Controller
 
         DB::beginTransaction();
         try {
+             $hdr = DB::table('stock_adjustment_hdr')->where('id', $hdr->id)->lockForUpdate()->first();
+            if ($hdr->status !== self::ST_REVISED) {
+                DB::rollBack();
+                return $this->backWarn($title, "{$adjCode} sudah diproses (status: "
+                    . (self::STATUS_LABEL[$hdr->status] ?? $hdr->status) . "). Kemungkinan klik ganda.");
+            }
             // Nilai yang BENAR-BENAR sudah masuk stok, dibaca dari movement.
             // stock_adjustment_det sudah berisi nilai baru, jadi tidak bisa
             // dipakai sebagai acuan "sebelumnya".
@@ -819,8 +838,33 @@ class StockAdjustmentController extends Controller
                 $new = $newDets->get($code);
 
                 $oldSigned = (float) $baseline->get($code, 0);
-                $newSigned = $this->signedQty($new);
-                $delta     = $newSigned - $oldSigned;
+
+                if ($hdr->adj_type === 'OPENING BALANCE' && $new) {
+                    // Sama seperti postFresh: hitung ulang terhadap ledger LIVE,
+                    // bukan angka form yang mungkin sudah basi. qtyAt(adjDate)
+                    // di titik ini SUDAH termasuk kontribusi lama dokumen ini
+                    // sendiri (oldSigned, karena movement-nya dated adjDate) —
+                    // jadi dikurangi dulu supaya dapat saldo "tanpa dokumen ini".
+                    $freshLedger     = $this->qtyAt($code, $adjDateYmd, $location);
+                    $qtyExcludingDoc = $freshLedger - $oldSigned;
+                    $stockAfterNew   = (float) $new->stock_after;
+                    $newSigned       = $stockAfterNew - $qtyExcludingDoc;
+
+                    DB::table('stock_adjustment_det')
+                        ->where('adj_code', $adjCode)
+                        ->where('article_code', $code)
+                        ->update([
+                            'stock_before'   => $qtyExcludingDoc,
+                            'qty_adjustment' => round(abs($newSigned), 4),
+                            'direction'      => $newSigned >= 0 ? '+' : '-',
+                            'updated_by'     => $username,
+                            'updated_at'     => date('Y-m-d H:i:s'),
+                        ]);
+                } else {
+                    $newSigned = $this->signedQty($new);
+                }
+
+                $delta = $newSigned - $oldSigned;
 
                 if (abs($delta) > self::EPSILON) {
                     $this->ensureStockRow($code, $location, $new);
@@ -866,23 +910,49 @@ class StockAdjustmentController extends Controller
      * Terapkan satu baris detail ke warehouse_stock + article (cost),
      * kembalikan baris siap-insert untuk warehouse_movement.
      *
-     * qty acuan dari saldo HISTORIS pada adjDate (get_last_qty_new), bukan
-     * article_qty current — supaya weighted-average dihitung dari posisi stok
-     * yang benar secara kronologis. Mutasi article_qty tetap delta (+/-)
-     * terhadap saldo current, karena delta berlaku sama di titik manapun.
+     * OPENING BALANCE = ABSOLUT & DINAMIS: qty_adjustment yang tersimpan
+     * dihitung sejak form diisi/direvisi dan bisa basi kalau ada transaksi lain
+     * (termasuk backdate) masuk ke ledger sebelum dokumen ini benar-benar
+     * diposting. Untuk OB, delta dihitung ULANG di sini terhadap saldo ledger
+     * LIVE (qtyAt adjDate) — bukan angka form lama — supaya hasil akhirnya
+     * selalu "stock_after" yang benar apa pun yang terjadi di antaranya.
+     *
+     * SYSTEM CORRECTION / tipe lain tetap delta murni: qty_adjustment yang
+     * diinput user diterapkan apa adanya terhadap saldo current.
      */
     private function applyAdjustmentToStock(
         object $val, object $hdr, string $adjDateYmd, string $username, int $movementSeq
     ): array {
-        $qty       = (float) $val->qty_adjustment;
-        $avgCost   = (float) $val->avg_cost;
-        $direction = $val->direction;
-        $location  = $hdr->location_code;
+        $avgCost  = (float) $val->avg_cost;
+        $location = $hdr->location_code;
 
         $this->ensureStockRow($val->article_code, $location, $val);
 
         $qtyAtAdjDate = $this->qtyAt($val->article_code, $adjDateYmd, $location);
         $avgNow       = $this->currentAvg($val->article_code, $location);
+
+        if ($hdr->adj_type === 'OPENING BALANCE') {
+            $stockAfter = (float) $val->stock_after;
+            $delta      = $stockAfter - $qtyAtAdjDate;
+            $direction  = $delta >= 0 ? '+' : '-';
+            $qty        = round(abs($delta), 4);
+
+            // Simpan ulang angka yang BENAR-BENAR diterapkan, supaya dokumen
+            // mencerminkan hasil real, bukan angka form yang sudah basi.
+            DB::table('stock_adjustment_det')
+                ->where('adj_code', $hdr->adj_code)
+                ->where('article_code', $val->article_code)
+                ->update([
+                    'stock_before'   => $qtyAtAdjDate,
+                    'qty_adjustment' => $qty,
+                    'direction'      => $direction,
+                    'updated_by'     => $username,
+                    'updated_at'     => date('Y-m-d H:i:s'),
+                ]);
+        } else {
+            $qty       = (float) $val->qty_adjustment;
+            $direction = $val->direction;
+        }
 
         if ($avgCost <= 0) {
             $avgCost = $avgNow;
@@ -893,7 +963,10 @@ class StockAdjustmentController extends Controller
             ->where('article_code', $val->article_code)
             ->where('location_number', $location);
 
-        if ($direction === '+') {
+        if ($qty <= self::EPSILON) {
+            // OB sudah pas dengan ledger — tidak ada yang perlu diterapkan.
+            [$movMin, $movPlus] = [0, 0];
+        } elseif ($direction === '+') {
             $qtyBaru = $qtyAtAdjDate + $qty;
             $avgBaru = $qtyBaru > 0
                 ? (($qtyAtAdjDate * $avgNow) + ($qty * $avgCost)) / $qtyBaru
@@ -1053,10 +1126,13 @@ class StockAdjustmentController extends Controller
 
         DB::beginTransaction();
         try {
+             $hdr = DB::table('stock_adjustment_hdr')->where('id', $id)->lockForUpdate()->first();
+            if (!in_array($hdr->status, self::ST_LIVE, true)) {
+                DB::rollBack();
+                return $this->backWarn($title, "{$hdr->adj_code} sudah diproses (status: "
+                    . (self::STATUS_LABEL[$hdr->status] ?? $hdr->status) . ").");
+            }
             $this->lockStockRows($baseline->keys()->all(), $location);
-
-            $seq  = (int) DB::table('warehouse_movement')->max('movement_code');
-            $rows = [];
 
             $meta = DB::table('article')
                 ->whereIn('article_code', $baseline->keys()->all())
@@ -1069,38 +1145,24 @@ class StockAdjustmentController extends Controller
                 $art = $meta->get($code);
                 $this->ensureStockRow($code, $location, $art);
 
-                // Balik arah: yang dulu masuk sekarang keluar, dan sebaliknya.
+                // Balik efek yang dulu diterapkan dokumen ini.
                 DB::table('warehouse_stock')
                     ->where('site_code', $this->siteCode)
                     ->where('article_code', $code)
                     ->where('location_number', $location)
                     ->update(['article_qty' => DB::raw('coalesce(article_qty,0) - (' . $signed . ')')]);
-
-                $seq++;
-                $rows[] = [
-                    'movement_code'     => $seq,
-                    'movement_date'     => $hdr->adj_date,
-                    'artikel_code'      => $code,
-                    'artikel_desc'      => $art->article_desc ?? '',
-                    'movement_min'      => $signed > 0 ? $signed : 0,
-                    'movement_plus'     => $signed < 0 ? abs($signed) : 0,
-                    'movement_price'    => $this->currentAvg($code, $location),
-                    'movement_transnno' => $hdr->adj_code,
-                    'movement_type'     => self::MV_CANCEL,
-                    'movement_desc'     => trim("Cancel: {$hdr->adj_type} {$hdr->description}; {$reason}"),
-                    'partner_type'      => self::PARTNER_TYPE,
-                    'uom'               => $art->uom ?? null,
-                    'created_by'        => $username,
-                    'created_at'        => date('Y-m-d H:i:s'),
-                    'site_code'         => $this->siteCode,
-                    'location_number'   => $location,
-                    'movement_from'     => $signed > 0 ? $location : '-',
-                    'movement_to'       => $signed < 0 ? $location : '-',
-                    'last_qty'          => 0,   // diisi ulang oleh recalcLastQty()
-                ];
             }
 
-            DB::table('warehouse_movement')->insert($rows);
+            // Hapus baris movement ADJUSTMENT dokumen ini — TIDAK insert baris
+            // "CANCEL ADJUSTMENT" pembalik. Pola lama itu selalu net 0 (efeknya
+            // sudah dibalik di atas) tapi menumpuk sampah permanen yang harus
+            // dibersihkan manual terus-menerus. Sama seperti reverseStock() di
+            // TransferStock/Delivery/Receiving: hapus baris asli, tidak insert
+            // baris pembalik baru.
+            DB::table('warehouse_movement')
+                ->where('movement_transnno', $hdr->adj_code)
+                ->where('movement_type', self::MV_ADJUSTMENT)
+                ->delete();
 
             $revNo = ((int) ($hdr->rev_no ?? 0)) + 1;
 
@@ -1284,7 +1346,8 @@ class StockAdjustmentController extends Controller
      */
     public function stockBefore(Request $request)
     {
-        $adjDateYmd = $this->toYmd($request->adjDate);
+        $adjDate    = $this->normalizeAdjDate($request->adjType, $request->adjDate, $request->periode);
+        $adjDateYmd = $this->toYmd($adjDate);
 
         if (!$adjDateYmd) {
             return response()->json(['stock' => 0]);
@@ -1308,7 +1371,8 @@ class StockAdjustmentController extends Controller
      */
     public function stockBeforeBulk(Request $request)
     {
-        $adjDateYmd   = $this->toYmd($request->adjDate);
+        $adjDate      = $this->normalizeAdjDate($request->adjType, $request->adjDate, $request->periode);
+        $adjDateYmd   = $this->toYmd($adjDate);
         $locationCode = $request->location_code;
         $articleCodes = $request->article_codes;
 
@@ -1677,13 +1741,26 @@ class StockAdjustmentController extends Controller
 
     /** Samakan isi stock_adjustment_det dengan payload frontend. */
     private function syncDetails(string $adjCode, Collection $newDets, string $username): void
-    {
-        DB::table('stock_adjustment_det')
-            ->where('adj_code', $adjCode)
-            ->whereNotIn('article_code', $newDets->keys()->all())
-            ->delete();
+{
+    $existingCodes = DB::table('stock_adjustment_det')
+        ->where('adj_code', $adjCode)->pluck('article_code');
 
-       foreach ($newDets as $code => $val) {
+    $dropped = $existingCodes->diff($newDets->keys());
+
+    if ($dropped->isNotEmpty()) {
+        \Log::warning("StockAdjustment syncDetails: artikel dihapus tanpa jejak", [
+            'adj_code' => $adjCode,
+            'dropped'  => $dropped->values()->all(),
+            'user'     => $username,
+        ]);
+    }
+
+    DB::table('stock_adjustment_det')
+        ->where('adj_code', $adjCode)
+        ->whereNotIn('article_code', $newDets->keys()->all())
+        ->delete();
+
+    foreach ($newDets as $code => $val) {
 
     $exists = DB::table('stock_adjustment_det')
         ->where('adj_code', $adjCode)
@@ -1776,6 +1853,34 @@ class StockAdjustmentController extends Controller
         if (!$dmy) return null;
         $dt = \DateTime::createFromFormat('d-m-Y', trim($dmy));
         return $dt ? $dt->format('Y-m-d') : null;
+    }
+
+    /**
+     * OPENING BALANCE: adjDate cuma menentukan TAHUN + titik hitung stock_before
+     * — cutoff sebenarnya adalah "akhir periode", ditentukan oleh field Periode.
+     * Supaya tidak bisa lagi pilih cutoff sembarang tanggal, hari yang dipilih
+     * user di adjDate di-snap paksa ke hari terakhir bulan `periode` (tahun
+     * tetap diambil dari adjDate seperti desain aslinya).
+     *
+     * Tipe lain (SYSTEM CORRECTION, dst) tidak disentuh — adjDate mereka
+     * memang delta murni, boleh tanggal apa saja.
+     */
+    private function normalizeAdjDate(?string $adjType, ?string $adjDate, $periode): ?string
+    {
+        if ($adjType !== 'OPENING BALANCE' || !$adjDate || !$periode) {
+            return $adjDate;
+        }
+
+        $dt = \DateTime::createFromFormat('d-m-Y', trim($adjDate));
+        if (!$dt) return $adjDate;
+
+        $year  = (int) $dt->format('Y');
+        $month = (int) $periode;
+        if ($month < 1 || $month > 12) return $adjDate;
+
+        $lastDay = (int) date('t', mktime(0, 0, 0, $month, 1, $year));
+
+        return sprintf('%02d-%02d-%04d', $lastDay, $month, $year);
     }
 
     private function parseDateRange(?string $trDate): array
