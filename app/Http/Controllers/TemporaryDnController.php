@@ -342,6 +342,23 @@ public function posting(Request $request)
 
     DB::beginTransaction();
     try {
+        // GUARD (race-safe): kunci header, re-cek sudah-posting DI DALAM transaksi
+        // supaya dua request posting() bersamaan tidak lolos cek berbarengan
+        // (cegah movement 'DN SEMENTARA' dobel / stok terpotong dua kali).
+        $lockedHdr = DB::table('temporary_dn_hdr')->where('tdn_number', $tDnNumber)->lockForUpdate()->first();
+        $sudahPostingLocked = DB::table('warehouse_movement')
+            ->where('movement_transnno', $tDnNumber)
+            ->where('movement_type', 'DN SEMENTARA')
+            ->count();
+        if (!$lockedHdr || $sudahPostingLocked > 0) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 1, 'title' => "Posting $this->title",
+                'message' => "$tDnNumber sudah diposting sebelumnya (cetak ulang)",
+                'alert' => 'success', 'tDnNumber' => $tDnNumber, 'idKu' => $idKu,
+            ]);
+        }
+
         $this->postingTdn($tDnNumber, $articles, $username, $deliveryDate);
 
         DB::commit();
@@ -369,6 +386,16 @@ public function posting(Request $request)
 }
 
 /**
+ * Kunci urutan movement_code lintas transaksi supaya dua request posting
+ * bersamaan tidak berebut nomor movement_code yang sama (advisory lock,
+ * key WAJIB sama persis dengan controller lain yang insert warehouse_movement).
+ */
+private function lockMovementSequence(): void
+{
+    DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
+}
+
+/**
  * Worker: potong stok gudang FG + catat warehouse_movement.
  * TIDAK melakukan guard di sini - guard dilakukan oleh caller (posting()).
  * Dipanggil dari dalam transaction.
@@ -384,6 +411,9 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
     // yang valid di database (nextval mengarah ke sequence yang tidak ada),
     // nomor movement_code di-generate sendiri dari MAX(movement_code)+1.
     // Pola sama seperti ReceivingController::posting2()/cancel()/unPosting().
+    // lockMovementSequence() mengunci lintas transaksi supaya dua posting
+    // bersamaan tidak berebut nomor movement_code yang sama.
+    $this->lockMovementSequence();
     $seq = (int) DB::table('warehouse_movement')->max('movement_code');
 
     foreach ($articles as $val) {
@@ -448,6 +478,23 @@ private function postingTdn($tDnNumber, $articles, $username, $deliveryDate)
 
     if (!empty($movementSet)) {
         DB::table('warehouse_movement')->insert($movementSet);
+
+        // TDN ini bisa diposting dengan deliveryDate yang sudah tercakup
+        // OPENING BALANCE aktif (backdate) -- OB harus menyerap efeknya.
+        $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+        foreach ($movementSet as $mv) {
+            $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
+            if (abs($signed) < 0.000001) continue;
+
+            $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv['movement_date']));
+            if (!$mvDt) continue;
+            if (!$adjOb->obBoundaryFor($mv['artikel_code'], $location, $mvDt->format('Y-m-d'))) continue;
+
+            $adjOb->absorbIntoLatestOpeningBalance(
+                $mv['artikel_code'], $location, $signed, $username,
+                "Posting TDN {$tDnNumber} bertanggal {$mv['movement_date']} (sudah tercakup OB)"
+            );
+        }
     }
 }
 
@@ -954,14 +1001,29 @@ private function updateWarehouseStock(string $articleCode, string $location, flo
         ]);
     }
 
-    // Apakah TDN sudah diposting (stok sudah dipotong)?
-    $sudahPosting = DB::table('warehouse_movement')
-        ->where('movement_transnno', $tDnNumber)
-        ->where('movement_type', 'DN SEMENTARA')
-        ->count();
-
    DB::beginTransaction();
     try {
+        // GUARD (race-safe): kunci header, re-cek status & sudah-posting DI DALAM
+        // transaksi supaya dua request update() bersamaan pada tDnNumber yang
+        // sama tidak lolos cek berbarengan (cegah reverse+repost dobel).
+        $lockedHdr = DB::table('temporary_dn_hdr')->where('tdn_number', $tDnNumber)->lockForUpdate()->first();
+        if (!$lockedHdr || $lockedHdr->status != '1') {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 0,
+                'title'   => "Update $this->title",
+                'message' => "TDN $tDnNumber gagal diedit — status sudah berubah (sedang diproses request lain)",
+                'alert'   => 'warning',
+                'tDnNumber' => $tDnNumber,
+            ]);
+        }
+
+        // Apakah TDN sudah diposting (stok sudah dipotong)?
+        $sudahPosting = DB::table('warehouse_movement')
+            ->where('movement_transnno', $tDnNumber)
+            ->where('movement_type', 'DN SEMENTARA')
+            ->count();
+
         // ── 1) Jika sudah diposting: REVERSE dulu. Tangkap article yang di-reverse. ──
         if ($sudahPosting > 0) {
             $reversedArticles = collect($this->reverseTdnStock($tDnNumber, $username, $hdr->delivery_date));
@@ -1047,8 +1109,8 @@ private function updateWarehouseStock(string $articleCode, string $location, flo
 /**
  * Reverse stok untuk TDN yang sudah diposting: kembalikan article_qty ke gudang FG
  * dan HAPUS movement 'DN SEMENTARA' lama. Dipakai sebelum repost saat edit.
- * Berbeda dari destroy() yang mencatat movement counter 'CANCEL DN SEMENTARA';
- * di sini movement lama dihapus bersih karena akan langsung diposting ulang.
+ * destroy() (cancel) sekarang pakai pola yang sama (hapus langsung, tidak lagi
+ * insert movement counter 'CANCEL DN SEMENTARA').
  */
 private function reverseTdnStock($tDnNumber, $username, $deliveryDate)
 {
@@ -1063,6 +1125,9 @@ private function reverseTdnStock($tDnNumber, $username, $deliveryDate)
         ->get();
 
     $articles = [];
+    $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+    $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $deliveryDate));
+
     foreach ($oldMovements as $mov) {
         DB::table('warehouse_stock')
             ->where('site_code', $siteCode)
@@ -1072,6 +1137,18 @@ private function reverseTdnStock($tDnNumber, $username, $deliveryDate)
                 'article_qty' => DB::raw('coalesce(article_qty,0) + ' . (float) $mov->qty_out),
             ]);
         $articles[] = $mov->artikel_code;
+
+        // Movement lama ini mungkin sudah diserap ke OPENING BALANCE --
+        // lepaskan efeknya sebelum baris movement-nya dihapus, supaya OB
+        // tidak tetap tergelembung/tersusut setelah TDN ini diedit.
+        $signedOrig = -1 * (float) $mov->qty_out;
+        if (abs($signedOrig) >= 0.000001 && $mvDt
+            && $adjOb->obBoundaryFor($mov->artikel_code, $location, $mvDt->format('Y-m-d'))) {
+            $adjOb->absorbIntoLatestOpeningBalance(
+                $mov->artikel_code, $location, -$signedOrig, $username,
+                "Movement TDN {$tDnNumber} dihapus (edit) — efek OB dilepas"
+            );
+        }
     }
 
     DB::table('warehouse_movement')
@@ -1366,16 +1443,29 @@ private function minDeliveryDate(string $a, string $b): string
     $tDnNumber = $tDnHdr->tdn_number;
     $soNumber  = $tDnHdr->so_number;
 
-    // Cek apakah TDN ini pernah diposting (stok pernah dipotong).
-    // Kalau belum pernah, cancel TIDAK boleh mengembalikan stok
-    // (karena tidak ada yang dipotong -> mengembalikan malah bikin stok kelebihan).
-    $sudahPosting = DB::table('warehouse_movement')
-        ->where('movement_transnno', $tDnNumber)
-        ->where('movement_type', 'DN SEMENTARA')
-        ->count();
-
     DB::beginTransaction();
     try {
+        // GUARD (race-safe): kunci header, re-cek status DI DALAM transaksi
+        // supaya dua request cancel bersamaan pada dokumen yang sama tidak
+        // lolos berbarengan (cegah reverse stok dobel / rename dobel).
+        $lockedHdr = DB::table('temporary_dn_hdr')->where('id', $id)->lockForUpdate()->first();
+        if (!$lockedHdr || $lockedHdr->status == '4') {
+            DB::rollBack();
+            $title   = "Delete $this->title";
+            $alert   = "warning";
+            $message = "$title $tDnNumber gagal — status sudah berubah (sedang diproses request lain)";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+        }
+
+        // Cek apakah TDN ini pernah diposting (stok pernah dipotong).
+        // Kalau belum pernah, cancel TIDAK boleh mengembalikan stok
+        // (karena tidak ada yang dipotong -> mengembalikan malah bikin stok kelebihan).
+        $sudahPosting = DB::table('warehouse_movement')
+            ->where('movement_transnno', $tDnNumber)
+            ->where('movement_type', 'DN SEMENTARA')
+            ->count();
+
         $rowAffected = DB::table('temporary_dn_hdr')
             ->where('id', $id)
             ->update([
@@ -1413,9 +1503,6 @@ private function minDeliveryDate(string $a, string $b): string
                     )
                     ->get();
 
-                    $seq = (int) DB::table('warehouse_movement')->max('movement_code');
-
-                $reverseMovements = [];
                 foreach ($details as $det) {
                     // Kembalikan stock ke warehouse_stock
                     DB::table('warehouse_stock')
@@ -1425,36 +1512,37 @@ private function minDeliveryDate(string $a, string $b): string
                         ->update([
                             'article_qty' => DB::raw('coalesce(article_qty,0) + ' . $det->total_qty),
                         ]);
-
-                    $lastQtyAfter = DB::table('warehouse_stock')
-                        ->where('site_code', $siteCode)
-                        ->where('article_code', $det->article_code)
-                        ->where('location_number', $location)
-                        ->value('article_qty') ?? 0;
-
-                         $seq++;
-                    $reverseMovements[] = [
-                         'movement_code'     => $seq,
-                        'movement_date'     => date('d-m-Y'),
-                        'artikel_code'      => $det->article_code,
-                        'artikel_desc'      => $det->article_desc,
-                        'movement_min'      => 0,
-                        'movement_plus'     => $det->total_qty,
-                        'movement_price'    => 0,
-                        'movement_transnno' => $tDnNumber . "(C)",
-                        'movement_type'     => 'CANCEL DN SEMENTARA', // sebelumnya: 'TDN-CANCEL'
-                        'movement_desc'     => "Cancel TDN: $tDnNumber",
-                        'created_by'        => $username,
-                        'created_at'        => date('Y-m-d H:i:s'),
-                        'site_code'         => $siteCode,
-                        'location_number'   => $location,
-                        'last_qty'          => $lastQtyAfter,
-                    ];
                 }
 
-                if (!empty($reverseMovements)) {
-                    DB::table('warehouse_movement')->insert($reverseMovements);
+                // Movement 'DN SEMENTARA' asli mungkin sudah diserap ke OPENING
+                // BALANCE -- lepaskan efeknya sebelum baris movement-nya dihapus.
+                $originalMovements = DB::table('warehouse_movement')
+                    ->where('movement_transnno', $tDnNumber)
+                    ->where('movement_type', 'DN SEMENTARA')
+                    ->get(['artikel_code', 'movement_min', 'movement_plus', 'movement_date']);
+
+                $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+                foreach ($originalMovements as $mv) {
+                    $signedOrig = (float) $mv->movement_plus - (float) $mv->movement_min;
+                    if (abs($signedOrig) < 0.000001) continue;
+
+                    $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv->movement_date));
+                    if (!$mvDt) continue;
+                    if (!$adjOb->obBoundaryFor($mv->artikel_code, $location, $mvDt->format('Y-m-d'))) continue;
+
+                    $adjOb->absorbIntoLatestOpeningBalance(
+                        $mv->artikel_code, $location, -$signedOrig, $username,
+                        "Movement TDN {$tDnNumber} dibatalkan — efek OB dilepas"
+                    );
                 }
+
+                // Hapus movement 'DN SEMENTARA' asli langsung -- tidak lagi insert
+                // baris counter 'CANCEL DN SEMENTARA', konsisten dengan pola
+                // delete+recalc yang dipakai modul lain (Receiving/SupplierReturn/dst).
+                DB::table('warehouse_movement')
+                    ->where('movement_transnno', $tDnNumber)
+                    ->where('movement_type', 'DN SEMENTARA')
+                    ->delete();
             }
 
             DB::commit();

@@ -320,6 +320,29 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
             DB::table('warehouse_movement')->insert($dataSetMovement);
         }
 
+        // Kalau transfer ini diposting dengan tanggal yang SUDAH tercakup
+        // OPENING BALANCE aktif (backdate — baik dari input langsung di UI,
+        // maupun dari modul lain yang bikin transfer terprogram seperti Actual
+        // Finish Goods), OB harus langsung menyerap efeknya. Satu titik ini
+        // melayani SEMUA pemanggil createTransferProgrammatically sekaligus.
+        $trDateYmd = null;
+        $trDt = \Carbon\Carbon::createFromFormat('d-m-Y', $hdrQ->tr_date);
+        if ($trDt) $trDateYmd = $trDt->format('Y-m-d');
+
+        if ($trDateYmd && !empty($dataSetMovement)) {
+            $adj = app(\App\Http\Controllers\StockAdjustmentController::class);
+            foreach ($dataSetMovement as $mv) {
+                $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
+                if (abs($signed) < 0.000001) continue;
+                if (!$adj->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $trDateYmd)) continue;
+
+                $adj->absorbIntoLatestOpeningBalance(
+                    $mv['artikel_code'], $mv['location_number'], $signed, $username,
+                    "Posting Transfer/Supply {$trNumber} bertanggal {$hdrQ->tr_date} (sudah tercakup OB)"
+                );
+            }
+        }
+
         // Recalculate berdasarkan lokasi AKUNTANSI (pool).
         // Kasus 010A→010B: stockFrom=stockTo=012 → recalc 012 sekali, net zero.
         $affected = [];

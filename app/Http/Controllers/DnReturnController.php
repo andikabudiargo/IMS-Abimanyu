@@ -333,6 +333,16 @@ private function punyaReplaceAktif($returnNumber)
 }
 
 /**
+ * Kunci urutan movement_code lintas transaksi supaya dua request posting
+ * bersamaan tidak berebut nomor movement_code yang sama (advisory lock,
+ * key WAJIB sama persis dengan controller lain yang insert warehouse_movement).
+ */
+private function lockMovementSequence(): void
+{
+    DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
+}
+
+/**
  * Tambah stok WIP + catat movement masuk untuk sebuah return.
  * Dipanggil dari dalam transaction. Qty asli (tanpa uom_conversion),
  * konsisten dengan modul DN/TDN.
@@ -357,6 +367,7 @@ private function postingReturn($returnNumber, $username, $returnDate, $soNumber,
         )
         ->get();
 
+    $this->lockMovementSequence();
     $seq = (int) DB::table('warehouse_movement')->max('movement_code');
     $movementSet = [];
 
@@ -409,77 +420,84 @@ private function postingReturn($returnNumber, $username, $returnDate, $soNumber,
 
     if (!empty($movementSet)) {
         DB::table('warehouse_movement')->insert($movementSet);
+
+        // Return bisa langsung diposting dengan returnDate yang sudah tercakup
+        // OPENING BALANCE aktif (backdate) — OB harus menyerap efeknya.
+        $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+        foreach ($movementSet as $mv) {
+            $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
+            if (abs($signed) < 0.000001) continue;
+
+            $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv['movement_date']));
+            if (!$mvDt) continue;
+            if (!$adjOb->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $mvDt->format('Y-m-d'))) continue;
+
+            $adjOb->absorbIntoLatestOpeningBalance(
+                $mv['artikel_code'], $mv['location_number'], $signed, $username,
+                "Posting DN Return {$returnNumber} bertanggal {$mv['movement_date']} (sudah tercakup OB)"
+            );
+        }
     }
 }
 
 /**
- * Reverse stok WIP + catat movement keluar (pembalikan) untuk sebuah return.
+ * Reverse stok WIP untuk sebuah return: kembalikan article_qty dan HAPUS
+ * movement asli (tipe $trType) milik $returnNumber -- tidak lagi insert
+ * baris counter '-REVERSE'/'-CANCEL', konsisten dengan pola delete+recalc
+ * yang dipakai modul lain (Receiving/SupplierReturn/SupplierReplace/dst).
  * Dipakai oleh update() (sebelum re-post) dan destroy() (cancel).
- * $suffix: label tambahan movement_type, mis. 'REVERSE' atau 'CANCEL'.
- * $descPrefix: prefix movement_desc.
  */
-private function reverseReturn($returnNumber, $username, $returnDate, $soNumber, $suffix, $descPrefix, $customerId)
+private function reverseReturn($returnNumber, $username)
 {
-    $siteCode  = $this->siteCode;
-    $location  = $this->locationWip;
-    $todayDate = date('Y-m-d');
-    $trType    = $this->mvType;
+    $siteCode = $this->siteCode;
+    $location = $this->locationWip;
+    $trType   = $this->mvType;
 
     $detail = DB::table('dn_return_det')
-        ->leftJoin('article', 'article.article_code', '=', 'dn_return_det.article_code')
         ->where('dn_return_det.return_number', $returnNumber)
         ->where('dn_return_det.qty', '<>', 0)
-        ->select(
-            'dn_return_det.*',
-            'article.article_desc',
-            'dn_return_det.qty as total_qty'
-        )
+        ->select('dn_return_det.article_code', 'dn_return_det.qty as total_qty')
         ->get();
-
-    $seq = (int) DB::table('warehouse_movement')->max('movement_code');
-    $movementSet = [];
 
     foreach ($detail as $val) {
         $qtyBase = (float) $val->total_qty;
-
-        $avgLama = (float) (DB::table('warehouse_stock')
-            ->where('site_code', $siteCode)
-            ->where('article_code', $val->article_code)
-            ->where('location_number', $location)
-            ->value('avg_price') ?? 0);
 
         DB::table('warehouse_stock')
             ->where('site_code', $siteCode)
             ->where('article_code', $val->article_code)
             ->where('location_number', $location)
             ->update(['article_qty' => DB::raw('coalesce(article_qty,0) - ' . $qtyBase)]);
-
-        $seq++;
-        $movementSet[] = [
-            'movement_code'     => $seq,
-            'movement_date'     => date('d-m-Y', strtotime($returnDate)),
-            'artikel_code'      => $val->article_code,
-            'artikel_desc'      => $val->article_desc ?? '',
-            'movement_min'      => $qtyBase,   // pembalikan: keluar dari WIP
-            'movement_plus'     => 0,
-            'movement_price'    => $avgLama,
-            'movement_transnno' => $returnNumber,
-            'movement_type'     => $trType . '-' . $suffix,
-            'movement_desc'     => "$descPrefix: {$returnNumber} (SO {$soNumber})",
-            'movement_from'     => $location,    // keluar DARI WIP (012)
-            'movement_to'       => $customerId,  // kembali KE customer
-            'partner_type'      => 'CUST',
-            'created_by'        => $username,
-            'created_at'        => date('Y-m-d H:i:s'),
-            'site_code'         => $siteCode,
-            'location_number'   => $location,
-            'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$todayDate','$siteCode','$location') - $qtyBase"),
-        ];
     }
 
-    if (!empty($movementSet)) {
-        DB::table('warehouse_movement')->insert($movementSet);
+    // Movement asli (posting return) yang akan dihapus ini mungkin sudah
+    // diserap ke OPENING BALANCE — kalau iya, lepaskan efeknya dulu, supaya
+    // OB tidak tetap tergelembung/tersusut setelah returnnya dibatalkan/diedit.
+    $originalMovements = DB::table('warehouse_movement')
+        ->where('movement_transnno', $returnNumber)
+        ->where('location_number', $location)
+        ->where('movement_type', $trType)
+        ->get(['artikel_code', 'movement_plus', 'movement_min', 'movement_date']);
+
+    $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+    foreach ($originalMovements as $mv) {
+        $signedOrig = (float) $mv->movement_plus - (float) $mv->movement_min;
+        if (abs($signedOrig) < 0.000001) continue;
+
+        $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv->movement_date));
+        if (!$mvDt) continue;
+        if (!$adjOb->obBoundaryFor($mv->artikel_code, $location, $mvDt->format('Y-m-d'))) continue;
+
+        $adjOb->absorbIntoLatestOpeningBalance(
+            $mv->artikel_code, $location, -$signedOrig, $username,
+            "Movement DN Return {$returnNumber} dibatalkan/diedit — efek OB dilepas"
+        );
     }
+
+    DB::table('warehouse_movement')
+        ->where('movement_transnno', $returnNumber)
+        ->where('location_number', $location)
+        ->where('movement_type', $trType)
+        ->delete();
 }
 
 
@@ -847,13 +865,20 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
       //  return response()->json(['status' => 0, 'message' => $qtyErrors, 'alert' => 'warning']);
     //}
 
-     $customerLama = $hdr->customer_id;
-
     DB::beginTransaction();
     try {
+      // GUARD (race-safe): kunci header, re-cek status DI DALAM transaksi supaya
+      // dua request update() bersamaan pada return_number yang sama tidak lolos
+      // cek status berbarengan (cegah dobel reverse+repost/dobel potong stok).
+      $lockedHdr = DB::table('dn_return_hdr')->where('return_number', $returnNumber)->lockForUpdate()->first();
+      if (!$lockedHdr || $lockedHdr->status != '1') {
+          DB::rollBack();
+          return response()->json(['status' => 0, 'title' => "Edit $this->title", 'message' => "Return $returnNumber gagal diedit — status sudah berubah (sedang diproses request lain)", 'alert' => 'warning', 'returnNumber' => $returnNumber]);
+      }
+
       // 1. REVERSE stok & movement lama (hanya kalau memang pernah diposting)
         if ($this->wasPosted($returnNumber)) {
-            $this->reverseReturn($returnNumber, $username, $returnDate, $soNumber, 'REVERSE', 'Reversal edit', $customerLama);
+            $this->reverseReturn($returnNumber, $username);
         }
 
         // 2. UPDATE header
@@ -980,9 +1005,6 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
     $username     = Auth::user()->username;
     $tDnHdr       = DB::table('dn_return_hdr')->where('id', $id)->first();
     $returnNumber = $tDnHdr->return_number;
-    $returnDate   = $tDnHdr->return_date;
-    $soNumber     = $tDnHdr->so_number ?? '';
-    $customerId    = $tDnHdr->customer_id;   // ← tambahkan
     $currentStatus = $tDnHdr->status;
 
     // ── GUARD: kalau sudah CANCELED (4), jangan reverse lagi (cegah kurang stok ganda) ──
@@ -1005,9 +1027,22 @@ private function reverseReturn($returnNumber, $username, $returnDate, $soNumber,
 
     DB::beginTransaction();
     try {
+       // GUARD (race-safe): kunci header, re-cek status DI DALAM transaksi supaya
+       // dua request cancel bersamaan pada return_number yang sama tidak lolos
+       // cek status berbarengan (cegah dobel reverse stok).
+       $lockedHdr = DB::table('dn_return_hdr')->where('id', $id)->lockForUpdate()->first();
+       if (!$lockedHdr || $lockedHdr->status == '4') {
+           DB::rollBack();
+           $title   = "Delete $this->title";
+           $alert   = "warning";
+           $message = "$title $returnNumber gagal — status sudah berubah (sedang diproses request lain)";
+           \LogActivity::addToLog($title, "username: $username Status $message");
+           return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+       }
+
        // 1. REVERSE stok & movement (hanya kalau memang pernah diposting)
         if ($this->wasPosted($returnNumber)) {
-            $this->reverseReturn($returnNumber, $username, $returnDate, $soNumber, 'CANCEL', 'Cancel', $customerId);
+            $this->reverseReturn($returnNumber, $username);
         }
 
         // 2. Cancel header & detail

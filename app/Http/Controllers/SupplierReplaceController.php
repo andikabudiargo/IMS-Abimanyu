@@ -483,6 +483,25 @@ class SupplierReplaceController extends Controller
         if (!empty($movementSet)) {
             DB::table('warehouse_movement')->insert($movementSet);
 
+            // Replace supplier bisa langsung diposting dengan replaceDate yang
+            // sudah tercakup OPENING BALANCE aktif (backdate) — OB harus
+            // menyerap efeknya, bukan diblokir.
+            $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+            foreach ($movementSet as $mv) {
+                $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
+                if (abs($signed) < 0.000001) continue;
+
+                $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv['movement_date']));
+                if (!$mvDt) continue;
+
+                if (!$adjOb->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $mvDt->format('Y-m-d'))) continue;
+
+                $adjOb->absorbIntoLatestOpeningBalance(
+                    $mv['artikel_code'], $mv['location_number'], $signed, $username,
+                    "Posting Supplier Replace {$replaceNumber} bertanggal {$mv['movement_date']} (sudah tercakup OB)"
+                );
+            }
+
             foreach (array_unique($affectedArticles) as $articleCode) {
                 $this->recalculateMovementAndStock($articleCode, $location, $replaceDate);
             }
@@ -630,7 +649,7 @@ class SupplierReplaceController extends Controller
         DB::beginTransaction();
         try {
             // 1. HAPUS movement lama + recalc stok
-            $this->deleteMovementAndRecalc($replaceNumber, $location, $hdr->replace_date);
+            $this->deleteMovementAndRecalc($replaceNumber, $location, $hdr->replace_date, $username);
 
             // 2. UPDATE header
             DB::table('supplier_replace_hdr')
@@ -725,7 +744,7 @@ class SupplierReplaceController extends Controller
         DB::beginTransaction();
         try {
             // Hapus movement + recalc
-            $this->deleteMovementAndRecalc($replaceNumber, $location, $header->replace_date);
+            $this->deleteMovementAndRecalc($replaceNumber, $location, $header->replace_date, $username);
 
             $reasonNote = "(Cancel by {$username}, Reason: {$reason})";
             $newNote    = trim(($header->note ?? '') . ';' . $reasonNote, ';');
@@ -792,7 +811,7 @@ class SupplierReplaceController extends Controller
         DB::beginTransaction();
         try {
             // Hapus movement + recalc
-            $this->deleteMovementAndRecalc($replaceNumber, $location, $header->replace_date);
+            $this->deleteMovementAndRecalc($replaceNumber, $location, $header->replace_date, $username);
 
             $rowAffected = DB::table('supplier_replace_hdr')->where('replace_number', $replaceNumber)->delete();
 
@@ -1077,16 +1096,34 @@ class SupplierReplaceController extends Controller
         $this->recalculateAvgPrice($articleCode, $location);
     }
 
-    private function deleteMovementAndRecalc(string $replaceNumber, string $location, string $replaceDate): array
+    private function deleteMovementAndRecalc(string $replaceNumber, string $location, string $replaceDate, string $username = 'system'): array
     {
-        $affectedArticles = DB::table('warehouse_movement')
+        // Sebelum baris movement hilang, lepas dulu efeknya dari OPENING
+        // BALANCE kalau baris itu ternyata sudah terlanjur diserap (posted
+        // dulu dengan tanggal yang tercakup OB) — supaya OB tidak "nyangkut"
+        // menghitung movement yang sudah tidak ada.
+        $rowsBeingDeleted = DB::table('warehouse_movement')
             ->where('movement_transnno', $replaceNumber)
             ->where('location_number', $location)
             ->where('site_code', $this->siteCode)
-            ->pluck('artikel_code')
-            ->unique()
-            ->values()
-            ->all();
+            ->get(['artikel_code', 'location_number', 'movement_date', 'movement_plus', 'movement_min']);
+
+        $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+        foreach ($rowsBeingDeleted as $mv) {
+            $signed = (float) $mv->movement_plus - (float) $mv->movement_min;
+            if (abs($signed) < 0.000001) continue;
+
+            $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv->movement_date));
+            if (!$mvDt) continue;
+            if (!$adjOb->obBoundaryFor($mv->artikel_code, $mv->location_number, $mvDt->format('Y-m-d'))) continue;
+
+            $adjOb->absorbIntoLatestOpeningBalance(
+                $mv->artikel_code, $mv->location_number, -$signed, $username,
+                "Movement Supplier Replace {$replaceNumber} dihapus (edit/cancel) — efek OB dilepas"
+            );
+        }
+
+        $affectedArticles = $rowsBeingDeleted->pluck('artikel_code')->unique()->values()->all();
 
         DB::table('warehouse_movement')
             ->where('movement_transnno', $replaceNumber)

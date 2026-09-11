@@ -29,6 +29,21 @@ class DnReplaceController extends Controller
             '2' => CLOSED
             '3' => CANCELED
 
+        CATATAN REFACTOR (v7):
+        =======================
+        19. PEMBATALAN "Opsi A" dari v6 (#15-18): unPosting() sekarang HAPUS
+            LANGSUNG baris warehouse_movement 'REPLACEMENT' yang sedang aktif,
+            bukan insert baris counter 'CANCEL REPLACEMENT'/'REVISI REPLACEMENT'
+            lagi. Konsisten dengan pola delete+recalc yang dipakai modul lain
+            (Receiving/SupplierReturn/SupplierReplace/TemporaryDn/DnGeneral) --
+            supaya tidak ada baris movement "sisa" yang menumpuk permanen di
+            ledger tiap kali dokumen direvisi/dibatalkan. wasPosted() TETAP
+            valid tanpa perubahan (NET qtyKeluar vs qtyKembali derajat menjadi
+            "qtyKeluar > 0" untuk dokumen baru, tapi tetap backward-compatible
+            membaca data historis yang masih punya baris CANCEL/REVISI dari
+            sebelum perubahan ini). $movementType dihapus dari signature
+            unPosting() karena sudah tidak dipakai.
+
         CATATAN REFACTOR (v6):
         =======================
         (v5 tetap berlaku, lihat riwayat sebelumnya. Perubahan baru di v6:)
@@ -336,6 +351,16 @@ class DnReplaceController extends Controller
 }
 
     /**
+     * Kunci urutan movement_code lintas transaksi supaya dua request posting
+     * bersamaan tidak berebut nomor movement_code yang sama (advisory lock,
+     * key WAJIB sama persis dengan controller lain yang insert warehouse_movement).
+     */
+    private function lockMovementSequence(): void
+    {
+        DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
+    }
+
+    /**
      * Posting inline: kurangi stock FG (007) untuk setiap baris dn_replace_det
      * milik $replaceNumber, lalu insert warehouse_movement-nya. Dipakai bareng
      * oleh store(), update(), posting(), dan revision() supaya logikanya tidak
@@ -346,7 +371,14 @@ class DnReplaceController extends Controller
         $siteCode     = 'HO';
         $locationFG   = '007';
         $todayDate    = date('Y-m-d');
-        $movementDate = date('d-m-Y');
+
+        // FIX (OB sync): movement dulu selalu dicap "hari ini", padahal dokumen
+        // punya replace_date sendiri yang bisa dibackdate -- akibatnya movement
+        // ledger tidak pernah merefleksikan tanggal asli dokumen dan cek boundary
+        // OPENING BALANCE di bawah jadi tidak berguna. Sekarang ikut replace_date,
+        // konsisten dengan pola DnReturnController::postingReturn().
+        $replaceDateRaw = DB::table('dn_replace_hdr')->where('replace_number', $replaceNumber)->value('replace_date');
+        $movementDate   = $replaceDateRaw ? date('d-m-Y', strtotime($replaceDateRaw)) : date('d-m-Y');
 
         $detail = DB::table('dn_replace_det')
             ->leftJoin('article', 'article.article_code', '=', 'dn_replace_det.article_code')
@@ -360,6 +392,7 @@ class DnReplaceController extends Controller
             )
             ->get();
 
+        $this->lockMovementSequence();
         $seq = (int) DB::table('warehouse_movement')->max('movement_code');
         $dataSetMovement = [];
 
@@ -400,48 +433,71 @@ class DnReplaceController extends Controller
 
         if (!empty($dataSetMovement)) {
             DB::table('warehouse_movement')->insert($dataSetMovement);
+
+            // Replace ini bisa langsung diposting dengan replace_date yang sudah
+            // tercakup OPENING BALANCE aktif (backdate) -- OB harus menyerap efeknya.
+            $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+            foreach ($dataSetMovement as $mv) {
+                $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
+                if (abs($signed) < 0.000001) continue;
+
+                $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv['movement_date']));
+                if (!$mvDt) continue;
+                if (!$adjOb->obBoundaryFor($mv['artikel_code'], $locationFG, $mvDt->format('Y-m-d'))) continue;
+
+                $adjOb->absorbIntoLatestOpeningBalance(
+                    $mv['artikel_code'], $locationFG, $signed, $username,
+                    "Posting DN Replace {$replaceNumber} bertanggal {$movementDate} (sudah tercakup OB)"
+                );
+            }
         }
 
         return count($dataSetMovement);
     }
 
     /**
-     * Reverse posting (Opsi A - full audit trail): kembalikan stock FG yang
-     * sudah dikurangi lewat warehouse_movement milik $replaceNumber, TAPI
-     * TIDAK menghapus movement lama -- sebagai gantinya INSERT movement baru
-     * bertipe $movementType (mis. 'CANCEL REPLACEMENT' / 'REVISI REPLACEMENT')
-     * dengan movement_plus = qty yang dikembalikan. Movement asli
-     * ('REPLACEMENT') tetap tersimpan sebagai history barang keluar.
-     *
-     * Pola ini menyamakan dengan DeliveryController::unPosting($dnNumber,
-     * $reason, $movementType).
+     * Reverse posting: kembalikan stock FG yang sudah dikurangi lewat
+     * warehouse_movement milik $replaceNumber, dan HAPUS movement asli
+     * ('REPLACEMENT') itu langsung -- tidak lagi insert baris counter
+     * 'CANCEL REPLACEMENT' / 'REVISI REPLACEMENT', konsisten dengan pola
+     * delete+recalc yang dipakai modul lain (Receiving/SupplierReturn/dst).
      *
      * PENTING: method ini TIDAK membuka/menutup transaction sendiri -- dipanggil
      * dari dalam transaction milik caller (update()/cancel()/destroy()/revision()).
      */
-    private function unPosting($replaceNumber, $username, $reason = '', $movementType = 'REVERSE REPLACEMENT')
+    private function unPosting($replaceNumber, $username, $reason = '')
     {
         $siteCode   = 'HO';
         $locationFG = '007';
-        $todayDate  = date('Y-m-d');
 
-        $detail = DB::table('dn_replace_det')
-            ->leftJoin('article', 'article.article_code', '=', 'dn_replace_det.article_code')
-            ->where('dn_replace_det.replace_number', $replaceNumber)
-            ->where('dn_replace_det.qty', '<>', 0)
+        // "Siklus aktif" = baris REPLACEMENT dengan movement_code > baris
+        // reversal TERAKHIR utk dokumen ini. Dipertahankan untuk kompatibilitas
+        // dengan data historis dari SEBELUM perubahan ini (dokumen yang pernah
+        // di-edit semasa masih pakai pola append-reversal) -- utk dokumen baru
+        // setelah perubahan ini, tidak akan pernah ada lagi baris reversal jadi
+        // otomatis hanya ada satu siklus aktif.
+        $lastReversalCode = (int) DB::table('warehouse_movement')
+            ->where('movement_transnno', $replaceNumber)
+            ->whereIn('movement_type', ['CANCEL REPLACEMENT', 'REVISI REPLACEMENT'])
+            ->max('movement_code');
+
+        $activeMovements = DB::table('warehouse_movement as wm')
+            ->leftJoin('article', 'article.article_code', '=', 'wm.artikel_code')
+            ->where('wm.movement_transnno', $replaceNumber)
+            ->where('wm.movement_type', 'REPLACEMENT')
+            ->where('wm.movement_code', '>', $lastReversalCode)
             ->select(
-                'dn_replace_det.*',
-                'article.article_type',
-                'article.article_desc',
-                'article.uom as uom_article'
+                'wm.movement_code', 'wm.artikel_code', 'wm.movement_plus', 'wm.movement_min', 'wm.movement_date',
+                'article.article_type', 'article.uom as uom_article'
             )
             ->get();
 
-        $seq = (int) DB::table('warehouse_movement')->max('movement_code');
-        $dataSetMovement = [];
+        if ($activeMovements->isEmpty()) {
+            return true;
+        }
 
-        foreach ($detail as $val) {
-            $qtyKembali = (float) $val->qty;
+        foreach ($activeMovements as $mv) {
+            $qtyKembali = (float) $mv->movement_min - (float) $mv->movement_plus;
             if ($qtyKembali <= 0) {
                 continue;
             }
@@ -452,51 +508,45 @@ class DnReplaceController extends Controller
                 ->updateOrInsert(
                     [
                         'site_code'       => $siteCode,
-                        'article_code'    => $val->article_code,
+                        'article_code'    => $mv->artikel_code,
                         'location_number' => $locationFG,
                     ],
                     [
-                        'dept_code' => $val->article_type ?? '',
-                        'uom'       => $val->uom_article ?? '',
+                        'dept_code' => $mv->article_type ?? '',
+                        'uom'       => $mv->uom_article ?? '',
                     ]
                 );
 
             DB::table('warehouse_stock')
                 ->where('site_code', $siteCode)
-                ->where('article_code', $val->article_code)
+                ->where('article_code', $mv->artikel_code)
                 ->where('location_number', $locationFG)
                 ->increment('article_qty', $qtyKembali);
-
-            // INSERT movement pengembalian (bukan hapus movement lama) supaya
-            // ada jejak audit yang membedakan CANCEL vs REVISI vs reverse biasa.
-            $seq++;
-            $dataSetMovement[] = [
-                'movement_code'     => $seq,
-                'movement_date'     => date('d-m-Y'),
-                'artikel_code'      => $val->article_code,
-                'artikel_desc'      => $val->article_desc ?? '',
-                'movement_min'      => 0,
-                'movement_plus'     => $qtyKembali,   // masuk kembali ke FG
-                'movement_price'    => 0,
-                'movement_transnno' => $replaceNumber,
-                'movement_type'     => $movementType, // 'CANCEL REPLACEMENT' / 'REVISI REPLACEMENT'
-                'movement_desc'     => trim($replaceNumber . ($reason ? " ($reason)" : '')),
-                'created_by'        => $username,
-                'created_at'        => date('Y-m-d H:i:s'),
-                'site_code'         => $siteCode,
-                'location_number'   => $locationFG,
-                'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$todayDate','$siteCode','$locationFG') + $qtyKembali"),
-                'movement_from'     => null,          // kembali dari customer
-                'movement_to'       => $locationFG,   // masuk ke gudang FG 007
-                'partner_type'      => 'CUST',
-            ];
         }
 
-        if (!empty($dataSetMovement)) {
-            DB::table('warehouse_movement')->insert($dataSetMovement);
+        // Movement 'REPLACEMENT' aktif ini mungkin sudah diserap ke OPENING
+        // BALANCE -- lepaskan efeknya sebelum baris movement-nya dihapus,
+        // supaya OB tidak tetap tergelembung/tersusut.
+        $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+        foreach ($activeMovements as $mv) {
+            $signedOrig = (float) $mv->movement_plus - (float) $mv->movement_min;
+            if (abs($signedOrig) < 0.000001) continue;
+
+            $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv->movement_date));
+            if (!$mvDt) continue;
+            if (!$adjOb->obBoundaryFor($mv->artikel_code, $locationFG, $mvDt->format('Y-m-d'))) continue;
+
+            $adjOb->absorbIntoLatestOpeningBalance(
+                $mv->artikel_code, $locationFG, -$signedOrig, $username,
+                "Movement DN Replace {$replaceNumber} dibatalkan/diedit — efek OB dilepas"
+            );
         }
 
-        \LogActivity::addToLog("Unposting $this->title", "username: $username Status $replaceNumber stock reversed ($movementType)" . ($reason ? " Reason: $reason" : ''));
+        DB::table('warehouse_movement')
+            ->whereIn('movement_code', $activeMovements->pluck('movement_code'))
+            ->delete();
+
+        \LogActivity::addToLog("Unposting $this->title", "username: $username Status $replaceNumber stock reversed" . ($reason ? " Reason: $reason" : ''));
 
         return true;
     }
@@ -504,10 +554,12 @@ class DnReplaceController extends Controller
     /**
      * Apakah dokumen ini SAAT INI masih "secara stock" ter-posting?
      *
-     * Karena unPosting() (Opsi A) tidak lagi menghapus movement lama, exists()
-     * sederhana tidak valid lagi. Dihitung dari NET qty: total movement_min
-     * bertipe 'REPLACEMENT' dikurangi total movement_plus dari movement
-     * reversal ('CANCEL REPLACEMENT' / 'REVISI REPLACEMENT'). Kalau net > 0,
+     * Dihitung dari NET qty: total movement_min bertipe 'REPLACEMENT'
+     * dikurangi total movement_plus dari movement reversal ('CANCEL
+     * REPLACEMENT' / 'REVISI REPLACEMENT'). Sejak v7, unPosting() menghapus
+     * langsung baris REPLACEMENT alih-alih insert baris reversal, jadi kedua
+     * sisi NET ini akan selalu 0 untuk dokumen baru -- formula ini dipertahankan
+     * agar tetap benar membaca data historis dari sebelum v7. Kalau net > 0,
      * berarti masih ada qty yang "keluar" dan belum dikembalikan.
      *
      * Ini otomatis benar untuk siklus posting berulang (mis. update() yang
@@ -970,13 +1022,21 @@ class DnReplaceController extends Controller
 
         DB::beginTransaction();
         try {
+            // GUARD (race-safe): kunci header dulu supaya dua request update()
+            // bersamaan pada replaceNumber yang sama tidak berebut unPosting/repost
+            // secara bersamaan (cegah movement dobel).
+            $lockedHdr = DB::table('dn_replace_hdr')->where('replace_number', $replaceNumber)->lockForUpdate()->first();
+            if (!$lockedHdr) {
+                DB::rollBack();
+                return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => "Dokumen $replaceNumber tidak ditemukan", 'alert' => 'warning']);
+            }
+
             // GUARD: cek dulu apakah dokumen ini SEBELUMNYA benar-benar sudah diposting
             // (net qty movement REPLACEMENT masih > 0). Kalau dokumen dibuat lewat
             // storeTidakPosting(), stock belum pernah dikurangi, jadi jangan di-reverse
-            // (mencegah phantom stock). Movement lama TIDAK dihapus (Opsi A) -- di-insert
-            // movement baru bertipe 'REVISI REPLACEMENT' sebagai jejak pengembalian.
+            // (mencegah phantom stock). Movement lama DIHAPUS langsung (v7).
             if ($this->wasPosted($replaceNumber)) {
-                $this->unPosting($replaceNumber, $username, "Update by {$username}", 'REVISI REPLACEMENT');
+                $this->unPosting($replaceNumber, $username, "Update by {$username}");
             }
 
             // ===== UPDATE HEADER (status sementara OPEN, difinalkan setelah posting ulang) =====
@@ -1101,6 +1161,24 @@ class DnReplaceController extends Controller
 
         DB::beginTransaction();
         try {
+            // GUARD (race-safe): kunci header, re-cek wasPosted() DI DALAM transaksi
+            // supaya dua request posting() bersamaan tidak lolos cek berbarengan
+            // (cegah movement REPLACEMENT dobel).
+            $lockedHdr = DB::table('dn_replace_hdr')->where('replace_number', $replaceNumber)->lockForUpdate()->first();
+            if (!$lockedHdr || $this->wasPosted($replaceNumber)) {
+                DB::rollBack();
+                $title   = "Posting $this->title";
+                $alert   = "warning";
+                $message = "$title $replaceNumber gagal — sudah diposting/diproses request lain";
+                \LogActivity::addToLog($title, "username: $username Status $message");
+
+                if ($dariNew == 'true') {
+                    return response()->json(['statusReplace' => 'OPEN', 'title' => $title, 'status' => 0, 'message' => $message, 'alert' => $alert, 'replaceNumber' => $replaceNumber, 'idKu' => '']);
+                } else {
+                    return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+                }
+            }
+
             $this->postingInline($replaceNumber, $returnNumber, $customer, $note, $username, $replaceNumber);
 
             $status = $this->applyReplaceStatus($replaceNumber, $returnNumber, $username);
@@ -1162,11 +1240,17 @@ class DnReplaceController extends Controller
         // FIX: dulu tidak ada DB::beginTransaction() padahal DB::commit() dipanggil -> exception.
         DB::beginTransaction();
         try {
+            // GUARD (race-safe): kunci header, re-cek status DI DALAM transaksi.
+            $lockedHdr = DB::table('dn_replace_hdr')->where('id', $id)->lockForUpdate()->first();
+            if (!$lockedHdr || $lockedHdr->status == '3') {
+                DB::rollBack();
+                return redirect()->back()->with(['title' => "Cancel $this->title", 'alert' => 'warning', 'message' => "$replaceNumber gagal — status sudah berubah (sedang diproses request lain)"]);
+            }
+
             // GUARD: reverse stock yang sudah diposting sebelum cancel, supaya stock FG
-            // tidak nyangkut minus setelah dokumen dibatalkan. Movement asli TIDAK dihapus
-            // (Opsi A) -- di-insert movement baru bertipe 'CANCEL REPLACEMENT' sebagai jejak.
+            // tidak nyangkut minus setelah dokumen dibatalkan. Movement asli DIHAPUS langsung (v7).
             if ($this->wasPosted($replaceNumber)) {
-                $this->unPosting($replaceNumber, $username, $reason, 'CANCEL REPLACEMENT');
+                $this->unPosting($replaceNumber, $username, $reason);
             }
 
             // FIX: dulu pakai DB::raw("CONCAT(po_number,...)") ke kolom return_number,
@@ -1240,11 +1324,21 @@ class DnReplaceController extends Controller
 
         DB::beginTransaction();
         try {
+            // GUARD (race-safe): kunci header, re-cek status DI DALAM transaksi.
+            $lockedHdr = DB::table('dn_replace_hdr')->where('id', $id)->lockForUpdate()->first();
+            if (!$lockedHdr || $lockedHdr->status == '3') {
+                DB::rollBack();
+                $title   = "Delete $this->title";
+                $alert   = "warning";
+                $message = "$title $replaceNumber gagal — status sudah berubah (sedang diproses request lain)";
+                \LogActivity::addToLog($title, "username: $username Status $message");
+                return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+            }
+
             // GUARD: reverse stock sebelum hapus dokumen, supaya stock FG tidak nyangkut
-            // minus. Movement asli TIDAK dihapus (Opsi A) -- di-insert movement baru
-            // bertipe 'CANCEL REPLACEMENT' sebagai jejak pengembalian karena delete.
+            // minus. Movement asli DIHAPUS langsung (v7).
             if ($this->wasPosted($replaceNumber)) {
-                $this->unPosting($replaceNumber, $username, "Delete by {$username}", 'CANCEL REPLACEMENT');
+                $this->unPosting($replaceNumber, $username, "Delete by {$username}");
             }
 
             $rowAffected = DB::table('dn_replace_hdr')->where('replace_number', $replaceNumber)->delete();
@@ -1317,28 +1411,39 @@ class DnReplaceController extends Controller
         $note         = $original->note;
         $armada       = $original->armada;   // baru
 
-        // Nomor revisi berikutnya (server-side, dari rantai origin).
-        $numRevision = DB::table('dn_replace_hdr')
-            ->where('origin_replace_number', $trueOrigin)
-            ->count();
-
-        $recNew = $trueOrigin . '-R' . $numRevision;
-        while (DB::table('dn_replace_hdr')->where('replace_number', $recNew)->exists()) {
-            $numRevision++;
-            $recNew = $trueOrigin . '-R' . $numRevision;
-        }
-
-        $detailOriginal = DB::table('dn_replace_det')
-            ->where('replace_number', $recOrigin)
-            ->get();
-
         DB::beginTransaction();
         try {
+            // GUARD (race-safe): kunci dokumen origin supaya dua request revision()
+            // bersamaan tidak menghasilkan nomor -R<n> yang sama atau unPosting()
+            // dobel pada dokumen origin yang sama.
+            $lockedOrigin = DB::table('dn_replace_hdr')->where('id', $id)->lockForUpdate()->first();
+            if (!$lockedOrigin || $lockedOrigin->status == '3') {
+                DB::rollBack();
+                $title = "Revision $this->title";
+                return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => "$recOrigin gagal — status sudah berubah (sedang diproses request lain)"]);
+            }
+
+            // Nomor revisi berikutnya (server-side, dari rantai origin) -- dihitung
+            // DI DALAM lock supaya tidak ada dua revisi bersamaan yang berebut
+            // nomor -R<n> yang sama.
+            $numRevision = DB::table('dn_replace_hdr')
+                ->where('origin_replace_number', $trueOrigin)
+                ->count();
+
+            $recNew = $trueOrigin . '-R' . $numRevision;
+            while (DB::table('dn_replace_hdr')->where('replace_number', $recNew)->exists()) {
+                $numRevision++;
+                $recNew = $trueOrigin . '-R' . $numRevision;
+            }
+
+            $detailOriginal = DB::table('dn_replace_det')
+                ->where('replace_number', $recOrigin)
+                ->get();
+
             // 1. Reverse stok dokumen asal jika sudah pernah ada movement. Movement asli
-            //    TIDAK dihapus (Opsi A) -- di-insert movement baru bertipe
-            //    'REVISI REPLACEMENT' sebagai jejak audit revisi.
+            //    DIHAPUS langsung (v7).
             if ($this->wasPosted($recOrigin)) {
-                $this->unPosting($recOrigin, $username, $reason, 'REVISI REPLACEMENT');
+                $this->unPosting($recOrigin, $username, $reason);
             }
 
             // 2. HEADER BARU (status sementara OPEN, difinalkan di langkah 6).

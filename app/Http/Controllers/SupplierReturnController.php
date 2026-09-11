@@ -409,6 +409,24 @@ private function getUserLocations()
     if (!empty($movementSet)) {
         DB::table('warehouse_movement')->insert($movementSet);
 
+        // Retur supplier bisa langsung diposting dengan returnDate yang sudah
+        // tercakup OPENING BALANCE aktif (backdate) — OB harus menyerap efeknya.
+        $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+        foreach ($movementSet as $mv) {
+            $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
+            if (abs($signed) < 0.000001) continue;
+
+            $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv['movement_date']));
+            if (!$mvDt) continue;
+
+            if (!$adjOb->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $mvDt->format('Y-m-d'))) continue;
+
+            $adjOb->absorbIntoLatestOpeningBalance(
+                $mv['artikel_code'], $mv['location_number'], $signed, $username,
+                "Posting Supplier Return {$returnNumber} bertanggal {$mv['movement_date']} (sudah tercakup OB)"
+            );
+        }
+
         // ── Sinkronkan article_qty & avg_price via recalculate (bukan raw update lagi) ──
         $articles = array_unique(array_column($movementSet, 'artikel_code'));
         foreach ($articles as $articleCode) {
@@ -568,7 +586,7 @@ $supplierLama = $hdr->supplier_id;
        DB::beginTransaction();
 try {
     // 1. HAPUS movement lama (bukan insert reversal) + recalc stok lokasi lama
-    $this->deleteMovementAndRecalc($returnNumber, $locationLama, $hdr->return_date);
+    $this->deleteMovementAndRecalc($returnNumber, $locationLama, $hdr->return_date, $username);
 
     // 2. UPDATE header
     DB::table('supplier_return_hdr')
@@ -658,7 +676,7 @@ try {
         DB::beginTransaction();
 try {
     // 1. HAPUS movement (bukan insert CANCEL reversal) + recalc stok lokasi
-    $this->deleteMovementAndRecalc($returnNumber, $location, $returnDate);
+    $this->deleteMovementAndRecalc($returnNumber, $location, $returnDate, $username);
 
     // 2. Cancel header & detail
     $rowAffected = DB::table('supplier_return_hdr')
@@ -853,16 +871,34 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
  * lalu recalculate stok article-article yang terdampak mulai returnDate.
  * Return: daftar article_code yang terdampak (untuk keperluan re-posting kalau perlu).
  */
-private function deleteMovementAndRecalc(string $returnNumber, string $location, string $returnDate): array
+private function deleteMovementAndRecalc(string $returnNumber, string $location, string $returnDate, string $username = 'system'): array
 {
-    $affectedArticles = DB::table('warehouse_movement')
+    // Baris yang mau dihapus dulu — kalau ada yang sudah pernah diserap
+    // OPENING BALANCE (posted dulu dengan tanggal yang tercakup OB), efek
+    // itu harus DILEPAS balik sebelum barisnya hilang, supaya OB tidak
+    // "nyangkut" menghitung movement yang sudah tidak ada lagi.
+    $rowsBeingDeleted = DB::table('warehouse_movement')
         ->where('movement_transnno', $returnNumber)
         ->where('location_number', $location)
         ->where('site_code', $this->siteCode)
-        ->pluck('artikel_code')
-        ->unique()
-        ->values()
-        ->all();
+        ->get(['artikel_code', 'location_number', 'movement_date', 'movement_plus', 'movement_min']);
+
+    $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+    foreach ($rowsBeingDeleted as $mv) {
+        $signed = (float) $mv->movement_plus - (float) $mv->movement_min;
+        if (abs($signed) < 0.000001) continue;
+
+        $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv->movement_date));
+        if (!$mvDt) continue;
+        if (!$adjOb->obBoundaryFor($mv->artikel_code, $mv->location_number, $mvDt->format('Y-m-d'))) continue;
+
+        $adjOb->absorbIntoLatestOpeningBalance(
+            $mv->artikel_code, $mv->location_number, -$signed, $username,
+            "Movement Supplier Return {$returnNumber} dihapus (edit/cancel) — efek OB dilepas"
+        );
+    }
+
+    $affectedArticles = $rowsBeingDeleted->pluck('artikel_code')->unique()->values()->all();
 
     DB::table('warehouse_movement')
         ->where('movement_transnno', $returnNumber)

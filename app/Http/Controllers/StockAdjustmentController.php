@@ -1736,6 +1736,100 @@ class StockAdjustmentController extends Controller
     }
 
     // =========================================================================
+    //  SINKRONISASI OPENING BALANCE LINTAS MODUL
+    //
+    //  Backdate/majukan tanggal transaksi di modul LAIN (Delivery, Receiving,
+    //  dst.) TETAP DIPERBOLEHKAN — bukan diblokir. Tapi kalau tanggal barunya
+    //  menyeberangi anchor OPENING BALANCE aktif untuk artikel+lokasi itu, OB
+    //  harus ikut menyerap/melepas efeknya, supaya "OB selalu jadi titik
+    //  terakhir yang benar" dan ledger checker tetap sinkron dengan
+    //  warehouse_stock TANPA perlu OB diedit/diposting ulang manual.
+    //
+    //  Dipanggil dari controller lain lewat:
+    //    app(\App\Http\Controllers\StockAdjustmentController::class)->...
+    // =========================================================================
+
+    /**
+     * Apakah tanggal ini "sudah tercakup" (<=) OPENING BALANCE AKTIF terbaru
+     * untuk artikel+lokasi ini? Kalau tidak ada OB sama sekali, selalu false
+     * (tidak ada anchor yang bisa dilewati).
+     */
+    public function obBoundaryFor(string $articleCode, string $location, string $dateYmd): bool
+    {
+        $obDateYmd = DB::table('stock_adjustment_hdr as h')
+            ->join('stock_adjustment_det as d', 'd.adj_code', '=', 'h.adj_code')
+            ->where('h.adj_type', 'OPENING BALANCE')
+            ->where('h.status', self::ST_POSTED)
+            ->where('h.location_code', $location)
+            ->where('d.article_code', $articleCode)
+            ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC")
+            ->selectRaw("TO_CHAR(TO_DATE(h.adj_date,'dd-mm-yyyy'), 'YYYY-MM-DD') as ob_date")
+            ->value('ob_date');
+
+        return $obDateYmd !== null && $dateYmd <= $obDateYmd;
+    }
+
+    /**
+     * Sesuaikan stock_after OPENING BALANCE aktif terbaru untuk artikel+lokasi
+     * ini sebesar $delta (bertanda). Dipanggil PERSIS saat sebuah movement di
+     * modul lain baru saja MASUK ke cakupan OB (delta = -efek movement itu,
+     * "diserap") atau baru saja KELUAR dari cakupannya (delta = +efek movement
+     * itu, "dilepas" supaya kembali dihitung normal sebagai net movement
+     * sesudah OB). stock_before TIDAK diubah — itu snapshot historis saat OB
+     * terakhir kali diposting; hanya stock_after (dan qty_adjustment/direction
+     * turunannya) yang bergerak, supaya OB tetap jadi "kesimpulan akhir" yang
+     * benar tanpa perlu direvisi/diposting ulang manual oleh user.
+     *
+     * @return bool true kalau ada OB yang disesuaikan (false = tidak ada OB aktif untuk artikel/lokasi ini)
+     */
+    public function absorbIntoLatestOpeningBalance(
+        string $articleCode, string $location, float $delta, string $username, string $context
+    ): bool {
+        if (abs($delta) < self::EPSILON) {
+            return false;
+        }
+
+        $ob = DB::table('stock_adjustment_hdr as h')
+            ->join('stock_adjustment_det as d', 'd.adj_code', '=', 'h.adj_code')
+            ->where('h.adj_type', 'OPENING BALANCE')
+            ->where('h.status', self::ST_POSTED)
+            ->where('h.location_code', $location)
+            ->where('d.article_code', $articleCode)
+            ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC")
+            ->select('h.adj_code', 'h.note', 'd.id as det_id', 'd.stock_before', 'd.stock_after')
+            ->first();
+
+        if (!$ob) {
+            return false;
+        }
+
+        $newStockAfter = (float) $ob->stock_after + $delta;
+        $newQtyAdj     = $newStockAfter - (float) $ob->stock_before;
+
+        DB::table('stock_adjustment_det')->where('id', $ob->det_id)->update([
+            'stock_after'    => $newStockAfter,
+            'qty_adjustment' => round(abs($newQtyAdj), 4),
+            'direction'      => $newQtyAdj >= 0 ? '+' : '-',
+            'updated_by'     => $username,
+            'updated_at'     => date('Y-m-d H:i:s'),
+        ]);
+
+        $stamp = '[AUTO-SYNC ' . date('d-m-Y H:i') . " oleh {$username}] {$context} (artikel {$articleCode}, "
+               . ($delta >= 0 ? '+' : '') . round($delta, 4) . ')';
+        DB::table('stock_adjustment_hdr')->where('adj_code', $ob->adj_code)->update([
+            'note' => trim((string) $ob->note . '; ' . $stamp, '; '),
+        ]);
+
+        return true;
+    }
+
+    /** Bungkus recalcLastQty() supaya bisa dipanggil dari controller lain. */
+    public function recalcLastQtyFor(array $articleCodes, string $location): void
+    {
+        $this->recalcLastQty($articleCodes, $location);
+    }
+
+    // =========================================================================
     //  HELPERS — DETAIL SYNC
     // =========================================================================
 

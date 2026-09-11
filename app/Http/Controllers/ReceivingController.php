@@ -1832,6 +1832,26 @@ private function doPosting($recNumber, $username)
 
     if (!empty($dataSetMovement)) {
         DB::table('warehouse_movement')->insert($dataSetMovement);
+
+        // Dokumen receiving bisa langsung diposting dengan rec_date yang sudah
+        // tercakup OPENING BALANCE aktif (backdate sejak awal) — OB harus
+        // langsung menyerap efeknya saat itu juga, bukan diblokir.
+        $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+        foreach ($dataSetMovement as $mv) {
+            $signed = (float) $mv['movement_plus'];
+            if (abs($signed) < 0.000001) continue;
+
+            $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv['movement_date']));
+            if (!$mvDt) continue;
+            $mvDateYmd = $mvDt->format('Y-m-d');
+
+            if (!$adjOb->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $mvDateYmd)) continue;
+
+            $adjOb->absorbIntoLatestOpeningBalance(
+                $mv['artikel_code'], $mv['location_number'], $signed, $username,
+                "Posting Receiving {$recNumber} bertanggal {$mv['movement_date']} (sudah tercakup OB)"
+            );
+        }
     }
 
     DB::statement("INSERT into kas_hdr (voucher_number,voucher_type,voucher_date,receive_from,amount,period,year,note,status,created_by,updated_by,created_at,updated_at,description)

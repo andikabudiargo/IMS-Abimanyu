@@ -738,6 +738,75 @@ $data['detail'] = DB::table('delivery_det')
         }else{
             DB::beginTransaction();
             try {
+                // GUARD (race-safe): kunci header DI DALAM transaksi supaya dua
+                // request update() bersamaan pada dnNumber yang sama tidak lolos
+                // baca/tulis OB & movement secara berbarengan (cegah dobel absorb).
+                $oldHdr = DB::table('delivery_hdr')->where('delivery_number', $dnNumber)->lockForUpdate()->first();
+                if (!$oldHdr) {
+                    DB::rollBack();
+                    return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => ["Delivery $dnNumber tidak ditemukan"], 'alert' => 'error']);
+                }
+
+            // Backdate/majukan tanggal delivery TETAP DIBOLEHKAN. Tapi kalau
+            // tanggal barunya menyeberangi anchor OPENING BALANCE aktif di
+            // Gudang FG (007) untuk artikel di dokumen ini, OB itu harus ikut
+            // menyerap/melepas efeknya — supaya OB tetap "titik terakhir yang
+            // benar" dan ledger checker otomatis sinkron dengan warehouse_stock,
+            // tanpa perlu ada yang mengedit/posting-ulang OB secara manual.
+            if ((string) $oldHdr->delivery_date !== (string) $dnDate) {
+                $oldDt = \DateTime::createFromFormat('d-m-Y', trim((string) $oldHdr->delivery_date));
+                $newDt = \DateTime::createFromFormat('d-m-Y', trim((string) $dnDate));
+
+                if ($oldDt && $newDt) {
+                    $adj = app(\App\Http\Controllers\StockAdjustmentController::class);
+
+                    // Efek NYATA yang sudah terlanjur diterapkan ke warehouse_stock,
+                    // dibaca dari movement (bukan payload $articles) — itu satu-
+                    // satunya sumber kebenaran "apa yang benar-benar sudah masuk stok".
+                    $movRows = DB::table('warehouse_movement')
+                        ->where('movement_transnno', $dnNumber)
+                        ->where('location_number', '007')
+                        ->where('movement_type', 'DELIVERY')
+                        ->get(['artikel_code', 'movement_plus', 'movement_min']);
+
+                    $touchedArticles = [];
+
+                    foreach ($movRows as $mv) {
+                        $signed = (float) $mv->movement_plus - (float) $mv->movement_min;
+                        if (abs($signed) < 0.000001) continue;
+
+                        $wasCovered = $adj->obBoundaryFor($mv->artikel_code, '007', $oldDt->format('Y-m-d'));
+                        $isCovered  = $adj->obBoundaryFor($mv->artikel_code, '007', $newDt->format('Y-m-d'));
+
+                        if ($wasCovered === $isCovered) continue; // tidak menyeberang anchor OB, aman
+
+                        // Masuk cakupan OB → OB menyerap (stock_after ikut
+                        // ditambah efek movement ini, PERSIS seolah movement itu
+                        // sudah terjadi sebelum/pada tanggal OB). Keluar cakupan
+                        // → dilepas (efeknya ditarik balik dari OB, supaya
+                        // dihitung normal lagi sebagai net movement SESUDAH OB).
+                        $delta   = $isCovered ? $signed : -$signed;
+                        $context = "Delivery {$dnNumber} tanggal diubah {$oldHdr->delivery_date} -> {$dnDate}";
+
+                        if ($adj->absorbIntoLatestOpeningBalance($mv->artikel_code, '007', $delta, $username, $context)) {
+                            $touchedArticles[] = $mv->artikel_code;
+                        }
+                    }
+
+                    // Movement ikut pindah ke tanggal yang benar, supaya modal
+                    // riwayat & recalc last_qty konsisten dengan delivery_date baru.
+                    if ($movRows->isNotEmpty()) {
+                        DB::table('warehouse_movement')
+                            ->where('movement_transnno', $dnNumber)
+                            ->where('location_number', '007')
+                            ->where('movement_type', 'DELIVERY')
+                            ->update(['movement_date' => $dnDate]);
+
+                        $adj->recalcLastQtyFor($movRows->pluck('artikel_code')->unique()->values()->all(), '007');
+                    }
+                }
+            }
+
                     $row_affected=DB::table('delivery_hdr')
                     ->where('delivery_number',$dnNumber)
                     ->update(
@@ -884,6 +953,16 @@ $data['detail'] = DB::table('delivery_det')
  *    yang diperbaiki.
  */
 
+/**
+ * Kunci urutan movement_code lintas transaksi supaya dua request posting
+ * bersamaan tidak berebut nomor movement_code yang sama (advisory lock,
+ * key WAJIB sama persis dengan controller lain yang insert warehouse_movement).
+ */
+private function lockMovementSequence(): void
+{
+    DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
+}
+
 public function posting(Request $request)
 {
     // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
@@ -933,6 +1012,27 @@ public function posting(Request $request)
     DB::beginTransaction();
 
     try {
+        // GUARD (race-safe): kunci header, re-cek status DI DALAM transaksi
+        // supaya dua request posting() bersamaan pada dnNumber yang sama tidak
+        // lolos cek berbarengan (cegah stok terpotong dua kali).
+        $lockedHdr = DB::table('delivery_hdr')->where('id', $id)->lockForUpdate()->first();
+        if (!$lockedHdr || $lockedHdr->status == '4') {
+            DB::rollBack();
+            $title   = "Posting $this->title";
+            $alert   = "warning";
+            $message = "$title $dnNumber gagal — status sudah berubah (sedang diproses request lain)";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+
+            if ($dariNew == 'true') {
+                return response()->json([
+                    'statusDel' => $status, 'title' => $title, 'status' => 0,
+                    'message' => $message, 'alert' => $alert,
+                    'dnNumber' => $dnNumber, 'idKu' => $idKu,
+                ]);
+            }
+            return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+        }
+
        $data = DB::table('delivery_det')
     ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
     ->leftJoin('article','article.article_code','delivery_det.article_code')
@@ -1018,6 +1118,7 @@ public function posting(Request $request)
         )
         ->get();
 
+         $this->lockMovementSequence();
          $seq             = (int) DB::table('warehouse_movement')->max('movement_code');
         $dataSetMovementFg = [];
         foreach ($movementsFg as $val) {
@@ -1048,6 +1149,29 @@ public function posting(Request $request)
 
         if (!empty($dataSetMovementFg)) {
             DB::table('warehouse_movement')->insert($dataSetMovementFg);
+        }
+
+        // Kalau delivery ini diposting dengan tanggal yang SUDAH tercakup OPENING
+        // BALANCE aktif (mis. posting terlambat / tanggal dokumen backdate sejak
+        // awal), OB harus langsung menyerap efeknya — sama seperti saat tanggal
+        // diubah lewat update(). Tanpa ini, ledger checker akan under-count
+        // delivery ini sejak hari pertama.
+        $dnDateYmd = null;
+        $dt = \DateTime::createFromFormat('d-m-Y', trim((string) ($hdrQ->delivery_date ?? '')));
+        if ($dt) $dnDateYmd = $dt->format('Y-m-d');
+
+        if ($dnDateYmd) {
+            $adj = app(\App\Http\Controllers\StockAdjustmentController::class);
+            foreach ($dataSetMovementFg as $mv) {
+                $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
+                if (abs($signed) < 0.000001) continue;
+                if (!$adj->obBoundaryFor($mv['artikel_code'], $location, $dnDateYmd)) continue;
+
+                $adj->absorbIntoLatestOpeningBalance(
+                    $mv['artikel_code'], $location, $signed, $username,
+                    "Posting Delivery {$dnNumber} langsung bertanggal {$hdrQ->delivery_date} (sudah tercakup OB)"
+                );
+            }
         }
 
         DB::commit();
@@ -1705,6 +1829,19 @@ public function posting(Request $request)
 
     DB::beginTransaction();
     try {
+        // GUARD (race-safe): kunci header, re-cek status DI DALAM transaksi
+        // supaya dua request cancel bersamaan pada dnNumber yang sama tidak
+        // lolos cek berbarengan (cegah reverse stok dobel / rename dobel).
+        $lockedHdr = DB::table('delivery_hdr')->where('id', $id)->lockForUpdate()->first();
+        if (!$lockedHdr || $lockedHdr->status == '5') {
+            DB::rollBack();
+            $title   = "Cancel $this->title";
+            $alert   = "warning";
+            $message = "$title $dnNumber gagal — status sudah berubah (sedang diproses request lain)";
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+        }
+
         // ── Reverse stok DULU, SEBELUM delivery_number di-rename ──
         // supaya movement_transnno yang dicari cocok dengan yang di-insert saat posting()
         if ($dnStatus == '4') {
@@ -1832,26 +1969,34 @@ public function posting(Request $request)
     $dnOrigin  = $deliveries->delivery_number;
     $dnStatus  = $deliveries->status;
 
-    // ── GUARD: tolak revisi jika DN masih punya AR/Invoice aktif ──
-    if ($this->punyaArAktif($dnOrigin)) {
-        $title   = "Save $this->title";
-        $alert   = "warning";
-        $message = "Revisi DN $dnOrigin gagal: DN masih memiliki AR/Invoice aktif. Cancel invoice-nya terlebih dahulu.";
-        \LogActivity::addToLog($title, "username: $username Status $message");
-        return redirect()->back()->with(['alert' => $alert, 'message' => $message]);
-    }
+    // Revisi TETAP diizinkan walau DN ini masih punya AR/Invoice aktif --
+    // cross-module OB sync sudah menjaga OPENING BALANCE tetap benar walau
+    // tanggalnya berubah, jadi tidak perlu diblokir di sini lagi.
 
-    $numRevision     = $request->nR ? $request->nR + 1 : 1;
-    $numRevisionName = '-R' . $numRevision;
-    $dnNew           = $dnOrigin . $numRevisionName;
-    $checkNewDn      = DB::table('delivery_hdr')->where('delivery_number', $dnNew)->count();
     $reason          = $request->reason;
 
-    if ($checkNewDn > 0) {
-        $dnNew = $dnOrigin . '-R' . ($numRevision + 1);
-    }
+    DB::beginTransaction();
+    try {
+        // GUARD (race-safe): kunci dokumen origin dulu, re-cek status & hitung
+        // ulang nomor revisi DI DALAM lock supaya dua request revision() bersamaan
+        // tidak berebut nomor -R<n> yang sama atau reverseStock() dobel.
+        $lockedOrigin = DB::table('delivery_hdr')->where('id', $id)->lockForUpdate()->first();
+        if (!$lockedOrigin || $lockedOrigin->status == '5') {
+            DB::rollBack();
+            $title = "Revision $this->title";
+            return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => "$dnOrigin gagal — status sudah berubah (sedang diproses request lain)"]);
+        }
 
-   $sqlHdr = "INSERT into delivery_hdr
+        $numRevision     = $request->nR ? $request->nR + 1 : 1;
+        $numRevisionName = '-R' . $numRevision;
+        $dnNew           = $dnOrigin . $numRevisionName;
+        $checkNewDn      = DB::table('delivery_hdr')->where('delivery_number', $dnNew)->count();
+
+        if ($checkNewDn > 0) {
+            $dnNew = $dnOrigin . '-R' . ($numRevision + 1);
+        }
+
+        $sqlHdr = "INSERT into delivery_hdr
 (delivery_number, delivery_date, customer_id, so_number, po_number, approved_by, approved_at,
  status, note, created_by, updated_by, created_at, updated_at, origin_delivery_number,
  num_revision, revised_by, revised_at, reason, os_number, armada)
@@ -1861,7 +2006,7 @@ select
     $numRevision, '$username', '" . date('Y-m-d H:i:s') . "', reason, os_number, armada
 from delivery_hdr where delivery_number = '$dnOrigin'";
 
-    $sqlDet = "INSERT into delivery_det
+        $sqlDet = "INSERT into delivery_det
     (delivery_number, article_code, so_number, po_number, qty, uom, created_by, created_at,
      updated_by, updated_at, qty_so)
     select
@@ -1869,8 +2014,6 @@ from delivery_hdr where delivery_number = '$dnOrigin'";
         qty, uom, '$username', '" . date('Y-m-d H:i:s') . "', '$username', '" . date('Y-m-d H:i:s') . "', qty_so
     from delivery_det where delivery_number = '$dnOrigin'";
 
-    DB::beginTransaction();
-    try {
         $rowAffected = DB::select($sqlHdr);
 
         if ($rowAffected !== false) {
@@ -2202,15 +2345,13 @@ private function punyaArAktif($dnNumber)
             }
 
             // ── REVISION ──
+            // Revisi TETAP diizinkan walau delivery ini sudah ditarik ke AR/Invoice
+            // aktif -- cross-module OB sync sudah menjaga OPENING BALANCE tetap
+            // benar walau tanggalnya berubah, jadi tidak perlu diblokir di sini lagi.
             if (in_array($data->status, ['1','2','3','4'])) {
                 $dnDate = date('Y-m-d', strtotime($data->delivery_date));
 
-                if ($data->sudah_di_bayar > 0) {
-                    $buttons .= "<span class='dropdown-item text-muted' style='font-size:11px;cursor:not-allowed;'>
-                                    <i data-feather='info'></i>
-                                    Revisi tidak bisa: masih ada AR/Invoice aktif
-                                 </span>";
-                } elseif ($dnDate >= $lockDateToDate) {
+                if ($dnDate >= $lockDateToDate) {
                     $buttons .= "<a href='javascript:;'
                                     id='revisionReasonButton'
                                     class='dropdown-item'

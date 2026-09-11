@@ -49,6 +49,9 @@ class ActualLoadingController extends Controller
      */
     private array $stockLocationCache = [];
 
+    /** Tanggal (d-m-Y) yang dipakai writeMovement. Di-set store()/update() = loading_date. */
+    private ?string $movementDate = null;
+
     private function resolveStockLocation(string $locationCode): string
     {
         if (array_key_exists($locationCode, $this->stockLocationCache)) {
@@ -60,6 +63,32 @@ class ActualLoadingController extends Controller
             ->value('parent_location');
 
         return $this->stockLocationCache[$locationCode] = ($parent ?: $locationCode);
+    }
+
+    /**
+     * Kunci alokasi movement_code (dipakai lintas modul). WAJIB dipanggil di
+     * dalam transaksi sebelum membaca MAX(movement_code), supaya dua posting
+     * paralel (loading + transfer + receiving) tidak bentrok nomornya.
+     */
+    private function lockMovementSequence(): void
+    {
+        DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
+    }
+
+    /**
+     * Tanda tangan isi dokumen loading — untuk deteksi double-submit.
+     * (booth + tanggal + daftar artikel:qty_fresh:qty_repaint terurut)
+     */
+    private function loadingSignature(?string $sprayBooth, ?string $loadingDateDb, $articles): string
+    {
+        $parts = collect($articles)->map(function ($v) {
+            $ac = is_array($v) ? ($v['article_code'] ?? '') : ($v->article_code ?? '');
+            $f  = is_array($v) ? ($v['qty_fresh']   ?? 0)  : ($v->qty_fresh   ?? 0);
+            $r  = is_array($v) ? ($v['qty_repaint'] ?? 0)  : ($v->qty_repaint ?? 0);
+            return $ac . ':' . (float) $f . ':' . (float) $r;
+        })->sort()->values()->implode('|');
+
+        return md5($sprayBooth . '#' . $loadingDateDb . '#' . $parts);
     }
 
     public function __construct()
@@ -197,7 +226,9 @@ class ActualLoadingController extends Controller
      */
     public function rmDetailBySprayBooth(Request $request)
     {
-        $locationCode = $request->location_code;
+        // Stok RM dilihat dari pool akuntansi (parent) kalau booth punya parent —
+        // setelah konsolidasi, row warehouse_stock ada di parent, bukan di child.
+        $locationCode = $this->resolveStockLocation($request->location_code);
         $articleCode  = $request->article_code; // kode article FG
 
     $wipRows = DB::table('warehouse_stock as ws')
@@ -359,8 +390,43 @@ class ActualLoadingController extends Controller
         $loadingDateDb = $loadingDate ? implode('-', array_reverse(explode('-', $loadingDate))) : date('Y-m-d');
         $now = date('Y-m-d H:i:s');
 
+        // Movement mengikuti loading_date, bukan hari ini
+        $this->movementDate = date('d-m-Y', strtotime($loadingDateDb));
+
         DB::beginTransaction();
         try {
+            // ── Serialkan store() supaya double-submit tidak bikin 2 dokumen ──
+            DB::select("SELECT pg_advisory_xact_lock(hashtext(?))", [$this->moduleCode . '-store']);
+
+            // ── Guard idempoten: dokumen dengan isi identik oleh user yang sama
+            //    dalam 2 menit terakhir = anggap klik ganda, kembalikan yang lama ──
+            $sig = $this->loadingSignature($sprayBooth, $loadingDateDb, $articles);
+            $dupe = DB::table('actual_loading_hdr')
+                ->where('created_by', $username)
+                ->where('spray_booth', $sprayBooth)
+                ->where('status', '<>', 5)
+                ->where('created_at', '>=', date('Y-m-d H:i:s', strtotime('-120 seconds')))
+                ->orderByDesc('id')
+                ->get(['prod_code', 'loading_date']);
+
+            foreach ($dupe as $d) {
+                $existingArticles = DB::table('actual_loading_det')
+                    ->where('prod_code', $d->prod_code)
+                    ->get(['article_code', 'qty_fresh', 'qty_repaint'])
+                    ->map(fn($x) => (array) $x)
+                    ->all();
+                $existingSig = $this->loadingSignature($sprayBooth, $loadingDateDb, $existingArticles);
+                if ($existingSig === $sig) {
+                    DB::commit();
+                    \LogActivity::addToLog("Save $this->title", "username: $username double-submit diabaikan, kembali ke {$d->prod_code}");
+                    return response()->json([
+                        'status'=>1,'title'=>"Save $this->title",
+                        'message'=>"$this->title {$d->prod_code} (double-submit diabaikan)",
+                        'alert'=>'success','prdNumber'=>$d->prod_code,'oEdit'=>true,
+                    ]);
+                }
+            }
+
             AppHelpers::resetCode($this->moduleCode);
             $prdNumber = $this->getLastCode($this->moduleCode);
 
@@ -379,10 +445,12 @@ class ActualLoadingController extends Controller
                 'updated_at'         => $now,
             ]);
 
-            // counter movement_code (pola TransferStock: max+1, increment per baris)
+            // counter movement_code — WAJIB lock dulu (lintas modul)
+            $this->lockMovementSequence();
             $seq = (int) DB::table('warehouse_movement')->max('movement_code');
 
-            $urutan = 0;
+            $urutan   = 0;
+            $warnings = [];   // info stok RM yang jadi minus (tidak memblok)
           foreach ($articles as $val) {
     $urutan++;
 
@@ -418,9 +486,31 @@ class ActualLoadingController extends Controller
 
     // FRESH: RM keluar dari booth (boleh minus) → FG masuk gudang loading
     if ($qtyFresh > 0) {
-        foreach ($this->getBomRm($val->article_code) as $rm) {
+        $bomRm = $this->getBomRm($val->article_code);
+        if ($bomRm->isEmpty()) {
+            throw new \Exception(
+                "Artikel {$val->article_code} tidak punya BOM RM aktif (status 3). ".
+                "Fresh loading akan menambah FG tanpa mengurangi RM — dibatalkan."
+            );
+        }
+        $poolLoc = $this->resolveStockLocation($sprayBooth);
+        foreach ($bomRm as $rm) {
+            if ((float) $rm->qty_per_fg <= 0) {
+                throw new \Exception("BOM {$val->article_code} punya komponen {$rm->article_code} dengan qty per FG 0 — perbaiki BOM dulu.");
+            }
+            $need = $qtyFresh * (float) $rm->qty_per_fg;
+            $have = (float) DB::table('warehouse_stock')
+                ->where('site_code', 'HO')
+                ->where('article_code', $rm->article_code)
+                ->where('location_number', $poolLoc)
+                ->sum('article_qty');
+            if ($need > $have) {
+                $warnings[] = "{$rm->article_code}: butuh " . round($need, 2)
+                            . ", stok booth " . round($have, 2)
+                            . " → minus " . round($need - $have, 2);
+            }
             $this->postOut(
-                $seq, $rm->article_code, $qtyFresh * (float)$rm->qty_per_fg,
+                $seq, $rm->article_code, $need,
                 $sprayBooth, $loadingLocation, $movementType, $prdNumber,
                 "Fresh RM", $username
             );
@@ -441,11 +531,35 @@ class ActualLoadingController extends Controller
     }
 }
 
+            // Dokumen baru bisa langsung dibuat dengan loadingDate backdate
+            // (bukan cuma lewat edit belakangan) — kalau tanggalnya sudah
+            // tercakup OPENING BALANCE aktif di lokasi manapun yang tersentuh
+            // (biasanya 047), OB harus langsung menyerap saat itu juga.
+            $newDocDateYmd = $loadingDateDb;   // sudah format Y-m-d (lihat atas)
+            $adj = app(\App\Http\Controllers\StockAdjustmentController::class);
+            $newMovRows = DB::table('warehouse_movement')
+                ->where('movement_transnno', $prdNumber)
+                ->get(['artikel_code', 'location_number', 'movement_plus', 'movement_min']);
+
+            foreach ($newMovRows as $mv) {
+                $signed = (float) $mv->movement_plus - (float) $mv->movement_min;
+                if (abs($signed) < 0.000001) continue;
+                if (!$adj->obBoundaryFor($mv->artikel_code, $mv->location_number, $newDocDateYmd)) continue;
+
+                $adj->absorbIntoLatestOpeningBalance(
+                    $mv->artikel_code, $mv->location_number, $signed, $username,
+                    "Save Actual Loading {$prdNumber} langsung bertanggal {$loadingDate} (sudah tercakup OB)"
+                );
+            }
+
             DB::commit();
             $title   = "Save $this->title";
             $message = "$title $prdNumber is successfully saved";
+            if (!empty($warnings)) {
+                $message .= "\n⚠ Stok RM booth jadi minus (loading tetap diproses):\n- " . implode("\n- ", $warnings);
+            }
             \LogActivity::addToLog($title, "username: $username Status $message");
-            return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','prdNumber'=>$prdNumber,'oEdit'=>true]);
+            return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>(!empty($warnings)?'warning':'success'),'warnings'=>$warnings,'prdNumber'=>$prdNumber,'oEdit'=>true]);
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -627,11 +741,18 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
                                    $fromLoc, $toLoc, $movementType, $transno, $desc, $username)
     {
         $sign  = ($direction === 'in') ? '+' : '-';
-        $today = date('Y-m-d');
+
+        // Movement mengikuti loading_date dokumen — BUKAN hari ini. Supaya saat
+        // dokumen lama diedit, baris movement tetap di tanggal aslinya (laporan
+        // as-of & saldo berjalan tetap konsisten). Di-set store()/update() lewat
+        // $this->movementDate; fallback ke hari ini kalau tidak di-set.
+        $mvDate    = $this->movementDate ?: date('d-m-Y');   // d-m-Y
+        $tsObj     = \DateTime::createFromFormat('d-m-Y', $mvDate);
+        $mvDateYmd = $tsObj ? $tsObj->format('Y-m-d') : date('Y-m-d');
 
         DB::table('warehouse_movement')->insert([
             'movement_code'     => ++$seq,
-            'movement_date'     => date('d-m-Y'),
+            'movement_date'     => $mvDate,
             'site_code'         => 'HO',
             'location_number'   => $location,
             'artikel_code'      => $article,
@@ -643,7 +764,7 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
             'movement_type'     => $movementType,
             'movement_transnno' => $transno,
             'movement_desc'     => $desc,
-            'last_qty'          => DB::raw("get_last_qty_new('$article','$today','HO','$location') $sign $qty"),
+            'last_qty'          => DB::raw("get_last_qty_new('$article','$mvDateYmd','HO','$location') $sign $qty"),
             'created_by'        => $username,
             'created_at'        => date('Y-m-d H:i:s'),
         ]);
@@ -809,6 +930,168 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
         // true  = hapus movement lama
         // false = tidak perlu cek kecukupan stok, karena langsung di-repost
         $this->unPosting($prdNumber, $username, true, false);
+    }
+
+    private function applyStockDelta(string $article, string $location, float $delta, string $username): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $aff = DB::table('warehouse_stock')
+            ->where('site_code', 'HO')
+            ->where('article_code', $article)
+            ->where('location_number', $location)
+            ->update([
+                'article_qty' => DB::raw('coalesce(article_qty,0) + (' . $delta . ')'),
+                'updated_by'  => $username,
+                'updated_at'  => $now,
+            ]);
+
+        if ($aff === 0) {
+            $a = DB::table('article')->where('article_code', $article)->select('uom', 'article_type')->first();
+            DB::table('warehouse_stock')->insert([
+                'site_code'       => 'HO',
+                'article_code'    => $article,
+                'location_number' => $location,
+                'article_qty'     => $delta,
+                'uom'             => $a->uom ?? null,
+                'dept_code'       => $a->article_type ?? null,
+                'created_by'      => $username,
+                'updated_by'      => $username,
+                'created_at'      => $now,
+                'updated_at'      => $now,
+            ]);
+        }
+    }
+
+    /**
+     * Repost movement dokumen loading TANPA menggeser posisi kronologis.
+     *
+     * Untuk tiap grup (artikel, lokasi_pool, arah):
+     *  - masih ada di versi baru  → UPDATE baris movement_code TERKECIL ke total baru,
+     *                               hapus baris surplus grup itu (posisi & tanggal tetap)
+     *  - hilang di versi baru     → hapus semua baris grup
+     *  - grup baru (artikel baru) → append 1 baris (movement_code = max+1)
+     * warehouse_stock disesuaikan pakai delta (total_baru − total_lama) per grup.
+     * Terakhir recalcLastQty untuk semua (artikel, lokasi) tersentuh.
+     *
+     * @param array $lines [ ['article'=>fg, 'qtyFresh'=>x, 'qtyRepaint'=>y], ... ]  qtyTotal > 0
+     * @return array daftar peringatan stok minus (tidak memblok)
+     */
+    private function repostLoadingKeepPosition(string $prdNumber, string $sprayBooth, array $lines, string $username): array
+    {
+        $warnings   = [];
+        $poolBooth  = $this->resolveStockLocation($sprayBooth);
+        $loadingLoc = $this->loadingLocation;   // 047 (tanpa parent)
+        $wipLoc     = '012';
+        $mvDate     = $this->movementDate ?: date('d-m-Y');
+
+        // 1. Target movement per grup "artikel|lokasi|arah" → total qty
+        $target = [];
+        $addTarget = function ($art, $loc, $dir, $qty, $from, $to, $desc) use (&$target) {
+            if ($qty <= 0) return;
+            $k = "$art|$loc|$dir";
+            if (!isset($target[$k])) {
+                $target[$k] = ['art' => $art, 'loc' => $loc, 'dir' => $dir, 'qty' => 0.0,
+                               'from' => $from, 'to' => $to, 'desc' => $desc];
+            }
+            $target[$k]['qty'] += $qty;
+        };
+
+        foreach ($lines as $ln) {
+            $fg = $ln['article'];
+            $qf = (float) ($ln['qtyFresh'] ?? 0);
+            $qr = (float) ($ln['qtyRepaint'] ?? 0);
+
+            if ($qf > 0) {
+                $bom = $this->getBomRm($fg);
+                if ($bom->isEmpty()) {
+                    throw new \Exception("Artikel {$fg} tidak punya BOM RM aktif (status 3). Fresh loading dibatalkan.");
+                }
+                foreach ($bom as $rm) {
+                    if ((float) $rm->qty_per_fg <= 0) {
+                        throw new \Exception("BOM {$fg} komponen {$rm->article_code} qty per FG 0 — perbaiki BOM dulu.");
+                    }
+                    $addTarget($rm->article_code, $poolBooth, 'out', $qf * (float) $rm->qty_per_fg,
+                        $sprayBooth, $loadingLoc, 'Fresh RM (edit)');
+                }
+                $addTarget($fg, $loadingLoc, 'in', $qf, $sprayBooth, $loadingLoc, 'Fresh RM (edit)');
+            }
+            if ($qr > 0) {
+                $addTarget($fg, $wipLoc, 'out', $qr, $wipLoc, $loadingLoc, 'FG Repaint (edit)');
+                $addTarget($fg, $loadingLoc, 'in', $qr, $wipLoc, $loadingLoc, 'FG Repaint (edit)');
+            }
+        }
+
+        // 2. Grup movement LAMA dokumen ini
+        $oldRows = DB::table('warehouse_movement')
+            ->where('movement_transnno', $prdNumber)
+            ->orderBy('movement_code')
+            ->get();
+
+        $oldGroups = [];
+        foreach ($oldRows as $r) {
+            $dir = ((float) $r->movement_plus > 0) ? 'in' : 'out';
+            // fold lokasi lama ke pool — kalau ada baris nyasar di kode booth fisik
+            // (belum ke-migrasi), disatukan dgn grup pool yang benar.
+            $foldedLoc = $this->resolveStockLocation($r->location_number);
+            $k = "{$r->artikel_code}|{$foldedLoc}|$dir";
+            if (!isset($oldGroups[$k])) $oldGroups[$k] = ['codes' => [], 'total' => 0.0];
+            $oldGroups[$k]['codes'][] = $r->movement_code;
+            $oldGroups[$k]['total']  += ($dir === 'in') ? (float) $r->movement_plus : (float) $r->movement_min;
+        }
+
+        $affectedPairs = [];
+        $keys = array_values(array_unique(array_merge(array_keys($target), array_keys($oldGroups))));
+
+        $this->lockMovementSequence();
+        $seq = (int) DB::table('warehouse_movement')->max('movement_code');
+
+        foreach ($keys as $k) {
+            [$art, $loc, $dir] = explode('|', $k);
+            $affectedPairs[] = ['artikel_code' => $art, 'location_number' => $loc];
+
+            $oldT = $oldGroups[$k]['total'] ?? 0.0;
+            $newT = $target[$k]['qty']      ?? 0.0;
+
+            // stok: out dulu -oldT skrg -newT → += (oldT-newT); in dulu +oldT skrg +newT → += (newT-oldT)
+            $stockDelta = ($dir === 'in') ? ($newT - $oldT) : ($oldT - $newT);
+            if (abs($stockDelta) > 1e-9) {
+                $this->applyStockDelta($art, $loc, $stockDelta, $username);
+            }
+
+            if ($newT > 0 && isset($oldGroups[$k])) {
+                $codes = $oldGroups[$k]['codes'];
+                $keepCode = array_shift($codes);
+                DB::table('warehouse_movement')->where('movement_code', $keepCode)->update([
+                    'movement_plus'   => ($dir === 'in')  ? $newT : 0,
+                    'movement_min'    => ($dir === 'out') ? $newT : 0,
+                    'movement_desc'   => $target[$k]['desc'],
+                    'movement_date'   => $mvDate,
+                    'location_number' => $loc,   // pastikan di pool (fold)
+                ]);
+                if (!empty($codes)) {
+                    DB::table('warehouse_movement')->whereIn('movement_code', $codes)->delete();
+                }
+            } elseif ($newT > 0) {
+                $t = $target[$k];
+                $adesc = DB::table('article')->where('article_code', $art)->value('article_desc');
+                $this->writeMovement($seq, $art, $adesc, $newT, $loc, $dir,
+                    $t['from'], $t['to'], 'LOADING', $prdNumber, $t['desc'], $username);
+            } else {
+                DB::table('warehouse_movement')->whereIn('movement_code', $oldGroups[$k]['codes'])->delete();
+            }
+
+            if ($dir === 'out' && $newT > 0) {
+                $have = (float) DB::table('warehouse_stock')->where('site_code', 'HO')
+                    ->where('article_code', $art)->where('location_number', $loc)->sum('article_qty');
+                if ($have < 0) {
+                    $warnings[] = "{$art} @ {$loc}: stok jadi minus " . round($have, 2) . " setelah edit";
+                }
+            }
+        }
+
+        $this->recalcLastQty($affectedPairs);
+
+        return $warnings;
     }
 
     // =========================================================================
@@ -1042,12 +1325,18 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
             if (!$oldHeader) {
                 throw new \Exception("Data $prdNumber tidak ditemukan.");
             }
-            if ($oldHeader->status == 5) {
+            if ((int) $oldHeader->status === 5) {
                 throw new \Exception("Dokumen $prdNumber sudah CANCELED dan tidak bisa diedit.");
             }
-            if ($oldHeader->status != 1) {
-                throw new \Exception("Hanya data berstatus NEW yang bisa diedit langsung. Gunakan Revision untuk dokumen yang sudah diproses.");
-            }
+            // Dokumen POSTED (4) boleh diedit — hanya artikel & qty. Stok + movement
+            // lama dibalik penuh (reverseDocumentStock) lalu diposting ulang dengan
+            // nilai baru, jadi selisihnya otomatis terkoreksi. Status tidak diubah
+            // (yang tadinya POSTED tetap POSTED).
+
+            // Movement repost mengikuti loading_date dokumen (efektif), BUKAN hari ini —
+            // supaya baris movement tetap di tanggal aslinya walau diedit belakangan.
+            $effectiveLoadingDb = $loadingDateDb ?: $oldHeader->loading_date;
+            $this->movementDate = date('d-m-Y', strtotime($effectiveLoadingDb));
 
             $newRevision = $oldHeader->num_revision + 1;
             $changeCount = 0;
@@ -1071,16 +1360,23 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
                 }
             }
 
-            // ── 2. Balikin stok + hapus movement lama dokumen ini ──
-            $this->reverseDocumentStock($prdNumber, $username);
+            // ── 2. Kalau artikel+qty+booth TIDAK berubah, jangan reverse+repost
+            //    (menghindari menumpuk baris movement baru untuk perubahan note saja) ──
+            $oldDetForSig = DB::table('actual_loading_det')->where('prod_code', $prdNumber)
+                ->get(['article_code', 'qty_fresh', 'qty_repaint'])->map(fn($x) => (array) $x)->all();
+            $detBerubah = $this->loadingSignature($sprayBooth, $loadingDateDb, $articles)
+                        !== $this->loadingSignature($oldHeader->spray_booth, $oldHeader->loading_date, $oldDetForSig);
 
-            // ⬇ ambil $seq SETELAH movement lama dihapus
-            $seq = (int) DB::table('warehouse_movement')->max('movement_code');
+            $warnings = [];
 
-            // ── 3. Diff-log per artikel + hapus detail lama, siapkan insert baru ──
+          if ($detBerubah) {
+            // ── 3. Diff-log per artikel + rebuild detail. Movement TIDAK dibalik+
+            //    di-append; diperbaiki in-place (repostLoadingKeepPosition) supaya
+            //    posisi kronologis baris tetap → saldo berjalan/minus tidak meleset. ──
             $oldDetails = DB::table('actual_loading_det')->where('prod_code', $prdNumber)->get()->keyBy('article_code');
             $seenArticles = [];
-            $urutan = 0;
+            $urutan   = 0;
+            $lines    = [];   // untuk repost movement
 
             DB::table('actual_loading_det')->where('prod_code', $prdNumber)->delete();
 
@@ -1123,40 +1419,16 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
 
                 if ($qtyTotal <= 0) continue;
 
-                // ── validasi ulang ketersediaan (sama seperti store) ──
-                $freshCapacity = $this->freshCapacity($articleCode, $sprayBooth);
-                if ($qtyFresh > $freshCapacity) {
-                    throw new \Exception("Qty Fresh {$qtyFresh} untuk {$articleCode} melebihi kapasitas RM ({$freshCapacity}).");
-                }
-                if ($qtyRepaint > 0) {
-                    $wipAvail = $this->wipAvailable($articleCode);
-                    if ($wipAvail < $qtyRepaint) {
-                        throw new \Exception("Qty Repaint {$qtyRepaint} untuk {$articleCode} tidak tercukupi. WIP tersedia {$wipAvail}.");
-                    }
-                }
-
                 DB::table('actual_loading_det')->insert([
                     'prod_code' => $prdNumber, 'urutan' => $urutan, 'article_code' => $articleCode,
-                    'uom' => $val->uom ?? ($old->uom ?? null),
+                    'uom' => $val->uom ?? optional($old)->uom,
                     'qty' => $qtyTotal, 'qty_fresh' => $qtyFresh, 'qty_repaint' => $qtyRepaint,
                     'note' => $newNote,
-                    'created_by' => $old->created_by ?? $username, 'updated_by' => $username,
-                    'created_at' => $old->created_at ?? $now, 'updated_at' => $now,
+                    'created_by' => optional($old)->created_by ?? $username, 'updated_by' => $username,
+                    'created_at' => optional($old)->created_at ?? $now, 'updated_at' => $now,
                 ]);
 
-                // ── 4. Posting ulang movement (sama logika seperti store) ──
-                if ($qtyFresh > 0) {
-                    foreach ($this->getBomRm($articleCode) as $rm) {
-                        $this->postOut($seq, $rm->article_code, $qtyFresh * (float)$rm->qty_per_fg,
-                            $sprayBooth, $loadingLocation, 'LOADING', $prdNumber, "Fresh RM (edit)", $username);
-                    }
-                    $this->postIn($seq, $articleCode, $val->uom ?? null, $qtyFresh,
-                        $loadingLocation, $sprayBooth, 'LOADING', $prdNumber, "Fresh RM (edit)", $username);
-                }
-                if ($qtyRepaint > 0) {
-                    $this->moveRepaintFromWip($seq, $articleCode, $val->uom ?? null, $qtyRepaint,
-                        $loadingLocation, 'LOADING', $prdNumber, $username);
-                }
+                $lines[] = ['article' => $articleCode, 'qtyFresh' => $qtyFresh, 'qtyRepaint' => $qtyRepaint];
             }
 
             // ── artikel yang dihapus saat edit ──
@@ -1171,6 +1443,38 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
                     $changeCount++;
                 }
             }
+
+            // ── 4. Repost movement in-place (posisi kronologis dipertahankan) ──
+            $warnings = $this->repostLoadingKeepPosition($prdNumber, $sprayBooth, $lines, $username);
+
+            // Backdate/majukan loading_date TETAP DIBOLEHKAN. Kalau menyeberangi
+            // anchor OPENING BALANCE aktif di lokasi manapun yang tersentuh
+            // dokumen ini (biasanya 047), OB itu ikut menyerap/melepas — sama
+            // seperti Delivery — supaya ledger checker tetap sinkron dengan
+            // warehouse_stock tanpa OB perlu direvisi manual.
+            $oldLoadingDb = substr((string) $oldHeader->loading_date, 0, 10);
+            if ($effectiveLoadingDb !== $oldLoadingDb) {
+                $adj = app(\App\Http\Controllers\StockAdjustmentController::class);
+                $movRows = DB::table('warehouse_movement')
+                    ->where('movement_transnno', $prdNumber)
+                    ->get(['artikel_code', 'location_number', 'movement_plus', 'movement_min']);
+
+                foreach ($movRows as $mv) {
+                    $signed = (float) $mv->movement_plus - (float) $mv->movement_min;
+                    if (abs($signed) < 0.000001) continue;
+
+                    $wasCovered = $adj->obBoundaryFor($mv->artikel_code, $mv->location_number, $oldLoadingDb);
+                    $isCovered  = $adj->obBoundaryFor($mv->artikel_code, $mv->location_number, $effectiveLoadingDb);
+                    if ($wasCovered === $isCovered) continue;
+
+                    $delta = $isCovered ? $signed : -$signed;
+                    $adj->absorbIntoLatestOpeningBalance(
+                        $mv->artikel_code, $mv->location_number, $delta, $username,
+                        "Actual Loading {$prdNumber} tanggal diubah {$oldHeader->loading_date} -> {$effectiveLoadingDb}"
+                    );
+                }
+            }
+          } // end if ($detBerubah)
 
             DB::table('actual_loading_hdr')->where('prod_code', $prdNumber)->update([
                 'loading_date'  => $loadingDateDb,
@@ -1188,9 +1492,12 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
             $message = $changeCount > 0
                 ? "$title $prdNumber berhasil disimpan (Revisi $newRevision, $changeCount perubahan, stok disesuaikan)"
                 : "$title $prdNumber tidak ada perubahan";
+            if (!empty($warnings)) {
+                $message .= "\n⚠ Stok RM booth jadi minus (edit tetap diproses):\n- " . implode("\n- ", $warnings);
+            }
             \LogActivity::addToLog($title, "username: $username Status $message");
 
-            return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>'success','prdNumber'=>$prdNumber,'oEdit'=>true]);
+            return response()->json(['status'=>1,'title'=>$title,'message'=>$message,'alert'=>(!empty($warnings)?'warning':'success'),'warnings'=>$warnings,'prdNumber'=>$prdNumber,'oEdit'=>true]);
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -1330,7 +1637,7 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
                                 </a>';
                 $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
 
-                if (Auth::user()->can('actualLoading-edit') && $data->status == '1') {
+                if (Auth::user()->can('actualLoading-edit') && in_array($data->status, ['1', '4'])) {
                     $buttons .= '<a href="'. route('production.actualLoading.edit', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
                                     <i data-feather="file-text"></i>
                                     Edit
@@ -1643,9 +1950,29 @@ private function fgStockInWip(array $articleCodes)
 
         DB::beginTransaction();
         try {
+            $hdr = DB::table('actual_loading_hdr')
+                ->where('prod_code', $prdNumber)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$hdr) {
+                throw new \Exception("Dokumen $prdNumber tidak ditemukan.");
+            }
+            if ((int) $hdr->status === 5) {
+                throw new \Exception("Dokumen $prdNumber sudah CANCELED, tidak bisa di-approve.");
+            }
+
             $statusLevelApproval = Approval::approvalLevelPosition($this->moduleCode, $prdNumber, $username);
             $nextLevel = $statusLevelApproval[0]->next_level;
             $status    = $statusLevelApproval[0]->next_level == $statusLevelApproval[0]->max_level ? '3' : '2';
+
+            // Dokumen dibuat lewat store() = LANGSUNG POSTED (status 4, stok & movement
+            // sudah diterapkan). Approval di sini hanya sign-off administratif —
+            // JANGAN mundurkan status ke 2/3 (bikin tombol Posting yang rusak muncul
+            // dan dokumen terlihat "belum diposting" padahal stok sudah jalan).
+            if ((int) $hdr->status === 4) {
+                $status = '4';
+            }
 
             $rowAffected = DB::table('actual_loading_hdr')
                 ->where('prod_code', $prdNumber)

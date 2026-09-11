@@ -516,6 +516,16 @@ $tDnNumber = $header->tdn_number;
         return "{$prefix}-{$year}-{$month}-{$newCode}"; // ex: DN-UMUM-26-07-00001
     }
 
+    /**
+     * Kunci urutan movement_code lintas transaksi supaya dua request posting
+     * bersamaan tidak berebut nomor movement_code yang sama (advisory lock,
+     * key WAJIB sama persis dengan controller lain yang insert warehouse_movement).
+     */
+    private function lockMovementSequence(): void
+    {
+        DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
+    }
+
     /*
     |--------------------------------------------------------------------------
     | STORE
@@ -623,6 +633,7 @@ $leadCode = $this->codeKeyMap[$prefix];
 
             $dataSet     = [];
             $movementSet = [];
+            $this->lockMovementSequence();
             $seq         = (int) DB::table('warehouse_movement')->max('movement_code');
 
             foreach ($articles as $val) {
@@ -715,6 +726,23 @@ $leadCode = $this->codeKeyMap[$prefix];
             DB::table('dn_general_det')->insert($dataSet);
             if (!empty($movementSet)) {
                 DB::table('warehouse_movement')->insert($movementSet);
+
+                // DN General ini bisa diposting dengan deliveryDate yang sudah
+                // tercakup OPENING BALANCE aktif (backdate) -- OB harus menyerap efeknya.
+                $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+                foreach ($movementSet as $mv) {
+                    $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
+                    if (abs($signed) < 0.000001) continue;
+
+                    $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv['movement_date']));
+                    if (!$mvDt) continue;
+                    if (!$adjOb->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $mvDt->format('Y-m-d'))) continue;
+
+                    $adjOb->absorbIntoLatestOpeningBalance(
+                        $mv['artikel_code'], $mv['location_number'], $signed, $username,
+                        "Posting DN General {$tDnNumber} bertanggal {$mv['movement_date']} (sudah tercakup OB)"
+                    );
+                }
             }
 
             DB::commit();
@@ -853,6 +881,15 @@ $leadCode = $this->codeKeyMap[$prefix];
 
    DB::beginTransaction();
 try {
+    // GUARD (race-safe): kunci header, re-cek status DI DALAM transaksi supaya
+    // dua request update() bersamaan pada tDnNumber yang sama tidak lolos cek
+    // berbarengan (cegah delete+repost movement dobel).
+    $lockedHdr = DB::table('dn_general_hdr')->where('tdn_number', $tDnNumber)->lockForUpdate()->first();
+    if (!$lockedHdr || $lockedHdr->status !== '1') {
+        DB::rollBack();
+        return response()->json(['status' => 0, 'message' => ['Dokumen gagal diedit — status sudah berubah (sedang diproses request lain).'], 'alert' => 'warning']);
+    }
+
     // 1. Update header
     DB::table('dn_general_hdr')
         ->where('tdn_number', $tDnNumber)
@@ -880,6 +917,28 @@ try {
 
     $affectedArticles = array_unique(array_merge($oldArticleCodes, $newArticleCodes));
 
+    // ── Movement lama mungkin sudah diserap ke OPENING BALANCE -- lepaskan
+    //    efeknya sebelum dihapus, supaya OB tidak tetap tergelembung/tersusut. ──
+    $oldMovementsForOb = DB::table('warehouse_movement')
+        ->where('movement_transnno', $tDnNumber)
+        ->where('movement_type', self::MOVEMENT_TYPE)
+        ->get(['artikel_code', 'location_number', 'movement_min', 'movement_plus', 'movement_date']);
+
+    $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+    foreach ($oldMovementsForOb as $mv) {
+        $signedOrig = (float) $mv->movement_plus - (float) $mv->movement_min;
+        if (abs($signedOrig) < 0.000001) continue;
+
+        $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv->movement_date));
+        if (!$mvDt) continue;
+        if (!$adjOb->obBoundaryFor($mv->artikel_code, $mv->location_number, $mvDt->format('Y-m-d'))) continue;
+
+        $adjOb->absorbIntoLatestOpeningBalance(
+            $mv->artikel_code, $mv->location_number, -$signedOrig, $username,
+            "Movement DN General {$tDnNumber} dihapus (edit) — efek OB dilepas"
+        );
+    }
+
     // ── Hapus movement lama SEPENUHNYA (jejak dibuang total) ──
     DB::table('warehouse_movement')
         ->where('movement_transnno', $tDnNumber)
@@ -892,6 +951,7 @@ try {
     // ── Insert detail + movement BARU dari nol ──
     $dataSet     = [];
     $movementSet = [];
+    $this->lockMovementSequence();
     $seq         = (int) DB::table('warehouse_movement')->max('movement_code');
 
     foreach ($articles as $val) {
@@ -966,6 +1026,22 @@ try {
     DB::table('dn_general_det')->insert($dataSet);
     if (!empty($movementSet)) {
         DB::table('warehouse_movement')->insert($movementSet);
+
+        // Repost baru ini bisa mendarat di tanggal yang sudah tercakup
+        // OPENING BALANCE aktif -- OB harus menyerap efeknya.
+        foreach ($movementSet as $mv) {
+            $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
+            if (abs($signed) < 0.000001) continue;
+
+            $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv['movement_date']));
+            if (!$mvDt) continue;
+            if (!$adjOb->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $mvDt->format('Y-m-d'))) continue;
+
+            $adjOb->absorbIntoLatestOpeningBalance(
+                $mv['artikel_code'], $mv['location_number'], $signed, $username,
+                "Posting ulang DN General {$tDnNumber} bertanggal {$mv['movement_date']} (sudah tercakup OB)"
+            );
+        }
     }
 
     // ── Recalculate stok + last_qty utk tiap artikel terdampak ──
@@ -1030,6 +1106,19 @@ try {
 
     DB::beginTransaction();
 try {
+    // GUARD (race-safe): kunci header, re-cek status DI DALAM transaksi supaya
+    // dua request cancel bersamaan pada dokumen yang sama tidak lolos cek
+    // berbarengan (cegah reverse stok dobel / rename dobel).
+    $lockedHdr = DB::table('dn_general_hdr')->where('id', $id)->lockForUpdate()->first();
+    if (!$lockedHdr || $lockedHdr->status === '4') {
+        DB::rollBack();
+        return redirect()->back()->with([
+            'title'   => "Delete {$this->title}",
+            'alert'   => 'warning',
+            'message' => "{$this->title} {$tDnNumber} gagal — status sudah berubah (sedang diproses request lain).",
+        ]);
+    }
+
     // 1. Header -> CANCELED (status 4), rename nomor
     $rowAffected = DB::table('dn_general_hdr')
         ->where('id', $id)
@@ -1066,6 +1155,28 @@ try {
         ->select('article_code', 'location_number')
         ->get()
         ->unique(fn($d) => $d->article_code . '|' . ($d->location_number ?? $location));
+
+    // 3b. Movement asli mungkin sudah diserap ke OPENING BALANCE -- lepaskan
+    //     efeknya sebelum dihapus permanen.
+    $oldMovementsForOb = DB::table('warehouse_movement')
+        ->where('movement_transnno', $tDnNumber)
+        ->where('movement_type', self::MOVEMENT_TYPE)
+        ->get(['artikel_code', 'location_number', 'movement_min', 'movement_plus', 'movement_date']);
+
+    $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+    foreach ($oldMovementsForOb as $mv) {
+        $signedOrig = (float) $mv->movement_plus - (float) $mv->movement_min;
+        if (abs($signedOrig) < 0.000001) continue;
+
+        $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv->movement_date));
+        if (!$mvDt) continue;
+        if (!$adjOb->obBoundaryFor($mv->artikel_code, $mv->location_number, $mvDt->format('Y-m-d'))) continue;
+
+        $adjOb->absorbIntoLatestOpeningBalance(
+            $mv->artikel_code, $mv->location_number, -$signedOrig, $username,
+            "Movement DN General {$tDnNumber} dibatalkan — efek OB dilepas"
+        );
+    }
 
     // 4. Hapus movement asli SEPENUHNYA — tanpa insert reverse movement
     DB::table('warehouse_movement')
