@@ -4279,6 +4279,16 @@ private function recalculateSnapshot($items, string $recDateYmd): void
     }
 }
 
+/**
+ * Public wrapper — dipakai command pembersihan data (mis. hapus baris
+ * warehouse_movement RECEIVING yang duplikat/basi dari bug unPosting() lama)
+ * yang perlu memicu recalculate tanpa lewat action controller penuh.
+ */
+public function recalculateFromDatePublic(string $articleCode, string $location, string $fromDate): void
+{
+    $this->recalculateFromDate($articleCode, $location, $fromDate);
+}
+
 private function recalculateFromDate(string $articleCode, string $location, string $fromDate): void
 {
     $siteCode = 'HO';
