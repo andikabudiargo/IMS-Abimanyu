@@ -248,6 +248,45 @@
     </div>
 </section>
 
+{{-- ════════════════════════════════════════════════
+     MODAL — drill-down movement (klik angka opening/in/out)
+════════════════════════════════════════════════ --}}
+<div class="modal fade" id="movementDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mvDetailTitle">Detail Pergerakan</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover" style="font-size:.8rem;">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>No. Dokumen</th>
+                                <th class="text-right">Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mvDetailBody"></tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="2" class="text-right">Total</th>
+                                <th class="text-right" id="mvDetailTotal">0.00</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -474,9 +513,15 @@ $(document).ready(function () {
                     varCls = r.variance > 0 ? 'text-success' : (r.variance < 0 ? 'text-danger' : '');
                 }
 
+                let drillLink = function (col, label, val) {
+                    return '<a href="javascript:;" class="mv-drill" data-article="' + r.article_code + '"'
+                        + ' data-alt="' + (r.alt_code || '') + '" data-col="' + col + '" data-label="' + label + '">'
+                        + fmt(val) + '</a>';
+                };
+
                 let moveCells = '';
-                inCols.forEach(function (c) { moveCells += '<td class="text-right">' + fmt(r[c.key]) + '</td>'; });
-                outCols.forEach(function (c) { moveCells += '<td class="text-right">' + fmt(r[c.key]) + '</td>'; });
+                inCols.forEach(function (c) { moveCells += '<td class="text-right">' + drillLink(c.key, c.label, r[c.key]) + '</td>'; });
+                outCols.forEach(function (c) { moveCells += '<td class="text-right">' + drillLink(c.key, c.label, r[c.key]) + '</td>'; });
 
                 body += '<tr>'
                     + '<td class="text-center col-no">' + r.no + '</td>'
@@ -484,7 +529,7 @@ $(document).ready(function () {
                     + '<td class="col-desc">' + (r.article_desc || '-') + '</td>'
                     + '<td>' + (r.supp || '-') + '</td>'
                     + '<td class="text-center">' + (r.uom || '-') + '</td>'
-                    + '<td class="text-right">' + fmt(r.opening) + '</td>'
+                    + '<td class="text-right">' + drillLink('opening', 'Opening Balance', r.opening) + '</td>'
                     + moveCells
                     + '<td class="text-right font-weight-bold">' + fmt(r.closing) + '</td>'
                     + '<td class="text-right">' + (r.qty_sto !== null ? fmt(r.qty_sto) : '<span class="text-muted">-</span>') + '</td>'
@@ -536,6 +581,60 @@ $(document).ready(function () {
 
         if (typeof feather !== 'undefined') feather.replace();
     }
+
+    // ── drill-down: klik angka opening/in/out -> modal daftar dokumen ──
+    $(document).on('click', '.mv-drill', function () {
+        let $el     = $(this);
+        let article = $el.data('article');
+        let col     = $el.data('col');
+        let label   = $el.data('label');
+        let alt     = $el.data('alt');
+
+        let encId = $('#repStoCode').val();
+        let loc   = $('#repLocation').val();
+        if (!encId || !loc) return;
+
+        $('#mvDetailTitle').text(label + (alt ? ' — ' + alt : ''));
+        $('#mvDetailBody').html('<tr><td colspan="3" class="text-center text-muted py-2">Memuat...</td></tr>');
+        $('#mvDetailTotal').text('0.00');
+        $('#movementDetailModal').modal('show');
+
+        $.post("{{ route('stoReport.movementDetail') }}", {
+            config_id     : encId,
+            location_code : loc,
+            article_code  : article,
+            column_key    : col,
+            date_range    : $('#repDate').val()
+        })
+        .done(function (res) {
+            if (!res || res.status !== 1) {
+                $('#mvDetailBody').html('<tr><td colspan="3" class="text-center text-danger py-2">'
+                    + (res && res.message ? res.message : 'Gagal memuat data.') + '</td></tr>');
+                return;
+            }
+            if (!res.rows || res.rows.length === 0) {
+                $('#mvDetailBody').html('<tr><td colspan="3" class="text-center text-muted py-2">Tidak ada baris pergerakan.</td></tr>');
+                return;
+            }
+            let body = '';
+            res.rows.forEach(function (r) {
+                let doc = r.link
+                    ? '<a href="' + r.link + '" target="_blank" rel="noopener">' + (r.doc_number || '-') + '</a>'
+                    : (r.doc_number || '-');
+                body += '<tr>'
+                    + '<td>' + (r.date || '-') + '</td>'
+                    + '<td>' + doc + ' <span class="text-muted" style="font-size:.7rem;">(' + (r.doc_type || '') + ')</span></td>'
+                    + '<td class="text-right">' + fmt(r.qty) + '</td>'
+                    + '</tr>';
+            });
+            $('#mvDetailBody').html(body);
+            $('#mvDetailTotal').text(fmt(res.total));
+        })
+        .fail(function (xhr) {
+            let msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan.';
+            $('#mvDetailBody').html('<tr><td colspan="3" class="text-center text-danger py-2">' + msg + '</td></tr>');
+        });
+    });
 
     // ── reset ──
     function resetDisplay() {

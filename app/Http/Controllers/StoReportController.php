@@ -194,6 +194,269 @@ class StoReportController extends Controller
     }
 
     // ══════════════════════════════════════════════
+    // MOVEMENT DETAIL (drill-down) — dipakai modal "klik angka opening/in/out
+    // di tabel report -> lihat daftar dokumen di baliknya". Pakai filter
+    // penuh yang sama dengan aggregateMovements(), supaya jumlah baris di
+    // modal SELALU sinkron dengan angka yang ditampilkan di sel tabel.
+    // ══════════════════════════════════════════════
+    public function movementDetail(Request $request)
+    {
+        $configId     = Crypt::decryptString($request->config_id);
+        $locationCode = $request->location_code;
+        $articleCode  = $request->article_code;
+        $columnKey    = $request->column_key;
+
+        if (!in_array($locationCode, $this->supportedLocations)) {
+            return response()->json(['status' => 0, 'message' => 'Lokasi ini belum didukung format reportnya.'], 422);
+        }
+
+        $config = DB::table('sto_config')->where('config_id', $configId)->first();
+        if (!$config) {
+            return response()->json(['status' => 0, 'message' => 'STO tidak ditemukan.'], 404);
+        }
+
+        $mapping = DB::table('sto_config_mapping')
+            ->where('config_id', $configId)
+            ->where('target_type', 'LOCATION')
+            ->where('target_ref', $locationCode)
+            ->first();
+        if (!$mapping) {
+            return response()->json(['status' => 0, 'message' => 'Lokasi tidak terdaftar pada STO ini.'], 404);
+        }
+
+        $family = $this->resolveLocationFamily($locationCode);
+
+        [$dateFrom, $dateTo, $openingDate] = $this->resolveReportDateRange($config->periode, $mapping->sto_date ?? null);
+
+        if ($request->filled('date_range')) {
+            $parts = explode(' to ', $request->date_range);
+            $from  = trim($parts[0] ?? '');
+            $to    = trim($parts[1] ?? $from);
+            if ($from && $to) {
+                $dateFrom = $from;
+                $dateTo   = $to;
+                $dt = \DateTime::createFromFormat('d-m-Y', $from);
+                if ($dt) {
+                    $openingDate = date('Y-m-d', strtotime($dt->format('Y-m-d') . ' -1 day'));
+                }
+            }
+        }
+
+        if ($columnKey === 'opening') {
+            $rows  = $this->buildOpeningBreakdown($articleCode, $family, $openingDate, $configId);
+            $label = 'Opening Balance';
+        } else {
+            $groupConfig = $this->getGroupConfig($locationCode);
+            $def = $groupConfig['in'][$columnKey] ?? $groupConfig['out'][$columnKey] ?? null;
+            if (!$def) {
+                return response()->json(['status' => 0, 'message' => 'Kolom tidak dikenali.'], 422);
+            }
+            $types = array_map('strtoupper', $def['types']);
+            $rows  = $this->fetchFilteredMovementRows($family, $articleCode, $dateFrom, $dateTo, $types, "wm.{$def['qty']}");
+            $label = $def['label'];
+        }
+
+        return response()->json([
+            'status' => 1,
+            'label'  => $label,
+            'rows'   => $rows,
+            'total'  => round(array_sum(array_column($rows, 'qty')), 2),
+        ]);
+    }
+
+    /**
+     * Breakdown "opening": baris anchor OPENING BALANCE terakhir (kalau ada,
+     * di lokasi mana pun dalam family, pada/sebelum $openingDate) sebagai
+     * titik awal, lalu semua movement (filter penuh, SEMUA tipe -- bukan
+     * cuma tipe yang dikonfigurasi report ini) sejak SEHARI SETELAH anchor
+     * itu sampai $openingDate. Ini meniru cara get_last_qty_new menghitung
+     * (anchor + net movement sesudahnya). Kalau tidak ada anchor sama
+     * sekali, daftar dari awal waktu -- best-effort rekonstruksi, karena
+     * get_last_qty_new sendiri hidup di database dan tidak bisa diverifikasi
+     * langsung dari sini.
+     *
+     * PENTING: harus exclude ADJUSTMENT/CANCEL ADJUSTMENT dari periode STO
+     * yang sedang berjalan -- SAMA PERSIS dengan pengecualian yang sudah
+     * diterapkan HasStoLocationFamily::sumAdjustmentDeltaForPeriode() saat
+     * menghitung angka opening yang ditampilkan di tabel. Tanpa ini, modal
+     * bisa menampilkan total yang tidak sinkron dengan sel Opening Balance
+     * (kasus nyata: adjustment periode berjalan biasanya di-tanggal-kan sama
+     * dengan $openingDate sendiri, jadi ikut kequery kalau tidak dibuang).
+     */
+    private function buildOpeningBreakdown($articleCode, array $family, $openingDate, $configId)
+    {
+        $anchor = DB::table('stock_adjustment_hdr as h')
+            ->join('stock_adjustment_det as d', 'd.adj_code', '=', 'h.adj_code')
+            ->where('h.adj_type', 'OPENING BALANCE')
+            ->where('h.status', '4') // ST_POSTED, lihat StockAdjustmentController
+            ->whereIn('h.location_code', $family)
+            ->where('d.article_code', $articleCode)
+            ->whereRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') <= ?", [$openingDate])
+            ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC")
+            ->select('h.id', 'h.adj_code', 'h.adj_date', 'd.stock_after')
+            ->first();
+
+        $rows    = [];
+        $movFrom = '01-01-2000';
+
+        if ($anchor) {
+            $rows[] = [
+                'date'       => $anchor->adj_date,
+                'doc_number' => $anchor->adj_code,
+                'doc_type'   => 'OPENING BALANCE',
+                'qty'        => round((float) $anchor->stock_after, 2),
+                'link'       => route('stockAdjustment.show', ['id' => Crypt::encryptString($anchor->id)]),
+            ];
+
+            $anchorDt = \DateTime::createFromFormat('d-m-Y', trim((string) $anchor->adj_date));
+            if ($anchorDt) {
+                $movFrom = $anchorDt->modify('+1 day')->format('d-m-Y');
+            }
+        }
+
+        $openingDt = \DateTime::createFromFormat('Y-m-d', $openingDate);
+        $movTo     = $openingDt ? $openingDt->format('d-m-Y') : date('d-m-Y');
+
+        $movRows = $this->fetchFilteredMovementRows($family, $articleCode, $movFrom, $movTo, null, 'wm.movement_plus - wm.movement_min');
+
+        $periode = $this->resolveStoPeriode($configId);
+        if ($periode) {
+            $excludedAdjCodes = DB::table('stock_adjustment_hdr as h')
+                ->whereIn('h.location_code', $family)
+                ->where('h.periode', $periode['month'])
+                ->whereRaw("RIGHT(h.adj_date, 4) = ?", [(string) $periode['year']])
+                ->pluck('h.adj_code')
+                ->all();
+
+            if (!empty($excludedAdjCodes)) {
+                $movRows = array_values(array_filter($movRows, function ($r) use ($excludedAdjCodes) {
+                    return !in_array($r['doc_number'], $excludedAdjCodes, true);
+                }));
+            }
+        }
+
+        return array_merge($rows, $movRows);
+    }
+
+    /**
+     * Ambil baris movement mentah (sudah difilter penuh: exclude
+     * CANCEL/DELETE/REVISI/RETURN-CANCEL/RETURN-REVERSE + status dokumen
+     * induk != CANCELED, sama persis dengan aggregateMovements()) untuk satu
+     * artikel. $types null = semua tipe movement (dipakai untuk breakdown
+     * opening); $qtyExpr = ekspresi SQL untuk qty per baris (nama kolom
+     * movement_plus/movement_min biasa untuk kolom IN/OUT, atau
+     * "movement_plus - movement_min" untuk versi signed/opening).
+     */
+    private function fetchFilteredMovementRows(array $family, $articleCode, $dateFrom, $dateTo, ?array $types, string $qtyExpr): array
+    {
+        $bind = ['dateFrom' => $dateFrom, 'dateTo' => $dateTo, 'article' => $articleCode];
+
+        $locPh = [];
+        foreach (array_values($family) as $i => $loc) {
+            $key = "loc{$i}";
+            $bind[$key] = $loc;
+            $locPh[] = ":{$key}";
+        }
+
+        $typeFilter = '';
+        if ($types) {
+            $typePh = [];
+            foreach ($types as $i => $t) {
+                $key = "type{$i}";
+                $bind[$key] = strtoupper($t);
+                $typePh[] = ":{$key}";
+            }
+            $typeFilter = "AND UPPER(wm.movement_type) IN (" . implode(',', $typePh) . ")";
+        }
+
+        $sql = "
+        WITH ledger AS (
+            SELECT wm.movement_code, wm.movement_date, wm.movement_transnno, wm.movement_type,
+                   ($qtyExpr) as qty,
+                   CASE wm.movement_type
+                       WHEN 'RECEIVING'        THEN (SELECT id FROM receiving_hdr         WHERE rec_number      = wm.movement_transnno LIMIT 1)
+                       WHEN 'TRANSFER'         THEN (SELECT id FROM transfer_stock_hdr    WHERE tr_number       = wm.movement_transnno LIMIT 1)
+                       WHEN 'SUPPLY'           THEN (SELECT id FROM transfer_stock_hdr    WHERE tr_number       = wm.movement_transnno LIMIT 1)
+                       WHEN 'DELIVERY'         THEN (SELECT id FROM delivery_hdr          WHERE delivery_number = wm.movement_transnno LIMIT 1)
+                       WHEN 'RETURN'           THEN (SELECT id FROM dn_return_hdr         WHERE return_number   = wm.movement_transnno LIMIT 1)
+                       WHEN 'REPLACEMENT'      THEN (SELECT id FROM dn_replace_hdr        WHERE replace_number  = wm.movement_transnno LIMIT 1)
+                       WHEN 'DN SEMENTARA'     THEN (SELECT id FROM temporary_dn_hdr      WHERE tdn_number      = wm.movement_transnno LIMIT 1)
+                       WHEN 'DN UMUM'          THEN (SELECT id FROM dn_general_hdr        WHERE tdn_number      = wm.movement_transnno LIMIT 1)
+                       WHEN 'SUPPLIER RETURN'  THEN (SELECT id FROM supplier_return_hdr   WHERE return_number   = wm.movement_transnno LIMIT 1)
+                       WHEN 'SUPPLIER REPLACE' THEN (SELECT id FROM supplier_replace_hdr  WHERE replace_number  = wm.movement_transnno LIMIT 1)
+                       ELSE NULL
+                   END AS doc_id,
+                   CASE wm.movement_type
+                       WHEN 'RECEIVING'    THEN (SELECT status FROM receiving_hdr        WHERE rec_number      = wm.movement_transnno LIMIT 1)
+                       WHEN 'TRANSFER'     THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = wm.movement_transnno LIMIT 1)
+                       WHEN 'SUPPLY'       THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = wm.movement_transnno LIMIT 1)
+                       WHEN 'DELIVERY'     THEN (SELECT status FROM delivery_hdr         WHERE delivery_number = wm.movement_transnno LIMIT 1)
+                       WHEN 'RETURN'       THEN (SELECT status FROM dn_return_hdr        WHERE return_number   = wm.movement_transnno LIMIT 1)
+                       WHEN 'REPLACEMENT'  THEN (SELECT status FROM dn_replace_hdr       WHERE replace_number  = wm.movement_transnno LIMIT 1)
+                       WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = wm.movement_transnno LIMIT 1)
+                       WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr       WHERE tdn_number      = wm.movement_transnno LIMIT 1)
+                       ELSE NULL
+                   END AS hdr_status
+            FROM warehouse_movement wm
+            WHERE wm.artikel_code = :article
+              AND wm.location_number IN (" . implode(',', $locPh) . ")
+              AND TO_DATE(wm.movement_date,'DD-MM-YYYY') BETWEEN TO_DATE(:dateFrom,'DD-MM-YYYY') AND TO_DATE(:dateTo,'DD-MM-YYYY')
+              $typeFilter
+              AND wm.movement_type NOT ILIKE 'CANCEL %'
+              AND wm.movement_type NOT ILIKE 'DELETE%'
+              AND wm.movement_type NOT ILIKE 'REVISI %'
+              AND wm.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
+        )
+        SELECT movement_date, movement_transnno, movement_type, qty, doc_id
+        FROM ledger
+        WHERE hdr_status IS DISTINCT FROM '5'
+          AND COALESCE(qty,0) <> 0
+        ORDER BY TO_DATE(movement_date,'DD-MM-YYYY'), movement_code";
+
+        $raw = DB::select($sql, $bind);
+
+        return collect($raw)->map(function ($r) {
+            return [
+                'date'       => $r->movement_date,
+                'doc_number' => $r->movement_transnno,
+                'doc_type'   => $r->movement_type,
+                'qty'        => round((float) $r->qty, 2),
+                'link'       => $this->documentLink($r->movement_type, $r->doc_id),
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * URL detail dokumen per movement_type, dipakai modal drill-down supaya
+     * nomor dokumen bisa jadi hyperlink (buka tab baru). null kalau tipe
+     * movement-nya tidak punya halaman detail yang dikenal, atau doc_id-nya
+     * tidak ketemu (mis. baris movement lama yang dokumen induknya sudah
+     * tidak ada).
+     */
+    private function documentLink($movementType, $docId)
+    {
+        if (!$docId) return null;
+
+        $map = [
+            'RECEIVING'        => 'receiving.show',
+            'TRANSFER'         => 'transferStock.show',
+            'SUPPLY'           => 'transferStock.show',
+            'DELIVERY'         => 'delivery.show',
+            'RETURN'           => 'dnReturn.show',
+            'REPLACEMENT'      => 'dnReplace.show',
+            'DN SEMENTARA'     => 'suratJalanSementara.show',
+            'DN UMUM'          => 'dnGeneral.show',
+            'SUPPLIER RETURN'  => 'supplierReturn.show',
+            'SUPPLIER REPLACE' => 'supplierReplace.show',
+        ];
+
+        $routeName = $map[$movementType] ?? null;
+        if (!$routeName) return null;
+
+        return route($routeName, ['id' => Crypt::encryptString($docId)]);
+    }
+
+    // ══════════════════════════════════════════════
     // AGGREGATE MOVEMENT — family-aware (whereIn family, bukan single location).
     //
     // FILTER PENUH (disamakan dengan ArticleController::movement2()): exclude
