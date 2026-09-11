@@ -801,9 +801,11 @@ Route::prefix('supplier-replace')->group(function () {
 
 Route::get('location',               'LocationController@index')->name('location.index');
 Route::get('location/list',          'LocationController@list')->name('location.list');
-Route::get('location/children',      'LocationController@children');           // ?code=012
+Route::get('location/create',        'LocationController@create')->name('location.create');
 Route::post('location/store',        'LocationController@store')->name('location.store');
-Route::delete('location/destroy/{id}','LocationController@destroy');
+Route::get('location/edit',          'LocationController@edit')->name('location.edit');
+Route::post('location/update',       'LocationController@update')->name('location.update');
+Route::post('location/delete',       'LocationController@destroy')->name('location.destroy');
 
 	/* new transfer in and out */
 
