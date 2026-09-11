@@ -170,7 +170,9 @@ class StockAdjustmentController extends Controller
             'subtitle'    => $this->title,
             'kolom'       => $this->getTableColumn(),
             'kolomDetail' => $this->getTableColumnDetail(),
-            'locations'   => DB::table('stock_location_master')->orderBy('location_name')->get(),
+            // Lokasi child (booth 5A/5B/5C dst) di-fold ke parent-nya dan tidak
+            // pernah punya dokumen adjustment sendiri -- jangan tampilkan di filter.
+            'locations'   => DB::table('stock_location_master')->whereNull('parent_location')->orderBy('location_name')->get(),
             'status'      => self::STATUS_LABEL,
             'types'       => self::ADJ_TYPES,
         ]);
@@ -1569,6 +1571,11 @@ class StockAdjustmentController extends Controller
     private function allowedLocations()
     {
         return DB::table('stock_location_master')
+            // Lokasi child (booth 5A/5B/5C dst, di-fold ke parent-nya) tidak boleh
+            // dipilih untuk adjustment/OPENING BALANCE sendiri -- stoknya tercatat
+            // di lokasi parent, bukan di child. Hanya lokasi parent (accounting pool)
+            // yang boleh diadjust.
+            ->whereNull('parent_location')
             ->when(!$this->isPrivileged(), fn($q) => $q->whereIn('dept_code', $this->userDepts()))
             ->orderBy('location_name')
             ->get();
