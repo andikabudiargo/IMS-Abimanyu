@@ -104,13 +104,20 @@ class FixDuplicateReceivingMovement extends Command
 
             $running  = 0.0;
             $keep     = [];
-            $resolved = false;
+            // Kalau target 0, "sudah pas" tercapai dari AWAL (tanpa perlu baris apa
+            // pun) -- BUG lama: resolved cuma di-set TRUE di dalam loop SETELAH
+            // nambah baris ke $keep, jadi target=0 tidak pernah ke-set resolved
+            // (loop langsung break di baris pertama sebelum sempat masuk situ).
+            // Akibatnya SEMUA grup "artikel sudah dihapus total dari dokumen"
+            // (seharusnya=0) salah masuk daftar ambigu, padahal jelas: semua baris
+            // non-nol yang ada memang basi semua.
+            $resolved = abs($target) < 0.0001;
 
             foreach ($rows as $r) {
                 $qty = (float) $r->movement_plus;
                 if ($qty <= 0) continue; // baris qty=0 tidak dihitung/disentuh
 
-                if (abs($running - $target) < 0.0001) {
+                if ($resolved) {
                     // target sudah tercapai sebelum baris (lebih lama) ini -> sisanya basi
                     break;
                 }
