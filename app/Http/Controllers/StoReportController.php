@@ -243,7 +243,7 @@ class StoReportController extends Controller
         }
 
         if ($columnKey === 'opening') {
-            $rows  = $this->buildOpeningBreakdown($articleCode, $family, $openingDate, $configId);
+            $rows  = $this->buildOpeningBreakdown($articleCode, $family, $openingDate, $configId, $locationCode);
             $label = 'Opening Balance';
         } else {
             $groupConfig = $this->getGroupConfig($locationCode);
@@ -265,25 +265,28 @@ class StoReportController extends Controller
     }
 
     /**
-     * Breakdown "opening": baris anchor OPENING BALANCE terakhir (kalau ada,
-     * di lokasi mana pun dalam family, pada/sebelum $openingDate) sebagai
-     * titik awal, lalu semua movement (filter penuh, SEMUA tipe -- bukan
-     * cuma tipe yang dikonfigurasi report ini) sejak SEHARI SETELAH anchor
-     * itu sampai $openingDate. Ini meniru cara get_last_qty_new menghitung
-     * (anchor + net movement sesudahnya). Kalau tidak ada anchor sama
-     * sekali, daftar dari awal waktu -- best-effort rekonstruksi, karena
-     * get_last_qty_new sendiri hidup di database dan tidak bisa diverifikasi
-     * langsung dari sini.
+     * Breakdown "opening" — SENGAJA TIDAK merekonstruksi manual dari movement
+     * (versi lama sempat begitu, tapi malah menampilkan baris movement basi/
+     * phantom yang bikin bingung -- lihat diskusi di sesi ini). Aturannya
+     * sekarang cuma dua kondisi:
      *
-     * PENTING: harus exclude ADJUSTMENT/CANCEL ADJUSTMENT dari periode STO
-     * yang sedang berjalan -- SAMA PERSIS dengan pengecualian yang sudah
-     * diterapkan HasStoLocationFamily::sumAdjustmentDeltaForPeriode() saat
-     * menghitung angka opening yang ditampilkan di tabel. Tanpa ini, modal
-     * bisa menampilkan total yang tidak sinkron dengan sel Opening Balance
-     * (kasus nyata: adjustment periode berjalan biasanya di-tanggal-kan sama
-     * dengan $openingDate sendiri, jadi ikut kequery kalau tidak dibuang).
+     * 1. Ada dokumen OPENING BALANCE yang POSTED dan tanggalnya PERSIS SAMA
+     *    dengan $openingDate -> tampilkan SATU baris itu saja (dokumen ini
+     *    memang didesain selalu up-to-date lewat absorbIntoLatestOpeningBalance()
+     *    di StockAdjustmentController, jadi stock_after-nya sudah final,
+     *    tidak perlu tambahan apa pun).
+     * 2. Kalau tidak ada (baik karena tidak ada OB sama sekali, atau OB yang
+     *    ada tanggalnya lebih tua / ada gap) -> JANGAN coba hitung manual.
+     *    Cukup tampilkan satu baris berisi kode artikel yang jadi hyperlink
+     *    ke halaman stock movement (WarehouseControllerv2::apiStockMovement,
+     *    sumber yang sama dengan ArticleController::movement2 -- lebih
+     *    teruji), di-deep-link supaya otomatis terbuka & ter-filter dari
+     *    tanggal 1 sampai akhir bulan periode sebelumnya (satu bulan penuh
+     *    sebelum $openingDate). Qty yang ditampilkan tetap angka get_last_qty_new
+     *    yang sama seperti di sel tabel (cuma informasional, bukan hasil
+     *    penjumlahan baris-baris di modal ini).
      */
-    private function buildOpeningBreakdown($articleCode, array $family, $openingDate, $configId)
+    private function buildOpeningBreakdown($articleCode, array $family, $openingDate, $configId, $locationCode)
     {
         $anchor = DB::table('stock_adjustment_hdr as h')
             ->join('stock_adjustment_det as d', 'd.adj_code', '=', 'h.adj_code')
@@ -291,51 +294,48 @@ class StoReportController extends Controller
             ->where('h.status', '4') // ST_POSTED, lihat StockAdjustmentController
             ->whereIn('h.location_code', $family)
             ->where('d.article_code', $articleCode)
-            ->whereRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') <= ?", [$openingDate])
-            ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC")
+            ->whereRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') = TO_DATE(?,'YYYY-MM-DD')", [$openingDate])
             ->select('h.id', 'h.adj_code', 'h.adj_date', 'd.stock_after')
             ->first();
 
-        $rows    = [];
-        $movFrom = '01-01-2000';
-
         if ($anchor) {
-            $rows[] = [
+            return [[
                 'date'       => $anchor->adj_date,
                 'doc_number' => $anchor->adj_code,
                 'doc_type'   => 'OPENING BALANCE',
                 'qty'        => round((float) $anchor->stock_after, 2),
                 'link'       => route('stockAdjustment.show', ['id' => Crypt::encryptString($anchor->id)]),
-            ];
-
-            $anchorDt = \DateTime::createFromFormat('d-m-Y', trim((string) $anchor->adj_date));
-            if ($anchorDt) {
-                $movFrom = $anchorDt->modify('+1 day')->format('d-m-Y');
-            }
+            ]];
         }
 
-        $openingDt = \DateTime::createFromFormat('Y-m-d', $openingDate);
-        $movTo     = $openingDt ? $openingDt->format('d-m-Y') : date('d-m-Y');
+        $anchorLoc  = $this->resolveLocationAnchor($locationCode);
+        $openingQty = round((float) $this->getOpeningBalance($articleCode, $openingDate, $anchorLoc, $configId), 2);
 
-        $movRows = $this->fetchFilteredMovementRows($family, $articleCode, $movFrom, $movTo, null, 'wm.movement_plus - wm.movement_min');
+        $openingDt  = \DateTime::createFromFormat('Y-m-d', $openingDate);
+        $monthStart = $openingDt ? $openingDt->format('01-m-Y') : null;
+        $monthEnd   = $openingDt ? $openingDt->format('d-m-Y') : null;
 
-        $periode = $this->resolveStoPeriode($configId);
-        if ($periode) {
-            $excludedAdjCodes = DB::table('stock_adjustment_hdr as h')
-                ->whereIn('h.location_code', $family)
-                ->where('h.periode', $periode['month'])
-                ->whereRaw("RIGHT(h.adj_date, 4) = ?", [(string) $periode['year']])
-                ->pluck('h.adj_code')
-                ->all();
+        $article = DB::table('article')->where('article_code', $articleCode)
+            ->select('article_alternative_code', 'article_desc')->first();
+        $altCode = $article->article_alternative_code ?? $articleCode;
 
-            if (!empty($excludedAdjCodes)) {
-                $movRows = array_values(array_filter($movRows, function ($r) use ($excludedAdjCodes) {
-                    return !in_array($r['doc_number'], $excludedAdjCodes, true);
-                }));
-            }
-        }
+        $link = route('warehouse.articlev2', [
+            'code'          => $altCode,
+            'real_code'     => $articleCode,
+            'location'      => $anchorLoc,
+            'open_movement' => 1,
+            'date_from'     => $monthStart,
+            'date_to'       => $monthEnd,
+            'desc'          => $article->article_desc ?? '',
+        ]);
 
-        return array_merge($rows, $movRows);
+        return [[
+            'date'       => null,
+            'doc_number' => $altCode,
+            'doc_type'   => 'Tidak ada OB — lihat movement sistem',
+            'qty'        => $openingQty,
+            'link'       => $link,
+        ]];
     }
 
     /**
