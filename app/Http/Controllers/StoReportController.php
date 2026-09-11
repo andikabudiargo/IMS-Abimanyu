@@ -194,7 +194,24 @@ class StoReportController extends Controller
     }
 
     // ══════════════════════════════════════════════
-    // AGGREGATE MOVEMENT — BARU: family-aware (whereIn family, bukan single location)
+    // AGGREGATE MOVEMENT — family-aware (whereIn family, bukan single location).
+    //
+    // FILTER PENUH (disamakan dengan ArticleController::movement2()): exclude
+    // bukan cuma 'CANCEL %', tapi juga 'DELETE%'/'REVISI %'/'RETURN-CANCEL'/
+    // 'RETURN-REVERSE', DAN baris yang dokumen induknya SAAT INI berstatus
+    // CANCELED (status '5') walau movement_type-nya sendiri masih normal.
+    //
+    // SENGAJA TIDAK pakai dedup "keep baris terakhir per (artikel,dokumen,
+    // lokasi)" ala movement2/CheckStockAnomaly — itu punya bug terbukti:
+    // salah membuang baris yang SAH kalau satu dokumen punya >1 baris untuk
+    // artikel yang sama di lokasi yang sama (mis. BOM konsumsi RM yang sama
+    // 2x dalam satu Actual Loading -> under-count). Modul-modul transaksi
+    // sekarang (Receiving/SupplierReturn/SupplierReplace/TransferStock/
+    // Delivery/ActualLoading/DnReturn/DnReplace/TemporaryDn/DnGeneral) sudah
+    // dibetulkan supaya edit/revisi MENGHAPUS baris movement lama alih-alih
+    // menyisakannya, jadi SUM polos di sini sudah aman untuk data baru; sisa
+    // baris basi dari data historis lama tertangani lewat filter status
+    // dokumen (hdr_status) di bawah.
     // ══════════════════════════════════════════════
     private function aggregateMovements(array $family, $dateFrom, $dateTo, $locationCode)
     {
@@ -202,38 +219,81 @@ class StoReportController extends Controller
         // karena itu yang menentukan kolom in/out mana yang relevan
         $config = $this->getGroupConfig($locationCode);
 
-        $query = DB::table('warehouse_movement as wm')->select('wm.artikel_code');
+        $selectParts = [];
+        $bind        = ['dateFrom' => $dateFrom, 'dateTo' => $dateTo];
+        $bindIdx     = 0;
 
         foreach (['in', 'out'] as $direction) {
             foreach (($config[$direction] ?? []) as $colKey => $def) {
-                $qtyField      = $def['qty'];
-                $types         = array_map('strtoupper', $def['types']);
-                $placeholders  = implode(',', array_fill(0, count($types), '?'));
+                $qtyField = $def['qty'];
+                $types    = array_map('strtoupper', $def['types']);
 
-                $query->selectRaw(
-                    "SUM(CASE WHEN UPPER(wm.movement_type) IN ($placeholders) AND COALESCE(wm.$qtyField,0) > 0
-                         THEN wm.$qtyField ELSE 0 END) as $colKey",
-                    $types
-                );
+                $placeholders = [];
+                foreach ($types as $t) {
+                    $key = 't' . $bindIdx++;
+                    $bind[$key] = $t;
+                    $placeholders[] = ":{$key}";
+                }
+                $inList = implode(',', $placeholders);
+
+                $selectParts[] = "SUM(CASE WHEN UPPER(kept.movement_type) IN ($inList) AND COALESCE(kept.$qtyField,0) > 0
+                         THEN kept.$qtyField ELSE 0 END) as $colKey";
             }
         }
 
-        $query->whereIn('wm.location_number', $family) // ← BARU: dulu ->where('wm.location_number', $locationCode)
-            ->where('wm.movement_type', 'not ilike', 'CANCEL %')
-            ->whereRaw(
-                "TO_DATE(wm.movement_date,'DD-MM-YYYY') BETWEEN TO_DATE(?,'DD-MM-YYYY') AND TO_DATE(?,'DD-MM-YYYY')",
-                [$dateFrom, $dateTo]
-            )
-            ->groupBy('wm.artikel_code');
+        if (empty($selectParts)) {
+            return collect();
+        }
 
-        return $query->get()->keyBy('artikel_code');
+        $locPlaceholders = [];
+        foreach (array_values($family) as $i => $loc) {
+            $key = 'loc' . $i;
+            $bind[$key] = $loc;
+            $locPlaceholders[] = ":{$key}";
+        }
+        $locIn = implode(',', $locPlaceholders);
+
+        $sql = "
+        WITH ledger AS (
+            SELECT wm.artikel_code, wm.movement_type, wm.movement_plus, wm.movement_min,
+                CASE wm.movement_type
+                    WHEN 'RECEIVING'    THEN (SELECT status FROM receiving_hdr        WHERE rec_number      = wm.movement_transnno LIMIT 1)
+                    WHEN 'TRANSFER'     THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = wm.movement_transnno LIMIT 1)
+                    WHEN 'SUPPLY'       THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = wm.movement_transnno LIMIT 1)
+                    WHEN 'DELIVERY'     THEN (SELECT status FROM delivery_hdr         WHERE delivery_number = wm.movement_transnno LIMIT 1)
+                    WHEN 'RETURN'       THEN (SELECT status FROM dn_return_hdr        WHERE return_number   = wm.movement_transnno LIMIT 1)
+                    WHEN 'REPLACEMENT'  THEN (SELECT status FROM dn_replace_hdr       WHERE replace_number  = wm.movement_transnno LIMIT 1)
+                    WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = wm.movement_transnno LIMIT 1)
+                    WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr       WHERE tdn_number      = wm.movement_transnno LIMIT 1)
+                    ELSE NULL
+                END AS hdr_status
+            FROM warehouse_movement wm
+            WHERE wm.location_number IN ($locIn)
+              AND TO_DATE(wm.movement_date,'DD-MM-YYYY') BETWEEN TO_DATE(:dateFrom,'DD-MM-YYYY') AND TO_DATE(:dateTo,'DD-MM-YYYY')
+              AND wm.movement_type NOT ILIKE 'CANCEL %'
+              AND wm.movement_type NOT ILIKE 'DELETE%'
+              AND wm.movement_type NOT ILIKE 'REVISI %'
+              AND wm.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
+        ),
+        kept AS (
+            SELECT * FROM ledger WHERE hdr_status IS DISTINCT FROM '5'
+        )
+        SELECT kept.artikel_code, " . implode(', ', $selectParts) . "
+        FROM kept
+        GROUP BY kept.artikel_code";
+
+        return collect(DB::select($sql, $bind))->keyBy('artikel_code');
     }
 
     // ══════════════════════════════════════════════
-    // AGGREGATE STO RESULTS — BARU: family-aware.
-    // Dulu hanya baca sto_dtl dari sto_hdr yang h.target_ref = $locationCode.
-    // Sekarang ikut semua sibling mapping dalam config yang sama (child+parent),
-    // sama seperti syncArticleStatus()/collectFamilyDtlRowsByLocation() di STO.
+    // AGGREGATE STO RESULTS — family-aware.
+    // Ikut semua sibling mapping dalam config yang sama (child+parent), sama
+    // seperti syncArticleStatus()/collectFamilyDtlRowsByLocation() di STO.
+    //
+    // Hanya ambil qty hasil hitung fisik (qty_counter1/2/3) dari sto_dtl --
+    // TIDAK lagi ambil count_status. Match/tidaknya sekarang dihitung sendiri
+    // oleh StoReportController berdasarkan qty ini vs closing versi report
+    // sendiri (lihat buildReport()), bukan dipinjam dari verdict StockCount.
     // ══════════════════════════════════════════════
     private function aggregateStoResults($configId, array $family)
     {
@@ -249,7 +309,7 @@ class StoReportController extends Controller
             ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
             ->whereIn('h.mapping_id', $siblingMappingIds)
             ->whereNotNull('d.article_code')
-            ->select('d.article_code as alt_code', 'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3', 'd.count_status')
+            ->select('d.article_code as alt_code', 'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3')
             ->get();
 
         if ($rows->isEmpty()) return collect();
@@ -264,11 +324,7 @@ class StoReportController extends Controller
             elseif ($hasC2) $qty = $items->sum('qty_counter2');
             elseif ($hasC3) $qty = $items->sum('qty_counter3');
 
-            $priority = ['INCOMPLETE' => 0, 'NOT MATCH' => 1, 'RECOUNT' => 2, 'MATCH' => 3];
-            $worst = $items->pluck('count_status')->unique()
-                ->sortBy(fn($s) => $priority[$s] ?? 99)->first() ?? 'INCOMPLETE';
-
-            return (object) ['qty_sto' => $qty, 'count_status' => $worst];
+            return (object) ['qty_sto' => $qty];
         });
     }
 
@@ -512,19 +568,23 @@ class StoReportController extends Controller
                 continue;
             }
 
-            $stoQty    = $stoRow ? round((float) $stoRow->qty_sto, 2) : null;
-            $stoStatus = $stoRow ? ($stoRow->count_status ?? 'INCOMPLETE') : 'INCOMPLETE';
-            $variance  = $stoQty !== null ? round($stoQty - $closing, 2) : null;
+            // ── Status dihitung SENDIRI oleh STO Report: qty hasil hitung fisik
+            //    (qty_sto, dari sto_dtl) dibandingkan langsung dengan closing
+            //    versi report ini sendiri -- BUKAN lagi dipinjam dari
+            //    sto_dtl.count_status (verdict StockCount, yang bisa berbeda
+            //    basis perhitungannya dari closing yang ditampilkan di sini).
+            $stoQty   = ($stoRow && $stoRow->qty_sto !== null) ? round((float) $stoRow->qty_sto, 2) : null;
+            $variance = $stoQty !== null ? round($stoQty - $closing, 2) : null;
 
-            $accurate = false;
-            if ($stoStatus === 'MATCH') {
-                $accurate = true;
-            } elseif ($stoStatus === 'RECOUNT' && $variance !== null) {
-                if ($closing == 0) {
-                    $accurate = ($stoQty == 0);
-                } else {
-                    $accurate = (abs($variance) / abs($closing) * 100) <= $this->accuracyThresholdPercent;
-                }
+            if ($stoQty === null) {
+                $stoStatus = 'INCOMPLETE';
+                $accurate  = false;
+            } elseif ($closing == 0) {
+                $accurate  = ($stoQty == 0);
+                $stoStatus = $accurate ? 'MATCH' : 'NOT MATCH';
+            } else {
+                $accurate  = (abs($variance) / abs($closing) * 100) <= $this->accuracyThresholdPercent;
+                $stoStatus = $accurate ? 'MATCH' : 'NOT MATCH';
             }
 
             $totalArtikel++;
