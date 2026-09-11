@@ -178,6 +178,22 @@ class FixDuplicateReceivingMovement extends Command
 
         DB::beginTransaction();
         try {
+            // ── BACKUP dulu sebelum hapus. CREATE TABLE + INSERT ini ada DI
+            //    DALAM transaksi yang sama dengan delete+recalculate di bawah
+            //    (Postgres: DDL transaksional) -- jadi kalau ADA yang gagal,
+            //    backup ini ikut ke-rollback juga, tapi itu aman: artinya
+            //    delete-nya JUGA batal, jadi tidak ada data yang hilang tanpa
+            //    backup. Backup ini baru benar-benar "hidup" begitu seluruh
+            //    transaksi commit -- itulah momen delete-nya juga permanen. ──
+            if (!\Illuminate\Support\Facades\Schema::hasTable('warehouse_movement_backup_dup_receiving')) {
+                DB::statement('CREATE TABLE warehouse_movement_backup_dup_receiving AS SELECT * FROM warehouse_movement WHERE 1=0');
+            }
+
+            $backupRows = DB::table('warehouse_movement')->whereIn('movement_code', $toDelete)->get();
+            DB::table('warehouse_movement_backup_dup_receiving')->insert(
+                $backupRows->map(fn($r) => (array) $r)->all()
+            );
+
             DB::table('warehouse_movement')->whereIn('movement_code', $toDelete)->delete();
 
             /** @var ReceivingController $receivingController */
@@ -189,7 +205,7 @@ class FixDuplicateReceivingMovement extends Command
             }
 
             DB::commit();
-            $this->info('Selesai. ' . count($toDelete) . ' baris dihapus, ' . count($affectedForRecalc) . ' kombinasi artikel+lokasi di-recalculate.');
+            $this->info('Selesai. ' . count($toDelete) . ' baris dihapus (backup di tabel warehouse_movement_backup_dup_receiving), ' . count($affectedForRecalc) . ' kombinasi artikel+lokasi di-recalculate.');
         } catch (\Exception $e) {
             DB::rollBack();
             $this->error('Gagal, semua perubahan dibatalkan: ' . $e->getMessage());
