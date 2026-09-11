@@ -270,31 +270,57 @@ class StoReportController extends Controller
      * phantom yang bikin bingung -- lihat diskusi di sesi ini). Aturannya
      * sekarang cuma dua kondisi:
      *
-     * 1. Ada dokumen OPENING BALANCE yang POSTED dan tanggalnya PERSIS SAMA
-     *    dengan $openingDate -> tampilkan SATU baris itu saja (dokumen ini
-     *    memang didesain selalu up-to-date lewat absorbIntoLatestOpeningBalance()
-     *    di StockAdjustmentController, jadi stock_after-nya sudah final,
-     *    tidak perlu tambahan apa pun).
-     * 2. Kalau tidak ada (baik karena tidak ada OB sama sekali, atau OB yang
-     *    ada tanggalnya lebih tua / ada gap) -> JANGAN coba hitung manual.
-     *    Cukup tampilkan satu baris berisi kode artikel yang jadi hyperlink
-     *    ke halaman stock movement (WarehouseControllerv2::apiStockMovement,
-     *    sumber yang sama dengan ArticleController::movement2 -- lebih
-     *    teruji), di-deep-link supaya otomatis terbuka & ter-filter dari
-     *    tanggal 1 sampai akhir bulan periode sebelumnya (satu bulan penuh
-     *    sebelum $openingDate). Qty yang ditampilkan tetap angka get_last_qty_new
-     *    yang sama seperti di sel tabel (cuma informasional, bukan hasil
-     *    penjumlahan baris-baris di modal ini).
+     * 1. Ada dokumen OPENING BALANCE yang POSTED untuk PERIODE SEBELUM
+     *    periode STO ini (bukan sekadar cocok tanggal -- dicocokkan lewat
+     *    kolom periode+tahun, sama seperti sumAdjustmentDeltaForPeriode(),
+     *    supaya tahan kalau ada data historis lama yang adj_date-nya belum
+     *    ter-normalisasi persis ke akhir bulan) -> tampilkan SATU baris itu
+     *    saja (dokumen ini memang didesain selalu up-to-date lewat
+     *    absorbIntoLatestOpeningBalance() di StockAdjustmentController, jadi
+     *    stock_after-nya sudah final, tidak perlu tambahan apa pun).
+     * 2. Kalau tidak ada (baik karena tidak ada OB sama sekali, atau OB
+     *    terakhir yang ada masih dari periode yang lebih tua lagi) -> JANGAN
+     *    coba hitung manual. Cukup tampilkan satu baris berisi kode artikel
+     *    yang jadi hyperlink ke halaman stock movement
+     *    (WarehouseControllerv2::apiStockMovement, sumber yang sama dengan
+     *    ArticleController::movement2 -- lebih teruji), di-deep-link supaya
+     *    otomatis terbuka & ter-filter dari tanggal 1 sampai akhir bulan
+     *    periode sebelumnya (satu bulan penuh sebelum $openingDate). Qty
+     *    yang ditampilkan tetap angka get_last_qty_new yang sama seperti di
+     *    sel tabel (cuma informasional, bukan hasil penjumlahan baris-baris
+     *    di modal ini).
      */
     private function buildOpeningBreakdown($articleCode, array $family, $openingDate, $configId, $locationCode)
     {
-        $anchor = DB::table('stock_adjustment_hdr as h')
+        $stoPeriode = $this->resolveStoPeriode($configId);
+        $prevMonth  = null;
+        $prevYear   = null;
+        if ($stoPeriode) {
+            $prevMonth = $stoPeriode['month'] - 1;
+            $prevYear  = $stoPeriode['year'];
+            if ($prevMonth < 1) {
+                $prevMonth = 12;
+                $prevYear--;
+            }
+        }
+
+        $anchorQuery = DB::table('stock_adjustment_hdr as h')
             ->join('stock_adjustment_det as d', 'd.adj_code', '=', 'h.adj_code')
             ->where('h.adj_type', 'OPENING BALANCE')
             ->where('h.status', '4') // ST_POSTED, lihat StockAdjustmentController
             ->whereIn('h.location_code', $family)
-            ->where('d.article_code', $articleCode)
-            ->whereRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') = TO_DATE(?,'YYYY-MM-DD')", [$openingDate])
+            ->where('d.article_code', $articleCode);
+
+        if ($prevMonth) {
+            $anchorQuery->where('h.periode', $prevMonth)
+                ->whereRaw("RIGHT(h.adj_date, 4) = ?", [(string) $prevYear]);
+        } else {
+            // fallback kalau periode STO sendiri tidak bisa di-parse -- cocokkan tanggal persis
+            $anchorQuery->whereRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') = TO_DATE(?,'YYYY-MM-DD')", [$openingDate]);
+        }
+
+        $anchor = $anchorQuery
+            ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC")
             ->select('h.id', 'h.adj_code', 'h.adj_date', 'd.stock_after')
             ->first();
 
