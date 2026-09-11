@@ -86,23 +86,35 @@ trait HasStoLocationFamily
         return $this->stoPeriodeCache[$configId] = $val;
     }
 
-    protected function sumAdjustmentDeltaForPeriode($realCode, array $locations, $periode)
+    protected function sumAdjustmentDeltaForPeriode($realCode, array $locations, $periode, $cutoffDate = null)
     {
         if (!$periode || !$realCode || empty($locations)) return 0;
 
-        $key = $realCode.'|'.implode(',', $locations).'|'.$periode['year'].'-'.$periode['month'];
+        $key = $realCode.'|'.implode(',', $locations).'|'.$periode['year'].'-'.$periode['month'].'|'.($cutoffDate ?? '');
         if (array_key_exists($key, $this->adjDeltaCache)) {
             return $this->adjDeltaCache[$key];
         }
 
-        $delta = (float) DB::table('warehouse_movement as wm')
+        $query = DB::table('warehouse_movement as wm')
             ->join('stock_adjustment_hdr as sa', 'sa.adj_code', '=', 'wm.movement_transnno')
             ->where('wm.artikel_code', $realCode)
             ->whereIn('wm.location_number', $locations)
             ->whereIn('wm.movement_type', ['ADJUSTMENT', 'CANCEL ADJUSTMENT'])
             ->where('sa.periode', $periode['month'])
-            ->whereRaw("RIGHT(sa.adj_date, 4) = ?", [(string) $periode['year']])
-            ->sum(DB::raw('COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'));
+            ->whereRaw("RIGHT(sa.adj_date, 4) = ?", [(string) $periode['year']]);
+
+        // Hanya adjustment yang movement_date-nya <= cutoff (targetDate yang sama
+        // dipakai get_last_qty_new): yang > cutoff sudah otomatis TIDAK IKUT
+        // dihitung get_last_qty_new sejak awal, jadi mengurangkannya lagi di sini
+        // cuma akan salah menggandakan pengecualiannya. Pola ini disalin dari
+        // StockCountController::sumAdjustmentDeltaForPeriode() yang sudah lebih
+        // dulu dibetulkan dengan cutoffDate -- trait ini sebelumnya ketinggalan
+        // (StockCountController tidak pakai trait ini, jadi divergen).
+        if ($cutoffDate) {
+            $query->whereRaw("TO_DATE(wm.movement_date, 'DD-MM-YYYY') <= ?", [$cutoffDate]);
+        }
+
+        $delta = (float) $query->sum(DB::raw('COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'));
 
         return $this->adjDeltaCache[$key] = $delta;
     }
@@ -135,7 +147,7 @@ trait HasStoLocationFamily
 
         if ($configId) {
             $periode = $this->resolveStoPeriode($configId);
-            $qty -= $this->sumAdjustmentDeltaForPeriode($realCode, $family, $periode);
+            $qty -= $this->sumAdjustmentDeltaForPeriode($realCode, $family, $periode, $targetDate);
         }
 
         return $qty;
