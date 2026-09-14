@@ -91,7 +91,7 @@ class RecalculateArticleLocationLedger extends Command
             $bar->advance();
         }
         $bar->finish();
-        $this->newLine();
+        $this->line('');
 
         $this->info('Kombinasi yang perlu dikoreksi: ' . count($changed));
         foreach ($changed as $r) {
