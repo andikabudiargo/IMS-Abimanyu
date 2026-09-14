@@ -218,6 +218,8 @@ class ConsolidateChildLocationStock extends Command
         }
         $rows = $whereCallback(DB::table($sourceTable))->get();
         if ($rows->isEmpty()) return;
-        DB::table($backupTable)->insert($rows->map(fn ($r) => (array) $r)->all());
+        $rows->map(fn ($r) => (array) $r)->chunk(500)->each(function ($chunk) use ($backupTable) {
+            DB::table($backupTable)->insert($chunk->all());
+        });
     }
 }
