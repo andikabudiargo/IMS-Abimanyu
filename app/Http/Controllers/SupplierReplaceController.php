@@ -430,6 +430,11 @@ class SupplierReplaceController extends Controller
         $seq = (int) DB::table('warehouse_movement')->max('movement_code');
         $movementSet    = [];
         $affectedArticles = [];
+        // get_last_qty_new() minta format YYYY-MM-DD -- $replaceDate dari form
+        // tersimpan DD-MM-YYYY (flatpickr dateFormat "d-m-Y"), WAJIB dikonversi
+        // dulu di sini (dulu diam-diam gagal & RETURN 0 kalau salah format,
+        // sekarang RAISE EXCEPTION begitu ada error).
+        $replaceDateYmd = \Carbon\Carbon::createFromFormat('d-m-Y', $replaceDate)->format('Y-m-d');
 
         foreach ($detail as $val) {
             if (!$val->article_type) {
@@ -474,7 +479,7 @@ class SupplierReplaceController extends Controller
                 'site_code'         => $siteCode,
                 'location_number'   => $location,
                 // last_qty sementara, ditimpa recalculateMovementAndStock
-                'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$replaceDate','$siteCode','$location') + $qtyBase"),
+                'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$replaceDateYmd','$siteCode','$location') + $qtyBase"),
             ];
 
             $affectedArticles[] = $val->article_code;

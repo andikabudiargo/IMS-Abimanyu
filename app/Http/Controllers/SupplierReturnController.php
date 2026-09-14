@@ -368,6 +368,11 @@ private function getUserLocations()
     $this->lockMovementSequence();   // ← ganti dari max() polos
     $seq = (int) DB::table('warehouse_movement')->max('movement_code');
     $movementSet = [];
+    // get_last_qty_new() minta format YYYY-MM-DD -- $returnDate dari form
+    // tersimpan DD-MM-YYYY (flatpickr dateFormat "d-m-Y"), WAJIB dikonversi
+    // dulu di sini (dulu diam-diam gagal & RETURN 0 kalau salah format,
+    // sekarang RAISE EXCEPTION begitu ada error).
+    $returnDateYmd = \Carbon\Carbon::createFromFormat('d-m-Y', $returnDate)->format('Y-m-d');
 
     foreach ($detail as $val) {
         if (!$val->article_type) {
@@ -402,7 +407,7 @@ private function getUserLocations()
             'site_code'         => $siteCode,
             'location_number'   => $location,
             // last_qty sementara, ditimpa recalculateMovementAndStock
-            'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$returnDate','$siteCode','$location') - $qtyBase"),
+            'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$returnDateYmd','$siteCode','$location') - $qtyBase"),
         ];
     }
 

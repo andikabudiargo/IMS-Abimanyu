@@ -2539,6 +2539,12 @@ private function parsePostgresArray(?string $pgArray): array
 
     $qty  = $line['qty'];
     $sign = ($direction === 'plus') ? '+' : '-';
+    // get_last_qty_new() minta format YYYY-MM-DD (TO_DATE(...,'yyyy-mm-dd') di
+    // dalamnya) -- $movementDate/$hdrQ->tr_date tersimpan DD-MM-YYYY, jadi
+    // WAJIB dikonversi dulu di sini. Dulu diam-diam gagal (RETURN 0) kalau
+    // salah format; sekarang RAISE EXCEPTION begitu ada error, jadi format
+    // yang salah langsung menggagalkan seluruh insert movement-nya.
+    $movementDateYmd = \Carbon\Carbon::createFromFormat('d-m-Y', $movementDate)->format('Y-m-d');
 
     return [
         'movement_code'     => $seq,
@@ -2560,7 +2566,7 @@ private function parsePostgresArray(?string $pgArray): array
         'location_number'   => $locationNumber,
         // sementara — ditimpa recalculateMovementAndStock; tetap pakai movementDate biar konsisten
         'last_qty'          => DB::raw(
-            "get_last_qty_new('{$line['article_code']}','$movementDate','{$this->siteCode}','$locationNumber') $sign $qty"
+            "get_last_qty_new('{$line['article_code']}','$movementDateYmd','{$this->siteCode}','$locationNumber') $sign $qty"
         ),
     ];
 }
