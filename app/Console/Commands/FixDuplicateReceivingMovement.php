@@ -20,20 +20,32 @@ use Illuminate\Support\Facades\DB;
  * guard anti double-post) -- command ini HANYA untuk membersihkan sisa data
  * lama, bukan memperbaiki kode.
  *
+ * REVISI (setelah get_last_qty_new() dibetulkan & dedup-nya dihapus): versi
+ * SEBELUMNYA command ini cuma menjumlahkan kolom movement_plus untuk cek
+ * "sudah pas atau belum" -- meleset untuk baris basi berbentuk REVERSAL
+ * (movement_plus=0, movement_min=qty) yang TIDAK PERNAH diikuti baris repost
+ * baru (mis. artikel 1000379: baris +8 [asli, masih berlaku] + baris -8
+ * [reversal basi, movement_min=8] -- movement_plus-nya cuma 8+0=8 = PAS SAMA
+ * dengan "seharusnya", jadi versi lama menganggap AMAN padahal baris -8 itu
+ * tetap memotong saldo ledger 8 unit). Sekarang pakai NET (movement_plus -
+ * movement_min) per baris, bukan movement_plus doang -- baru baris seperti ini
+ * ketahuan.
+ *
  * Algoritma per grup (movement_transnno, artikel_code, location_number) yang
  * punya >1 baris RECEIVING:
  *   1. Hitung "seharusnya" = SUM(qty+qty_free terkonversi) dari receiving_det
  *      SAAT INI untuk artikel itu di dokumen itu (mengikuti rumus qtyBaseSql
  *      yang sama persis dengan doPosting()).
- *   2. Kalau total semua baris movement (movement_plus) sudah PAS sama dengan
- *      "seharusnya" -> tidak diapa-apakan (ini termasuk pola normal "1 baris
- *      qty=0 + 1 baris qty penuh" yang muncul di banyak dokumen SEHAT, bukan
- *      cuma yang duplikat -- jangan dianggap bug).
- *   3. Kalau lebih besar -> urutkan baris dari PALING BARU (movement_code
- *      DESC), jumlahkan qty non-nol dari situ sampai PAS mencapai
+ *   2. Kalau NET semua baris movement (SUM(movement_plus - movement_min))
+ *      sudah PAS sama dengan "seharusnya" -> tidak diapa-apakan (termasuk
+ *      pola normal "reversal + repost lengkap" yang nett-nya sudah benar,
+ *      atau "1 baris qty=0 + 1 baris qty penuh" -- bukan bug).
+ *   3. Kalau tidak pas -> urutkan baris dari PALING BARU (movement_code
+ *      DESC), jumlahkan NET (bukan cuma plus) dari situ sampai PAS mencapai
  *      "seharusnya". Baris yang terpakai (baru) -> disimpan. Sisanya (lebih
- *      lama) -> dihapus. Baris qty=0 tidak pernah disentuh (bukan bagian dari
- *      bug ini, tidak mempengaruhi total).
+ *      lama, termasuk baris reversal basi yang net-nya negatif) -> dihapus.
+ *      Baris yang net-nya benar-benar nol (plus=0 DAN min=0) tidak pernah
+ *      disentuh (bukan bagian dari bug ini, tidak mempengaruhi total).
  *   4. Kalau tidak bisa pas PERSIS (jumlah dari baris terbaru melewati/tidak
  *      pernah mencapai "seharusnya") -> JANGAN tebak, masukkan daftar "perlu
  *      review manual", tidak dihapus otomatis.
@@ -93,13 +105,14 @@ class FixDuplicateReceivingMovement extends Command
                 ->where('location_number', $g->location_number)
                 ->where('movement_type', 'RECEIVING')
                 ->orderBy('movement_code', 'desc') // paling baru dulu
-                ->get(['movement_code', 'movement_plus']);
+                ->get(['movement_code', 'movement_plus', 'movement_min']);
 
-            $target       = (float) $g->seharusnya;
-            $totalNonZero = (float) $rows->sum(fn($r) => (float) $r->movement_plus);
+            $target   = (float) $g->seharusnya;
+            $totalNet = (float) $rows->sum(fn($r) => (float) $r->movement_plus - (float) $r->movement_min);
 
-            if (abs($totalNonZero - $target) < 0.0001) {
-                continue; // sudah pas -- termasuk pola normal 0+penuh, tidak disentuh
+            if (abs($totalNet - $target) < 0.0001) {
+                continue; // NET semua baris sudah pas -- termasuk pola normal 0+penuh
+                          // atau reversal+repost yang lengkap, tidak disentuh
             }
 
             $running  = 0.0;
@@ -114,15 +127,16 @@ class FixDuplicateReceivingMovement extends Command
             $resolved = abs($target) < 0.0001;
 
             foreach ($rows as $r) {
-                $qty = (float) $r->movement_plus;
-                if ($qty <= 0) continue; // baris qty=0 tidak dihitung/disentuh
+                $net = (float) $r->movement_plus - (float) $r->movement_min;
+                if (abs($net) < 0.0001) continue; // baris plus=0 DAN min=0 -- tidak dihitung/disentuh
 
                 if ($resolved) {
                     // target sudah tercapai sebelum baris (lebih lama) ini -> sisanya basi
+                    // (termasuk baris reversal basi ber-NET negatif seperti kasus 1000379)
                     break;
                 }
 
-                $running += $qty;
+                $running += $net;
                 $keep[]   = $r->movement_code;
 
                 if (abs($running - $target) < 0.0001) {
@@ -136,8 +150,8 @@ class FixDuplicateReceivingMovement extends Command
             }
 
             foreach ($rows as $r) {
-                $qty = (float) $r->movement_plus;
-                if ($qty <= 0) continue;
+                $net = (float) $r->movement_plus - (float) $r->movement_min;
+                if (abs($net) < 0.0001) continue;
                 if (in_array($r->movement_code, $keep, true)) continue;
                 $toDelete[] = $r->movement_code;
             }
