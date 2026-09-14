@@ -240,22 +240,37 @@ class CheckStockAnomaly extends Command
 
             -- gabungkan: qty_ledger = ob_qty + qty_net
             --
-            -- Basis = ob_folded (artikel yang punya OPENING BALANCE) DITAMBAH
-            -- artikel-movement di lokasi yang di-whitelist lewat --with-no-ob
-            -- (mis. booth 055-059 yang stok-nya sudah diverifikasi fisik tapi
-            -- belum pernah diberi OB). Tanpa whitelist, lokasi tanpa OB TIDAK
-            -- dicek — metode 'OB + net movement' memang butuh anchor OB, dan
-            -- FULL OUTER JOIN polos akan memunculkan ratusan lokasi yang saldo
-            -- awalnya di-seed tanpa record OB (WIP, FG, RM, dst).
-            no_ob_base AS (
-                SELECT DISTINCT nm.artikel_code AS article_code, nm.location_number
-                FROM net_mv nm
-                WHERE nm.location_number = ANY(string_to_array(NULLIF(:withNoOb, ''), ','))
+            -- REVISI (2026-09-14, atas permintaan user): dulu basis-nya cuma
+            -- ob_folded (artikel yang punya OPENING BALANCE) DITAMBAH lokasi
+            -- yang di-whitelist manual lewat --with-no-ob -- lokasi tanpa OB
+            -- yang TIDAK di-whitelist (kebanyakan booth/WIP/FG/RM hasil seed
+            -- migrasi) TIDAK PERNAH dicek sama sekali, walau datanya salah.
+            -- Alasan awal: metode "OB + net movement" butuh anchor, dan tanpa
+            -- OB baseline-nya jadi 0 -- lokasi yang saldo migrasinya di-seed
+            -- tanpa OB formal bisa kelihatan "salah" padahal cuma belum pernah
+            -- diberi OB. TAPI user memutuskan itu justru harus tetap kelihatan
+            -- apa adanya (biar jadi alasan konkret untuk akhirnya diberi OB),
+            -- bukan didiamkan karena sengaja tidak dicek. Sekarang SEMUA
+            -- kombinasi artikel+lokasi yang punya baris warehouse_stock ikut
+            -- dicek, persis konsisten dengan get_last_qty_new() (baseline 0
+            -- kalau tidak ada OB, bukan di-skip). --with-no-ob TIDAK dipakai
+            -- lagi tapi opsinya dibiarkan ada (no-op) untuk kompatibilitas.
+            --
+            -- DAMPAK: bisa langsung memunculkan BANYAK anomali baru sekaligus
+            -- untuk lokasi yang selama ini tidak pernah dicek -- ini BUKAN bug
+            -- baru dari perubahan ini, itu gap yang selama ini tersembunyi.
+            all_stock_keys AS (
+                SELECT
+                    ws.article_code,
+                    COALESCE(la.stock_location, ws.location_number) AS location_number
+                FROM warehouse_stock ws
+                LEFT JOIN loc_anchor la ON la.location_code = ws.location_number
+                GROUP BY ws.article_code, COALESCE(la.stock_location, ws.location_number)
             ),
             ledger_keys AS (
                 SELECT article_code, location_number FROM ob_folded
                 UNION
-                SELECT article_code, location_number FROM no_ob_base
+                SELECT article_code, location_number FROM all_stock_keys
             ),
 ledger AS (
     SELECT
@@ -285,7 +300,7 @@ ledger AS (
             ORDER BY ABS(l.qty_ledger - ws.article_qty) DESC
         ";
 
-        $bind = ['threshold' => $threshold, 'withNoOb' => $withNoOb];
+        $bind = ['threshold' => $threshold];
         if ($location) $bind['location'] = $location;
         if ($hasArticleFilter) {
             $bind['articleCodes'] = '{' . implode(',', array_map(function ($v) {
