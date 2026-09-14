@@ -225,7 +225,7 @@ class RecalculateArticleLocationLedger extends Command
                     ->where('article_code', $article)->where('location_number', $location)->where('site_code', $site)
                     ->update(['article_qty' => $newStock]);
             }
-            return ['changed' => $changed, 'article' => $article, 'location' => $location, 'oldStock' => $oldStock, 'newStock' => $newStock, 'rowsChanged' => 0];
+            return ['changed' => $changed, 'skipped' => false, 'article' => $article, 'location' => $location, 'oldStock' => $oldStock, 'newStock' => $newStock, 'rowsChanged' => 0];
         }
 
         // Kelompokkan per tanggal (baris sudah urut movement_date, movement_code).
