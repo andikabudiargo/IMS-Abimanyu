@@ -245,9 +245,9 @@ class CheckStockAnomaly extends Command
             -- yang di-whitelist manual lewat --with-no-ob -- lokasi tanpa OB
             -- yang TIDAK di-whitelist (kebanyakan booth/WIP/FG/RM hasil seed
             -- migrasi) TIDAK PERNAH dicek sama sekali, walau datanya salah.
-            -- Alasan awal: metode "OB + net movement" butuh anchor, dan tanpa
+            -- Alasan awal: metode 'OB + net movement' butuh anchor, dan tanpa
             -- OB baseline-nya jadi 0 -- lokasi yang saldo migrasinya di-seed
-            -- tanpa OB formal bisa kelihatan "salah" padahal cuma belum pernah
+            -- tanpa OB formal bisa kelihatan 'salah' padahal cuma belum pernah
             -- diberi OB. TAPI user memutuskan itu justru harus tetap kelihatan
             -- apa adanya (biar jadi alasan konkret untuk akhirnya diberi OB),
             -- bukan didiamkan karena sengaja tidak dicek. Sekarang SEMUA
