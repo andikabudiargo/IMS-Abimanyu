@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Http\Controllers\ReceivingController;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -50,21 +49,32 @@ use Illuminate\Support\Facades\DB;
  *      pernah mencapai "seharusnya") -> JANGAN tebak, masukkan daftar "perlu
  *      review manual", tidak dihapus otomatis.
  *
- * Default: DRY RUN (cuma laporan). Pakai --fix untuk benar-benar menghapus +
- * recalculate last_qty/warehouse_stock/avg_cost artikel+lokasi yang kena.
+ * Default: DRY RUN (cuma laporan). Pakai --fix untuk benar-benar menghapus.
+ *
+ * CATATAN PENTING: --fix TIDAK LAGI memanggil ReceivingController::
+ * recalculateFromDate() otomatis (dulu iya). Method itu cuma jumlah polos
+ * movement_plus - movement_min dari SEMUA baris sejak --recalc-from TANPA
+ * filter status cancel, TANPA exclude CANCEL %/DELETE%/REVISI %, TANPA
+ * exclude baris ADJUSTMENT yang terikat OPENING BALANCE -- kelas bug yang
+ * sama persis dengan yang sudah dibetulkan di get_last_qty_new(). Kalau
+ * dipakai untuk 100+ kombinasi sekaligus, risikonya malah bikin salah lagi
+ * (dobel-hitung OB, ikut hitung transaksi yang sudah di-cancel, dst).
+ * Setelah --fix menghapus baris basi, jalankan SENDIRI:
+ *   php artisan movement:recalculate-ledger
+ * (command itu sudah pakai exclusion filter yang benar + sanity-check
+ * terhadap get_last_qty_new -- lihat app/Console/Commands/
+ * RecalculateArticleLocationLedger.php) untuk kombinasi yang terdampak.
  */
 class FixDuplicateReceivingMovement extends Command
 {
     protected $signature = 'receiving:fix-duplicate-movement
-                            {--fix : Benar-benar hapus baris basi + recalculate (default: dry-run, cuma laporan)}
-                            {--recalc-from=2000-01-01 : Tanggal awal recalculate ledger per artikel+lokasi yang kena (format YYYY-MM-DD)}';
+                            {--fix : Benar-benar hapus baris basi (default: dry-run, cuma laporan). TIDAK auto-recalculate -- jalankan movement:recalculate-ledger setelahnya.}';
 
     protected $description = 'Cari & (opsional, via --fix) bersihkan baris warehouse_movement RECEIVING duplikat/basi akibat bug unPosting() lama (sebelum 2026-09-04)';
 
     public function handle()
     {
-        $doFix       = (bool) $this->option('fix');
-        $recalcFrom  = (string) $this->option('recalc-from');
+        $doFix = (bool) $this->option('fix');
 
         $groups = DB::select("
             WITH dup_groups AS (
@@ -172,7 +182,7 @@ class FixDuplicateReceivingMovement extends Command
 
         if (!$doFix) {
             $this->comment('');
-            $this->comment('Mode DRY-RUN (default) -- belum ada yang diubah. Jalankan lagi dengan --fix untuk benar-benar menghapus + recalculate.');
+            $this->comment('Mode DRY-RUN (default) -- belum ada yang diubah. Jalankan lagi dengan --fix untuk benar-benar menghapus (recalculate dilakukan terpisah, lihat catatan di atas).');
             if (!empty($toDelete)) {
                 $this->comment('movement_code yang akan dihapus:');
                 $this->line(implode(', ', $toDelete));
@@ -185,7 +195,7 @@ class FixDuplicateReceivingMovement extends Command
             return 0;
         }
 
-        if (!$this->confirm('Yakin hapus ' . count($toDelete) . ' baris movement basi dan recalculate ' . count($affectedForRecalc) . ' kombinasi artikel+lokasi?', false)) {
+        if (!$this->confirm('Yakin hapus ' . count($toDelete) . ' baris movement basi? (' . count($affectedForRecalc) . ' kombinasi artikel+lokasi akan terdampak, perlu di-recalculate terpisah setelah ini)', false)) {
             $this->comment('Dibatalkan.');
             return 0;
         }
@@ -210,16 +220,11 @@ class FixDuplicateReceivingMovement extends Command
 
             DB::table('warehouse_movement')->whereIn('movement_code', $toDelete)->delete();
 
-            /** @var ReceivingController $receivingController */
-            $receivingController = app(ReceivingController::class);
-
-            foreach (array_keys($affectedForRecalc) as $key) {
-                [$artikel, $lokasi] = explode('|', $key);
-                $receivingController->recalculateFromDatePublic($artikel, $lokasi, $recalcFrom);
-            }
-
             DB::commit();
-            $this->info('Selesai. ' . count($toDelete) . ' baris dihapus (backup di tabel warehouse_movement_backup_dup_receiving), ' . count($affectedForRecalc) . ' kombinasi artikel+lokasi di-recalculate.');
+            $this->info('Selesai. ' . count($toDelete) . ' baris dihapus (backup di tabel warehouse_movement_backup_dup_receiving).');
+            $this->comment('');
+            $this->comment(count($affectedForRecalc) . ' kombinasi artikel+lokasi TERDAMPAK, BELUM di-recalculate otomatis.');
+            $this->comment('Jalankan: php artisan movement:recalculate-ledger  (lalu tambahkan --fix setelah dry-run-nya dicek)');
         } catch (\Exception $e) {
             DB::rollBack();
             $this->error('Gagal, semua perubahan dibatalkan: ' . $e->getMessage());
