@@ -244,7 +244,7 @@ class CheckStockAnomaly extends Command
             -- artikel-movement di lokasi yang di-whitelist lewat --with-no-ob
             -- (mis. booth 055-059 yang stok-nya sudah diverifikasi fisik tapi
             -- belum pernah diberi OB). Tanpa whitelist, lokasi tanpa OB TIDAK
-            -- dicek — metode "OB + net movement" memang butuh anchor OB, dan
+            -- dicek — metode 'OB + net movement' memang butuh anchor OB, dan
             -- FULL OUTER JOIN polos akan memunculkan ratusan lokasi yang saldo
             -- awalnya di-seed tanpa record OB (WIP, FG, RM, dst).
             no_ob_base AS (
