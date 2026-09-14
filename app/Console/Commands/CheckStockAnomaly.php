@@ -13,7 +13,8 @@ class CheckStockAnomaly extends Command
         {--code=}
         {--name=}
         {--type=}
-        {--supp=}';
+        {--supp=}
+        {--with-no-ob= : Daftar location_code (pisah koma) tanpa OB yang tetap ingin dicek, mis. 055,056,057,058,059}';
 
     protected $description = 'Deteksi selisih antara movement dan stock (logic: OB terbaru + net movement setelah OB)';
 
@@ -27,6 +28,12 @@ class CheckStockAnomaly extends Command
         $supp      = $this->option('supp') ?: null;
 
         $hasArticleFilter = $code || $name || $type || $supp;
+
+        // Lokasi tanpa OB yang tetap ingin dicek (whitelist). Normalisasi: buang spasi.
+        $withNoOb = collect(explode(',', (string) $this->option('with-no-ob')))
+            ->map(fn($v) => trim($v))
+            ->filter()
+            ->implode(',');
 
         $locationAnchor = $location;
         if ($location) {
@@ -82,12 +89,34 @@ class CheckStockAnomaly extends Command
         // URUTAN OPERASI:
         //   ① Cari OB terbaru per artikel+lokasi (via adj_date DESC)
         //   ② Hitung net movement NON-OB setelah tanggal OB terbaru
-        //      - hdr_status + net_value adj-aware (persis movement2)
-        //      - DEDUP pakai lokasi FISIK (sebelum fold)
-        //      - exclude hdr_status = '5'
+        //      - is_canceled per-modul (kode cancel BEDA-BEDA per movement_type,
+        //        bukan disamaratakan status='5' -- lihat catatan REVISI di bawah)
+        //      - DEDUP pakai lokasi FISIK (sebelum fold) -- SENGAJA belum dihapus
+        //        meski get_last_qty_new() sudah tidak pakai dedup lagi, karena user
+        //        eksplisit minta ditunda untuk movement2/CheckStockAnomaly ("tunda
+        //        dulu") -- jangan hapus dedup ini tanpa diminta ulang.
         //   ③ Fold lokasi fisik ke parent
         //   ④ qty_ledger = stock_after(OB) + SUM(net_movement)
         //   ⑤ Bandingkan vs warehouse_stock
+        //
+        // REVISI (setelah audit bareng perbaikan get_last_qty_new()): 3 bug kelas
+        // sama diperbaiki di sini juga --
+        //   - Floor tanggal 2026-06-30 dulu KE-SKIP total kalau artikel tidak
+        //     punya OB sama sekali (lo.ob_date IS NULL bikin OR short-circuit),
+        //     padahal floor itu HARUS selalu berlaku (by design: movement sebelum
+        //     Juli 2026 tidak pernah dihitung, ada OB atau tidak). Sekarang pakai
+        //     GREATEST(COALESCE(lo.ob_date,...), '2026-06-30') tanpa syarat,
+        //     persis seperti get_last_qty_new().
+        //   - Semua subquery status header pakai LIMIT 1 TANPA ORDER BY (baris
+        //     undefined kalau kebetulan >1). Sekarang ORDER BY id DESC LIMIT 1.
+        //   - Kode CANCELED disamaratakan '5' untuk semua movement_type, padahal
+        //     RETURN(dn_return_hdr)='4', REPLACEMENT(dn_replace_hdr)='3',
+        //     DN SEMENTARA(temporary_dn_hdr)='4', DN UMUM(dn_general_hdr)='4' --
+        //     BUKAN '5'. Juga tidak ada cabang SUPPLIER RETURN/SUPPLIER REPLACE/
+        //     LOADING sama sekali (otomatis lolos sebagai "belum cancel" apapun
+        //     statusnya). Sekarang semua movement_type dibandingkan ke kode
+        //     CANCELED miliknya sendiri, exclusion-nya jadi kolom is_canceled
+        //     (boolean), bukan hdr_status mentah.
         $sql = "
             WITH
             loc_anchor AS (
@@ -114,10 +143,9 @@ class CheckStockAnomaly extends Command
                          TO_DATE(hdr.adj_date, 'dd-mm-yyyy') DESC, hdr.id DESC
             ),
 
-            -- ② net movement NON-OB setelah tanggal OB terbaru.
-            --   Filter: tanggal movement > ob_date (pakai LEFT JOIN ke latest_ob,
-            --   kalau artikel tidak punya OB maka ob_date = NULL → semua movement masuk).
-            --   Logic hdr_status + net_value persis movement2().
+            -- ② net movement NON-OB setelah tanggal OB terbaru (atau setelah floor
+            --   migrasi 2026-06-30 kalau tidak ada OB -- floor SELALU berlaku).
+            --   is_canceled per-modul + net_value adj-aware.
             mv AS (
                 SELECT
                     wm.movement_code,
@@ -126,23 +154,28 @@ class CheckStockAnomaly extends Command
                     wm.location_number,
                     wm.created_at,
                     CASE wm.movement_type
-                        WHEN 'RECEIVING'    THEN (SELECT status FROM receiving_hdr        WHERE rec_number      = wm.movement_transnno LIMIT 1)
-                        WHEN 'TRANSFER'     THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = wm.movement_transnno LIMIT 1)
-                        WHEN 'SUPPLY'       THEN (SELECT status FROM transfer_stock_hdr   WHERE tr_number       = wm.movement_transnno LIMIT 1)
-                        WHEN 'DELIVERY'     THEN (SELECT status FROM delivery_hdr         WHERE delivery_number = wm.movement_transnno LIMIT 1)
-                        WHEN 'RETURN'       THEN (SELECT status FROM dn_return_hdr        WHERE return_number   = wm.movement_transnno LIMIT 1)
-                        WHEN 'REPLACEMENT'  THEN (SELECT status FROM dn_replace_hdr       WHERE replace_number  = wm.movement_transnno LIMIT 1)
-                        WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = wm.movement_transnno LIMIT 1)
-                        WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = wm.movement_transnno LIMIT 1)
-                        WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = wm.movement_transnno LIMIT 1)
-                        ELSE NULL
-                    END AS hdr_status,
+                        WHEN 'RECEIVING'         THEN (SELECT status = '5' FROM receiving_hdr        WHERE rec_number      = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'TRANSFER'          THEN (SELECT status = '5' FROM transfer_stock_hdr   WHERE tr_number       = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'SUPPLY'            THEN (SELECT status = '5' FROM transfer_stock_hdr   WHERE tr_number       = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'DELIVERY'          THEN (SELECT status = '5' FROM delivery_hdr         WHERE delivery_number = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'RETURN'            THEN (SELECT status = '4' FROM dn_return_hdr        WHERE return_number   = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'REPLACEMENT'       THEN (SELECT status = '3' FROM dn_replace_hdr       WHERE replace_number  = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'ADJUSTMENT'        THEN (SELECT status = '5' FROM stock_adjustment_hdr WHERE adj_code        = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'CANCEL ADJUSTMENT' THEN (SELECT status = '5' FROM stock_adjustment_hdr WHERE adj_code        = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'DN SEMENTARA'      THEN (SELECT status = '4' FROM temporary_dn_hdr     WHERE tdn_number      = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'DN UMUM'           THEN (SELECT status = '4' FROM dn_general_hdr       WHERE tdn_number      = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'SUPPLIER RETURN'   THEN (SELECT status = '4' FROM supplier_return_hdr  WHERE return_number   = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'SUPPLIER REPLACE'  THEN (SELECT status = '3' FROM supplier_replace_hdr WHERE replace_number  = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        WHEN 'LOADING'           THEN (SELECT status = '5' FROM actual_loading_hdr   WHERE prod_code       = wm.movement_transnno ORDER BY id DESC LIMIT 1)
+                        ELSE FALSE
+                    END AS is_canceled,
                     CASE
                         WHEN wm.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
                              AND wm.movement_plus = 0 AND wm.movement_min = 0
                         THEN (SELECT CASE WHEN det.direction = '-' THEN -det.qty_adjustment ELSE det.qty_adjustment END
                               FROM stock_adjustment_det det
-                              WHERE det.adj_code = wm.movement_transnno AND det.article_code = wm.artikel_code LIMIT 1)
+                              WHERE det.adj_code = wm.movement_transnno AND det.article_code = wm.artikel_code
+                              ORDER BY det.id DESC LIMIT 1)
                              * CASE WHEN wm.movement_type = 'CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
                         ELSE (wm.movement_plus - wm.movement_min)
                     END AS net_value
@@ -160,15 +193,16 @@ class CheckStockAnomaly extends Command
                   AND wm.movement_type NOT LIKE 'DELETE%'
                   AND wm.movement_type NOT LIKE 'REVISI %'
                   AND wm.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
-                  -- hanya movement SETELAH tanggal OB terbaru
-                  -- kalau tidak ada OB (lo.ob_date NULL) → semua movement masuk
-                  AND (lo.ob_date IS NULL
-     OR TO_DATE(wm.movement_date, 'dd-mm-yyyy') > GREATEST(lo.ob_date, '2026-06-30'::DATE))
+                  -- hanya movement SETELAH tanggal OB terbaru (atau setelah floor
+                  -- migrasi 2026-06-30 kalau tidak ada OB -- floor ini SELALU
+                  -- berlaku, tidak boleh ke-skip walau lo.ob_date NULL)
+                  AND TO_DATE(wm.movement_date, 'dd-mm-yyyy') > GREATEST(COALESCE(lo.ob_date, '1900-01-01'::DATE), '2026-06-30'::DATE)
                   {$whereLocation}
                   {$whereArticle}
             ),
 
-            -- dedup pakai lokasi FISIK (sebelum fold), exclude status 5
+            -- dedup pakai lokasi FISIK (sebelum fold) -- SENGAJA dipertahankan,
+            -- lihat catatan REVISI di atas. Exclude yang is_canceled TRUE saja.
             dedup AS (
                 SELECT mv.*,
                     ROW_NUMBER() OVER (
@@ -176,7 +210,7 @@ class CheckStockAnomaly extends Command
                         ORDER BY mv.created_at DESC, mv.movement_code DESC
                     ) AS rn
                 FROM mv
-                WHERE mv.hdr_status IS DISTINCT FROM '5'
+                WHERE mv.is_canceled IS NOT TRUE
             ),
             kept AS (SELECT * FROM dedup WHERE rn = 1),
 
@@ -205,18 +239,36 @@ class CheckStockAnomaly extends Command
             ),
 
             -- gabungkan: qty_ledger = ob_qty + qty_net
-            -- FULL OUTER JOIN: artikel yang punya movement TAPI tanpa OB (mis. semua
-            -- lokasi booth yang tidak pernah diberi OB) tetap ikut dicek. Kalau pakai
-            -- LEFT JOIN dari ob_folded, artikel tanpa OB hilang total dari hasil.
+            --
+            -- Basis = ob_folded (artikel yang punya OPENING BALANCE) DITAMBAH
+            -- artikel-movement di lokasi yang di-whitelist lewat --with-no-ob
+            -- (mis. booth 055-059 yang stok-nya sudah diverifikasi fisik tapi
+            -- belum pernah diberi OB). Tanpa whitelist, lokasi tanpa OB TIDAK
+            -- dicek — metode "OB + net movement" memang butuh anchor OB, dan
+            -- FULL OUTER JOIN polos akan memunculkan ratusan lokasi yang saldo
+            -- awalnya di-seed tanpa record OB (WIP, FG, RM, dst).
+            no_ob_base AS (
+                SELECT DISTINCT nm.artikel_code AS article_code, nm.location_number
+                FROM net_mv nm
+                WHERE nm.location_number = ANY(string_to_array(NULLIF(:withNoOb, ''), ','))
+            ),
+            ledger_keys AS (
+                SELECT article_code, location_number FROM ob_folded
+                UNION
+                SELECT article_code, location_number FROM no_ob_base
+            ),
 ledger AS (
     SELECT
-        COALESCE(ob.article_code, nm.artikel_code)            AS artikel_code,
-        COALESCE(ob.location_number, nm.location_number)      AS location_number,
+        k.article_code                                        AS artikel_code,
+        k.location_number,
         COALESCE(ob.ob_qty, 0) + COALESCE(nm.qty_net, 0)      AS qty_ledger
-    FROM ob_folded ob
-    FULL OUTER JOIN net_mv nm
-        ON nm.artikel_code    = ob.article_code
-       AND nm.location_number = ob.location_number
+    FROM ledger_keys k
+    LEFT JOIN ob_folded ob
+        ON ob.article_code    = k.article_code
+       AND ob.location_number = k.location_number
+    LEFT JOIN net_mv nm
+        ON nm.artikel_code    = k.article_code
+       AND nm.location_number = k.location_number
 )
 
             SELECT
@@ -233,7 +285,7 @@ ledger AS (
             ORDER BY ABS(l.qty_ledger - ws.article_qty) DESC
         ";
 
-        $bind = ['threshold' => $threshold];
+        $bind = ['threshold' => $threshold, 'withNoOb' => $withNoOb];
         if ($location) $bind['location'] = $location;
         if ($hasArticleFilter) {
             $bind['articleCodes'] = '{' . implode(',', array_map(function ($v) {
