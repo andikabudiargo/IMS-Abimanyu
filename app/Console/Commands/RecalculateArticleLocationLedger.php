@@ -163,7 +163,28 @@ class RecalculateArticleLocationLedger extends Command
                         ORDER BY det.id DESC LIMIT 1
                     ) * CASE WHEN m.movement_type = 'CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
                     ELSE (m.movement_plus - m.movement_min)
-                END) AS net_value
+                END) AS net_value,
+                -- Kalau baris ini ADJUSTMENT yang terikat ke OPENING BALANCE, get_last_qty_new()
+                -- TIDAK menghitungnya sebagai net movement biasa -- dia re-anchor LANGSUNG ke
+                -- stock_after OB itu (lihat Step 2 function). Kolom ini dipakai di PHP untuk
+                -- meniru re-anchor yang sama, bukan cuma di-skip seperti sebelumnya (itu yang
+                -- menyebabkan MISMATCH di setiap tanggal OB bulanan).
+                (CASE
+                    WHEN m.movement_type = 'ADJUSTMENT'
+                         AND EXISTS (
+                             SELECT 1 FROM stock_adjustment_hdr h
+                             WHERE h.adj_code = m.movement_transnno AND h.adj_type = 'OPENING BALANCE' AND h.status != '5'
+                         )
+                    THEN (
+                        SELECT det.stock_after FROM stock_adjustment_det det
+                        WHERE det.adj_code = m.movement_transnno AND det.article_code = m.artikel_code
+                        ORDER BY det.id DESC LIMIT 1
+                    )
+                    ELSE NULL
+                END) AS ob_anchor_value,
+                (m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
+                 AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h WHERE h.adj_code = m.movement_transnno AND h.adj_type = 'OPENING BALANCE')
+                ) AS is_ob_tied
             FROM warehouse_movement m
             WHERE m.artikel_code = ? AND m.location_number = ? AND m.site_code = ?
               AND TO_DATE(m.movement_date,'DD-MM-YYYY') > TO_DATE(?, 'YYYY-MM-DD')
@@ -171,10 +192,6 @@ class RecalculateArticleLocationLedger extends Command
               AND m.movement_type NOT LIKE 'DELETE%'
               AND m.movement_type NOT LIKE 'REVISI %'
               AND m.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
-              AND NOT (
-                  m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT')
-                  AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h WHERE h.adj_code = m.movement_transnno AND h.adj_type = 'OPENING BALANCE')
-              )
             ORDER BY TO_DATE(m.movement_date,'DD-MM-YYYY'), m.movement_code
         ", [$article, $location, $site, self::CUTOFF_YMD]);
 
@@ -210,7 +227,14 @@ class RecalculateArticleLocationLedger extends Command
                 $lastSeenDate = $r->movement_date;
             }
 
-            if (!$this->toBool($r->is_canceled)) {
+            if ($this->toBool($r->is_ob_tied)) {
+                // ADJUSTMENT terikat OPENING BALANCE yang masih berlaku (bukan OB yang di-cancel)
+                // -> re-anchor langsung ke stock_after-nya, PERSIS seperti Step 2 get_last_qty_new().
+                // OB yang sudah di-cancel (ob_anchor_value NULL) -> tidak pernah jadi anchor, diabaikan.
+                if ($r->ob_anchor_value !== null) {
+                    $running = (float) $r->ob_anchor_value;
+                }
+            } elseif (!$this->toBool($r->is_canceled)) {
                 $running += (float) $r->net_value;
             }
 
