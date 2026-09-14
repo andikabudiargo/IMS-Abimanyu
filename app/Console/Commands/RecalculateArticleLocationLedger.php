@@ -25,19 +25,30 @@ use Illuminate\Support\Facades\Schema;
  *      2026), dengan exclusion filter DAN status-cancel-per-modul PERSIS SAMA
  *      seperti get_last_qty_new() versi baru (supaya konsisten -- SQL-nya
  *      sengaja disalin dari situ, bukan ditulis ulang dari nol).
- *   2. Jalan berurutan (movement_date, movement_code). Setiap kali tanggal
- *      berganti, "anchor" running balance di-reset dengan memanggil LANGSUNG
- *      get_last_qty_new(artikel, tanggal-sebelumnya, ...) -- ini otomatis
- *      menangani re-anchor ke OPENING BALANCE manapun yang jatuh di antaranya
- *      (persis seperti logika function-nya sendiri), tanpa perlu menduplikasi
- *      logika "OB mana yang berlaku" di PHP.
- *   3. Sebagai pengaman, di setiap pergantian tanggal juga dicocokkan hasil
- *      jalan manual vs hasil get_last_qty_new() untuk tanggal SEBELUMNYA --
+ *   2. Dikelompokkan per TANGGAL (bukan per baris). Kalau di tanggal itu ada
+ *      baris OPENING BALANCE yang masih berlaku (bukan yang di-cancel), OB
+ *      ITU jadi nilai akhir untuk SELURUH hari itu -- baris TRANSFER/SUPPLY/
+ *      RECEIVING lain di tanggal yang SAMA (sebelum ATAU sesudah OB itu
+ *      diposting) diabaikan sepenuhnya, dianggap sudah termasuk dalam hasil
+ *      stock opname (keputusan bisnis, dikonfirmasi user 2026-09-14). SYSTEM
+ *      CORRECTION (adj_type lain, BUKAN OPENING BALANCE) TIDAK ikut aturan
+ *      ini -- tetap dihitung sebagai net_value biasa. Kalau TIDAK ada OB di
+ *      tanggal itu, baru "anchor" running balance di-reset dengan memanggil
+ *      get_last_qty_new(artikel, tanggal-sebelumnya, ...), lalu baris-baris
+ *      hari itu dijumlah biasa.
+ *   3. Sebagai pengaman, SETIAP tanggal (bukan cuma pas pergantian) dicocokkan
+ *      hasil jalan manual vs get_last_qty_new() untuk tanggal itu sendiri --
  *      kalau tidak cocok (selisih > 0.01), dilaporkan sebagai MISMATCH supaya
  *      dicek manual, BUKAN diam-diam dipakai.
  *   4. Baris yang last_qty-nya berubah -> di-backup dulu (tabel
  *      warehouse_movement_ledger_fix_backup) baru di-update. warehouse_stock
  *      akhir juga di-backup (warehouse_stock_ledger_fix_backup) baru di-update.
+ *
+ * PENTING: kombinasi yang MISMATCH (poin 3) TIDAK PERNAH ditulis walau --fix
+ * dipaksa -- dulu ini cuma diperingatkan tapi tetap ditulis (bug, sudah
+ * diperbaiki). Kalau ada MISMATCH, artinya walk manual & get_last_qty_new()
+ * tidak sepakat untuk kombinasi itu -- menulis salah satu angka yang tidak
+ * terverifikasi lebih berisiko daripada membiarkan warehouse_stock lama.
  *
  * Default: DRY RUN. Pakai --fix untuk benar-benar menulis perubahan.
  */
@@ -76,6 +87,7 @@ class RecalculateArticleLocationLedger extends Command
         $bar->start();
 
         $changed   = [];
+        $skipped   = [];
         $mismatches = [];
         $errors    = [];
 
@@ -84,6 +96,8 @@ class RecalculateArticleLocationLedger extends Command
                 $result = $this->recalcOne($c->artikel_code, $c->location_number, $site, $doFix, $mismatches);
                 if ($result['changed']) {
                     $changed[] = $result;
+                } elseif ($result['skipped']) {
+                    $skipped[] = $result;
                 }
             } catch (\Throwable $e) {
                 $errors[] = "{$c->artikel_code}@{$c->location_number}: " . $e->getMessage();
@@ -101,8 +115,15 @@ class RecalculateArticleLocationLedger extends Command
             ));
         }
 
+        if ($skipped) {
+            $this->warn('DILEWATI karena MISMATCH (TIDAK ditulis walau --fix -- perlu cek manual dulu): ' . count($skipped));
+            foreach ($skipped as $r) {
+                $this->line(sprintf('  - %s@%s: warehouse_stock sekarang %.4f (dibiarkan, tidak disentuh)', $r['article'], $r['location'], $r['oldStock']));
+            }
+        }
+
         if ($mismatches) {
-            $this->warn('MISMATCH (walk manual vs get_last_qty_new tidak cocok -- JANGAN diabaikan, cek manual):');
+            $this->warn('Detail MISMATCH (walk manual vs get_last_qty_new tidak cocok):');
             foreach ($mismatches as $m) $this->line('  - ' . $m);
         }
 
@@ -207,56 +228,73 @@ class RecalculateArticleLocationLedger extends Command
             return ['changed' => $changed, 'article' => $article, 'location' => $location, 'oldStock' => $oldStock, 'newStock' => $newStock, 'rowsChanged' => 0];
         }
 
-        $lastSeenDate = null;
-        $running      = 0.0;
-        $updates      = []; // movement_code => new last_qty
-
+        // Kelompokkan per tanggal (baris sudah urut movement_date, movement_code).
+        $byDate = [];
         foreach ($rows as $r) {
-            if ($r->movement_date !== $lastSeenDate) {
-                if ($lastSeenDate !== null) {
-                    $expected = $this->getLastQtyNew($article, $this->toYmd($lastSeenDate), $site, $location);
-                    if (abs($expected - $running) > 0.01) {
-                        $mismatches[] = sprintf(
-                            '%s@%s tgl %s: walk manual=%.4f vs get_last_qty_new=%.4f (selisih %.4f)',
-                            $article, $location, $lastSeenDate, $running, $expected, $expected - $running
-                        );
-                    }
-                }
-                $dayBefore = $this->dayBeforeYmd($r->movement_date);
-                $running   = $this->getLastQtyNew($article, $dayBefore, $site, $location);
-                $lastSeenDate = $r->movement_date;
-            }
-
-            if ($this->toBool($r->is_ob_tied)) {
-                // ADJUSTMENT terikat OPENING BALANCE yang masih berlaku (bukan OB yang di-cancel)
-                // -> re-anchor langsung ke stock_after-nya, PERSIS seperti Step 2 get_last_qty_new().
-                // OB yang sudah di-cancel (ob_anchor_value NULL) -> tidak pernah jadi anchor, diabaikan.
-                if ($r->ob_anchor_value !== null) {
-                    $running = (float) $r->ob_anchor_value;
-                }
-            } elseif (!$this->toBool($r->is_canceled)) {
-                $running += (float) $r->net_value;
-            }
-
-            $oldLastQty = $r->old_last_qty === null ? null : (float) $r->old_last_qty;
-            if ($oldLastQty === null || abs($running - $oldLastQty) > 0.0001) {
-                $updates[$r->movement_code] = $running;
-            }
+            $byDate[$r->movement_date][] = $r;
         }
 
-        // sanity check tanggal terakhir
-        $expected = $this->getLastQtyNew($article, $this->toYmd($lastSeenDate), $site, $location);
-        if (abs($expected - $running) > 0.01) {
-            $mismatches[] = sprintf(
-                '%s@%s tgl %s (terakhir): walk manual=%.4f vs get_last_qty_new=%.4f (selisih %.4f)',
-                $article, $location, $lastSeenDate, $running, $expected, $expected - $running
-            );
+        $running     = 0.0;
+        $updates     = []; // movement_code => new last_qty
+        $hadMismatch = false; // kalau true, kombinasi ini TIDAK BOLEH ditulis walau --fix
+
+        foreach ($byDate as $date => $groupRows) {
+            // Cari baris OPENING BALANCE yang MASIH BERLAKU (bukan yang di-cancel)
+            // di tanggal ini. Kalau ada -> OB itu jadi nilai akhir SELURUH hari ini,
+            // PERSIS semantik get_last_qty_new() (movement_date > ob_date artinya
+            // tanggal yang SAMA dengan OB tidak pernah dihitung terpisah lagi --
+            // baik yang terjadi SEBELUM maupun SESUDAH OB pada hari itu, semua
+            // dianggap sudah "termasuk" dalam hasil stock opname). SYSTEM
+            // CORRECTION (adj_type lain, bukan OPENING BALANCE) TIDAK masuk sini --
+            // itu tetap baris net_value biasa (lihat is_ob_tied di query, cuma true
+            // untuk yang benar-benar adj_type OPENING BALANCE).
+            $obRow = null;
+            foreach ($groupRows as $r) {
+                if ($this->toBool($r->is_ob_tied) && $r->ob_anchor_value !== null) {
+                    $obRow = $r; // kalau >1 (jarang), yang movement_code terbesar (baris terakhir) menang
+                }
+            }
+
+            if ($obRow !== null) {
+                $running = (float) $obRow->ob_anchor_value;
+                foreach ($groupRows as $r) {
+                    $oldLastQty = $r->old_last_qty === null ? null : (float) $r->old_last_qty;
+                    if ($oldLastQty === null || abs($running - $oldLastQty) > 0.0001) {
+                        $updates[$r->movement_code] = $running;
+                    }
+                }
+            } else {
+                $dayBefore = $this->dayBeforeYmd($date);
+                $running   = $this->getLastQtyNew($article, $dayBefore, $site, $location);
+                foreach ($groupRows as $r) {
+                    if (!$this->toBool($r->is_canceled)) {
+                        $running += (float) $r->net_value;
+                    }
+                    $oldLastQty = $r->old_last_qty === null ? null : (float) $r->old_last_qty;
+                    if ($oldLastQty === null || abs($running - $oldLastQty) > 0.0001) {
+                        $updates[$r->movement_code] = $running;
+                    }
+                }
+            }
+
+            $expected = $this->getLastQtyNew($article, $this->toYmd($date), $site, $location);
+            if (abs($expected - $running) > 0.01) {
+                $hadMismatch = true;
+                $mismatches[] = sprintf(
+                    '%s@%s tgl %s: walk manual=%.4f vs get_last_qty_new=%.4f (selisih %.4f)',
+                    $article, $location, $date, $running, $expected, $expected - $running
+                );
+            }
         }
 
         $newStock = $running;
         $changed  = !empty($updates) || abs($newStock - $oldStock) > 0.0001;
 
-        if ($doFix && $changed) {
+        // JANGAN PERNAH tulis kombinasi yang mismatch, walau --fix dipaksa --
+        // "changed" di sini tidak bisa dipercaya (walk manual vs function beda),
+        // jadi menulisnya bisa lebih merusak daripada membiarkan warehouse_stock
+        // lama apa adanya. Kombinasi begini WAJIB dicek manual dulu.
+        if ($doFix && $changed && !$hadMismatch) {
             DB::transaction(function () use ($article, $location, $site, $updates, $oldStock, $newStock) {
                 if (!empty($updates)) {
                     $this->backupMovementRows($article, $location, array_keys($updates));
@@ -274,7 +312,8 @@ class RecalculateArticleLocationLedger extends Command
         }
 
         return [
-            'changed'     => $changed,
+            'changed'     => $changed && !$hadMismatch,
+            'skipped'     => $changed && $hadMismatch,
             'article'     => $article,
             'location'    => $location,
             'oldStock'    => $oldStock,
