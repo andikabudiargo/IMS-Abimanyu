@@ -143,10 +143,10 @@ class ConsolidateChildLocationStock extends Command
 
             // ── Backup dulu sebelum ubah apa pun ──
             $this->backupTable('warehouse_stock', "warehouse_stock_bak_consolidate_{$stamp}", function ($q) use ($site, $children) {
-                $q->where('site_code', $site)->whereIn('location_number', $children);
+                return $q->where('site_code', $site)->whereIn('location_number', $children);
             });
             $this->backupTable('warehouse_movement', "warehouse_movement_bak_consolidate_{$stamp}", function ($q) use ($site, $children) {
-                $q->where('site_code', $site)->whereIn('location_number', $children);
+                return $q->where('site_code', $site)->whereIn('location_number', $children);
             });
 
             // ── Fold stok: tambahkan ke parent (insert kalau belum ada baris utk artikel itu, update kalau sudah) ──
