@@ -30,6 +30,7 @@
           <input type="number" class="form-control" id="tahun" name="tahun" min="2000" max="2100" value="{{ date('Y') }}" required>
         </div>
       </div>
+       <div class="form-row">
         <div class="form-group col-md-7">
           <label for="reportName">Nama Conversion <span class="text-danger">*</span></label>
           <input type="text" class="form-control" id="reportName" name="reportName" required>
