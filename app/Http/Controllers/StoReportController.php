@@ -698,13 +698,18 @@ class StoReportController extends Controller
      */
     private function avgReceivingValue(string $articleCode, int $maxMonthsBack = 24): float
     {
+        $anchor = new \DateTime('today');
+
         for ($i = 0; $i <= $maxMonthsBack; $i++) {
+            $monthStart = (clone $anchor)->modify("-{$i} month")->modify('first day of this month');
+            $monthEnd   = (clone $monthStart)->modify('last day of this month');
+
             $row = DB::selectOne("
                 SELECT COALESCE(SUM(price*qty)/NULLIF(SUM(qty),0),0) AS avg_price, COUNT(*) AS n
                 FROM receiving_det
                 WHERE article_code = ?
-                  AND date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE - (? || ' months')::interval)
-            ", [$articleCode, $i]);
+                  AND created_at::date BETWEEN ?::date AND ?::date
+            ", [$articleCode, $monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')]);
 
             if ($row && $row->n > 0) {
                 return (float) $row->avg_price;
