@@ -16,11 +16,7 @@
           <label>Nomor Conversion</label>
           <input type="text" class="form-control" value="Auto-generated (CVR-ASN-YYYY-MONTH-XXXX)" disabled>
         </div>
-        <div class="form-group col-md-3">
-          <label for="reportName">Nama Conversion <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" id="reportName" name="reportName" required>
-        </div>
-        <div class="form-group col-md-2">
+         <div class="form-group col-md-2">
           <label for="periode">Periode (Bulan) <span class="text-danger">*</span></label>
           <select class="select2 form-control" id="periode" name="periode" required>
             <option value="">-- Bulan --</option>
@@ -34,11 +30,17 @@
           <input type="number" class="form-control" id="tahun" name="tahun" min="2000" max="2100" value="{{ date('Y') }}" required>
         </div>
       </div>
+        <div class="form-group col-md-7">
+          <label for="reportName">Nama Conversion <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="reportName" name="reportName" required>
+        </div>
+       
+      </div>
 
       <div class="form-row">
-        <div class="form-group col-md-12">
+        <div class="form-group col-md-7">
           <label for="note">Note</label>
-          <textarea class="form-control" id="note" name="note" rows="2"></textarea>
+          <textarea class="form-control" id="note" name="note" rows="4"></textarea>
         </div>
       </div>
 
