@@ -409,6 +409,13 @@
         });
     }
 
+    let bupotDatePicker = $('#BupotDate');
+    if (bupotDatePicker.length) {
+        bupotDatePicker.flatpickr({
+            dateFormat: "d-m-Y"
+        });
+    }
+
     function reloadPage(){
         window.location.reload();
     }

@@ -76,6 +76,12 @@
                                                     <input type="text" id="buktiPotong" name="buktiPotong" value="{{ $header->bukti_potong }}" class="form-control" />
                                                 </div>
                                             </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-6">
+                                                    <label for="BupotDate">Bukti Potong Date</label>
+                                                    <input type="text" id="BupotDate" name="BupotDate" value="{{ $header->bupot_date }}" class="form-control" placeholder="DD-MM-YYYY" />
+                                                </div>
+                                            </div>
                                         </div>
                                         {{-- <div class="form-group col-md-6">
                                             <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">

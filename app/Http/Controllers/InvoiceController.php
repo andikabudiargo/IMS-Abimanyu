@@ -121,6 +121,9 @@ class InvoiceController extends Controller
         ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'], //28
         ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'], //29
         ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number'], //30  (searchable via filterColumn)
+        // ditambahkan di akhir (bukan disisip) supaya index kolom lama di atas
+        // (dipakai arrColPrint & columnDefs.targets di index.blade.php) tidak geser.
+        ['data'=> 'bupot_date', 'name'=> 'bupot_date','title'=>'Bukti Potong Date'], //31
     ];
     return json_encode($kolom, true);
 }
@@ -411,7 +414,8 @@ class InvoiceController extends Controller
         $period = $request->aPeriode;
         $periodNomor = $request->aPeriode;
         $buktiPotong =  $request->aBuktiPotong;
-    
+        $bupotDate = $request->aBupotDate;
+
         $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
 
@@ -517,7 +521,8 @@ class InvoiceController extends Controller
                     'dpp_lain_penyebut' => $dppPenyebut,
                     'start_date' => $startDate,
                     'end_date' => $endDate,
-                    'bukti_potong' => $buktiPotong
+                    'bukti_potong' => $buktiPotong,
+                    'bupot_date' => $bupotDate
                 ]);
 
                 $dataSet = [];
@@ -829,6 +834,7 @@ class InvoiceController extends Controller
 
         $period = $request->aPeriode;
         $buktiPotong =  $request->aBuktiPotong;
+        $bupotDate = $request->aBupotDate;
 
         $accountPenjualan = DB::table('third_party')->where('kode',$customer)->value('coa_penjualan');
         $accountPiutang = DB::table('third_party')->where('kode',$customer)->value('account');
@@ -912,7 +918,8 @@ class InvoiceController extends Controller
                             'dpp_lain_value' => $dppLainValue,
                             'dpp_lain_pembilang' => $dppPembilang,
                             'dpp_lain_penyebut' => $dppPenyebut,
-                            'bukti_potong' => $buktiPotong
+                            'bukti_potong' => $buktiPotong,
+                            'bupot_date' => $bupotDate
                         ]
                     );
 

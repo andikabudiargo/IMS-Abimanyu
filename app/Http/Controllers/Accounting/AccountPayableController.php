@@ -138,7 +138,11 @@ class AccountPayableController extends Controller
         ['data'=> 'approval_by','name'=> 'approval_by','title'=>'Approved By','searchable'=>false,'orderable'=>false],//32
         ['data'=> 'approval_at','name'=> 'approval_at','title'=>'Approved At','searchable'=>false,'orderable'=>false],//33
         ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'],//34
-        ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At']//35
+        ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'],//35
+        // ditambahkan di akhir (bukan disisip) supaya semua index kolom lama di atas
+        // (dipakai arrColPrint & columnDefs.targets di index.blade.php) tidak geser.
+        ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'],//36
+        ['data'=> 'bupot_date', 'name'=> 'bupot_date','title'=>'Bukti Potong Date']//37
     ];
     return json_encode($kolom, true);
 }
@@ -694,6 +698,8 @@ class AccountPayableController extends Controller
         $basisAmount = is_null($request->basisAmount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->basisAmount);
         // $accountBasisA = $request->accountBasisA;
         $otherDeduct = 0;
+        $buktiPotong = $request->buktiPotong;
+        $bupotDate = $request->BupotDate;
         $account= $request->account;
         $note=$request->note;
         $apDate= $request->apDate;
@@ -912,7 +918,9 @@ class AccountPayableController extends Controller
                     'vat_value' => $vatValue,
                     'dpp_lain_value' => $dppLainValue,
                     'dpp_lain_pembilang' => $dppPembilang,
-                    'dpp_lain_penyebut' => $dppPenyebut
+                    'dpp_lain_penyebut' => $dppPenyebut,
+                    'bukti_potong' => $buktiPotong,
+                    'bupot_date' => $bupotDate
 
                 ]);
 
@@ -1197,6 +1205,8 @@ class AccountPayableController extends Controller
         $basisAmount = is_null($request->basisAmount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->basisAmount);
         // $accountBasisA = $request->accountBasisA;
         $otherDeduct = 0;
+        $buktiPotong = $request->buktiPotong;
+        $bupotDate = $request->BupotDate;
         $account= $request->account;
         $note=$request->note;
         $period=$request->period;
@@ -1334,7 +1344,9 @@ class AccountPayableController extends Controller
                         'vat_value' => $vatValue,
                         'dpp_lain_value' => $dppLainValue,
                         'dpp_lain_pembilang' => $dppPembilang,
-                        'dpp_lain_penyebut' => $dppPenyebut
+                        'dpp_lain_penyebut' => $dppPenyebut,
+                        'bukti_potong' => $buktiPotong,
+                        'bupot_date' => $bupotDate
                     ]
                 );
 

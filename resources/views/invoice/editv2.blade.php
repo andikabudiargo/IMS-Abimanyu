@@ -89,6 +89,12 @@
                                                     <input type="text" id="buktiPotong" name="buktiPotong" value="{{ $header->bukti_potong }}" class="form-control" />
                                                 </div>
                                             </div>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-6">
+                                                    <label for="BupotDate">Bukti Potong Date</label>
+                                                    <input type="text" id="BupotDate" name="BupotDate" value="{{ $header->bupot_date }}" class="form-control" placeholder="DD-MM-YYYY" />
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="form-group col-md-6">
                                             <div class="form-group col-md-12" style="padding-right:0px;padding-left:0px">
@@ -455,6 +461,13 @@ if (sendingDate.length) {
     });
 }
 
+const bupotDatePicker = $('#BupotDate');
+if (bupotDatePicker.length) {
+    bupotDatePicker.flatpickr({
+        dateFormat: "d-m-Y"
+    });
+}
+
 function hitungJatuhTempo() {
     let sendingDate = $('#sendingDate').val();
     let top = parseInt($('#customer option:selected').data('top')) || 0;
@@ -583,6 +596,7 @@ $('#customer').on('change', function() {
                         let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
                         let aPeriode = $('#period').val();
                         let aBuktiPotong = $('#buktiPotong').val();
+                        let aBupotDate = $('#BupotDate').val();
 
                         $.ajax({
                             type: "post",
@@ -608,7 +622,8 @@ $('#customer').on('change', function() {
                                 penyebutNumber:aPenyebutNumber,
                                 totalDppNilaiLain:aTotalDppNilaiLain,
                                 aPeriode:aPeriode,
-                                aBuktiPotong:aBuktiPotong
+                                aBuktiPotong:aBuktiPotong,
+                                aBupotDate:aBupotDate
                             },
                             dataType: "json",
                             success: function(data) {

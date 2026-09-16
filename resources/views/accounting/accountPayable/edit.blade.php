@@ -113,6 +113,16 @@
                                         <input type="text" class="form-control" id="penyebutNumber" name="penyebutNumber" value="{{ $header->dpp_lain_penyebut }}" />
                                     </div>
                                     <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="buktiPotong">No Bukti Potong</label>
+                                            <input type="text" id="buktiPotong" name="buktiPotong" class="form-control" value="{{ old('buktiPotong',$header->bukti_potong) }}" />
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="BupotDate">Bukti Potong Date</label>
+                                            <input type="text" id="BupotDate" name="BupotDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ old('BupotDate',$header->bupot_date) }}" />
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="note">Notes</label>
                                             <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ old('note',$header->note) }}</textarea>

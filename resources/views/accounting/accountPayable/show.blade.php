@@ -100,6 +100,16 @@
                                         </div>
                                     </div>
                                     <div class="form-row">
+                                        <div class="form-group col-md-6">
+                                            <label for="buktiPotong">No Bukti Potong</label>
+                                            <input type="text" id="buktiPotong" name="buktiPotong" class="form-control" value="{{ $header->bukti_potong }}" disabled/>
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="BupotDate">Bukti Potong Date</label>
+                                            <input type="text" id="BupotDate" name="BupotDate" class="form-control" value="{{ $header->bupot_date }}" disabled/>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="note">Notes</label>
                                             <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header->note }}</textarea>
