@@ -650,6 +650,53 @@ class StoReportController extends Controller
         return [(int) date('Y'), (int) date('n')];
     }
 
+    /**
+     * Nilai Persediaan -- avg harga jual DN (weighted by qty) untuk artikel
+     * FG, DIBATASI ke periode report ini sendiri (dateFrom-dateTo), bukan
+     * lintas periode. Kalau tidak ada DN di periode ini, balik 0 (bukan
+     * fallback ke periode lain -- konsisten dengan Hasil STO/movement yang
+     * juga di-scope ke periode ini).
+     */
+    private function avgDnValue(string $articleCode, string $dateFrom, string $dateTo): float
+    {
+        $row = DB::selectOne("
+            SELECT COALESCE(SUM(dd.qty * COALESCE(sod.price,0)) / NULLIF(SUM(dd.qty),0), 0) AS avg_price
+            FROM delivery_det dd
+            JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
+            LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
+            WHERE dd.article_code = ?
+              AND to_date(dh.delivery_date, 'DD-MM-YYYY') BETWEEN to_date(?, 'DD-MM-YYYY') AND to_date(?, 'DD-MM-YYYY')
+              AND dh.status NOT IN ('5','7')
+        ", [$articleCode, $dateFrom, $dateTo]);
+
+        return $row ? (float) $row->avg_price : 0.0;
+    }
+
+    /**
+     * Nilai Persediaan -- avg harga receiving (weighted by qty) untuk artikel
+     * selain FG, dihitung FRESH dari receiving_det -- SENGAJA tidak baca
+     * warehouse_stock.avg_price (kolom itu cache yang bisa basi/tidak akurat).
+     * Bulan berjalan dulu; kalau kosong mundur bulan demi bulan sampai
+     * maksimum $maxMonthsBack -- sama persis pola avgPrice() di
+     * PriceListController / avgReceivingPrice() di ConversionReportController.
+     */
+    private function avgReceivingValue(string $articleCode, int $maxMonthsBack = 24): float
+    {
+        for ($i = 0; $i <= $maxMonthsBack; $i++) {
+            $row = DB::selectOne("
+                SELECT COALESCE(SUM(price*qty)/NULLIF(SUM(qty),0),0) AS avg_price, COUNT(*) AS n
+                FROM receiving_det
+                WHERE article_code = ?
+                  AND date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE - (? || ' months')::interval)
+            ", [$articleCode, $i]);
+
+            if ($row && $row->n > 0) {
+                return (float) $row->avg_price;
+            }
+        }
+        return 0.0;
+    }
+
     private function emptyTotals($locationCode = null)
     {
         $totals = ['opening' => 0];
@@ -664,6 +711,8 @@ class StoReportController extends Controller
         $totals['closing']  = 0;
         $totals['qty_sto']  = null;
         $totals['variance'] = null;
+        $totals['valuation'] = null;
+        $totals['consumption_value'] = null;
 
         return $totals;
     }
@@ -817,11 +866,16 @@ class StoReportController extends Controller
                 'a.article_alternative_code',
                 'a.article_desc',
                 'a.uom',
+                'a.article_type',
                 DB::raw('COALESCE(tp.nama, a.third_party) as supp_name')
             )
             ->orderBy('a.article_code')
             ->get()
             ->keyBy('article_code');
+
+        // ── BARU: Nilai Persediaan & Consumption ──
+        // group dipakai buat gate kolom Consumption (cuma CHEMICAL: 005/006/009)
+        $group = $this->getLocationGroup($locationCode);
 
         $rows         = collect();
         $totalPoin    = 0;
@@ -879,6 +933,27 @@ class StoReportController extends Controller
             $totalArtikel++;
             if ($accurate) $totalPoin++;
 
+            // ── Nilai Persediaan: FG pakai avg harga jual DN (periode report ini),
+            //    selain FG pakai avg harga receiving (fresh, bukan warehouse_stock.avg_price).
+            $articleType = strtoupper($meta->article_type ?? '');
+            $unitValue   = $articleType === 'FG'
+                ? $this->avgDnValue($rc, $dateFrom, $dateTo)
+                : $this->avgReceivingValue($rc);
+            $valuation   = $stoQty !== null ? round($unitValue * $stoQty, 2) : null;
+
+            // ── Consumption: cuma untuk lokasi CHEMICAL (005/006/009).
+            //    Consumption = Supply - Return, diselaraskan dengan Variance
+            //    (opsi 2 yang sudah disetujui) supaya total pergerakan pas
+            //    dengan hasil fisik STO.
+            $consumptionQty   = null;
+            $consumptionValue = null;
+            if ($group === 'CHEMICAL') {
+                $supplyQty      = $moveVals['out_supply_transfer'] ?? 0;
+                $returnQty      = $moveVals['in_return_transfer'] ?? 0;
+                $consumptionQty = round(($supplyQty - $returnQty) - ($variance ?? 0), 2);
+                $consumptionValue = round($unitValue * $consumptionQty, 2);
+            }
+
             $rowData = array_merge([
                 'article_code' => $rc,
                 'alt_code'     => $altCode ?? $rc,
@@ -887,11 +962,15 @@ class StoReportController extends Controller
                 'uom'          => $meta->uom ?? '-',
                 'opening'      => $opening,
             ], $moveVals, [
-                'closing'      => $closing,
-                'qty_sto'      => $stoQty,
-                'variance'     => $variance,
-                'sto_status'   => $stoStatus,
-                'accurate'     => $accurate,
+                'closing'           => $closing,
+                'qty_sto'           => $stoQty,
+                'variance'          => $variance,
+                'sto_status'        => $stoStatus,
+                'accurate'          => $accurate,
+                'unit_value'        => round($unitValue, 4),
+                'valuation'         => $valuation,
+                'consumption_qty'   => $consumptionQty,
+                'consumption_value' => $consumptionValue,
             ]);
 
             $rows->push((object) $rowData);
@@ -913,6 +992,12 @@ class StoReportController extends Controller
             }
             if ($r->variance !== null) {
                 $totals['variance'] = round(($totals['variance'] ?? 0) + $r->variance, 2);
+            }
+            if ($r->valuation !== null) {
+                $totals['valuation'] = round(($totals['valuation'] ?? 0) + $r->valuation, 2);
+            }
+            if ($r->consumption_value !== null) {
+                $totals['consumption_value'] = round(($totals['consumption_value'] ?? 0) + $r->consumption_value, 2);
             }
             return $r;
         });

@@ -42,6 +42,8 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
     protected $idxVariance;
     protected $idxStatus;
     protected $idxAkurasi;
+    protected $idxValuation;
+    protected $idxConsumption;
     protected $totalCols;
 
     protected $lastCol;          // huruf kolom terakhir, dihitung dinamis
@@ -86,7 +88,9 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
         $this->idxVariance = $this->idxHasilSto + 1;
         $this->idxStatus   = $this->idxVariance + 1;
         $this->idxAkurasi  = $this->idxStatus + 1;
-        $this->totalCols   = $this->idxAkurasi;
+        $this->idxValuation   = $this->idxAkurasi + 1;
+        $this->idxConsumption = $this->idxValuation + 1;
+        $this->totalCols   = $this->idxConsumption;
 
         $this->lastCol = Coordinate::stringFromColumnIndex($this->totalCols);
     }
@@ -138,6 +142,8 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
         $rowTop[$this->idxVariance - 1] = 'Variance';
         $rowTop[$this->idxStatus - 1]   = 'Status';
         $rowTop[$this->idxAkurasi - 1]  = 'Akurasi %';
+        $rowTop[$this->idxValuation - 1]   = 'Nilai Persediaan';
+        $rowTop[$this->idxConsumption - 1] = 'Consumption';
         $out[] = $rowTop;
 
         // ── baris 7: label kolom IN/OUT individual (kolom statis dibiarkan kosong, nanti di-merge vertikal) ──
@@ -177,6 +183,8 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
             $row[$this->idxVariance - 1] = $r->variance !== null ? $this->n($r->variance) : '-';
             $row[$this->idxStatus - 1]   = $r->sto_status;
             $row[$this->idxAkurasi - 1]  = $accPct !== null ? $accPct : '-';
+            $row[$this->idxValuation - 1]   = ($r->valuation ?? null) !== null ? $this->n($r->valuation) : '-';
+            $row[$this->idxConsumption - 1] = ($r->consumption_value ?? null) !== null ? $this->n($r->consumption_value) : '-';
 
             $out[] = $row;
         }
@@ -199,6 +207,8 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
         $rowTotal[$this->idxBalance - 1]  = $this->n($t['closing']);
         $rowTotal[$this->idxHasilSto - 1] = $t['qty_sto'] !== null ? $this->n($t['qty_sto']) : '-';
         $rowTotal[$this->idxVariance - 1] = $t['variance'] !== null ? $this->n($t['variance']) : '-';
+        $rowTotal[$this->idxValuation - 1]   = ($t['valuation'] ?? null) !== null ? $this->n($t['valuation']) : '-';
+        $rowTotal[$this->idxConsumption - 1] = ($t['consumption_value'] ?? null) !== null ? $this->n($t['consumption_value']) : '-';
         // Status & Akurasi dibiarkan kosong di baris total
 
         $out[] = $rowTotal;
@@ -245,6 +255,8 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
         $widths[$this->colLetter($this->idxVariance)] = 11;
         $widths[$this->colLetter($this->idxStatus)]   = 12;
         $widths[$this->colLetter($this->idxAkurasi)]  = 10;
+        $widths[$this->colLetter($this->idxValuation)]   = 16;
+        $widths[$this->colLetter($this->idxConsumption)] = 14;
 
         return $widths;
     }
@@ -295,6 +307,7 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
                     $this->idxSupp, $this->idxUom, $this->idxOpening,
                     $this->idxBalance, $this->idxHasilSto, $this->idxVariance,
                     $this->idxStatus, $this->idxAkurasi,
+                    $this->idxValuation, $this->idxConsumption,
                 ];
                 foreach ($staticCols as $idx) {
                     $col = $this->colLetter($idx);
@@ -367,6 +380,12 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
                 $sheet->getStyle("{$akurasiCol}{$start}:{$akurasiCol}{$total}")
                     ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
+                // ── Nilai Persediaan & Consumption -- sama seperti kolom numerik lain ──
+                $valFrom = $this->colLetter($this->idxValuation);
+                $valTo   = $this->colLetter($this->idxConsumption);
+                $sheet->getStyle("{$valFrom}{$start}:{$valTo}{$total}")
+                    ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
                 // ── freeze TEPAT di bawah header (2 baris header) ──
                 $sheet->freezePane('A' . $start);
 
@@ -375,6 +394,8 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
                     ->getNumberFormat()->setFormatCode('#,##0.00');
                 $sheet->getStyle("{$akurasiCol}{$start}:{$akurasiCol}{$total}")
                     ->getNumberFormat()->setFormatCode('0.00');
+                $sheet->getStyle("{$valFrom}{$start}:{$valTo}{$total}")
+                    ->getNumberFormat()->setFormatCode('#,##0.00');
             },
         ];
     }
