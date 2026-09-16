@@ -656,24 +656,36 @@ class StoReportController extends Controller
 
     /**
      * Nilai Persediaan -- avg harga jual DN (weighted by qty) untuk artikel
-     * FG, DIBATASI ke periode report ini sendiri (dateFrom-dateTo), bukan
-     * lintas periode. Kalau tidak ada DN di periode ini, balik 0 (bukan
-     * fallback ke periode lain -- konsisten dengan Hasil STO/movement yang
-     * juga di-scope ke periode ini).
+     * FG. Bulan report ini dulu (dibatasi s/d $dateTo, cutoff STO); kalau
+     * kosong, mundur bulan demi bulan (bulan penuh) sampai maksimum
+     * $maxMonthsBack -- sama pola dengan avgReceivingValue().
      */
-    private function avgDnValue(string $articleCode, string $dateFrom, string $dateTo): float
+    private function avgDnValue(string $articleCode, string $dateFrom, string $dateTo, int $maxMonthsBack = 24): float
     {
-        $row = DB::selectOne("
-            SELECT COALESCE(SUM(dd.qty * COALESCE(sod.price,0)) / NULLIF(SUM(dd.qty),0), 0) AS avg_price
-            FROM delivery_det dd
-            JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
-            LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
-            WHERE dd.article_code = ?
-              AND to_date(dh.delivery_date, 'DD-MM-YYYY') BETWEEN to_date(?, 'DD-MM-YYYY') AND to_date(?, 'DD-MM-YYYY')
-              AND dh.status NOT IN ('5','7')
-        ", [$articleCode, $dateFrom, $dateTo]);
+        $anchor = \DateTime::createFromFormat('d-m-Y', $dateFrom);
+        $cutoff = \DateTime::createFromFormat('d-m-Y', $dateTo);
+        if (!$anchor || !$cutoff) return 0.0;
 
-        return $row ? (float) $row->avg_price : 0.0;
+        for ($i = 0; $i <= $maxMonthsBack; $i++) {
+            $monthStart = (clone $anchor)->modify("-{$i} month")->modify('first day of this month');
+            $monthEnd   = $i === 0 ? $cutoff : (clone $monthStart)->modify('last day of this month');
+
+            $row = DB::selectOne("
+                SELECT COALESCE(SUM(dd.qty * COALESCE(sod.price,0)) / NULLIF(SUM(dd.qty),0), 0) AS avg_price, COUNT(*) AS n
+                FROM delivery_det dd
+                JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
+                LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
+                WHERE dd.article_code = ?
+                  AND to_date(dh.delivery_date, 'DD-MM-YYYY') BETWEEN ?::date AND ?::date
+                  AND dh.status NOT IN ('5','7')
+            ", [$articleCode, $monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')]);
+
+            if ($row && $row->n > 0) {
+                return (float) $row->avg_price;
+            }
+        }
+
+        return 0.0;
     }
 
     /**

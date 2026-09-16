@@ -224,10 +224,9 @@ class StoReportExport implements FromArray, WithTitle, WithStyles, WithColumnWid
     private function rowAccuracy($r)
     {
         $b = (float) $r->closing;
+        // Tidak ke-hitung fisik sama sekali -> selalu 0%, apapun Balance-nya.
         if ($r->qty_sto === null) {
-            // Ada Balance tapi tidak ke-hitung fisik -> dihitung 0% (gagal),
-            // bukan dikecualikan. Balance 0 + tidak ke-hitung tetap netral.
-            return $b != 0 ? 0 : null;
+            return 0;
         }
         $s = (float) $r->qty_sto;
         if ($b == 0) return $s == 0 ? 100 : 0;
