@@ -328,8 +328,14 @@ $(document).ready(function () {
     // balance 0 & sto != 0  → 0%
     // tidak ada data STO    → null
     function rowAccuracyPct(r, tolerance) {
-        if (r.qty_sto === null || r.qty_sto === undefined) return null;
         let b = parseFloat(r.closing);
+        if (r.qty_sto === null || r.qty_sto === undefined) {
+            // Ada Balance (sistem bilang harusnya ada stok) tapi artikel ini
+            // tidak ke-hitung fisik sama sekali -> itu kegagalan STO, dihitung
+            // 0% (bukan dikecualikan). Balance 0 + tidak ke-hitung tetap netral
+            // (tidak ada apa-apa yang "terlewat" untuk dihitung).
+            return (!isNaN(b) && b !== 0) ? 0 : null;
+        }
         let s = parseFloat(r.qty_sto);
         if (isNaN(b) || isNaN(s)) return null;
         if (b === 0) return (s === 0) ? 100 : 0;

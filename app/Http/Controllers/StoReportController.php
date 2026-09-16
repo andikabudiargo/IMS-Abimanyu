@@ -633,7 +633,11 @@ class StoReportController extends Controller
         $dateFrom = sprintf('01-%02d-%04d', $month, $year);
 
         if ($stoDate && preg_match('/^\d{2}-\d{2}-\d{4}$/', $stoDate)) {
-            $dateTo = $stoDate;
+            // Cut off SEHARI SEBELUM tanggal STO -- fisik dihitung pagi hari
+            // tanggal STO, jadi movement yang baru diposting di hari STO itu
+            // sendiri belum boleh ikut dianggap "sudah terjadi" saat itung fisik.
+            $stoDateObj = \DateTime::createFromFormat('d-m-Y', $stoDate);
+            $dateTo = $stoDateObj ? date('d-m-Y', strtotime($stoDateObj->format('Y-m-d') . ' -1 day')) : $stoDate;
         } else {
             $lastDay = (int) date('t', mktime(0, 0, 0, $month, 1, $year));
             $dateTo  = sprintf('%02d-%02d-%04d', $lastDay, $month, $year);
