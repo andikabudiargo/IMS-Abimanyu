@@ -772,6 +772,18 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('approval/update/level',['as'=>'approval.update.level','uses'=>'ApprovalController@updateLevel']);
 	Route::post('approval/delete/level',['as'=>'approval.destroy.level','uses'=>'ApprovalController@destroyLevel']);
 
+	Route::get('formChangeRequest',['as'=>'formChangeRequest.index','uses'=>'FormChangeRequestController@index']);
+	Route::get('formChangeRequest/list',['as'=>'formChangeRequest.list','uses'=>'FormChangeRequestController@list']);
+	Route::get('formChangeRequest/create',['as'=>'formChangeRequest.create','uses'=>'FormChangeRequestController@create']);
+	Route::post('formChangeRequest/store',['as'=>'formChangeRequest.store','uses'=>'FormChangeRequestController@store']);
+	Route::get('formChangeRequest/edit',['as'=>'formChangeRequest.edit','uses'=>'FormChangeRequestController@edit']);
+	Route::post('formChangeRequest/update',['as'=>'formChangeRequest.update','uses'=>'FormChangeRequestController@update']);
+	Route::post('formChangeRequest/approve',['as'=>'formChangeRequest.approve','uses'=>'FormChangeRequestController@approve']);
+	Route::post('formChangeRequest/approveFinal',['as'=>'formChangeRequest.approveFinal','uses'=>'FormChangeRequestController@approveFinal']);
+	Route::post('formChangeRequest/reject',['as'=>'formChangeRequest.reject','uses'=>'FormChangeRequestController@reject']);
+	Route::post('formChangeRequest/cancel',['as'=>'formChangeRequest.cancel','uses'=>'FormChangeRequestController@cancel']);
+	Route::post('formChangeRequest/delete',['as'=>'formChangeRequest.destroy','uses'=>'FormChangeRequestController@destroy']);
+
 	Route::get('warehouse',['as'=>'warehouse.index','uses'=>'WarehouseController@index','middleware' => ['permission:warehouse-index']]);
 	Route::get('warehouse/transferIn',['as'=>'warehouse.transferIn','uses'=>'WarehouseController@transferIn','middleware' => ['permission:warehouse-create']]);
 	Route::get('warehouse/transferOut',['as'=>'warehouse.transferOut','uses'=>'WarehouseController@transferOut','middleware' => ['permission:warehouse-create']]);
@@ -897,6 +909,7 @@ Route::get('stockAdjustment/print',['as'=>'stockAdjustment.print','uses'=>'Stock
 Route::post('stockAdjustment/posting',['as'=>'stockAdjustment.posting','uses'=>'StockAdjustmentController@posting']);
 Route::post('stockAdjustment/cancel',['as'=>'stockAdjustment.cancel','uses'=>'StockAdjustmentController@cancel']);
 Route::get('stockAdjustment/revisionHistory', ['as'=>'stockAdjustment.revisionHistory','uses'=>'StockAdjustmentController@revisionHistory']);
+Route::get('sto/check-date', ['as'=>'sto.check-date', 'uses'=>'StockAdjustmentController@checkStoDate']);
 
 Route::get('stockTakingOrder',          ['as'=>'stockTakingOrder.index',      'uses'=>'StockTakingOrderController@index']);
 Route::get('stockTakingOrder/list',     ['as'=>'stockTakingOrder.list',       'uses'=>'StockTakingOrderController@list']);

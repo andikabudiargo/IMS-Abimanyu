@@ -956,6 +956,12 @@
 
           </ul>
         </li>
+        <li class=" {{ \Request::segment(1) == 'formChangeRequest' ? 'active' : '' }} nav-item">
+          <a class="d-flex align-items-center" href="{{ route('formChangeRequest.index') }}">
+            <i data-feather="edit-3"></i>
+            <span class="menu-title text-truncate" data-i18n="Form Elements">Form Change Request</span>
+          </a>
+        </li>
         <li class=" {{ in_array(\Request::segment(1), ['logActivity']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather="briefcase"></i>
