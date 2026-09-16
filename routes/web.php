@@ -1242,6 +1242,15 @@ Route::get('conversion/price-list/list', 'Conversion\PriceListController@list')-
 Route::get('conversion/price-list/export-template', 'Conversion\PriceListController@exportExcelTemplate')->name('conversion.priceList.export.excel');
 Route::post('conversion/price-list/import-excel', 'Conversion\PriceListController@importExcel')->name('conversion.priceList.import.excel');
 
+	Route::get('conversionReport',['as'=>'conversionReport.index','uses'=>'Conversion\ConversionReportController@index']);
+	Route::get('conversionReport/list',['as'=>'conversionReport.list','uses'=>'Conversion\ConversionReportController@list']);
+	Route::get('conversionReport/create',['as'=>'conversionReport.create','uses'=>'Conversion\ConversionReportController@create']);
+	Route::get('conversionReport/previewPeriod',['as'=>'conversionReport.previewPeriod','uses'=>'Conversion\ConversionReportController@previewPeriod']);
+	Route::post('conversionReport/store',['as'=>'conversionReport.store','uses'=>'Conversion\ConversionReportController@store']);
+	Route::get('conversionReport/show',['as'=>'conversionReport.show','uses'=>'Conversion\ConversionReportController@show']);
+	Route::get('conversionReport/list/detail/dn',['as'=>'conversionReport.list.detail.dn','uses'=>'Conversion\ConversionReportController@listDetailDn']);
+	Route::post('conversionReport/delete',['as'=>'conversionReport.destroy','uses'=>'Conversion\ConversionReportController@destroy']);
+
 	Route::get('balanceSheet',['as'=>'balanceSheet.index','uses'=>'Accounting\BalanceSheetController@index']);
 	Route::get('balanceSheet/print',['as'=>'balanceSheet.print','uses'=>'Accounting\BalanceSheetController@print']);
 

@@ -159,9 +159,9 @@
                     <span class="menu-item text-truncate" data-i18n="Conversion">Conversion</span>
                   </a>
                 </li>
-                 <li class="{{ \Request::segment(1) == 'periodicReport'  ? 'active' : '' }}">
-                  <a class="d-flex align-items-center" href="{{ route('conversion.index') }}">
-                    <span class="menu-item text-truncate" data-i18n="Conversion">Periodic Report</span>
+                 <li class="{{ \Request::segment(1) == 'conversionReport'  ? 'active' : '' }}">
+                  <a class="d-flex align-items-center" href="{{ route('conversionReport.index') }}">
+                    <span class="menu-item text-truncate" data-i18n="Conversion">Conversion Report</span>
                   </a>
                 </li>
                 <li class="{{ \Request::segment(1) == 'conversionSetting'  ? 'active' : '' }}">
