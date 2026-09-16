@@ -111,6 +111,23 @@
                                         <input type="text" class="form-control" id="pembilangNumber" name="pembilangNumber" />
                                         <input type="text" class="form-control" id="penyebutNumber" name="penyebutNumber" />
                                     </div>
+                                     <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="buktiPotong">No Bukti Potong</label>
+                <input type="text"
+                       id="buktiPotong"
+                       name="buktiPotong"
+                       class="form-control">
+            </div>
+             <div class="form-group col-md-6">
+                <label for="BupotDate">Bukti Potong Date</label>
+                <input type="text"
+                       id="BupotDate"
+                       name="BupotDate"
+                       class="form-control"
+                       placeholder="DD-MM-YYYY">
+            </div>
+        </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">
                                             <label class="form-label" for="note">Notes</label>

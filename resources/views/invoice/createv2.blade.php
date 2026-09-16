@@ -141,20 +141,29 @@
 
         {{-- Tax Information --}}
         <div class="form-row">
-            <div class="form-group col-md-6">
+            <div class="form-group col-md-12">
                 <label for="fakturPajak">Tax Number</label>
                 <input type="text"
                        id="fakturPajak"
                        name="fakturPajak"
                        class="form-control">
             </div>
-
+        </div>
+        <div class="form-row">
             <div class="form-group col-md-6">
                 <label for="buktiPotong">No Bukti Potong</label>
                 <input type="text"
                        id="buktiPotong"
                        name="buktiPotong"
                        class="form-control">
+            </div>
+             <div class="form-group col-md-6">
+                <label for="BupotDate">Bukti Potong Date</label>
+                <input type="text"
+                       id="BupotDate"
+                       name="BupotDate"
+                       class="form-control"
+                       placeholder="DD-MM-YYYY">
             </div>
         </div>
 
@@ -371,6 +380,13 @@ if (sendingDate.length) {
     });
 }
 
+const bupotDatePicker = $('#BupotDate');
+if (bupotDatePicker.length) {
+    bupotDatePicker.flatpickr({
+        dateFormat: "d-m-Y"
+    });
+}
+
    function hitungJatuhTempo() {
     let sendingDate = $('#sendingDate').val();
     let top = parseInt($('#customer option:selected').data('top')) || 0;
@@ -528,7 +544,8 @@ $('#customer').on('change', function() {
                             let aSoDate = $('#soDate').val();
                             let aPeriode = $('#period').val();
                             let aBuktiPotong = $('#buktiPotong').val();
-            
+                            let aBupotDate = $('#BupotDate').val();
+
                             $.ajax({
                                 type: "post",
                                 url: "{{ route('invoice.store') }}",
@@ -554,7 +571,8 @@ $('#customer').on('change', function() {
                                     totalDppNilaiLain:aTotalDppNilaiLain,
                                     soDate:aSoDate,
                                     aPeriode:aPeriode,
-                                    aBuktiPotong:aBuktiPotong
+                                    aBuktiPotong:aBuktiPotong,
+                                    aBupotDate:aBupotDate
                                 },
                                 dataType: "json",
                                 success: function(data) {
