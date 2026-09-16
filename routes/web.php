@@ -1246,6 +1246,7 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 	Route::get('conversionReport/list',['as'=>'conversionReport.list','uses'=>'Conversion\ConversionReportController@list']);
 	Route::get('conversionReport/create',['as'=>'conversionReport.create','uses'=>'Conversion\ConversionReportController@create']);
 	Route::get('conversionReport/previewPeriod',['as'=>'conversionReport.previewPeriod','uses'=>'Conversion\ConversionReportController@previewPeriod']);
+	Route::get('conversionReport/exportPreview',['as'=>'conversionReport.exportPreview','uses'=>'Conversion\ConversionReportController@exportPreview']);
 	Route::post('conversionReport/store',['as'=>'conversionReport.store','uses'=>'Conversion\ConversionReportController@store']);
 	Route::get('conversionReport/show',['as'=>'conversionReport.show','uses'=>'Conversion\ConversionReportController@show']);
 	Route::get('conversionReport/list/detail/dn',['as'=>'conversionReport.list.detail.dn','uses'=>'Conversion\ConversionReportController@listDetailDn']);

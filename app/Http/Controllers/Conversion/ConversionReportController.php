@@ -131,6 +131,12 @@ class ConversionReportController extends Controller
         $start = sprintf('%04d-%02d-01', $tahun, $periode);
         $end   = date('Y-m-t', strtotime($start));
 
+        // price_unit = sales_order_det.price polos (TANPA price_service).
+        // Purchase/material price (RM) juga TIDAK dikurangi di sini; itu baru
+        // dikurangkan di level agregat lewat kolom "Conversion"
+        // (avg_selling - avg_purchase)/conversion_value, lihat buildSummary().
+        // price_unit/price_total di breakdown DN ini sengaja tetap angka jual
+        // kotor apa adanya, supaya mencerminkan nilai transaksi DN yang sebenarnya.
         return DB::select("
             SELECT
                 dd.article_code,
@@ -139,6 +145,7 @@ class ConversionReportController extends Controller
                 a.uom,
                 dd.delivery_number AS dn_number,
                 dd.so_number,
+                dh.id AS delivery_id,
                 dh.delivery_date,
                 tp.nama AS customer_name,
                 dd.qty,
@@ -293,6 +300,7 @@ class ConversionReportController extends Controller
         foreach ($summary['dnByArticle'] as $articleCode => $lines) {
             $dnByArticle[$articleCode] = array_map(fn($l) => [
                 'dn_number'     => $l->dn_number,
+                'dn_url'        => $l->delivery_id ? route('delivery.show', ['id' => Crypt::encryptString($l->delivery_id)]) : null,
                 'so_number'     => $l->so_number,
                 'customer_name' => $l->customer_name,
                 'delivery_date' => $l->delivery_date,
@@ -308,6 +316,23 @@ class ConversionReportController extends Controller
             'conversionValue' => $summary['conversionValue'],
             'dnByArticle' => $dnByArticle,
         ]);
+    }
+
+    /** Export Excel dari preview periode (dipanggil setelah data delivery ditarik di halaman Create). */
+    public function exportPreview(Request $request)
+    {
+        $periode = (int) $request->periode;
+        $tahun   = (int) $request->tahun;
+
+        if (!$periode || !$tahun) {
+            return redirect()->back()->with('error', 'Periode belum lengkap.');
+        }
+
+        $summary = $this->buildSummary($periode, $tahun);
+        $months  = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+        $fileName = 'Conversion_Report_'.($months[$periode] ?? $periode).'_'.$tahun.'.xlsx';
+
+        return \Excel::download(new \App\Exports\ConversionReportExport($summary['rows']), $fileName);
     }
 
     public function store(Request $request)

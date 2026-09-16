@@ -37,6 +37,27 @@
     <h4 class="card-title">Article Detail</h4>
   </div>
   <div class="card-body">
+    <div class="row mb-2">
+      <div class="col-md-4">
+        <div class="card mb-0"><div class="card-body py-1 px-2">
+          <small class="text-muted d-block">Total Article</small>
+          <h5 class="mb-0">{{ $details->count() }}</h5>
+        </div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="card mb-0"><div class="card-body py-1 px-2">
+          <small class="text-muted d-block">Total Qty Kirim</small>
+          <h5 class="mb-0">{{ number_format($details->sum('total_qty'), 2) }}</h5>
+        </div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="card mb-0"><div class="card-body py-1 px-2">
+          <small class="text-muted d-block">Total Conversion</small>
+          <h5 class="mb-0">{{ number_format($details->sum('conversion'), 2) }}</h5>
+        </div></div>
+      </div>
+    </div>
+
     <div class="table-responsive">
       <table class="table table-bordered table-sm">
         <thead class="thead-light">

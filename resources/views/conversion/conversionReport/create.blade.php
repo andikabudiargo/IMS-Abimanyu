@@ -43,13 +43,41 @@
       </div>
 
       <hr>
-      <h5>Article dari Delivery pada periode terpilih</h5>
+      <div class="d-flex justify-content-between align-items-center">
+        <h5>Article dari Delivery pada periode terpilih</h5>
+        <button type="button" class="btn btn-outline-success btn-sm d-none" id="btnExport">
+          <i data-feather="download" class="align-middle mr-50"></i>
+          <span class="align-middle">Export Excel</span>
+        </button>
+      </div>
       <div id="previewEmpty" class="text-muted mb-2">Pilih Periode (Bulan) &amp; Tahun untuk menarik data delivery.</div>
       <div id="previewLoading" class="text-muted mb-2" style="display:none">
         <i data-feather="loader" class="mr-50"></i> Memuat data delivery...
       </div>
 
-      <div class="table-responsive" id="previewWrap" style="display:none">
+      <div id="previewWrap" style="display:none">
+        <div class="row mb-2">
+          <div class="col-md-4">
+            <div class="card mb-0"><div class="card-body py-1 px-2">
+              <small class="text-muted d-block">Total Article</small>
+              <h5 class="mb-0" id="sumTotalArticle">0</h5>
+            </div></div>
+          </div>
+          <div class="col-md-4">
+            <div class="card mb-0"><div class="card-body py-1 px-2">
+              <small class="text-muted d-block">Total Qty Kirim</small>
+              <h5 class="mb-0" id="sumTotalQty">0</h5>
+            </div></div>
+          </div>
+          <div class="col-md-4">
+            <div class="card mb-0"><div class="card-body py-1 px-2">
+              <small class="text-muted d-block">Total Conversion</small>
+              <h5 class="mb-0" id="sumTotalConversion">0</h5>
+            </div></div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
         <table class="table table-bordered table-sm">
           <thead class="thead-light">
             <tr>
@@ -64,6 +92,7 @@
           </thead>
           <tbody id="previewRows"></tbody>
         </table>
+        </div>
         <small class="text-muted">
           Conversion = (Avg Selling Price &minus; Avg Purchase Price) / Conversion Value.
           Avg Selling Price dihitung dari rata-rata (dibobot qty) harga Sales Order tiap Delivery Note di periode ini,
@@ -127,12 +156,14 @@
     if (!periode || !tahun) {
       $('#previewEmpty').show();
       $('#previewWrap, #previewLoading').hide();
+      $('#btnExport').addClass('d-none');
       $('#btnSave').prop('disabled', true);
       return;
     }
 
     $('#previewEmpty, #previewWrap').hide();
     $('#previewLoading').show();
+    $('#btnExport').addClass('d-none');
     $('#btnSave').prop('disabled', true);
 
     $.get("{{ route('conversionReport.previewPeriod') }}", { periode: periode, tahun: tahun }, function (res) {
@@ -164,7 +195,17 @@
       });
 
       $('#previewRows').html(html);
+
+      const totalArticle    = previewRows.length;
+      const totalQty        = previewRows.reduce((sum, r) => sum + (parseFloat(r.total_qty) || 0), 0);
+      const totalConversion = previewRows.reduce((sum, r) => sum + (parseFloat(r.conversion) || 0), 0);
+
+      $('#sumTotalArticle').text(totalArticle);
+      $('#sumTotalQty').text(humanize(totalQty));
+      $('#sumTotalConversion').text(humanize(totalConversion));
+
       $('#previewWrap').show();
+      $('#btnExport').removeClass('d-none');
       $('#btnSave').prop('disabled', false);
       if (window.feather) feather.replace({ width: 14, height: 14 });
     }).fail(function () {
@@ -175,6 +216,13 @@
 
   $('#periode, #tahun').on('change', loadPreview);
 
+  $('#btnExport').on('click', function () {
+    const periode = $('#periode').val();
+    const tahun = $('#tahun').val();
+    if (!periode || !tahun) return;
+    window.location.href = "{{ route('conversionReport.exportPreview') }}?periode=" + periode + "&tahun=" + tahun;
+  });
+
   $(document).on('click', '.btn-info-row', function () {
     const articleCode = $(this).data('article');
     const label = $(this).data('label');
@@ -184,8 +232,11 @@
 
     let html = '';
     lines.forEach(l => {
+      const dnCell = l.dn_url
+        ? `<a href="${l.dn_url}" target="_blank">${l.dn_number}</a>`
+        : (l.dn_number || '-');
       html += `<tr>
-        <td>${l.dn_number}</td>
+        <td>${dnCell}</td>
         <td>${l.customer_name || '-'}</td>
         <td class="text-right">${humanize(l.qty)}</td>
         <td class="text-right">${humanize(l.price_unit)}</td>
