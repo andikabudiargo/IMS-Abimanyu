@@ -14,7 +14,7 @@
       <div class="form-row">
         <div class="form-group col-md-3">
           <label>Nomor Conversion</label>
-          <input type="text" class="form-control" value="Auto-generated (CVR-ASN-YYYY-MONTH-XXXX)" disabled>
+          <input type="text" class="form-control" value="Auto-generated" disabled>
         </div>
          <div class="form-group col-md-2">
           <label for="periode">Periode (Bulan) <span class="text-danger">*</span></label>
