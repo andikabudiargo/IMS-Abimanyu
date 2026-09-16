@@ -1251,6 +1251,10 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 	Route::get('conversionReport/show',['as'=>'conversionReport.show','uses'=>'Conversion\ConversionReportController@show']);
 	Route::get('conversionReport/list/detail/dn',['as'=>'conversionReport.list.detail.dn','uses'=>'Conversion\ConversionReportController@listDetailDn']);
 	Route::post('conversionReport/delete',['as'=>'conversionReport.destroy','uses'=>'Conversion\ConversionReportController@destroy']);
+	Route::get('conversionReport/edit',['as'=>'conversionReport.edit','uses'=>'Conversion\ConversionReportController@edit']);
+	Route::post('conversionReport/update',['as'=>'conversionReport.update','uses'=>'Conversion\ConversionReportController@update']);
+	Route::post('conversionReport/revision',['as'=>'conversionReport.revision','uses'=>'Conversion\ConversionReportController@revision']);
+	Route::post('conversionReport/cancel',['as'=>'conversionReport.cancel','uses'=>'Conversion\ConversionReportController@cancel']);
 
 	Route::get('balanceSheet',['as'=>'balanceSheet.index','uses'=>'Accounting\BalanceSheetController@index']);
 	Route::get('balanceSheet/print',['as'=>'balanceSheet.print','uses'=>'Accounting\BalanceSheetController@print']);

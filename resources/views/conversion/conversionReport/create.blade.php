@@ -27,7 +27,12 @@
         </div>
         <div class="form-group col-md-2">
           <label for="tahun">Tahun <span class="text-danger">*</span></label>
-          <input type="number" class="form-control" id="tahun" name="tahun" min="2000" max="2100" value="{{ date('Y') }}" required>
+          <select class="select2 form-control" id="tahun" name="tahun" required>
+            <option value="">-- Tahun --</option>
+            @for ($y = 2023; $y <= date('Y'); $y++)
+              <option value="{{ $y }}" {{ $y == date('Y') ? 'selected' : '' }}>{{ $y }}</option>
+            @endfor
+          </select>
         </div>
       </div>
        <div class="form-row">

@@ -90,7 +90,7 @@
       tableId: "cvrTable",
       route: "{{ route('conversionReport.list') }}",
       kolom: {!! $kolom !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6],
+      arrColPrint: [1, 2, 3, 4, 5, 6, 7],
       columnDefs: [{ width: '5%', targets: 0 }],
       dataSearch: {
         reportCode: searchCode.value,
@@ -118,6 +118,39 @@
         $('<form>', { action: "{{ route('conversionReport.destroy') }}", method: 'POST' })
           .append($('<input>', { type: 'hidden', name: '_token', value: $('meta[name="csrf-token"]').attr('content') }))
           .append($('<input>', { type: 'hidden', name: 'id', value: id }))
+          .appendTo('body')
+          .submit();
+      }
+    });
+  }
+
+  function cancelReport(id, code) {
+    Swal.fire({
+      title: 'Cancel this report?',
+      html: `Cancel <b>${code}</b>?`,
+      input: 'textarea',
+      inputPlaceholder: 'Alasan cancel...',
+      inputAttributes: { required: true },
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, cancel it',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#EA5455',
+      reverseButtons: true,
+      focusConfirm: false,
+      preConfirm: (reason) => {
+        if (!reason || !reason.trim()) {
+          Swal.showValidationMessage('Alasan cancel wajib diisi');
+          return false;
+        }
+        return reason;
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $('<form>', { action: "{{ route('conversionReport.cancel') }}", method: 'POST' })
+          .append($('<input>', { type: 'hidden', name: '_token', value: $('meta[name="csrf-token"]').attr('content') }))
+          .append($('<input>', { type: 'hidden', name: 'id', value: id }))
+          .append($('<input>', { type: 'hidden', name: 'reason', value: result.value }))
           .appendTo('body')
           .submit();
       }
