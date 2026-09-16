@@ -12,11 +12,11 @@
       @csrf
 
       <div class="form-row">
-        <div class="form-group col-md-3">
+        <div class="form-group col-md-4">
           <label>Ticket Number</label>
-          <input type="text" class="form-control" value="Auto-generated (CR-ASN-YYYY-MONTH-XXXX)" disabled>
+          <input type="text" class="form-control" value="Auto-generated" disabled>
         </div>
-        <div class="form-group col-md-3">
+        <div class="form-group col-md-4">
           <label for="modul">Modul <span class="text-danger">*</span></label>
           <select class="select2 form-control" id="modul" name="modul" required>
             <option value="">-- Select Modul --</option>
@@ -25,7 +25,10 @@
             @endforeach
           </select>
         </div>
-        <div class="form-group col-md-3">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group col-md-4">
           <label for="type">Type <span class="text-danger">*</span></label>
           <select class="select2 form-control" id="type" name="type" required>
             <option value="">-- Select Type --</option>
@@ -34,7 +37,7 @@
             @endforeach
           </select>
         </div>
-        <div class="form-group col-md-3">
+        <div class="form-group col-md-4">
           <label for="urgency">Urgensi <span class="text-danger">*</span></label>
           <select class="select2 form-control" id="urgency" name="urgency" required>
             <option value="">-- Select Urgensi --</option>
@@ -43,22 +46,22 @@
             @endforeach
           </select>
         </div>
-      </div>
+</div>
 
       <div class="form-row">
-        <div class="form-group col-md-12">
+        <div class="form-group col-md-8">
           <label for="description">Deskripsi / Alasan / Latar Belakang <span class="text-danger">*</span></label>
-          <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+          <textarea class="form-control" id="description" name="description" rows="10" required></textarea>
         </div>
       </div>
 
-      <div class="form-row">
+      {{--<div class="form-row">
         <div class="form-group col-md-6">
           <label for="attachment">Lampiran (Foto / Dokumen)</label>
           <input type="file" class="form-control" id="attachment" name="attachment[]" multiple>
           <small class="text-muted">Opsional. Bisa lebih dari 1 file.</small>
         </div>
-      </div>
+      </div>--}}
 
       <div id="detailSection" style="display:none">
         <hr>

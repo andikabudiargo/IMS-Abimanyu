@@ -724,12 +724,17 @@ class AccountPayableController extends Controller
         */
 
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
-        $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
 
         $vat=is_null($request->totalPPN) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPN);
         $pph23 = is_null($request->totalPPH23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH23);
         $pph21 = is_null($request->totalPPH21) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH21);
         $pph42 = is_null($request->totalPPH42) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH42);
+
+        // Grand Total dihitung ulang di server (tidak percaya ke $request->grandTotal begitu saja),
+        // mengikuti rumus yang sama dengan hitungTotal() di script.blade.php. Ini supaya grand_total
+        // tidak pernah nyeleneh dari basis_amount kalau field Total Bill di browser telat ke-sync
+        // (basis_amount berubah tapi grand_total ketinggalan, seperti kasus AP-ASN-2024-XII-3758).
+        $grandTotal = round(((float) $basisAmount - (float) $totalDiscount) + (float) $vat - ((float) $pph23 + (float) $pph21 + (float) $pph42), 2);
 
         $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
         $vatValue = $request->ppnValue;
@@ -1205,12 +1210,17 @@ class AccountPayableController extends Controller
         $taxInvoiceNumber=$request->taxInvoiceNumber;
         $recNumberSave = explode(",",$request->recNumberSave);
         $totalDiscount = is_null($request->totalDiscount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDiscount);
-        $grandTotal = is_null($request->grandTotal) ? 0 :  preg_replace('/[^0-9.]+/', '', $request->grandTotal);
 
         $vat=is_null($request->totalPPN) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPN);
         $pph23 = is_null($request->totalPPH23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH23);
         $pph21 = is_null($request->totalPPH21) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH21);
         $pph42 = is_null($request->totalPPH42) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH42);
+
+        // Grand Total dihitung ulang di server (tidak percaya ke $request->grandTotal begitu saja),
+        // mengikuti rumus yang sama dengan hitungTotal() di script.blade.php. Ini supaya grand_total
+        // tidak pernah nyeleneh dari basis_amount kalau field Total Bill di browser telat ke-sync
+        // (basis_amount berubah tapi grand_total ketinggalan, seperti kasus AP-ASN-2024-XII-3758).
+        $grandTotal = round(((float) $basisAmount - (float) $totalDiscount) + (float) $vat - ((float) $pph23 + (float) $pph21 + (float) $pph42), 2);
 
         $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
         $vatValue = $request->ppnValue;

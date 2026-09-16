@@ -50,8 +50,12 @@
             </div>
           </div>
           <div class="form-row">
-            <div class="form-group col-md-4">
+            <div class="form-group col-md-3">
               <label for="searchDate">Created Date</label>
+              <input type="text" id="searchDate" name="searchDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+            </div>
+            <div class="form-group col-md-3">
+              <label for="searchDate">Finished Date</label>
               <input type="text" id="searchDate" name="searchDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
             </div>
           </div>
