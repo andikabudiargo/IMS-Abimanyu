@@ -475,6 +475,7 @@ if ($data['showCriticalStock']) {
             'a.article_alternative_code as code',
             'a.article_desc as name',
             'a.uom',
+            'a.min_package',
             DB::raw('coalesce(a.safety_stock,0) as safety_stock'),
             'loc.location_name',
             DB::raw('coalesce(ws.article_qty,0) as stock_qty'),

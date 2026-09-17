@@ -55,6 +55,7 @@
                 <th>Stock</th>
                 <th>Safety Stock</th>
                 <th>UOM</th>
+                <th>Min Package</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -67,7 +68,7 @@
 
         @if($lastLocation != $val->location_name)
             <tr style="background:#e8f4fd;">
-                <td colspan="9" class="font-weight-bold text-primary">
+                <td colspan="10" class="font-weight-bold text-primary">
                     {{ $val->location_name }}
                 </td>
             </tr>
@@ -101,6 +102,8 @@
             </td>
 
             <td>{{ $val->uom }}</td>
+
+            <td class="text-right">{{ number_format($val->min_package) }}</td>
 
             <td>
                 <a class="btn btn-outline-info btn-sm"
