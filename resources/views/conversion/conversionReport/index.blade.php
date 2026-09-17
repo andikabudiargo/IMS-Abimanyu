@@ -47,7 +47,7 @@
 <section id="cvr-chart">
   <div class="card">
     <div class="card-header">
-      <h4 class="card-title">Kurva Konversi per Bulan</h4>
+      <h4 class="card-title">Management Dashboard</h4>
       <div class="heading-elements">
         <ul class="list-inline mb-0">
           <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -141,7 +141,12 @@
         xaxis: { categories: res.labels },
         stroke: { curve: 'smooth', width: 3 },
         markers: { size: 4 },
-        dataLabels: { enabled: false },
+        dataLabels: {
+          enabled: true,
+          style: { fontSize: '10px' },
+          offsetY: -6,
+          formatter: (val) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(val)
+        },
         colors: ['#7367F0'],
         tooltip: {
           y: { formatter: (val) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(val) }
