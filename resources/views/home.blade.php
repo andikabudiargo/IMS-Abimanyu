@@ -1885,12 +1885,10 @@
 
     @if($outstandingTransferInCount>0)
     $('#tblTransferPerluDiposting').DataTable({
-        dom: "<'row'<'col-sm-6'B><'col-sm-6'f>>rt<'row'<'col-sm-6'i><'col-sm-6'p>>",
+        dom: "<'row'<'col-sm-6'B><'col-sm-6'f>>rt<'row'<'col-sm-6'l'><'col-sm-6'p>>",
         order: [[7, 'desc']],
-        lengthChange: false,
+        lengthMenu: [[10, 50, 100, -1], [10, 50, 100, 'All']],
         pageLength: 10,
-        scrollY: '300px',
-        scrollCollapse: true,
         language: { search: '', searchPlaceholder: 'Cari...' },
         buttons: [
             {
