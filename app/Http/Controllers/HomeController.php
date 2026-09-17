@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Carbon\Carbon;
 use DB;
 use DataTables;
@@ -228,9 +229,11 @@ class HomeController extends Controller
         $candidateHeaders = DB::table('target_order_hdr')
             ->where('status', '3')
             ->whereRaw("EXTRACT(YEAR FROM to_date(tso_date,'DD-MM-YYYY')) BETWEEN ? AND ?", [$tahun - 1, $tahun + 1])
-            ->get(['tso_code', 'tso_name', 'tso_date']);
+            ->orderBy('id')
+            ->get(['id', 'tso_code', 'tso_name', 'tso_date']);
 
         $matchedTsoCodes = [];
+        $firstMatchedId  = null;
         foreach ($candidateHeaders as $h) {
             $month = $this->targetMonthFromName((string) $h->tso_name);
             if ($month === null) {
@@ -242,8 +245,20 @@ class HomeController extends Controller
             }
             if ($month === $periode && (int) $dt->format('Y') === $tahun) {
                 $matchedTsoCodes[] = $h->tso_code;
+                if ($firstMatchedId === null) {
+                    $firstMatchedId = $h->id;
+                }
             }
         }
+
+        // Kalau ada beberapa TSO yang cocok (beda customer, bulan target sama),
+        // tombol "Target SO" cuma nunjuk ke yang pertama -- widget ini agregat,
+        // bukan per-customer, jadi nggak ada satu halaman detail yang mewakili
+        // semuanya. Kalau nggak ada yang cocok sama sekali, arahkan ke index
+        // (biar user bisa cari/browse sendiri).
+        $targetSoUrl = $firstMatchedId
+            ? route('targetSo.show', ['id' => Crypt::encryptString($firstMatchedId)])
+            : route('targetSo.index');
 
         $targetLines = empty($matchedTsoCodes) ? collect() : DB::table('target_order_det')
             ->whereIn('tso_code', $matchedTsoCodes)
@@ -311,6 +326,7 @@ class HomeController extends Controller
             'targetConversion'   => round($targetConversion, 2),
             'achievedConversion' => round($achievedConversion, 2),
             'conversionPct'      => $targetConversion > 0 ? round($achievedConversion / $targetConversion * 100, 1) : 0,
+            'targetSoUrl'        => $targetSoUrl,
         ];
     }
 

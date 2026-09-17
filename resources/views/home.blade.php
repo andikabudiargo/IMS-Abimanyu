@@ -32,7 +32,12 @@
                             <i data-feather="target" class="font-medium-3 text-primary"></i>
                         </div>
                         <div>
-                            <h4 class="card-title mb-0">Sales Achievement</h4>
+                            <h4 class="card-title mb-0 d-flex align-items-center">
+                                Sales Achievement
+                                <span class="badge badge-pill {{ $salesAchievement['qtyPct'] >= 100 ? 'badge-success' : ($salesAchievement['qtyPct'] >= 75 ? 'badge-info' : 'badge-warning') }} font-medium-1 ml-1" id="saQtyBadge" style="{{ $salesAchievement['hasTarget'] ? '' : 'display:none;' }}">
+                                    <i data-feather="package" class="font-small-3"></i> <span id="saQtyBadgeText">{{ number_format($salesAchievement['qtyPct'], 1) }}% Qty</span>
+                                </span>
+                            </h4>
                             <small class="text-muted">Realisasi Delivery vs Target SO &mdash; <span id="saMonthLabel">{{ $salesAchievement['monthLabel'] }}</span></small>
                         </div>
                     </div>
@@ -56,10 +61,7 @@
                         <button type="button" id="saApply" class="btn btn-primary btn-sm">
                             <i data-feather="filter"></i> Terapkan
                         </button>
-                        <span class="badge badge-pill {{ $salesAchievement['qtyPct'] >= 100 ? 'badge-success' : ($salesAchievement['qtyPct'] >= 75 ? 'badge-info' : 'badge-warning') }} font-medium-1" id="saQtyBadge" style="{{ $salesAchievement['hasTarget'] ? '' : 'display:none;' }}">
-                            <i data-feather="package" class="font-small-3"></i> <span id="saQtyBadgeText">{{ number_format($salesAchievement['qtyPct'], 1) }}% Qty</span>
-                        </span>
-                        <a href="{{ route('targetSo.index') }}" class="btn btn-outline-primary btn-sm">
+                        <a href="{{ $salesAchievement['targetSoUrl'] }}" id="saTargetSoLink" class="btn btn-outline-primary btn-sm">
                             <i data-feather="external-link"></i> Target SO
                         </a>
                     </div>
@@ -2059,6 +2061,7 @@
                 const d = res.data;
 
                 $('#saMonthLabel, #saEmptyLabel').text(d.monthLabel);
+                $('#saTargetSoLink').attr('href', d.targetSoUrl);
 
                 if (!d.hasTarget) {
                     $('#saContent').hide();
