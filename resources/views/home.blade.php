@@ -22,6 +22,85 @@
         </div>
     </div>
     @endif
+
+    <div class="form-row">
+        <div class="col-lg-12 col-12">
+            <div class="card" style="border-left:4px solid #7367F0;">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-light-primary p-50 mr-1" style="border-radius:8px;">
+                            <i data-feather="target" class="font-medium-3 text-primary"></i>
+                        </div>
+                        <div>
+                            <h4 class="card-title mb-0">Delivery Performance</h4>
+                            <small class="text-muted">Realisasi Delivery vs Target SO &mdash; {{ $salesAchievement['monthLabel'] }}</small>
+                        </div>
+                    </div>
+                    @if($salesAchievement['hasTarget'])
+                    <div class="d-flex align-items-center flex-wrap">
+                        <span class="badge badge-pill {{ $salesAchievement['qtyPct'] >= 100 ? 'badge-success' : ($salesAchievement['qtyPct'] >= 75 ? 'badge-info' : 'badge-warning') }} font-medium-1 mr-1">
+                            <i data-feather="package" class="font-small-3"></i> {{ number_format($salesAchievement['qtyPct'], 1) }}% Qty
+                        </span>
+                        <a href="{{ route('targetSo.index') }}" class="btn btn-outline-primary btn-sm">
+                            <i data-feather="external-link"></i> Target SO
+                        </a>
+                    </div>
+                    @endif
+                </div>
+                <div class="card-body">
+                    @if(!$salesAchievement['hasTarget'])
+                        <div class="text-center text-muted py-2">
+                            <i data-feather="info" class="mr-25"></i> Belum ada Target SO yang APPROVED untuk periode {{ $salesAchievement['monthLabel'] }}.
+                        </div>
+                    @else
+                        <div class="d-flex justify-content-between align-items-center mb-50">
+                            <span class="font-weight-bold"><i data-feather="truck" class="font-medium-1 mr-25"></i> Qty Delivery Bulan Ini</span>
+                            <span class="font-weight-bold">{{ number_format($salesAchievement['achievedQty'], 0) }}
+                                <span class="text-muted font-weight-normal">/ {{ number_format($salesAchievement['targetQty'], 0) }} Target</span>
+                            </span>
+                        </div>
+                        <div class="progress mb-2" style="height:20px;border-radius:10px;">
+                            <div class="progress-bar {{ $salesAchievement['qtyPct'] >= 100 ? 'bg-success' : 'bg-primary' }}" role="progressbar"
+                                 style="width: {{ min($salesAchievement['qtyPct'], 100) }}%;"
+                                 aria-valuenow="{{ $salesAchievement['qtyPct'] }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ number_format($salesAchievement['qtyPct'], 1) }}%
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="card border shadow-none mb-0">
+                                    <div class="card-body d-flex align-items-center p-1">
+                                        <div class="avatar bg-light-secondary p-50 mr-1" style="border-radius:8px;">
+                                            <i data-feather="flag" class="font-medium-3 text-secondary"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="mb-0 font-weight-bolder">{{ number_format($salesAchievement['targetConversion'], 2) }}</h4>
+                                            <small class="text-muted">Target Konversi</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="card border shadow-none mb-0" style="border-color:#28c76f33 !important;background:#28c76f0d;">
+                                    <div class="card-body d-flex align-items-center p-1">
+                                        <div class="avatar bg-light-success p-50 mr-1" style="border-radius:8px;">
+                                            <i data-feather="trending-up" class="font-medium-3 text-success"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="mb-0 font-weight-bolder text-success">{{ number_format($salesAchievement['achievedConversion'], 2) }}</h4>
+                                            <small class="text-muted">Konversi Tercapai s.d. Hari Ini ({{ number_format($salesAchievement['conversionPct'], 1) }}%)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if( $listCriticalStock && $criticalStockCount>0 )
     <div class="form-row">
         <div class="col-lg-12 col-12">

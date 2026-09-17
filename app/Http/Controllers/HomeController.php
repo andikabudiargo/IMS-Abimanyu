@@ -57,6 +57,77 @@ class HomeController extends Controller
     return ['label' => floor($seconds / 86400) . ' hari', 'level' => 'danger'];
 }
 
+    /**
+     * Widget "Sales Achievement" di Home: qty & konversi delivery bulan berjalan
+     * (month-to-date, dari tgl 1 s.d. hari ini) dibandingkan Target SO.
+     *
+     * Konvensi Target SO (lihat TargetSoController): tso_date suatu dokumen
+     * dipakai untuk TARGET BULAN BERIKUTNYA -- tso_date di bulan Juni berarti
+     * target untuk bulan Juli. Jadi target bulan berjalan = TSO yang
+     * tso_date-nya jatuh di bulan SEBELUMNYA, status=3 (APPROVED/full approved).
+     *
+     * Konversi dihitung pakai conversion_result dari Price List (price_list_fg,
+     * status aktif) -- ini rate per-unit yang sudah dihitung sekali saat price
+     * list disimpan (sales_price - material_price)/conversion_value, jadi baik
+     * target maupun realisasi dibandingkan dengan basis harga yang SAMA, dan
+     * widget ini tidak perlu menghitung ulang avg purchase price per artikel
+     * setiap kali Home dibuka (beda dengan ConversionReportController::
+     * purchasePrice() yang jauh lebih berat karena menelusuri BOM+receiving).
+     */
+    private function buildSalesAchievement(): array
+    {
+        $now        = Carbon::now();
+        $monthStart = $now->copy()->startOfMonth()->format('Y-m-d');
+        $today      = $now->format('Y-m-d');
+
+        $tsoMonth = (int) $now->format('n') - 1;
+        $tsoYear  = (int) $now->format('Y');
+        if ($tsoMonth < 1) {
+            $tsoMonth = 12;
+            $tsoYear--;
+        }
+
+        $targetRow = DB::table('target_order_hdr as h')
+            ->join('target_order_det as d', 'd.tso_code', '=', 'h.tso_code')
+            ->leftJoin('price_list_fg as p', function ($j) {
+                $j->on('p.article_code', '=', 'd.article_code')->where('p.status', '1');
+            })
+            ->where('h.status', '3')
+            ->whereRaw("EXTRACT(MONTH FROM to_date(h.tso_date,'DD-MM-YYYY')) = ?", [$tsoMonth])
+            ->whereRaw("EXTRACT(YEAR FROM to_date(h.tso_date,'DD-MM-YYYY')) = ?", [$tsoYear])
+            ->selectRaw('COALESCE(SUM(d.qty_target),0) as qty_target, COALESCE(SUM(d.qty_target * p.conversion_result),0) as conversion_target')
+            ->first();
+
+        $targetQty        = (float) ($targetRow->qty_target ?? 0);
+        $targetConversion = (float) ($targetRow->conversion_target ?? 0);
+
+        $achievedRow = DB::table('delivery_det as dd')
+            ->join('delivery_hdr as dh', 'dh.delivery_number', '=', 'dd.delivery_number')
+            ->leftJoin('price_list_fg as p', function ($j) {
+                $j->on('p.article_code', '=', 'dd.article_code')->where('p.status', '1');
+            })
+            ->whereNotIn('dh.status', ['5', '7'])
+            ->whereRaw("to_date(dh.delivery_date,'DD-MM-YYYY') BETWEEN ?::date AND ?::date", [$monthStart, $today])
+            ->selectRaw('COALESCE(SUM(dd.qty),0) as qty_achieved, COALESCE(SUM(dd.qty * p.conversion_result),0) as conversion_achieved')
+            ->first();
+
+        $achievedQty        = (float) ($achievedRow->qty_achieved ?? 0);
+        $achievedConversion = (float) ($achievedRow->conversion_achieved ?? 0);
+
+        $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+        return [
+            'hasTarget'          => $targetQty > 0,
+            'monthLabel'         => $months[(int) $now->format('n')] . ' ' . $now->format('Y'),
+            'targetQty'          => $targetQty,
+            'achievedQty'        => $achievedQty,
+            'qtyPct'             => $targetQty > 0 ? round($achievedQty / $targetQty * 100, 1) : 0,
+            'targetConversion'   => $targetConversion,
+            'achievedConversion' => $achievedConversion,
+            'conversionPct'      => $targetConversion > 0 ? round($achievedConversion / $targetConversion * 100, 1) : 0,
+        ];
+    }
+
     public function index()
     {
 
@@ -525,8 +596,9 @@ $data['outstandingTransferIn'] = DB::table('transfer_stock_hdr')
 
 $data['outstandingTransferInCount'] = $data['outstandingTransferIn']->count();
         $data['bomCount'] = count($data['listBom']);
-        $data['greeting'] = self::greeting(); 
-        
+        $data['greeting'] = self::greeting();
+        $data['salesAchievement'] = $this->buildSalesAchievement();
+
         return view('home',$data);
     }
 
