@@ -115,9 +115,9 @@
         </div>
       </div>
       <div class="modal-body">
-        <div class="table-responsive">
+        <div class="table-responsive" style="max-height:60vh;overflow:auto;">
         <table class="table table-hover table-sm mb-0">
-          <thead class="thead-light">
+          <thead class="thead-light" style="position:sticky;top:0;z-index:1;">
             <tr>
               <th style="width:4%">No</th>
               <th>DN Number</th>
@@ -149,6 +149,13 @@
   function humanize(n) {
     n = parseFloat(n) || 0;
     return n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // Stempel tanggal+jam untuk nama file export: YYYYMMDD_HHmmss
+  function exportStamp() {
+    const d = new Date();
+    const p = (x) => String(x).padStart(2, '0');
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
   }
 
   function loadPreview() {
@@ -292,6 +299,10 @@
     }
     const sep = ';';
     const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    // Angka dibulatkan 2 desimal & pakai koma sebagai desimal (format Indonesia)
+    // supaya nilai di Excel = nilai di modal, bukan kebaca sbg ribuan.
+    const numId = (n) => (Math.round(((parseFloat(n) || 0) + Number.EPSILON) * 100) / 100)
+      .toFixed(2).replace('.', ',');
     const article = mdlCurrentArticle;
     const painting = article ? isPaintingUom(article.uom) : false;
     const header = ['No', 'DN Number', 'SO Number', 'Customer', 'Qty', 'Price Unit', 'Price Total', 'Konversi Painting', 'Konversi Non Painting'];
@@ -303,11 +314,11 @@
         l.dn_number || '',
         l.so_number || '',
         l.customer_name || '',
-        parseFloat(l.qty) || 0,
-        parseFloat(l.price_unit) || 0,
-        parseFloat(l.price_total) || 0,
-        painting ? conv : '',
-        painting ? '' : conv,
+        numId(l.qty),
+        numId(l.price_unit),
+        numId(l.price_total),
+        painting ? numId(conv) : '',
+        painting ? '' : numId(conv),
       ].map(esc).join(sep) + '\r\n';
     });
 
@@ -315,7 +326,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Detail_DN_' + mdlCurrentLabel.replace(/[^A-Za-z0-9]+/g, '_') + '.csv';
+    a.download = 'Detail_DN_' + mdlCurrentLabel.replace(/[^A-Za-z0-9]+/g, '_') + '_' + exportStamp() + '.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

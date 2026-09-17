@@ -435,7 +435,7 @@ class ConversionReportController extends Controller
 
         $summary = $this->buildSummary($periode, $tahun);
         $months  = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
-        $fileName = 'Conversion_Report_'.($months[$periode] ?? $periode).'_'.$tahun.'.xlsx';
+        $fileName = 'Conversion_Report_'.($months[$periode] ?? $periode).'_'.$tahun.'_'.date('Ymd_His').'.xlsx';
 
         return \Excel::download(new \App\Exports\ConversionReportExport($summary['rows']), $fileName);
     }
@@ -851,9 +851,12 @@ class ConversionReportController extends Controller
             ->orderByRaw("to_date(delivery_date, 'DD-MM-YYYY')")
             ->get();
 
+        // Diformat Indonesia (koma desimal, titik ribuan) supaya nilai di layar =
+        // nilai saat di-export ke Excel (kalau angka mentah "1028.87" kebaca ribuan).
         $convOf = function ($d) use ($avgPurchase, $convVal) {
-            if ($convVal <= 0) return 0;
-            return round(((((float) $d->price_unit) - $avgPurchase) * ((float) $d->qty)) / $convVal, 4);
+            if ($convVal <= 0) return '0,00';
+            $conv = ((((float) $d->price_unit) - $avgPurchase) * ((float) $d->qty)) / $convVal;
+            return number_format($conv, 2, ',', '.');
         };
 
         return Datatables::of($data)

@@ -118,6 +118,13 @@
 <script type="text/javascript">
   $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
 
+  // Stempel tanggal+jam untuk nama file export: YYYYMMDD_HHmmss
+  function exportStamp() {
+    const d = new Date();
+    const p = (x) => String(x).padStart(2, '0');
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  }
+
   $(document).on('click', '.btn-info-row', function () {
     const detId = $(this).data('det-id');
     const label = $(this).data('label');
@@ -146,7 +153,7 @@
         ['data' => 'conversion_non_painting', 'name' => 'conversion_non_painting', 'title' => 'Konversi Non Painting', 'orderable' => false, 'searchable' => false],
       ]),
       dataSearch: { reportDetId: detId },
-      excelFileName: 'Detail_DN_' + label.replace(/[^A-Za-z0-9]+/g, '_'),
+      excelFileName: 'Detail_DN_' + label.replace(/[^A-Za-z0-9]+/g, '_') + '_' + exportStamp(),
       buttons: true,
     });
   });
