@@ -2,26 +2,32 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
-class ArticleBulkUpdateExport implements FromArray, WithHeadings, ShouldAutoSize
+class ArticleBulkUpdateExport implements WithMultipleSheets
 {
-    private $columns;
+    protected $columns;
+    protected $articles;
+    protected $accounts;
 
-    public function __construct(array $columns)
+    public function __construct(array $columns, $articles = null, $accounts = null)
     {
-        $this->columns = $columns;
+        $this->columns  = $columns;
+        $this->articles = $articles ?? collect();
+        $this->accounts = $accounts ?? collect();
     }
 
-    public function array(): array
+    public function sheets(): array
     {
-        return [];
-    }
+        $sheets = [
+            new ArticleBulkUpdateTemplateSheet($this->columns),
+            new ArticleBulkUpdateArticleRefSheet($this->articles),
+        ];
 
-    public function headings(): array
-    {
-        return array_merge(['article_code'], $this->columns);
+        if (in_array('coa', $this->columns)) {
+            $sheets[] = new ArticleBulkUpdateCoaRefSheet($this->accounts);
+        }
+
+        return $sheets;
     }
 }

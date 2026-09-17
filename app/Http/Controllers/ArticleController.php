@@ -34,6 +34,7 @@
     private $bulkUpdateColumns = [
         'safety_stock' => 'Safety Stock',
         'coa'          => 'COA',
+        'min_package'  => 'Min Package',
     ];
 
     public function __construct()
@@ -2790,7 +2791,16 @@ private function buildSummaryRow(array $p)
                 $columns = $allowed;
             }
 
-            return Excel::download(new ArticleBulkUpdateExport($columns), 'article_bulk_update_template.xlsx');
+            $articles = DB::table('article')
+                ->select('article_alternative_code', 'article_desc')
+                ->orderBy('article_alternative_code')
+                ->get();
+
+            $accounts = in_array('coa', $columns)
+                ? DB::table('accounts')->select('account', 'description')->orderBy('account')->get()
+                : collect();
+
+            return Excel::download(new ArticleBulkUpdateExport($columns, $articles, $accounts), 'article_bulk_update_template.xlsx');
         }
 
         public function bulkUpdateImportExcel(Request $request)
@@ -2828,6 +2838,11 @@ private function buildSummaryRow(array $p)
                 $select[] = 'accounts.account as coa_valid';
                 $noteExprs[] = "case when accounts.account is null then concat('Urutan ',row_number() over(),': COA \"',coalesce(article_bulk_update_tmp.coa,''),'\" tidak valid/tidak terdaftar') end";
                 $query->leftJoin('accounts', 'accounts.account', '=', 'article_bulk_update_tmp.coa');
+            }
+
+            if (in_array('min_package', $columns)) {
+                $select[] = 'article_bulk_update_tmp.min_package';
+                $noteExprs[] = "case when article_bulk_update_tmp.min_package is null or article_bulk_update_tmp.min_package !~ '^[0-9.]+$' then concat('Urutan ',row_number() over(),': Min Package \"',coalesce(article_bulk_update_tmp.min_package,''),'\" tidak valid') end";
             }
 
             $select[] = DB::raw('concat(' . implode(',', $noteExprs) . ') as notes');
@@ -2907,6 +2922,10 @@ private function buildSummaryRow(array $p)
 
                         if (in_array('coa', $columns) && $row->coa !== null) {
                             $payload['coa'] = $row->coa;
+                        }
+
+                        if (in_array('min_package', $columns) && $row->min_package !== null) {
+                            $payload['min_package'] = $row->min_package;
                         }
 
                         if (!empty($payload)) {

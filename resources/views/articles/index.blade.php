@@ -89,6 +89,10 @@
                                 <input type="checkbox" class="custom-control-input bulk-update-column" id="colCoa" value="coa">
                                 <label class="custom-control-label" for="colCoa">COA</label>
                             </div>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input bulk-update-column" id="colMinPackage" value="min_package">
+                                <label class="custom-control-label" for="colMinPackage">Min Package</label>
+                            </div>
                         </div>
                     </div>
                 </div>

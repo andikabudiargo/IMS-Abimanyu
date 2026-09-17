@@ -9,6 +9,6 @@ class ArticleBulkUpdateStake extends Model
     public $timestamps = false;
     protected $table = 'article_bulk_update_tmp';
     protected $fillable = [
-        'batch_id', 'article_code', 'safety_stock', 'coa'
+        'batch_id', 'article_code', 'safety_stock', 'coa', 'min_package'
     ];
 }
