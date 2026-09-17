@@ -85,6 +85,21 @@
           </div>
         </div>
 
+        <div class="row mb-2">
+          <div class="col-md-6">
+            <div class="card mb-0"><div class="card-body py-1 px-2">
+              <small class="text-muted d-block">Total Konversi Painting (PCS/SET)</small>
+              <h5 class="mb-0" id="sumConvPainting">0</h5>
+            </div></div>
+          </div>
+          <div class="col-md-6">
+            <div class="card mb-0"><div class="card-body py-1 px-2">
+              <small class="text-muted d-block">Total Konversi Non Painting</small>
+              <h5 class="mb-0" id="sumConvNonPainting">0</h5>
+            </div></div>
+          </div>
+        </div>
+
         <div class="table-responsive">
         <table class="table table-bordered table-sm">
           <thead class="thead-light">
@@ -94,7 +109,8 @@
               <th>Article Desc</th>
               <th>Customer</th>
               <th class="text-right">Qty</th>
-              <th class="text-right">Conversion</th>
+              <th class="text-right">Konversi Painting</th>
+              <th class="text-right">Konversi Non Painting</th>
               <th style="width:6%">Action</th>
             </tr>
           </thead>
@@ -102,9 +118,10 @@
         </table>
         </div>
         <small class="text-muted">
-          Conversion = (Avg Selling Price &minus; Avg Purchase Price) / Conversion Value.
-          Avg Selling Price dihitung dari rata-rata (dibobot qty) harga Sales Order tiap Delivery Note di periode ini,
-          Avg Purchase Price dari average cost BOM/receiving berjalan.
+          Konversi = ((Avg Selling Price &minus; Avg Purchase Price) &times; Qty) / Conversion Value.
+          Avg Selling Price dihitung dari rata-rata (dibobot qty) harga Sales Order (price + service) tiap Delivery Note di periode ini,
+          Avg Purchase Price dari average cost BOM/receiving (tanpa PPN) berjalan.
+          Painting = artikel ber-UOM PCS/SET, selain itu Non Painting.
         </small>
       </div>
 
@@ -124,17 +141,25 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Detail DN <span id="mdlArticleLabel"></span></h5>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <div class="d-flex align-items-center">
+          <button type="button" class="btn btn-sm btn-outline-secondary mr-1" id="btnExportDnDetail">
+            <i data-feather="download" class="mr-25"></i> Export
+          </button>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
       </div>
       <div class="modal-body">
         <table class="table table-bordered table-sm">
           <thead class="thead-light">
             <tr>
+              <th style="width:4%">No</th>
               <th>DN Number</th>
               <th>Customer</th>
               <th class="text-right">Qty</th>
               <th class="text-right">Price Unit</th>
               <th class="text-right">Price Total</th>
+              <th class="text-right">Konversi Painting</th>
+              <th class="text-right">Konversi Non Painting</th>
             </tr>
           </thead>
           <tbody id="mdlDetailRows"></tbody>
@@ -151,6 +176,7 @@
 
   let previewRows = [];
   let dnByArticle = {};
+  let convValue = 0;
 
   function humanize(n) {
     n = parseFloat(n) || 0;
@@ -184,16 +210,22 @@
 
       previewRows = res.rows;
       dnByArticle = res.dnByArticle || {};
+      convValue = parseFloat(res.conversionValue) || 0;
+
+      const isPainting = (uom) => ['PCS', 'SET'].includes((uom || '').trim().toUpperCase());
 
       let html = '';
       previewRows.forEach((r, i) => {
+        const painting = isPainting(r.uom);
+        const conv = parseFloat(r.conversion) || 0;
         html += `<tr>
           <td class="text-center">${i + 1}</td>
           <td>${r.article_alternative_code}</td>
           <td>${r.article_desc}</td>
           <td>${r.customer_names}</td>
           <td class="text-right">${humanize(r.total_qty)} ${r.uom || ''}</td>
-          <td class="text-right">${humanize(r.conversion)}</td>
+          <td class="text-right">${painting ? humanize(conv) : '-'}</td>
+          <td class="text-right">${painting ? '-' : humanize(conv)}</td>
           <td class="text-center">
             <button type="button" class="btn btn-icon btn-flat-primary btn-info-row" data-article="${r.article_code}" data-label="${r.article_alternative_code} - ${r.article_desc}">
               <i data-feather="info"></i>
@@ -207,10 +239,16 @@
       const totalArticle    = previewRows.length;
       const totalQty        = previewRows.reduce((sum, r) => sum + (parseFloat(r.total_qty) || 0), 0);
       const totalConversion = previewRows.reduce((sum, r) => sum + (parseFloat(r.conversion) || 0), 0);
+      const totalConvPainting = previewRows.reduce((sum, r) =>
+        sum + (isPainting(r.uom) ? (parseFloat(r.conversion) || 0) : 0), 0);
+      const totalConvNonPainting = previewRows.reduce((sum, r) =>
+        sum + (isPainting(r.uom) ? 0 : (parseFloat(r.conversion) || 0)), 0);
 
       $('#sumTotalArticle').text(totalArticle);
       $('#sumTotalQty').text(humanize(totalQty));
       $('#sumTotalConversion').text(humanize(totalConversion));
+      $('#sumConvPainting').text(humanize(totalConvPainting));
+      $('#sumConvNonPainting').text(humanize(totalConvNonPainting));
 
       $('#previewWrap').show();
       $('#btnExport').removeClass('d-none');
@@ -231,28 +269,89 @@
     window.location.href = "{{ route('conversionReport.exportPreview') }}?periode=" + periode + "&tahun=" + tahun;
   });
 
+  let mdlCurrentLines = [];
+  let mdlCurrentLabel = '';
+  let mdlCurrentArticle = null;
+
+  const isPaintingUom = (uom) => ['PCS', 'SET'].includes((uom || '').trim().toUpperCase());
+
+  // konversi per DN = ((price_unit - avg_purchase) * qty) / conversion_value
+  function convPerDn(line, article) {
+    if (!article || convValue <= 0) return 0;
+    const avgPurchase = parseFloat(article.avg_purchase_price) || 0;
+    return (((parseFloat(line.price_unit) || 0) - avgPurchase) * (parseFloat(line.qty) || 0)) / convValue;
+  }
+
   $(document).on('click', '.btn-info-row', function () {
     const articleCode = $(this).data('article');
     const label = $(this).data('label');
     const lines = dnByArticle[articleCode] || [];
+    const article = previewRows.find(r => r.article_code === articleCode);
+    const painting = article ? isPaintingUom(article.uom) : false;
+
+    mdlCurrentLines = lines;
+    mdlCurrentLabel = label;
+    mdlCurrentArticle = article;
 
     $('#mdlArticleLabel').text('| ' + label);
 
     let html = '';
-    lines.forEach(l => {
+    lines.forEach((l, i) => {
       const dnCell = l.dn_url
         ? `<a href="${l.dn_url}" target="_blank">${l.dn_number}</a>`
         : (l.dn_number || '-');
+      const conv = convPerDn(l, article);
       html += `<tr>
+        <td class="text-center">${i + 1}</td>
         <td>${dnCell}</td>
         <td>${l.customer_name || '-'}</td>
         <td class="text-right">${humanize(l.qty)}</td>
         <td class="text-right">${humanize(l.price_unit)}</td>
         <td class="text-right">${humanize(l.price_total)}</td>
+        <td class="text-right">${painting ? humanize(conv) : '-'}</td>
+        <td class="text-right">${painting ? '-' : humanize(conv)}</td>
       </tr>`;
     });
-    $('#mdlDetailRows').html(html || '<tr><td colspan="5" class="text-center text-muted">Tidak ada data.</td></tr>');
+    $('#mdlDetailRows').html(html || '<tr><td colspan="8" class="text-center text-muted">Tidak ada data.</td></tr>');
     $('#mdlDetail').modal('show');
+    if (window.feather) feather.replace({ width: 14, height: 14 });
+  });
+
+  $('#btnExportDnDetail').on('click', function () {
+    if (!mdlCurrentLines.length) {
+      Swal.fire('Info', 'Tidak ada data untuk diexport.', 'info');
+      return;
+    }
+    const sep = ';';
+    const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const article = mdlCurrentArticle;
+    const painting = article ? isPaintingUom(article.uom) : false;
+    const header = ['No', 'DN Number', 'SO Number', 'Customer', 'Qty', 'Price Unit', 'Price Total', 'Konversi Painting', 'Konversi Non Painting'];
+    let csv = header.map(esc).join(sep) + '\r\n';
+    mdlCurrentLines.forEach((l, i) => {
+      const conv = convPerDn(l, article);
+      csv += [
+        i + 1,
+        l.dn_number || '',
+        l.so_number || '',
+        l.customer_name || '',
+        parseFloat(l.qty) || 0,
+        parseFloat(l.price_unit) || 0,
+        parseFloat(l.price_total) || 0,
+        painting ? conv : '',
+        painting ? '' : conv,
+      ].map(esc).join(sep) + '\r\n';
+    });
+
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Detail_DN_' + mdlCurrentLabel.replace(/[^A-Za-z0-9]+/g, '_') + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   });
 
   $('#frmCreate').on('submit', function () {

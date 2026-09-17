@@ -25,16 +25,27 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
     public function collection(): Collection
     {
         return collect($this->rows)->values()->map(function ($r, $i) {
+            $qty          = $r['total_qty'] ?? 0;
+            $avgSelling   = $r['avg_selling_price'] ?? 0;
+            $avgPurchase  = $r['avg_purchase_price'] ?? 0;
+            $totalSelling = $r['total_selling_value']  ?? ($avgSelling * $qty);
+            $totalPurch   = $r['total_purchase_value'] ?? ($avgPurchase * $qty);
+            $isPainting   = $r['is_painting'] ?? in_array(strtoupper(trim($r['uom'] ?? '')), ['PCS', 'SET']);
+            $conversion   = $r['conversion'] ?? 0;
+
             return [
                 $i + 1,
                 $r['article_alternative_code'] ?? $r['article_code'],
                 $r['article_desc'] ?? '',
                 $r['customer_names'] ?? '',
                 $r['uom'] ?? '',
-                $r['total_qty'] ?? 0,
-                $r['avg_selling_price'] ?? 0,
-                $r['avg_purchase_price'] ?? 0,
-                $r['conversion'] ?? 0,
+                $qty,
+                $avgSelling,
+                $avgPurchase,
+                $totalSelling,
+                $totalPurch,
+                $isPainting ? $conversion : 0,
+                $isPainting ? 0 : $conversion,
             ];
         });
     }
@@ -43,7 +54,9 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
     {
         return [
             'No', 'Article Code', 'Article Desc', 'Customer', 'UOM',
-            'Qty', 'Avg Selling Price', 'Avg Purchase Price', 'Conversion',
+            'Qty', 'Avg Selling Price', 'Avg Purchase Price',
+            'Total Selling (Qty x Avg)', 'Total Purchase (Qty x Avg)',
+            'Konversi Painting', 'Konversi Non Painting',
         ];
     }
 

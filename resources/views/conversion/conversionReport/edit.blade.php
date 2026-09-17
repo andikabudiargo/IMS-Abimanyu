@@ -123,6 +123,26 @@
       </div>
     </div>
 
+    @php
+      $isPainting = fn($u) => in_array(strtoupper(trim($u)), ['PCS', 'SET']);
+      $sumPainting    = $details->filter(fn($d) => $isPainting($d->uom))->sum('conversion');
+      $sumNonPainting = $details->filter(fn($d) => !$isPainting($d->uom))->sum('conversion');
+    @endphp
+    <div class="row mb-2">
+      <div class="col-md-6">
+        <div class="card mb-0"><div class="card-body py-1 px-2">
+          <small class="text-muted d-block">Total Konversi Painting (PCS/SET)</small>
+          <h5 class="mb-0">{{ number_format($sumPainting, 2) }}</h5>
+        </div></div>
+      </div>
+      <div class="col-md-6">
+        <div class="card mb-0"><div class="card-body py-1 px-2">
+          <small class="text-muted d-block">Total Konversi Non Painting</small>
+          <h5 class="mb-0">{{ number_format($sumNonPainting, 2) }}</h5>
+        </div></div>
+      </div>
+    </div>
+
     <div class="table-responsive">
       <table class="table table-bordered table-sm">
         <thead class="thead-light">
@@ -134,7 +154,8 @@
             <th class="text-right">Qty</th>
             <th class="text-right">Avg Selling Price</th>
             <th class="text-right">Avg Purchase Price</th>
-            <th class="text-right">Conversion</th>
+            <th class="text-right">Konversi Painting</th>
+            <th class="text-right">Konversi Non Painting</th>
             <th style="width:6%">Action</th>
           </tr>
         </thead>
@@ -148,7 +169,8 @@
               <td class="text-right">{{ number_format($d->total_qty, 2) }} {{ $d->uom }}</td>
               <td class="text-right">{{ number_format($d->avg_selling_price, 2) }}</td>
               <td class="text-right">{{ number_format($d->avg_purchase_price, 2) }}</td>
-              <td class="text-right">{{ number_format($d->conversion, 4) }}</td>
+              <td class="text-right">{{ $isPainting($d->uom) ? number_format($d->conversion, 4) : '-' }}</td>
+              <td class="text-right">{{ $isPainting($d->uom) ? '-' : number_format($d->conversion, 4) }}</td>
               <td class="text-center">
                 <button type="button" class="btn btn-icon btn-flat-primary btn-info-row"
                         data-det-id="{{ $d->id }}" data-label="{{ $d->article_code }}">
@@ -157,7 +179,7 @@
               </td>
             </tr>
           @empty
-            <tr><td colspan="9" class="text-center text-muted">Tidak ada data.</td></tr>
+            <tr><td colspan="10" class="text-center text-muted">Tidak ada data.</td></tr>
           @endforelse
         </tbody>
       </table>
@@ -223,14 +245,18 @@
       tableId: "mdlDetailTable",
       route: "{{ route('conversionReport.list.detail.dn') }}",
       kolom: @json([
+        ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'title' => 'No', 'orderable' => false, 'searchable' => false],
         ['data' => 'dn_number_link', 'name' => 'dn_number_link', 'title' => 'DN Number', 'orderable' => false, 'searchable' => false],
         ['data' => 'customer_name', 'name' => 'customer_name', 'title' => 'Customer'],
         ['data' => 'qty', 'name' => 'qty', 'title' => 'Qty'],
         ['data' => 'price_unit', 'name' => 'price_unit', 'title' => 'Price Unit'],
         ['data' => 'price_total', 'name' => 'price_total', 'title' => 'Price Total'],
+        ['data' => 'conversion_painting', 'name' => 'conversion_painting', 'title' => 'Konversi Painting', 'orderable' => false, 'searchable' => false],
+        ['data' => 'conversion_non_painting', 'name' => 'conversion_non_painting', 'title' => 'Konversi Non Painting', 'orderable' => false, 'searchable' => false],
       ]),
       dataSearch: { reportDetId: detId },
-      buttons: false,
+      excelFileName: 'Detail_DN_' + label.replace(/[^A-Za-z0-9]+/g, '_'),
+      buttons: true,
     });
   });
 

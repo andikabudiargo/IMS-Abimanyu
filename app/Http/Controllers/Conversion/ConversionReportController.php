@@ -221,16 +221,26 @@ class ConversionReportController extends Controller
             // yaitu angka konversi total yang diharapkan.
             $conversion  = $convVal > 0 ? (($avgSelling - $avgPurchase) * $totalQty) / $convVal : 0;
 
+            // Painting = artikel dengan UOM PCS/SET; selain itu Non Painting.
+            $uom        = $lines[0]->uom ?? '';
+            $isPainting = in_array(strtoupper(trim($uom)), ['PCS', 'SET']);
+
             $rows[] = [
                 'article_code'             => $articleCode,
                 'article_alternative_code' => $lines[0]->article_alternative_code ?? $articleCode,
                 'article_desc'             => $lines[0]->article_desc ?? '',
-                'uom'                      => $lines[0]->uom ?? '',
+                'uom'                      => $uom,
                 'customer_names'           => implode(', ', array_keys($customerNames)),
                 'total_qty'                => round($totalQty, 4),
                 'avg_selling_price'        => round($avgSelling, 4),
                 'avg_purchase_price'       => round($avgPurchase, 4),
+                // total value (sudah dikali qty) -- dipakai di export biar lengkap
+                'total_selling_value'      => round($totalValue, 4),
+                'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
                 'conversion'               => round($conversion, 4),
+                'is_painting'              => $isPainting,
+                'conversion_painting'      => round($isPainting ? $conversion : 0, 4),
+                'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
             ];
         }
 
@@ -818,18 +828,45 @@ class ConversionReportController extends Controller
     {
         $detId = $request->reportDetId;
 
+        // Ambil purchase price + uom artikel dan conversion_value dokumen supaya
+        // konversi bisa dihitung PER DN. Rumusnya sama dengan level artikel:
+        // ((price_unit - avg_purchase) * qty) / conversion_value; kalau di-SUM
+        // seluruh DN hasilnya = konversi artikel. Painting/Non-Painting mengikuti
+        // UOM artikel (PCS/SET = Painting).
+        $det = DB::table('conversion_report_det as d')
+            ->join('conversion_report_hdr as h', 'h.id', '=', 'd.report_id')
+            ->where('d.id', $detId)
+            ->select('d.avg_purchase_price', 'd.uom', 'h.conversion_value_used')
+            ->first();
+
+        $avgPurchase = (float) ($det->avg_purchase_price ?? 0);
+        $convVal     = (float) ($det->conversion_value_used ?? 0);
+        $isPainting  = in_array(strtoupper(trim($det->uom ?? '')), ['PCS', 'SET']);
+
         $data = DB::table('conversion_report_dn_det')
             ->where('report_det_id', $detId)
             ->orderByRaw("to_date(delivery_date, 'DD-MM-YYYY')")
             ->get();
 
+        $convOf = function ($d) use ($avgPurchase, $convVal) {
+            if ($convVal <= 0) return 0;
+            return round(((((float) $d->price_unit) - $avgPurchase) * ((float) $d->qty)) / $convVal, 4);
+        };
+
         return Datatables::of($data)
+            ->addIndexColumn()
             ->addColumn('dn_number_link', function ($d) {
                 if (!$d->dn_number) return '-';
                 $encId = DB::table('delivery_hdr')->where('delivery_number', $d->dn_number)->value('id');
                 if (!$encId) return $d->dn_number;
                 $url = route('delivery.show', ['id' => Crypt::encryptString($encId)]);
                 return "<a href='{$url}' target='_blank'>{$d->dn_number}</a>";
+            })
+            ->addColumn('conversion_painting', function ($d) use ($convOf, $isPainting) {
+                return $isPainting ? $convOf($d) : '-';
+            })
+            ->addColumn('conversion_non_painting', function ($d) use ($convOf, $isPainting) {
+                return $isPainting ? '-' : $convOf($d);
             })
             ->rawColumns(['dn_number_link'])
             ->make(true);
