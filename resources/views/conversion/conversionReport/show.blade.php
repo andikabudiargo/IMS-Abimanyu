@@ -195,15 +195,24 @@
     return { start: PERIODE_START, end: PERIODE_END };
   }
 
+  // yyyy-mm-dd -> Date object (hindari flatpickr salah parse minDate/maxDate/defaultDate,
+  // yang selalu di-parse pakai dateFormat instance ("d-m-Y"), bukan format ISO ini)
+  function ymdToDateObj(ymd) {
+    const p = ymd.trim().split('-').map(Number);
+    return p.length === 3 ? new Date(p[0], p[1] - 1, p[2]) : null;
+  }
+
   let dateRangePicker = null;
   const $rangeInput = $('#filterDateRange');
   if ($rangeInput.length) {
+    const periodeStartDate = ymdToDateObj(PERIODE_START);
+    const periodeEndDate   = ymdToDateObj(PERIODE_END);
     dateRangePicker = $rangeInput.flatpickr({
       dateFormat: 'd-m-Y',
       mode: 'range',
-      minDate: PERIODE_START,
-      maxDate: PERIODE_END,
-      defaultDate: [PERIODE_START, PERIODE_END],
+      minDate: periodeStartDate,
+      maxDate: periodeEndDate,
+      defaultDate: [periodeStartDate, periodeEndDate],
     });
   }
 
