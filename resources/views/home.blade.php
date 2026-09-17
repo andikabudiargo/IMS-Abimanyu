@@ -33,12 +33,12 @@
                         </div>
                         <div>
                             <h4 class="card-title mb-0 d-flex align-items-center">
-                                Sales Achievement
+                                Delivery Performance
                                 <span class="badge badge-pill {{ $salesAchievement['qtyPct'] >= 100 ? 'badge-success' : ($salesAchievement['qtyPct'] >= 75 ? 'badge-info' : 'badge-warning') }} font-medium-1 ml-1" id="saQtyBadge" style="{{ $salesAchievement['hasTarget'] ? '' : 'display:none;' }}">
                                     <i data-feather="package" class="font-small-3"></i> <span id="saQtyBadgeText">{{ number_format($salesAchievement['qtyPct'], 1) }}% Qty</span>
                                 </span>
                             </h4>
-                            <small class="text-muted">Realisasi Delivery vs Target SO &mdash; <span id="saMonthLabel">{{ $salesAchievement['monthLabel'] }}</span></small>
+                            <small class="text-muted">Delivery vs Target SO &mdash; <span id="saMonthLabel">{{ $salesAchievement['monthLabel'] }}</span></small>
                         </div>
                     </div>
                     <div class="d-flex align-items-end flex-wrap" style="gap:.5rem;">
@@ -74,7 +74,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-50">
                             <span class="font-weight-bold"><i data-feather="truck" class="font-medium-1 mr-25"></i> Qty Delivery</span>
                             <span class="font-weight-bold"><span id="saAchievedQty">{{ number_format($salesAchievement['achievedQty'], 0) }}</span>
-                                <span class="text-muted font-weight-normal">/ <span id="saTargetQty">{{ number_format($salesAchievement['targetQty'], 0) }}</span> Target</span>
+                                <span class="text-muted font-weight-normal">/ <span id="saTargetQty">{{ number_format($salesAchievement['targetQty'], 0) }}</span>PCS Target</span>
                             </span>
                         </div>
                         <div class="progress mb-2" style="height:20px;border-radius:10px;">
