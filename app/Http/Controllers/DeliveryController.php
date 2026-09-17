@@ -379,13 +379,15 @@ class DeliveryController extends Controller
                         'armada' => $armada
                     ]);
 
+                    // so_number/po_number baris detail ikut header ($soNumber/$poNumber),
+                    // bukan nilai per-baris dari payload — lihat catatan yang sama di update().
                     $dataSet = [];
                     foreach ($articles as $val) {
                         $dataSet[] = [
                             'delivery_number' => $dnCode,
                             'article_code' => $val->article_code,
-                            'so_number' => $val->so_number,
-                            'po_number' => $val->po_number,
+                            'so_number' => $soNumber,
+                            'po_number' => $poNumber,
                             'qty' => $val->qty,
                             'uom' => $val->uom,
                             'created_by' => Auth::user()->username,
@@ -824,10 +826,19 @@ $data['detail'] = DB::table('delivery_det')
                         ]
                     );
 
+                    // PENTING: so_number/po_number baris detail HARUS ikut header
+                    // ($soNumber/$poNumber), bukan nilai per-baris dari payload
+                    // ($val->so_number/$val->po_number). Form edit DN hanya me-refresh
+                    // SO/PO pada baris artikel yang BARU ditambahkan setelah SO header
+                    // diganti — baris lama yang sudah ter-load tetap membawa so_number/
+                    // po_number LAMA dari saat halaman dibuka. Kalau nilai per-baris itu
+                    // dipakai apa adanya, delivery_det bisa nyangkut ke SO/PO lama walau
+                    // delivery_hdr sudah menunjuk ke SO/PO baru — akibatnya DN tidak bisa
+                    // ditarik/ditemukan lagi oleh Invoice (join by so_number).
                     $dataset=[];
                     foreach ($articles as $val) {
                         $dataSet[] = [
-                            $dnNumber.$val->article_code.$val->po_number.$val->so_number
+                            $dnNumber.$val->article_code.$poNumber.$soNumber
                         ];
 
                     }
@@ -838,7 +849,7 @@ $data['detail'] = DB::table('delivery_det')
                         ->whereNotIn(DB::raw("CONCAT(delivery_number,article_code,po_number,so_number)"),$dataSet)
                         ->where('delivery_number',$dnNumber)
                         ->delete();
-                                  
+
                     foreach ($articles as $val) {
                         DB::table('delivery_det')
                         ->updateOrInsert(
@@ -846,8 +857,8 @@ $data['detail'] = DB::table('delivery_det')
                             [
                                 'delivery_number' => $dnNumber,
                                 'article_code' => $val->article_code,
-                                'so_number' => $val->so_number,
-                                'po_number' => $val->po_number,
+                                'so_number' => $soNumber,
+                                'po_number' => $poNumber,
                                 'qty' => $val->qty,
                                 'uom' => $val->uom,
                                 'updated_by' => Auth::user()->username,

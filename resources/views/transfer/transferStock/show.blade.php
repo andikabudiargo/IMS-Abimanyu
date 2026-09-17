@@ -309,6 +309,16 @@
                                     target="_blank" class="btn btn-primary">
                                     <i data-feather="printer"></i><span>{{ __("Print") }}</span>
                                 </a>
+                                @if(!in_array($header->status, ['4','5']) && (Auth::user()->hasAnyRole(['Superuser','accounting']) || Auth::user()->can('transferOut-posting')))
+                                <button type="button" id="btnPostingTransfer" class="btn btn-success">
+                                    <i data-feather="check-circle"></i><span>{{ __("Posting") }}</span>
+                                </button>
+                                <form id="frmPostingTransfer" method="POST"
+                                    action="{{ route('transferStock.posting', ['id'=>Crypt::encryptString($header->id)]) }}"
+                                    class="d-none">
+                                    @csrf
+                                </form>
+                                @endif
                             </div>
                         </div>
                         <hr>
@@ -772,6 +782,23 @@
     $(document).ready(function () {
         $('a[data-toggle="tab"]').on('shown.bs.tab', function () {
             if (typeof feather !== 'undefined') feather.replace();
+        });
+    });
+
+    $('#btnPostingTransfer').on('click', function () {
+        let btn = $(this);
+        Swal.fire({
+            title: 'Posting Transfer?',
+            text: 'Stok akan langsung bergerak setelah diposting. Lanjutkan?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Posting',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.prop('disabled', true);
+                $('#frmPostingTransfer').submit();
+            }
         });
     });
 </script>

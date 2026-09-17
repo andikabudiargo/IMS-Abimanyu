@@ -138,8 +138,8 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive" style="max-height:300px">
-                        <table class="table" width="100%">
+                    <div class="table-responsive">
+                        <table class="table" width="100%" id="tblTransferPerluDiposting">
                             <thead>
                                 <tr>
                                     <th>No</th>
@@ -150,7 +150,7 @@
                                     <th>Created By</th>
                                     <th>Penerima</th>
                                     <th>Pending</th>
-                                    <th>Action</th>
+                                    <th data-orderable="false" data-searchable="false">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -163,20 +163,10 @@
                                     <td class="font-weight-bolder">{{ $val->location_name_to }}</td>
                                     <td>{{ $val->created_by }}</td>
                                     <td>{{ $val->penerima }}</td>
-                                    <td>
+                                    <td data-order="{{ $val->age_seconds ?? 0 }}">
                                         <span class="badge badge-{{ $val->aging_level }}">{{ $val->aging_label }}</span>
                                     </td>
                                     <td>
-                                        <a href='javascript:;'
-                                            onclick="action(this)"
-                                            id="buttonTrfHome{{ $key }}"
-                                            class="btn btn-outline-success btn-sm buttonTrf-{{ $val->id }}"
-                                            data-id-class="buttonTrf-{{ $val->id }}"
-                                            data-doc-number="{{ $val->tr_number }}"
-                                            data-url="{{ route('transferStock.posting', ['id'=>Crypt::encryptString($val->id)]) }}">
-                                            <i data-feather='check-circle'></i>
-                                            Posting
-                                        </a>
                                         <a class="btn btn-outline-info btn-sm"
                                             href="{{ route('transferStock.show', ['id'=>Crypt::encryptString($val->id)]) }}">
                                             <i data-feather='list'></i>
@@ -1892,6 +1882,27 @@
             "{{ Session::forget('firstLogin') }}";
         }, 3000);
     }
+
+    @if($outstandingTransferInCount>0)
+    $('#tblTransferPerluDiposting').DataTable({
+        dom: "<'row'<'col-sm-6'B><'col-sm-6'f>>rt<'row'<'col-sm-6'i><'col-sm-6'p>>",
+        order: [[7, 'desc']],
+        lengthChange: false,
+        pageLength: 10,
+        scrollY: '300px',
+        scrollCollapse: true,
+        language: { search: '', searchPlaceholder: 'Cari...' },
+        buttons: [
+            {
+                extend: 'excelHtml5',
+                text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Export Excel',
+                className: 'btn btn-outline-primary btn-sm',
+                filename: 'transfer_stock_perlu_diposting',
+                exportOptions: { columns: [0,1,2,3,4,5,6,7] }
+            }
+        ]
+    });
+    @endif
 
     action=(me)=>{
         let meId=me.getAttribute('id'),    
