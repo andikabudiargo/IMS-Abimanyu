@@ -64,6 +64,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('/home', 'HomeController@index')->name('home');
     Route::get('/', 'HomeController@index')->name('home');
     Route::get('/welcome', 'HomeController@welcome')->name('welcome');
+    Route::get('/home/salesAchievement', 'HomeController@salesAchievementFilter')->name('home.salesAchievement');
 	
     Route::resource('users', 'UserController');
     Route::resource('roles', 'RoleController');

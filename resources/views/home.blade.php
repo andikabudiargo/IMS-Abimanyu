@@ -32,38 +32,54 @@
                             <i data-feather="target" class="font-medium-3 text-primary"></i>
                         </div>
                         <div>
-                            <h4 class="card-title mb-0">Delivery Performance</h4>
-                            <small class="text-muted">Realisasi Delivery vs Target SO &mdash; {{ $salesAchievement['monthLabel'] }}</small>
+                            <h4 class="card-title mb-0">Sales Achievement</h4>
+                            <small class="text-muted">Realisasi Delivery vs Target SO &mdash; <span id="saMonthLabel">{{ $salesAchievement['monthLabel'] }}</span></small>
                         </div>
                     </div>
-                    @if($salesAchievement['hasTarget'])
-                    <div class="d-flex align-items-center flex-wrap">
-                        <span class="badge badge-pill {{ $salesAchievement['qtyPct'] >= 100 ? 'badge-success' : ($salesAchievement['qtyPct'] >= 75 ? 'badge-info' : 'badge-warning') }} font-medium-1 mr-1">
-                            <i data-feather="package" class="font-small-3"></i> {{ number_format($salesAchievement['qtyPct'], 1) }}% Qty
+                    <div class="d-flex align-items-end flex-wrap" style="gap:.5rem;">
+                        <div>
+                            <label class="mb-0 small d-block">Periode</label>
+                            <select id="saPeriode" class="form-control form-control-sm">
+                                @foreach(['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'] as $i => $m)
+                                    <option value="{{ $i + 1 }}" {{ $salesAchievement['periode'] == $i + 1 ? 'selected' : '' }}>{{ $m }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="mb-0 small d-block">Tahun</label>
+                            <select id="saTahun" class="form-control form-control-sm">
+                                @for($y = (int) date('Y') + 1; $y >= (int) date('Y') - 3; $y--)
+                                    <option value="{{ $y }}" {{ $salesAchievement['tahun'] == $y ? 'selected' : '' }}>{{ $y }}</option>
+                                @endfor
+                            </select>
+                        </div>
+                        <button type="button" id="saApply" class="btn btn-primary btn-sm">
+                            <i data-feather="filter"></i> Terapkan
+                        </button>
+                        <span class="badge badge-pill {{ $salesAchievement['qtyPct'] >= 100 ? 'badge-success' : ($salesAchievement['qtyPct'] >= 75 ? 'badge-info' : 'badge-warning') }} font-medium-1" id="saQtyBadge" style="{{ $salesAchievement['hasTarget'] ? '' : 'display:none;' }}">
+                            <i data-feather="package" class="font-small-3"></i> <span id="saQtyBadgeText">{{ number_format($salesAchievement['qtyPct'], 1) }}% Qty</span>
                         </span>
                         <a href="{{ route('targetSo.index') }}" class="btn btn-outline-primary btn-sm">
                             <i data-feather="external-link"></i> Target SO
                         </a>
                     </div>
-                    @endif
                 </div>
                 <div class="card-body">
-                    @if(!$salesAchievement['hasTarget'])
-                        <div class="text-center text-muted py-2">
-                            <i data-feather="info" class="mr-25"></i> Belum ada Target SO yang APPROVED untuk periode {{ $salesAchievement['monthLabel'] }}.
-                        </div>
-                    @else
+                    <div id="saEmpty" class="text-center text-muted py-2" style="{{ $salesAchievement['hasTarget'] ? 'display:none;' : '' }}">
+                        <i data-feather="info" class="mr-25"></i> Belum ada Target SO yang APPROVED untuk periode <span id="saEmptyLabel">{{ $salesAchievement['monthLabel'] }}</span>.
+                    </div>
+                    <div id="saContent" style="{{ $salesAchievement['hasTarget'] ? '' : 'display:none;' }}">
                         <div class="d-flex justify-content-between align-items-center mb-50">
-                            <span class="font-weight-bold"><i data-feather="truck" class="font-medium-1 mr-25"></i> Qty Delivery Bulan Ini</span>
-                            <span class="font-weight-bold">{{ number_format($salesAchievement['achievedQty'], 0) }}
-                                <span class="text-muted font-weight-normal">/ {{ number_format($salesAchievement['targetQty'], 0) }} Target</span>
+                            <span class="font-weight-bold"><i data-feather="truck" class="font-medium-1 mr-25"></i> Qty Delivery</span>
+                            <span class="font-weight-bold"><span id="saAchievedQty">{{ number_format($salesAchievement['achievedQty'], 0) }}</span>
+                                <span class="text-muted font-weight-normal">/ <span id="saTargetQty">{{ number_format($salesAchievement['targetQty'], 0) }}</span> Target</span>
                             </span>
                         </div>
                         <div class="progress mb-2" style="height:20px;border-radius:10px;">
-                            <div class="progress-bar {{ $salesAchievement['qtyPct'] >= 100 ? 'bg-success' : 'bg-primary' }}" role="progressbar"
+                            <div class="progress-bar {{ $salesAchievement['qtyPct'] >= 100 ? 'bg-success' : 'bg-primary' }}" role="progressbar" id="saProgressBar"
                                  style="width: {{ min($salesAchievement['qtyPct'], 100) }}%;"
                                  aria-valuenow="{{ $salesAchievement['qtyPct'] }}" aria-valuemin="0" aria-valuemax="100">
-                                {{ number_format($salesAchievement['qtyPct'], 1) }}%
+                                <span id="saProgressText">{{ number_format($salesAchievement['qtyPct'], 1) }}%</span>
                             </div>
                         </div>
 
@@ -75,7 +91,7 @@
                                             <i data-feather="flag" class="font-medium-3 text-secondary"></i>
                                         </div>
                                         <div>
-                                            <h4 class="mb-0 font-weight-bolder">{{ number_format($salesAchievement['targetConversion'], 2) }}</h4>
+                                            <h4 class="mb-0 font-weight-bolder" id="saTargetConversion">{{ number_format($salesAchievement['targetConversion'], 2) }}</h4>
                                             <small class="text-muted">Target Konversi</small>
                                         </div>
                                     </div>
@@ -88,14 +104,14 @@
                                             <i data-feather="trending-up" class="font-medium-3 text-success"></i>
                                         </div>
                                         <div>
-                                            <h4 class="mb-0 font-weight-bolder text-success">{{ number_format($salesAchievement['achievedConversion'], 2) }}</h4>
-                                            <small class="text-muted">Konversi Tercapai s.d. Hari Ini ({{ number_format($salesAchievement['conversionPct'], 1) }}%)</small>
+                                            <h4 class="mb-0 font-weight-bolder text-success" id="saAchievedConversion">{{ number_format($salesAchievement['achievedConversion'], 2) }}</h4>
+                                            <small class="text-muted">Konversi Tercapai (<span id="saConvPct">{{ number_format($salesAchievement['conversionPct'], 1) }}</span>%)</small>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    @endif
+                    </div>
                 </div>
             </div>
         </div>
@@ -2021,6 +2037,60 @@
         })
         .catch(err => console.log(err));
     }
+
+    // ---- Widget Sales Achievement: filter periode/tahun ----
+    (function () {
+        const URL_SALES_ACHIEVEMENT = "{{ route('home.salesAchievement') }}";
+        const $btn = $('#saApply');
+        if (!$btn.length) return;
+
+        function humanizeSa(n, decimals) {
+            n = parseFloat(n) || 0;
+            return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        }
+
+        $btn.on('click', function () {
+            const periode = $('#saPeriode').val();
+            const tahun   = $('#saTahun').val();
+
+            $btn.prop('disabled', true);
+            $.get(URL_SALES_ACHIEVEMENT, { periode: periode, tahun: tahun }, function (res) {
+                if (!res || res.status !== 1) return;
+                const d = res.data;
+
+                $('#saMonthLabel, #saEmptyLabel').text(d.monthLabel);
+
+                if (!d.hasTarget) {
+                    $('#saContent').hide();
+                    $('#saEmpty').show();
+                    $('#saQtyBadge').hide();
+                    return;
+                }
+
+                $('#saEmpty').hide();
+                $('#saContent').show();
+                $('#saQtyBadge').show();
+
+                $('#saAchievedQty').text(humanizeSa(d.achievedQty, 0));
+                $('#saTargetQty').text(humanizeSa(d.targetQty, 0));
+                $('#saTargetConversion').text(humanizeSa(d.targetConversion, 2));
+                $('#saAchievedConversion').text(humanizeSa(d.achievedConversion, 2));
+                $('#saConvPct').text(humanizeSa(d.conversionPct, 1));
+                $('#saQtyBadgeText').text(humanizeSa(d.qtyPct, 1) + '% Qty');
+
+                const pct = Math.min(d.qtyPct, 100);
+                const $bar = $('#saProgressBar');
+                $bar.css('width', pct + '%').attr('aria-valuenow', d.qtyPct);
+                $('#saProgressText').text(humanizeSa(d.qtyPct, 1) + '%');
+
+                $bar.removeClass('bg-success bg-primary').addClass(d.qtyPct >= 100 ? 'bg-success' : 'bg-primary');
+                $('#saQtyBadge').removeClass('badge-success badge-info badge-warning')
+                    .addClass(d.qtyPct >= 100 ? 'badge-success' : (d.qtyPct >= 75 ? 'badge-info' : 'badge-warning'));
+            }).always(function () {
+                $btn.prop('disabled', false);
+            });
+        });
+    })();
 </script>
 @endsection
 

@@ -58,74 +58,275 @@ class HomeController extends Controller
 }
 
     /**
-     * Widget "Sales Achievement" di Home: qty & konversi delivery bulan berjalan
-     * (month-to-date, dari tgl 1 s.d. hari ini) dibandingkan Target SO.
-     *
-     * Konvensi Target SO (lihat TargetSoController): tso_date suatu dokumen
-     * dipakai untuk TARGET BULAN BERIKUTNYA -- tso_date di bulan Juni berarti
-     * target untuk bulan Juli. Jadi target bulan berjalan = TSO yang
-     * tso_date-nya jatuh di bulan SEBELUMNYA, status=3 (APPROVED/full approved).
-     *
-     * Konversi dihitung pakai conversion_result dari Price List (price_list_fg,
-     * status aktif) -- ini rate per-unit yang sudah dihitung sekali saat price
-     * list disimpan (sales_price - material_price)/conversion_value, jadi baik
-     * target maupun realisasi dibandingkan dengan basis harga yang SAMA, dan
-     * widget ini tidak perlu menghitung ulang avg purchase price per artikel
-     * setiap kali Home dibuka (beda dengan ConversionReportController::
-     * purchasePrice() yang jauh lebih berat karena menelusuri BOM+receiving).
+     * conversion_value aktif dari conversion_setting -- sama seperti
+     * ConversionReportController::activeConversionValue(). Disengaja disalin
+     * (bukan di-share antar controller) supaya modul Home tetap independen,
+     * pola yang sama dipakai di ConversionReportController/PriceListController.
      */
-    private function buildSalesAchievement(): array
+    private function activeConversionValueHome(): float
     {
-        $now        = Carbon::now();
-        $monthStart = $now->copy()->startOfMonth()->format('Y-m-d');
-        $today      = $now->format('Y-m-d');
+        $conv = DB::table('conversion_setting')->where('status', '1')->orderByDesc('id')->first();
+        return $conv ? (float) $conv->conversion_value : 0;
+    }
 
-        $tsoMonth = (int) $now->format('n') - 1;
-        $tsoYear  = (int) $now->format('Y');
-        if ($tsoMonth < 1) {
-            $tsoMonth = 12;
-            $tsoYear--;
+    /**
+     * Avg harga terima artikel dari receiving_det (weighted by qty), mundur
+     * bulan demi bulan kalau bulan berjalan kosong. Salinan persis
+     * ConversionReportController::avgReceivingPrice().
+     */
+    private function avgReceivingPriceHome(string $articleCode, int $maxMonthsBack = 24): float
+    {
+        $anchor = new \DateTime('today');
+        for ($i = 0; $i <= $maxMonthsBack; $i++) {
+            $monthStart = (clone $anchor)->modify("-{$i} month")->modify('first day of this month');
+            $monthEnd   = (clone $monthStart)->modify('last day of this month');
+
+            $row = DB::selectOne("
+                SELECT COALESCE(SUM(price*qty)/NULLIF(SUM(qty),0),0) AS avg_price, COUNT(*) AS n
+                FROM receiving_det
+                WHERE article_code = ?
+                  AND created_at::date BETWEEN ?::date AND ?::date
+            ", [$articleCode, $monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')]);
+
+            if ($row && $row->n > 0) {
+                return (float) $row->avg_price;
+            }
+        }
+        return 0.0;
+    }
+
+    /**
+     * Avg harga jual artikel dari sales_order_det (weighted by qty), mundur
+     * bulan demi bulan kalau bulan berjalan kosong -- pasangan avgReceivingPriceHome()
+     * di sisi jual. Dipakai buat estimasi konversi TARGET, karena target belum
+     * punya transaksi delivery aktual (masih proyeksi), jadi butuh harga jual
+     * acuan dari histori SO artikel itu sendiri, bukan dari Price List (Price
+     * List belum terisi lengkap utk semua artikel).
+     */
+    private function avgSellingPriceHome(string $articleCode, int $maxMonthsBack = 24): float
+    {
+        $anchor = new \DateTime('today');
+        for ($i = 0; $i <= $maxMonthsBack; $i++) {
+            $monthStart = (clone $anchor)->modify("-{$i} month")->modify('first day of this month');
+            $monthEnd   = (clone $monthStart)->modify('last day of this month');
+
+            $row = DB::selectOne("
+                SELECT COALESCE(SUM((price+price_service)*qty)/NULLIF(SUM(qty),0),0) AS avg_price, COUNT(*) AS n
+                FROM sales_order_det
+                WHERE article_code = ?
+                  AND created_at::date BETWEEN ?::date AND ?::date
+            ", [$articleCode, $monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')]);
+
+            if ($row && $row->n > 0) {
+                return (float) $row->avg_price;
+            }
+        }
+        return 0.0;
+    }
+
+    /**
+     * Purchase price satu artikel -- salinan persis
+     * ConversionReportController::purchasePrice(): BOM aktif -> total biaya
+     * material (RM+DET), tidak ada BOM -> avg receiving artikel itu sendiri.
+     */
+    private function purchasePriceHome(string $articleCode): float
+    {
+        $bom = DB::table('bom_hdr')
+            ->where('article_code', $articleCode)
+            ->where('status', '!=', '5')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$bom) {
+            return $this->avgReceivingPriceHome($articleCode);
         }
 
-        $targetRow = DB::table('target_order_hdr as h')
-            ->join('target_order_det as d', 'd.tso_code', '=', 'h.tso_code')
-            ->leftJoin('price_list_fg as p', function ($j) {
-                $j->on('p.article_code', '=', 'd.article_code')->where('p.status', '1');
-            })
-            ->where('h.status', '3')
-            ->whereRaw("EXTRACT(MONTH FROM to_date(h.tso_date,'DD-MM-YYYY')) = ?", [$tsoMonth])
-            ->whereRaw("EXTRACT(YEAR FROM to_date(h.tso_date,'DD-MM-YYYY')) = ?", [$tsoYear])
-            ->selectRaw('COALESCE(SUM(d.qty_target),0) as qty_target, COALESCE(SUM(d.qty_target * p.conversion_result),0) as conversion_target')
-            ->first();
+        $rm = DB::table('bom_rm as b')
+            ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
+            ->where('b.bom_code', $bom->bom_code)
+            ->select('b.article_code', 'a.article_type', 'b.qty')
+            ->get();
 
-        $targetQty        = (float) ($targetRow->qty_target ?? 0);
-        $targetConversion = (float) ($targetRow->conversion_target ?? 0);
+        $det = DB::table('bom_det as b')
+            ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
+            ->where('b.bom_code', $bom->bom_code)
+            ->whereIn('a.article_type', ['RMP', 'RMNP'])
+            ->select('b.article_code', 'a.article_type', 'b.qty')
+            ->get();
 
-        $achievedRow = DB::table('delivery_det as dd')
-            ->join('delivery_hdr as dh', 'dh.delivery_number', '=', 'dd.delivery_number')
-            ->leftJoin('price_list_fg as p', function ($j) {
-                $j->on('p.article_code', '=', 'dd.article_code')->where('p.status', '1');
-            })
-            ->whereNotIn('dh.status', ['5', '7'])
-            ->whereRaw("to_date(dh.delivery_date,'DD-MM-YYYY') BETWEEN ?::date AND ?::date", [$monthStart, $today])
-            ->selectRaw('COALESCE(SUM(dd.qty),0) as qty_achieved, COALESCE(SUM(dd.qty * p.conversion_result),0) as conversion_achieved')
-            ->first();
+        $total = 0;
+        foreach ($rm->concat($det) as $m) {
+            $type  = strtoupper($m->article_type ?? '');
+            $qty   = (float) $m->qty;
+            $price = $type === 'RMNP' ? 0 : $this->avgReceivingPriceHome($m->article_code);
+            $total += $price * $qty;
+        }
 
-        $achievedQty        = (float) ($achievedRow->qty_achieved ?? 0);
-        $achievedConversion = (float) ($achievedRow->conversion_achieved ?? 0);
+        return $total;
+    }
+
+    /** 12 nama bulan Indonesia, dipakai buat cari nama bulan target di dalam tso_name. */
+    private const BULAN_NAMES = [
+        1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL',
+        5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
+        9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER',
+    ];
+
+    /**
+     * Bulan target dari tso_name, mis. "TARGET SO SEPTEMBER" / "TSO SEMIFIX
+     * SEPTEMBER" -> 9. tso_date TIDAK dipakai buat ini -- terbukti dari data
+     * riil, tso_date cuma tanggal dibuatnya dokumen, bisa kapan saja relatif
+     * ke bulan target (pernah ketemu 3 TSO dibuat di tanggal yang SAMA tapi
+     * menyasar 3 bulan target yang berbeda -- Feb/Mar/Apr, dibedakan cuma
+     * lewat tso_name). Return null kalau nggak ketemu nama bulan di tso_name.
+     */
+    private function targetMonthFromName(string $name): ?int
+    {
+        $upper = strtoupper($name);
+        foreach (self::BULAN_NAMES as $num => $label) {
+            if (strpos($upper, $label) !== false) {
+                return $num;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Widget "Sales Achievement" di Home: qty & konversi delivery bulan
+     * $periode/$tahun dibandingkan Target SO -- default bulan berjalan
+     * (month-to-date, dari tgl 1 s.d. hari ini), bisa difilter ke periode lain.
+     *
+     * Target SO yang cocok untuk $periode/$tahun = TSO status=3 (APPROVED)
+     * yang nama bulan di tso_name-nya == $periode (lihat targetMonthFromName()),
+     * dan TAHUN-nya diambil dari tso_date (tso_name jarang mencantumkan tahun,
+     * mis. "TSO NOVEMBER" tanpa tahun, jadi tahun tetap dari tso_date). Kalau
+     * tso_name tidak mengandung nama bulan sama sekali (data legacy/tidak
+     * rapi), TSO itu di-skip dari perhitungan (lebih aman drop daripada nebak
+     * salah bulan).
+     *
+     * Konversi dihitung PERSIS seperti ConversionReportController::buildSummary()
+     * (avg selling dari transaksi SO/DN aktual, avg purchase dari BOM+receiving),
+     * BUKAN dari Price List -- Price List belum terisi lengkap utk semua artikel
+     * jadi tidak dipakai di sini. Untuk baris Target (belum ada delivery aktual)
+     * avg selling didekati dari histori SO artikel itu (avgSellingPriceHome()).
+     */
+    private function buildSalesAchievement(?int $periode = null, ?int $tahun = null): array
+    {
+        $now     = Carbon::now();
+        $periode = $periode ?: (int) $now->format('n');
+        $tahun   = $tahun ?: (int) $now->format('Y');
+
+        $monthStart = sprintf('%04d-%02d-01', $tahun, $periode);
+        $monthEnd   = date('Y-m-t', strtotime($monthStart));
+
+        $isCurrentMonth = ($periode == (int) $now->format('n') && $tahun == (int) $now->format('Y'));
+        $achievedEnd    = $isCurrentMonth ? $now->format('Y-m-d') : $monthEnd;
+
+        $convVal = $this->activeConversionValueHome();
+
+        // ---- TARGET (TSO status APPROVED, bulan target dari tso_name, tahun dari tso_date) ----
+        $candidateHeaders = DB::table('target_order_hdr')
+            ->where('status', '3')
+            ->whereRaw("EXTRACT(YEAR FROM to_date(tso_date,'DD-MM-YYYY')) BETWEEN ? AND ?", [$tahun - 1, $tahun + 1])
+            ->get(['tso_code', 'tso_name', 'tso_date']);
+
+        $matchedTsoCodes = [];
+        foreach ($candidateHeaders as $h) {
+            $month = $this->targetMonthFromName((string) $h->tso_name);
+            if ($month === null) {
+                continue;
+            }
+            $dt = \DateTime::createFromFormat('d-m-Y', trim((string) $h->tso_date));
+            if (!$dt) {
+                continue;
+            }
+            if ($month === $periode && (int) $dt->format('Y') === $tahun) {
+                $matchedTsoCodes[] = $h->tso_code;
+            }
+        }
+
+        $targetLines = empty($matchedTsoCodes) ? collect() : DB::table('target_order_det')
+            ->whereIn('tso_code', $matchedTsoCodes)
+            ->select('article_code', DB::raw('SUM(qty_target) as qty_target'))
+            ->groupBy('article_code')
+            ->get();
+
+        $targetQty = 0;
+        $targetConversion = 0;
+        foreach ($targetLines as $line) {
+            $qty = (float) $line->qty_target;
+            $targetQty += $qty;
+
+            $avgSelling  = $this->avgSellingPriceHome($line->article_code);
+            $avgPurchase = $this->purchasePriceHome($line->article_code);
+            $targetConversion += $convVal > 0 ? (($avgSelling - $avgPurchase) * $qty) / $convVal : 0;
+        }
+
+        // ---- ACHIEVED (delivery aktual dalam rentang periode, s.d. hari ini kalau periode berjalan) ----
+        $achievedQty = 0;
+        $achievedConversion = 0;
+        if ($achievedEnd >= $monthStart) {
+            $dnRows = DB::select("
+                SELECT
+                    dd.article_code,
+                    dd.qty,
+                    (COALESCE(sod.price,0)+COALESCE(sod.price_service,0)) AS price_unit
+                FROM delivery_det dd
+                JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
+                LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
+                WHERE to_date(dh.delivery_date,'DD-MM-YYYY') BETWEEN ?::date AND ?::date
+                  AND dh.status NOT IN ('5','7')
+            ", [$monthStart, $achievedEnd]);
+
+            $grouped = [];
+            foreach ($dnRows as $r) {
+                $grouped[$r->article_code][] = $r;
+            }
+
+            foreach ($grouped as $articleCode => $lines) {
+                $qty = 0;
+                $value = 0;
+                foreach ($lines as $l) {
+                    $qty   += (float) $l->qty;
+                    $value += (float) $l->qty * (float) $l->price_unit;
+                }
+                $avgSelling  = $qty > 0 ? $value / $qty : 0;
+                $avgPurchase = $this->purchasePriceHome($articleCode);
+
+                $achievedQty += $qty;
+                $achievedConversion += $convVal > 0 ? (($avgSelling - $avgPurchase) * $qty) / $convVal : 0;
+            }
+        }
 
         $months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
         return [
             'hasTarget'          => $targetQty > 0,
-            'monthLabel'         => $months[(int) $now->format('n')] . ' ' . $now->format('Y'),
-            'targetQty'          => $targetQty,
-            'achievedQty'        => $achievedQty,
+            'periode'            => $periode,
+            'tahun'              => $tahun,
+            'monthLabel'         => $months[$periode] . ' ' . $tahun,
+            'targetQty'          => round($targetQty, 2),
+            'achievedQty'        => round($achievedQty, 2),
             'qtyPct'             => $targetQty > 0 ? round($achievedQty / $targetQty * 100, 1) : 0,
-            'targetConversion'   => $targetConversion,
-            'achievedConversion' => $achievedConversion,
+            'targetConversion'   => round($targetConversion, 2),
+            'achievedConversion' => round($achievedConversion, 2),
             'conversionPct'      => $targetConversion > 0 ? round($achievedConversion / $targetConversion * 100, 1) : 0,
         ];
+    }
+
+    /** AJAX -- dipanggil saat filter periode/tahun widget Sales Achievement diganti. */
+    public function salesAchievementFilter(Request $request)
+    {
+        $periode = (int) $request->periode;
+        $tahun   = (int) $request->tahun;
+        if ($periode < 1 || $periode > 12) {
+            $periode = (int) Carbon::now()->format('n');
+        }
+        if (!$tahun) {
+            $tahun = (int) Carbon::now()->format('Y');
+        }
+
+        return response()->json(['status' => 1, 'data' => $this->buildSalesAchievement($periode, $tahun)]);
     }
 
     public function index()
