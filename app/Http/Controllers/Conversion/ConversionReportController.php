@@ -214,7 +214,12 @@ class ConversionReportController extends Controller
 
             $avgSelling  = $totalQty > 0 ? $totalValue / $totalQty : 0;
             $avgPurchase = $this->purchasePrice($articleCode);
-            $conversion  = $convVal > 0 ? ($avgSelling - $avgPurchase) / $convVal : 0;
+            // Konversi per baris = kontribusi total artikel ini, BUKAN per unit:
+            // margin per unit (avgSelling - avgPurchase) dikali qty total dulu,
+            // baru dibagi conversion_value. Dengan begini SUM konversi seluruh
+            // baris = (Σ(avgSelling*qty) - Σ(avgPurchase*qty)) / conversion_value,
+            // yaitu angka konversi total yang diharapkan.
+            $conversion  = $convVal > 0 ? (($avgSelling - $avgPurchase) * $totalQty) / $convVal : 0;
 
             $rows[] = [
                 'article_code'             => $articleCode,
