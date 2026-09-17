@@ -8,34 +8,36 @@
 @endphp
 
 <div class="card">
-  <div class="card-header d-flex justify-content-between align-items-center">
+  <div class="card-header">
     <h4 class="card-title">
       {{ $header->report_code }}
       @if($header->num_revision > 0) <span class="badge badge-pill badge-secondary">rev.{{ $header->num_revision }}</span> @endif
       <span class="badge badge-pill badge-light-primary">{{ $statusLabel }}</span>
     </h4>
-    <div>
-      @if($canCancel)
-        <button type="button" class="btn btn-outline-warning btn-sm" id="btnCancel">Cancel</button>
-      @endif
-      @if($canRevise)
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnRevise">Revise</button>
-      @endif
-      <a href="{{ route('conversionReport.index') }}" class="btn btn-light btn-sm">Back</a>
-    </div>
   </div>
   <div class="card-body">
     @if($header->status == 5 && $header->cancel_reason)
       <div class="alert alert-secondary"><b>Canceled:</b> {{ $header->cancel_reason }} ({{ $header->canceled_by }}, {{ $header->canceled_at }})</div>
     @endif
 
+    @if($isEditable)
+      <div class="alert alert-info d-flex align-items-start">
+        <i data-feather="refresh-cw" class="mr-50 mt-25" style="min-width:14px"></i>
+        <div>
+          <b>Recalculate otomatis.</b> Daftar artikel di bawah selalu ditarik LIVE dari data Delivery terkini untuk
+          Periode &amp; Tahun yang dipilih. Kalau data Delivery bertambah/berubah setelah draft ini dibuat pertama kali,
+          cukup klik <b>Update</b> lagi &mdash; sistem akan menghitung ulang total dari data riil terbaru.
+        </div>
+      </div>
+    @endif
+
     <div class="form-row">
-      <div class="form-group col-md-2">
+      <div class="form-group col-md-3">
         <label>Nomor Conversion</label>
         <input type="text" class="form-control" value="{{ $header->report_code }}" disabled>
       </div>
       <div class="form-group col-md-2">
-        <label for="periode">Periode (Bulan)</label>
+        <label for="periode">Periode (Bulan) <span class="text-danger">*</span></label>
         <select class="select2 form-control" id="periode" name="periode" {{ $isEditable ? '' : 'disabled' }}>
           @foreach(['January','February','March','April','May','June','July','August','September','October','November','December'] as $i => $m)
             <option value="{{ $i + 1 }}" {{ $header->periode == $i + 1 ? 'selected' : '' }}>{{ $m }}</option>
@@ -43,32 +45,146 @@
         </select>
       </div>
       <div class="form-group col-md-2">
-        <label for="tahun">Tahun</label>
+        <label for="tahun">Tahun <span class="text-danger">*</span></label>
         <select class="select2 form-control" id="tahun" name="tahun" {{ $isEditable ? '' : 'disabled' }}>
           @for ($y = 2023; $y <= date('Y'); $y++)
             <option value="{{ $y }}" {{ $header->tahun == $y ? 'selected' : '' }}>{{ $y }}</option>
           @endfor
         </select>
       </div>
-      <div class="form-group col-md-4">
-        <label for="reportName">Nama Conversion</label>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-7">
+        <label for="reportName">Nama Conversion <span class="text-danger">*</span></label>
         <input type="text" class="form-control" id="reportName" name="reportName" value="{{ $header->report_name }}" {{ $isEditable ? '' : 'disabled' }}>
       </div>
     </div>
     <div class="form-row">
       <div class="form-group col-md-7">
         <label for="note">Note</label>
-        <textarea class="form-control" id="note" name="note" rows="2" {{ $isEditable ? '' : 'disabled' }}>{{ $header->note }}</textarea>
+        <textarea class="form-control" id="note" name="note" rows="3" {{ $isEditable ? '' : 'disabled' }}>{{ $header->note }}</textarea>
       </div>
     </div>
 
+    <hr>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0">Delivery Article List</h5>
+      @if($isEditable)
+        <button type="button" class="btn btn-outline-success btn-sm d-none" id="btnExport">
+          <i data-feather="download" class="align-middle mr-50"></i>
+          <span class="align-middle">Export Excel</span>
+        </button>
+      @endif
+    </div>
+
     @if($isEditable)
-      <button type="button" class="btn btn-primary" id="btnSave">Update</button>
+      {{-- Interaktif: preview live yang sama seperti Create, sudah otomatis
+           dimuat dgn periode/tahun dokumen ini (lihat script bawah). --}}
+      <div id="previewEmpty" class="text-muted mb-2" style="display:none">Pilih Periode (Bulan) &amp; Tahun untuk menarik data delivery.</div>
+      <div id="previewLoading" class="text-muted mb-2" style="display:none">
+        <i data-feather="loader" class="mr-50"></i> Memuat data delivery terkini...
+      </div>
+      <div id="previewDuplicate" class="alert alert-warning" style="display:none"></div>
+
+      <div id="previewWrap" style="display:none">
+        @include('conversion.conversionReport._summaryCards')
+
+        <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+          <thead class="thead-light">
+            <tr>
+              <th style="width:4%">No</th>
+              <th>Article Code</th>
+              <th>Article Desc</th>
+              <th>Customer</th>
+              <th class="text-right">Qty</th>
+              <th class="text-right">Konversi Painting</th>
+              <th class="text-right">Konversi Non Painting</th>
+              <th style="width:6%">Action</th>
+            </tr>
+          </thead>
+          <tbody id="previewRows"></tbody>
+        </table>
+        </div>
+      </div>
+    @else
+      {{-- Read-only: data snapshot yang tersimpan (dokumen sudah VALIDATED/APPROVED/CANCELED). --}}
+      @php
+        $isPainting = function ($u) { return in_array(strtoupper(trim($u)), ['PCS', 'SET']); };
+        $sumPainting    = $details->filter(function ($d) use ($isPainting) { return $isPainting($d->uom); })->sum('conversion');
+        $sumNonPainting = $details->filter(function ($d) use ($isPainting) { return !$isPainting($d->uom); })->sum('conversion');
+        $cArticle     = number_format($details->count());
+        $cQty         = number_format($details->sum('total_qty'), 2);
+        $cConversion  = number_format($details->sum('conversion'), 2);
+        $cPainting    = number_format($sumPainting, 2);
+        $cNonPainting = number_format($sumNonPainting, 2);
+      @endphp
+      @include('conversion.conversionReport._summaryCards', ['cArticle' => $cArticle, 'cQty' => $cQty, 'cConversion' => $cConversion, 'cPainting' => $cPainting, 'cNonPainting' => $cNonPainting])
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+          <thead class="thead-light">
+            <tr>
+              <th style="width:4%">No</th>
+              <th>Article Code</th>
+              <th>Article Desc</th>
+              <th>Customer</th>
+              <th class="text-right">Qty</th>
+              <th class="text-right">Avg Selling Price</th>
+              <th class="text-right">Avg Purchase Price</th>
+              <th class="text-right">Konversi Painting</th>
+              <th class="text-right">Konversi Non Painting</th>
+              <th style="width:6%">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @forelse($details as $i => $d)
+              <tr>
+                <td class="text-center">{{ $i + 1 }}</td>
+                <td>{{ $d->article_alternative_code ?? $d->article_code }}</td>
+                <td>{{ $d->article_desc }}</td>
+                <td>{{ $d->customer_names }}</td>
+                <td class="text-right">{{ number_format($d->total_qty, 2) }} {{ $d->uom }}</td>
+                <td class="text-right">{{ number_format($d->avg_selling_price, 2) }}</td>
+                <td class="text-right">{{ number_format($d->avg_purchase_price, 2) }}</td>
+                <td class="text-right">{{ $isPainting($d->uom) ? number_format($d->conversion, 4) : '-' }}</td>
+                <td class="text-right">{{ $isPainting($d->uom) ? '-' : number_format($d->conversion, 4) }}</td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-icon btn-flat-primary btn-info-row"
+                          data-det-id="{{ $d->id }}" data-label="{{ $d->article_code }}">
+                    <i data-feather="info"></i>
+                  </button>
+                </td>
+              </tr>
+            @empty
+              <tr><td colspan="10" class="text-center text-muted">Tidak ada data.</td></tr>
+            @endforelse
+          </tbody>
+        </table>
+      </div>
     @endif
-    @if($approveValidate && count($approveValidate) && $approveValidate[0]->validate)
-      <input type="hidden" id="approveLevel" value="{{ $approveValidate[0]->next_level }}">
-      <button type="button" class="btn btn-success" id="btnApprove">Approve (Level {{ $approveValidate[0]->next_level }})</button>
-    @endif
+
+    <hr>
+    <div class="form-row mt-1">
+      <div class="col-12 d-flex justify-content-between flex-wrap">
+        <a href="{{ route('conversionReport.index') }}" class="btn btn-light">Back</a>
+        <div>
+          @if($canCancel)
+            <button type="button" class="btn btn-outline-warning" id="btnCancel">Cancel</button>
+          @endif
+          @if($canRevise)
+            <button type="button" class="btn btn-outline-secondary" id="btnRevise">Revise</button>
+          @endif
+          @if($isEditable)
+            <button type="button" class="btn btn-primary" id="btnSave" disabled>Update</button>
+          @endif
+          @if($approveValidate && count($approveValidate) && $approveValidate[0]->validate)
+            <input type="hidden" id="approveLevel" value="{{ $approveValidate[0]->next_level }}">
+            <button type="button" class="btn btn-success" id="btnApprove">Approve (Level {{ $approveValidate[0]->next_level }})</button>
+          @endif
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -93,67 +209,6 @@
       @empty
         <div class="col-12 text-muted">Belum ada konfigurasi approval untuk modul ini.</div>
       @endforelse
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-header">
-    <h4 class="card-title">Article Detail</h4>
-  </div>
-  <div class="card-body">
-    @php
-      $isPainting = function ($u) { return in_array(strtoupper(trim($u)), ['PCS', 'SET']); };
-      $sumPainting    = $details->filter(function ($d) use ($isPainting) { return $isPainting($d->uom); })->sum('conversion');
-      $sumNonPainting = $details->filter(function ($d) use ($isPainting) { return !$isPainting($d->uom); })->sum('conversion');
-      $cArticle     = number_format($details->count());
-      $cQty         = number_format($details->sum('total_qty'), 2);
-      $cConversion  = number_format($details->sum('conversion'), 2);
-      $cPainting    = number_format($sumPainting, 2);
-      $cNonPainting = number_format($sumNonPainting, 2);
-    @endphp
-    @include('conversion.conversionReport._summaryCards', ['cArticle' => $cArticle, 'cQty' => $cQty, 'cConversion' => $cConversion, 'cPainting' => $cPainting, 'cNonPainting' => $cNonPainting])
-
-    <div class="table-responsive">
-      <table class="table table-bordered table-sm">
-        <thead class="thead-light">
-          <tr>
-            <th style="width:4%">No</th>
-            <th>Article Code</th>
-            <th>Article Desc</th>
-            <th>Customer</th>
-            <th class="text-right">Qty</th>
-            <th class="text-right">Avg Selling Price</th>
-            <th class="text-right">Avg Purchase Price</th>
-            <th class="text-right">Konversi Painting</th>
-            <th class="text-right">Konversi Non Painting</th>
-            <th style="width:6%">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse($details as $i => $d)
-            <tr>
-              <td class="text-center">{{ $i + 1 }}</td>
-              <td>{{ $d->article_alternative_code ?? $d->article_code }}</td>
-              <td>{{ $d->article_desc }}</td>
-              <td>{{ $d->customer_names }}</td>
-              <td class="text-right">{{ number_format($d->total_qty, 2) }} {{ $d->uom }}</td>
-              <td class="text-right">{{ number_format($d->avg_selling_price, 2) }}</td>
-              <td class="text-right">{{ number_format($d->avg_purchase_price, 2) }}</td>
-              <td class="text-right">{{ $isPainting($d->uom) ? number_format($d->conversion, 4) : '-' }}</td>
-              <td class="text-right">{{ $isPainting($d->uom) ? '-' : number_format($d->conversion, 4) }}</td>
-              <td class="text-center">
-                <button type="button" class="btn btn-icon btn-flat-primary btn-info-row"
-                        data-det-id="{{ $d->id }}" data-label="{{ $d->article_code }}">
-                  <i data-feather="info"></i>
-                </button>
-              </td>
-            </tr>
-          @empty
-            <tr><td colspan="10" class="text-center text-muted">Tidak ada data.</td></tr>
-          @endforelse
-        </tbody>
-      </table>
     </div>
   </div>
 </div>
@@ -184,11 +239,31 @@
 
   const encId = "{{ $id }}";
   const URL_DETAIL_DN = "{{ route('conversionReport.list.detail.dn') }}";
+</script>
 
-  $(document).on('click', '.btn-info-row', function () {
-    loadDetailDnModal($(this).data('det-id'), $(this).data('label'));
-  });
+@if($isEditable)
+  <script type="text/javascript">
+    const URL_PREVIEW_PERIOD = "{{ route('conversionReport.previewPeriod') }}";
+    const URL_EXPORT_PREVIEW = "{{ route('conversionReport.exportPreview') }}";
+    const EXCLUDE_ID = encId;
+  </script>
+  @include('conversion.conversionReport._previewScript')
+  <script type="text/javascript">
+    // Tarik live data begitu halaman dibuka, pakai periode/tahun yang sudah
+    // tersimpan -- inilah bagian "recalculate": kalau data Delivery sudah
+    // berubah sejak draft ini dibuat, angka ini langsung mencerminkannya.
+    $(function () { loadPreview(); });
+  </script>
+@else
+  @include('conversion.conversionReport._detailDnScript')
+  <script type="text/javascript">
+    $(document).on('click', '.btn-info-row', function () {
+      loadDetailDnModal($(this).data('det-id'), $(this).data('label'));
+    });
+  </script>
+@endif
 
+<script type="text/javascript">
   function submitUpdate(extra) {
     $.post("{{ route('conversionReport.update') }}", $.extend({
       id: encId,
@@ -279,5 +354,4 @@
     });
   });
 </script>
-@include('conversion.conversionReport._detailDnScript')
 @endsection

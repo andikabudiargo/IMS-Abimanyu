@@ -139,6 +139,24 @@ class ConversionReportController extends Controller
         return $total;
     }
 
+    /**
+     * Cek apakah periode+tahun sudah dipakai dokumen lain yang masih aktif.
+     * CANCELED (5) dan REVISED/snapshot (8) dikecualikan -- boleh dibuat ulang
+     * untuk periode yang sama kalau dokumen sebelumnya sudah dibatalkan.
+     * $excludeId dipakai saat update supaya dokumen tidak bentrok dgn dirinya sendiri.
+     */
+    private function periodeAlreadyUsed(int $periode, int $tahun, ?int $excludeId = null): ?string
+    {
+        $existing = DB::table('conversion_report_hdr')
+            ->where('periode', $periode)
+            ->where('tahun', $tahun)
+            ->whereNotIn('status', [5, 8])
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->first();
+
+        return $existing ? $existing->report_code : null;
+    }
+
     // =========================================================================
     //  AGREGASI DELIVERY PER PERIODE (dipakai preview & store)
     // =========================================================================
@@ -388,14 +406,33 @@ class ConversionReportController extends Controller
         ]);
     }
 
-    /** AJAX -- dipanggil saat periode dipilih di form Create, live preview. */
+    /** AJAX -- dipanggil saat periode dipilih di form Create/Edit, live preview. */
     public function previewPeriod(Request $request)
     {
         $periode = (int) $request->periode;
         $tahun   = (int) $request->tahun;
+        // excludeId dikirim halaman Edit supaya dokumen yang sedang diedit tidak
+        // dianggap bentrok dengan periode/tahun dirinya sendiri.
+        $excludeId = null;
+        if ($request->excludeId) {
+            try {
+                $excludeId = (int) Crypt::decryptString($request->excludeId);
+            } catch (\Exception $e) {
+                $excludeId = null;
+            }
+        }
 
         if (!$periode || !$tahun) {
             return response()->json(['status' => 0, 'message' => 'Periode belum lengkap.']);
+        }
+
+        $duplicateOf = $this->periodeAlreadyUsed($periode, $tahun, $excludeId);
+        if ($duplicateOf) {
+            return response()->json([
+                'status'  => 0,
+                'message' => "Periode ini sudah dipakai dokumen {$duplicateOf}. Satu periode hanya boleh punya satu Conversion Report aktif.",
+                'duplicate' => true,
+            ]);
         }
 
         $summary = $this->buildSummary($periode, $tahun);
@@ -451,6 +488,10 @@ class ConversionReportController extends Controller
 
         if (!$request->reportName || !$periode || !$tahun) {
             return redirect()->back()->withInput()->with('error', 'Nama, Periode, dan Tahun wajib diisi.');
+        }
+
+        if ($duplicateOf = $this->periodeAlreadyUsed($periode, $tahun)) {
+            return redirect()->back()->withInput()->with('error', "Periode ini sudah dipakai dokumen {$duplicateOf}. Satu periode hanya boleh punya satu Conversion Report aktif.");
         }
 
         // Dihitung ULANG di server saat submit (bukan percaya payload JS),
@@ -578,8 +619,11 @@ class ConversionReportController extends Controller
             'periodeLabel'     => ($months[$header->periode] ?? $header->periode).' '.$header->tahun,
             'statusLabel'      => $this->statusLabel[$header->status] ?? $header->status,
             'id'               => $request->id,
-            // NEW (1) -> boleh Edit. VALIDATED/APPROVED (2,3) -> boleh Revisi & Cancel.
-            'canEdit'          => $header->status == 1 && $header->created_by === $username,
+            // NEW (1) -> boleh Edit (siapa saja yang bisa buka halaman ini, bukan
+            // cuma pembuatnya -- selaras dengan tombol Edit di menu index yang
+            // juga tidak membatasi berdasarkan created_by).
+            // VALIDATED/APPROVED (2,3) -> boleh Revisi & Cancel.
+            'canEdit'          => $header->status == 1,
             'canRevise'        => in_array($header->status, [2, 3]),
             'canCancel'        => in_array($header->status, [2, 3]),
             'approvalHistory'  => Approval::approvalHistory($this->moduleCode, $header->report_code, $username),
@@ -640,7 +684,7 @@ class ConversionReportController extends Controller
         }
 
         // ── update biasa (bukan approve) -- hanya dokumen NEW yang boleh diedit ──
-        if ($header->status != 1 || $header->created_by !== $username) {
+        if ($header->status != 1) {
             return response()->json(['status' => 0, 'title' => "Update {$this->title}", 'message' => ['Data ini tidak bisa diedit.'], 'alert' => 'error']);
         }
 
@@ -650,6 +694,14 @@ class ConversionReportController extends Controller
             return response()->json(['status' => 0, 'title' => "Update {$this->title}", 'message' => ['Nama, Periode, dan Tahun wajib diisi.'], 'alert' => 'error']);
         }
 
+        if ($duplicateOf = $this->periodeAlreadyUsed($periode, $tahun, $id)) {
+            return response()->json(['status' => 0, 'title' => "Update {$this->title}", 'message' => ["Periode ini sudah dipakai dokumen {$duplicateOf}. Satu periode hanya boleh punya satu Conversion Report aktif."], 'alert' => 'error']);
+        }
+
+        // Rebuild TOTAL dari data delivery TERKINI di periode ini -- inilah
+        // "recalculate": kalau user tarik ulang di tanggal lain (data delivery
+        // sudah berubah/bertambah sejak draft awal dibuat), angka yang tersimpan
+        // otomatis mengikuti data riil terbaru, bukan snapshot lama.
         $summary = $this->buildSummary($periode, $tahun);
         if (empty($summary['rows'])) {
             return response()->json(['status' => 0, 'title' => "Update {$this->title}", 'message' => ['Tidak ada data Delivery pada periode tersebut.'], 'alert' => 'error']);
