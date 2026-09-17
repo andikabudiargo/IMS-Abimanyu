@@ -324,8 +324,10 @@ class ConversionReportController extends Controller
             ['data' => 'report_name', 'name' => 'report_name', 'title' => 'Name'],
             ['data' => 'periode_label','name' => 'periode_label','title' => 'Periode', 'orderable' => false, 'searchable' => false],
             ['data' => 'status_label','name' => 'status_label','title' => 'Status', 'orderable' => false, 'searchable' => false],
-            ['data' => 'total_article',    'name' => 'total_article',    'title' => 'Total Article', 'orderable' => false, 'searchable' => false],
-            ['data' => 'total_conversion', 'name' => 'total_conversion', 'title' => 'Total Konversi', 'orderable' => false, 'searchable' => false],
+            ['data' => 'total_article',       'name' => 'total_article',       'title' => 'Total Article', 'orderable' => false, 'searchable' => false],
+            ['data' => 'total_painting',      'name' => 'total_painting',      'title' => 'Painting', 'orderable' => false, 'searchable' => false],
+            ['data' => 'total_non_painting',  'name' => 'total_non_painting',  'title' => 'Non Painting', 'orderable' => false, 'searchable' => false],
+            ['data' => 'total_conversion',    'name' => 'total_conversion',    'title' => 'Total Konversi', 'orderable' => false, 'searchable' => false],
             ['data' => 'note',        'name' => 'note',        'title' => 'Note'],
             ['data' => 'created_by',  'name' => 'created_by',  'title' => 'Created By'],
             ['data' => 'created_at',  'name' => 'created_at',  'title' => 'Created At'],
@@ -349,9 +351,14 @@ class ConversionReportController extends Controller
         // disembunyikan dari list utama, tetap bisa dilihat lewat riwayat revisi di halaman Edit.
         // Total Article & Total Konversi per report -- agregat dari conversion_report_det,
         // di-join sebagai subquery supaya list tetap satu baris per report_hdr.
+        // Painting/Non Painting dipecah dari UOM (PCS/SET = painting), persis aturan
+        // yang sama dipakai buildSummary() -- conversion_report_det tidak menyimpan
+        // kolom split-nya sendiri, jadi dihitung ulang di sini dari uom+conversion.
         $agg = DB::table('conversion_report_det')
             ->select('report_id',
                 DB::raw('COUNT(*) as total_article'),
+                DB::raw("COALESCE(SUM(CASE WHEN UPPER(TRIM(uom)) IN ('PCS','SET') THEN conversion ELSE 0 END),0) as total_painting"),
+                DB::raw("COALESCE(SUM(CASE WHEN UPPER(TRIM(uom)) IN ('PCS','SET') THEN 0 ELSE conversion END),0) as total_non_painting"),
                 DB::raw('COALESCE(SUM(conversion),0) as total_conversion'))
             ->groupBy('report_id');
 
@@ -359,6 +366,8 @@ class ConversionReportController extends Controller
             ->leftJoinSub($agg, 'agg', 'agg.report_id', '=', 'h.id')
             ->select('h.*',
                 DB::raw('COALESCE(agg.total_article,0) as total_article'),
+                DB::raw('COALESCE(agg.total_painting,0) as total_painting'),
+                DB::raw('COALESCE(agg.total_non_painting,0) as total_non_painting'),
                 DB::raw('COALESCE(agg.total_conversion,0) as total_conversion'))
             ->where('h.status', '!=', 8)
             ->when($request->reportCode, fn($q) => $q->where('h.report_code', 'ilike', '%'.$request->reportCode.'%'))
@@ -368,6 +377,8 @@ class ConversionReportController extends Controller
             ->get();
 
         return Datatables::of($data)
+            ->editColumn('total_painting', fn($d) => number_format((float) $d->total_painting, 2))
+            ->editColumn('total_non_painting', fn($d) => number_format((float) $d->total_non_painting, 2))
             ->editColumn('total_conversion', fn($d) => number_format((float) $d->total_conversion, 2))
             ->addColumn('action', function ($d) {
                 $id = Crypt::encryptString($d->id);
