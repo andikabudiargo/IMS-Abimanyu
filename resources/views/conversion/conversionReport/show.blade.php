@@ -14,33 +14,63 @@
   </div>
   <div class="card-body">
     <div class="form-row">
-      <div class="form-group col-md-4">
+      <div class="form-group col-md-7">
         <label>Nama Conversion</label>
         <input type="text" class="form-control" value="{{ $header->report_name }}" disabled>
       </div>
-      <div class="form-group col-md-3">
+</div>
+<div class="form-row">
+      <div class="form-group col-md-4">
         <label>Periode</label>
         <input type="text" class="form-control" value="{{ $periodeLabel }}" disabled>
       </div>
       <div class="form-group col-md-3">
-        <label>Conversion Value dipakai</label>
+        <label>Conversion Value</label>
         <input type="text" class="form-control" value="{{ number_format($header->conversion_value_used, 4) }}" disabled>
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group col-md-12">
+      <div class="form-group col-md-7">
         <label>Note</label>
-        <textarea class="form-control" rows="2" disabled>{{ $header->note }}</textarea>
+        <textarea class="form-control" rows="4" disabled>{{ $header->note }}</textarea>
       </div>
     </div>
   </div>
 </div>
 
 <div class="card">
-  <div class="card-header">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
     <h4 class="card-title">Article Detail</h4>
+    <div class="form-row align-items-end" style="gap:0;">
+      <div class="form-group col-auto mb-0 mr-1">
+        <label class="mb-0 small">Dari Tanggal</label>
+        <input type="date" id="filterStartDate" class="form-control form-control-sm"
+               min="{{ $periodeStart }}" max="{{ $periodeEnd }}" value="{{ $periodeStart }}">
+      </div>
+      <div class="form-group col-auto mb-0 mr-1">
+        <label class="mb-0 small">Sampai Tanggal</label>
+        <input type="date" id="filterEndDate" class="form-control form-control-sm"
+               min="{{ $periodeStart }}" max="{{ $periodeEnd }}" value="{{ $periodeEnd }}">
+      </div>
+      <div class="form-group col-auto mb-0 mr-1">
+        <button type="button" id="btnApplyFilter" class="btn btn-primary btn-sm">
+          <i data-feather="filter"></i> Terapkan
+        </button>
+      </div>
+      <div class="form-group col-auto mb-0 mr-1">
+        <button type="button" id="btnResetFilter" class="btn btn-light btn-sm">
+          <i data-feather="rotate-ccw"></i> Reset
+        </button>
+      </div>
+      <div class="form-group col-auto mb-0">
+        <button type="button" id="btnExportArticleDetail" class="btn btn-success btn-sm">
+          <i data-feather="file-text"></i> Export Excel
+        </button>
+      </div>
+    </div>
   </div>
   <div class="card-body">
+    <small class="text-muted d-block mb-2">Range tanggal hanya boleh di dalam periode tersimpan: {{ \Carbon\Carbon::parse($periodeStart)->format('d-m-Y') }} s/d {{ \Carbon\Carbon::parse($periodeEnd)->format('d-m-Y') }}.</small>
     @php
       $isPainting = function ($u) { return in_array(strtoupper(trim($u)), ['PCS', 'SET']); };
       $sumPainting    = $details->filter(function ($d) use ($isPainting) { return $isPainting($d->uom); })->sum('conversion');
@@ -69,7 +99,7 @@
             <th style="width:6%">Action</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="articleDetailBody">
           @forelse($details as $i => $d)
             <tr>
               <td class="text-center">{{ $i + 1 }}</td>
@@ -103,10 +133,88 @@
 @section('scripts')
 <script type="text/javascript">
   $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
-  const URL_DETAIL_DN = "{{ route('conversionReport.list.detail.dn') }}";
+  const URL_DETAIL_DN     = "{{ route('conversionReport.list.detail.dn') }}";
+  const URL_RANGE_FILTER  = "{{ route('conversionReport.showRangeFilter') }}";
+  const URL_EXPORT_RANGE  = "{{ route('conversionReport.exportRange') }}";
+  const REPORT_ID         = "{{ $id }}";
+  const PERIODE_START     = "{{ $periodeStart }}";
+  const PERIODE_END       = "{{ $periodeEnd }}";
 
   $(document).on('click', '.btn-info-row', function () {
     loadDetailDnModal($(this).data('det-id'), $(this).data('label'));
+  });
+
+  function humanizeShow(n) {
+    n = parseFloat(n) || 0;
+    return n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function renderArticleDetailRows(rows) {
+    let html = '';
+    rows.forEach((r, i) => {
+      const isPainting = !!r.is_painting;
+      html += `<tr>
+        <td class="text-center">${i + 1}</td>
+        <td>${r.article_alternative_code || r.article_code}</td>
+        <td>${r.article_desc || ''}</td>
+        <td>${r.customer_names || ''}</td>
+        <td class="text-right">${humanizeShow(r.total_qty)} ${r.uom || ''}</td>
+        <td class="text-right">${humanizeShow(r.avg_selling_price)}</td>
+        <td class="text-right">${humanizeShow(r.avg_purchase_price)}</td>
+        <td class="text-right">${isPainting ? humanizeShow(r.conversion) : '-'}</td>
+        <td class="text-right">${isPainting ? '-' : humanizeShow(r.conversion)}</td>
+        <td class="text-center">
+          <button type="button" class="btn btn-icon btn-flat-primary btn-info-row"
+                  data-det-id="${r.det_id}" data-label="${r.article_code}">
+            <i data-feather="info"></i>
+          </button>
+        </td>
+      </tr>`;
+    });
+    $('#articleDetailBody').html(html || '<tr><td colspan="10" class="text-center text-muted">Tidak ada data.</td></tr>');
+    if (window.feather) feather.replace({ width: 14, height: 14 });
+  }
+
+  function applyDateFilter() {
+    const start = $('#filterStartDate').val() || PERIODE_START;
+    const end   = $('#filterEndDate').val() || PERIODE_END;
+
+    $('#btnApplyFilter').prop('disabled', true);
+    $.get(URL_RANGE_FILTER, { id: REPORT_ID, start: start, end: end }, function (res) {
+      if (!res || res.status !== 1) {
+        Swal.fire('Gagal', (res && res.message) || 'Gagal memuat data.', 'error');
+        return;
+      }
+      // clamp balik ke input kalau server membatasi ke periode
+      $('#filterStartDate').val(res.start);
+      $('#filterEndDate').val(res.end);
+
+      renderArticleDetailRows(res.rows);
+      $('#sumTotalArticle').text(res.totals.article);
+      $('#sumTotalQty').text(humanizeShow(res.totals.qty));
+      $('#sumConvPainting').text(humanizeShow(res.totals.painting));
+      $('#sumConvNonPainting').text(humanizeShow(res.totals.nonPainting));
+      $('#sumTotalConversion').text(humanizeShow(res.totals.conversion));
+    }).fail(function () {
+      Swal.fire('Gagal', 'Gagal memuat data untuk range tanggal tersebut.', 'error');
+    }).always(function () {
+      $('#btnApplyFilter').prop('disabled', false);
+    });
+  }
+
+  $('#btnApplyFilter').on('click', applyDateFilter);
+
+  $('#btnResetFilter').on('click', function () {
+    $('#filterStartDate').val(PERIODE_START);
+    $('#filterEndDate').val(PERIODE_END);
+    applyDateFilter();
+  });
+
+  $('#btnExportArticleDetail').on('click', function () {
+    const start = $('#filterStartDate').val() || PERIODE_START;
+    const end   = $('#filterEndDate').val() || PERIODE_END;
+    const params = $.param({ id: REPORT_ID, start: start, end: end });
+    window.location.href = URL_EXPORT_RANGE + '?' + params;
   });
 </script>
 @include('conversion.conversionReport._detailDnScript')

@@ -167,10 +167,16 @@ class ConversionReportController extends Controller
      * DAN agregat per artikel dari sumber data yang SAMA (supaya tidak
      * mungkin numbernya beda antara ringkasan & breakdown).
      */
-    private function dnRowsForPeriod(int $periode, int $tahun)
+    private function periodeBounds(int $periode, int $tahun): array
     {
         $start = sprintf('%04d-%02d-01', $tahun, $periode);
         $end   = date('Y-m-t', strtotime($start));
+        return [$start, $end];
+    }
+
+    private function dnRowsForPeriod(int $periode, int $tahun)
+    {
+        [$start, $end] = $this->periodeBounds($periode, $tahun);
 
         // price_unit = sales_order_det.price + price_service (harga jual + jasa).
         // Purchase/material price (RM) TIDAK dikurangi di sini; itu baru
@@ -310,6 +316,159 @@ class ConversionReportController extends Controller
                 }, $dnRows));
             }
         }
+    }
+
+    /**
+     * Rebuild ringkasan per artikel dari data DN yang SUDAH TERSIMPAN
+     * (conversion_report_det + conversion_report_dn_det) milik satu report,
+     * dibatasi ke sub-range tanggal delivery. Dipakai oleh filter tanggal di
+     * halaman Show -- sengaja pakai snapshot yang tersimpan (bukan tarik
+     * ulang dari delivery_det) supaya angka yang ditampilkan/di-export selalu
+     * konsisten dengan dokumen yang sudah disimpan, walau data delivery live
+     * sudah berubah sejak report dibuat. avg_purchase_price ikut snapshot
+     * (tidak berubah per sub-range, sama seperti listDetailDn()).
+     */
+    private function rangeSummaryForReport(int $reportId, string $start, string $end): array
+    {
+        $header = DB::table('conversion_report_hdr')->where('id', $reportId)->first();
+        if (!$header) {
+            return ['rows' => [], 'conversionValue' => 0];
+        }
+        $convVal = (float) $header->conversion_value_used;
+
+        $lines = DB::select("
+            SELECT
+                d.id AS det_id,
+                d.article_code,
+                a.article_alternative_code,
+                a.article_desc,
+                d.uom,
+                d.avg_purchase_price,
+                dn.customer_name,
+                dn.qty,
+                dn.price_unit,
+                dn.price_total,
+                dn.delivery_date
+            FROM conversion_report_det d
+            JOIN conversion_report_dn_det dn ON dn.report_det_id = d.id
+            LEFT JOIN article a ON a.article_code = d.article_code
+            WHERE d.report_id = ?
+              AND to_date(dn.delivery_date, 'DD-MM-YYYY') BETWEEN ?::date AND ?::date
+            ORDER BY d.article_code, to_date(dn.delivery_date, 'DD-MM-YYYY')
+        ", [$reportId, $start, $end]);
+
+        $grouped = [];
+        foreach ($lines as $l) {
+            $grouped[$l->article_code][] = $l;
+        }
+
+        $rows = [];
+        foreach ($grouped as $articleCode => $group) {
+            $totalQty      = 0;
+            $totalValue    = 0;
+            $conversion    = 0;
+            $customerNames = [];
+            $avgPurchase   = (float) $group[0]->avg_purchase_price;
+
+            foreach ($group as $l) {
+                $qty = (float) $l->qty;
+                $totalQty   += $qty;
+                $totalValue += (float) $l->price_total;
+                $conversion += $convVal > 0 ? ((((float) $l->price_unit) - $avgPurchase) * $qty) / $convVal : 0;
+                if ($l->customer_name) $customerNames[$l->customer_name] = true;
+            }
+
+            $avgSelling = $totalQty > 0 ? $totalValue / $totalQty : 0;
+            $uom        = $group[0]->uom ?? '';
+            $isPainting = in_array(strtoupper(trim($uom)), ['PCS', 'SET']);
+
+            $rows[] = [
+                'det_id'                   => $group[0]->det_id,
+                'article_code'             => $articleCode,
+                'article_alternative_code' => $group[0]->article_alternative_code ?? $articleCode,
+                'article_desc'             => $group[0]->article_desc ?? '',
+                'uom'                      => $uom,
+                'customer_names'           => implode(', ', array_keys($customerNames)),
+                'total_qty'                => round($totalQty, 4),
+                'avg_selling_price'        => round($avgSelling, 4),
+                'avg_purchase_price'       => round($avgPurchase, 4),
+                'total_selling_value'      => round($totalValue, 4),
+                'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
+                'conversion'               => round($conversion, 4),
+                'is_painting'              => $isPainting,
+                'conversion_painting'      => round($isPainting ? $conversion : 0, 4),
+                'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
+            ];
+        }
+
+        return ['rows' => $rows, 'conversionValue' => $convVal];
+    }
+
+    /**
+     * Clamp start/end request ke batas periode dokumen -- range tanggal di
+     * halaman Show tidak boleh keluar dari bulan periode yang tersimpan.
+     */
+    private function clampRangeToPeriode(Request $request, $header): array
+    {
+        [$minDate, $maxDate] = $this->periodeBounds((int) $header->periode, (int) $header->tahun);
+
+        $start = $request->start ?: $minDate;
+        $end   = $request->end ?: $maxDate;
+        if ($start < $minDate) $start = $minDate;
+        if ($end > $maxDate)   $end = $maxDate;
+        if ($end < $start)     $end = $start;
+
+        return [$start, $end, $minDate, $maxDate];
+    }
+
+    /** AJAX -- dipanggil saat filter range tanggal diterapkan di halaman Show. */
+    public function showRangeFilter(Request $request)
+    {
+        $id = Crypt::decryptString($request->id);
+        $header = DB::table('conversion_report_hdr')->where('id', $id)->first();
+        if (!$header) {
+            return response()->json(['status' => 0, 'message' => 'Data tidak ditemukan.']);
+        }
+
+        [$start, $end, $minDate, $maxDate] = $this->clampRangeToPeriode($request, $header);
+
+        $summary = $this->rangeSummaryForReport((int) $id, $start, $end);
+        $rows = $summary['rows'];
+
+        return response()->json([
+            'status'  => 1,
+            'rows'    => $rows,
+            'start'   => $start,
+            'end'     => $end,
+            'minDate' => $minDate,
+            'maxDate' => $maxDate,
+            'totals'  => [
+                'article'     => count($rows),
+                'qty'         => round(array_sum(array_column($rows, 'total_qty')), 2),
+                'conversion'  => round(array_sum(array_column($rows, 'conversion')), 2),
+                'painting'    => round(array_sum(array_column($rows, 'conversion_painting')), 2),
+                'nonPainting' => round(array_sum(array_column($rows, 'conversion_non_painting')), 2),
+            ],
+        ]);
+    }
+
+    /** Export Excel dari tabel Article Detail di halaman Show, sesuai range tanggal yang dipilih. */
+    public function exportRange(Request $request)
+    {
+        $id = Crypt::decryptString($request->id);
+        $header = DB::table('conversion_report_hdr')->where('id', $id)->first();
+        if (!$header) {
+            return redirect()->back()->with('error', 'Data tidak ditemukan.');
+        }
+
+        [$start, $end] = $this->clampRangeToPeriode($request, $header);
+
+        $summary = $this->rangeSummaryForReport((int) $id, $start, $end);
+
+        $rangeTag = date('dmY', strtotime($start)).'-'.date('dmY', strtotime($end));
+        $fileName = 'Conversion_Report_'.$header->report_code.'_'.$rangeTag.'.xlsx';
+
+        return \Excel::download(new \App\Exports\ConversionReportExport($summary['rows']), $fileName);
     }
 
     // =========================================================================
@@ -639,6 +798,7 @@ class ConversionReportController extends Controller
             ->get();
 
         $username = Auth::user()->username;
+        [$periodeStart, $periodeEnd] = $this->periodeBounds((int) $header->periode, (int) $header->tahun);
 
         return view('conversion.conversionReport.show', [
             'title'           => "Detail {$this->title}",
@@ -648,6 +808,8 @@ class ConversionReportController extends Controller
             'statusLabel'     => $this->statusLabel[$header->status] ?? $header->status,
             'details'         => $details,
             'id'              => $request->id,
+            'periodeStart'    => $periodeStart,
+            'periodeEnd'      => $periodeEnd,
             'approvalHistory' => Approval::approvalHistory($this->moduleCode, $header->report_code, $username),
         ]);
     }
