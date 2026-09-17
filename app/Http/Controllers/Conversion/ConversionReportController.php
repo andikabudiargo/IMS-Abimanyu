@@ -324,6 +324,8 @@ class ConversionReportController extends Controller
             ['data' => 'report_name', 'name' => 'report_name', 'title' => 'Name'],
             ['data' => 'periode_label','name' => 'periode_label','title' => 'Periode', 'orderable' => false, 'searchable' => false],
             ['data' => 'status_label','name' => 'status_label','title' => 'Status', 'orderable' => false, 'searchable' => false],
+            ['data' => 'total_article',    'name' => 'total_article',    'title' => 'Total Article', 'orderable' => false, 'searchable' => false],
+            ['data' => 'total_conversion', 'name' => 'total_conversion', 'title' => 'Total Konversi', 'orderable' => false, 'searchable' => false],
             ['data' => 'note',        'name' => 'note',        'title' => 'Note'],
             ['data' => 'created_by',  'name' => 'created_by',  'title' => 'Created By'],
             ['data' => 'created_at',  'name' => 'created_at',  'title' => 'Created At'],
@@ -345,16 +347,28 @@ class ConversionReportController extends Controller
 
         // status 8 (REVISED) adalah snapshot arsip revisi, bukan dokumen aktif --
         // disembunyikan dari list utama, tetap bisa dilihat lewat riwayat revisi di halaman Edit.
-        $data = DB::table('conversion_report_hdr')
-            ->select('*')
-            ->where('status', '!=', 8)
-            ->when($request->reportCode, fn($q) => $q->where('report_code', 'ilike', '%'.$request->reportCode.'%'))
-            ->when($request->reportName, fn($q) => $q->where('report_name', 'ilike', '%'.$request->reportName.'%'))
-            ->when($request->tahun, fn($q) => $q->where('tahun', $request->tahun))
-            ->orderByDesc('id')
+        // Total Article & Total Konversi per report -- agregat dari conversion_report_det,
+        // di-join sebagai subquery supaya list tetap satu baris per report_hdr.
+        $agg = DB::table('conversion_report_det')
+            ->select('report_id',
+                DB::raw('COUNT(*) as total_article'),
+                DB::raw('COALESCE(SUM(conversion),0) as total_conversion'))
+            ->groupBy('report_id');
+
+        $data = DB::table('conversion_report_hdr as h')
+            ->leftJoinSub($agg, 'agg', 'agg.report_id', '=', 'h.id')
+            ->select('h.*',
+                DB::raw('COALESCE(agg.total_article,0) as total_article'),
+                DB::raw('COALESCE(agg.total_conversion,0) as total_conversion'))
+            ->where('h.status', '!=', 8)
+            ->when($request->reportCode, fn($q) => $q->where('h.report_code', 'ilike', '%'.$request->reportCode.'%'))
+            ->when($request->reportName, fn($q) => $q->where('h.report_name', 'ilike', '%'.$request->reportName.'%'))
+            ->when($request->tahun, fn($q) => $q->where('h.tahun', $request->tahun))
+            ->orderByDesc('h.id')
             ->get();
 
         return Datatables::of($data)
+            ->editColumn('total_conversion', fn($d) => number_format((float) $d->total_conversion, 2))
             ->addColumn('action', function ($d) {
                 $id = Crypt::encryptString($d->id);
                 $buttons = '<div class="d-inline-flex">
@@ -392,6 +406,63 @@ class ConversionReportController extends Controller
             })
             ->rawColumns(['action', 'status_label'])
             ->make(true);
+    }
+
+    /**
+     * Data chart kurva konversi per bulan untuk tahun yang difilter.
+     * Report berstatus CANCELED (5) / REVISED (8) tidak ikut dihitung --
+     * hanya dokumen aktif yang merepresentasikan konversi riil.
+     * Bulan yang tidak punya Conversion Report tetap tampil dengan nilai 0.
+     */
+    public function chart(Request $request)
+    {
+        $tahun = (int) ($request->tahun ?: date('Y'));
+
+        $perArticle = DB::table('conversion_report_hdr as h')
+            ->leftJoin('conversion_report_det as d', 'd.report_id', '=', 'h.id')
+            ->where('h.tahun', $tahun)
+            ->whereNotIn('h.status', [5, 8])
+            ->select('h.periode',
+                DB::raw('COUNT(d.id) as total_article'),
+                DB::raw('COALESCE(SUM(d.conversion),0) as total_conversion'))
+            ->groupBy('h.periode')
+            ->get()
+            ->keyBy('periode');
+
+        // Total Delivery = jumlah DN unik (bisa dipakai lintas artikel) yang menyusun
+        // report bulan itu -- di-query terpisah supaya join ke dn_det tidak
+        // menggandakan (fan-out) SUM(d.conversion) di atas.
+        $perDelivery = DB::table('conversion_report_hdr as h')
+            ->join('conversion_report_det as d', 'd.report_id', '=', 'h.id')
+            ->join('conversion_report_dn_det as dn', 'dn.report_det_id', '=', 'd.id')
+            ->where('h.tahun', $tahun)
+            ->whereNotIn('h.status', [5, 8])
+            ->select('h.periode', DB::raw('COUNT(DISTINCT dn.dn_number) as total_delivery'))
+            ->groupBy('h.periode')
+            ->get()
+            ->keyBy('periode');
+
+        $monthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+        $labels = $totalArticle = $totalDelivery = $totalConversion = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $labels[]         = $monthLabels[$m - 1];
+            $totalArticle[]   = (int) ($perArticle[$m]->total_article ?? 0);
+            $totalConversion[]= round((float) ($perArticle[$m]->total_conversion ?? 0), 2);
+            $totalDelivery[]  = (int) ($perDelivery[$m]->total_delivery ?? 0);
+        }
+
+        return response()->json([
+            'tahun'           => $tahun,
+            'labels'          => $labels,
+            'totalArticle'    => $totalArticle,
+            'totalDelivery'   => $totalDelivery,
+            'totalConversion' => $totalConversion,
+            'sumArticle'      => array_sum($totalArticle),
+            'sumDelivery'     => array_sum($totalDelivery),
+            'sumConversion'   => round(array_sum($totalConversion), 2),
+            'minYear'         => 2024,
+        ]);
     }
 
     // =========================================================================

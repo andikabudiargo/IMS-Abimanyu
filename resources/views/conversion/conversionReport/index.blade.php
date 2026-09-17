@@ -44,6 +44,59 @@
   </div>
 </section>
 
+<section id="cvr-chart">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">Kurva Konversi per Bulan</h4>
+      <div class="heading-elements">
+        <ul class="list-inline mb-0">
+          <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-content collapse">
+      <div class="card-body">
+        <div class="form-row mb-1">
+          <div class="form-group col-md-2">
+            <label for="chartYear">Tahun</label>
+            <select class="form-control" id="chartYear">
+              @php $currentYear = (int) date('Y'); @endphp
+              @for($y = $currentYear; $y >= 2024; $y--)
+                <option value="{{ $y }}" {{ $y == $currentYear ? 'selected' : '' }}>{{ $y }}</option>
+              @endfor
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-9">
+            <div id="chartConversionCurve"></div>
+          </div>
+          <div class="col-md-3 d-flex flex-column">
+            <div class="card bg-light-primary mb-1 flex-fill">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-1">Total Article</h6>
+                <h3 class="mb-0" id="cardTotalArticle">0</h3>
+              </div>
+            </div>
+            <div class="card bg-light-info mb-1 flex-fill">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-1">Total Delivery</h6>
+                <h3 class="mb-0" id="cardTotalDelivery">0</h3>
+              </div>
+            </div>
+            <div class="card bg-light-success flex-fill">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-1">Total Konversi</h6>
+                <h3 class="mb-0" id="cardTotalConversion">0</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="table-cvr">
   <div class="card">
     <div class="card-header">
@@ -71,8 +124,53 @@
 @endsection
 
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
 <script type="text/javascript">
   $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+
+  let chartConversionCurve = null;
+  const loadConversionChart = (tahun) => {
+    $.get("{{ route('conversionReport.chart') }}", { tahun: tahun }, function (res) {
+      $('#cardTotalArticle').text(res.sumArticle);
+      $('#cardTotalDelivery').text(res.sumDelivery);
+      $('#cardTotalConversion').text(new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(res.sumConversion));
+
+      const options = {
+        chart: { type: 'line', height: 320, toolbar: { show: false } },
+        series: [{ name: 'Total Konversi', data: res.totalConversion }],
+        xaxis: { categories: res.labels },
+        stroke: { curve: 'smooth', width: 3 },
+        markers: { size: 4 },
+        dataLabels: { enabled: false },
+        colors: ['#7367F0'],
+        tooltip: {
+          y: { formatter: (val) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(val) }
+        }
+      };
+
+      if (chartConversionCurve) {
+        chartConversionCurve.updateOptions(options);
+      } else {
+        chartConversionCurve = new ApexCharts(document.querySelector('#chartConversionCurve'), options);
+        chartConversionCurve.render();
+      }
+    });
+  };
+
+  $('#chartYear').on('change', function () {
+    loadConversionChart($(this).val());
+  });
+
+  // Chart hanya dirender begitu accordion-nya dibuka pertama kali --
+  // container-nya di-collapse default, dan ApexCharts butuh elemen yang
+  // sudah punya lebar (visible) supaya tidak salah render 0px.
+  let chartInitialized = false;
+  $('#cvr-chart a[data-action="collapse"]').closest('.card').find('.card-content').on('shown.bs.collapse', function () {
+    if (!chartInitialized) {
+      chartInitialized = true;
+      loadConversionChart($('#chartYear').val());
+    }
+  });
 
   let searchCode = document.querySelector('#searchCode');
   let searchName = document.querySelector('#searchName');
@@ -90,7 +188,7 @@
       tableId: "cvrTable",
       route: "{{ route('conversionReport.list') }}",
       kolom: {!! $kolom !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7],
+      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9],
       columnDefs: [{ width: '5%', targets: 0 }],
       dataSearch: {
         reportCode: searchCode.value,
