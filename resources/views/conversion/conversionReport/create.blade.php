@@ -121,15 +121,24 @@
             <tr>
               <th style="width:4%">No</th>
               <th>DN Number</th>
+              <th>SO Number</th>
               <th>Customer</th>
               <th class="text-right">Qty</th>
               <th class="text-right">Price Unit</th>
               <th class="text-right">Price Total</th>
-              <th class="text-right">Konversi Painting</th>
-              <th class="text-right">Konversi Non Painting</th>
+              <th class="text-right">Konversi</th>
             </tr>
           </thead>
           <tbody id="mdlDetailRows"></tbody>
+          <tfoot class="thead-light font-weight-bolder" style="position:sticky;bottom:0;">
+            <tr>
+              <th colspan="4" class="text-right">Total</th>
+              <th class="text-right" id="mdlTotalQty">0</th>
+              <th></th>
+              <th class="text-right" id="mdlTotalPrice">0</th>
+              <th class="text-right" id="mdlTotalConv">0</th>
+            </tr>
+          </tfoot>
         </table>
         </div>
       </div>
@@ -271,23 +280,33 @@
     $('#mdlArticleLabel').text('| ' + label);
 
     let html = '';
+    let tQty = 0, tPrice = 0, tConv = 0;
     lines.forEach((l, i) => {
       const dnCell = l.dn_url
         ? `<a href="${l.dn_url}" target="_blank">${l.dn_number}</a>`
         : (l.dn_number || '-');
+      const soCell = l.so_url
+        ? `<a href="${l.so_url}" target="_blank">${l.so_number}</a>`
+        : (l.so_number || '-');
       const conv = convPerDn(l, article);
+      tQty += parseFloat(l.qty) || 0;
+      tPrice += parseFloat(l.price_total) || 0;
+      tConv += conv;
       html += `<tr>
         <td class="text-center">${i + 1}</td>
         <td>${dnCell}</td>
+        <td>${soCell}</td>
         <td>${l.customer_name || '-'}</td>
         <td class="text-right">${humanize(l.qty)}</td>
         <td class="text-right">${humanize(l.price_unit)}</td>
         <td class="text-right">${humanize(l.price_total)}</td>
-        <td class="text-right">${painting ? humanize(conv) : '-'}</td>
-        <td class="text-right">${painting ? '-' : humanize(conv)}</td>
+        <td class="text-right">${humanize(conv)}</td>
       </tr>`;
     });
     $('#mdlDetailRows').html(html || '<tr><td colspan="8" class="text-center text-muted">Tidak ada data.</td></tr>');
+    $('#mdlTotalQty').text(humanize(tQty));
+    $('#mdlTotalPrice').text(humanize(tPrice));
+    $('#mdlTotalConv').text(humanize(tConv));
     $('#mdlDetail').modal('show');
     if (window.feather) feather.replace({ width: 14, height: 14 });
   });
@@ -304,11 +323,14 @@
     const numId = (n) => (Math.round(((parseFloat(n) || 0) + Number.EPSILON) * 100) / 100)
       .toFixed(2).replace('.', ',');
     const article = mdlCurrentArticle;
-    const painting = article ? isPaintingUom(article.uom) : false;
-    const header = ['No', 'DN Number', 'SO Number', 'Customer', 'Qty', 'Price Unit', 'Price Total', 'Konversi Painting', 'Konversi Non Painting'];
+    const header = ['No', 'DN Number', 'SO Number', 'Customer', 'Qty', 'Price Unit', 'Price Total', 'Konversi'];
     let csv = header.map(esc).join(sep) + '\r\n';
+    let tQty = 0, tPrice = 0, tConv = 0;
     mdlCurrentLines.forEach((l, i) => {
       const conv = convPerDn(l, article);
+      tQty += parseFloat(l.qty) || 0;
+      tPrice += parseFloat(l.price_total) || 0;
+      tConv += conv;
       csv += [
         i + 1,
         l.dn_number || '',
@@ -317,10 +339,10 @@
         numId(l.qty),
         numId(l.price_unit),
         numId(l.price_total),
-        painting ? numId(conv) : '',
-        painting ? '' : numId(conv),
+        numId(conv),
       ].map(esc).join(sep) + '\r\n';
     });
+    csv += ['', '', '', 'TOTAL', numId(tQty), '', numId(tPrice), numId(tConv)].map(esc).join(sep) + '\r\n';
 
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

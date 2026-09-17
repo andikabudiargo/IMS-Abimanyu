@@ -175,21 +175,7 @@
 </div>
 @endif
 
-<div class="modal fade" id="mdlDetail" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title text-truncate pr-1">Detail DN <span id="mdlArticleLabel"></span></h5>
-        <button type="button" class="close m-0 p-0" data-dismiss="modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <table id="mdlDetailTable" class="table table-hover table-sm" style="width:100%">
-          <thead class="thead-light"></thead>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
+@include('conversion.conversionReport._detailDnModal')
 @endsection
 
 @section('scripts')
@@ -197,53 +183,10 @@
   $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
 
   const encId = "{{ $id }}";
-
-  // Stempel tanggal+jam untuk nama file export: YYYYMMDD_HHmmss
-  function exportStamp() {
-    const d = new Date();
-    const p = (x) => String(x).padStart(2, '0');
-    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
-  }
+  const URL_DETAIL_DN = "{{ route('conversionReport.list.detail.dn') }}";
 
   $(document).on('click', '.btn-info-row', function () {
-    const detId = $(this).data('det-id');
-    const label = $(this).data('label');
-
-    $('#mdlArticleLabel').text('| ' + label);
-    $('#mdlDetail').modal('show');
-
-    if ($('#mdlDetailTable tr').length > 0) {
-      let table = $('#mdlDetailTable').DataTable();
-      table.destroy();
-      $('#mdlDetailTable tbody > tr').remove();
-      $('#mdlDetailTable thead > tr').remove();
-    }
-
-    showDataTables({
-      tableId: "mdlDetailTable",
-      route: "{{ route('conversionReport.list.detail.dn') }}",
-      kolom: @json([
-        ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'title' => 'No', 'orderable' => false, 'searchable' => false],
-        ['data' => 'dn_number_link', 'name' => 'dn_number_link', 'title' => 'DN Number', 'orderable' => false, 'searchable' => false],
-        ['data' => 'customer_name', 'name' => 'customer_name', 'title' => 'Customer'],
-        ['data' => 'qty', 'name' => 'qty', 'title' => 'Qty'],
-        ['data' => 'price_unit', 'name' => 'price_unit', 'title' => 'Price Unit'],
-        ['data' => 'price_total', 'name' => 'price_total', 'title' => 'Price Total'],
-        ['data' => 'conversion_painting', 'name' => 'conversion_painting', 'title' => 'Konversi Painting', 'orderable' => false, 'searchable' => false],
-        ['data' => 'conversion_non_painting', 'name' => 'conversion_non_painting', 'title' => 'Konversi Non Painting', 'orderable' => false, 'searchable' => false],
-      ]),
-      dataSearch: { reportDetId: detId },
-      excelFileName: 'Detail_DN_' + label.replace(/[^A-Za-z0-9]+/g, '_') + '_' + exportStamp(),
-      buttons: true,
-    });
-  });
-
-  // DataTables yang di-init saat modal masih width:0 bikin header/body geser.
-  // Recalculate kolom setelah modal benar-benar tampil.
-  $('#mdlDetail').on('shown.bs.modal', function () {
-    if ($.fn.dataTable.isDataTable('#mdlDetailTable')) {
-      $('#mdlDetailTable').DataTable().columns.adjust();
-    }
+    loadDetailDnModal($(this).data('det-id'), $(this).data('label'));
   });
 
   function submitUpdate(extra) {
@@ -336,4 +279,5 @@
     });
   });
 </script>
+@include('conversion.conversionReport._detailDnScript')
 @endsection

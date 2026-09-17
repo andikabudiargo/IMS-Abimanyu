@@ -168,6 +168,7 @@ class ConversionReportController extends Controller
                 a.uom,
                 dd.delivery_number AS dn_number,
                 dd.so_number,
+                sh.id AS so_id,
                 dh.id AS delivery_id,
                 dh.delivery_date,
                 tp.nama AS customer_name,
@@ -177,6 +178,7 @@ class ConversionReportController extends Controller
             FROM delivery_det dd
             JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
             LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
+            LEFT JOIN sales_order_hdr sh ON sh.so_code = dd.so_number
             LEFT JOIN article a ON a.article_code = dd.article_code
             LEFT JOIN third_party tp ON tp.kode = dh.customer_id
             WHERE to_date(dh.delivery_date, 'DD-MM-YYYY') BETWEEN ?::date AND ?::date
@@ -407,6 +409,7 @@ class ConversionReportController extends Controller
                 'dn_number'     => $l->dn_number,
                 'dn_url'        => $l->delivery_id ? route('delivery.show', ['id' => Crypt::encryptString($l->delivery_id)]) : null,
                 'so_number'     => $l->so_number,
+                'so_url'        => $l->so_id ? route('salesOrder.show', ['id' => Crypt::encryptString($l->so_id)]) : null,
                 'customer_name' => $l->customer_name,
                 'delivery_date' => $l->delivery_date,
                 'qty'           => (float) $l->qty,
@@ -826,16 +829,16 @@ class ConversionReportController extends Controller
         return redirect()->route('conversionReport.index')->with('success', "{$header->report_code} berhasil di-cancel.");
     }
 
-    /** AJAX -- isi modal "info" per baris artikel: breakdown DN. */
+    /**
+     * AJAX -- isi modal "info" per baris artikel: breakdown DN (JSON polos,
+     * dirender manual di client biar bisa ada link SO + baris total).
+     * Konversi per DN = ((price_unit - avg_purchase) * qty) / conversion_value;
+     * di-SUM seluruh DN = konversi artikel.
+     */
     public function listDetailDn(Request $request)
     {
         $detId = $request->reportDetId;
 
-        // Ambil purchase price + uom artikel dan conversion_value dokumen supaya
-        // konversi bisa dihitung PER DN. Rumusnya sama dengan level artikel:
-        // ((price_unit - avg_purchase) * qty) / conversion_value; kalau di-SUM
-        // seluruh DN hasilnya = konversi artikel. Painting/Non-Painting mengikuti
-        // UOM artikel (PCS/SET = Painting).
         $det = DB::table('conversion_report_det as d')
             ->join('conversion_report_hdr as h', 'h.id', '=', 'd.report_id')
             ->where('d.id', $detId)
@@ -844,38 +847,59 @@ class ConversionReportController extends Controller
 
         $avgPurchase = (float) ($det->avg_purchase_price ?? 0);
         $convVal     = (float) ($det->conversion_value_used ?? 0);
-        $isPainting  = in_array(strtoupper(trim($det->uom ?? '')), ['PCS', 'SET']);
 
         $data = DB::table('conversion_report_dn_det')
             ->where('report_det_id', $detId)
             ->orderByRaw("to_date(delivery_date, 'DD-MM-YYYY')")
             ->get();
 
-        // Diformat Indonesia (koma desimal, titik ribuan) supaya nilai di layar =
-        // nilai saat di-export ke Excel (kalau angka mentah "1028.87" kebaca ribuan).
-        $convOf = function ($d) use ($avgPurchase, $convVal) {
-            if ($convVal <= 0) return '0,00';
-            $conv = ((((float) $d->price_unit) - $avgPurchase) * ((float) $d->qty)) / $convVal;
-            return number_format($conv, 2, ',', '.');
-        };
+        // Cache lookup id delivery/SO supaya tidak query berulang untuk nomor sama.
+        $dnIds = [];
+        $soIds = [];
+        $rows  = [];
+        $tQty = 0; $tPrice = 0; $tConv = 0;
 
-        return Datatables::of($data)
-            ->addIndexColumn()
-            ->addColumn('dn_number_link', function ($d) {
-                if (!$d->dn_number) return '-';
-                $encId = DB::table('delivery_hdr')->where('delivery_number', $d->dn_number)->value('id');
-                if (!$encId) return $d->dn_number;
-                $url = route('delivery.show', ['id' => Crypt::encryptString($encId)]);
-                return "<a href='{$url}' target='_blank'>{$d->dn_number}</a>";
-            })
-            ->addColumn('conversion_painting', function ($d) use ($convOf, $isPainting) {
-                return $isPainting ? $convOf($d) : '-';
-            })
-            ->addColumn('conversion_non_painting', function ($d) use ($convOf, $isPainting) {
-                return $isPainting ? '-' : $convOf($d);
-            })
-            ->rawColumns(['dn_number_link'])
-            ->make(true);
+        foreach ($data as $i => $d) {
+            $conv = $convVal > 0
+                ? ((((float) $d->price_unit) - $avgPurchase) * ((float) $d->qty)) / $convVal
+                : 0;
+
+            if ($d->dn_number && !array_key_exists($d->dn_number, $dnIds)) {
+                $dnIds[$d->dn_number] = DB::table('delivery_hdr')->where('delivery_number', $d->dn_number)->value('id');
+            }
+            if ($d->so_number && !array_key_exists($d->so_number, $soIds)) {
+                $soIds[$d->so_number] = DB::table('sales_order_hdr')->where('so_code', $d->so_number)->value('id');
+            }
+            $dnId = $d->dn_number ? ($dnIds[$d->dn_number] ?? null) : null;
+            $soId = $d->so_number ? ($soIds[$d->so_number] ?? null) : null;
+
+            $rows[] = [
+                'no'            => $i + 1,
+                'dn_number'     => $d->dn_number,
+                'dn_url'        => $dnId ? route('delivery.show', ['id' => Crypt::encryptString($dnId)]) : null,
+                'so_number'     => $d->so_number,
+                'so_url'        => $soId ? route('salesOrder.show', ['id' => Crypt::encryptString($soId)]) : null,
+                'customer_name' => $d->customer_name,
+                'qty'           => (float) $d->qty,
+                'price_unit'    => (float) $d->price_unit,
+                'price_total'   => (float) $d->price_total,
+                'conversion'    => round($conv, 4),
+            ];
+
+            $tQty   += (float) $d->qty;
+            $tPrice += (float) $d->price_total;
+            $tConv  += $conv;
+        }
+
+        return response()->json([
+            'status' => 1,
+            'rows'   => $rows,
+            'totals' => [
+                'qty'         => round($tQty, 4),
+                'price_total' => round($tPrice, 4),
+                'conversion'  => round($tConv, 4),
+            ],
+        ]);
     }
 
     // =========================================================================
