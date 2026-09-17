@@ -64,41 +64,7 @@
       </div>
 
       <div id="previewWrap" style="display:none">
-        <div class="row mb-2">
-          <div class="col-md-4">
-            <div class="card mb-0"><div class="card-body py-1 px-2">
-              <small class="text-muted d-block">Total Article</small>
-              <h5 class="mb-0" id="sumTotalArticle">0</h5>
-            </div></div>
-          </div>
-          <div class="col-md-4">
-            <div class="card mb-0"><div class="card-body py-1 px-2">
-              <small class="text-muted d-block">Total Qty Kirim</small>
-              <h5 class="mb-0" id="sumTotalQty">0</h5>
-            </div></div>
-          </div>
-          <div class="col-md-4">
-            <div class="card mb-0"><div class="card-body py-1 px-2">
-              <small class="text-muted d-block">Total Conversion</small>
-              <h5 class="mb-0" id="sumTotalConversion">0</h5>
-            </div></div>
-          </div>
-        </div>
-
-        <div class="row mb-2">
-          <div class="col-md-6">
-            <div class="card mb-0"><div class="card-body py-1 px-2">
-              <small class="text-muted d-block">Total Konversi Painting (PCS/SET)</small>
-              <h5 class="mb-0" id="sumConvPainting">0</h5>
-            </div></div>
-          </div>
-          <div class="col-md-6">
-            <div class="card mb-0"><div class="card-body py-1 px-2">
-              <small class="text-muted d-block">Total Konversi Non Painting</small>
-              <h5 class="mb-0" id="sumConvNonPainting">0</h5>
-            </div></div>
-          </div>
-        </div>
+        @include('conversion.conversionReport._summaryCards')
 
         <div class="table-responsive">
         <table class="table table-bordered table-sm">
@@ -136,20 +102,21 @@
   </div>
 </div>
 
-<div class="modal fade" id="mdlDetail" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+<div class="modal fade" id="mdlDetail" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Detail DN <span id="mdlArticleLabel"></span></h5>
-        <div class="d-flex align-items-center">
-          <button type="button" class="btn btn-sm btn-outline-secondary mr-1" id="btnExportDnDetail">
+        <h5 class="modal-title text-truncate pr-1">Detail DN <span id="mdlArticleLabel"></span></h5>
+        <div class="d-flex align-items-center flex-shrink-0">
+          <button type="button" class="btn btn-sm btn-outline-primary mr-1" id="btnExportDnDetail">
             <i data-feather="download" class="mr-25"></i> Export
           </button>
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <button type="button" class="close m-0 p-0" data-dismiss="modal">&times;</button>
         </div>
       </div>
       <div class="modal-body">
-        <table class="table table-bordered table-sm">
+        <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0">
           <thead class="thead-light">
             <tr>
               <th style="width:4%">No</th>
@@ -164,6 +131,7 @@
           </thead>
           <tbody id="mdlDetailRows"></tbody>
         </table>
+        </div>
       </div>
     </div>
   </div>
