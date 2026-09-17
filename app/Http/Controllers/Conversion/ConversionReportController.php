@@ -154,8 +154,8 @@ class ConversionReportController extends Controller
         $start = sprintf('%04d-%02d-01', $tahun, $periode);
         $end   = date('Y-m-t', strtotime($start));
 
-        // price_unit = sales_order_det.price polos (TANPA price_service).
-        // Purchase/material price (RM) juga TIDAK dikurangi di sini; itu baru
+        // price_unit = sales_order_det.price + price_service (harga jual + jasa).
+        // Purchase/material price (RM) TIDAK dikurangi di sini; itu baru
         // dikurangkan di level agregat lewat kolom "Conversion"
         // (avg_selling - avg_purchase)/conversion_value, lihat buildSummary().
         // price_unit/price_total di breakdown DN ini sengaja tetap angka jual
@@ -172,8 +172,8 @@ class ConversionReportController extends Controller
                 dh.delivery_date,
                 tp.nama AS customer_name,
                 dd.qty,
-                COALESCE(sod.price, 0) AS price_unit,
-                dd.qty * COALESCE(sod.price, 0) AS price_total
+                (COALESCE(sod.price, 0) + COALESCE(sod.price_service, 0)) AS price_unit,
+                dd.qty * (COALESCE(sod.price, 0) + COALESCE(sod.price_service, 0)) AS price_total
             FROM delivery_det dd
             JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
             LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
