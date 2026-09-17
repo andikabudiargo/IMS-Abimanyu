@@ -59,11 +59,11 @@
       </div>
   </section>
 
-  {{-- ADJUSTMENT SAFETY STOCK - DEFAULT COLLAPSE --}}
-  <section id="section-safety-stock">
+  {{-- BULK UPDATE ARTICLE (Safety Stock, COA, ...) - DEFAULT COLLAPSE --}}
+  <section id="section-bulk-update">
     <div class="card">
       <div class="card-header">
-        <h4 class="card-title">Adjustment Safety Stock</h4>
+        <h4 class="card-title">Bulk Update Article</h4>
         <div class="heading-elements">
             <ul class="list-inline mb-0">
                 <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
@@ -74,29 +74,46 @@
       {{-- Tambah class "collapse" supaya default-nya tertutup --}}
       <div class="card-content collapse">
         <div class="card-body">
-          <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
+          <form id="frmBulkUpdate" name="frmBulkUpdate" method="POST" enctype="multipart/form-data">
             @csrf
+            <div class="form-row">
+                <div class="col-12">
+                    <div class="form-group">
+                        <label class="form-label d-block">Kolom yang mau di-update massal:</label>
+                        <div class="d-flex flex-wrap" style="gap: 1.5rem;">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input bulk-update-column" id="colSafetyStock" value="safety_stock" checked>
+                                <label class="custom-control-label" for="colSafetyStock">Safety Stock</label>
+                            </div>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input bulk-update-column" id="colCoa" value="coa">
+                                <label class="custom-control-label" for="colCoa">COA</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="form-row">
                 <div class="col-lg-3 col-md-12">
                     <div class="form-group">
                         <div>
-                            <input type="file" class="custom-file-input" name="file" id="file" required/>
-                            <label class="custom-file-label" for="file">Choose file</label>
+                            <input type="file" class="custom-file-input" name="file" id="fileBulkUpdate" required/>
+                            <label class="custom-file-label" for="fileBulkUpdate">Choose file</label>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-6 col-md-12">
                     <button type="submit" class="btn btn-primary">
     <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
-    <span class="align-middle d-sm-inline-block d-none" id="uploadExcel">Upload Excel</span>
+    <span class="align-middle d-sm-inline-block d-none" id="uploadBulkUpdate">Upload Excel</span>
 </button>
                 </div>
             </div>
             <div class="form-row">
                 <div class="col-lg-3 col-md-12">
-                    <a href="{{ route('articles.safetyStock.export.excel') }}" class="btn btn-light">
+                    <button type="button" id="downloadBulkUpdateTemplate" class="btn btn-light">
                         <i data-feather="download"></i> Download Template
-                    </a>
+                    </button>
                 </div>
             </div>
           </form>
@@ -550,22 +567,44 @@
           $('#modalConfirmation').attr("action", href);
       });
 
-      $('#frmExcel').on('submit', function(event){
+      let getSelectedBulkUpdateColumns = () => $('.bulk-update-column:checked').map(function(){ return this.value; }).get();
+
+$('#downloadBulkUpdateTemplate').on('click', function(){
+    let columns = getSelectedBulkUpdateColumns();
+    if (columns.length === 0) {
+        Swal.fire('Pilih kolom dulu', 'Centang minimal satu kolom sebelum download template.', 'warning');
+        return;
+    }
+    let qs = columns.map(c => 'columns[]=' + encodeURIComponent(c)).join('&');
+    window.location = "{{ route('articles.bulkUpdate.export.excel') }}?" + qs;
+});
+
+$('#frmBulkUpdate').on('submit', function(event){
     event.preventDefault();
+
+    let columns = getSelectedBulkUpdateColumns();
+    if (columns.length === 0) {
+        Swal.fire('Pilih kolom dulu', 'Centang minimal satu kolom yang mau di-update.', 'warning');
+        return;
+    }
+
+    let formData = new FormData(this);
+    columns.forEach(c => formData.append('columns[]', c));
+
     $.ajax({
-        url: "{{ route('articles.safetyStock.import.excel') }}",
+        url: "{{ route('articles.bulkUpdate.import.excel') }}",
         method: "POST",
-        data: new FormData(this),
+        data: formData,
         dataType: "json",
         contentType: false,
         cache: false,
         processData: false,
         beforeSend: function(){
-            $('#uploadExcel').attr('disabled','disabled');
+            $('#uploadBulkUpdate').attr('disabled','disabled');
         },
         success: function(data){
-            $('#file').val(null);
-            $('#uploadExcel').removeAttr('disabled');
+            $('#fileBulkUpdate').val(null);
+            $('#uploadBulkUpdate').removeAttr('disabled');
 
             if(data.status == 1){
                 Swal.fire({
@@ -593,9 +632,9 @@
                             },
                         }).then((result) => {
                             if (result.isConfirmed) {
-                                updateDataSafetyStock(data.namaFile, 'update');
+                                updateDataBulkUpdate(data.batchId, data.columns, 'update');
                             } else if (result.isDenied) {
-                                updateDataSafetyStock(data.namaFile, 'cancel');
+                                updateDataBulkUpdate(data.batchId, data.columns, 'cancel');
                             }
                         });
                     }
@@ -618,16 +657,16 @@
             let err = JSON.parse(xhr.responseText);
             Swal.fire('Error..', err.message, 'error');
             $(".loading-spinner-container").removeClass("-show");
-            $('#uploadExcel').removeAttr('disabled');
+            $('#uploadBulkUpdate').removeAttr('disabled');
         }
     });   // ⬅️ TUTUP $.ajax({...})
 });       // ⬅️ TUTUP .on('submit', function(event){...})
 
-updateDataSafetyStock = (file, type) => {
+updateDataBulkUpdate = (batchId, columns, type) => {
     $.ajax({
-        url: "{{ route('articles.safetyStock.update') }}",
+        url: "{{ route('articles.bulkUpdate.confirm') }}",
         method: "POST",
-        data: { file: file, type: type },
+        data: { batch_id: batchId, columns: columns, type: type },
         dataType: "json",
         success: function(data){
             show_msg(data.title, data.message, data.alert);

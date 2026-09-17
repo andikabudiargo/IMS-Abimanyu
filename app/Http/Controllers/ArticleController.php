@@ -14,7 +14,11 @@
     use Excel;
     use App\Imports\SafetyStockImport;
     use App\Exports\SafetyStockExport;
+    use App\Imports\ArticleBulkUpdateImport;
+    use App\Exports\ArticleBulkUpdateExport;
+    use App\Models\ArticleBulkUpdateStake;
     use Illuminate\Support\Facades\Storage;
+    use Illuminate\Support\Str;
     use SimpleSoftwareIO\QrCode\Generator;
 
     class ArticleController extends Controller
@@ -24,6 +28,13 @@
     private $moduleCode;
     private $lockDate;
     private $lockDateIndex;
+
+    // whitelist kolom yang boleh disertakan di "Bulk Update Article";
+    // nambah kolom baru = nambah 1 entry di sini, tidak perlu ubah arsitektur.
+    private $bulkUpdateColumns = [
+        'safety_stock' => 'Safety Stock',
+        'coa'          => 'COA',
+    ];
 
     public function __construct()
 {
@@ -2765,6 +2776,169 @@ private function buildSummaryRow(array $p)
                 $message  = "$this->title $filename is failed to updated";
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert'=>$alert));
+            }
+        }
+
+        // ── Bulk Update Article (Safety Stock, COA, dst — kolom dipilih via checkbox) ──
+
+        public function bulkUpdateExportTemplate(Request $request)
+        {
+            $allowed = array_keys($this->bulkUpdateColumns);
+            $columns = array_values(array_intersect($allowed, (array) $request->query('columns', [])));
+
+            if (empty($columns)) {
+                $columns = $allowed;
+            }
+
+            return Excel::download(new ArticleBulkUpdateExport($columns), 'article_bulk_update_template.xlsx');
+        }
+
+        public function bulkUpdateImportExcel(Request $request)
+        {
+            $this->validate($request, [
+                'file' => 'required|mimes:xls,xlsx',
+            ]);
+
+            $allowed = array_keys($this->bulkUpdateColumns);
+            $columns = array_values(array_intersect($allowed, (array) $request->input('columns', [])));
+            $title = "Bulk Update $this->title";
+
+            if (empty($columns)) {
+                return response()->json(array('status' => 0,'title' => $title,'message' => 'Pilih minimal satu kolom yang mau di-update.','alert' => 'error'));
+            }
+
+            $file = $request->file('file');
+            $batchId = (string) Str::uuid();
+
+            Excel::import(new ArticleBulkUpdateImport(['batch_id' => $batchId]), $file);
+
+            $select = ['article_bulk_update_tmp.article_code'];
+            $noteExprs = ["case when article.article_code is null then concat('Urutan ',row_number() over(),': Article Code:',article_bulk_update_tmp.article_code, ' tidak terdaftar') end"];
+
+            $query = DB::table('article_bulk_update_tmp')
+                ->leftJoin('article', 'article.article_alternative_code', '=', 'article_bulk_update_tmp.article_code');
+
+            if (in_array('safety_stock', $columns)) {
+                $select[] = 'article_bulk_update_tmp.safety_stock';
+                $noteExprs[] = "case when article_bulk_update_tmp.safety_stock is null or article_bulk_update_tmp.safety_stock !~ '^[0-9.]+$' then concat('Urutan ',row_number() over(),': Safety Stock \"',coalesce(article_bulk_update_tmp.safety_stock,''),'\" tidak valid') end";
+            }
+
+            if (in_array('coa', $columns)) {
+                $select[] = 'article_bulk_update_tmp.coa';
+                $select[] = 'accounts.account as coa_valid';
+                $noteExprs[] = "case when accounts.account is null then concat('Urutan ',row_number() over(),': COA \"',coalesce(article_bulk_update_tmp.coa,''),'\" tidak valid/tidak terdaftar') end";
+                $query->leftJoin('accounts', 'accounts.account', '=', 'article_bulk_update_tmp.coa');
+            }
+
+            $select[] = DB::raw('concat(' . implode(',', $noteExprs) . ') as notes');
+
+            $dataValidasi = $query->select($select)
+                ->where('article_bulk_update_tmp.batch_id', $batchId)
+                ->get();
+
+            $dataNotes = [];
+            foreach ($dataValidasi as $val) {
+                if ($val->notes) {
+                    $dataNotes[] = [$val->notes];
+                }
+            }
+
+            if (count($dataNotes) > 0) {
+                DB::table('article_bulk_update_tmp')->where('batch_id', $batchId)->delete();
+
+                return response()->json(array(
+                    'status' => 0,
+                    'title' => $title,
+                    'message' => $dataNotes,
+                    'alert' => 'error',
+                    'pesan' => 'Ada error pada data yang diupload, silahkan cek notes error!',
+                    'dataDetail' => '',
+                ));
+            }
+
+            $previewSelect = array_merge(
+                ['article.article_code', 'article.uom'],
+                array_map(fn ($c) => "article_bulk_update_tmp.$c", $columns)
+            );
+
+            $data = DB::table('article_bulk_update_tmp')
+                ->leftJoin('article', 'article.article_alternative_code', '=', 'article_bulk_update_tmp.article_code')
+                ->select($previewSelect)
+                ->where('article_bulk_update_tmp.batch_id', $batchId)
+                ->get();
+
+            $jumlahData = DB::table('article_bulk_update_tmp')->where('batch_id', $batchId)->count();
+
+            return response()->json(array(
+                'status' => 1,
+                'title' => $title,
+                'message' => "$title is successfully imported",
+                'alert' => 'success',
+                'pesan' => '',
+                'dataDetail' => $data,
+                'batchId' => $batchId,
+                'columns' => $columns,
+                'JumlahData' => $jumlahData,
+            ));
+        }
+
+        public function bulkUpdateConfirm(Request $request)
+        {
+            $username = Auth::user()->username;
+            $batchId = $request->batch_id;
+            $type = $request->type;
+            $allowed = array_keys($this->bulkUpdateColumns);
+            $columns = array_values(array_intersect($allowed, (array) $request->input('columns', [])));
+            $title = "Bulk Update $this->title";
+
+            DB::beginTransaction();
+            try {
+                $rowsUpdated = 0;
+
+                if ($type == 'update' && !empty($columns)) {
+                    $rows = DB::table('article_bulk_update_tmp')->where('batch_id', $batchId)->get();
+
+                    foreach ($rows as $row) {
+                        $payload = [];
+
+                        if (in_array('safety_stock', $columns) && $row->safety_stock !== null) {
+                            $payload['safety_stock'] = $row->safety_stock;
+                        }
+
+                        if (in_array('coa', $columns) && $row->coa !== null) {
+                            $payload['coa'] = $row->coa;
+                        }
+
+                        if (!empty($payload)) {
+                            $rowsUpdated += DB::table('article')
+                                ->where('article_alternative_code', $row->article_code)
+                                ->update($payload);
+                        }
+                    }
+                }
+
+                if ($type == 'cancel') {
+                    $title = "Canceled Bulk Update $this->title";
+                }
+
+                DB::table('article_bulk_update_tmp')->where('batch_id', $batchId)->delete();
+
+                DB::commit();
+
+                $alert = 'success';
+                $message = $type == 'update'
+                    ? "Bulk update $this->title ($rowsUpdated data) is successfully updated"
+                    : "Bulk update $this->title is canceled";
+
+                \LogActivity::addToLog($title, "username: $username Status $message");
+                return response()->json(array('status' => 1,'title' => $title, 'message' => $message,'alert' => $alert));
+
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                $alert = 'warning';
+                $message = "Bulk update $this->title is failed to updated";
+                \LogActivity::addToLog($title, "username: $username Status $message: " . $e->getMessage());
+                return response()->json(array('status' => 0,'title' => $title, 'message' => $message,'alert' => $alert));
             }
         }
 
