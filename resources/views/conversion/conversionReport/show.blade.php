@@ -43,14 +43,9 @@
     <h4 class="card-title">Article Detail</h4>
     <div class="form-row align-items-end" style="gap:0;">
       <div class="form-group col-auto mb-0 mr-1">
-        <label class="mb-0 small">Dari Tanggal</label>
-        <input type="date" id="filterStartDate" class="form-control form-control-sm"
-               min="{{ $periodeStart }}" max="{{ $periodeEnd }}" value="{{ $periodeStart }}">
-      </div>
-      <div class="form-group col-auto mb-0 mr-1">
-        <label class="mb-0 small">Sampai Tanggal</label>
-        <input type="date" id="filterEndDate" class="form-control form-control-sm"
-               min="{{ $periodeStart }}" max="{{ $periodeEnd }}" value="{{ $periodeEnd }}">
+        <label class="mb-0 small">Range Tanggal</label>
+        <input type="text" id="filterDateRange" class="form-control form-control-sm flatpickr-range"
+               placeholder="DD-MM-YYYY to DD-MM-YYYY" autocomplete="off">
       </div>
       <div class="form-group col-auto mb-0 mr-1">
         <button type="button" id="btnApplyFilter" class="btn btn-primary btn-sm">
@@ -175,9 +170,45 @@
     if (window.feather) feather.replace({ width: 14, height: 14 });
   }
 
+  // dd-mm-yyyy -> yyyy-mm-dd
+  function dmyToYmd(dmy) {
+    const p = dmy.trim().split('-');
+    return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : '';
+  }
+
+  // yyyy-mm-dd -> dd-mm-yyyy
+  function ymdToDmy(ymd) {
+    const p = ymd.trim().split('-');
+    return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : '';
+  }
+
+  function currentRange() {
+    const raw = ($('#filterDateRange').val() || '').trim();
+    const parts = raw.split(' to ').map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 2) {
+      return { start: dmyToYmd(parts[0]) || PERIODE_START, end: dmyToYmd(parts[1]) || PERIODE_END };
+    }
+    if (parts.length === 1) {
+      const d = dmyToYmd(parts[0]) || PERIODE_START;
+      return { start: d, end: d };
+    }
+    return { start: PERIODE_START, end: PERIODE_END };
+  }
+
+  let dateRangePicker = null;
+  const $rangeInput = $('#filterDateRange');
+  if ($rangeInput.length) {
+    dateRangePicker = $rangeInput.flatpickr({
+      dateFormat: 'd-m-Y',
+      mode: 'range',
+      minDate: PERIODE_START,
+      maxDate: PERIODE_END,
+      defaultDate: [PERIODE_START, PERIODE_END],
+    });
+  }
+
   function applyDateFilter() {
-    const start = $('#filterStartDate').val() || PERIODE_START;
-    const end   = $('#filterEndDate').val() || PERIODE_END;
+    const { start, end } = currentRange();
 
     $('#btnApplyFilter').prop('disabled', true);
     $.get(URL_RANGE_FILTER, { id: REPORT_ID, start: start, end: end }, function (res) {
@@ -186,8 +217,9 @@
         return;
       }
       // clamp balik ke input kalau server membatasi ke periode
-      $('#filterStartDate').val(res.start);
-      $('#filterEndDate').val(res.end);
+      if (dateRangePicker) {
+        dateRangePicker.setDate([ymdToDmy(res.start), ymdToDmy(res.end)], false, 'd-m-Y');
+      }
 
       renderArticleDetailRows(res.rows);
       $('#sumTotalArticle').text(res.totals.article);
@@ -205,14 +237,14 @@
   $('#btnApplyFilter').on('click', applyDateFilter);
 
   $('#btnResetFilter').on('click', function () {
-    $('#filterStartDate').val(PERIODE_START);
-    $('#filterEndDate').val(PERIODE_END);
+    if (dateRangePicker) {
+      dateRangePicker.setDate([PERIODE_START, PERIODE_END], false, 'Y-m-d');
+    }
     applyDateFilter();
   });
 
   $('#btnExportArticleDetail').on('click', function () {
-    const start = $('#filterStartDate').val() || PERIODE_START;
-    const end   = $('#filterEndDate').val() || PERIODE_END;
+    const { start, end } = currentRange();
     const params = $.param({ id: REPORT_ID, start: start, end: end });
     window.location.href = URL_EXPORT_RANGE + '?' + params;
   });
