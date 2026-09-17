@@ -51,6 +51,7 @@ namespace App\Http\Controllers;
                 ['data'=>'note','name'=>'note','title'=>'Note'],
                 ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
                 ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
+                ['data'=>'penerima','name'=>'penerima','title'=>'Penerima'],
                 ['data'=>'updated_by','name'=>'updated_by','title'=>'Approved By','orderable'=>false,'searchable'=>false],
             ];
             return json_encode($kolom, true);
@@ -72,6 +73,7 @@ namespace App\Http\Controllers;
                 ['data'=>'location_name_to','name'=>'location_name_to','title'=>'Location To'],
                 ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
                 ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
+                ['data'=>'penerima','name'=>'penerima','title'=>'Penerima'],
                 ['data'=>'updated_by','name'=>'updated_by','title'=>'Approved By','orderable'=>false,'searchable'=>false],
                 ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
                 ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
@@ -1785,6 +1787,7 @@ private function getArticleDesc(string $articleCode): string
         'transfer_stock_hdr.note',
         'transfer_stock_hdr.created_by',
         'transfer_stock_hdr.created_at',
+        'transfer_stock_hdr.penerima',
         'transfer_stock_hdr.updated_by',
         'transfer_stock_hdr.updated_at',
         'locFrom.location_name as location_name',
@@ -1907,6 +1910,7 @@ if (!in_array($st, ['4', '5']) && $canPostThis) {
                 ,'transfer_stock_hdr.status'
                 ,'transfer_stock_hdr.created_by'
                 ,'transfer_stock_hdr.created_at'
+                ,'transfer_stock_hdr.penerima'
                 ,'transfer_stock_hdr.updated_by'
                 ,'transfer_stock_hdr.updated_at'
                 ,'transfer_stock_det.id'

@@ -148,6 +148,7 @@
                                     <th>From</th>
                                     <th>To</th>
                                     <th>Created By</th>
+                                    <th>Penerima</th>
                                     <th>Pending</th>
                                     <th>Action</th>
                                 </tr>
@@ -161,6 +162,7 @@
                                     <td>{{ $val->location_name }}</td>
                                     <td class="font-weight-bolder">{{ $val->location_name_to }}</td>
                                     <td>{{ $val->created_by }}</td>
+                                    <td>{{ $val->penerima }}</td>
                                     <td>
                                         <span class="badge badge-{{ $val->aging_level }}">{{ $val->aging_label }}</span>
                                     </td>
