@@ -103,17 +103,16 @@
   </div>
   <div class="card-body">
     @php
-      $isPainting = fn($u) => in_array(strtoupper(trim($u)), ['PCS', 'SET']);
-      $sumPainting    = $details->filter(fn($d) => $isPainting($d->uom))->sum('conversion');
-      $sumNonPainting = $details->filter(fn($d) => !$isPainting($d->uom))->sum('conversion');
+      $isPainting = function ($u) { return in_array(strtoupper(trim($u)), ['PCS', 'SET']); };
+      $sumPainting    = $details->filter(function ($d) use ($isPainting) { return $isPainting($d->uom); })->sum('conversion');
+      $sumNonPainting = $details->filter(function ($d) use ($isPainting) { return !$isPainting($d->uom); })->sum('conversion');
+      $cArticle     = number_format($details->count());
+      $cQty         = number_format($details->sum('total_qty'), 2);
+      $cConversion  = number_format($details->sum('conversion'), 2);
+      $cPainting    = number_format($sumPainting, 2);
+      $cNonPainting = number_format($sumNonPainting, 2);
     @endphp
-    @include('conversion.conversionReport._summaryCards', [
-      'cArticle'     => number_format($details->count()),
-      'cQty'         => number_format($details->sum('total_qty'), 2),
-      'cConversion'  => number_format($details->sum('conversion'), 2),
-      'cPainting'    => number_format($sumPainting, 2),
-      'cNonPainting' => number_format($sumNonPainting, 2),
-    ])
+    @include('conversion.conversionReport._summaryCards', ['cArticle' => $cArticle, 'cQty' => $cQty, 'cConversion' => $cConversion, 'cPainting' => $cPainting, 'cNonPainting' => $cNonPainting])
 
     <div class="table-responsive">
       <table class="table table-bordered table-sm">

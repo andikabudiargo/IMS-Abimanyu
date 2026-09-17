@@ -51,8 +51,8 @@
       </div>
 
       <hr>
-      <div class="d-flex justify-content-between align-items-center">
-        <h5>Article dari Delivery pada periode terpilih</h5>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Delivery Article List</h5>
         <button type="button" class="btn btn-outline-success btn-sm d-none" id="btnExport">
           <i data-feather="download" class="align-middle mr-50"></i>
           <span class="align-middle">Export Excel</span>
@@ -83,12 +83,12 @@
           <tbody id="previewRows"></tbody>
         </table>
         </div>
-        <small class="text-muted">
+       {{-- <small class="text-muted">
           Konversi = ((Avg Selling Price &minus; Avg Purchase Price) &times; Qty) / Conversion Value.
           Avg Selling Price dihitung dari rata-rata (dibobot qty) harga Sales Order (price + service) tiap Delivery Note di periode ini,
           Avg Purchase Price dari average cost BOM/receiving (tanpa PPN) berjalan.
           Painting = artikel ber-UOM PCS/SET, selain itu Non Painting.
-        </small>
+        </small>--}}
       </div>
 
       <hr>

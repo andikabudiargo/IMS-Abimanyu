@@ -345,17 +345,19 @@ class ConversionReportController extends Controller
                 $buttons .= "<a href='".route('conversionReport.show', ['id' => $id])."' class='dropdown-item'>
                                 <i data-feather='eye'></i> Detail</a>";
 
-                if (in_array($d->status, [1, 2, 3])) {
+                // NEW (1)  -> Edit + Delete
+                // VALIDATED/APPROVED (2,3) -> Revisi + Cancel
+                if ($d->status == 1) {
                     $buttons .= "<a href='".route('conversionReport.edit', ['id' => $id])."' class='dropdown-item'>
                                     <i data-feather='edit'></i> Edit</a>";
-                }
-                if (in_array($d->status, [1, 2])) {
-                    $buttons .= "<a href='javascript:;' onclick='cancelReport(\"$id\",\"$d->report_code\")' class='dropdown-item'>
-                                    <i data-feather='slash'></i> Cancel</a>";
-                }
-                if ($d->status == 1) {
                     $buttons .= "<a href='javascript:;' onclick='deleteReport(\"$id\",\"$d->report_code\")' class='dropdown-item'>
                                     <i data-feather='trash-2' class='feather-14-red'></i> Delete</a>";
+                }
+                if (in_array($d->status, [2, 3])) {
+                    $buttons .= "<a href='".route('conversionReport.edit', ['id' => $id])."' class='dropdown-item'>
+                                    <i data-feather='rotate-ccw'></i> Revisi</a>";
+                    $buttons .= "<a href='javascript:;' onclick='cancelReport(\"$id\",\"$d->report_code\")' class='dropdown-item'>
+                                    <i data-feather='slash'></i> Cancel</a>";
                 }
                 $buttons .= '</div></div>';
                 return $buttons;
@@ -573,9 +575,10 @@ class ConversionReportController extends Controller
             'periodeLabel'     => ($months[$header->periode] ?? $header->periode).' '.$header->tahun,
             'statusLabel'      => $this->statusLabel[$header->status] ?? $header->status,
             'id'               => $request->id,
-            'canEdit'          => in_array($header->status, [1, 2]) && $header->created_by === $username,
+            // NEW (1) -> boleh Edit. VALIDATED/APPROVED (2,3) -> boleh Revisi & Cancel.
+            'canEdit'          => $header->status == 1 && $header->created_by === $username,
             'canRevise'        => in_array($header->status, [2, 3]),
-            'canCancel'        => in_array($header->status, [1, 2]),
+            'canCancel'        => in_array($header->status, [2, 3]),
             'approvalHistory'  => Approval::approvalHistory($this->moduleCode, $header->report_code, $username),
             'approveValidate'  => Approval::approveValidate($this->moduleCode, $header->report_code, $username),
         ]);
@@ -633,8 +636,8 @@ class ConversionReportController extends Controller
             }
         }
 
-        // ── update biasa (bukan approve) ──
-        if (!in_array($header->status, [1, 2]) || $header->created_by !== $username) {
+        // ── update biasa (bukan approve) -- hanya dokumen NEW yang boleh diedit ──
+        if ($header->status != 1 || $header->created_by !== $username) {
             return response()->json(['status' => 0, 'title' => "Update {$this->title}", 'message' => ['Data ini tidak bisa diedit.'], 'alert' => 'error']);
         }
 
@@ -803,8 +806,8 @@ class ConversionReportController extends Controller
         if (!$header) {
             return redirect()->back()->with('error', 'Data tidak ditemukan.');
         }
-        if (!in_array($header->status, [1, 2])) {
-            return redirect()->back()->with('error', 'Dokumen ini tidak bisa di-cancel pada status sekarang.');
+        if (!in_array($header->status, [2, 3])) {
+            return redirect()->back()->with('error', 'Hanya dokumen VALIDATED/APPROVED yang bisa di-cancel.');
         }
         if ($reason === '') {
             return redirect()->back()->with('error', 'Alasan cancel harus diisi.');
