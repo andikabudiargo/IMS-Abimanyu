@@ -111,7 +111,34 @@ class CustomerController extends Controller
         $newCode = $initial.str_pad($newCode, 5, "0", STR_PAD_LEFT)."CUST";
 
         return  $newCode;
-    
+
+    }
+
+    public function supplierCodeCreate($initial){
+        $lastCode = DB::table('third_party')
+        ->where('kode','like',$initial.'%SUPP')
+        ->orderBy('kode','desc')
+        ->value('kode');
+
+        if (!$lastCode){
+            $newCode = '00001';
+        }else{
+            $lastCode = substr($lastCode,3,5);
+            $newCode = str_pad($lastCode+1, 5, "0", STR_PAD_LEFT);
+        }
+
+        $newCode = $initial.str_pad($newCode, 5, "0", STR_PAD_LEFT)."SUPP";
+
+        return  $newCode;
+
+    }
+
+    // customer ditulis "NAMA PT", supplier ditulis "PT NAMA" - pindahkan PT belakang ke depan
+    private function toSupplierName($nama){
+        if (preg_match('/^(.+)\s+PT$/', trim($nama), $m)){
+            return 'PT '.trim($m[1]);
+        }
+        return $nama;
     }
 
     public function store(Request $request)
@@ -157,7 +184,8 @@ class CustomerController extends Controller
         $blacklist = '0';
         $pkp = 'N';
         $coaPenjualan = $request->coaPenjualan;
-    
+        $asSupplier = $request->asSupplier;
+
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken',
@@ -234,6 +262,34 @@ class CustomerController extends Controller
                     'updated_at' => date('Y-m-d H:i:s'),
                     'coa_penjualan' => $coaPenjualan
                 ]);
+
+                //kalo customer jadi supplier juga
+                if ($asSupplier){
+                    $kodeSupp = $this->supplierCodeCreate($inisial);
+                    DB::table('third_party')->insert([
+                        'kode'=> $kodeSupp,
+                        'nama'=> $this->toSupplierName($nama),
+                        'inisial'=> $inisial,
+                        'alamat_tagih'=> $alamatTagih,
+                        'npwp'=> $npwp,
+                        'alamat_npwp'=> $alamatNpwp,
+                        'kota_npwp'=> $kotaNpwp,
+                        'pkp'=> $pkp,
+                        'telepon'=> $telepon,
+                        'hp'=> $hp,
+                        'fax'=> $fax,
+                        'email'=> $email,
+                        'nama_kontak'=> $kontak,
+                        'top_batas_1'=> $topBatas1,
+                        'aktif'=> $aktif,
+                        'blacklist'=> $blacklist,
+                        'third_party_type'=> 'supp',
+                        'created_by' => Auth::user()->username,
+                        'updated_by' => Auth::user()->username,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
+                }
 
                 DB::commit();
                 $title = $this->title;

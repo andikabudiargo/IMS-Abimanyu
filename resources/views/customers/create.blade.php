@@ -48,11 +48,11 @@
                         </div> --}}
                     </div>
                     <div class="form-row">
-                        <div class="form-group col-md-6">
+                        <div class="form-group col-md-5">
                             <label class="form-label" for="nama">Nama</label>
                             <input type="text" id="nama" name="nama" value="{{ old('nama') }}" class="form-control text-uppercase" required maxlength="100" autofocus/>
                         </div>
-                        <div class="form-group col-md-4">
+                        <div class="form-group col-md-3">
                             <label class="form-label" for="inisial">Inisial</label>
                             <input type="text" id="inisial" name="inisial" value="{{ old('inisial') }}" class="form-control text-uppercase" required maxlength="3"/>
                         </div>
@@ -60,6 +60,12 @@
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="epte" name="epte" {{ old('epte') == 't' ? 'checked' : '' }} />
                                 <label class="custom-control-label" for="epte">EPTE</label>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-2 align-self-end" >
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="asSupplier" name="asSupplier" {{ old('asSupplier') == 't' ? 'checked' : '' }} />
+                                <label class="custom-control-label" for="asSupplier">As Supplier</label>
                             </div>
                         </div>
                     </div>

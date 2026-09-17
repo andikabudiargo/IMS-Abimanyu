@@ -140,7 +140,15 @@ class SupplierController extends Controller
         $newCode = $initial.str_pad($newCode, 5, "0", STR_PAD_LEFT)."CUST";
 
         return  $newCode;
-    
+
+    }
+
+    // supplier ditulis "PT NAMA", customer ditulis "NAMA PT" - pindahkan PT depan ke belakang
+    private function toCustomerName($nama){
+        if (preg_match('/^PT\s+(.+)$/', trim($nama), $m)){
+            return trim($m[1]).' PT';
+        }
+        return $nama;
     }
 
     public function store(Request $request)
@@ -244,7 +252,7 @@ class SupplierController extends Controller
                 if ($asCustomer){
                     DB::table('third_party')->insert([
                         'kode'=> $kodeCust,
-                        'nama'=> $nama,
+                        'nama'=> $this->toCustomerName($nama),
                         'inisial'=> $inisial,
                         'alamat_tagih'=> $alamat,
                         'provinsi'=> $provinsi,
