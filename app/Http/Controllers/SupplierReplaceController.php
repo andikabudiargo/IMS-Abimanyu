@@ -412,6 +412,10 @@ class SupplierReplaceController extends Controller
     {
         $siteCode = $this->siteCode;
         $trType   = $this->mvType;
+        // $location = lokasi FISIK (buat movement_desc, audit trail).
+        // $stockLocation = hasil fold ke induk -- WAJIB dipakai untuk semua
+        // sentuhan ke warehouse_stock/warehouse_movement.location_number.
+        $stockLocation = $this->getStockLocation($location);
 
         $detail = DB::table('supplier_replace_det')
             ->leftJoin('article', 'article.article_code', '=', 'supplier_replace_det.article_code')
@@ -450,13 +454,13 @@ class SupplierReplaceController extends Controller
             $this->assertNotExceedReturn($returnNumber, $val->article_code, $qtyBase, $excludeReplaceNumber);
 
             // Pastikan baris stok ada (biar recalc tidak silent no-op)
-            $this->ensureStockRow($val->article_code, $location);
+            $this->ensureStockRow($val->article_code, $stockLocation);
 
             // Barang pengganti masuk pakai avg_price lokasi saat ini -> valuasi netral
             $avgLama = (float) (DB::table('warehouse_stock')
                 ->where('site_code', $siteCode)
                 ->where('article_code', $val->article_code)
-                ->where('location_number', $location)
+                ->where('location_number', $stockLocation)
                 ->value('avg_price') ?? 0);
 
             $seq++;
@@ -477,9 +481,9 @@ class SupplierReplaceController extends Controller
                 'created_by'        => $username,
                 'created_at'        => date('Y-m-d H:i:s'),
                 'site_code'         => $siteCode,
-                'location_number'   => $location,
+                'location_number'   => $stockLocation,
                 // last_qty sementara, ditimpa recalculateMovementAndStock
-                'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$replaceDateYmd','$siteCode','$location') + $qtyBase"),
+                'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$replaceDateYmd','$siteCode','$stockLocation') + $qtyBase"),
             ];
 
             $affectedArticles[] = $val->article_code;
@@ -508,7 +512,7 @@ class SupplierReplaceController extends Controller
             }
 
             foreach (array_unique($affectedArticles) as $articleCode) {
-                $this->recalculateMovementAndStock($articleCode, $location, $replaceDate);
+                $this->recalculateMovementAndStock($articleCode, $stockLocation, $replaceDate);
             }
         }
     }
@@ -978,6 +982,28 @@ class SupplierReplaceController extends Controller
         DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
     }
 
+    private array $stockLocationCache = [];
+
+    /**
+     * FIX (2026-09-18): sama seperti SupplierReturnController -- $location di
+     * sini diwarisi dari supplier_return_hdr.location_number, yang bisa
+     * lokasi ANAK (booth/WIP sub-stage). Fold ke induk WAJIB sebelum
+     * menyentuh warehouse_stock/warehouse_movement. supplier_replace_hdr.
+     * location_number TETAP menyimpan lokasi FISIK apa adanya.
+     */
+    private function getStockLocation(string $locationCode): string
+    {
+        if (array_key_exists($locationCode, $this->stockLocationCache)) {
+            return $this->stockLocationCache[$locationCode];
+        }
+
+        $parent = DB::table('stock_location_master')
+            ->where('location_code', $locationCode)
+            ->value('parent_location');
+
+        return $this->stockLocationCache[$locationCode] = ($parent ?: $locationCode);
+    }
+
     private function ensureStockRow(string $articleCode, string $location): void
     {
         $exists = DB::table('warehouse_stock')
@@ -1109,13 +1135,17 @@ class SupplierReplaceController extends Controller
 
     private function deleteMovementAndRecalc(string $replaceNumber, string $location, string $replaceDate, string $username = 'system'): array
     {
+        // $location bisa lokasi FISIK (dari header) -- fold dulu, movement/stock
+        // tersimpan di lokasi hasil fold.
+        $stockLocation = $this->getStockLocation($location);
+
         // Sebelum baris movement hilang, lepas dulu efeknya dari OPENING
         // BALANCE kalau baris itu ternyata sudah terlanjur diserap (posted
         // dulu dengan tanggal yang tercakup OB) — supaya OB tidak "nyangkut"
         // menghitung movement yang sudah tidak ada.
         $rowsBeingDeleted = DB::table('warehouse_movement')
             ->where('movement_transnno', $replaceNumber)
-            ->where('location_number', $location)
+            ->where('location_number', $stockLocation)
             ->where('site_code', $this->siteCode)
             ->get(['artikel_code', 'location_number', 'movement_date', 'movement_plus', 'movement_min']);
 
@@ -1138,12 +1168,12 @@ class SupplierReplaceController extends Controller
 
         DB::table('warehouse_movement')
             ->where('movement_transnno', $replaceNumber)
-            ->where('location_number', $location)
+            ->where('location_number', $stockLocation)
             ->where('site_code', $this->siteCode)
             ->delete();
 
         foreach ($affectedArticles as $articleCode) {
-            $this->recalculateMovementAndStock($articleCode, $location, $replaceDate);
+            $this->recalculateMovementAndStock($articleCode, $stockLocation, $replaceDate);
         }
 
         return $affectedArticles;

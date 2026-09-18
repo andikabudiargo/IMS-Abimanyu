@@ -51,10 +51,14 @@
                                         </div> 
                                     </div>
                                     <div class="form-row">
-                                        <div class="form-group col-md-10">
+                                        <div class="form-group col-md-8">
                                             <label for="accountHutang">COA Hutang</label>
-                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ $header->account_total }}" disabled />
-                                        </div> 
+                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ $header->account_total }}{{ $header->account_total_desc ? ' - '.$header->account_total_desc : '' }}" disabled />
+                                        </div>
+                                        <div class="form-group col-md-4">
+                                            <label for="dueDate">Due Date</label>
+                                            <input type="text" id="dueDate" name="dueDate" class="form-control" value="{{ $header->due_date }}" placeholder="DD-MM-YYYY" disabled />
+                                        </div>
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-8">

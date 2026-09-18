@@ -41,28 +41,7 @@
                                         </div> 
                                     </div>
                                     <div class="form-row">
-                                        <div class="form-group col-md-10">
-                                            <label class="form-label" for="supplier">Supplier*</label>
-                                            <select class="select2 form-control" id="supplier" name="supplier" required>
-                                                <option value="">All</option>
-                                                @foreach($supps as $val)
-                                                    <option value="{{ $val->kode }}" data-term = "{{ $val->top_batas_1 }}" data-coa = "{{ $val->account }}" {{ old('supplier') == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                        <div class="form-group col-md-2">
-                                            <label for="term">Term*</label>
-                                            <input type="text" id="term" name="term" class="form-control" value="{{ old('term') }}" disabled />
-                                        </div> 
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-group col-md-10">
-                                            <label for="accountHutang">COA Hutang*</label>
-                                            <input type="text" id="accountHutang" name="accountHutang" class="form-control disabled-el" value="{{ old('accountHutang') }}" disabled />
-                                        </div> 
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-group col-md-12">
+                                        <div class="form-group col-md-4">
                                             <label class="form-label d-block">Tipe Invoice*</label>
                                             <div class="custom-control custom-radio custom-control-inline">
                                                 <input type="radio" id="apTypePo" name="apType" class="custom-control-input" value="PO" checked>
@@ -72,6 +51,31 @@
                                                 <input type="radio" id="apTypeNonPo" name="apType" class="custom-control-input" value="NONPO">
                                                 <label class="custom-control-label" for="apTypeNonPo">Non-PO</label>
                                             </div>
+                                        </div>
+                                        <div class="form-group col-md-8">
+                                            <label class="form-label" for="supplier">Supplier*</label>
+                                            <select class="select2 form-control" id="supplier" name="supplier" required>
+                                                <option value="">All</option>
+                                                @foreach($supps as $val)
+                                                    <option value="{{ $val->kode }}" data-term = "{{ $val->top_batas_1 }}" data-coa = "{{ $val->account }}" data-coa-desc="{{ $val->account_desc }}" {{ old('supplier') == $val->kode ? 'selected' : '' }} >{{$val->kode}} - {{$val->nama}}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-7">
+                                            <label for="accountHutang">COA Hutang*</label>
+                                            <input type="text" id="accountHutang" class="form-control disabled-el" value="{{ old('accountHutang') }}" disabled />
+                                            <input type="hidden" id="accountHutangCode" name="accountHutang" value="{{ old('accountHutang') }}" />
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="dueDate">Due Date</label>
+                                            <input type="text" id="dueDate" name="dueDate" class="form-control" value="{{ old('dueDate') }}" placeholder="DD-MM-YYYY" />
+                                        </div>
+                                        <div class="form-group col-md-2">
+                                            <label for="term">Term*</label>
+                                            <input type="text" id="term" name="term" class="form-control" value="{{ old('term') }}" disabled />
                                         </div>
                                     </div>
                                     <div class="form-row">

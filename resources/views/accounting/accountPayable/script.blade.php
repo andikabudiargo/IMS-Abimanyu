@@ -412,6 +412,35 @@
         });
     }
 
+    let dueDatePicker = $('#dueDate');
+    if (dueDatePicker.length) {
+        dueDatePicker.flatpickr({
+            dateFormat: "d-m-Y"
+        });
+    }
+
+    function calcDueDate() {
+        let apDateVal = $('#apDate').val();
+        let termDays = parseInt($('#term').val()) || 0;
+        if (!apDateVal) {
+            return;
+        }
+        let parts = apDateVal.split('-');
+        if (parts.length !== 3) {
+            return;
+        }
+        let d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        d.setDate(d.getDate() + termDays);
+        let dd = ('0' + d.getDate()).slice(-2);
+        let mm = ('0' + (d.getMonth() + 1)).slice(-2);
+        let yyyy = d.getFullYear();
+        $('#dueDate').val(dd + '-' + mm + '-' + yyyy);
+    }
+
+    $('#apDate').on('change', function () {
+        calcDueDate();
+    });
+
     let bupotDatePicker = $('#BupotDate');
     if (bupotDatePicker.length) {
         bupotDatePicker.flatpickr({
@@ -436,10 +465,13 @@
         let obj = 'poNumber';
         let term = $(this).find(":selected").data("term");
         let coa = $(this).find(":selected").data("coa");
+        let coaDesc = $(this).find(":selected").data("coa-desc");
         isiArticleNp(value);
         if(coa){
             $('#term').val(term);
-            $('#accountHutang').val(coa);
+            $('#accountHutang').val(coa + (coaDesc ? ' - '+coaDesc : ''));
+            $('#accountHutangCode').val(coa);
+            calcDueDate();
             kosongkanData();
             $.ajax({
                 url:"{{ route('accountPayable.list.po') }}",
@@ -935,13 +967,14 @@
     function applyApTypeUi(type) {
         if (type === 'NONPO') {
             $('#poNumber').prop('required', false);
-            $('#poNumberWrap').addClass('d-none');
+            $('#poNumber').prop('disabled', true);
             $('#lpbSection').addClass('d-none');
             $('#addArticleNpBtn').removeClass('d-none');
             $('#detailLabel').text('Detail Item (Non-PO)');
+            $('#currency').val('IDR').trigger('change');
         } else {
             $('#poNumber').prop('required', true);
-            $('#poNumberWrap').removeClass('d-none');
+            $('#poNumber').prop('disabled', false);
             $('#lpbSection').removeClass('d-none');
             $('#addArticleNpBtn').addClass('d-none');
             $('#detailLabel').text('Detail receiving');

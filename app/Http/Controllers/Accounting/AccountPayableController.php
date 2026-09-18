@@ -165,7 +165,7 @@ class AccountPayableController extends Controller
         ['data'=> 'inv_number', 'name'=> 'inv_number','title'=>'Invoice Number','searchable'=>true], //11  search via filterColumn
         ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number','searchable'=>true], //12  search via filterColumn
         ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date','searchable'=>false], //13  order via alias OK
-        ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date','searchable'=>false,'orderable'=>false], //14  tidak ada di query, lihat catatan
+        ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date','searchable'=>false,'orderable'=>false], //14
         ['data'=> 'article', 'name'=> 'article','title'=>'Article Code'], //15
         ['data'=> 'desc', 'name'=> 'desc','title'=>'Description'], //16
         ['data'=> 'dept', 'name'=> 'dept','title'=>'Dept','searchable'=>false,'orderable'=>false], //17
@@ -658,8 +658,10 @@ class AccountPayableController extends Controller
         $data['subtitle'] = "Create $this->title";
         
         $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        ->leftJoin('accounts','accounts.account','third_party.account')
+        ->where ('third_party.third_party_type','=','supp')
         ->orderBy('nama')
+        ->select('third_party.*','accounts.description as account_desc')
         ->get();
 
         $data['currency'] = ['IDR','USD'];
@@ -697,6 +699,7 @@ class AccountPayableController extends Controller
         $currency = $request->currency;
         $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
         $invoiceDate= $request->invoiceDate;
+        $dueDate = $request->dueDate;
         $basisAmount = is_null($request->basisAmount) ? 0 : preg_replace('/[^0-9.]+/', '', $request->basisAmount);
         // $accountBasisA = $request->accountBasisA;
         $otherDeduct = 0;
@@ -917,6 +920,7 @@ class AccountPayableController extends Controller
                     'inv_number' => $invoiceNumber,
                     'tax_inv_number' =>$taxInvoiceNumber,
                     'ap_date' =>$apDate,
+                    'due_date' => $dueDate,
                     'period' =>$period,
                     'vat_value' => $vatValue,
                     'dpp_lain_value' => $dppLainValue,
@@ -1002,10 +1006,11 @@ class AccountPayableController extends Controller
 
         $data['header'] = DB::table('ap_invoice')
         ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
-        ->select('ap_invoice.*','third_party.top_batas_1')
+        ->leftJoin('accounts', 'accounts.account', '=', 'ap_invoice.account_total')
+        ->select('ap_invoice.*','third_party.top_batas_1','accounts.description as account_total_desc')
         ->where('ap_invoice.id',$id)
-        ->get()->first(); 
-        
+        ->get()->first();
+
         $apNumber = $data['header']->ap_number;
         $poNumber = $data['header']->po_number;
 
@@ -1151,7 +1156,8 @@ class AccountPayableController extends Controller
         
         $data['header'] = DB::table('ap_invoice')
         ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
-        ->select('ap_invoice.*','third_party.top_batas_1')
+        ->leftJoin('accounts', 'accounts.account', '=', 'ap_invoice.account_total')
+        ->select('ap_invoice.*','third_party.top_batas_1','accounts.description as account_total_desc')
         ->where('ap_invoice.id',$id)
         ->get()->first();
 
@@ -1163,7 +1169,7 @@ class AccountPayableController extends Controller
         foreach($details as $val ){
             $arrayData.=$val.',';
         }
-            
+
         $data['recNumbers'] = substr($arrayData, 0, -1);
 
         // $data['sub_details'] = DB::table('ap_invoice')
@@ -1175,8 +1181,10 @@ class AccountPayableController extends Controller
         // ->get();
 
         $data['supps'] = DB::table('third_party')
-        ->where ('third_party_type','=','supp')
+        ->leftJoin('accounts','accounts.account','third_party.account')
+        ->where ('third_party.third_party_type','=','supp')
         ->orderBy('nama')
+        ->select('third_party.*','accounts.description as account_desc')
         ->get();
 
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$apNumber,$username);
@@ -1252,6 +1260,7 @@ class AccountPayableController extends Controller
         $accountBasisA = ''; //untuk account basis amount akan diganti dengan account masing2 item
 
         $apDate= $request->apDate;
+        $dueDate = $request->dueDate;
         $invoiceNumber=$request->invoiceNumber;
         $taxInvoiceNumber=$request->taxInvoiceNumber;
         $recNumberSave = explode(",",$request->recNumberSave);
@@ -1374,6 +1383,7 @@ class AccountPayableController extends Controller
                         'inv_number' => $invoiceNumber,
                         'tax_inv_number' =>$taxInvoiceNumber,
                         'ap_date' =>$apDate,
+                        'due_date' => $dueDate,
                         'account_total' => $acountTotal,
                         'account_vat' => $accountVat,
                         'account_pph' => $accountPph,
@@ -2322,7 +2332,15 @@ class AccountPayableController extends Controller
 DB::raw("case when ap_invoice.status in ('6','7') then vch.voucher_date else '' end as voucher_date"),
 DB::raw("case when ap_invoice.status in ('6','7') then vch.voucher_amount else 0 end as voucher_amount"),
 DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vch.voucher_amount else 0 end, 0) as balance"),
-            DB::raw("to_char(to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * top_batas_1), 'DD/MM/YYYY') as due_date")
+            // due_date sekarang tersimpan & bisa diedit manual di form AP; fallback ke hitung otomatis
+            // (ap_date + term supplier) hanya untuk invoice lama yang dibuat sebelum kolom ini terisi.
+            DB::raw("to_char(
+                coalesce(
+                    to_date(nullif(ap_invoice.due_date,''),'DD-MM-YYYY'),
+                    to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * third_party.top_batas_1)
+                ),
+                'DD/MM/YYYY'
+            ) as due_date")
         )
         ->orderBy('ap_invoice.id', 'DESC');
 
@@ -2530,7 +2548,10 @@ DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vc
     })
     ->orderColumn('due_date', function ($query, $order) {
         $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
-        $query->orderByRaw("(to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * top_batas_1)) $order");
+        $query->orderByRaw("coalesce(
+            to_date(nullif(ap_invoice.due_date,''),'DD-MM-YYYY'),
+            to_date(ap_date,'dd-mm-yyyy') + (interval '1 day' * third_party.top_batas_1)
+        ) $order");
     })
     ->orderColumn('voucher_date', function ($query, $order) {
         $order = strtolower($order) === 'desc' ? 'desc' : 'asc';

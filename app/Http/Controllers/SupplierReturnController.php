@@ -324,7 +324,7 @@ private function getUserLocations()
             $stokTersedia = (float) (DB::table('warehouse_stock')
                 ->where('site_code', $siteCode)
                 ->where('article_code', $val->article_code)
-                ->where('location_number', $location)
+                ->where('location_number', $this->getStockLocation($location))
                 ->value('article_qty') ?? 0);
 
             // kalau sedang edit, qty lama dari dokumen ini sudah "keluar" -> kembalikan dulu
@@ -351,6 +351,10 @@ private function getUserLocations()
 {
     $siteCode  = $this->siteCode;
     $trType    = $this->mvType;
+    // $location = lokasi FISIK (buat movement_from/movement_desc, audit trail).
+    // $stockLocation = hasil fold ke induk kalau $location itu lokasi anak --
+    // WAJIB dipakai untuk semua sentuhan ke warehouse_stock/warehouse_movement.location_number.
+    $stockLocation = $this->getStockLocation($location);
 
     $detail = DB::table('supplier_return_det')
         ->leftJoin('article', 'article.article_code', '=', 'supplier_return_det.article_code')
@@ -384,7 +388,7 @@ private function getUserLocations()
         $avgLama = (float) (DB::table('warehouse_stock')
             ->where('site_code', $siteCode)
             ->where('article_code', $val->article_code)
-            ->where('location_number', $location)
+            ->where('location_number', $stockLocation)
             ->value('avg_price') ?? 0);
 
         $seq++;
@@ -405,9 +409,9 @@ private function getUserLocations()
             'created_by'        => $username,
             'created_at'        => date('Y-m-d H:i:s'),
             'site_code'         => $siteCode,
-            'location_number'   => $location,
+            'location_number'   => $stockLocation,
             // last_qty sementara, ditimpa recalculateMovementAndStock
-            'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$returnDateYmd','$siteCode','$location') - $qtyBase"),
+            'last_qty'          => DB::raw("get_last_qty_new('{$val->article_code}','$returnDateYmd','$siteCode','$stockLocation') - $qtyBase"),
         ];
     }
 
@@ -435,7 +439,7 @@ private function getUserLocations()
         // ── Sinkronkan article_qty & avg_price via recalculate (bukan raw update lagi) ──
         $articles = array_unique(array_column($movementSet, 'artikel_code'));
         foreach ($articles as $articleCode) {
-            $this->recalculateMovementAndStock($articleCode, $location, $returnDate);
+            $this->recalculateMovementAndStock($articleCode, $stockLocation, $returnDate);
         }
     }
 }
@@ -768,6 +772,32 @@ try {
     DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
 }
 
+    private array $stockLocationCache = [];
+
+    /**
+     * FIX (2026-09-18): dulu $location dari $request->locationNumber (bisa
+     * lokasi ANAK, mis. booth/WIP sub-stage -- dropdown-nya tidak difilter)
+     * dipakai langsung ke warehouse_stock/warehouse_movement TANPA fold ke
+     * induk -- celah yang sama persis dengan yang sudah dibetulkan di
+     * TransferStockController/ActualLoadingController/StockConsumptionController.
+     * Pola disalin persis dari TransferStockController::getStockLocation().
+     * supplier_return_hdr.location_number TETAP menyimpan lokasi FISIK apa
+     * adanya (buat tampilan/audit) -- fold ini HANYA dipakai di titik-titik
+     * yang menyentuh warehouse_stock/warehouse_movement.
+     */
+    private function getStockLocation(string $locationCode): string
+    {
+        if (array_key_exists($locationCode, $this->stockLocationCache)) {
+            return $this->stockLocationCache[$locationCode];
+        }
+
+        $parent = DB::table('stock_location_master')
+            ->where('location_code', $locationCode)
+            ->value('parent_location');
+
+        return $this->stockLocationCache[$locationCode] = ($parent ?: $locationCode);
+    }
+
 private function recalculateAvgPrice(string $articleCode, string $location): void
 {
     $movements = DB::table('warehouse_movement')
@@ -884,13 +914,18 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
  */
 private function deleteMovementAndRecalc(string $returnNumber, string $location, string $returnDate, string $username = 'system'): array
 {
+    // $location bisa lokasi FISIK (dari header, belum tentu sudah folded) --
+    // movement/stock tersimpan di lokasi hasil fold, jadi fold dulu di sini
+    // juga supaya query match dengan yang benar-benar tersimpan.
+    $stockLocation = $this->getStockLocation($location);
+
     // Baris yang mau dihapus dulu — kalau ada yang sudah pernah diserap
     // OPENING BALANCE (posted dulu dengan tanggal yang tercakup OB), efek
     // itu harus DILEPAS balik sebelum barisnya hilang, supaya OB tidak
     // "nyangkut" menghitung movement yang sudah tidak ada lagi.
     $rowsBeingDeleted = DB::table('warehouse_movement')
         ->where('movement_transnno', $returnNumber)
-        ->where('location_number', $location)
+        ->where('location_number', $stockLocation)
         ->where('site_code', $this->siteCode)
         ->get(['artikel_code', 'location_number', 'movement_date', 'movement_plus', 'movement_min']);
 
@@ -913,12 +948,12 @@ private function deleteMovementAndRecalc(string $returnNumber, string $location,
 
     DB::table('warehouse_movement')
         ->where('movement_transnno', $returnNumber)
-        ->where('location_number', $location)
+        ->where('location_number', $stockLocation)
         ->where('site_code', $this->siteCode)
         ->delete();
 
     foreach ($affectedArticles as $articleCode) {
-        $this->recalculateMovementAndStock($articleCode, $location, $returnDate);
+        $this->recalculateMovementAndStock($articleCode, $stockLocation, $returnDate);
     }
 
     return $affectedArticles;
@@ -1257,7 +1292,8 @@ public function listDetail(Request $request)
     public function getArticle(Request $request)
 {
     $supplierCode = $request->supplierCode;
-    $location     = $request->locationNumber;
+    // Fold ke induk -- warehouse_stock tersimpan di lokasi induk, bukan anak.
+    $location     = $this->getStockLocation((string) $request->locationNumber);
     $siteCode     = $this->siteCode;
 
     $data = DB::table('article')
