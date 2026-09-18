@@ -840,7 +840,6 @@
             }
         })
     }
-    isiArticleNp();
 
     function changeselect(obj,accountNumber) {
         $('#'+obj).attr('disabled','disabled');

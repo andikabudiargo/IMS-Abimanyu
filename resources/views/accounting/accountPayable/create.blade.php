@@ -405,6 +405,7 @@
     $(document).ready(function(){
         validateFormToast("frmAdd");
         isiCoa('list_coa');
+        isiArticleNp();
 
         setTimeout(function () {
             $(".loading-spinner-container").addClass("-show");
