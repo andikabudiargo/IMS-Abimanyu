@@ -71,13 +71,17 @@ class HomeController extends Controller
     }
 
     /**
-     * Avg harga terima artikel dari receiving_det (weighted by qty), mundur
-     * bulan demi bulan kalau bulan berjalan kosong. Salinan persis
-     * ConversionReportController::avgReceivingPrice().
+     * Avg harga terima artikel dari receiving_det (weighted by qty), anchor
+     * ke bulan $periode/$tahun widget Sales Achievement kalau diisi (BUKAN
+     * selalu bulan berjalan -- widget ini bisa difilter ke periode lain lewat
+     * salesAchievementFilter()); kalau kosong mundur bulan demi bulan. Salinan
+     * persis ConversionReportController::avgReceivingPrice().
      */
-    private function avgReceivingPriceHome(string $articleCode, int $maxMonthsBack = 24): float
+    private function avgReceivingPriceHome(string $articleCode, ?int $periode = null, ?int $tahun = null, int $maxMonthsBack = 24): float
     {
-        $anchor = new \DateTime('today');
+        $anchor = ($periode && $tahun)
+            ? \DateTime::createFromFormat('Y-n-j', "{$tahun}-{$periode}-1")
+            : new \DateTime('today');
         for ($i = 0; $i <= $maxMonthsBack; $i++) {
             $monthStart = (clone $anchor)->modify("-{$i} month")->modify('first day of this month');
             $monthEnd   = (clone $monthStart)->modify('last day of this month');
@@ -97,16 +101,20 @@ class HomeController extends Controller
     }
 
     /**
-     * Avg harga jual artikel dari sales_order_det (weighted by qty), mundur
-     * bulan demi bulan kalau bulan berjalan kosong -- pasangan avgReceivingPriceHome()
-     * di sisi jual. Dipakai buat estimasi konversi TARGET, karena target belum
-     * punya transaksi delivery aktual (masih proyeksi), jadi butuh harga jual
-     * acuan dari histori SO artikel itu sendiri, bukan dari Price List (Price
-     * List belum terisi lengkap utk semua artikel).
+     * Avg harga jual artikel dari sales_order_det (weighted by qty), anchor
+     * ke bulan $periode/$tahun widget Sales Achievement kalau diisi (BUKAN
+     * selalu bulan berjalan), mundur bulan demi bulan kalau bulan itu kosong
+     * -- pasangan avgReceivingPriceHome() di sisi jual. Dipakai buat estimasi
+     * konversi TARGET, karena target belum punya transaksi delivery aktual
+     * (masih proyeksi), jadi butuh harga jual acuan dari histori SO artikel
+     * itu sendiri, bukan dari Price List (Price List belum terisi lengkap utk
+     * semua artikel).
      */
-    private function avgSellingPriceHome(string $articleCode, int $maxMonthsBack = 24): float
+    private function avgSellingPriceHome(string $articleCode, ?int $periode = null, ?int $tahun = null, int $maxMonthsBack = 24): float
     {
-        $anchor = new \DateTime('today');
+        $anchor = ($periode && $tahun)
+            ? \DateTime::createFromFormat('Y-n-j', "{$tahun}-{$periode}-1")
+            : new \DateTime('today');
         for ($i = 0; $i <= $maxMonthsBack; $i++) {
             $monthStart = (clone $anchor)->modify("-{$i} month")->modify('first day of this month');
             $monthEnd   = (clone $monthStart)->modify('last day of this month');
@@ -130,7 +138,7 @@ class HomeController extends Controller
      * ConversionReportController::purchasePrice(): BOM aktif -> total biaya
      * material (RM+DET), tidak ada BOM -> avg receiving artikel itu sendiri.
      */
-    private function purchasePriceHome(string $articleCode): float
+    private function purchasePriceHome(string $articleCode, ?int $periode = null, ?int $tahun = null): float
     {
         $bom = DB::table('bom_hdr')
             ->where('article_code', $articleCode)
@@ -139,7 +147,7 @@ class HomeController extends Controller
             ->first();
 
         if (!$bom) {
-            return $this->avgReceivingPriceHome($articleCode);
+            return $this->avgReceivingPriceHome($articleCode, $periode, $tahun);
         }
 
         $rm = DB::table('bom_rm as b')
@@ -159,7 +167,7 @@ class HomeController extends Controller
         foreach ($rm->concat($det) as $m) {
             $type  = strtoupper($m->article_type ?? '');
             $qty   = (float) $m->qty;
-            $price = $type === 'RMNP' ? 0 : $this->avgReceivingPriceHome($m->article_code);
+            $price = $type === 'RMNP' ? 0 : $this->avgReceivingPriceHome($m->article_code, $periode, $tahun);
             $total += $price * $qty;
         }
 
@@ -272,8 +280,8 @@ class HomeController extends Controller
             $qty = (float) $line->qty_target;
             $targetQty += $qty;
 
-            $avgSelling  = $this->avgSellingPriceHome($line->article_code);
-            $avgPurchase = $this->purchasePriceHome($line->article_code);
+            $avgSelling  = $this->avgSellingPriceHome($line->article_code, $periode, $tahun);
+            $avgPurchase = $this->purchasePriceHome($line->article_code, $periode, $tahun);
             $targetConversion += $convVal > 0 ? (($avgSelling - $avgPurchase) * $qty) / $convVal : 0;
         }
 
@@ -306,7 +314,7 @@ class HomeController extends Controller
                     $value += (float) $l->qty * (float) $l->price_unit;
                 }
                 $avgSelling  = $qty > 0 ? $value / $qty : 0;
-                $avgPurchase = $this->purchasePriceHome($articleCode);
+                $avgPurchase = $this->purchasePriceHome($articleCode, $periode, $tahun);
 
                 $achievedQty += $qty;
                 $achievedConversion += $convVal > 0 ? (($avgSelling - $avgPurchase) * $qty) / $convVal : 0;

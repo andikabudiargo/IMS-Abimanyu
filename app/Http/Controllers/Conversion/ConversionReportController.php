@@ -70,14 +70,19 @@ class ConversionReportController extends Controller
     }
 
     /**
-     * Avg cost artikel dari receiving_det (weighted by qty), bulan berjalan;
+     * Avg cost artikel dari receiving_det (weighted by qty), anchor ke bulan
+     * $periode/$tahun kalau diisi (mis. Conversion Report periode Juli 2026
+     * -> anchor Juli 2026, BUKAN bulan berjalan saat dokumen dibuat/diedit);
      * kalau kosong mundur bulan demi bulan sampai maksimum $maxMonthsBack.
-     * Sama persis dengan PriceListController::avgPrice() -- disengaja
-     * disalin, bukan di-share, supaya kedua modul independen.
+     * $periode/$tahun null -> fallback ke bulan berjalan (dipakai pemanggil
+     * lain yang memang tidak terikat periode, mis. PriceListController-style
+     * lookup "harga terbaru").
      */
-    private function avgReceivingPrice(string $articleCode, int $maxMonthsBack = 24): float
+    private function avgReceivingPrice(string $articleCode, ?int $periode = null, ?int $tahun = null, int $maxMonthsBack = 24): float
     {
-        $anchor = new \DateTime('today');
+        $anchor = ($periode && $tahun)
+            ? \DateTime::createFromFormat('Y-n-j', "{$tahun}-{$periode}-1")
+            : new \DateTime('today');
 
         for ($i = 0; $i <= $maxMonthsBack; $i++) {
             $monthStart = (clone $anchor)->modify("-{$i} month")->modify('first day of this month');
@@ -103,7 +108,7 @@ class ConversionReportController extends Controller
      * dijual apa adanya, bukan hasil produksi), pakai avg receiving artikel
      * itu sendiri.
      */
-    private function purchasePrice(string $articleCode): float
+    private function purchasePrice(string $articleCode, ?int $periode = null, ?int $tahun = null): float
     {
         $bom = DB::table('bom_hdr')
             ->where('article_code', $articleCode)
@@ -112,7 +117,7 @@ class ConversionReportController extends Controller
             ->first();
 
         if (!$bom) {
-            return $this->avgReceivingPrice($articleCode);
+            return $this->avgReceivingPrice($articleCode, $periode, $tahun);
         }
 
         $rm = DB::table('bom_rm as b')
@@ -132,7 +137,7 @@ class ConversionReportController extends Controller
         foreach ($rm->concat($det) as $m) {
             $type = strtoupper($m->article_type ?? '');
             $qty  = (float) $m->qty;
-            $price = $type === 'RMNP' ? 0 : $this->avgReceivingPrice($m->article_code);
+            $price = $type === 'RMNP' ? 0 : $this->avgReceivingPrice($m->article_code, $periode, $tahun);
             $total += $price * $qty;
         }
 
@@ -239,7 +244,7 @@ class ConversionReportController extends Controller
             }
 
             $avgSelling  = $totalQty > 0 ? $totalValue / $totalQty : 0;
-            $avgPurchase = $this->purchasePrice($articleCode);
+            $avgPurchase = $this->purchasePrice($articleCode, $periode, $tahun);
             // Konversi per baris = kontribusi total artikel ini, BUKAN per unit:
             // margin per unit (avgSelling - avgPurchase) dikali qty total dulu,
             // baru dibagi conversion_value. Dengan begini SUM konversi seluruh
