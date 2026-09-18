@@ -981,7 +981,7 @@
         }
     }
 
-    $('body').on('change', 'input[name=apType]', function () {
+    $('body').on('change', 'select[name=apType]', function () {
         apType = $(this).val();
         applyApTypeUi(apType);
         $("#listOfRec > tbody").empty();

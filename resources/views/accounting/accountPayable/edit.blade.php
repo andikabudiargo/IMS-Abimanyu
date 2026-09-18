@@ -43,15 +43,11 @@
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-4">
-                                            <label class="form-label d-block">Tipe Invoice*</label>
-                                            <div class="custom-control custom-radio custom-control-inline">
-                                                <input type="radio" id="apTypePo" name="apType" class="custom-control-input" value="PO" {{ $header->ap_type != 'NONPO' ? 'checked' : '' }}>
-                                                <label class="custom-control-label" for="apTypePo">PO</label>
-                                            </div>
-                                            <div class="custom-control custom-radio custom-control-inline">
-                                                <input type="radio" id="apTypeNonPo" name="apType" class="custom-control-input" value="NONPO" {{ $header->ap_type == 'NONPO' ? 'checked' : '' }}>
-                                                <label class="custom-control-label" for="apTypeNonPo">Non-PO</label>
-                                            </div>
+                                            <label class="form-label" for="apType">Tipe Invoice*</label>
+                                            <select class="select2 form-control" id="apType" name="apType" required>
+                                                <option value="PO" {{ $header->ap_type != 'NONPO' ? 'selected' : '' }}>PO</option>
+                                                <option value="NONPO" {{ $header->ap_type == 'NONPO' ? 'selected' : '' }}>Non-PO</option>
+                                            </select>
                                         </div>
                                         <div class="form-group col-md-8">
                                             <label class="form-label" for="supplier">Supplier*</label>
