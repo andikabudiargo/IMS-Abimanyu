@@ -17,9 +17,12 @@ use Approval;
 use App\Exports\ActualLoadingExport;
 use App\Imports\ActualLoadingImport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Traits\HasStockFloorGuard;
 
 class ActualLoadingController extends Controller
 {
+    use HasStockFloorGuard;
+
     private $title;
     private $moduleCode;
 
@@ -664,25 +667,29 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
         // untuk jejak movement_from.
         $stockLoc = $this->resolveStockLocation($fromLoc);
 
-        $affected = DB::table('warehouse_stock')
-            ->where('article_code',$article)->where('location_number',$stockLoc)
-            ->update([
-                'article_qty' => DB::raw('coalesce(article_qty,0) - '.$qty),
-                'updated_by'  => $username,
-                'updated_at'  => $now,
-            ]);
+        // Backdate <= 2026-06-30 tidak pernah dihitung ledger -- article_qty
+        // tidak boleh disentuh (movement tetap dicatat untuk audit trail).
+        if (!$this->isBeforeStockFloor($this->movementDate ?: date('d-m-Y'))) {
+            $affected = DB::table('warehouse_stock')
+                ->where('article_code',$article)->where('location_number',$stockLoc)
+                ->update([
+                    'article_qty' => DB::raw('coalesce(article_qty,0) - '.$qty),
+                    'updated_by'  => $username,
+                    'updated_at'  => $now,
+                ]);
 
-        if ($affected === 0) {
-            DB::table('warehouse_stock')->insert([
-                'site_code'       => 'HO',
-                'article_code'    => $article,
-                'location_number' => $stockLoc,
-                'article_qty'     => -$qty,
-                'created_by'      => $username,
-                'updated_by'      => $username,
-                'created_at'      => $now,
-                'updated_at'      => $now,
-            ]);
+            if ($affected === 0) {
+                DB::table('warehouse_stock')->insert([
+                    'site_code'       => 'HO',
+                    'article_code'    => $article,
+                    'location_number' => $stockLoc,
+                    'article_qty'     => -$qty,
+                    'created_by'      => $username,
+                    'updated_by'      => $username,
+                    'created_at'      => $now,
+                    'updated_at'      => $now,
+                ]);
+            }
         }
 
         // location_number = pool akuntansi; movement_from/to = jejak operasi (fisik)
@@ -705,30 +712,34 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
         // fisik untuk jejak movement_from/to.
         $stockLoc = $this->resolveStockLocation($toLoc);
 
-        $exists = DB::table('warehouse_stock')
-            ->where('article_code',$article)->where('location_number',$stockLoc)->exists();
+        // Backdate <= 2026-06-30 tidak pernah dihitung ledger -- article_qty
+        // tidak boleh disentuh (movement tetap dicatat untuk audit trail).
+        if (!$this->isBeforeStockFloor($this->movementDate ?: date('d-m-Y'))) {
+            $exists = DB::table('warehouse_stock')
+                ->where('article_code',$article)->where('location_number',$stockLoc)->exists();
 
-        if ($exists) {
-            DB::table('warehouse_stock')
-                ->where('article_code',$article)->where('location_number',$stockLoc)
-                ->update([
-                    'article_qty' => DB::raw('coalesce(article_qty,0) + '.$qty),
-                    'updated_by'  => $username,
-                    'updated_at'  => $now,
+            if ($exists) {
+                DB::table('warehouse_stock')
+                    ->where('article_code',$article)->where('location_number',$stockLoc)
+                    ->update([
+                        'article_qty' => DB::raw('coalesce(article_qty,0) + '.$qty),
+                        'updated_by'  => $username,
+                        'updated_at'  => $now,
+                    ]);
+            } else {
+                DB::table('warehouse_stock')->insert([
+                    'site_code'       => 'HO',
+                    'article_code'    => $article,
+                    'location_number' => $stockLoc,
+                    'article_qty'     => $qty,
+                    'uom'             => $uom,
+                    'dept_code'       => $dept,
+                    'created_by'      => $username,
+                    'updated_by'      => $username,
+                    'created_at'      => $now,
+                    'updated_at'      => $now,
                 ]);
-        } else {
-            DB::table('warehouse_stock')->insert([
-                'site_code'       => 'HO',
-                'article_code'    => $article,
-                'location_number' => $stockLoc,
-                'article_qty'     => $qty,
-                'uom'             => $uom,
-                'dept_code'       => $dept,
-                'created_by'      => $username,
-                'updated_by'      => $username,
-                'created_at'      => $now,
-                'updated_at'      => $now,
-            ]);
+            }
         }
 
         // location_number = pool akuntansi; movement_from/to = jejak operasi (fisik)
@@ -786,6 +797,15 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
     {
         $now = date('Y-m-d H:i:s');
 
+        // Movement dokumen ini semuanya bertanggal sama (movement_date =
+        // loading_date dokumen) -- kalau backdate <= 2026-06-30, article_qty
+        // tidak pernah disentuh waktu posting, jadi juga tidak boleh
+        // disentuh sekarang waktu reverse.
+        $docMovementDate = DB::table('warehouse_movement')
+            ->where('movement_transnno', $transno)
+            ->value('movement_date');
+        $skipStockTouch = $docMovementDate !== null && $this->isBeforeStockFloor((string) $docMovementDate);
+
         // Catat dulu artikel+lokasi yang tersentuh dokumen ini. Diambil SEMUA
         // (termasuk yang net-nya 0), karena barisnya tetap hilang sehingga saldo
         // berjalan dokumen lain setelahnya ikut bergeser.
@@ -817,6 +837,10 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
             $net = (float) $row->net_qty;
             $loc = $row->location_number;
             $art = $row->artikel_code;
+
+            if ($skipStockTouch) {
+                continue;
+            }
 
             // net > 0 artinya dokumen ini dulu MENAMBAH stok di lokasi tsb,
             // jadi sekarang ditarik balik. Pastikan barangnya masih ada.
@@ -934,6 +958,12 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
 
     private function applyStockDelta(string $article, string $location, float $delta, string $username): void
     {
+        // Backdate <= 2026-06-30 tidak pernah dihitung ledger -- article_qty
+        // tidak boleh disentuh.
+        if ($this->isBeforeStockFloor($this->movementDate ?: date('d-m-Y'))) {
+            return;
+        }
+
         $now = date('Y-m-d H:i:s');
         $aff = DB::table('warehouse_stock')
             ->where('site_code', 'HO')

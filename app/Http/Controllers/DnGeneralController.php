@@ -1576,9 +1576,16 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
         $fromDate = \Carbon\Carbon::parse($fromDate)->format('Y-m-d');
     }
 
+    // Movement <= 2026-06-30 tidak pernah dihitung ledger (floor yang sama
+    // persis dengan get_last_qty_new()) -- walk TIDAK BOLEH mulai lebih awal
+    // dari itu, supaya warehouse_stock konsisten walau $fromDate sendiri
+    // backdate ke sebelum floor (mis. dokumen di-entry belakangan dgn
+    // tanggal Juni).
+    $walkFromDate = $fromDate < '2026-07-01' ? '2026-07-01' : $fromDate;
+
     $balanceBefore = (float) DB::selectOne(
         "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'YYYY-MM-DD') - INTERVAL '1 day', 'YYYY-MM-DD'), ?, ?) AS bal",
-        [$articleCode, $fromDate, $this->siteCode, $location]
+        [$articleCode, $walkFromDate, $this->siteCode, $location]
     )->bal;
 
     $movements = DB::table('warehouse_movement')
@@ -1586,7 +1593,7 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
         ->where('location_number', $location)
         ->where('site_code', $this->siteCode)
         ->where(DB::raw("TO_DATE(movement_date, 'DD-MM-YYYY')"), '>=',
-            DB::raw("TO_DATE('$fromDate', 'YYYY-MM-DD')"))
+            DB::raw("TO_DATE('$walkFromDate', 'YYYY-MM-DD')"))
         ->whereNotIn('movement_type', ['RETURN-CANCEL', 'RETURN-REVERSE'])
         ->where('movement_type', 'NOT LIKE', 'CANCEL %')
         ->where('movement_type', 'NOT LIKE', 'DELETE%')

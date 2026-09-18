@@ -14,9 +14,12 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Traits\HasStockFloorGuard;
 
 class DnReturnController extends Controller
 {
+   use HasStockFloorGuard;
+
    private $title;
     private $moduleCode;
     private $decimalPlaces;
@@ -389,16 +392,22 @@ private function postingReturn($returnNumber, $username, $returnDate, $soNumber,
             ->where('location_number', $location)
             ->value('avg_price') ?? 0);
 
-        DB::table('warehouse_stock')
-            ->where('site_code', $siteCode)
-            ->where('article_code', $val->article_code)
-            ->where('location_number', $location)
-            ->update(['article_qty' => DB::raw('coalesce(article_qty,0) + ' . $qtyBase)]);
+        $movementDate = date('d-m-Y', strtotime($returnDate));
+
+        // Backdate <= 2026-06-30 tidak pernah dihitung ledger -- jangan
+        // sentuh article_qty (movement tetap dicatat untuk audit trail).
+        if (!$this->isBeforeStockFloor($movementDate)) {
+            DB::table('warehouse_stock')
+                ->where('site_code', $siteCode)
+                ->where('article_code', $val->article_code)
+                ->where('location_number', $location)
+                ->update(['article_qty' => DB::raw('coalesce(article_qty,0) + ' . $qtyBase)]);
+        }
 
         $seq++;
         $movementSet[] = [
             'movement_code'     => $seq,
-            'movement_date'     => date('d-m-Y', strtotime($returnDate)),
+            'movement_date'     => $movementDate,
             'artikel_code'      => $val->article_code,
             'artikel_desc'      => $val->article_desc ?? '',
             'movement_min'      => 0,
@@ -459,8 +468,22 @@ private function reverseReturn($returnNumber, $username)
         ->select('dn_return_det.article_code', 'dn_return_det.qty as total_qty')
         ->get();
 
+    // Tanggal movement ASLI per artikel -- article_qty cuma boleh dikurangi
+    // kalau movement itu dulu benar2 dihitung waktu posting (movement_date
+    // > floor 2026-06-30), sama seperti syarat yang dipakai postingReturn().
+    $originalDates = DB::table('warehouse_movement')
+        ->where('movement_transnno', $returnNumber)
+        ->where('location_number', $location)
+        ->where('movement_type', $trType)
+        ->pluck('movement_date', 'artikel_code');
+
     foreach ($detail as $val) {
         $qtyBase = (float) $val->total_qty;
+
+        $mvDate = $originalDates[$val->article_code] ?? null;
+        if ($mvDate !== null && $this->isBeforeStockFloor((string) $mvDate)) {
+            continue;
+        }
 
         DB::table('warehouse_stock')
             ->where('site_code', $siteCode)

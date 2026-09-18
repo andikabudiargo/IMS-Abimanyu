@@ -13,6 +13,7 @@ use Excel;
 use AppHelpers;
 use App\Imports\StockAdjustmentImport;
 use App\Exports\StockAdjustmentExport;
+use App\Traits\HasStockFloorGuard;
 
 /**
  * Stock Adjustment.
@@ -50,6 +51,8 @@ use App\Exports\StockAdjustmentExport;
  */
 class StockAdjustmentController extends Controller
 {
+    use HasStockFloorGuard;
+
     // =========================================================================
     //  KONSTANTA
     // =========================================================================
@@ -868,7 +871,14 @@ class StockAdjustmentController extends Controller
 
                 $delta = $newSigned - $oldSigned;
 
-                if (abs($delta) > self::EPSILON) {
+                // OPENING BALANCE sengaja TIDAK kena floor -- itu titik reset
+                // ledger-nya sendiri (lihat catatan di applyAdjustmentToStock()).
+                // SYSTEM CORRECTION dkk mengikuti floor yang sama dengan modul
+                // lain: backdate <= 2026-06-30 tidak boleh menyentuh article_qty.
+                $skipStockTouch = $hdr->adj_type !== 'OPENING BALANCE'
+                    && $this->isBeforeStockFloor((string) $hdr->adj_date);
+
+                if (abs($delta) > self::EPSILON && !$skipStockTouch) {
                     $this->ensureStockRow($code, $location, $new);
                     DB::table('warehouse_stock')
                         ->where('site_code', $this->siteCode)
@@ -965,23 +975,34 @@ class StockAdjustmentController extends Controller
             ->where('article_code', $val->article_code)
             ->where('location_number', $location);
 
+        // OPENING BALANCE sengaja TIDAK kena floor -- itu titik reset
+        // ledger-nya sendiri. SYSTEM CORRECTION dkk mengikuti floor yang sama
+        // dengan modul lain: backdate <= 2026-06-30 tidak boleh menyentuh
+        // article_qty (movement tetap dicatat untuk audit trail).
+        $skipStockTouch = $hdr->adj_type !== 'OPENING BALANCE'
+            && $this->isBeforeStockFloor((string) $hdr->adj_date);
+
         if ($qty <= self::EPSILON) {
             // OB sudah pas dengan ledger — tidak ada yang perlu diterapkan.
             [$movMin, $movPlus] = [0, 0];
         } elseif ($direction === '+') {
-            $qtyBaru = $qtyAtAdjDate + $qty;
-            $avgBaru = $qtyBaru > 0
-                ? (($qtyAtAdjDate * $avgNow) + ($qty * $avgCost)) / $qtyBaru
-                : $avgNow;
-
-            $stockQ()->update([
-                'article_qty' => DB::raw("coalesce(article_qty,0) + {$qty}"),
-                'avg_price'   => $avgBaru,
-            ]);
-
             [$movMin, $movPlus] = [0, $qty];
+
+            if (!$skipStockTouch) {
+                $qtyBaru = $qtyAtAdjDate + $qty;
+                $avgBaru = $qtyBaru > 0
+                    ? (($qtyAtAdjDate * $avgNow) + ($qty * $avgCost)) / $qtyBaru
+                    : $avgNow;
+
+                $stockQ()->update([
+                    'article_qty' => DB::raw("coalesce(article_qty,0) + {$qty}"),
+                    'avg_price'   => $avgBaru,
+                ]);
+            }
         } else {
-            $stockQ()->update(['article_qty' => DB::raw("coalesce(article_qty,0) - {$qty}")]);
+            if (!$skipStockTouch) {
+                $stockQ()->update(['article_qty' => DB::raw("coalesce(article_qty,0) - {$qty}")]);
+            }
             [$movMin, $movPlus] = [$qty, 0];
         }
 
@@ -1140,9 +1161,17 @@ class StockAdjustmentController extends Controller
                 ->whereIn('article_code', $baseline->keys()->all())
                 ->get()->keyBy('article_code');
 
+            // OPENING BALANCE sengaja TIDAK kena floor (lihat applyAdjustmentToStock()).
+            // SYSTEM CORRECTION dkk: kalau adj_date-nya backdate <= 2026-06-30,
+            // article_qty tidak pernah disentuh waktu posting, jadi juga tidak
+            // boleh disentuh sekarang waktu cancel.
+            $skipStockTouch = $hdr->adj_type !== 'OPENING BALANCE'
+                && $this->isBeforeStockFloor((string) $hdr->adj_date);
+
             foreach ($baseline as $code => $signed) {
                 $signed = (float) $signed;
                 if (abs($signed) < self::EPSILON) continue;
+                if ($skipStockTouch) continue;
 
                 $art = $meta->get($code);
                 $this->ensureStockRow($code, $location, $art);
@@ -1757,37 +1786,98 @@ class StockAdjustmentController extends Controller
     // =========================================================================
 
     /**
-     * Apakah tanggal ini "sudah tercakup" (<=) OPENING BALANCE AKTIF terbaru
-     * untuk artikel+lokasi ini? Kalau tidak ada OB sama sekali, selalu false
-     * (tidak ada anchor yang bisa dilewati).
+     * Endpoint AJAX: apakah tanggal ini bertepatan dengan jadwal STO
+     * (sto_config_mapping.sto_date) di lokasi manapun? Dipakai form transaksi
+     * (Receiving, Transfer, dst) untuk tahu kapan perlu menanyakan
+     * opname_position ke user lewat modal sebelum simpan -- tidak setiap
+     * backdate, cuma yang kebetulan tanggalnya jadwal STO.
      */
-    public function obBoundaryFor(string $articleCode, string $location, string $dateYmd): bool
+    public function checkStoDate(Request $request)
     {
-        $obDateYmd = DB::table('stock_adjustment_hdr as h')
-            ->join('stock_adjustment_det as d', 'd.adj_code', '=', 'h.adj_code')
-            ->where('h.adj_type', 'OPENING BALANCE')
-            ->where('h.status', self::ST_POSTED)
-            ->where('h.location_code', $location)
-            ->where('d.article_code', $articleCode)
-            ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC")
-            ->selectRaw("TO_CHAR(TO_DATE(h.adj_date,'dd-mm-yyyy'), 'YYYY-MM-DD') as ob_date")
-            ->value('ob_date');
+        $dateYmd = trim((string) $request->query('date'));
+        if (!preg_match('/^\d{2}-\d{2}-\d{4}$/', $dateYmd)) {
+            return response()->json(['hasSto' => false]);
+        }
 
-        return $obDateYmd !== null && $dateYmd <= $obDateYmd;
+        $hasSto = DB::table('sto_config_mapping')
+            ->where('target_type', 'LOCATION')
+            ->where('sto_date', $dateYmd)
+            ->exists();
+
+        return response()->json(['hasSto' => $hasSto]);
     }
 
     /**
-     * Sesuaikan stock_after OPENING BALANCE aktif terbaru untuk artikel+lokasi
-     * ini sebesar $delta (bertanda). Dipanggil PERSIS saat sebuah movement di
-     * modul lain baru saja MASUK ke cakupan OB (delta = -efek movement itu,
-     * "diserap") atau baru saja KELUAR dari cakupannya (delta = +efek movement
-     * itu, "dilepas" supaya kembali dihitung normal sebagai net movement
-     * sesudah OB). stock_before TIDAK diubah — itu snapshot historis saat OB
-     * terakhir kali diposting; hanya stock_after (dan qty_adjustment/direction
-     * turunannya) yang bergerak, supaya OB tetap jadi "kesimpulan akhir" yang
+     * Apakah tanggal ini "sudah tercakup" oleh adjustment AKTIF (OPENING
+     * BALANCE atau SYSTEM CORRECTION) TERBARU untuk artikel+lokasi ini?
+     *
+     * OPENING BALANCE: meresolve SATU HARI PENUH (keputusan bisnis) -- tanggal
+     * SEBELUM atau SAMA DENGAN tanggal OB selalu dianggap tercakup, apapun
+     * jam sebenarnya (STO fisik dianggap sudah mencakup semua yang terjadi
+     * hari itu).
+     *
+     * SYSTEM CORRECTION: dipakai KHUSUS untuk kasus STO 08:00-17:00 di mana
+     * TIDAK ADA transaksi keluar lokasi selama jam itu, tapi barang MASUK
+     * (mis. dari supplier) tetap bisa terjadi, dan transaksi keluar baru
+     * terjadi malam hari (SETELAH opname). Kalau SYSTEM CORRECTION dipakai
+     * sebagai OB (whole-day resolve), transaksi malam yang seharusnya TIDAK
+     * termasuk hasil opname akan salah ikut diserap. Karena movement_date
+     * cuma tanggal (tidak ada jam) dan created_at tidak bisa dipakai (semua
+     * bisa backdate berhari-hari, urutan input tidak terprediksi), dipakai
+     * flag manual $opnamePosition ('before'/'after') yang diisi user SENDIRI
+     * saat input transaksi tsb (independen, tidak menunggu correction-nya
+     * sudah ada atau belum):
+     *   - tanggal < tanggal correction  -> selalu tercakup (sama seperti OB)
+     *   - tanggal == tanggal correction -> tercakup HANYA kalau
+     *     $opnamePosition === 'before'. 'after' atau null (belum diisi/tidak
+     *     relevan) -> TIDAK tercakup, dihitung normal sebagai net movement
+     *     di atas correction.
+     *   - tanggal > tanggal correction  -> tidak pernah tercakup
+     *
+     * Kalau tidak ada OB maupun SYSTEM CORRECTION sama sekali, selalu false
+     * (tidak ada anchor yang bisa dilewati).
+     */
+    public function obBoundaryFor(string $articleCode, string $location, string $dateYmd, ?string $opnamePosition = null): bool
+    {
+        $latest = DB::table('stock_adjustment_hdr as h')
+            ->join('stock_adjustment_det as d', 'd.adj_code', '=', 'h.adj_code')
+            ->whereIn('h.adj_type', ['OPENING BALANCE', 'SYSTEM CORRECTION'])
+            ->where('h.status', self::ST_POSTED)
+            ->where('h.location_code', $location)
+            ->where('d.article_code', $articleCode)
+            ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC, h.id DESC")
+            ->selectRaw("h.adj_type, TO_CHAR(TO_DATE(h.adj_date,'dd-mm-yyyy'), 'YYYY-MM-DD') as adj_date")
+            ->first();
+
+        if (!$latest) {
+            return false;
+        }
+
+        if ($dateYmd < $latest->adj_date) return true;
+        if ($dateYmd > $latest->adj_date) return false;
+
+        // $dateYmd === $latest->adj_date
+        if ($latest->adj_type === 'OPENING BALANCE') {
+            return true;
+        }
+
+        return $opnamePosition === 'before';
+    }
+
+    /**
+     * Sesuaikan stock_after adjustment AKTIF TERBARU (OPENING BALANCE atau
+     * SYSTEM CORRECTION -- yang mana pun tanggalnya paling akhir, lihat
+     * obBoundaryFor()) untuk artikel+lokasi ini sebesar $delta (bertanda).
+     * Dipanggil PERSIS saat sebuah movement di modul lain baru saja MASUK ke
+     * cakupannya (delta = -efek movement itu, "diserap") atau baru saja
+     * KELUAR dari cakupannya (delta = +efek movement itu, "dilepas" supaya
+     * kembali dihitung normal sebagai net movement sesudahnya). stock_before
+     * TIDAK diubah — itu snapshot historis saat adjustment terakhir kali
+     * diposting; hanya stock_after (dan qty_adjustment/direction turunannya)
+     * yang bergerak, supaya adjustment tetap jadi "kesimpulan akhir" yang
      * benar tanpa perlu direvisi/diposting ulang manual oleh user.
      *
-     * @return bool true kalau ada OB yang disesuaikan (false = tidak ada OB aktif untuk artikel/lokasi ini)
+     * @return bool true kalau ada adjustment yang disesuaikan (false = tidak ada OB/SYSTEM CORRECTION aktif untuk artikel/lokasi ini)
      */
     public function absorbIntoLatestOpeningBalance(
         string $articleCode, string $location, float $delta, string $username, string $context
@@ -1798,11 +1888,11 @@ class StockAdjustmentController extends Controller
 
         $ob = DB::table('stock_adjustment_hdr as h')
             ->join('stock_adjustment_det as d', 'd.adj_code', '=', 'h.adj_code')
-            ->where('h.adj_type', 'OPENING BALANCE')
+            ->whereIn('h.adj_type', ['OPENING BALANCE', 'SYSTEM CORRECTION'])
             ->where('h.status', self::ST_POSTED)
             ->where('h.location_code', $location)
             ->where('d.article_code', $articleCode)
-            ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC")
+            ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC, h.id DESC")
             ->select('h.adj_code', 'h.note', 'd.id as det_id', 'd.stock_before', 'd.stock_after')
             ->first();
 

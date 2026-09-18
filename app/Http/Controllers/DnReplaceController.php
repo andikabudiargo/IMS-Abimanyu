@@ -14,9 +14,12 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Traits\HasStockFloorGuard;
 
 class DnReplaceController extends Controller
 {
+    use HasStockFloorGuard;
+
     private $title;
     private $moduleCode;
     private $decimalPlaces;
@@ -224,11 +227,15 @@ class DnReplaceController extends Controller
      * Return: avg_price baris stock (untuk dicatat di movement_price), atau 0
      * kalau baris stock belum ada sebelumnya.
      */
-    private function decrementStock($articleCode, $locationCode, $qtyKeluar)
+    private function decrementStock($articleCode, $locationCode, $qtyKeluar, ?string $movementDateDdMmYyyy = null)
     {
         if ($qtyKeluar <= 0) {
             return null;
         }
+
+        // Backdate <= 2026-06-30 tidak pernah dihitung ledger -- article_qty
+        // tidak boleh disentuh (movement tetap dicatat untuk audit trail).
+        $skipStockTouch = $movementDateDdMmYyyy !== null && $this->isBeforeStockFloor($movementDateDdMmYyyy);
 
         $siteCode = 'HO';
 
@@ -240,11 +247,13 @@ class DnReplaceController extends Controller
             ->first();
 
         if ($stockRow) {
-            DB::table('warehouse_stock')
-                ->where('site_code', $siteCode)
-                ->where('article_code', $articleCode)
-                ->where('location_number', $locationCode)
-                ->decrement('article_qty', $qtyKeluar);
+            if (!$skipStockTouch) {
+                DB::table('warehouse_stock')
+                    ->where('site_code', $siteCode)
+                    ->where('article_code', $articleCode)
+                    ->where('location_number', $locationCode)
+                    ->decrement('article_qty', $qtyKeluar);
+            }
 
             return $stockRow->avg_price ?? 0;
         }
@@ -260,7 +269,7 @@ class DnReplaceController extends Controller
             'site_code'       => $siteCode,
             'article_code'    => $articleCode,
             'location_number' => $locationCode,
-            'article_qty'     => -$qtyKeluar,
+            'article_qty'     => $skipStockTouch ? 0 : -$qtyKeluar,
             'dept_code'       => $article->article_type ?? '',
             'uom'             => $article->uom ?? '',
         ]);
@@ -406,7 +415,7 @@ class DnReplaceController extends Controller
             $this->assertNotExceedReturn($returnNumber, $val->article_code, $qtyKeluar, $excludeReplaceNumber);
 
             // Kurangi stock (boleh minus, sudah tervalidasi ke return di atas)
-            $stockFG = $this->decrementStock($val->article_code, $locationFG, $qtyKeluar);
+            $stockFG = $this->decrementStock($val->article_code, $locationFG, $qtyKeluar, $movementDate);
 
             $seq++;
             $dataSetMovement[] = [
@@ -517,11 +526,16 @@ class DnReplaceController extends Controller
                     ]
                 );
 
-            DB::table('warehouse_stock')
-                ->where('site_code', $siteCode)
-                ->where('article_code', $mv->artikel_code)
-                ->where('location_number', $locationFG)
-                ->increment('article_qty', $qtyKembali);
+            // Backdate <= 2026-06-30 tidak pernah dihitung ledger -- kalau
+            // movement aslinya tidak pernah menambah article_qty (dikurangi
+            // saat posting), jangan dikembalikan juga sekarang.
+            if (!$this->isBeforeStockFloor((string) $mv->movement_date)) {
+                DB::table('warehouse_stock')
+                    ->where('site_code', $siteCode)
+                    ->where('article_code', $mv->artikel_code)
+                    ->where('location_number', $locationFG)
+                    ->increment('article_qty', $qtyKembali);
+            }
         }
 
         // Movement 'REPLACEMENT' aktif ini mungkin sudah diserap ke OPENING
