@@ -511,6 +511,7 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('invoice/approve',['as'=>'invoice.approve','uses'=>'InvoiceController@approve']);
 	Route::get('invoice/notif/approve',['as'=>'invoice.notif.approve','uses'=>'InvoiceController@approve']);
 	Route::post('invoice/listDetail',['as'=>'invoice.list.detail','uses'=>'InvoiceController@listDetail']);
+	Route::get('invoice/analytics-ar', ['as'=>'invoice.analyticsAr','uses'=>'InvoiceController@analyticsAr']);
 
 	Route::get('invoice/get/bukti-potong',['as'=>'invoice.get.bukti.potong','uses'=>'InvoiceController@getBuktiPotong']);
 

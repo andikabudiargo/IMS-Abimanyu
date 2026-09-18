@@ -137,6 +137,67 @@
     </div>
   </div>
 </section>
+<section id="ar-dashboard">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">AR Dashboard</h4>
+      <div class="heading-elements">
+        <ul class="list-inline mb-0">
+          <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-content collapse">
+      <div class="card-body">
+        <div class="form-row mb-1">
+          <div class="form-group col-md-2">
+            <label for="arYear">Tahun</label>
+            <select class="form-control" id="arYear">
+              @php $currentYear = (int) date('Y'); @endphp
+              @for($y = $currentYear; $y >= 2024; $y--)
+                <option value="{{ $y }}" {{ $y == $currentYear ? 'selected' : '' }}>{{ $y }}</option>
+              @endfor
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-3">
+            <div class="card bg-light-secondary mb-0">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-1">Opening Balance</h6>
+                <h4 class="mb-0" id="cardOpeningBalance">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-light-primary mb-0">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-1">Sales</h6>
+                <h4 class="mb-0" id="cardTotalAr">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-light-success mb-0">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-1">Pembayaran</h6>
+                <h4 class="mb-0" id="cardTotalPaid">0</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-light-warning mb-0">
+              <div class="card-body text-center">
+                <h6 class="text-muted mb-1">Balance</h6>
+                <h4 class="mb-0" id="cardOutstanding">0</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 <section id="table-article">
   <div class="card">
     <div class="card-header">
@@ -199,6 +260,29 @@
       mode: 'range'
     });
   }
+
+  const fmtRp = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(v);
+
+const loadArDashboard = (tahun) => {
+  $.get("{{ route('invoice.analyticsAr') }}", { tahun: tahun }, function (res) {
+    $('#cardOpeningBalance').text(fmtRp(res.openingBalance));
+    $('#cardTotalAr').text(fmtRp(res.totalAr));
+    $('#cardTotalPaid').text(fmtRp(res.totalPaid));
+    $('#cardOutstanding').text(fmtRp(res.outstanding));
+  });
+};
+
+let arDashboardInitialized = false;
+$('#ar-dashboard a[data-action="collapse"]').closest('.card').find('.card-content').on('shown.bs.collapse', function () {
+  if (!arDashboardInitialized) {
+    arDashboardInitialized = true;
+    loadArDashboard($('#arYear').val());
+  }
+});
+
+$('#arYear').on('change', function () {
+  loadArDashboard($(this).val());
+});
 
   function searcData($type){
     let searchInv = $("#searchInv").val();

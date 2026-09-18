@@ -1889,6 +1889,43 @@ DB::raw("
         ->make(true);
     }
 
+    public function analyticsAr(Request $request)
+{
+    $tahun = $request->tahun ?? date('Y');
+    $isCurrentYear = ((int) $tahun === (int) date('Y'));
+
+    $startDate = "01-01-$tahun";
+    $asOfDate  = $isCurrentYear ? date('d-m-Y') : "31-12-$tahun";
+
+    // Opening balance: invoice terbit sebelum tahun berjalan, dikurangi yang sudah dibayar (status 6/PAID)
+    $opening = DB::table('invoice_hdr')
+        ->whereRaw("to_date(invoice_date,'DD-MM-YYYY') < to_date(?, 'DD-MM-YYYY')", [$startDate])
+        ->where('status', '<>', '5') // exclude cancel
+        ->where('status', '<>', '6') // exclude yang sudah lunas -- sisanya itulah opening balance
+        ->sum('grand_total');
+
+    // Total AR: invoice terbit dalam tahun berjalan
+    $totalAr = DB::table('invoice_hdr')
+        ->whereRaw("to_date(invoice_date,'DD-MM-YYYY') between to_date(?, 'DD-MM-YYYY') and to_date(?, 'DD-MM-YYYY')", [$startDate, $asOfDate])
+        ->where('status', '<>', '5')
+        ->sum('grand_total');
+
+    // Sudah dibayar: invoice dalam tahun berjalan yang statusnya PAID
+    $totalPaid = DB::table('invoice_hdr')
+        ->whereRaw("to_date(invoice_date,'DD-MM-YYYY') between to_date(?, 'DD-MM-YYYY') and to_date(?, 'DD-MM-YYYY')", [$startDate, $asOfDate])
+        ->where('status', '6')
+        ->sum('grand_total');
+
+    $outstanding = $opening + $totalAr - $totalPaid;
+
+    return response()->json([
+        'openingBalance' => (float) $opening,
+        'totalAr'        => (float) $totalAr,
+        'totalPaid'      => (float) $totalPaid,
+        'outstanding'    => (float) $outstanding,
+    ]);
+}
+
     public function print(Request $request)
 {
     $id = Crypt::decryptString($request->id);
