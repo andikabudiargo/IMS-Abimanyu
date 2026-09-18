@@ -371,7 +371,7 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose Account';
                 break;
-            case 'listArtilcleAp': 
+            case 'listArtilcleAp':
                 $table='';
                 $field ='';
                 $order ='';
@@ -379,6 +379,17 @@ class DependentController extends Controller
                 $name  ='';
                 $default='';
                 $defaulttxt='Choose Article';
+                break;
+            // Account Payable Non-PO: article manual (listrik, catering, dll), tanpa filter supplier/tipe
+            case 'article_ap_np':
+                $table='article';
+                $field ='';
+                $order ='article_desc';
+                $value ='article_code';
+                $value2 ='article_alternative_code';
+                $name  ='article_desc';
+                $default='';
+                $defaulttxt='Choose article';
                 break;
 
             //tambahan untuk uom con v2
@@ -619,6 +630,13 @@ class DependentController extends Controller
             ->leftJoin('uom','uom.code','=',$table.'.uom')
             ->whereIn('article_type',['RMNP','CM3'])
              ->where($table.'.status', '!=', 0)
+            ->orderBy($order)
+            ->get();
+        }elseif($dependent =='article_ap_np'){
+            // Non-PO AP: semua article aktif, tanpa filter tipe/supplier (sesuai keputusan produk)
+            $data= DB::table($table)
+            ->leftJoin('uom','uom.code','=',$table.'.uom')
+            ->where($table.'.status', '!=', 0)
             ->orderBy($order)
             ->get();
         }elseif($dependent =='article_wos'){
@@ -1161,6 +1179,8 @@ class DependentController extends Controller
             //handle non purchase
              }elseif($dependent =='article_pr_np'){
                 $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'" data-uom-group="'.$row->uom_group.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
+            }elseif($dependent =='article_ap_np'){
+                $output .='<option value="'.$row->article_code.'" data-detail="'.$row->article_code.'|'.$row->uom.'|'.$row->article_desc.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_wos'){
                 $output .='<option value="'.$row->article_code.'|'.$row->uom.'|'.$row->third_party.'|'.$row->dept.'|'.$row->article_rm.'|'.$row->qty_rm.'">'.$row->article_alternative_code.' - '. $row->article_desc.'</option>';
             }elseif($dependent =='article_sub_rm'){

@@ -58,8 +58,8 @@
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-8">
-                                            <label class="form-label" for="poNumber">PO Number*</label>
-                                            <input type="text" class="form-control font-weight-bold disabled-el" id="poNumber" name="poNumber" value="{{ $header->po_number  }}" disabled />
+                                            <label class="form-label" for="poNumber">{{ $header->ap_type == 'NONPO' ? 'Tipe Invoice' : 'PO Number*' }}</label>
+                                            <input type="text" class="form-control font-weight-bold disabled-el" id="poNumber" name="poNumber" value="{{ $header->ap_type == 'NONPO' ? 'Non-PO' : $header->po_number  }}" disabled />
                                         </div>
                                         <div class="form-group col-md-2">
                                             <label for="currency">Currency*</label>
@@ -116,6 +116,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                @if($header->ap_type != 'NONPO')
                                 <div class="col-md-6 col-12">
                                     <div class="form-row">
                                         <div class="col-sm-12">
@@ -132,7 +133,7 @@
                                                     <tbody>
                                                         @foreach($listRec as $val)
                                                             <tr>
-                                                                <td>{{ $val->rec_number }}</td>
+                                                                <td><a href="{{ route('receiving.show', ['id'=>Crypt::encryptString($val->id)]) }}" target="_blank">{{ $val->rec_number }}</a></td>
                                                                 <td>{{ $val->do_date }}</td>
                                                                 <td>{{ $val->do_number }}</td>
                                                             </tr>
@@ -143,10 +144,11 @@
                                         </div>
                                     </div>
                                 </div>
+                                @endif
                             </div>
                             <div class="form-row">
                                 <div class="col-sm-12">
-                                    <p class="mb-0">Detail receiving</p>
+                                    <p class="mb-0">{{ $header->ap_type == 'NONPO' ? 'Detail Item (Non-PO)' : 'Detail receiving' }}</p>
                                     <div class="card-datatable table-responsive pt-0">
                                         <table class="table table-bordered" id="listOfRec">
                                             <thead>

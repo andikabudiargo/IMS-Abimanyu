@@ -11,10 +11,13 @@
     let sNilaiPpnPenyebut= "{{ $ppnPenyebut }}";
     let showDetail="";
     let listArticle="";
+    let listArticleNp="";
     let listCoa="";
     let edit="";
     let dariEdit="";
+    let apType="PO";
     let urutanRow = 0;
+    let urutanRowNp = 0;
     let depts = '{!! $depts !!}';
 
     $("#ppnValue").val(sNilaiPPN);
@@ -510,11 +513,13 @@
         recNumber=recNumber.slice(0,-1);
         let tableIsi = $('#listOfRec > tbody  tr').length;
 
-        //Bandingkan hanya angka bulanya saja
-        if(Math.trunc(parseFloat($("#grandTotalQty").val()))!=Math.trunc(sumQty)){
-            Swal.fire("Warning","Data belum sesuai harus di submit ulang","warning"); 
+        //Bandingkan hanya angka bulanya saja (tidak berlaku untuk Non-PO, tidak ada LPB yang ditarik)
+        let qtyBelumSesuai = (apType === 'NONPO') ? false : (Math.trunc(parseFloat($("#grandTotalQty").val()||0))!=Math.trunc(sumQty));
+        if(qtyBelumSesuai){
+            Swal.fire("Warning","Data belum sesuai harus di submit ulang","warning");
         }else{
-            if (recNumber && (tableIsi != 0)){
+            let siapDisimpan = (apType === 'NONPO') ? (tableIsi != 0) : (recNumber && (tableIsi != 0));
+            if (siapDisimpan){
                 if (!$("#frmAdd")[0].checkValidity()){
                     $("#frmAdd").submit();
                 }else{
@@ -523,12 +528,13 @@
                     $('#recNumberSave').val(recNumber);
                     // ambil semua data article
                     let objArtAcc= $('select[name="articleAccount[]"]');
-                    let objArtCode= $('input[name="articleCode[]"]');
+                    let objArtCode= $('[name="articleCode[]"]');
                     let objArtDesc= $('input[name="articleDesc[]"]');
-                    let objArtCc= $('input[name="articleCc[]"]');
+                    let objArtCc= $('[name="articleCc[]"]');
                     let objArtQty= $('input[name="articleQty[]"]');
                     let objArtPrice= $('input[name="articlePrice[]"]');
                     let objArtTotal= $('input[name="articleTotal[]"]');
+                    let objArtUom= $('[name="articleUom[]"]');
 
                     let objAddAccount= $('select[name="addAccount[]"]');
                     let objAddAccountDesc= $('input[name="addAccountDesc[]"]');
@@ -557,6 +563,9 @@
                                     "cc":sArtCc,
                                     "debit":sArtDebit,
                                     "credit":0,
+                                    "qty": apType === 'NONPO' ? (objArtQty.eq(i).val()||'').toString().replace(/,/gi, '') : null,
+                                    "price": apType === 'NONPO' ? (objArtPrice.eq(i).val()||'').toString().replace(/,/gi, '') : null,
+                                    "uom": apType === 'NONPO' ? (objArtUom.eq(i).val()||'') : null,
                                 });
                             }
                             // console.log(details);
@@ -647,7 +656,7 @@
                     }
                 }
             }else{
-                Swal.fire("Warning","LPB Belum dipilih atau belum di submit","warning"); 
+                Swal.fire("Warning", apType === 'NONPO' ? "Detail item belum diisi" : "LPB Belum dipilih atau belum di submit", "warning");
             }
         }
     });
@@ -728,7 +737,11 @@
                                         <input type="text" class="form-control-plaintext" id="articleCodeAlternative" name="articleCodeAlternative[]" value="${result.detailRec[i].article}" disabled/></td>
                                         <input type="hidden" class="form-control-plaintext disabled-el" id="articleCode" name="articleCode[]" value="${result.detailRec[i].article_code}"/></td>
                                     <td style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleDesc" name="articleDesc[]" value="${result.detailRec[i].desc}" disabled/></td>
-                                    <td style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleCc" name="articleCc[]" value="${result.detailRec[i].dept}" style="text-align:right;" disabled/></td>
+                                    <td style="padding:0px 5px 0px 5px;">
+                                        <select class="form-control activateSelect2 disabled-el" id="articleCc${i}" name="articleCc[]" disabled>
+                                            ${depts}
+                                        </select>
+                                    </td>
                                     <td style="padding:0px 5px 0px 5px;">${result.detailRec[i].uom}</td>
                                     <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleQty" name="articleQty[]" value="${humanizeNumber(parseFloat(result.detailRec[i].qty).toFixed(2))}" style="text-align:right;" disabled/></td>
                                     <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articlePrice" name="articlePrice[]" value="${humanizeNumber(parseFloat(result.detailRec[i].price).toFixed(2))}" style="text-align:right;" disabled/></td>
@@ -740,6 +753,7 @@
                         $("#listOfRec tbody").append(isiTabel);
                         for(i=0;i<result.detailRec.length;i++){
                             $('#articleAccount'+i).val(result.detailRec[i].account).trigger('change');
+                            $('#articleCc'+i).val(result.detailRec[i].dept).trigger('change');
                         }
                         $('.activateSelect2').select2();
                         $("#grandTotalQty").val(grandTotalQty);
@@ -813,6 +827,20 @@
             }
         })
     }
+
+    function isiArticleNp() {
+        $.ajax({
+            url:"{{route('dynamic.dependent')}}",
+            method:"POST",
+            data:{
+                dependent:'article_ap_np'
+            },
+            success:function(result){
+                listArticleNp = result;
+            }
+        })
+    }
+    isiArticleNp();
 
     function changeselect(obj,accountNumber) {
         $('#'+obj).attr('disabled','disabled');
@@ -900,6 +928,118 @@
 
     function deleteRow(obj) {
         $(obj).closest('tr').remove();
+    }
+
+    function applyApTypeUi(type) {
+        if (type === 'NONPO') {
+            $('#poNumber').prop('required', false);
+            $('#poNumberWrap').addClass('d-none');
+            $('#lpbSection').addClass('d-none');
+            $('#addArticleNpBtn').removeClass('d-none');
+            $('#detailLabel').text('Detail Item (Non-PO)');
+        } else {
+            $('#poNumber').prop('required', true);
+            $('#poNumberWrap').removeClass('d-none');
+            $('#lpbSection').removeClass('d-none');
+            $('#addArticleNpBtn').addClass('d-none');
+            $('#detailLabel').text('Detail receiving');
+        }
+    }
+
+    $('body').on('change', 'input[name=apType]', function () {
+        apType = $(this).val();
+        applyApTypeUi(apType);
+        $("#listOfRec > tbody").empty();
+        urutanRowNp = 0;
+        $('#poNumber').val('').trigger('change');
+        hitungTotalNp();
+    });
+
+    add_new_row_np = () => {
+        urutanRowNp++;
+        let isiTabel = `<tr>
+                            <td width="20%" style="padding:0px 5px 0px 5px;">
+                                <select class="form-control activate-select2" id="articleAccountNp${urutanRowNp}" name="articleAccount[]">
+                                    ${listCoa}
+                                </select>
+                            </td>
+                            <td width="12%" style="padding:0px 5px 0px 5px;">
+                                <select class="form-control activate-select2" id="articleCodeNp${urutanRowNp}" name="articleCode[]">
+                                    ${listArticleNp}
+                                </select>
+                            </td>
+                            <td style="padding:0px 5px 0px 5px;">
+                                <input type="text" class="form-control-plaintext" name="articleDesc[]" value="" />
+                            </td>
+                            <td width="5%" style="padding:0px 5px 0px 5px;">
+                                <select class="form-control activate-select2" id="articleCcNp${urutanRowNp}" name="articleCc[]">
+                                    ${depts}
+                                </select>
+                            </td>
+                            <td width="5%" style="padding:0px 5px 0px 5px;text-align:center;">
+                                <span class="npUomText"></span>
+                                <input type="hidden" name="articleUom[]" value="" />
+                            </td>
+                            <td width="8%" style="padding:0px 5px 0px 5px;">
+                                <input type="text" class="form-control-plaintext numeral-mask-digit npQty" name="articleQty[]" value="" style="text-align:right;" oninput="calcNpRowTotal(this)" />
+                            </td>
+                            <td width="10%" style="padding:0px 5px 0px 5px;">
+                                <input type="text" class="form-control-plaintext numeral-mask-digit npPrice" name="articlePrice[]" value="" style="text-align:right;" oninput="calcNpRowTotal(this)" />
+                            </td>
+                            <td width="15%" style="padding:0px 5px 0px 5px;display:flex;align-items:center;">
+                                <input type="text" class="form-control-plaintext disabled-el npTotal" name="articleTotal[]" value="0" style="text-align:right;" disabled />
+                                <a onmouseover="this.style.cursor='pointer'" onclick="deleteRow(this);hitungTotalNp();" data-toggle="tooltip" data-placement="left" title="Delete row">
+                                    <i data-feather="trash-2" class="remove_button feather-24"></i>
+                                </a>
+                            </td>
+                        </tr>`;
+        $("#listOfRec tbody").append(isiTabel);
+        mask_thousand_digit(2);
+        feather.replace();
+        $('.activate-select2').select2();
+    }
+
+    add_new_row_np_edit = (row) => {
+        add_new_row_np();
+        let $tr = $('#articleCodeNp' + urutanRowNp).closest('tr');
+        $('#articleAccountNp' + urutanRowNp).val(row.account).trigger('change');
+        $('#articleCodeNp' + urutanRowNp).val(row.reference).trigger('change');
+        $('#articleCcNp' + urutanRowNp).val(row.cost_center).trigger('change');
+        $tr.find('input[name="articleDesc[]"]').val(row.description || '');
+        $tr.find('input[name="articleUom[]"]').val(row.uom || '');
+        $tr.find('.npUomText').text(row.uom || '');
+        $tr.find('.npQty').val(humanizeNumber(parseFloat(row.qty || 0).toFixed(2)));
+        $tr.find('.npPrice').val(humanizeNumber(parseFloat(row.price || 0).toFixed(2)));
+        $tr.find('.npTotal').val(humanizeNumber(parseFloat(row.debit || 0).toFixed(2)));
+        mask_thousand_digit(2);
+    }
+
+    $('body').on('change', 'select[name="articleCode[]"]', function () {
+        let $tr = $(this).closest('tr');
+        let detail = $(this).find(':selected').data('detail');
+        let parts = detail ? detail.toString().split('|') : ['', '', ''];
+        let uom = parts[1] || '';
+        let desc = parts[2] || '';
+        $tr.find('input[name="articleDesc[]"]').val(desc);
+        $tr.find('input[name="articleUom[]"]').val(uom);
+        $tr.find('.npUomText').text(uom);
+    });
+
+    function calcNpRowTotal(el) {
+        let $tr = $(el).closest('tr');
+        let qty = parseFloat(($tr.find('.npQty').val() || '').toString().replace(/,/gi, '')) || 0;
+        let price = parseFloat(($tr.find('.npPrice').val() || '').toString().replace(/,/gi, '')) || 0;
+        let total = qty * price;
+        $tr.find('.npTotal').val(parseFloat(total).toFixed(2));
+        mask_thousand_digit(2);
+        hitungTotalNp();
+    }
+
+    function hitungTotalNp() {
+        let totals = $('.npTotal').map(function () { return ($(this).val() || '0').toString().replace(/,/gi, ''); }).get();
+        let sum = sumFromArray(totals);
+        $('#basisAmountA').val(sum);
+        hitungTotal();
     }
 
 </script>

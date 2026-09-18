@@ -406,20 +406,20 @@ class AccountPayableController extends Controller
                 ->orWhere('ap_number','<>',$apNumber);
             })
             ->orderBy("rec_number")
-            ->select("rec_number","do_date","do_number"
+            ->select("receiving_hdr.id","rec_number","do_date","do_number"
             // ,db::raw("(select sum(qty*price) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sub_total")
             // ,db::raw("(select sum((qty*price)*purchase_order_hdr.discount/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as discount")
             // ,db::raw("(select sum((qty*price)-((qty*price)*purchase_order_hdr.discount/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as dpp")
             // ,db::raw("(select sum(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.ppn/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as ppn")
             // ,db::raw("(select sum((qty*price)-((qty*price)*purchase_order_hdr.discount/100)+(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.ppn/100)-(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.pph22/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as total")
             ,db::raw("(select sum(qty) as sum_qty from receiving_det where rec_number=receiving_hdr.rec_number) as sum_qty"))
-            ->get(); 
+            ->get();
 
             // dd($data);
 
         }else{
 
-            $data= DB::table("receiving_hdr") 
+            $data= DB::table("receiving_hdr")
             // ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
             ->where("receiving_hdr.po_number",$poNumber)
             ->where("receiving_hdr.status","4")
@@ -429,14 +429,14 @@ class AccountPayableController extends Controller
                 // ->where('po_number',$poNumber);
             })
             ->orderBy("rec_number")
-            ->select("rec_number","do_date","do_number"
+            ->select("receiving_hdr.id","rec_number","do_date","do_number"
             // ,db::raw("(sum(qty*price) from purchase_order_det where po_number = purchase_order_hdr.po_number) as sub_total")
             // ,db::raw("(select sum((qty*price)*purchase_order_hdr.discount/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as discount")
             // ,db::raw("(select sum((qty*price)-((qty*price)*purchase_order_hdr.discount/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as dpp")
             // ,db::raw("(select sum(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.ppn/100) from purchase_order_det where po_number = purchase_order_hdr.po_number) as ppn")
             // ,db::raw("(select sum((qty*price)-((qty*price)*purchase_order_hdr.discount/100)+(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.ppn/100)-(((qty*price)-((qty*price)*purchase_order_hdr.discount/100))*purchase_order_hdr.pph22/100)) from purchase_order_det where po_number = purchase_order_hdr.po_number) as total")
             ,db::raw("(select sum(qty) as sum_qty from receiving_det where rec_number=receiving_hdr.rec_number) as sum_qty"))
-            ->get(); 
+            ->get();
         }
         
         if ($apNumber){
@@ -453,18 +453,19 @@ class AccountPayableController extends Controller
         $output="";
         foreach ($data as $key=>$row){
             $checked = in_array($row->rec_number, $details) ? 'checked' :'';
+            $recLink = '<a href="'.route('receiving.show', ['id'=>Crypt::encryptString($row->id)]).'" target="_blank">'.$row->rec_number.'</a>';
             if($showDetail =='true' && $checked ){
                 $output .="<tr>
                             <td>
                                 <div class='custom-control custom-checkbox'>
                                     <input type='checkbox' class='custom-control-input' id='customCheck$key' name='customCheck'
-                                    data-do-date='$row->do_date' 
+                                    data-do-date='$row->do_date'
                                     data-rec-number = '$row->rec_number'
                                     data-sum-qty = '$row->sum_qty' $checked disabled>
                                     <label class='custom-control-label' for='customCheck$key'></label>
                                 </div>
                             </td>
-                            <td>$row->rec_number</td>
+                            <td>$recLink</td>
                             <td>$row->do_date</td>
                             <td>$row->do_number</td>
                             <td>$row->total</td>
@@ -476,13 +477,13 @@ class AccountPayableController extends Controller
                             <td>
                                 <div class='custom-control custom-checkbox'>
                                     <input type='checkbox' class='custom-control-input' id='customCheck$key' name='customCheck'
-                                    data-do-date='$row->do_date' 
+                                    data-do-date='$row->do_date'
                                     data-rec-number = '$row->rec_number'
                                     data-sum-qty = '$row->sum_qty' $checked>
                                     <label class='custom-control-label' for='customCheck$key'></label>
                                 </div>
                             </td>
-                            <td>$row->rec_number</td>
+                            <td>$recLink</td>
                             <td>$row->do_date</td>
                             <td>$row->do_number</td>
                         </tr>";
@@ -691,7 +692,8 @@ class AccountPayableController extends Controller
     {
         $username =  Auth::user()->username;
         $suppCode = $request->supplier;
-        $poNumber = $request->poNumber;
+        $apType = $request->apType == 'NONPO' ? 'NONPO' : 'PO';
+        $poNumber = $apType == 'NONPO' ? null : $request->poNumber;
         $currency = $request->currency;
         $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
         $invoiceDate= $request->invoiceDate;
@@ -890,6 +892,7 @@ class AccountPayableController extends Controller
                     'inv_date' => $invoiceDate,
                     'old_ap_number' => $apNumber,
                     'po_number' => $poNumber,
+                    'ap_type' => $apType,
                     'supplier_id' => $suppCode,
                     'currency' => $currency,
                     'kurs' => $rate,
@@ -925,16 +928,20 @@ class AccountPayableController extends Controller
                 ]);
 
                 if($rowAffected){
-                    $dataReceiving = [];
-                    foreach ($recNumberSave as $val) {
-                        $dataReceiving[] = [
-                            'ap_number' => $apNumber,
-                            'rec_number' => $val,
-                            'created_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                        ];
+                    $recNumberSave = array_filter($recNumberSave, function($val){ return trim((string)$val) !== ''; });
+
+                    if(count($recNumberSave) > 0){
+                        $dataReceiving = [];
+                        foreach ($recNumberSave as $val) {
+                            $dataReceiving[] = [
+                                'ap_number' => $apNumber,
+                                'rec_number' => $val,
+                                'created_by' => Auth::user()->username,
+                                'created_at' => date('Y-m-d H:i:s'),
+                            ];
+                        }
+                        DB::table('ap_invoice_detail')->insert($dataReceiving);
                     }
-                    DB::table('ap_invoice_detail')->insert($dataReceiving);
 
                     $dataReceivingDetail = [];
                     foreach ($details as $val) {
@@ -946,6 +953,9 @@ class AccountPayableController extends Controller
                             'debit' => $val->debit,
                             'credit' => $val->credit,
                             'reference' => $val->reference,
+                            'qty' => isset($val->qty) && $val->qty !== '' ? $val->qty : null,
+                            'price' => isset($val->price) && $val->price !== '' ? $val->price : null,
+                            'uom' => isset($val->uom) && $val->uom !== '' ? $val->uom : null,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                         ];
@@ -1016,14 +1026,14 @@ class AccountPayableController extends Controller
         ->orderBy('id')
         ->get();
 
-        $data['listRec']= DB::table("receiving_hdr") 
+        $data['listRec']= DB::table("receiving_hdr")
         ->whereIn(DB::raw("rec_number"), function($query) use ($apNumber) {
             $query->select("rec_number")
             ->from('ap_invoice_detail')
             ->where('ap_number',$apNumber);
         })
         ->orderBy("id")
-        ->select("rec_number","do_date","do_number")
+        ->select("id","rec_number","do_date","do_number")
         ->get();
 
         $listRec= DB::table("receiving_hdr") 
@@ -1035,38 +1045,57 @@ class AccountPayableController extends Controller
         ->pluck('rec_number')->toArray();
         
         
-        $data['detailRec'] = DB::table('receiving_det')
-        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
-        ->leftJoin('article','article.article_code','receiving_det.article_code')
-        ->leftJoin(DB::RAW("(select distinct account, reference from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
-        // ->leftJoin(DB::RAW("(select * from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
-        // ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
-        //     $join->on('po.po_number','=','receiving_hdr.po_number')
-        //         ->on('po.article_code','=','receiving_det.article_code');
-        // })
-        ->whereIn('receiving_det.rec_number',$listRec)
-        ->where('receiving_det.qty','>',0)
-        ->select('article.article_alternative_code as article'
-        ,'article.article_desc as desc'
-        ,'receiving_det.uom_rec as uom'
-        ,db::raw("sum(receiving_det.qty) as qty")
-        // ,'po.price'
-        ,'receiving_det.price'
-        // ,db::raw("(sum(receiving_det.qty*po.price)) as total")
-        ,db::raw("(sum(receiving_det.qty*receiving_det.price)) as total")
-        ,'ap.account as account'
-        ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1) as dept")
-        // ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code ) limit 1) as dept")
-        )
-        ->groupBy('article.article_alternative_code')
-        ->groupBy('article.article_desc')
-        ->groupBy('receiving_det.uom_rec')
-        // ->groupBy('po.price')
-        ->groupBy('receiving_det.price')
-        ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1)"))
-        // ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
-        ->groupBy('ap.account')
-        ->get();
+        if($data['header']->ap_type == 'NONPO'){
+            // Non-PO: article/qty/price manual disimpan langsung di ap_invoice_det, tidak ada receiving
+            $data['detailRec'] = DB::table('ap_invoice_det')
+            ->leftJoin('depts','ap_invoice_det.cost_center','depts.code')
+            ->where('ap_invoice_det.ap_number',$apNumber)
+            ->where('ap_invoice_det.reference','<>','')
+            ->select('ap_invoice_det.reference as article'
+            ,'ap_invoice_det.description as desc'
+            ,'ap_invoice_det.uom'
+            ,'ap_invoice_det.qty'
+            ,'ap_invoice_det.price'
+            ,'ap_invoice_det.debit as total'
+            ,'ap_invoice_det.account'
+            ,'depts.name as dept'
+            )
+            ->orderBy('ap_invoice_det.id')
+            ->get();
+        }else{
+            $data['detailRec'] = DB::table('receiving_det')
+            ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+            ->leftJoin('article','article.article_code','receiving_det.article_code')
+            ->leftJoin(DB::RAW("(select distinct account, reference from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
+            // ->leftJoin(DB::RAW("(select * from ap_invoice_det where ap_number='$apNumber') as ap"),'ap.reference','receiving_det.article_code')
+            // ->leftJoin(DB::RAW("(select * from purchase_order_det where po_number = '$poNumber') AS po"),function($join){
+            //     $join->on('po.po_number','=','receiving_hdr.po_number')
+            //         ->on('po.article_code','=','receiving_det.article_code');
+            // })
+            ->whereIn('receiving_det.rec_number',$listRec)
+            ->where('receiving_det.qty','>',0)
+            ->select('article.article_alternative_code as article'
+            ,'article.article_desc as desc'
+            ,'receiving_det.uom_rec as uom'
+            ,db::raw("sum(receiving_det.qty) as qty")
+            // ,'po.price'
+            ,'receiving_det.price'
+            // ,db::raw("(sum(receiving_det.qty*po.price)) as total")
+            ,db::raw("(sum(receiving_det.qty*receiving_det.price)) as total")
+            ,'ap.account as account'
+            ,db::raw("(select name from depts where code = (select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1)) as dept")
+            // ,db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code ) limit 1) as dept")
+            )
+            ->groupBy('article.article_alternative_code')
+            ->groupBy('article.article_desc')
+            ->groupBy('receiving_det.uom_rec')
+            // ->groupBy('po.price')
+            ->groupBy('receiving_det.price')
+            ->groupBy(db::raw("(select name from depts where code = (select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number and purchase_order_det.article_code = receiving_det.article_code) limit 1))"))
+            // ->groupBy(db::raw("(select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number ) limit 1)"))
+            ->groupBy('ap.account')
+            ->get();
+        }
 
         $data['apDetails'] = DB::table('ap_invoice_det')
         ->leftJoin('depts','ap_invoice_det.cost_center','depts.code')
@@ -1174,6 +1203,12 @@ class AccountPayableController extends Controller
         ->where('reference','')
         ->get();
 
+        $data['apDetailsArticle'] = DB::table('ap_invoice_det')
+        ->where('ap_number',$apNumber)
+        ->where('reference','<>','')
+        ->orderBy('id')
+        ->get();
+
         $data['depts'] = $this->lisDept();
 
         $data['nilaiPPN'] = $this->nilaiPpn;
@@ -1196,7 +1231,8 @@ class AccountPayableController extends Controller
         $id=Crypt::decryptString($request->id);
         $apNumber=$request->apNumber;
         $suppCode = $request->supplier;
-        $poNumber = $request->poNumber;
+        $apType = $request->apType == 'NONPO' ? 'NONPO' : 'PO';
+        $poNumber = $apType == 'NONPO' ? null : $request->poNumber;
         $currency = $request->currency;
         $rate = is_null($request->rate) ? 0 : preg_replace('/[^0-9.]+/', '', $request->rate);
         $invoiceNumber= $request->invoiceNumber;
@@ -1316,9 +1352,10 @@ class AccountPayableController extends Controller
                 $rowAffected=DB::table('ap_invoice')
                 ->where('id',$id)
                 ->update(
-                    [   
+                    [
                         'inv_date' => $invoiceDate,
                         'po_number' => $poNumber,
+                        'ap_type' => $apType,
                         'supplier_id' => $suppCode,
                         'currency' => $currency,
                         'kurs' => $rate,
@@ -1351,6 +1388,8 @@ class AccountPayableController extends Controller
                 );
 
                 if($rowAffected){
+                    $recNumberSave = array_filter($recNumberSave, function($val){ return trim((string)$val) !== ''; });
+
                     $dataReceiving = [];
                     foreach ($recNumberSave as $val) {
                         $dataReceiving[] = [
@@ -1360,9 +1399,11 @@ class AccountPayableController extends Controller
                             'created_at' => date('Y-m-d H:i:s'),
                         ];
                     }
-                    
+
                     DB::table('ap_invoice_detail')->where('ap_number',$apNumber)->delete();
-                    DB::table('ap_invoice_detail')->insert($dataReceiving);
+                    if(count($dataReceiving) > 0){
+                        DB::table('ap_invoice_detail')->insert($dataReceiving);
+                    }
 
                     $dataReceivingDetail = [];
                     foreach ($details as $val) {
@@ -1374,6 +1415,9 @@ class AccountPayableController extends Controller
                             'debit' => $val->debit,
                             'credit' => $val->credit,
                             'reference' => $val->reference,
+                            'qty' => isset($val->qty) && $val->qty !== '' ? $val->qty : null,
+                            'price' => isset($val->price) && $val->price !== '' ? $val->price : null,
+                            'uom' => isset($val->uom) && $val->uom !== '' ? $val->uom : null,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                         ];
@@ -2816,7 +2860,7 @@ DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vc
         // })
         // ->pluck('rec_number')->toArray();
 
-        $data = DB::table('receiving_det')
+        $dataPo = DB::table('receiving_det')
         ->leftJoin('ap_invoice_detail','ap_invoice_detail.rec_number','receiving_det.rec_number')
         ->leftJoin('ap_invoice','ap_invoice.ap_number','ap_invoice_detail.ap_number')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
@@ -2865,6 +2909,45 @@ DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vc
         ->groupBy(db::raw("(select prh.id from purchase_request_hdr prh where prh.pr_number = (select pod.pr_number from purchase_order_det pod where pod.po_number = receiving_hdr.po_number and pod.article_code = receiving_det.article_code limit 1) limit 1)"))
         ->groupBy('ap_invoice.ap_number');
 
+        // Non-PO: article/qty/price sudah tersimpan langsung di ap_invoice_det (satu baris = satu ap_invoice_det),
+        // tidak ada receiving/PR sama sekali. Kolom disamakan persis (nama & urutan) dengan $dataPo supaya UNION valid.
+        $dataNonPo = DB::table('ap_invoice_det')
+        ->leftJoin('ap_invoice','ap_invoice.ap_number','ap_invoice_det.ap_number')
+        ->leftJoin('article','article.article_code','ap_invoice_det.reference')
+        ->leftJoin('third_party','third_party.kode','ap_invoice.supplier_id')
+        ->whereIn('ap_invoice_det.ap_number',$apNumber)
+        ->where('ap_invoice.ap_type','NONPO')
+        ->where('ap_invoice_det.reference','<>','')
+        ->select(
+            'article.article_alternative_code as article'
+            ,'article.article_desc as desc'
+            ,'ap_invoice_det.uom'
+            ,'ap_invoice_det.qty'
+            ,'ap_invoice_det.price'
+            ,'ap_invoice_det.debit as total'
+            ,'ap_invoice_det.cost_center as dept'
+            ,DB::raw('NULL as pr_number')
+            ,DB::raw('NULL as pr_id')
+            ,'ap_invoice.inv_number'
+            ,'ap_invoice.tax_inv_number'
+            ,'ap_invoice.inv_date'
+            ,'ap_invoice.ap_date'
+            ,'ap_invoice.due_date'
+            ,DB::raw('NULL as rec_date')
+            ,DB::raw('NULL as num_revision')
+            ,'ap_invoice.ap_number'
+            ,'ap_invoice.status'
+            ,'ap_invoice.period'
+            ,'ap_invoice.po_number'
+            ,'ap_invoice.supplier_id as kode'
+            ,'third_party.nama as supplier_name'
+            ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
+        );
+
+        // Gabungkan PO + Non-PO jadi satu derived table supaya seluruh addColumn/filterColumn
+        // di bawah bisa tetap dipakai apa adanya terhadap nama kolom yang sudah flat.
+        $data = DB::query()->fromSub($dataPo->unionAll($dataNonPo), 'ap_detail');
+
         return Datatables::of($data)
           ->addColumn('pr_number', function ($data) {
         if (empty($data->pr_number)) {
@@ -2882,50 +2965,40 @@ DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vc
         return $statusCode[$data->status - 1];
     })
 
-    // === BARU: custom search untuk kolom hasil max()/subquery ===
+    // === custom search untuk kolom hasil max()/subquery/union (semua sudah flat di derived table) ===
     ->filterColumn('kode', function ($query, $keyword) {
-        $query->where('third_party.kode', 'ilike', "%{$keyword}%");
+        $query->where('kode', 'ilike', "%{$keyword}%");
     })
     ->filterColumn('po_number', function ($query, $keyword) {
-        $query->where('ap_invoice.po_number', 'ilike', "%{$keyword}%");
+        $query->where('po_number', 'ilike', "%{$keyword}%");
     })
     ->filterColumn('inv_number', function ($query, $keyword) {
-        $query->where('ap_invoice.inv_number', 'ilike', "%{$keyword}%");
+        $query->where('inv_number', 'ilike', "%{$keyword}%");
     })
     ->filterColumn('tax_inv_number', function ($query, $keyword) {
-        $query->where('ap_invoice.tax_inv_number', 'ilike', "%{$keyword}%");
+        $query->where('tax_inv_number', 'ilike', "%{$keyword}%");
     })
     ->filterColumn('ap_number', function ($query, $keyword) {
-        $query->where('ap_invoice.ap_number', 'ilike', "%{$keyword}%");
+        $query->where('ap_number', 'ilike', "%{$keyword}%");
     })
     ->filterColumn('pr_number', function ($query, $keyword) {
-        $query->whereExists(function ($q) use ($keyword) {
-            $q->select(DB::raw(1))
-              ->from('purchase_order_det')
-              ->whereColumn('purchase_order_det.po_number', 'ap_invoice.po_number')
-              ->where('purchase_order_det.pr_number', 'ilike', "%{$keyword}%");
-        });
+        $query->where('pr_number', 'ilike', "%{$keyword}%");
     })
     ->filterColumn('list_rec', function ($query, $keyword) {
-        $query->whereExists(function ($q) use ($keyword) {
-            $q->select(DB::raw(1))
-              ->from('ap_invoice_detail as aid_search')
-              ->whereColumn('aid_search.ap_number', 'ap_invoice.ap_number')
-              ->where('aid_search.rec_number', 'ilike', "%{$keyword}%");
-        });
+        $query->where('list_rec', 'ilike', "%{$keyword}%");
     })
 
     ->filterColumn('article', function ($query, $keyword) {
-    $query->where('article.article_alternative_code', 'ilike', "%{$keyword}%");
+    $query->where('article', 'ilike', "%{$keyword}%");
 })
 ->filterColumn('desc', function ($query, $keyword) {
-    $query->where('article.article_desc', 'ilike', "%{$keyword}%");
+    $query->where('desc', 'ilike', "%{$keyword}%");
 })
 ->filterColumn('uom', function ($query, $keyword) {
-    $query->where('receiving_det.uom_rec', 'ilike', "%{$keyword}%");
+    $query->where('uom', 'ilike', "%{$keyword}%");
 })
 ->filterColumn('price', function ($query, $keyword) {
-    $query->whereRaw('CAST(receiving_det.price AS TEXT) ilike ?', ["%{$keyword}%"]);
+    $query->whereRaw('CAST(price AS TEXT) ilike ?', ["%{$keyword}%"]);
 })
 
     ->rawColumns(['action','status','ap_number','pr_number'])

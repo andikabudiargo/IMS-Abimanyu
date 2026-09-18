@@ -62,7 +62,20 @@
                                         </div> 
                                     </div>
                                     <div class="form-row">
-                                        <div class="form-group col-md-8">
+                                        <div class="form-group col-md-12">
+                                            <label class="form-label d-block">Tipe Invoice*</label>
+                                            <div class="custom-control custom-radio custom-control-inline">
+                                                <input type="radio" id="apTypePo" name="apType" class="custom-control-input" value="PO" checked>
+                                                <label class="custom-control-label" for="apTypePo">PO</label>
+                                            </div>
+                                            <div class="custom-control custom-radio custom-control-inline">
+                                                <input type="radio" id="apTypeNonPo" name="apType" class="custom-control-input" value="NONPO">
+                                                <label class="custom-control-label" for="apTypeNonPo">Non-PO</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-8" id="poNumberWrap">
                                             <label class="form-label" for="poNumber">PO Number*</label>
                                             <select class="select2 form-control" id="poNumber" name="poNumber" required>
                                             </select>
@@ -135,7 +148,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6 col-12">
+                                <div class="col-md-6 col-12" id="lpbSection">
                                     <div class="form-row">
                                         <div class="col-sm-12">
                                             <p class="mb-0">List Rec.Number/LPB*</p>
@@ -166,7 +179,7 @@
                             <hr>
                             <div class="form-row">
                                 <div class="col-sm-12">
-                                    <p class="mb-0">Detail receiving</p>
+                                    <p class="mb-0" id="detailLabel">Detail receiving</p>
                                     <div class="card-datatable table-responsive pt-0">
                                       <table class="table table-bordered" id="listOfRec" style="table-layout: fixed;" width="100%">
                                           <thead>
@@ -185,6 +198,12 @@
                                           </tbody>
                                         </table>
                                     </div>
+                                </div>
+                                <div class="col-sm-12 mt-75">
+                                    <button class="btn btn-primary btn-prev d-none" type="button" id="addArticleNpBtn" onclick="add_new_row_np();">
+                                        <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                                        <span class="align-middle d-sm-inline-block d-none">Add Article</span>
+                                    </button>
                                 </div>
                             </div>
                             <hr>
@@ -398,7 +417,9 @@
         showDetail='false';
         edit='false';
         dariEdit='false';
-       
+        apType='PO';
+        applyApTypeUi(apType);
+
     });
 
     function checkVariable() {
