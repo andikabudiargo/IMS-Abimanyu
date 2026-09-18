@@ -893,9 +893,15 @@ $qrUrl    = 'https://abimanyugreats.com/storage/' . $article->barcode_path;
     // Build ZPL untuk 30x20mm @ 203 DPI
     // 30mm = 240 dots, 20mm = 160 dots
     // QR native ZPL (lebih tajam dari PNG embed)
-    $altCode = $article->article_alternative_code;
-    $desc    = $article->article_desc;
-    $footer  = mb_substr("Dicetak: {$printedBy} {$printedAt}", 0, 50);
+    // ^ dan ~ adalah control char ZPL (prefix command/format) — kalau ikut
+    // masuk ke field data, sisa command ZPL setelahnya jadi rusak dan
+    // printer bisa diam/skip seluruh job. Buang dulu sebelum disisipkan.
+    $zplSafe = function ($v) {
+        return str_replace(['^', '~'], '', (string) $v);
+    };
+    $altCode = $zplSafe($article->article_alternative_code);
+    $desc    = $zplSafe($article->article_desc);
+    $footer  = $zplSafe(mb_substr("Dicetak: {$printedBy} {$printedAt}", 0, 50));
 
     // ZPL template (^BQR = native QR code Zebra, tajam di 203 DPI)
    $zpl = "^XA

@@ -525,13 +525,25 @@ class InvoiceController extends Controller
                     'bupot_date' => $bupotDate
                 ]);
 
+                // so_number/po_number WAJIB diambil live dari delivery_hdr, bukan dari
+                // $val->so_number/po_number (payload form) -- kalau SO-nya direvisi
+                // setelah DN dibuat, nilai di form bisa saja masih SO/PO lama. Kalau
+                // dipercaya mentah-mentah, invoice_det jadi frozen snapshot yang tidak
+                // pernah sinkron lagi walau SO/PO-nya sudah berubah (lihat kasus DN
+                // yang "nyangkut" karena SO-nya sudah direvisi tapi invoice_det masih
+                // pegang so_number/po_number lama).
+                $dnLive = DB::table('delivery_hdr')
+                    ->whereIn('delivery_number', collect($articles)->pluck('dn_number')->unique()->values())
+                    ->get(['delivery_number', 'so_number', 'po_number'])
+                    ->keyBy('delivery_number');
+
                 $dataSet = [];
                 foreach ($articles as $val) {
                     $dataSet[] = [
                         'invoice_number' => $invCode,
                         'article_code' => $val->article_code,
-                        'so_number' => $val->so_number,
-                        'po_number' => $val->po_number,
+                        'so_number' => $dnLive[$val->dn_number]->so_number ?? $val->so_number,
+                        'po_number' => $dnLive[$val->dn_number]->po_number ?? $val->po_number,
                         'dn_number' => $val->dn_number,
                         'qty' => $val->qty,
                         'uom' => $val->uom,
@@ -846,6 +858,26 @@ class InvoiceController extends Controller
         $dppPembilang = $request->pembilangNumber;
         $dppPenyebut = $request->penyebutNumber;
 
+        // SO Date range dipakai listSo() buat nyaring SO mana yang bisa ditarik ke invoice
+        // ini (lihat InvoiceController::edit()). Kalau SO/DN kena revisi belakangan dan
+        // tanggalnya melompat ke luar rentang lama, field ini WAJIB ikut diperbarui saat
+        // update -- sebelumnya start_date/end_date cuma diisi sekali waktu store() lalu
+        // tidak pernah disentuh lagi, jadi invoice draft lama bisa permanen "kekunci" ke
+        // rentang tanggal usang dan SO barunya tidak akan pernah muncul di dropdown.
+        $soDate = $request->soDate;
+        $startDate = "";
+        $endDate = "";
+        if ($soDate) {
+            $date = explode("to", $soDate);
+            if (count($date) > 1) {
+                $startDate = trim($date[0]);
+                $endDate   = trim($date[1]);
+            } else {
+                $startDate = trim($date[0]);
+                $endDate   = $startDate;
+            }
+        }
+
         $statusInvoice = db::table('invoice_hdr')->where('invoice_number', $invNumber)->value('status');
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
@@ -925,32 +957,47 @@ class InvoiceController extends Controller
 
                     if ($statusInvoice != '6') {
                         if ($row_affected > 0) {
+                            // so_number/po_number WAJIB diambil live dari delivery_hdr, bukan
+                            // dari $val->so_number/po_number (payload form) -- kalau SO-nya
+                            // direvisi setelah DN ini pertama kali ditarik ke invoice, form
+                            // edit bisa saja masih membawa SO/PO lama (snapshot beku di
+                            // invoice_det yang tidak pernah ikut sinkron). Diresolve SEKALI
+                            // di sini dan dipakai konsisten baik untuk dataset delete maupun
+                            // key upsert, supaya invoice_det selalu mengikuti data DN terkini.
+                            $dnLive = DB::table('delivery_hdr')
+                                ->whereIn('delivery_number', collect($articles)->pluck('dn_number')->unique()->values())
+                                ->get(['delivery_number', 'so_number', 'po_number'])
+                                ->keyBy('delivery_number');
+
                             $dataSet=[];
                             foreach ($articles as $val) {
+                                $poLive = $dnLive[$val->dn_number]->po_number ?? $val->po_number;
                                 $dataSet[] = [
-                                    $invNumber.$val->po_number.$val->dn_number.$val->article_code
+                                    $invNumber.$poLive.$val->dn_number.$val->article_code
                                 ];
                             }
-        
+
                             //berdasarkan 3 kondisi
                             DB::table('invoice_det')
                                 ->whereNotIn(DB::raw("CONCAT(invoice_number,po_number,dn_number,article_code)"),$dataSet)
                                 ->where('invoice_number',$invNumber)
                                 ->delete();
-                                          
+
                             foreach ($articles as $val) {
+                                $soLive = $dnLive[$val->dn_number]->so_number ?? $val->so_number;
+                                $poLive = $dnLive[$val->dn_number]->po_number ?? $val->po_number;
                                 DB::table('invoice_det')
                                 ->updateOrInsert(
                                     ['invoice_number' => $invNumber
                                         ,'article_code' => $val->article_code
-                                        ,'po_number' => $val->po_number
+                                        ,'po_number' => $poLive
                                         ,'dn_number' => $val->dn_number
                                     ],
                                     [
                                         'invoice_number' => $invNumber,
                                         'article_code' => $val->article_code,
-                                        'so_number' => $val->so_number,
-                                        'po_number' => $val->po_number,
+                                        'so_number' => $soLive,
+                                        'po_number' => $poLive,
                                         'dn_number' => $val->dn_number,
                                         'qty' => $val->qty,
                                         'uom' => $val->uom,
