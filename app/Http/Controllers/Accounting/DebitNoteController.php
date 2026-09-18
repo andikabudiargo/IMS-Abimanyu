@@ -732,6 +732,58 @@ class DebitNoteController extends Controller
     }
 
     public function destroy(Request $request)
+{
+    $username =  Auth::user()->username;       
+    $id=Crypt::decryptString($request->id);
+    
+    $data= DB::table('debit_note_hdr')
+    ->where('id',$id)
+    ->first();
+
+    $dnNumber = $data->dn_number;
+    
+    $rowAffected = DB::table('debit_note_hdr')
+    ->where('dn_number',$dnNumber)
+    ->delete();
+
+    if($rowAffected){
+
+        DB::table('debit_note_det')
+        ->where('dn_number',$dnNumber)
+        ->delete();
+
+        // dulu: cari kas_det pakai where('reference', $dnNumber) — selalu null
+        // karena prosesPosting() menyimpan reference = '' (bukan $dnNumber).
+        // kas_hdr/kas_det sebenarnya di-keyed pakai voucher_number = $dnNumber,
+        // jadi hapus langsung berdasarkan itu.
+        DB::table('kas_hdr')
+        ->where('voucher_number',$dnNumber)
+        ->delete();
+
+        DB::table('kas_det')
+        ->where('voucher_number',$dnNumber)
+        ->delete();
+
+        DB::table('approval_history')
+        ->where('module_number',$dnNumber)
+        ->where('module_code',$this->moduleCode)
+        ->delete();
+
+        $title ="Delete $this->title";
+        $alert  ="success";
+        $message  = "$title $dnNumber Successfully Deleted";
+        \LogActivity::addToLog($title,"username: $username Status $message");
+        return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);   
+    }else{
+        $title ="Cancel $this->title";
+        $alert  ="warning";
+        $message  = "$title $dnNumber Failed to Delete";
+        \LogActivity::addToLog($title,"username: $username Status $message");
+        return redirect()->back()->with(['alert'=>$alert,'title' => $title,'message'=> $message]);
+    }
+}
+
+    public function destroyOld(Request $request)
     {
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
         $username =  Auth::user()->username;       
