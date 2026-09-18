@@ -380,10 +380,10 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose Article';
                 break;
-            // Account Payable Non-PO: article manual (listrik, catering, dll), tanpa filter supplier/tipe
+            // Account Payable Non-PO: article manual (listrik, catering, dll), difilter by supplier terpilih
             case 'article_ap_np':
                 $table='article';
-                $field ='';
+                $field ='third_party';
                 $order ='article_desc';
                 $value ='article_code';
                 $value2 ='article_alternative_code';
@@ -633,10 +633,13 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='article_ap_np'){
-            // Non-PO AP: semua article aktif, tanpa filter tipe/supplier (sesuai keputusan produk)
+            // Non-PO AP: article difilter berdasarkan supplier yang dipilih di form AP (third_party)
             $data= DB::table($table)
             ->leftJoin('uom','uom.code','=',$table.'.uom')
             ->where($table.'.status', '!=', 0)
+            ->when($code, function($q) use ($table,$code){
+                $q->where($table.'.third_party', $code);
+            })
             ->orderBy($order)
             ->get();
         }elseif($dependent =='article_wos'){

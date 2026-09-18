@@ -184,14 +184,15 @@
                                       <table class="table table-bordered" id="listOfRec" style="table-layout: fixed;" width="100%">
                                           <thead>
                                             <tr>
-                                                <th scope="col" width="20%" align="center" style="padding:5px;text-align:center;">Account</th>
-                                                <th scope="col" width="12%" style="padding:5px;text-align:center;">Article</th>
+                                                <th scope="col" width="17%" align="center" style="padding:5px;text-align:center;">Account</th>
+                                                <th scope="col" width="11%" style="padding:5px;text-align:center;">Article</th>
                                                 <th scope="col" width="" style="padding:5px;text-align:center;">Description</th>
-                                                <th scope="col" width="5%" style="padding:5px;text-align:center;">Dept</th>
+                                                <th scope="col" width="10%" style="padding:5px;text-align:center;">Dept</th>
                                                 <th scope="col" width="5%" style="padding:5px;text-align:center;">UOM</th>
-                                                <th scope="col" width="8%" style="padding:5px;text-align:center;">Qty</th>
-                                                <th scope="col" width="10%" style="padding:5px;text-align:center;">Price</th>
-                                                <th scope="col" width="15%" style="padding:5px;text-align:center;">Total</th>
+                                                <th scope="col" width="7%" style="padding:5px;text-align:center;">Qty</th>
+                                                <th scope="col" width="9%" style="padding:5px;text-align:center;">Price</th>
+                                                <th scope="col" width="11%" style="padding:5px;text-align:center;">Total</th>
+                                                <th scope="col" width="4%" style="padding:5px;text-align:center;">-</th>
                                             </tr>
                                           </thead>
                                           <tbody>

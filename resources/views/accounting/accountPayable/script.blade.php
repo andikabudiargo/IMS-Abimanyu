@@ -436,6 +436,7 @@
         let obj = 'poNumber';
         let term = $(this).find(":selected").data("term");
         let coa = $(this).find(":selected").data("coa");
+        isiArticleNp(value);
         if(coa){
             $('#term').val(term);
             $('#accountHutang').val(coa);
@@ -746,6 +747,7 @@
                                     <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleQty" name="articleQty[]" value="${humanizeNumber(parseFloat(result.detailRec[i].qty).toFixed(2))}" style="text-align:right;" disabled/></td>
                                     <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articlePrice" name="articlePrice[]" value="${humanizeNumber(parseFloat(result.detailRec[i].price).toFixed(2))}" style="text-align:right;" disabled/></td>
                                     <td  class="text-right" style="padding:0px 5px 0px 5px;"><input type="text" class="form-control-plaintext disabled-el" id="articleTotal" name="articleTotal[]" value="${humanizeNumber(parseFloat(result.detailRec[i].total).toFixed(2))}" style="text-align:right;" disabled/></td>
+                                    <td style="padding:0px 5px 0px 5px;"></td>
                                 </tr>`;
                             grandTotalQty+=Number(result.detailRec[i].qty);
                         }                       
@@ -828,12 +830,13 @@
         })
     }
 
-    function isiArticleNp() {
+    function isiArticleNp(supplierId) {
         $.ajax({
             url:"{{route('dynamic.dependent')}}",
             method:"POST",
             data:{
-                dependent:'article_ap_np'
+                dependent:'article_ap_np',
+                value:supplierId
             },
             success:function(result){
                 listArticleNp = result;
@@ -957,12 +960,12 @@
     add_new_row_np = () => {
         urutanRowNp++;
         let isiTabel = `<tr>
-                            <td width="20%" style="padding:0px 5px 0px 5px;">
+                            <td width="17%" style="padding:0px 5px 0px 5px;">
                                 <select class="form-control activate-select2" id="articleAccountNp${urutanRowNp}" name="articleAccount[]">
                                     ${listCoa}
                                 </select>
                             </td>
-                            <td width="12%" style="padding:0px 5px 0px 5px;">
+                            <td width="11%" style="padding:0px 5px 0px 5px;">
                                 <select class="form-control activate-select2" id="articleCodeNp${urutanRowNp}" name="articleCode[]">
                                     ${listArticleNp}
                                 </select>
@@ -970,7 +973,7 @@
                             <td style="padding:0px 5px 0px 5px;">
                                 <input type="text" class="form-control-plaintext" name="articleDesc[]" value="" />
                             </td>
-                            <td width="5%" style="padding:0px 5px 0px 5px;">
+                            <td width="10%" style="padding:0px 5px 0px 5px;">
                                 <select class="form-control activate-select2" id="articleCcNp${urutanRowNp}" name="articleCc[]">
                                     ${depts}
                                 </select>
@@ -979,14 +982,16 @@
                                 <span class="npUomText"></span>
                                 <input type="hidden" name="articleUom[]" value="" />
                             </td>
-                            <td width="8%" style="padding:0px 5px 0px 5px;">
+                            <td width="7%" style="padding:0px 5px 0px 5px;">
                                 <input type="text" class="form-control-plaintext numeral-mask-digit npQty" name="articleQty[]" value="" style="text-align:right;" oninput="calcNpRowTotal(this)" />
                             </td>
-                            <td width="10%" style="padding:0px 5px 0px 5px;">
+                            <td width="9%" style="padding:0px 5px 0px 5px;">
                                 <input type="text" class="form-control-plaintext numeral-mask-digit npPrice" name="articlePrice[]" value="" style="text-align:right;" oninput="calcNpRowTotal(this)" />
                             </td>
-                            <td width="15%" style="padding:0px 5px 0px 5px;display:flex;align-items:center;">
+                            <td width="11%" class="text-right" style="padding:0px 5px 0px 5px;">
                                 <input type="text" class="form-control-plaintext disabled-el npTotal" name="articleTotal[]" value="0" style="text-align:right;" disabled />
+                            </td>
+                            <td width="4%" class="text-right" style="padding:0px 5px 0px 5px;">
                                 <a onmouseover="this.style.cursor='pointer'" onclick="deleteRow(this);hitungTotalNp();" data-toggle="tooltip" data-placement="left" title="Delete row">
                                     <i data-feather="trash-2" class="remove_button feather-24"></i>
                                 </a>
@@ -1029,8 +1034,7 @@
         let qty = parseFloat(($tr.find('.npQty').val() || '').toString().replace(/,/gi, '')) || 0;
         let price = parseFloat(($tr.find('.npPrice').val() || '').toString().replace(/,/gi, '')) || 0;
         let total = qty * price;
-        $tr.find('.npTotal').val(parseFloat(total).toFixed(2));
-        mask_thousand_digit(2);
+        $tr.find('.npTotal').val(humanizeNumber(parseFloat(total).toFixed(2)));
         hitungTotalNp();
     }
 
