@@ -140,9 +140,13 @@ class HomeController extends Controller
      */
     private function purchasePriceHome(string $articleCode, ?int $periode = null, ?int $tahun = null): float
     {
+        // FIX: sama seperti ConversionReportController::purchasePrice() --
+        // 'status != 5' ikut meloloskan BOM REVISED (7, versi lama yang sudah
+        // digantikan), disamakan ke status = '3' (APPROVED) seperti semua
+        // modul lain yang konsumsi BOM.
         $bom = DB::table('bom_hdr')
             ->where('article_code', $articleCode)
-            ->where('status', '!=', '5')
+            ->where('status', '3')
             ->orderByDesc('id')
             ->first();
 

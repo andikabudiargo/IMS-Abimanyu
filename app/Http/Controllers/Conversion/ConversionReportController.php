@@ -110,9 +110,16 @@ class ConversionReportController extends Controller
      */
     private function purchasePrice(string $articleCode, ?int $periode = null, ?int $tahun = null): float
     {
+        // FIX: dulu filter 'status != 5' (cuma exclude DELETED) -- ikut
+        // meloloskan BOM REVISED (status 7, versi lama yang sudah digantikan)
+        // dan orderByDesc('id') malah bisa ambil revisi basi itu (id-nya lebih
+        // besar) alih-alih BOM yang benar-benar APPROVED. Semua modul lain
+        // yang konsumsi BOM (Production/PurchaseRequest/TargetSo/WorkingOrder
+        // Sheet/WosMixing/TransferStock) konsisten pakai status = '3'
+        // (APPROVED) -- disamakan di sini.
         $bom = DB::table('bom_hdr')
             ->where('article_code', $articleCode)
-            ->where('status', '!=', '5')
+            ->where('status', '3')
             ->orderByDesc('id')
             ->first();
 
