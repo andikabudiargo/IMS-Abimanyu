@@ -70,7 +70,7 @@
                                             <input type="text" id="dueDate" name="dueDate" class="form-control" value="{{ old('dueDate',$header->due_date) }}" placeholder="DD-MM-YYYY" />
                                         </div>
                                         <div class="form-group col-md-2">
-                                            <label for="term">Term*</label>
+                                            <label for="term">TOP*</label>
                                             <input type="text" id="term" name="term" class="form-control" value="{{ old('term',$header->top_batas_1) }}" disabled />
                                         </div>
                                     </div>

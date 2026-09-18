@@ -46,7 +46,7 @@
                                             </select>
                                         </div>
                                         <div class="form-group col-md-2">
-                                            <label for="term">Term</label>
+                                            <label for="term">TOP</label>
                                             <input type="text" id="term" name="term" class="form-control" value="{{ $header->top_batas_1 }}" disabled />
                                         </div> 
                                     </div>
