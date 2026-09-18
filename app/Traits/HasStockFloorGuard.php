@@ -11,7 +11,14 @@ namespace App\Traits;
  */
 trait HasStockFloorGuard
 {
-    private const STOCK_FLOOR_YMD = '2026-06-30';
+    /**
+     * Trait tidak boleh punya const (fatal error di PHP < 8.2: "Traits
+     * cannot have constants") -- pakai method statis sebagai gantinya.
+     */
+    private static function stockFloorYmd(): string
+    {
+        return '2026-06-30';
+    }
 
     /**
      * @param string $dateDdMmYyyy format dd-mm-yyyy (format kolom movement_date/tanggal dokumen)
@@ -22,7 +29,7 @@ trait HasStockFloorGuard
         if (!$d) {
             return false;
         }
-        $floor = \DateTime::createFromFormat('Y-m-d', self::STOCK_FLOOR_YMD);
+        $floor = \DateTime::createFromFormat('Y-m-d', self::stockFloorYmd());
         return $d <= $floor;
     }
 }
