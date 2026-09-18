@@ -149,7 +149,7 @@
     </div>
     <div class="card-content collapse">
       <div class="card-body">
-        <div class="form-row mb-1">
+        <div class="form-row mb-2">
           <div class="form-group col-md-2">
             <label for="arYear">Tahun</label>
             <select class="form-control" id="arYear">
@@ -160,36 +160,52 @@
             </select>
           </div>
         </div>
-        <div class="row">
-          <div class="col-md-3">
-            <div class="card bg-light-secondary mb-0">
-              <div class="card-body text-center">
-                <h6 class="text-muted mb-1">Opening Balance</h6>
-                <h4 class="mb-0" id="cardOpeningBalance">0</h4>
+
+        <div class="row ar-stat-row">
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ar-stat-card">
+              <div>
+                <h3 class="ar-stat-value text-dark" id="cardOpeningBalance">0</h3>
+                <span class="ar-stat-label">Opening Balance</span>
+              </div>
+              <div class="ar-stat-icon ar-icon-neutral">
+                <i data-feather="database"></i>
               </div>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card bg-light-primary mb-0">
-              <div class="card-body text-center">
-                <h6 class="text-muted mb-1">Sales</h6>
-                <h4 class="mb-0" id="cardTotalAr">0</h4>
+
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ar-stat-card">
+              <div>
+                <h3 class="ar-stat-value ar-text-blue" id="cardTotalAr">0</h3>
+                <span class="ar-stat-label">Sales</span>
+              </div>
+              <div class="ar-stat-icon ar-icon-blue">
+                <i data-feather="file-text"></i>
               </div>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card bg-light-success mb-0">
-              <div class="card-body text-center">
-                <h6 class="text-muted mb-1">Pembayaran</h6>
-                <h4 class="mb-0" id="cardTotalPaid">0</h4>
+
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ar-stat-card">
+              <div>
+                <h3 class="ar-stat-value ar-text-green" id="cardTotalPaid">0</h3>
+                <span class="ar-stat-label">Pembayaran</span>
+              </div>
+              <div class="ar-stat-icon ar-icon-green">
+                <i data-feather="check-circle"></i>
               </div>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card bg-light-warning mb-0">
-              <div class="card-body text-center">
-                <h6 class="text-muted mb-1">Balance</h6>
-                <h4 class="mb-0" id="cardOutstanding">0</h4>
+
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ar-stat-card">
+              <div>
+                <h3 class="ar-stat-value ar-text-red" id="cardOutstanding">0</h3>
+                <span class="ar-stat-label">Balance</span>
+              </div>
+              <div class="ar-stat-icon ar-icon-red">
+                <i data-feather="alert-triangle"></i>
               </div>
             </div>
           </div>
@@ -231,6 +247,34 @@
 @endsection
 @section('styles')
 <style>
+.ar-stat-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.25rem 1.25rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  height: 100%;
+}
+.ar-stat-value { font-weight: 700; margin-bottom: 0.25rem; }
+.ar-stat-label { color: #6e6b7b; font-size: 0.9rem; }
+.ar-stat-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ar-stat-icon i { width: 18px; height: 18px; }
+
+.ar-icon-neutral { background: #ececec; color: #5e5873; }
+.ar-icon-blue    { background: rgba(115,103,240,0.12); color: #7367f0; }
+.ar-icon-green   { background: rgba(40,199,111,0.12); color: #28c76f; }
+.ar-icon-red     { background: rgba(234,84,85,0.12); color: #ea5455; }
+
+.ar-text-blue  { color: #7367f0; }
+.ar-text-green { color: #28c76f; }
+.ar-text-red   { color: #ea5455; }
 </style>
 @endsection
 @section('scripts')
