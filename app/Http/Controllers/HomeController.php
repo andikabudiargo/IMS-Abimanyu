@@ -237,31 +237,50 @@ class HomeController extends Controller
 
         $convVal = $this->activeConversionValueHome();
 
-        // ---- TARGET (TSO status APPROVED, bulan target dari tso_name, tahun dari tso_date) ----
-        $candidateHeaders = DB::table('target_order_hdr')
-            ->where('status', '3')
-            ->whereRaw("EXTRACT(YEAR FROM to_date(tso_date,'DD-MM-YYYY')) BETWEEN ? AND ?", [$tahun - 1, $tahun + 1])
-            ->orderBy('id')
-            ->get(['id', 'tso_code', 'tso_name', 'tso_date']);
+       // ---- TARGET (TSO status APPROVED, bulan target dari tso_name, tahun dari tso_date) ----
+$candidateHeaders = DB::table('target_order_hdr')
+    ->whereColumn('tso_code', 'origin_tso_code')   // cuma row utama, bukan snapshot -R
+    ->whereIn('status', ['1', '2', '3'])           // ikut tangkap yang lagi direvisi
+    ->whereRaw("EXTRACT(YEAR FROM to_date(tso_date,'DD-MM-YYYY')) BETWEEN ? AND ?", [$tahun - 1, $tahun + 1])
+    ->orderBy('id')
+    ->get(['id', 'tso_code', 'tso_name', 'tso_date', 'status']);
 
-        $matchedTsoCodes = [];
-        $firstMatchedId  = null;
-        foreach ($candidateHeaders as $h) {
-            $month = $this->targetMonthFromName((string) $h->tso_name);
-            if ($month === null) {
-                continue;
-            }
-            $dt = \DateTime::createFromFormat('d-m-Y', trim((string) $h->tso_date));
-            if (!$dt) {
-                continue;
-            }
-            if ($month === $periode && (int) $dt->format('Y') === $tahun) {
-                $matchedTsoCodes[] = $h->tso_code;
-                if ($firstMatchedId === null) {
-                    $firstMatchedId = $h->id;
-                }
-            }
+$matchedTsoCodes = [];
+$firstMatchedId  = null;
+foreach ($candidateHeaders as $h) {
+    $month = $this->targetMonthFromName((string) $h->tso_name);
+    if ($month === null) {
+        continue;
+    }
+    $dt = \DateTime::createFromFormat('d-m-Y', trim((string) $h->tso_date));
+    if (!$dt) {
+        continue;
+    }
+    if ($month === $periode && (int) $dt->format('Y') === $tahun) {
+        if ($firstMatchedId === null) {
+            $firstMatchedId = $h->id;
         }
+
+        if ($h->status === '3') {
+            // sudah approved, pakai data row utama seperti biasa
+            $matchedTsoCodes[] = $h->tso_code;
+        } else {
+            // lagi direvisi (status draft/pending) -- fallback ke snapshot
+            // approved terakhir (num_revision tertinggi) biar data lama tetap tampil
+            $lastApprovedSnapshot = DB::table('target_order_hdr')
+                ->where('origin_tso_code', $h->tso_code)
+                ->where('tso_code', '<>', $h->tso_code)
+                ->orderByDesc('num_revision')
+                ->first(['tso_code']);
+
+            if ($lastApprovedSnapshot) {
+                $matchedTsoCodes[] = $lastApprovedSnapshot->tso_code;
+            }
+            // kalau belum pernah ada snapshot sama sekali (TSO baru, belum
+            // pernah approved sekalipun), memang belum ada data buat ditampilkan
+        }
+    }
+}
 
         // Kalau ada beberapa TSO yang cocok (beda customer, bulan target sama),
         // tombol "Target SO" cuma nunjuk ke yang pertama -- widget ini agregat,
