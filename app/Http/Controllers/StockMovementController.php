@@ -26,6 +26,8 @@ class StockMovementController extends Controller
     /** movement_type yang murni perpindahan antar lokasi internal */
     private const TYPE_MOVE = ['TRANSFER', 'SUPPLY'];
 
+    private const RETURN_LOCS = ['049', '042', '009', '006', '005'];
+
     private const STATUS_MAP = [
         '1'  => ['label' => 'NEW',       'class' => 'badge-light-primary'],
         '2'  => ['label' => 'VALIDATED', 'class' => 'badge-light-info'],
@@ -38,13 +40,14 @@ class StockMovementController extends Controller
 
     /** label => class badge + icon feather */
     private const INOUT_BADGE = [
-        'IN'         => ['badge-light-success',   'arrow-down-circle'],
-        'OUT'        => ['badge-light-danger',    'arrow-up-circle'],
-        'TRANSFER'   => ['badge-light-info',      'repeat'],
-        'SUPPLY'     => ['badge-light-warning',   'send'],
-        'ADJUSTMENT' => ['badge-light-secondary', 'sliders'],
-        '-'          => ['badge-light-secondary', null],
-    ];
+    'IN'         => ['badge-light-success',   'arrow-down-circle'],
+    'OUT'        => ['badge-light-danger',    'arrow-up-circle'],
+    'TRANSFER'   => ['badge-light-info',      'repeat'],
+    'SUPPLY'     => ['badge-light-warning',   'send'],
+    'RETURN'     => ['badge-light-info',      'corner-down-left'],
+    'ADJUSTMENT' => ['badge-light-secondary', 'sliders'],
+    '-'          => ['badge-light-secondary', null],
+];
 
     /** movement_type => [tabel, kolom nomor dokumen, nama route show] */
     private const REF_MAP = [
@@ -233,12 +236,12 @@ class StockMovementController extends Controller
                 ON a.article_code = m.artikel_code
             $where
         ),
+       -- TANPA dedup (dihapus 2026-09-18, sama seperti movement2()/
+       -- CheckStockAnomaly.php -- satu dokumen ALP/Actual Loading bisa legit
+       -- mengonsumsi RM yang sama di >1 baris BOM, dedup keep-latest lama
+       -- salah menganggap itu duplikat).
        filtered AS (
-    SELECT b.*,
-        ROW_NUMBER() OVER (
-            PARTITION BY b.artikel_code, b.movement_transnno, b.location_number
-            ORDER BY b.created_at DESC, b.movement_code DESC
-        ) AS rn
+    SELECT b.*
     FROM base b
     WHERE b.movement_type NOT LIKE 'CANCEL %'
       AND b.movement_type NOT LIKE 'DELETE%'
@@ -320,7 +323,6 @@ class StockMovementController extends Controller
             ON tdn.tdn_number = f.movement_transnno AND f.movement_type = 'DN SEMENTARA'
         LEFT JOIN dn_general_hdr dng
             ON dng.tdn_number = f.movement_transnno AND f.movement_type = 'DN UMUM'
-        WHERE f.rn = 1
         $orderBy
     ";
 }
@@ -343,20 +345,23 @@ class StockMovementController extends Controller
 
     if (in_array($type, self::TYPE_ADJ, true)) return 'ADJUSTMENT';
 
-    // Perspektif lokasi: location_number sudah pasti milik baris ini,
-    // jadi arah cukup dilihat dari tanda qty.
+    // Transfer stock: label dari arah leg + lokasi tujuan
+    if (in_array($type, self::TYPE_MOVE, true)) {
+        if ((float) $row->movement_min > 0) return 'SUPPLY';           // OUT dari gudang
+        $dest = $row->movement_to ?? $row->location_number ?? '';
+        return in_array($dest, self::RETURN_LOCS, true) ? 'RETURN' : 'TRANSFER';
+    }
+
     if ($location) {
         if ($row->movement_plus > 0) return 'IN';
         if ($row->movement_min > 0)  return 'OUT';
         return '-';
     }
 
-    if (in_array($type, self::TYPE_OUT, true))  return 'OUT';
-    if (in_array($type, self::TYPE_IN, true))   return 'IN';
-    if (in_array($type, self::TYPE_MOVE, true)) return $type;
+    if (in_array($type, self::TYPE_OUT, true)) return 'OUT';
+    if (in_array($type, self::TYPE_IN, true))  return 'IN';
     if ($row->movement_plus > 0) return 'IN';
     if ($row->movement_min > 0)  return 'OUT';
-
     return '-';
 }
 

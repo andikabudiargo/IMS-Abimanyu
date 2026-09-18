@@ -1214,20 +1214,15 @@ if (!$isGlobal) {
                    AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h
                                WHERE h.adj_code = m.movement_transnno AND h.adj_type = 'OPENING BALANCE'))
     ),
-    dedup AS (
+    -- TANPA dedup (dihapus 2026-09-18, sama seperti CheckStockAnomaly.php/
+    -- WarehouseControllerv2 -- satu dokumen ALP/Actual Loading bisa legit
+    -- mengonsumsi RM yang sama di >1 baris BOM, dedup keep-latest lama salah
+    -- menganggap itu duplikat).
+    kept AS (
         SELECT l.*,
-            ROW_NUMBER() OVER (
-                PARTITION BY l.artikel_code, l.movement_transnno, l.location_number
-                ORDER BY l.created_at DESC, l.movement_code DESC
-            ) AS rn
+            l.net_value AS counted_net
         FROM ledger l
         WHERE l.hdr_status IS DISTINCT FROM '5'      -- CANCEL: buang semua baris dokumen status 5
-    ),
-    kept AS (
-        SELECT d.*,
-            d.net_value AS counted_net
-        FROM dedup d
-        WHERE d.rn = 1                                -- REVISI: hanya baris terbaru
     ),
     base AS (
         SELECT k.*,
@@ -1537,11 +1532,7 @@ public function netMovementRange($articleCode, $location, $from, $to, $isGlobal,
                       WHERE det.adj_code=m.movement_transnno AND det.article_code=m.artikel_code LIMIT 1)
                      * CASE WHEN m.movement_type='CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
                 ELSE (m.movement_plus - m.movement_min)
-            END AS net_value,
-            ROW_NUMBER() OVER (
-                PARTITION BY m.artikel_code, m.movement_transnno, m.location_number
-                ORDER BY m.created_at DESC, m.movement_code DESC
-            ) AS rn
+            END AS net_value
         FROM warehouse_movement m
         WHERE m.artikel_code = :art AND m.site_code='HO'
           $whereLoc
@@ -1554,8 +1545,10 @@ public function netMovementRange($articleCode, $location, $from, $to, $isGlobal,
                    AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h
                                WHERE h.adj_code=m.movement_transnno AND h.adj_type='OPENING BALANCE'))
       )
+      -- TANPA dedup (dihapus 2026-09-18, sama seperti movement2() -- lihat
+      -- catatan di CheckStockAnomaly.php)
       SELECT COALESCE(SUM(net_value),0) AS net
-      FROM acc WHERE rn=1 AND hdr_status IS DISTINCT FROM '5'";
+      FROM acc WHERE hdr_status IS DISTINCT FROM '5'";
 
     $r = DB::select($sql, $bind);
     return isset($r[0]) ? (float) $r[0]->net : 0.0;
@@ -1590,11 +1583,7 @@ private function netMovementBulan($articleCode, $location, $periode, $tahun, $is
                       WHERE det.adj_code=m.movement_transnno AND det.article_code=m.artikel_code LIMIT 1)
                      * CASE WHEN m.movement_type='CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
                 ELSE (m.movement_plus - m.movement_min)
-            END AS net_value,
-            ROW_NUMBER() OVER (
-                PARTITION BY m.artikel_code, m.movement_transnno, m.location_number
-                ORDER BY m.created_at DESC, m.movement_code DESC
-            ) AS rn
+            END AS net_value
         FROM warehouse_movement m
         WHERE m.artikel_code = :art AND m.site_code='HO'
           $whereLoc
@@ -1607,8 +1596,10 @@ private function netMovementBulan($articleCode, $location, $periode, $tahun, $is
                    AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h
                                WHERE h.adj_code=m.movement_transnno AND h.adj_type='OPENING BALANCE'))
       )
+      -- TANPA dedup (dihapus 2026-09-18, sama seperti movement2() -- lihat
+      -- catatan di CheckStockAnomaly.php)
       SELECT COALESCE(SUM(net_value),0) AS net
-      FROM acc WHERE rn=1 AND hdr_status IS DISTINCT FROM '5' AND hdr_status IS DISTINCT FROM '1'";
+      FROM acc WHERE hdr_status IS DISTINCT FROM '5' AND hdr_status IS DISTINCT FROM '1'";
     $bind = ['art'=>$articleCode,'from'=>$from,'to'=>$to];
     if (!$isGlobal) $bind['loc2'] = $location;
     $r = DB::select($sql, $bind);
@@ -1709,11 +1700,7 @@ private function accumulateNet($articleCode, $location, $anchorDate, $fromDate, 
                       WHERE det.adj_code=m.movement_transnno AND det.article_code=m.artikel_code LIMIT 1)
                      * CASE WHEN m.movement_type='CANCEL ADJUSTMENT' THEN -1 ELSE 1 END
                 ELSE (m.movement_plus - m.movement_min)
-            END AS net_value,
-            ROW_NUMBER() OVER (
-                PARTITION BY m.artikel_code, m.movement_transnno, m.location_number
-                ORDER BY m.created_at DESC, m.movement_code DESC
-            ) AS rn
+            END AS net_value
         FROM warehouse_movement m
         WHERE m.artikel_code = :art AND m.site_code='HO'
           $whereLoc
@@ -1727,8 +1714,10 @@ private function accumulateNet($articleCode, $location, $anchorDate, $fromDate, 
                    AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h
                                WHERE h.adj_code=m.movement_transnno AND h.adj_type='OPENING BALANCE'))
       )
+      -- TANPA dedup (dihapus 2026-09-18, sama seperti movement2() -- lihat
+      -- catatan di CheckStockAnomaly.php)
       SELECT COALESCE(SUM(net_value),0) AS acc
-      FROM acc WHERE rn=1 AND hdr_status IS DISTINCT FROM '5' AND hdr_status IS DISTINCT FROM '1'";
+      FROM acc WHERE hdr_status IS DISTINCT FROM '5' AND hdr_status IS DISTINCT FROM '1'";
     $bind = ['art'=>$articleCode,'anchorDate'=>$anchorDate,'fromDate'=>$fromDate];
     if (!$isGlobal) $bind['loc2'] = $location;
     $r = DB::select($sql, $bind);

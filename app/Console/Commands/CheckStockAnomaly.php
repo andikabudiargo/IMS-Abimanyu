@@ -91,10 +91,20 @@ class CheckStockAnomaly extends Command
         //   ② Hitung net movement NON-OB setelah tanggal OB terbaru
         //      - is_canceled per-modul (kode cancel BEDA-BEDA per movement_type,
         //        bukan disamaratakan status='5' -- lihat catatan REVISI di bawah)
-        //      - DEDUP pakai lokasi FISIK (sebelum fold) -- SENGAJA belum dihapus
-        //        meski get_last_qty_new() sudah tidak pakai dedup lagi, karena user
-        //        eksplisit minta ditunda untuk movement2/CheckStockAnomaly ("tunda
-        //        dulu") -- jangan hapus dedup ini tanpa diminta ulang.
+        //      - TANPA dedup keep-latest (dihapus 2026-09-18, atas permintaan
+        //        user, dikonfirmasi lewat booth 034/057). Satu dokumen
+        //        ALP/Actual Loading bisa legit mengonsumsi RM yang sama di
+        //        lebih dari 1 baris BOM, menghasilkan >1 baris warehouse_movement
+        //        dengan (artikel_code, movement_transnno, location_number) yang
+        //        SAMA -- dedup ROW_NUMBER() keep-latest lama salah menganggap
+        //        itu duplikat dan cuma menghitung 1 baris, padahal warehouse_stock
+        //        sudah benar dikurangi utk SEMUA baris -> ledger under-count,
+        //        anomaly palsu (qty_ledger > snapshot). Aman dihapus karena
+        //        SEMUA modul sekarang hapus movement lama saat revisi/cancel
+        //        (bukan insert baris pembalik lagi), jadi tidak ada lagi baris
+        //        "revisi lama" yang perlu di-dedup -- exclusion murni lewat
+        //        is_canceled sudah cukup. Pola yang sama persis sudah dibuktikan
+        //        aman di StoReportController::aggregateMovements().
         //   ③ Fold lokasi fisik ke parent
         //   ④ qty_ledger = stock_after(OB) + SUM(net_movement)
         //   ⑤ Bandingkan vs warehouse_stock
@@ -201,18 +211,11 @@ class CheckStockAnomaly extends Command
                   {$whereArticle}
             ),
 
-            -- dedup pakai lokasi FISIK (sebelum fold) -- SENGAJA dipertahankan,
-            -- lihat catatan REVISI di atas. Exclude yang is_canceled TRUE saja.
-            dedup AS (
-                SELECT mv.*,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY mv.artikel_code, mv.movement_transnno, mv.location_number
-                        ORDER BY mv.created_at DESC, mv.movement_code DESC
-                    ) AS rn
-                FROM mv
-                WHERE mv.is_canceled IS NOT TRUE
+            -- TANPA dedup (lihat catatan REVISI di atas) -- exclude yang
+            -- is_canceled TRUE saja, semua baris legit lainnya dihitung.
+            kept AS (
+                SELECT * FROM mv WHERE mv.is_canceled IS NOT TRUE
             ),
-            kept AS (SELECT * FROM dedup WHERE rn = 1),
 
             -- fold lokasi fisik ke parent, SUM net movement
             net_mv AS (

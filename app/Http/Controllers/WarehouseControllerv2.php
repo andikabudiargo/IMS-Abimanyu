@@ -846,19 +846,16 @@ public function apiStockMovement(Request $request)
                    AND EXISTS (SELECT 1 FROM stock_adjustment_hdr h
                                WHERE h.adj_code = m.movement_transnno AND h.adj_type = 'OPENING BALANCE'))
     ),
-    dedup AS (
-        SELECT l.*,
-            ROW_NUMBER() OVER (
-                PARTITION BY l.artikel_code, l.movement_transnno, l.location_number
-                ORDER BY l.created_at DESC, l.movement_code DESC
-            ) AS rn
+    -- TANPA dedup (dihapus 2026-09-18, sama seperti CheckStockAnomaly.php --
+    -- satu dokumen ALP/Actual Loading bisa legit mengonsumsi RM yang sama di
+    -- >1 baris BOM, menghasilkan >1 baris warehouse_movement dengan
+    -- (artikel_code, movement_transnno, location_number) SAMA; dedup
+    -- ROW_NUMBER() keep-latest lama salah menganggap itu duplikat dan cuma
+    -- menghitung 1 baris, padahal semuanya legit).
+    kept AS (
+        SELECT l.*, l.net_value AS counted_net
         FROM ledger l
         WHERE l.hdr_status IS DISTINCT FROM '5'
-    ),
-    kept AS (
-        SELECT d.*, d.net_value AS counted_net
-        FROM dedup d
-        WHERE d.rn = 1
     ),
     base AS (
         SELECT k.*,
