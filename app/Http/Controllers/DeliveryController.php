@@ -1855,7 +1855,25 @@ public function posting(Request $request)
 
         // ── Reverse stok DULU, SEBELUM delivery_number di-rename ──
         // supaya movement_transnno yang dicari cocok dengan yang di-insert saat posting()
-        if ($dnStatus == '4') {
+        //
+        // FIX: dulu cuma dicek $dnStatus == '4' (POSTED) -- padahal DN yang
+        // sudah lanjut ke status lain SETELAH posting (mis. '8' RECEIVED, '7'
+        // REVISED, '10' REVISI) tetap punya movement aktif yang perlu
+        // di-reverse. Kalau lolos tanpa reverse, delivery_number langsung
+        // di-rename ke "...(C)" sementara baris warehouse_movement ASLI masih
+        // tertinggal dgn movement_transnno LAMA -- setiap pengecekan
+        // is_canceled di modul lain (get_last_qty_new, CheckStockAnomaly,
+        // grid Movement) jadi tidak pernah ketemu header-nya lagi (sudah
+        // ganti nomor), jadi movement itu tetap kehitung aktif SELAMANYA
+        // walau dokumennya sudah CANCELED. Sekarang dicek dari keberadaan
+        // movement aslinya sendiri, bukan status header (persis pola
+        // wasPosted() yang dipakai modul lain).
+        $wasPosted = DB::table('warehouse_movement')
+            ->where('movement_transnno', $dnNumber)
+            ->where('movement_type', 'DELIVERY')
+            ->exists();
+
+        if ($wasPosted) {
             $reverse = $this->reverseStock($dnNumber, 'Cancel');
             if (!$reverse['success']) {
                 throw new \Exception($reverse['message']);
@@ -2041,7 +2059,17 @@ from delivery_hdr where delivery_number = '$dnOrigin'";
                 ]);
 
             if ($rowAffected) {
-              if ($dnStatus == '4') {
+              // FIX: sama seperti destroy() -- gate ini dulu cuma cek status
+              // == '4' (POSTED), padahal DN yang sudah lanjut ke status lain
+              // (mis. '8' RECEIVED) tetap punya movement aktif yang harus
+              // di-reverse sebelum reposting revisi. Dicek dari keberadaan
+              // movement aslinya sendiri, bukan status header.
+              $wasPosted = DB::table('warehouse_movement')
+                  ->where('movement_transnno', $dnOrigin)
+                  ->where('movement_type', 'DELIVERY')
+                  ->exists();
+
+              if ($wasPosted) {
     $reverse = $this->reverseStock($dnOrigin, 'Revision');
     if (!$reverse['success']) {
         throw new \Exception($reverse['message']);
