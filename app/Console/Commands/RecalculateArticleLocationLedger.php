@@ -73,13 +73,29 @@ class RecalculateArticleLocationLedger extends Command
         $locFilt  = $this->option('location');
         $limit    = (int) $this->option('limit');
 
-        $q = DB::table('warehouse_movement')
-            ->where('site_code', $site)
-            ->select('artikel_code', 'location_number')
-            ->distinct();
-        if ($artFilt) $q->where('artikel_code', $artFilt);
-        if ($locFilt) $q->where('location_number', $locFilt);
-        $combos = $q->orderBy('artikel_code')->orderBy('location_number')->get();
+        // FIX (2026-09-18): dulu kombinasi cuma digali dari warehouse_movement --
+        // kombinasi artikel+lokasi yang warehouse_stock-nya ada tapi TIDAK
+        // PERNAH punya baris movement sama sekali (baris seed/migrasi, mis.
+        // kasus RMNPIKP02@045) tidak pernah masuk daftar ini SAMA SEKALI, walau
+        // --article/--location dipasang eksplisit -- filter itu cuma
+        // mempersempit warehouse_movement yang sudah kosong, bukan memaksa
+        // masuk. Sekarang digabung (UNION) dengan kunci dari warehouse_stock
+        // juga, persis semesta yang sama dengan CheckStockAnomaly.php
+        // (all_stock_keys), supaya kombinasi tanpa movement pun ikut kena
+        // recalculate (hasilnya: article_qty -> 0, sesuai get_last_qty_new()).
+        $sql = "
+            WITH keys AS (
+                SELECT artikel_code, location_number FROM warehouse_movement WHERE site_code = ?
+                UNION
+                SELECT article_code AS artikel_code, location_number FROM warehouse_stock WHERE site_code = ?
+            )
+            SELECT * FROM keys WHERE 1=1
+        ";
+        $bind = [$site, $site];
+        if ($artFilt) { $sql .= " AND artikel_code = ?"; $bind[] = $artFilt; }
+        if ($locFilt) { $sql .= " AND location_number = ?"; $bind[] = $locFilt; }
+        $sql .= " ORDER BY artikel_code, location_number";
+        $combos = collect(DB::select($sql, $bind));
         if ($limit > 0) $combos = $combos->take($limit);
 
         $this->info('Total kombinasi artikel+lokasi diperiksa: ' . $combos->count());
