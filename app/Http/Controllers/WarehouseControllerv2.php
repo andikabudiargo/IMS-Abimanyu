@@ -993,30 +993,59 @@ foreach ($data as $d) {
         'created_at' => $opening['authorized_at'], 'is_summary' => true, 'summary_label' => 'SALDO AWAL',
     ];
 
-    // FIX (2026-09-21, direvisi atas koreksi user -- percobaan sebelumnya
-    // nyisipin 2 baris tambahan itu SALAH, dibatalkan): tidak ada baris
-    // tambahan. Cukup "Saldo Akhir" ikut kasih ref kalau titik itu
-    // bertepatan dengan OB -- yaitu OB ber-periode = bulan $toDate (persis
-    // OB yang akan dipakai sebagai "Saldo Awal" kalau user pindah filter ke
-    // bulan berikutnya, lihat periodeOB = bulan-1 di resolveOpeningBalance()
-    // milik ArticleController).
+    // FIX (2026-09-21, direvisi lagi atas koreksi user): OB tidak nempel di
+    // label "Saldo Akhir" -- selisihnya jadi tidak kelihatan. Sekarang kalau
+    // ada OB ber-periode = bulan $toDate (persis OB yang akan jadi "Saldo
+    // Awal" periode berikutnya, lihat periodeOB = bulan-1 di
+    // resolveOpeningBalance() milik ArticleController), OB itu muncul
+    // sebagai baris movement TERSENDIRI ("ADJUSTMENT") sebelum "Saldo
+    // Akhir", dengan qty in/out = selisih saldo hasil jalan movement vs
+    // nilai OB. "Saldo Akhir" lalu mengikuti nilai final (ter-koreksi) itu.
     $closingOb = null;
     $toParts = explode('-', $toDate);
     if (isset($toParts[1], $toParts[2])) {
         $closingOb = $articleController->fetchOBByPeriode($articleCode, $location, (int) $toParts[1], (int) $toParts[2], $isGlobal);
     }
+
+    $rowAdj = null;
+    $saldoAkhirFinal = $saldoAkhir;
+    $totalInFinal = $totalIn;
+    $totalOutFinal = $totalOut;
+    if ($closingOb && $closingOb['found']) {
+        $delta = round($closingOb['qty'] - $saldoAkhir, 4);
+        if (abs($delta) > 0.0001) {
+            $adjIn  = $delta > 0 ? $delta : 0.0;
+            $adjOut = $delta < 0 ? abs($delta) : 0.0;
+            $adjRef = $this->refInfo('ADJUSTMENT', $closingOb['adj_code']);
+            $rowAdj = [
+                'movement_date' => $closingOb['adj_date'] ?: $toDate, 'movement_type' => 'ADJUSTMENT',
+                'movement_transnno' => $closingOb['adj_code'],
+                'ref_openable' => $adjRef['openable'], 'ref_url' => $adjRef['url'],
+                'ref_enc_id' => $adjRef['enc_id'], 'ref_doc_kind' => $adjRef['doc_kind'],
+                'mv_from' => null, 'mv_to' => null,
+                'inout' => $adjIn > 0 ? 'in' : 'out',
+                'qty_in' => $adjIn, 'qty_out' => $adjOut, 'opening' => $saldoAkhir, 'balance' => $closingOb['qty'],
+                'movement_desc' => ($closingOb['note'] ?: 'Penyesuaian Opening Balance').' ('.$toDate.')',
+                'trx_status' => null, 'trx_status_label' => null,
+                'created_at' => $closingOb['authorized_at'], 'is_summary' => false,
+            ];
+            $totalInFinal  += $adjIn;
+            $totalOutFinal += $adjOut;
+        }
+        $saldoAkhirFinal = $closingOb['qty'];
+    }
+
     $rowAkhir = [
-        'movement_date' => $toDate, 'movement_type' => 'CLOSING',
-        'movement_transnno' => ($closingOb && $closingOb['found']) ? $closingOb['adj_code'] : null,
+        'movement_date' => $toDate, 'movement_type' => 'CLOSING', 'movement_transnno' => null,
         'ref_openable' => false, 'ref_url' => null, 'mv_from' => null, 'mv_to' => null, 'inout' => '',
-        'qty_in' => $totalIn, 'qty_out' => $totalOut, 'opening' => $saldoAwal, 'balance' => $saldoAkhir,
-        'movement_desc' => (($closingOb && $closingOb['found']) ? ($closingOb['note'] ?: 'Saldo Akhir') : 'Saldo Akhir').' ('.$toDate.')',
+        'qty_in' => $totalInFinal, 'qty_out' => $totalOutFinal, 'opening' => $saldoAwal, 'balance' => $saldoAkhirFinal,
+        'movement_desc' => 'Saldo Akhir ('.$toDate.')',
         'trx_status' => null, 'trx_status_label' => null,
         'created_at' => null, 'is_summary' => true, 'summary_label' => 'SALDO AKHIR',
     ];
 
     // ── Pagination manual atas baris movement (Saldo Awal/Akhir tidak ikut dipaginate,
-    //    selalu tampil — Awal di halaman 1, Akhir di halaman terakhir) ──
+    //    selalu tampil — Awal di halaman 1, Akhir (+ Adjustment kalau ada) di halaman terakhir) ──
     $total    = $rows->count();
     $lastPage = max(1, (int) ceil($total / $perPage));
     $paged    = $rows->forPage($page, $perPage)->values();
@@ -1024,7 +1053,10 @@ foreach ($data as $d) {
     $out = [];
     if ($page === 1) $out[] = $rowAwal;
     foreach ($paged as $r) $out[] = $r;
-    if ($page === $lastPage) $out[] = $rowAkhir;
+    if ($page === $lastPage) {
+        if ($rowAdj) $out[] = $rowAdj;
+        $out[] = $rowAkhir;
+    }
 
     return response()->json([
         'status'        => 1,

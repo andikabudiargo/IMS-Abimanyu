@@ -1300,40 +1300,69 @@ if (!$isGlobal) {
         'site_code'       => $siteCode,
     ]);
 
-    // FIX (2026-09-21, direvisi atas koreksi user -- percobaan sebelumnya
-    // nyisipin 2 baris tambahan itu SALAH, dibatalkan): tidak ada baris
-    // tambahan sama sekali. Cukup "Saldo Akhir" ikut kasih nomor ref kalau
-    // titik itu bertepatan dengan OB -- yaitu OB ber-periode = bulan
-    // $toDate (persis OB yang akan dipakai SEBAGAI "Saldo Awal" kalau user
-    // pindah filter ke bulan berikutnya, lihat periodeOB = bulan-1 di
-    // resolveOpeningBalance()). "Saldo Awal" sendiri SUDAH dari dulu bawa
-    // adj_code kalau opening-nya bisa diatribusikan ke satu OB (tidak
-    // diubah).
+    // FIX (2026-09-21, direvisi lagi atas koreksi user): OB tidak nempel di
+    // label "Saldo Akhir" -- itu bikin selisihnya (penyesuaian) jadi tidak
+    // kelihatan sebagai pengurangan/penambahan qty. Sekarang kalau ada OB
+    // ber-periode = bulan $toDate (persis OB yang akan jadi "Saldo Awal"
+    // periode berikutnya, lihat periodeOB = bulan-1 di resolveOpeningBalance()),
+    // OB itu muncul sebagai baris movement TERSENDIRI ("ADJUSTMENT") di antara
+    // movement terakhir dan "Saldo Akhir", dengan qty in/out = selisih antara
+    // saldo hasil jalan movement vs nilai OB. "Saldo Akhir" lalu mengikuti
+    // nilai final (ter-koreksi) itu, supaya nyambung dengan "Saldo Awal" di
+    // periode berikutnya.
     $closingOb = null;
     $toParts = explode('-', $toDate);
     if (isset($toParts[1], $toParts[2])) {
         $closingOb = $this->fetchOBByPeriode($articleCode, $location, (int) $toParts[1], (int) $toParts[2], $isGlobal);
     }
 
+    $rowAdj = null;
+    $saldoAkhirFinal = $saldoAkhir;
+    $totalInFinal = $totalIn;
+    $totalOutFinal = $totalOut;
+    if ($closingOb && $closingOb['found']) {
+        $delta = round($closingOb['qty'] - $saldoAkhir, 4);
+        if (abs($delta) > 0.0001) {
+            $adjIn  = $delta > 0 ? $delta : 0.0;
+            $adjOut = $delta < 0 ? abs($delta) : 0.0;
+            $rowAdj = $this->buildSummaryRow([
+                'is_summary'      => false,
+                'artikel_code'    => $articleCode,
+                'artikel_desc'    => $artikelDesc,
+                'movement_date'   => $closingOb['adj_date'] ?: $toDate,
+                'movement_desc'   => ($closingOb['note'] ?: 'Penyesuaian Opening Balance').' ('.$toDate.')',
+                'movement_type'   => 'ADJUSTMENT',
+                'movement_transnno' => $closingOb['adj_code'],
+                'location_number' => $isGlobal ? 'ALL' : $location,
+                'last_qty'        => $saldoAkhir,
+                'movement_plus'   => $adjIn,
+                'movement_min'    => $adjOut,
+                'balanceqty'      => $closingOb['qty'],
+                'urutan'          => 0,
+                'created_at'      => $closingOb['authorized_at'],
+                'site_code'       => $siteCode,
+            ]);
+        }
+        $saldoAkhirFinal = $closingOb['qty'];
+        $totalInFinal  += $adjIn ?? 0.0;
+        $totalOutFinal += $adjOut ?? 0.0;
+    }
+
     $rowAkhir = $this->buildSummaryRow([
         'artikel_code'    => $articleCode,
         'artikel_desc'    => $artikelDesc,
-        'movement_desc'   => ($closingOb && $closingOb['found'])
-            ? ($closingOb['note'] ?: 'Saldo Akhir').' ('.$toDate.')'
-            : 'Saldo Akhir ('.$toDate.')',
+        'movement_desc'   => 'Saldo Akhir ('.$toDate.')',
         'movement_type'   => 'CLOSING',
         'location_number' => $isGlobal ? 'ALL' : $location,
         'last_qty'        => $saldoAwal,
-        'movement_plus'   => $totalIn,
-        'movement_min'    => $totalOut,
-        'balanceqty'      => $saldoAkhir,
+        'movement_plus'   => $totalInFinal,
+        'movement_min'    => $totalOutFinal,
+        'balanceqty'      => $saldoAkhirFinal,
         'urutan'          => -1,
-        'adj_code'        => ($closingOb && $closingOb['found']) ? $closingOb['adj_code'] : null,
-        'adj_id'          => ($closingOb && $closingOb['found']) ? $closingOb['adj_id']   : null,
         'site_code'       => $siteCode,
     ]);
 
-    $dataFinal = array_merge([$rowAwal], $data, [$rowAkhir]);
+    $dataFinal = array_merge([$rowAwal], $data, $rowAdj ? [$rowAdj] : [], [$rowAkhir]);
 
     return Datatables::of($dataFinal)
         ->addColumn('qty_in', function ($d) {
