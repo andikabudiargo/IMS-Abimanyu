@@ -1184,7 +1184,7 @@ if (!$isGlobal) {
                 WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
                 WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
                 WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
-                WHEN 'LOADING'      THEN (SELECT status FROM actual_loading_hdr    WHERE prod_code       = m.movement_transnno LIMIT 1)
+                WHEN 'LOADING'      THEN (SELECT status::varchar FROM actual_loading_hdr WHERE prod_code = m.movement_transnno LIMIT 1)
                 ELSE NULL
             END AS hdr_status,
 
@@ -1601,7 +1601,7 @@ public function netMovementRange($articleCode, $location, $from, $to, $isGlobal,
                 WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
                 WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
                 WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
-                WHEN 'LOADING'      THEN (SELECT status FROM actual_loading_hdr    WHERE prod_code       = m.movement_transnno LIMIT 1)
+                WHEN 'LOADING'      THEN (SELECT status::varchar FROM actual_loading_hdr WHERE prod_code = m.movement_transnno LIMIT 1)
                 ELSE NULL
             END AS hdr_status,
             CASE
@@ -1653,7 +1653,7 @@ private function netMovementBulan($articleCode, $location, $periode, $tahun, $is
                 WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
                 WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
                 WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
-                WHEN 'LOADING'      THEN (SELECT status FROM actual_loading_hdr    WHERE prod_code       = m.movement_transnno LIMIT 1)
+                WHEN 'LOADING'      THEN (SELECT status::varchar FROM actual_loading_hdr WHERE prod_code = m.movement_transnno LIMIT 1)
                 ELSE NULL
             END AS hdr_status,
             CASE
@@ -1805,7 +1805,7 @@ private function accumulateNet($articleCode, $location, $anchorDate, $fromDate, 
                 WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
                 WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
                 WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
-                WHEN 'LOADING'      THEN (SELECT status FROM actual_loading_hdr    WHERE prod_code       = m.movement_transnno LIMIT 1)
+                WHEN 'LOADING'      THEN (SELECT status::varchar FROM actual_loading_hdr WHERE prod_code = m.movement_transnno LIMIT 1)
                 ELSE NULL
             END AS hdr_status,
             CASE

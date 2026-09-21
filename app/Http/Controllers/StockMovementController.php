@@ -311,7 +311,7 @@ class StockMovementController extends Controller
             END AS mv_to,
 
             COALESCE(rec.status, trf.status, del.status, ret.status,
-                     rep.status, adj.status, tdn.status, dng.status, alp.status) AS trx_status,
+                     rep.status, adj.status, tdn.status, dng.status, alp.status::varchar) AS trx_status,
 
             f.site_code,
             f.created_at
