@@ -1418,7 +1418,7 @@ private array $refMap = [
     // BENERAN tersimpan di warehouse_movement untuk Actual Loading adalah
     // 'LOADING' (lihat ActualLoadingController -- $movementType = 'LOADING'),
     // jadi lookup lama selalu gagal match, tidak pernah ada hyperlink.
-    'LOADING'           => ['actual_loading_hdr', 'prod_code',      'actualLoading.show'],
+    'LOADING'           => ['actual_loading_hdr', 'prod_code',      'production.actualLoading.show'],
     'SUPPLIER RETURN'   => ['supplier_return_hdr',     'return_number',      'supplierReturn.show'],
     'SUPPLIER REPLACE'   => ['supplier_replace_hdr',     'replace_number',      'supplierReplace.show'],
 ];
