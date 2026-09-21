@@ -520,6 +520,10 @@ Route::prefix('supplier-replace')->group(function () {
 	//add jatuh tempo
 	Route::get('invoice/createv2',['as'=>'invoice.createv2','uses'=>'InvoiceController@create']);
 
+	Route::get('arAging', ['uses' => 'ArAgingReportController@index','as'   => 'arAging.index',]);
+	Route::post('arAging/data', ['uses' => 'ArAgingReportController@data','as'   => 'arAging.data',]);
+	Route::post('arAging/export', ['uses' => 'ArAgingReportController@export','as'   => 'arAging.export',]);
+
 
 	//Account payable versi 2
 	Route::get('accountPayable',['as'=>'accountPayable.index','uses'=>'Accounting\AccountPayableController@index','middleware' => ['permission:ap-index']]);

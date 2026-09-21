@@ -780,6 +780,13 @@
                       </a>
                     </li>
                   @endcan
+                  @can('delivery-report-acc')
+                    <li class="{{ \Request::is(['arAgingReport'])  ? 'active' : '' }}">
+                      <a class="d-flex align-items-center" href="{{ route('arAging.index') }}">
+                        <span class="menu-item text-truncate" data-i18n="AR Aging Report">AR Aging Report</span>
+                      </a>
+                    </li>
+                  @endcan
                 </ul>
               </li>
 
