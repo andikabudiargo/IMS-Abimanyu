@@ -299,9 +299,16 @@ class DebitNoteController extends Controller
         }else{
             // $hasilUpdate = AppHelpers::resetCode($this->moduleCode);
             $inputYear = substr($debitNDate,-2);
-            $dnCode = $this->getLastCode($this->moduleCode,$periodNomor,$inputYear);
+            $dnCode = null;
             DB::beginTransaction();
             try {
+                // Kunci per moduleCode supaya generate nomor + insert tidak bisa
+                // ditumpuk request lain secara bersamaan (race condition duplikat nomor).
+                // Lock otomatis lepas saat commit/rollback (xact-scoped).
+                DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', [$this->moduleCode]);
+
+                $dnCode = $this->getLastCode($this->moduleCode,$periodNomor,$inputYear);
+
                 DB::table('debit_note_hdr')->insert([
                     'dn_number' => $dnCode,
                     'dn_date' => $debitNDate,
