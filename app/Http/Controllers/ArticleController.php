@@ -1300,10 +1300,27 @@ if (!$isGlobal) {
         'site_code'       => $siteCode,
     ]);
 
+    // FIX (2026-09-21, direvisi atas koreksi user -- percobaan sebelumnya
+    // nyisipin 2 baris tambahan itu SALAH, dibatalkan): tidak ada baris
+    // tambahan sama sekali. Cukup "Saldo Akhir" ikut kasih nomor ref kalau
+    // titik itu bertepatan dengan OB -- yaitu OB ber-periode = bulan
+    // $toDate (persis OB yang akan dipakai SEBAGAI "Saldo Awal" kalau user
+    // pindah filter ke bulan berikutnya, lihat periodeOB = bulan-1 di
+    // resolveOpeningBalance()). "Saldo Awal" sendiri SUDAH dari dulu bawa
+    // adj_code kalau opening-nya bisa diatribusikan ke satu OB (tidak
+    // diubah).
+    $closingOb = null;
+    $toParts = explode('-', $toDate);
+    if (isset($toParts[1], $toParts[2])) {
+        $closingOb = $this->fetchOBByPeriode($articleCode, $location, (int) $toParts[1], (int) $toParts[2], $isGlobal);
+    }
+
     $rowAkhir = $this->buildSummaryRow([
         'artikel_code'    => $articleCode,
         'artikel_desc'    => $artikelDesc,
-        'movement_desc'   => 'Saldo Akhir ('.$toDate.')',
+        'movement_desc'   => ($closingOb && $closingOb['found'])
+            ? ($closingOb['note'] ?: 'Saldo Akhir').' ('.$toDate.')'
+            : 'Saldo Akhir ('.$toDate.')',
         'movement_type'   => 'CLOSING',
         'location_number' => $isGlobal ? 'ALL' : $location,
         'last_qty'        => $saldoAwal,
@@ -1311,73 +1328,12 @@ if (!$isGlobal) {
         'movement_min'    => $totalOut,
         'balanceqty'      => $saldoAkhir,
         'urutan'          => -1,
+        'adj_code'        => ($closingOb && $closingOb['found']) ? $closingOb['adj_code'] : null,
+        'adj_id'          => ($closingOb && $closingOb['found']) ? $closingOb['adj_id']   : null,
         'site_code'       => $siteCode,
     ]);
 
-    // FIX (2026-09-21, atas permintaan user): dulu OB cuma nongol sebagai
-    // angka "Saldo Awal" tanpa jejak -- user tidak bisa lihat KAPAN OB itu
-    // di-post atau BERAPA qty yang di-adjustment, apalagi kalau OB-nya dari
-    // periode yang beda dari yang sedang difilter (baris movement ADJUSTMENT
-    // milik OB memang SENGAJA di-exclude dari query utama di atas, biar
-    // tidak dihitung dobel di net movement -- makanya dia tidak pernah
-    // muncul sebagai baris biasa). Sekarang kalau $opening bisa diatribusikan
-    // ke SATU dokumen OB yang jelas (adj_code + stock_before ada), munculkan
-    // dia sebagai 2 baris tambahan SEBELUM "Saldo Awal": (1) saldo akhir
-    // periode sebelum OB itu (stock_before), (2) OB itu sendiri sebagai
-    // baris movement biasa (tanggal asli, delta-nya, link ke dokumennya) --
-    // biar user bisa lihat persis apa yang di-adjustment. Berlaku baik lagi
-    // difilter pas di periode OB-nya sendiri maupun lintas periode lain.
-    $obRows = [];
-    if ($opening['adj_code'] && $opening['stock_before'] !== null) {
-        $stockBefore = (float) $opening['stock_before'];
-        $delta       = $saldoAwal - $stockBefore;
-
-        $obRows[] = $this->buildSummaryRow([
-            'artikel_code'    => $articleCode,
-            'artikel_desc'    => $artikelDesc,
-            'movement_desc'   => 'Saldo Akhir sebelum OPENING BALANCE '.$opening['adj_code'],
-            'movement_type'   => 'CLOSING',
-            'location_number' => $isGlobal ? 'ALL' : $location,
-            'balanceqty'      => $stockBefore,
-            'urutan'          => 1000000001,
-            'site_code'       => $siteCode,
-        ]);
-
-        $obRows[] = (object) [
-            'movement_code'     => null,
-            'artikel_code'      => $articleCode,
-            'artikel_desc'      => $artikelDesc,
-            'qty'               => $delta,
-            'movement_price'    => null,
-            'movement_date'     => $opening['adj_date'],
-            'movement_desc'     => $opening['note'] ?: 'Opening balance',
-            'movement_type'     => 'ADJUSTMENT',
-            'movement_min'      => $delta < 0 ? abs($delta) : 0,
-            'movement_plus'     => $delta > 0 ? $delta : 0,
-            'movement_transnno' => $opening['adj_code'],
-            'partner_type'      => null,
-            'adj_direction'     => $delta >= 0 ? '+' : '-',
-            'adj_qty'           => abs($delta),
-            'hdr_status'        => '4',
-            'dest_code'         => null,
-            'mv_from'           => null,
-            'mv_to'             => null,
-            'balanceqty'        => $saldoAwal,
-            'last_qty'          => $stockBefore,
-            'urutan'            => 1000000000,
-            'site_code'         => $siteCode,
-            'created_at'        => $opening['authorized_at'],
-            'trx_status'        => '4',
-            'is_summary'        => false,
-            'adj_code'          => $opening['adj_code'],
-            'adj_id'            => $opening['adj_id'],
-        ];
-    }
-
-    // $obRows (kalau ada) secara kronologis SEBELUM Saldo Awal periode yang
-    // difilter -- urutan array dibuat benar juga (bukan cuma andalkan sort
-    // client via kolom 'urutan'), biar aman kalau tabelnya tidak resort.
-    $dataFinal = array_merge($obRows, [$rowAwal], $data, [$rowAkhir]);
+    $dataFinal = array_merge([$rowAwal], $data, [$rowAkhir]);
 
     return Datatables::of($dataFinal)
         ->addColumn('qty_in', function ($d) {

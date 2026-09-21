@@ -992,49 +992,28 @@ foreach ($data as $d) {
         'movement_desc' => $opening['note'] ?: 'Saldo Awal', 'trx_status' => null, 'trx_status_label' => null,
         'created_at' => $opening['authorized_at'], 'is_summary' => true, 'summary_label' => 'SALDO AWAL',
     ];
+
+    // FIX (2026-09-21, direvisi atas koreksi user -- percobaan sebelumnya
+    // nyisipin 2 baris tambahan itu SALAH, dibatalkan): tidak ada baris
+    // tambahan. Cukup "Saldo Akhir" ikut kasih ref kalau titik itu
+    // bertepatan dengan OB -- yaitu OB ber-periode = bulan $toDate (persis
+    // OB yang akan dipakai sebagai "Saldo Awal" kalau user pindah filter ke
+    // bulan berikutnya, lihat periodeOB = bulan-1 di resolveOpeningBalance()
+    // milik ArticleController).
+    $closingOb = null;
+    $toParts = explode('-', $toDate);
+    if (isset($toParts[1], $toParts[2])) {
+        $closingOb = $articleController->fetchOBByPeriode($articleCode, $location, (int) $toParts[1], (int) $toParts[2], $isGlobal);
+    }
     $rowAkhir = [
-        'movement_date' => $toDate, 'movement_type' => 'CLOSING', 'movement_transnno' => null,
+        'movement_date' => $toDate, 'movement_type' => 'CLOSING',
+        'movement_transnno' => ($closingOb && $closingOb['found']) ? $closingOb['adj_code'] : null,
         'ref_openable' => false, 'ref_url' => null, 'mv_from' => null, 'mv_to' => null, 'inout' => '',
         'qty_in' => $totalIn, 'qty_out' => $totalOut, 'opening' => $saldoAwal, 'balance' => $saldoAkhir,
-        'movement_desc' => 'Saldo Akhir ('.$toDate.')', 'trx_status' => null, 'trx_status_label' => null,
+        'movement_desc' => (($closingOb && $closingOb['found']) ? ($closingOb['note'] ?: 'Saldo Akhir') : 'Saldo Akhir').' ('.$toDate.')',
+        'trx_status' => null, 'trx_status_label' => null,
         'created_at' => null, 'is_summary' => true, 'summary_label' => 'SALDO AKHIR',
     ];
-
-    // FIX (2026-09-21, atas permintaan user, sama seperti ArticleController::movement2()):
-    // kalau saldo awal bisa diatribusikan ke SATU dokumen OB yang jelas,
-    // munculkan itu sebagai baris eksplisit (saldo akhir sebelum OB + OB-nya
-    // sendiri sebagai baris movement biasa dgn link), bukan cuma angka
-    // "Saldo Awal" tanpa jejak -- OB-nya sendiri SENGAJA di-exclude dari
-    // query movement utama di atas (biar tidak dihitung dobel di net
-    // movement), jadi tidak akan pernah muncul lewat jalur normal.
-    $obRows = [];
-    if ($opening['adj_code'] && $opening['stock_before'] !== null) {
-        $stockBefore = (float) $opening['stock_before'];
-        $delta       = $saldoAwal - $stockBefore;
-        $refOb       = $this->refInfo('ADJUSTMENT', $opening['adj_code']);
-
-        $obRows[] = [
-            'movement_date' => '', 'movement_type' => 'CLOSING', 'movement_transnno' => null,
-            'ref_openable' => false, 'ref_url' => null, 'mv_from' => null, 'mv_to' => null, 'inout' => '',
-            'qty_in' => 0, 'qty_out' => 0, 'opening' => null, 'balance' => $stockBefore,
-            'movement_desc' => 'Saldo Akhir sebelum OPENING BALANCE '.$opening['adj_code'],
-            'trx_status' => null, 'trx_status_label' => null,
-            'created_at' => null, 'is_summary' => true, 'summary_label' => 'SALDO AKHIR',
-        ];
-        $obRows[] = [
-            'movement_date' => $opening['adj_date'], 'movement_type' => 'ADJUSTMENT',
-            'movement_transnno' => $opening['adj_code'],
-            'ref_openable' => $refOb['openable'], 'ref_url' => $refOb['url'],
-            'ref_enc_id' => $refOb['enc_id'], 'ref_doc_kind' => $refOb['doc_kind'],
-            'mv_from' => null, 'mv_to' => null,
-            'inout' => $delta >= 0 ? 'in' : 'out',
-            'qty_in' => $delta > 0 ? $delta : 0, 'qty_out' => $delta < 0 ? abs($delta) : 0,
-            'opening' => $stockBefore, 'balance' => $saldoAwal,
-            'movement_desc' => $opening['note'] ?: 'Opening balance',
-            'trx_status' => '4', 'trx_status_label' => $mapStatus['4'],
-            'created_at' => $opening['authorized_at'], 'is_summary' => false,
-        ];
-    }
 
     // ── Pagination manual atas baris movement (Saldo Awal/Akhir tidak ikut dipaginate,
     //    selalu tampil — Awal di halaman 1, Akhir di halaman terakhir) ──
@@ -1043,10 +1022,7 @@ foreach ($data as $d) {
     $paged    = $rows->forPage($page, $perPage)->values();
 
     $out = [];
-    if ($page === 1) {
-        foreach ($obRows as $r) $out[] = $r;
-        $out[] = $rowAwal;
-    }
+    if ($page === 1) $out[] = $rowAwal;
     foreach ($paged as $r) $out[] = $r;
     if ($page === $lastPage) $out[] = $rowAkhir;
 
