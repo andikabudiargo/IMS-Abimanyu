@@ -1324,14 +1324,24 @@ if (!$isGlobal) {
 
     foreach ($months as $mi => [$m, $y]) {
         $isLastMonth = ($mi === $lastMonthKey);
-        $boundaryTs = null;
+        $boundaryYmd = null;
         $boundaryDate = $toDate;
 
         if (!$isLastMonth) {
             $monthEnd = new \DateTime(sprintf('%04d-%02d-01', $y, $m));
             $monthEnd->modify('last day of this month');
             $boundaryDate = $monthEnd->format('d-m-Y');
-            $boundaryTs   = $monthEnd->getTimestamp();
+            // FIX: bandingkan per TANGGAL (Ymd sbg integer), BUKAN via
+            // getTimestamp() -- DateTime yang dibentuk tanpa jam eksplisit
+            // (baik di sini maupun di createFromFormat('d-m-Y', ...) di bawah)
+            // diam-diam diisi jam SAAT INI oleh PHP, bukan 00:00:00. Karena
+            // $boundaryYmd dihitung SEBELUM loop while di bawah jalan, jam
+            // "now"-nya selalu sedikit lebih awal dari jam "now" tiap baris
+            // yang dibentuk belakangan -- akibatnya baris bertanggal PERSIS
+            // 31 ikut kebanding "lebih besar" dari batas 31, jadi tidak ikut
+            // ke bulan ini (baris tsb malah ketendang ke iterasi bulan
+            // berikutnya, muncul SETELAH baris ADJUSTMENT-nya sendiri).
+            $boundaryYmd = (int) $monthEnd->format('Ymd');
         }
 
         // dorong semua baris movement s/d batas ini (atau sisa semua kalau bulan terakhir),
@@ -1340,7 +1350,7 @@ if (!$isGlobal) {
             $row = $data[$dataIdx];
             if (!$isLastMonth) {
                 $rowD = \DateTime::createFromFormat('d-m-Y', trim($row->movement_date));
-                if (!$rowD || $rowD->getTimestamp() > $boundaryTs) break;
+                if (!$rowD || (int) $rowD->format('Ymd') > $boundaryYmd) break;
             }
             if (abs($cumulativeOffset) > 0.0001) {
                 $row->last_qty   = ($row->last_qty !== null) ? ((float) $row->last_qty + $cumulativeOffset) : null;
