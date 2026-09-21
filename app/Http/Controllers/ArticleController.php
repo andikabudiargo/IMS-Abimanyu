@@ -1300,52 +1300,87 @@ if (!$isGlobal) {
         'site_code'       => $siteCode,
     ]);
 
-    // FIX (2026-09-21, direvisi lagi atas koreksi user): OB tidak nempel di
-    // label "Saldo Akhir" -- itu bikin selisihnya (penyesuaian) jadi tidak
-    // kelihatan sebagai pengurangan/penambahan qty. Sekarang kalau ada OB
-    // ber-periode = bulan $toDate (persis OB yang akan jadi "Saldo Awal"
-    // periode berikutnya, lihat periodeOB = bulan-1 di resolveOpeningBalance()),
-    // OB itu muncul sebagai baris movement TERSENDIRI ("ADJUSTMENT") di antara
-    // movement terakhir dan "Saldo Akhir", dengan qty in/out = selisih antara
-    // saldo hasil jalan movement vs nilai OB. "Saldo Akhir" lalu mengikuti
-    // nilai final (ter-koreksi) itu, supaya nyambung dengan "Saldo Awal" di
+    // FIX (2026-09-22, direvisi lagi -- filter lintas bulan tidak menampilkan
+    // OB yang jatuh di TENGAH rentang): sebelumnya cuma dicek 1x di ujung
+    // filter (periode = bulan $toDate). Kalau filter melintasi >1 bulan (mis.
+    // 26-08 s/d 09-09), OB yang jatuh di 31-08 (tengah rentang) tidak pernah
+    // dicek -- padahal b.balanceqty_calc dari SQL di atas itu SUM murni dari
+    // movement, TIDAK tahu ada reset OB di tengah, jadi semua baris SETELAH
+    // titik itu juga ikut salah kalau tidak dikoreksi. Sekarang jalan per
+    // BATAS BULAN yang beneran dilewati rentang [fromDate,toDate]: tiap batas
+    // yang ketemu OB-nya jadi baris movement "ADJUSTMENT" tersendiri (dengan
+    // ref+status), dan seluruh baris SESUDAHNYA digeser sejumlah selisihnya
+    // (cumulative offset) supaya "Saldo Akhir" tetap nyambung ke "Saldo Awal"
     // periode berikutnya.
-    $closingOb = null;
-    $toParts = explode('-', $toDate);
-    if (isset($toParts[1], $toParts[2])) {
-        $closingOb = $this->fetchOBByPeriode($articleCode, $location, (int) $toParts[1], (int) $toParts[2], $isGlobal);
-    }
+    $months = $this->monthsBetweenInclusive($fromDate, $toDate);
 
-    $rowAdj = null;
-    $saldoAkhirFinal = $saldoAkhir;
-    $totalInFinal = $totalIn;
-    $totalOutFinal = $totalOut;
-    if ($closingOb && $closingOb['found']) {
-        $delta = round($closingOb['qty'] - $saldoAkhir, 4);
-        if (abs($delta) > 0.0001) {
-            $adjIn  = $delta > 0 ? $delta : 0.0;
-            $adjOut = $delta < 0 ? abs($delta) : 0.0;
-            $rowAdj = $this->buildSummaryRow([
-                'is_summary'      => false,
-                'artikel_code'    => $articleCode,
-                'artikel_desc'    => $artikelDesc,
-                'movement_date'   => $closingOb['adj_date'] ?: $toDate,
-                'movement_desc'   => ($closingOb['note'] ?: 'Penyesuaian Opening Balance').' ('.$toDate.')',
-                'movement_type'   => 'ADJUSTMENT',
-                'movement_transnno' => $closingOb['adj_code'],
-                'location_number' => $isGlobal ? 'ALL' : $location,
-                'last_qty'        => $saldoAkhir,
-                'movement_plus'   => $adjIn,
-                'movement_min'    => $adjOut,
-                'balanceqty'      => $closingOb['qty'],
-                'urutan'          => 0,
-                'created_at'      => $closingOb['authorized_at'],
-                'site_code'       => $siteCode,
-            ]);
+    $dataFinal = [$rowAwal];
+    $cumulativeOffset = 0.0;
+    $totalAdjIn  = 0.0;
+    $totalAdjOut = 0.0;
+    $dataIdx = 0;
+    $n = count($data);
+    $lastMonthKey = count($months) - 1;
+
+    foreach ($months as $mi => [$m, $y]) {
+        $isLastMonth = ($mi === $lastMonthKey);
+        $boundaryTs = null;
+        $boundaryDate = $toDate;
+
+        if (!$isLastMonth) {
+            $monthEnd = new \DateTime(sprintf('%04d-%02d-01', $y, $m));
+            $monthEnd->modify('last day of this month');
+            $boundaryDate = $monthEnd->format('d-m-Y');
+            $boundaryTs   = $monthEnd->getTimestamp();
         }
-        $saldoAkhirFinal = $closingOb['qty'];
-        $totalInFinal  += $adjIn ?? 0.0;
-        $totalOutFinal += $adjOut ?? 0.0;
+
+        // dorong semua baris movement s/d batas ini (atau sisa semua kalau bulan terakhir),
+        // sambil geser last_qty/balanceqty-nya sejumlah offset kumulatif dari batas sebelumnya
+        while ($dataIdx < $n) {
+            $row = $data[$dataIdx];
+            if (!$isLastMonth) {
+                $rowD = \DateTime::createFromFormat('d-m-Y', trim($row->movement_date));
+                if (!$rowD || $rowD->getTimestamp() > $boundaryTs) break;
+            }
+            if (abs($cumulativeOffset) > 0.0001) {
+                $row->last_qty   = ($row->last_qty !== null) ? ((float) $row->last_qty + $cumulativeOffset) : null;
+                $row->balanceqty = (float) $row->balanceqty + $cumulativeOffset;
+            }
+            $dataFinal[] = $row;
+            $dataIdx++;
+        }
+
+        $lastPushed     = end($dataFinal); reset($dataFinal);
+        $trueAtBoundary = ($lastPushed !== $rowAwal) ? (float) $lastPushed->balanceqty : ($saldoAwal + $cumulativeOffset);
+
+        $ob = $this->fetchOBByPeriode($articleCode, $location, $m, $y, $isGlobal);
+        if ($ob['found']) {
+            $delta = round($ob['qty'] - $trueAtBoundary, 4);
+            if (abs($delta) > 0.0001) {
+                $adjIn  = $delta > 0 ? $delta : 0.0;
+                $adjOut = $delta < 0 ? abs($delta) : 0.0;
+                $dataFinal[] = $this->buildSummaryRow([
+                    'is_summary'        => false,
+                    'artikel_code'      => $articleCode,
+                    'artikel_desc'      => $artikelDesc,
+                    'movement_date'     => ($ob['adj_date'] ?? null) ?: $boundaryDate,
+                    'movement_desc'     => ($ob['note'] ?: 'Penyesuaian Opening Balance').' ('.$boundaryDate.')',
+                    'movement_type'     => 'ADJUSTMENT',
+                    'movement_transnno' => $ob['adj_code'],
+                    'location_number'   => $isGlobal ? 'ALL' : $location,
+                    'last_qty'          => $trueAtBoundary,
+                    'movement_plus'     => $adjIn,
+                    'movement_min'      => $adjOut,
+                    'balanceqty'        => $ob['qty'],
+                    'trx_status'        => $ob['status'],
+                    'created_at'        => $ob['authorized_at'],
+                    'site_code'         => $siteCode,
+                ]);
+                $cumulativeOffset += $delta;
+                $totalAdjIn  += $adjIn;
+                $totalAdjOut += $adjOut;
+            }
+        }
     }
 
     $rowAkhir = $this->buildSummaryRow([
@@ -1355,14 +1390,23 @@ if (!$isGlobal) {
         'movement_type'   => 'CLOSING',
         'location_number' => $isGlobal ? 'ALL' : $location,
         'last_qty'        => $saldoAwal,
-        'movement_plus'   => $totalInFinal,
-        'movement_min'    => $totalOutFinal,
-        'balanceqty'      => $saldoAkhirFinal,
-        'urutan'          => -1,
+        'movement_plus'   => $totalIn + $totalAdjIn,
+        'movement_min'    => $totalOut + $totalAdjOut,
+        'balanceqty'      => $saldoAkhir + $cumulativeOffset,
         'site_code'       => $siteCode,
     ]);
+    $dataFinal[] = $rowAkhir;
 
-    $dataFinal = array_merge([$rowAwal], $data, $rowAdj ? [$rowAdj] : [], [$rowAkhir]);
+    // urutan dihitung ULANG di sini (bukan pakai kolom SQL) supaya baris
+    // ADJUSTMENT yang disisipkan di tengah tetap terurut benar saat
+    // DataTables sort DESC by urutan (rowAwal paling besar, rowAkhir -1).
+    $rowAwal->urutan = 999999999;
+    $rowAkhir->urutan = -1;
+    $mid = count($dataFinal) - 2;
+    foreach ($dataFinal as $row) {
+        if ($row === $rowAwal || $row === $rowAkhir) continue;
+        $row->urutan = $mid--;
+    }
 
     return Datatables::of($dataFinal)
         ->addColumn('qty_in', function ($d) {
@@ -1677,7 +1721,7 @@ public function fetchOBByPeriode($articleCode, $location, $periode, $tahun, $isG
 {
     if ($isGlobal) {
         $sql = "SELECT COALESCE(SUM(det.stock_after),0) AS qty, MAX(hdr.authorized_at) AS authorized_at,
-                       BOOL_OR(TRUE) AS found
+                       MAX(hdr.status) AS status, BOOL_OR(TRUE) AS found
                 FROM stock_adjustment_hdr hdr
                 JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
                 WHERE hdr.adj_type='OPENING BALANCE' AND hdr.status!='5'
@@ -1688,7 +1732,8 @@ public function fetchOBByPeriode($articleCode, $location, $periode, $tahun, $isG
         $found = isset($r[0]) && $r[0]->found;
         return ['found'=>(bool)$found,'qty'=>$found?(float)$r[0]->qty:0.0,
                 'adj_code'=>null,'adj_id'=>null,'note'=>'Gabungan OB semua gudang',
-                'authorized_at'=>$r[0]->authorized_at ?? null];
+                'authorized_at'=>$r[0]->authorized_at ?? null,
+                'status'=>$r[0]->status ?? null];
     }
 
     // FIX (2026-09-21): dulu 'hdr.location_code = :loc' PERSIS, tanpa fold ke
@@ -1706,7 +1751,8 @@ public function fetchOBByPeriode($articleCode, $location, $periode, $tahun, $isG
         )
         SELECT MIN(hdr.id) AS id, MIN(hdr.adj_code) AS adj_code, MIN(hdr.description) AS description,
                MAX(hdr.authorized_at) AS authorized_at, SUM(det.stock_after) AS qty,
-               SUM(det.stock_before) AS stock_before, MAX(hdr.adj_date) AS adj_date, COUNT(*) AS n
+               SUM(det.stock_before) AS stock_before, MAX(hdr.adj_date) AS adj_date,
+               MAX(hdr.status) AS status, COUNT(*) AS n
         FROM stock_adjustment_hdr hdr
         JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
         LEFT JOIN loc_anchor la ON la.location_code = hdr.location_code
@@ -1719,7 +1765,8 @@ public function fetchOBByPeriode($articleCode, $location, $periode, $tahun, $isG
     if (!isset($r[0]) || (int) $r[0]->n === 0) return ['found'=>false];
     return ['found'=>true,'qty'=>(float)$r[0]->qty,'adj_code'=>$r[0]->adj_code,
             'adj_id'=>$r[0]->id,'note'=>$r[0]->description,'authorized_at'=>$r[0]->authorized_at,
-            'stock_before'=>(float)$r[0]->stock_before,'adj_date'=>$r[0]->adj_date];
+            'stock_before'=>(float)$r[0]->stock_before,'adj_date'=>$r[0]->adj_date,
+            'status'=>$r[0]->status];
 }
 
 /** OB terakhir yang efektif < fromDate dan >= floor (untuk fallback). */
@@ -1823,6 +1870,31 @@ private function accumulateNet($articleCode, $location, $anchorDate, $fromDate, 
     if (!$isGlobal) $bind['loc2'] = $location;
     $r = DB::select($sql, $bind);
     return isset($r[0]) ? (float) $r[0]->acc : 0.0;
+}
+
+/**
+ * Daftar [bulan, tahun] dari bulan fromDate s/d bulan toDate (dd-mm-yyyy), inklusif.
+ * Dipakai movement2() untuk mengecek titik OB di SETIAP batas bulan yang
+ * dilewati filter, bukan cuma di ujung akhirnya.
+ */
+public function monthsBetweenInclusive(string $fromDate, string $toDate): array
+{
+    $f = explode('-', $fromDate);
+    $t = explode('-', $toDate);
+    $m = (int) ($f[1] ?? date('m'));
+    $y = (int) ($f[2] ?? date('Y'));
+    $m2 = (int) ($t[1] ?? date('m'));
+    $y2 = (int) ($t[2] ?? date('Y'));
+
+    $out = [];
+    $guard = 0;
+    while (($y < $y2 || ($y === $y2 && $m <= $m2)) && $guard++ < 600) {
+        $out[] = [$m, $y];
+        $m++;
+        if ($m > 12) { $m = 1; $y++; }
+    }
+    if (empty($out)) $out[] = [$m2, $y2];
+    return $out;
 }
 
 /**

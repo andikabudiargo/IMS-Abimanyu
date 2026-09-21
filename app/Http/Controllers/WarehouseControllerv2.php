@@ -942,6 +942,83 @@ foreach ($data as $d) {
         '5'  => 'CANCELED', '7'  => 'REVISED',  '8'  => 'RECEIVED', '10' => 'REVISI',
     ];
 
+    // FIX (2026-09-22): sama seperti ArticleController::movement2() -- OB dicek
+    // di SETIAP batas bulan yang dilewati filter (bukan cuma di ujung akhirnya),
+    // supaya filter lintas bulan (mis. 26-08 s/d 09-09) tidak melewatkan OB yang
+    // jatuh di tengah (31-08). Baris ADJUSTMENT interior disisipkan ke $data
+    // SEBELUM di-map jadi $rows (ikut ke-map otomatis lewat closure di bawah --
+    // ADJUSTMENT sudah ada di refMap jadi ref/status-nya ikut kebentuk benar),
+    // dan seluruh baris sesudahnya digeser sejumlah offset kumulatifnya.
+    $months = $articleController->monthsBetweenInclusive($fromDate, $toDate);
+    $lastMonthKey = count($months) - 1;
+
+    $cumulativeOffset = 0.0;
+    $totalAdjIn  = 0.0;
+    $totalAdjOut = 0.0;
+    $dataIdx = 0;
+    $n = count($data);
+    $dataAugmented = [];
+
+    foreach ($months as $mi => [$m, $y]) {
+        $isLastMonth = ($mi === $lastMonthKey);
+        $boundaryTs = null;
+        $boundaryDate = $toDate;
+
+        if (!$isLastMonth) {
+            $monthEnd = new \DateTime(sprintf('%04d-%02d-01', $y, $m));
+            $monthEnd->modify('last day of this month');
+            $boundaryDate = $monthEnd->format('d-m-Y');
+            $boundaryTs   = $monthEnd->getTimestamp();
+        }
+
+        while ($dataIdx < $n) {
+            $row = $data[$dataIdx];
+            if (!$isLastMonth) {
+                $rowD = \DateTime::createFromFormat('d-m-Y', trim($row->movement_date));
+                if (!$rowD || $rowD->getTimestamp() > $boundaryTs) break;
+            }
+            if (abs($cumulativeOffset) > 0.0001) {
+                $row->last_qty   = ($row->last_qty !== null) ? ((float) $row->last_qty + $cumulativeOffset) : null;
+                $row->balanceqty = (float) $row->balanceqty + $cumulativeOffset;
+            }
+            $dataAugmented[] = $row;
+            $dataIdx++;
+        }
+
+        if ($isLastMonth) break; // sisa (closing) tetap ditangani via $rowAdj/$rowAkhir di luar paginasi, seperti sebelumnya
+
+        $lastPushed     = end($dataAugmented); reset($dataAugmented);
+        $trueAtBoundary = $lastPushed ? (float) $lastPushed->balanceqty : ($saldoAwal + $cumulativeOffset);
+
+        $ob = $articleController->fetchOBByPeriode($articleCode, $location, $m, $y, $isGlobal);
+        if ($ob['found']) {
+            $delta = round($ob['qty'] - $trueAtBoundary, 4);
+            if (abs($delta) > 0.0001) {
+                $adjIn  = $delta > 0 ? $delta : 0.0;
+                $adjOut = $delta < 0 ? abs($delta) : 0.0;
+                $dataAugmented[] = (object) [
+                    'movement_date'     => ($ob['adj_date'] ?? null) ?: $boundaryDate,
+                    'movement_type'     => 'ADJUSTMENT',
+                    'movement_transnno' => $ob['adj_code'],
+                    'movement_desc'     => ($ob['note'] ?: 'Penyesuaian Opening Balance').' ('.$boundaryDate.')',
+                    'movement_plus'     => $adjIn,
+                    'movement_min'      => $adjOut,
+                    'dest_code'         => null,
+                    'mv_from'           => null,
+                    'mv_to'             => null,
+                    'last_qty'          => $trueAtBoundary,
+                    'balanceqty'        => $ob['qty'],
+                    'trx_status'        => $ob['status'],
+                    'created_at'        => $ob['authorized_at'],
+                ];
+                $cumulativeOffset += $delta;
+                $totalAdjIn  += $adjIn;
+                $totalAdjOut += $adjOut;
+            }
+        }
+    }
+    $data = $dataAugmented;
+
     $rows = collect($data)->map(function ($d) use ($mapStatus, $articleController) {   // ← tambahkan $articleController ke use()
     [$in, $out] = $articleController->splitQty($d);   // ← ganti $this jadi $articleController
 
@@ -1007,26 +1084,30 @@ foreach ($data as $d) {
         $closingOb = $articleController->fetchOBByPeriode($articleCode, $location, (int) $toParts[1], (int) $toParts[2], $isGlobal);
     }
 
+    // saldo "sebenarnya" di ujung filter, sudah termasuk koreksi dari
+    // batas-batas bulan interior (kalau filter melintasi >1 bulan)
+    $saldoAkhirBeforeClosing = $saldoAkhir + $cumulativeOffset;
+
     $rowAdj = null;
-    $saldoAkhirFinal = $saldoAkhir;
-    $totalInFinal = $totalIn;
-    $totalOutFinal = $totalOut;
+    $saldoAkhirFinal = $saldoAkhirBeforeClosing;
+    $totalInFinal = $totalIn + $totalAdjIn;
+    $totalOutFinal = $totalOut + $totalAdjOut;
     if ($closingOb && $closingOb['found']) {
-        $delta = round($closingOb['qty'] - $saldoAkhir, 4);
+        $delta = round($closingOb['qty'] - $saldoAkhirBeforeClosing, 4);
         if (abs($delta) > 0.0001) {
             $adjIn  = $delta > 0 ? $delta : 0.0;
             $adjOut = $delta < 0 ? abs($delta) : 0.0;
             $adjRef = $this->refInfo('ADJUSTMENT', $closingOb['adj_code']);
             $rowAdj = [
-                'movement_date' => $closingOb['adj_date'] ?: $toDate, 'movement_type' => 'ADJUSTMENT',
+                'movement_date' => ($closingOb['adj_date'] ?? null) ?: $toDate, 'movement_type' => 'ADJUSTMENT',
                 'movement_transnno' => $closingOb['adj_code'],
                 'ref_openable' => $adjRef['openable'], 'ref_url' => $adjRef['url'],
                 'ref_enc_id' => $adjRef['enc_id'], 'ref_doc_kind' => $adjRef['doc_kind'],
                 'mv_from' => null, 'mv_to' => null,
                 'inout' => $adjIn > 0 ? 'in' : 'out',
-                'qty_in' => $adjIn, 'qty_out' => $adjOut, 'opening' => $saldoAkhir, 'balance' => $closingOb['qty'],
+                'qty_in' => $adjIn, 'qty_out' => $adjOut, 'opening' => $saldoAkhirBeforeClosing, 'balance' => $closingOb['qty'],
                 'movement_desc' => ($closingOb['note'] ?: 'Penyesuaian Opening Balance').' ('.$toDate.')',
-                'trx_status' => null, 'trx_status_label' => null,
+                'trx_status' => $closingOb['status'], 'trx_status_label' => $mapStatus[$closingOb['status']] ?? null,
                 'created_at' => $closingOb['authorized_at'], 'is_summary' => false,
             ];
             $totalInFinal  += $adjIn;
