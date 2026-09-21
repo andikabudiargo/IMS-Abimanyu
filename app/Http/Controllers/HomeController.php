@@ -222,6 +222,13 @@ class HomeController extends Controller
      * BUKAN dari Price List -- Price List belum terisi lengkap utk semua artikel
      * jadi tidak dipakai di sini. Untuk baris Target (belum ada delivery aktual)
      * avg selling didekati dari histori SO artikel itu (avgSellingPriceHome()).
+     *
+     * Widget ini KHUSUS konversi PAINTING -- artikel dibatasi UOM PCS/SET
+     * (kriteria "is_painting" yang sama persis dengan
+     * ConversionReportController::buildSummary()), baik di sisi Target
+     * (join ke article) maupun Achieved (join ke article). Artikel non
+     * painting (UOM lain, mis. TRIP/KG/LTR) sengaja tidak ikut dihitung di
+     * widget Home ini.
      */
     private function buildSalesAchievement(?int $periode = null, ?int $tahun = null): array
     {
@@ -291,10 +298,12 @@ foreach ($candidateHeaders as $h) {
             ? route('targetSo.show', ['id' => Crypt::encryptString($firstMatchedId)])
             : route('targetSo.index');
 
-        $targetLines = empty($matchedTsoCodes) ? collect() : DB::table('target_order_det')
-            ->whereIn('tso_code', $matchedTsoCodes)
-            ->select('article_code', DB::raw('SUM(qty_target) as qty_target'))
-            ->groupBy('article_code')
+        $targetLines = empty($matchedTsoCodes) ? collect() : DB::table('target_order_det as t')
+            ->join('article as a', 'a.article_code', '=', 't.article_code')
+            ->whereIn('t.tso_code', $matchedTsoCodes)
+            ->whereRaw("UPPER(TRIM(a.uom)) IN ('PCS','SET')")
+            ->select('t.article_code', DB::raw('SUM(t.qty_target) as qty_target'))
+            ->groupBy('t.article_code')
             ->get();
 
         $targetQty = 0;
@@ -320,8 +329,10 @@ foreach ($candidateHeaders as $h) {
                 FROM delivery_det dd
                 JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
                 LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
+                JOIN article a ON a.article_code = dd.article_code
                 WHERE to_date(dh.delivery_date,'DD-MM-YYYY') BETWEEN ?::date AND ?::date
                   AND dh.status NOT IN ('5','7')
+                  AND UPPER(TRIM(a.uom)) IN ('PCS','SET')
             ", [$monthStart, $achievedEnd]);
 
             $grouped = [];

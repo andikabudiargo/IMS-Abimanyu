@@ -2832,11 +2832,15 @@ private function punyaArAktif($dnNumber)
             ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
+            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
             ['data'=>'qty','name'=>'qty','title'=>'Delivery Qty'],
             ['data'=>'price','name'=>'price','title'=>'Price'],
             ['data'=>'price_service','name'=>'price_service','title'=>'Service Price'],
             ['data'=>'grand_total','name'=>'grand_total','title'=>'Grand Total'],
             ['data'=>'invoice_number','name'=>'invoice_number','title'=>'Invoice Number'],
+            ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
+            ['data'=>'paid_date','name'=>'paid_date','title'=>'Paid Date'],
+            ['data'=>'balance','name'=>'balance','title'=>'Balance'],
             ['data'=> 'so_number', 'name'=> 'so_number','title'=>'So Number'],
         ];
         return json_encode($kolom, true);
@@ -2882,9 +2886,9 @@ private function punyaArAktif($dnNumber)
         ->get();
 
         $data['kolom'] = $this->getTableColoumnReportAcc();
-        
+
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED'];
-            
+
         return view("delivery.reportAcc",$data);
     }
 
@@ -2977,10 +2981,11 @@ private function punyaArAktif($dnNumber)
         })
         ->whereNotIn('delivery_hdr.status',['5','7'])
         ->select(
-        'article.article_desc'    
-        ,'article.article_alternative_code'  
+        'article.article_desc'
+        ,'article.article_alternative_code'
         ,'delivery_hdr.delivery_date'
         ,'delivery_det.delivery_number'
+        ,'delivery_det.uom'
         ,'delivery_det.qty'
         ,'delivery_det.so_number'
         ,'delivery_det.po_number'
@@ -2992,6 +2997,10 @@ private function punyaArAktif($dnNumber)
         ,DB::RAW("(Select price_service from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) as price_service")
         ,DB::RAW("(Select coalesce(price,0)+coalesce(price_service,0) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) * delivery_det.qty as grand_total")
         ,DB::RAW("(Select case when ppn> 0 then 'PPN' else '' end from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) as ppn")
+        ,DB::RAW("(select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1) as voucher_number")
+        ,DB::RAW("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'DD/MM/YYYY') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1) as paid_date")
+        ,DB::RAW("(Select coalesce(price,0)+coalesce(price_service,0) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) * delivery_det.qty
+            - coalesce((select kas_det.credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status = '3' and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1),0) as balance")
         )
         ->orderBy('delivery_det.id')
         ->get();

@@ -94,7 +94,7 @@
                                         </div>
                                         <div>
                                             <h4 class="mb-0 font-weight-bolder" id="saTargetConversion">{{ number_format($salesAchievement['targetConversion'], 2) }}</h4>
-                                            <small class="text-muted">Target Konversi</small>
+                                            <small class="text-muted">Target Konversi (Painting)</small>
                                         </div>
                                     </div>
                                 </div>
@@ -107,7 +107,7 @@
                                         </div>
                                         <div>
                                             <h4 class="mb-0 font-weight-bolder text-success" id="saAchievedConversion">{{ number_format($salesAchievement['achievedConversion'], 2) }}</h4>
-                                            <small class="text-muted">Konversi Tercapai (<span id="saConvPct">{{ number_format($salesAchievement['conversionPct'], 1) }}</span>%)</small>
+                                            <small class="text-muted">Konversi Painting Tercapai (<span id="saConvPct">{{ number_format($salesAchievement['conversionPct'], 1) }}</span>%)</small>
                                         </div>
                                     </div>
                                 </div>
