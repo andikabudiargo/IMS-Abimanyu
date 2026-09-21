@@ -106,7 +106,6 @@
   let showAlert = "{{ Session::get('alert') }}";
 
   if ( showAlert ){
-    showList();
     $("#alert-message-alert").fadeTo(5000, 500).slideUp(500, function(){
       $("#alert-message-alert").slideUp(500);
     });
@@ -164,6 +163,8 @@
       excelFileName:'debit_note'
     });
   }
+
+  showList();
 
   $.ajaxSetup({
     headers: {

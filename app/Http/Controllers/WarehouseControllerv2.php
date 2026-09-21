@@ -24,6 +24,30 @@ class WarehouseControllerv2 extends Controller
     private $title;
     private $moduleCode;
     private $decimalPlaces;
+
+    // FIX (2026-09-21): refInfo() di bawah pakai $this->refMap, tapi property
+    // ini TIDAK PERNAH didefinisikan di class ini sebelumnya (class ini cuma
+    // extends Controller, bukan ArticleController) -- isset($this->refMap[$type])
+    // untuk property yang tidak ada selalu bernilai false, jadi refInfo()
+    // SELALU balik "tidak openable" untuk SEMUA jenis movement, bukan cuma
+    // LOADING. Disalin persis dari ArticleController::$refMap (termasuk fix
+    // key 'LOADING' yang sebelumnya salah tulis 'LOADING PROSES' di sana).
+    /** movement_type => [tabel, kolom_nomor, route_show] */
+    private array $refMap = [
+        'RECEIVING'         => ['receiving_hdr',       'rec_number',      'receiving.show'],
+        'TRANSFER'          => ['transfer_stock_hdr',  'tr_number',       'transferStock.show'],
+        'SUPPLY'            => ['transfer_stock_hdr',  'tr_number',       'transferStock.show'],
+        'DELIVERY'          => ['delivery_hdr',        'delivery_number', 'delivery.show'],
+        'RETURN'            => ['dn_return_hdr',       'return_number',   'dnReturn.show'],
+        'REPLACEMENT'       => ['dn_replace_hdr',      'replace_number',  'dnReplace.show'],
+        'ADJUSTMENT'        => ['stock_adjustment_hdr','adj_code',        'stockAdjustment.show'],
+        'DN SEMENTARA'      => ['temporary_dn_hdr',    'tdn_number',      'suratJalanSementara.show'],
+        'DN UMUM'           => ['dn_general_hdr',      'tdn_number',      'dnGeneral.show'],
+        'LOADING'           => ['actual_loading_hdr',  'prod_code',       'actualLoading.show'],
+        'SUPPLIER RETURN'   => ['supplier_return_hdr', 'return_number',   'supplierReturn.show'],
+        'SUPPLIER REPLACE'  => ['supplier_replace_hdr','replace_number',  'supplierReplace.show'],
+    ];
+
     public function __construct()
     {
         $this->title = "Stock";
@@ -813,6 +837,7 @@ public function apiStockMovement(Request $request)
                 WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
                 WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
                 WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr       WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                WHEN 'LOADING'      THEN (SELECT status FROM actual_loading_hdr   WHERE prod_code       = m.movement_transnno LIMIT 1)
                 ELSE NULL
             END AS hdr_status,
             (CASE WHEN m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT') THEN
@@ -975,6 +1000,42 @@ foreach ($data as $d) {
         'created_at' => null, 'is_summary' => true, 'summary_label' => 'SALDO AKHIR',
     ];
 
+    // FIX (2026-09-21, atas permintaan user, sama seperti ArticleController::movement2()):
+    // kalau saldo awal bisa diatribusikan ke SATU dokumen OB yang jelas,
+    // munculkan itu sebagai baris eksplisit (saldo akhir sebelum OB + OB-nya
+    // sendiri sebagai baris movement biasa dgn link), bukan cuma angka
+    // "Saldo Awal" tanpa jejak -- OB-nya sendiri SENGAJA di-exclude dari
+    // query movement utama di atas (biar tidak dihitung dobel di net
+    // movement), jadi tidak akan pernah muncul lewat jalur normal.
+    $obRows = [];
+    if ($opening['adj_code'] && $opening['stock_before'] !== null) {
+        $stockBefore = (float) $opening['stock_before'];
+        $delta       = $saldoAwal - $stockBefore;
+        $refOb       = $this->refInfo('ADJUSTMENT', $opening['adj_code']);
+
+        $obRows[] = [
+            'movement_date' => '', 'movement_type' => 'CLOSING', 'movement_transnno' => null,
+            'ref_openable' => false, 'ref_url' => null, 'mv_from' => null, 'mv_to' => null, 'inout' => '',
+            'qty_in' => 0, 'qty_out' => 0, 'opening' => null, 'balance' => $stockBefore,
+            'movement_desc' => 'Saldo Akhir sebelum OPENING BALANCE '.$opening['adj_code'],
+            'trx_status' => null, 'trx_status_label' => null,
+            'created_at' => null, 'is_summary' => true, 'summary_label' => 'SALDO AKHIR',
+        ];
+        $obRows[] = [
+            'movement_date' => $opening['adj_date'], 'movement_type' => 'ADJUSTMENT',
+            'movement_transnno' => $opening['adj_code'],
+            'ref_openable' => $refOb['openable'], 'ref_url' => $refOb['url'],
+            'ref_enc_id' => $refOb['enc_id'], 'ref_doc_kind' => $refOb['doc_kind'],
+            'mv_from' => null, 'mv_to' => null,
+            'inout' => $delta >= 0 ? 'in' : 'out',
+            'qty_in' => $delta > 0 ? $delta : 0, 'qty_out' => $delta < 0 ? abs($delta) : 0,
+            'opening' => $stockBefore, 'balance' => $saldoAwal,
+            'movement_desc' => $opening['note'] ?: 'Opening balance',
+            'trx_status' => '4', 'trx_status_label' => $mapStatus['4'],
+            'created_at' => $opening['authorized_at'], 'is_summary' => false,
+        ];
+    }
+
     // ── Pagination manual atas baris movement (Saldo Awal/Akhir tidak ikut dipaginate,
     //    selalu tampil — Awal di halaman 1, Akhir di halaman terakhir) ──
     $total    = $rows->count();
@@ -982,7 +1043,10 @@ foreach ($data as $d) {
     $paged    = $rows->forPage($page, $perPage)->values();
 
     $out = [];
-    if ($page === 1) $out[] = $rowAwal;
+    if ($page === 1) {
+        foreach ($obRows as $r) $out[] = $r;
+        $out[] = $rowAwal;
+    }
     foreach ($paged as $r) $out[] = $r;
     if ($page === $lastPage) $out[] = $rowAkhir;
 

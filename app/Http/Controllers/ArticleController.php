@@ -1184,6 +1184,7 @@ if (!$isGlobal) {
                 WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
                 WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
                 WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                WHEN 'LOADING'      THEN (SELECT status FROM actual_loading_hdr    WHERE prod_code       = m.movement_transnno LIMIT 1)
                 ELSE NULL
             END AS hdr_status,
 
@@ -1313,7 +1314,70 @@ if (!$isGlobal) {
         'site_code'       => $siteCode,
     ]);
 
-    $dataFinal = array_merge([$rowAwal], $data, [$rowAkhir]);
+    // FIX (2026-09-21, atas permintaan user): dulu OB cuma nongol sebagai
+    // angka "Saldo Awal" tanpa jejak -- user tidak bisa lihat KAPAN OB itu
+    // di-post atau BERAPA qty yang di-adjustment, apalagi kalau OB-nya dari
+    // periode yang beda dari yang sedang difilter (baris movement ADJUSTMENT
+    // milik OB memang SENGAJA di-exclude dari query utama di atas, biar
+    // tidak dihitung dobel di net movement -- makanya dia tidak pernah
+    // muncul sebagai baris biasa). Sekarang kalau $opening bisa diatribusikan
+    // ke SATU dokumen OB yang jelas (adj_code + stock_before ada), munculkan
+    // dia sebagai 2 baris tambahan SEBELUM "Saldo Awal": (1) saldo akhir
+    // periode sebelum OB itu (stock_before), (2) OB itu sendiri sebagai
+    // baris movement biasa (tanggal asli, delta-nya, link ke dokumennya) --
+    // biar user bisa lihat persis apa yang di-adjustment. Berlaku baik lagi
+    // difilter pas di periode OB-nya sendiri maupun lintas periode lain.
+    $obRows = [];
+    if ($opening['adj_code'] && $opening['stock_before'] !== null) {
+        $stockBefore = (float) $opening['stock_before'];
+        $delta       = $saldoAwal - $stockBefore;
+
+        $obRows[] = $this->buildSummaryRow([
+            'artikel_code'    => $articleCode,
+            'artikel_desc'    => $artikelDesc,
+            'movement_desc'   => 'Saldo Akhir sebelum OPENING BALANCE '.$opening['adj_code'],
+            'movement_type'   => 'CLOSING',
+            'location_number' => $isGlobal ? 'ALL' : $location,
+            'balanceqty'      => $stockBefore,
+            'urutan'          => 1000000001,
+            'site_code'       => $siteCode,
+        ]);
+
+        $obRows[] = (object) [
+            'movement_code'     => null,
+            'artikel_code'      => $articleCode,
+            'artikel_desc'      => $artikelDesc,
+            'qty'               => $delta,
+            'movement_price'    => null,
+            'movement_date'     => $opening['adj_date'],
+            'movement_desc'     => $opening['note'] ?: 'Opening balance',
+            'movement_type'     => 'ADJUSTMENT',
+            'movement_min'      => $delta < 0 ? abs($delta) : 0,
+            'movement_plus'     => $delta > 0 ? $delta : 0,
+            'movement_transnno' => $opening['adj_code'],
+            'partner_type'      => null,
+            'adj_direction'     => $delta >= 0 ? '+' : '-',
+            'adj_qty'           => abs($delta),
+            'hdr_status'        => '4',
+            'dest_code'         => null,
+            'mv_from'           => null,
+            'mv_to'             => null,
+            'balanceqty'        => $saldoAwal,
+            'last_qty'          => $stockBefore,
+            'urutan'            => 1000000000,
+            'site_code'         => $siteCode,
+            'created_at'        => $opening['authorized_at'],
+            'trx_status'        => '4',
+            'is_summary'        => false,
+            'adj_code'          => $opening['adj_code'],
+            'adj_id'            => $opening['adj_id'],
+        ];
+    }
+
+    // $obRows (kalau ada) secara kronologis SEBELUM Saldo Awal periode yang
+    // difilter -- urutan array dibuat benar juga (bukan cuma andalkan sort
+    // client via kolom 'urutan'), biar aman kalau tabelnya tidak resort.
+    $dataFinal = array_merge($obRows, [$rowAwal], $data, [$rowAkhir]);
 
     return Datatables::of($dataFinal)
         ->addColumn('qty_in', function ($d) {
@@ -1446,7 +1510,8 @@ public function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlo
                 'note' => 'Saldo awal diasumsikan 0 (di luar rentang data)', 'authorized_at' => null];
     }
 
-    $out = ['qty'=>0.0,'adj_code'=>null,'adj_id'=>null,'note'=>null,'authorized_at'=>null];
+    $out = ['qty'=>0.0,'adj_code'=>null,'adj_id'=>null,'note'=>null,'authorized_at'=>null,
+            'stock_before'=>null,'adj_date'=>null];
 
     $parts = explode('-', $fromDate);
     $bulan = isset($parts[1]) ? (int) $parts[1] : (int) date('m');
@@ -1463,6 +1528,8 @@ public function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlo
         $out['adj_code']      = $ob['adj_code'];
         $out['adj_id']        = $ob['adj_id'];
         $out['authorized_at'] = $ob['authorized_at'];
+        $out['stock_before']  = $ob['stock_before'] ?? null;
+        $out['adj_date']      = $ob['adj_date'] ?? null;
     } elseif (strtotime(sprintf('01-%02d-%04d', $periodeOB, $tahunOB)) <= strtotime($floorDate)) {
         $basis = 0.0;
         $out['note'] = 'OB Juni tidak ditemukan, saldo sebelum periode floor diabaikan';
@@ -1497,8 +1564,10 @@ public function resolveOpeningBalance($articleCode, $location, $fromDate, $isGlo
         : 'Saldo akhir periode sebelumnya';
 
     if ($netParsial != 0.0 || !$ob['found']) {
-        $out['adj_code'] = null;
-        $out['adj_id']   = null;
+        $out['adj_code']     = null;
+        $out['adj_id']       = null;
+        $out['stock_before'] = null;
+        $out['adj_date']     = null;
     }
 
     return $out;
@@ -1532,6 +1601,7 @@ public function netMovementRange($articleCode, $location, $from, $to, $isGlobal,
                 WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
                 WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
                 WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                WHEN 'LOADING'      THEN (SELECT status FROM actual_loading_hdr    WHERE prod_code       = m.movement_transnno LIMIT 1)
                 ELSE NULL
             END AS hdr_status,
             CASE
@@ -1583,6 +1653,7 @@ private function netMovementBulan($articleCode, $location, $periode, $tahun, $is
                 WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
                 WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
                 WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                WHEN 'LOADING'      THEN (SELECT status FROM actual_loading_hdr    WHERE prod_code       = m.movement_transnno LIMIT 1)
                 ELSE NULL
             END AS hdr_status,
             CASE
@@ -1649,7 +1720,8 @@ public function fetchOBByPeriode($articleCode, $location, $periode, $tahun, $isG
             FROM stock_location_master
         )
         SELECT MIN(hdr.id) AS id, MIN(hdr.adj_code) AS adj_code, MIN(hdr.description) AS description,
-               MAX(hdr.authorized_at) AS authorized_at, SUM(det.stock_after) AS qty, COUNT(*) AS n
+               MAX(hdr.authorized_at) AS authorized_at, SUM(det.stock_after) AS qty,
+               SUM(det.stock_before) AS stock_before, MAX(hdr.adj_date) AS adj_date, COUNT(*) AS n
         FROM stock_adjustment_hdr hdr
         JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
         LEFT JOIN loc_anchor la ON la.location_code = hdr.location_code
@@ -1661,7 +1733,8 @@ public function fetchOBByPeriode($articleCode, $location, $periode, $tahun, $isG
     $r = DB::select($sql, ['periode'=>$periode,'tahun'=>$tahun,'art'=>$articleCode,'loc'=>$location]);
     if (!isset($r[0]) || (int) $r[0]->n === 0) return ['found'=>false];
     return ['found'=>true,'qty'=>(float)$r[0]->qty,'adj_code'=>$r[0]->adj_code,
-            'adj_id'=>$r[0]->id,'note'=>$r[0]->description,'authorized_at'=>$r[0]->authorized_at];
+            'adj_id'=>$r[0]->id,'note'=>$r[0]->description,'authorized_at'=>$r[0]->authorized_at,
+            'stock_before'=>(float)$r[0]->stock_before,'adj_date'=>$r[0]->adj_date];
 }
 
 /** OB terakhir yang efektif < fromDate dan >= floor (untuk fallback). */
@@ -1732,6 +1805,7 @@ private function accumulateNet($articleCode, $location, $anchorDate, $fromDate, 
                 WHEN 'ADJUSTMENT'   THEN (SELECT status FROM stock_adjustment_hdr WHERE adj_code        = m.movement_transnno LIMIT 1)
                 WHEN 'DN SEMENTARA' THEN (SELECT status FROM temporary_dn_hdr     WHERE tdn_number      = m.movement_transnno LIMIT 1)
                 WHEN 'DN UMUM'      THEN (SELECT status FROM dn_general_hdr        WHERE tdn_number      = m.movement_transnno LIMIT 1)
+                WHEN 'LOADING'      THEN (SELECT status FROM actual_loading_hdr    WHERE prod_code       = m.movement_transnno LIMIT 1)
                 ELSE NULL
             END AS hdr_status,
             CASE

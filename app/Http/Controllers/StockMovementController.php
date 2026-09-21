@@ -277,6 +277,11 @@ class StockMovementController extends Controller
       AND NOT (b.movement_type IN ('DN UMUM','SURAT JALAN UMUM')
                AND EXISTS (SELECT 1 FROM dn_general_hdr dng
                            WHERE dng.tdn_number = b.movement_transnno AND dng.status = '5'))
+      -- FIX (2026-09-21): ALP/Actual Loading belum ada exclusion sama sekali
+      -- sebelumnya -- dokumen loading yang sudah CANCELED tetap ikut tampil.
+      AND NOT (b.movement_type = 'LOADING'
+               AND EXISTS (SELECT 1 FROM actual_loading_hdr alp
+                           WHERE alp.prod_code = b.movement_transnno AND alp.status = '5'))
 )
         SELECT
             f.movement_code,
@@ -306,7 +311,7 @@ class StockMovementController extends Controller
             END AS mv_to,
 
             COALESCE(rec.status, trf.status, del.status, ret.status,
-                     rep.status, adj.status, tdn.status, dng.status) AS trx_status,
+                     rep.status, adj.status, tdn.status, dng.status, alp.status) AS trx_status,
 
             f.site_code,
             f.created_at
@@ -328,6 +333,8 @@ class StockMovementController extends Controller
             ON tdn.tdn_number = f.movement_transnno AND f.movement_type = 'DN SEMENTARA'
         LEFT JOIN dn_general_hdr dng
             ON dng.tdn_number = f.movement_transnno AND f.movement_type = 'DN UMUM'
+        LEFT JOIN actual_loading_hdr alp
+            ON alp.prod_code = f.movement_transnno AND f.movement_type = 'LOADING'
         $orderBy
     ";
 }
@@ -725,18 +732,26 @@ $this->applyQtyColor($sheet, "K{$r}", $q['out'], 'C00000'); // merah
         return $out;
     }
 
-    $sql = "SELECT det.stock_after AS saldo_awal
-            FROM stock_adjustment_hdr hdr
-            JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
-            WHERE hdr.adj_type = 'OPENING BALANCE'
-              AND hdr.status != '5'
-              AND hdr.periode = :periode
-              AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date,'dd-mm-yyyy')) = :tahun
-              AND det.article_code = :art
-              AND hdr.location_code = :loc
-            LIMIT 1";
+    // FIX (2026-09-21): dulu 'hdr.location_code = :loc' persis tanpa fold ke
+    // induk (sama kelas bug yang dibetulkan di ArticleController::fetchOBByPeriode()) --
+    // sekarang fold via stock_location_master + SUM.
+    $sql = "
+        WITH loc_anchor AS (
+            SELECT location_code, COALESCE(parent_location, location_code) AS stock_location
+            FROM stock_location_master
+        )
+        SELECT SUM(det.stock_after) AS saldo_awal
+        FROM stock_adjustment_hdr hdr
+        JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
+        LEFT JOIN loc_anchor la ON la.location_code = hdr.location_code
+        WHERE hdr.adj_type = 'OPENING BALANCE'
+          AND hdr.status != '5'
+          AND hdr.periode = :periode
+          AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date,'dd-mm-yyyy')) = :tahun
+          AND det.article_code = :art
+          AND COALESCE(la.stock_location, hdr.location_code) = :loc";
     $r = DB::select($sql, ['periode' => $periode, 'tahun' => $tahunOpening, 'art' => $articleCode, 'loc' => $location]);
-    $out['qty'] = isset($r[0]) ? (float) $r[0]->saldo_awal : 0.0;
+    $out['qty'] = isset($r[0]) && $r[0]->saldo_awal !== null ? (float) $r[0]->saldo_awal : 0.0;
 
     return $out;
 }
