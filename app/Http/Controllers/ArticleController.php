@@ -1414,7 +1414,11 @@ private array $refMap = [
     'ADJUSTMENT'        => ['stock_adjustment_hdr','adj_code',       'stockAdjustment.show'],
     'DN SEMENTARA'      => ['temporary_dn_hdr',   'tdn_number',      'suratJalanSementara.show'],
     'DN UMUM'           => ['dn_general_hdr',     'tdn_number',      'dnGeneral.show'],
-    'LOADING PROSES'    => ['actual_loading_hdr', 'prod_code',      'actualLoading.show'],
+    // FIX (2026-09-21): key dulu 'LOADING PROSES', tapi movement_type yang
+    // BENERAN tersimpan di warehouse_movement untuk Actual Loading adalah
+    // 'LOADING' (lihat ActualLoadingController -- $movementType = 'LOADING'),
+    // jadi lookup lama selalu gagal match, tidak pernah ada hyperlink.
+    'LOADING'           => ['actual_loading_hdr', 'prod_code',      'actualLoading.show'],
     'SUPPLIER RETURN'   => ['supplier_return_hdr',     'return_number',      'supplierReturn.show'],
     'SUPPLIER REPLACE'   => ['supplier_replace_hdr',     'replace_number',      'supplierReplace.show'],
 ];
@@ -1631,16 +1635,31 @@ public function fetchOBByPeriode($articleCode, $location, $periode, $tahun, $isG
                 'authorized_at'=>$r[0]->authorized_at ?? null];
     }
 
-    $sql = "SELECT hdr.id, hdr.adj_code, hdr.description, hdr.authorized_at, det.stock_after AS qty
-            FROM stock_adjustment_hdr hdr
-            JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
-            WHERE hdr.adj_type='OPENING BALANCE' AND hdr.status!='5'
-              AND hdr.periode = :periode
-              AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date,'dd-mm-yyyy')) = :tahun
-              AND det.article_code = :art AND hdr.location_code = :loc
-            LIMIT 1";
+    // FIX (2026-09-21): dulu 'hdr.location_code = :loc' PERSIS, tanpa fold ke
+    // induk -- kalau OB-nya kepecah/tersimpan di lokasi ANAK (persis kasus
+    // WIP 038/039/040 sebelum digabung), fungsi ini tidak pernah ketemu waktu
+    // dipanggil dengan lokasi induk -> "OB jadi basi" pas filter Movement
+    // lintas periode. Sekarang fold via stock_location_master (sama seperti
+    // ob_folded CTE di CheckStockAnomaly.php) + SUM, bukan LIMIT 1 -- tahan
+    // banting walau suatu saat ada >1 OB aktif di lokasi yang sama setelah
+    // di-fold (tidak cuma ambil satu & buang sisanya).
+    $sql = "
+        WITH loc_anchor AS (
+            SELECT location_code, COALESCE(parent_location, location_code) AS stock_location
+            FROM stock_location_master
+        )
+        SELECT MIN(hdr.id) AS id, MIN(hdr.adj_code) AS adj_code, MIN(hdr.description) AS description,
+               MAX(hdr.authorized_at) AS authorized_at, SUM(det.stock_after) AS qty, COUNT(*) AS n
+        FROM stock_adjustment_hdr hdr
+        JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
+        LEFT JOIN loc_anchor la ON la.location_code = hdr.location_code
+        WHERE hdr.adj_type='OPENING BALANCE' AND hdr.status!='5'
+          AND hdr.periode = :periode
+          AND EXTRACT(YEAR FROM TO_DATE(hdr.adj_date,'dd-mm-yyyy')) = :tahun
+          AND det.article_code = :art
+          AND COALESCE(la.stock_location, hdr.location_code) = :loc";
     $r = DB::select($sql, ['periode'=>$periode,'tahun'=>$tahun,'art'=>$articleCode,'loc'=>$location]);
-    if (!isset($r[0])) return ['found'=>false];
+    if (!isset($r[0]) || (int) $r[0]->n === 0) return ['found'=>false];
     return ['found'=>true,'qty'=>(float)$r[0]->qty,'adj_code'=>$r[0]->adj_code,
             'adj_id'=>$r[0]->id,'note'=>$r[0]->description,'authorized_at'=>$r[0]->authorized_at];
 }
@@ -1662,19 +1681,36 @@ private function fetchLatestOBBefore($articleCode, $location, $fromDate, $floor,
                 LIMIT 1";
         $bind = ['art'=>$articleCode,'fromDate'=>$fromDate,'floor'=>$floor];
     } else {
-        $sql = "SELECT hdr.id, hdr.adj_code, hdr.adj_date, hdr.authorized_at, det.stock_after AS qty
+        // FIX (2026-09-21): sama seperti fetchOBByPeriode() -- fold lokasi ke
+        // induk + SUM per tanggal, bukan exact-match + LIMIT 1 (yang buang
+        // OB anak lain di tanggal yang sama).
+        $sql = "
+            WITH loc_anchor AS (
+                SELECT location_code, COALESCE(parent_location, location_code) AS stock_location
+            FROM stock_location_master
+            ),
+            folded AS (
+                SELECT hdr.adj_code, hdr.adj_date, hdr.authorized_at, det.stock_after
                 FROM stock_adjustment_hdr hdr
                 JOIN stock_adjustment_det det ON det.adj_code = hdr.adj_code
+                LEFT JOIN loc_anchor la ON la.location_code = hdr.location_code
                 WHERE hdr.adj_type='OPENING BALANCE' AND hdr.status!='5'
-                  AND det.article_code = :art AND hdr.location_code = :loc
+                  AND det.article_code = :art
+                  AND COALESCE(la.stock_location, hdr.location_code) = :loc
                   AND TO_DATE(hdr.adj_date,'dd-mm-yyyy') <  TO_DATE(:fromDate,'dd-mm-yyyy')
                   AND TO_DATE(hdr.adj_date,'dd-mm-yyyy') >= TO_DATE(:floor,'dd-mm-yyyy')
-                ORDER BY TO_DATE(hdr.adj_date,'dd-mm-yyyy') DESC
-                LIMIT 1";
+            ),
+            latest_date AS (
+                SELECT adj_date FROM folded ORDER BY TO_DATE(adj_date,'dd-mm-yyyy') DESC LIMIT 1
+            )
+            SELECT MIN(adj_code) AS adj_code, MIN(adj_date) AS adj_date,
+                   MAX(authorized_at) AS authorized_at, SUM(stock_after) AS qty
+            FROM folded
+            WHERE adj_date = (SELECT adj_date FROM latest_date)";
         $bind = ['art'=>$articleCode,'loc'=>$location,'fromDate'=>$fromDate,'floor'=>$floor];
     }
     $r = DB::select($sql, $bind);
-    if (!isset($r[0])) return ['found'=>false];
+    if (!isset($r[0]) || $r[0]->adj_code === null) return ['found'=>false];
     return ['found'=>true,'qty'=>(float)$r[0]->qty,'adj_code'=>$r[0]->adj_code,
             'adj_id'=>$r[0]->id ?? null,'adj_date'=>$r[0]->adj_date,'authorized_at'=>$r[0]->authorized_at];
 }

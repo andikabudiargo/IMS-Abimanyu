@@ -63,6 +63,11 @@ class StockMovementController extends Controller
         'CANCEL ADJUSTMENT' => ['stock_adjustment_hdr', 'adj_code',        'stockAdjustment.show'],
         'DN SEMENTARA'      => ['temporary_dn_hdr',     'tdn_number',      'suratJalanSementara.show'],
         'DN UMUM'           => ['dn_general_hdr',       'tdn_number',      'dnGeneral.show'],
+        // FIX (2026-09-21): Actual Loading (ALP) belum ada sama sekali di
+        // map ini -- movement_type yang tersimpan untuk ALP adalah 'LOADING'
+        // (lihat ActualLoadingController), status CANCELED-nya juga '5' jadi
+        // cocok dengan pengecekan hardcoded di refLink().
+        'LOADING'           => ['actual_loading_hdr',   'prod_code',       'actualLoading.show'],
     ];
 
     /* ================= View ================= */

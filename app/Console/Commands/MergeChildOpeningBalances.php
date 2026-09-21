@@ -23,10 +23,22 @@ use Illuminate\Support\Facades\Schema;
  *
  * Root fix: satu OB gabungan per (artikel, tanggal) di lokasi induk, OB anak
  * lama di-CANCEL (status=5) supaya tidak dihitung dobel oleh CheckStockAnomaly
- * (yang masih fold+sum OB anak). warehouse_movement TIDAK perlu disentuh --
- * baris ADJUSTMENT yang sudah di-fold ke induk dari migrasi lokasi
- * sebelumnya tetap ter-exclude dari net-movement lewat EXISTS ke adj_code,
- * TIDAK peduli status hdr-nya.
+ * (yang masih fold+sum OB anak). get_last_qty_new()/CheckStockAnomaly tidak
+ * peduli status hdr utk exclude dari net-movement (EXISTS ke adj_code, bukan
+ * status), jadi aman.
+ *
+ * FIX SUSULAN (2026-09-21, ditemukan lewat MISMATCH report
+ * movement:recalculate-ledger): "walk manual" di RecalculateArticleLocationLedger
+ * TIDAK baca stock_adjustment_hdr sama sekali -- dia deteksi "hari ini ada OB"
+ * murni dari baris warehouse_movement yang is_ob_tied. Baris movement OB ANAK
+ * yang lama (3 per kombinasi, sudah di-fold ke induk oleh stock:consolidate-
+ * children sebelumnya) TETAP ADA di warehouse_movement walau header OB-nya
+ * sudah di-CANCEL di sini -- walk manual masih "ketemu" 3 baris itu dan salah
+ * pilih (last-one-wins), padahal get_last_qty_new() sendiri sudah benar
+ * (baca stock_adjustment_det langsung, tidak peduli movement). Makanya baris
+ * movement OB anak yang lama WAJIB dihapus juga di sini -- OB gabungan yang
+ * baru TIDAK perlu baris movement pengganti (get_last_qty_new() tidak
+ * butuh itu).
  *
  * Default: DRY RUN. Pakai --fix untuk benar-benar menulis.
  */
@@ -105,51 +117,58 @@ class MergeChildOpeningBalances extends Command
                 $adjCode = 'ADJ-MERGE-' . $parent . '-' . str_replace('-', '', $adjDate);
 
                 // Kalau sudah pernah dijalankan sebelumnya (re-run), jangan
-                // duplikat -- skip header yang sudah ada.
-                if (DB::table('stock_adjustment_hdr')->where('adj_code', $adjCode)->exists()) {
-                    $this->warn("Header {$adjCode} sudah ada, dilewati (kemungkinan sudah pernah dijalankan).");
-                    $bar->advance(count($groups));
-                    continue;
+                // duplikat insert hdr/det -- TAPI tetap jalankan langkah
+                // cancel-OB-lama + hapus-movement-lama di bawah (idempotent,
+                // aman diulang), soalnya itu yang paling sering ketinggalan
+                // kalau run sebelumnya sempat gagal di tengah/belum lengkap.
+                $headerAlreadyExists = DB::table('stock_adjustment_hdr')->where('adj_code', $adjCode)->exists();
+                if ($headerAlreadyExists) {
+                    $this->warn("Header {$adjCode} sudah ada -- lewati insert, tapi tetap jalankan cancel+cleanup movement.");
+                } else {
+                    DB::table('stock_adjustment_hdr')->insert([
+                        'adj_code'      => $adjCode,
+                        'adj_date'      => $adjDate,
+                        'adj_type'      => 'OPENING BALANCE',
+                        'location_code' => $parent,
+                        'description'   => 'Gabungan OB lokasi anak (migrasi konsolidasi WIP)',
+                        'note'          => 'Auto-generated: gabungan OB ' . implode('/', $children) . " tgl {$adjDate}, sebelum di-fold ke {$parent}",
+                        'periode'       => $periode,
+                        'direction'     => '+',
+                        'status'        => '4',
+                        'rev_no'        => 0,
+                        'created_by'    => $username,
+                        'updated_by'    => $username,
+                        'created_at'    => date('Y-m-d H:i:s'),
+                        'updated_at'    => date('Y-m-d H:i:s'),
+                    ]);
                 }
-
-                DB::table('stock_adjustment_hdr')->insert([
-                    'adj_code'      => $adjCode,
-                    'adj_date'      => $adjDate,
-                    'adj_type'      => 'OPENING BALANCE',
-                    'location_code' => $parent,
-                    'description'   => 'Gabungan OB lokasi anak (migrasi konsolidasi WIP)',
-                    'note'          => 'Auto-generated: gabungan OB ' . implode('/', $children) . " tgl {$adjDate}, sebelum di-fold ke {$parent}",
-                    'periode'       => $periode,
-                    'direction'     => '+',
-                    'status'        => '4',
-                    'rev_no'        => 0,
-                    'created_by'    => $username,
-                    'updated_by'    => $username,
-                    'created_at'    => date('Y-m-d H:i:s'),
-                    'updated_at'    => date('Y-m-d H:i:s'),
-                ]);
 
                 $detRows = [];
                 foreach ($groups as $g) {
-                    $detRows[] = [
-                        'adj_code'       => $adjCode,
-                        'article_code'   => $g['article_code'],
-                        'uom'            => $g['uom'],
-                        'direction'      => $g['sum'] >= 0 ? '+' : '-',
-                        'stock_before'   => 0,
-                        'qty_adjustment' => abs($g['sum']),
-                        'stock_after'    => $g['sum'],
-                        'notes'          => 'Gabungan: ' . implode(', ', array_map(fn ($r) => "{$r->location_code}={$r->stock_after}", $g['rows'])),
-                        'created_by'     => $username,
-                        'updated_by'     => $username,
-                        'created_at'     => date('Y-m-d H:i:s'),
-                        'updated_at'     => date('Y-m-d H:i:s'),
-                    ];
+                    if (!$headerAlreadyExists) {
+                        $detRows[] = [
+                            'adj_code'       => $adjCode,
+                            'article_code'   => $g['article_code'],
+                            'uom'            => $g['uom'],
+                            'direction'      => $g['sum'] >= 0 ? '+' : '-',
+                            'stock_before'   => 0,
+                            'qty_adjustment' => abs($g['sum']),
+                            'stock_after'    => $g['sum'],
+                            'notes'          => 'Gabungan: ' . implode(', ', array_map(fn ($r) => "{$r->location_code}={$r->stock_after}", $g['rows'])),
+                            'created_by'     => $username,
+                            'updated_by'     => $username,
+                            'created_at'     => date('Y-m-d H:i:s'),
+                            'updated_at'     => date('Y-m-d H:i:s'),
+                        ];
+                    }
 
                     // Batalkan OB anak lama -- supaya CheckStockAnomaly (yang
                     // masih fold+sum OB anak) tidak menghitung dobel dengan
-                    // OB gabungan yang baru ini.
-                    $oldHdrIds = collect($g['rows'])->pluck('hdr_id')->unique()->all();
+                    // OB gabungan yang baru ini. Idempotent (UPDATE ke status
+                    // yang sama tidak masalah kalau diulang).
+                    $oldHdrIds   = collect($g['rows'])->pluck('hdr_id')->unique()->all();
+                    $oldAdjCodes = collect($g['rows'])->pluck('adj_code')->unique()->all();
+
                     DB::table('stock_adjustment_hdr')
                         ->whereIn('id', $oldHdrIds)
                         ->update([
@@ -158,8 +177,24 @@ class MergeChildOpeningBalances extends Command
                             'updated_by' => $username,
                             'updated_at' => date('Y-m-d H:i:s'),
                         ]);
+
+                    // Hapus baris warehouse_movement yang terkait OB anak
+                    // lama (sudah di-fold ke $parent oleh stock:consolidate-
+                    // children) -- WAJIB, supaya walk manual RecalculateArticleLocationLedger
+                    // tidak lagi salah deteksi "hari ini ada OB" dari baris
+                    // basi ini. OB gabungan baru tidak butuh baris pengganti.
+                    // Idempotent (WHERE tidak match lagi kalau sudah terhapus).
+                    DB::table('warehouse_movement')
+                        ->where('artikel_code', $g['article_code'])
+                        ->where('location_number', $parent)
+                        ->where('movement_type', 'ADJUSTMENT')
+                        ->whereIn('movement_transnno', $oldAdjCodes)
+                        ->delete();
                 }
-                DB::table('stock_adjustment_det')->insert($detRows);
+
+                if (!empty($detRows)) {
+                    DB::table('stock_adjustment_det')->insert($detRows);
+                }
 
                 $bar->advance(count($groups));
             }
@@ -198,6 +233,20 @@ class MergeChildOpeningBalances extends Command
                 WHERE hdr.adj_type = 'OPENING BALANCE' AND hdr.location_code IN ({$inList})");
         }
 
-        $this->info("Backup dibuat: {$hdrBackup}, {$detBackup}");
+        // Backup baris warehouse_movement OB anak (sudah di-fold ke induk
+        // sebelumnya) SEBELUM dihapus -- adj_code-nya masih milik OB anak
+        // yang tersimpan di stock_adjustment_hdr location_code IN (anak).
+        $wmBackup = "_bak_wm_ob_merge_{$suffix}";
+        if (!Schema::hasTable($wmBackup)) {
+            DB::statement("CREATE TABLE {$wmBackup} AS
+                SELECT wm.* FROM warehouse_movement wm
+                WHERE wm.movement_type = 'ADJUSTMENT'
+                  AND wm.movement_transnno IN (
+                      SELECT hdr.adj_code FROM stock_adjustment_hdr hdr
+                      WHERE hdr.adj_type = 'OPENING BALANCE' AND hdr.location_code IN ({$inList})
+                  )");
+        }
+
+        $this->info("Backup dibuat: {$hdrBackup}, {$detBackup}, {$wmBackup}");
     }
 }
