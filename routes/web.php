@@ -522,6 +522,7 @@ Route::prefix('supplier-replace')->group(function () {
 
 	Route::get('arAging', ['uses' => 'ArAgingReportController@index','as'   => 'arAging.index',]);
 	Route::post('arAging/data', ['uses' => 'ArAgingReportController@data','as'   => 'arAging.data',]);
+	Route::post('arAging/detail', ['uses' => 'ArAgingReportController@detail','as'   => 'arAging.detail',]);
 	Route::post('arAging/export', ['uses' => 'ArAgingReportController@export','as'   => 'arAging.export',]);
 
 

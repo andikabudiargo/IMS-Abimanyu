@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use DB;
 
 /*
@@ -54,6 +55,9 @@ class ArAgingReportController extends Controller
 {
     private $title = "AR Aging Report";
 
+    // Invoice sebelum tanggal ini tidak pernah dibaca oleh report (batas bawah data).
+    private $floorDate = '01-01-2024';
+
     public function index(Request $request)
     {
         $data['title'] = $this->title;
@@ -78,15 +82,12 @@ class ArAgingReportController extends Controller
     }
 
     /**
-     * Endpoint AJAX utama. Dipanggil oleh tombol "Generate Report" di view.
-     * Mengembalikan JSON: rows per customer + grand total + info balance DRAFT.
+     * Bangun bagian filter opsional (rentang tanggal invoice + customer) yang
+     * dipakai bersama oleh data() dan detail(), supaya keduanya selalu
+     * menghitung dengan logika balance & bucket yang identik.
      */
-    public function data(Request $request)
+    private function buildFilters(Request $request)
     {
-        // ── Tanggal cut-off (wajib, single date, format DD-MM-YYYY) ──
-        $cutoffDate = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
-
-        // ── Filter tambahan opsional ──
         $invoiceDateRange = $request->invoiceDateRange; // "DD-MM-YYYY to DD-MM-YYYY"
         $customerCodes    = $request->customer;          // array kode customer (multi-select), boleh kosong
 
@@ -103,7 +104,7 @@ class ArAgingReportController extends Controller
             }
         }
 
-        $bindings = ['cutoff' => $cutoffDate];
+        $bindings = [];
 
         $whereExtra = "";
         if ($invFrom && $invTo) {
@@ -121,6 +122,95 @@ class ArAgingReportController extends Controller
             $whereExtra .= " AND invoice_hdr.customer_id IN (" . implode(',', $escaped) . ") ";
         }
 
+        return [$whereExtra, $bindings];
+    }
+
+    /**
+     * Subquery per-invoice: balance & umur piutang terhadap :cutoff.
+     * - Invoice sebelum $floorDate tidak pernah ikut (batas bawah data).
+     * - Pembayaran (kas_hdr voucher_type BM, status APPROVED) hanya dihitung
+     *   sebagai pengurang balance kalau voucher_date-nya <= :cutoff. Ini
+     *   penting supaya laporan tetap jadi snapshot yang benar: kalau cut-off
+     *   di-set mundur (mis. 22 Sept) tapi pelunasannya baru terjadi setelah
+     *   itu (mis. dibayar 25 Sept), invoice tsb TIDAK boleh kebaca lunas
+     *   pada cut-off 22 Sept.
+     */
+    private function buildPiutangSubquery($whereExtra)
+    {
+        return "
+            SELECT
+                invoice_hdr.id as invoice_id,
+                invoice_hdr.invoice_number,
+                invoice_hdr.customer_id,
+                COALESCE(
+                    invoice_hdr.jatuh_tempo::date,
+                    (
+                        to_date(invoice_hdr.sending_date,'DD-MM-YYYY')
+                        + INTERVAL '1 day' * COALESCE(
+                            (SELECT top_batas_1 FROM third_party tp WHERE tp.kode = invoice_hdr.customer_id),
+                            0
+                        )
+                    )::date
+                ) as jatuh_tempo_actual,
+                (invoice_hdr.grand_total - COALESCE(bayar.total_dibayar,0)) as balance,
+                (
+                    to_date(:cutoff,'DD-MM-YYYY') -
+                    COALESCE(
+                        invoice_hdr.jatuh_tempo::date,
+                        (
+                            to_date(invoice_hdr.sending_date,'DD-MM-YYYY')
+                            + INTERVAL '1 day' * COALESCE(
+                                (SELECT top_batas_1 FROM third_party tp WHERE tp.kode = invoice_hdr.customer_id),
+                                0
+                            )
+                        )::date
+                    )
+                ) as diff_hari
+            FROM invoice_hdr
+            LEFT JOIN LATERAL (
+                SELECT SUM(kas_det.credit) as total_dibayar
+                FROM kas_det
+                LEFT JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
+                WHERE kas_det.reference = invoice_hdr.invoice_number
+                  AND kas_hdr.voucher_type = 'BM'
+                  AND kas_hdr.status = '3'
+                  AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
+            ) bayar ON true
+            WHERE invoice_hdr.status NOT IN ('1','5')
+              AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') >= to_date(:floorDate,'DD-MM-YYYY')
+              $whereExtra
+        ";
+    }
+
+    private function bucketWhere($bucket)
+    {
+        switch ($bucket) {
+            case 'belum_jatuh_tempo': return " AND piutang.diff_hari <= 0 ";
+            case 'd1_30':             return " AND piutang.diff_hari BETWEEN 1 AND 30 ";
+            case 'd31_60':            return " AND piutang.diff_hari BETWEEN 31 AND 60 ";
+            case 'd61_90':            return " AND piutang.diff_hari BETWEEN 61 AND 90 ";
+            case 'd90plus':           return " AND piutang.diff_hari > 90 ";
+            case 'total_overdue':     return " AND piutang.diff_hari > 0 ";
+            case 'total_piutang':     return "";
+            default:                  return "";
+        }
+    }
+
+    /**
+     * Endpoint AJAX utama. Dipanggil oleh tombol "Generate Report" di view.
+     * Mengembalikan JSON: rows per customer + grand total + info balance DRAFT.
+     */
+    public function data(Request $request)
+    {
+        // ── Tanggal cut-off (wajib, single date, format DD-MM-YYYY) ──
+        $cutoffDate = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
+
+        list($whereExtra, $bindings) = $this->buildFilters($request);
+        $bindings['cutoff']    = $cutoffDate;
+        $bindings['floorDate'] = $this->floorDate;
+
+        $subquery = $this->buildPiutangSubquery($whereExtra);
+
         // ── Query utama ──
         $sql = "
             SELECT
@@ -132,36 +222,7 @@ class ArAgingReportController extends Controller
                 SUM(CASE WHEN piutang.diff_hari BETWEEN 31 AND 60  THEN piutang.balance ELSE 0 END) as d31_60,
                 SUM(CASE WHEN piutang.diff_hari BETWEEN 61 AND 90  THEN piutang.balance ELSE 0 END) as d61_90,
                 SUM(CASE WHEN piutang.diff_hari > 90               THEN piutang.balance ELSE 0 END) as d90plus
-            FROM (
-                SELECT
-                    invoice_hdr.invoice_number,
-                    invoice_hdr.customer_id,
-                    (invoice_hdr.grand_total - COALESCE(bayar.total_dibayar,0)) as balance,
-                    (
-                        to_date(:cutoff,'DD-MM-YYYY') -
-                        COALESCE(
-                            invoice_hdr.jatuh_tempo::date,
-                            (
-                                to_date(invoice_hdr.sending_date,'DD-MM-YYYY')
-                                + INTERVAL '1 day' * COALESCE(
-                                    (SELECT top_batas_1 FROM third_party tp WHERE tp.kode = invoice_hdr.customer_id),
-                                    0
-                                )
-                            )::date
-                        )
-                    ) as diff_hari
-                FROM invoice_hdr
-                LEFT JOIN LATERAL (
-                    SELECT SUM(kas_det.credit) as total_dibayar
-                    FROM kas_det
-                    LEFT JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
-                    WHERE kas_det.reference = invoice_hdr.invoice_number
-                      AND kas_hdr.voucher_type = 'BM'
-                      AND kas_hdr.status = '3'
-                ) bayar ON true
-                WHERE invoice_hdr.status NOT IN ('1','5')
-                $whereExtra
-            ) piutang
+            FROM ($subquery) piutang
             LEFT JOIN third_party ON third_party.kode = piutang.customer_id
             WHERE piutang.balance > 0.01
             GROUP BY piutang.customer_id, third_party.nama
@@ -220,6 +281,65 @@ class ArAgingReportController extends Controller
             'grand'        => $grand,
             'draftBalance' => (float) $draftBalance,
             'bucketLabels' => $this->bucketLabels(),
+        ]);
+    }
+
+    /**
+     * Endpoint AJAX untuk modal detail: dipanggil saat angka di tabel/grand
+     * total diklik. Mengembalikan daftar invoice (nomor, jatuh tempo, nilai,
+     * dan id ter-enkripsi untuk link ke invoice.show) yang membentuk angka
+     * tsb, dengan logika balance & bucket yang identik dengan data().
+     */
+    public function detail(Request $request)
+    {
+        $cutoffDate  = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
+        $customerCode = $request->customerCode ? trim($request->customerCode) : null;
+        $bucket       = $request->bucket ? trim($request->bucket) : 'total_piutang';
+
+        list($whereExtra, $bindings) = $this->buildFilters($request);
+        $bindings['cutoff']    = $cutoffDate;
+        $bindings['floorDate'] = $this->floorDate;
+
+        if ($customerCode) {
+            $whereExtra .= " AND invoice_hdr.customer_id = :detailCustomer ";
+            $bindings['detailCustomer'] = $customerCode;
+        }
+
+        $subquery   = $this->buildPiutangSubquery($whereExtra);
+        $bucketWhere = $this->bucketWhere($bucket);
+
+        $sql = "
+            SELECT
+                piutang.invoice_id,
+                piutang.invoice_number,
+                third_party.nama as customer_name,
+                piutang.jatuh_tempo_actual,
+                piutang.balance
+            FROM ($subquery) piutang
+            LEFT JOIN third_party ON third_party.kode = piutang.customer_id
+            WHERE piutang.balance > 0.01
+            $bucketWhere
+            ORDER BY piutang.jatuh_tempo_actual ASC, piutang.invoice_number ASC
+        ";
+
+        $rows = DB::select($sql, $bindings);
+
+        $result = [];
+        foreach ($rows as $r) {
+            $result[] = [
+                'invoice_number' => $r->invoice_number,
+                'customer_name'  => $r->customer_name,
+                'jatuh_tempo'    => $r->jatuh_tempo_actual ? date('d-m-Y', strtotime($r->jatuh_tempo_actual)) : '-',
+                'balance'        => (float) $r->balance,
+                'invoice_link'   => route('invoice.show', ['id' => Crypt::encryptString($r->invoice_id)]),
+            ];
+        }
+
+        return response()->json([
+            'status'       => 1,
+            'bucketLabel'  => $this->bucketLabels()[$bucket] ?? ($bucket === 'total_overdue' ? 'Total Overdue' : 'Total Piutang'),
+            'rows'         => $result,
+            'total'        => array_sum(array_column($result, 'balance')),
         ]);
     }
 

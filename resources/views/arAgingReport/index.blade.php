@@ -59,6 +59,15 @@
     vertical-align: middle;
     border-top: 2px solid #c8cfda;
 }
+
+#agingTable .col-no { position: sticky; left: 0; min-width: 40px; max-width: 40px;
+    text-align: center; background: inherit; z-index: 2; }
+#agingTable thead th.col-no { z-index: 5; background: #e4e9f1 !important; }
+#agingTable .col-customer { left: 40px; }
+#agingTable thead th.col-customer { left: 40px; }
+
+.aging-clickable { cursor: pointer; text-decoration: underline dotted; }
+.aging-clickable:hover { background: #d7e8ff !important; }
 </style>
 
 {{-- ════════════════════════════════════════════════
@@ -206,6 +215,7 @@
                 <table class="table table-sm text-right" id="agingTable" style="font-size:.8rem;">
                     <thead class="text-center">
                         <tr>
+                            <th class="col-no">No</th>
                             <th class="col-customer text-left">Customer</th>
                             <th>Belum Jatuh Tempo</th>
                             <th>1 - 30 Hari</th>
@@ -220,14 +230,15 @@
                     <tbody id="agingBody"></tbody>
                     <tfoot>
                         <tr>
+                            <td class="col-no"></td>
                             <td class="col-customer text-left">GRAND TOTAL</td>
-                            <td id="tBelum">0</td>
-                            <td id="tD1_30">0</td>
-                            <td class="bucket-31" id="tD31_60">0</td>
-                            <td class="bucket-61" id="tD61_90">0</td>
-                            <td class="bucket-90" id="tD90plus">0</td>
-                            <td id="tOverdue">0</td>
-                            <td id="tTotal">0</td>
+                            <td class="aging-clickable" id="tBelum" data-bucket="belum_jatuh_tempo">0</td>
+                            <td class="aging-clickable" id="tD1_30" data-bucket="d1_30">0</td>
+                            <td class="bucket-31 aging-clickable" id="tD31_60" data-bucket="d31_60">0</td>
+                            <td class="bucket-61 aging-clickable" id="tD61_90" data-bucket="d61_90">0</td>
+                            <td class="bucket-90 aging-clickable" id="tD90plus" data-bucket="d90plus">0</td>
+                            <td class="aging-clickable" id="tOverdue" data-bucket="total_overdue">0</td>
+                            <td class="aging-clickable" id="tTotal" data-bucket="total_piutang">0</td>
                             <td id="tPct">0%</td>
                         </tr>
                     </tfoot>
@@ -237,6 +248,48 @@
         </div>
     </div>
 </section>
+
+{{-- ════════════════════════════════════════════════
+     MODAL DETAIL INVOICE
+════════════════════════════════════════════════ --}}
+<div class="modal fade" id="agingDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="agingDetailTitle">Detail Invoice</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="agingDetailLoading" class="text-center py-2 d-none">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+                <table class="table table-sm table-striped" id="agingDetailTable">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>No. Invoice</th>
+                            <th>Jatuh Tempo</th>
+                            <th class="text-right">Nilai</th>
+                        </tr>
+                    </thead>
+                    <tbody id="agingDetailBody"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-right font-weight-bold">Total</td>
+                            <td class="text-right font-weight-bold" id="agingDetailTotal">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div id="agingDetailEmpty" class="text-center text-muted py-2 d-none">Tidak ada data.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @endsection
 
@@ -268,6 +321,10 @@ $(document).ready(function () {
         return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
 
+    // Filter terakhir yang dipakai utk Generate Report, disimpan supaya modal
+    // detail (klik angka) menghitung dgn cut-off & filter yang sama persis.
+    let lastFilters = null;
+
     function resetDisplay() {
         $('#agingBody').empty();
         $('#agingHeaderInfo').addClass('d-none');
@@ -285,13 +342,15 @@ $(document).ready(function () {
             return;
         }
 
-        $(".loading-spinner-container").addClass("-show");
-
-        $.post("{{ route('arAging.data') }}", {
+        lastFilters = {
             cutoffDate       : cutoff,
             invoiceDateRange : $('#repInvoiceDate').val(),
             customer         : $('#repCustomer').val()
-        })
+        };
+
+        $(".loading-spinner-container").addClass("-show");
+
+        $.post("{{ route('arAging.data') }}", lastFilters)
         .done(function (res) {
             $(".loading-spinner-container").removeClass("-show");
             if (res.status !== 1) {
@@ -313,19 +372,24 @@ $(document).ready(function () {
 
         let body = '';
         if (!res.rows || res.rows.length === 0) {
-            body = '<tr><td colspan="9" class="text-center text-muted py-1">Tidak ada piutang outstanding untuk filter ini.</td></tr>';
+            body = '<tr><td colspan="10" class="text-center text-muted py-1">Tidak ada piutang outstanding untuk filter ini.</td></tr>';
         } else {
-            res.rows.forEach(function (r) {
+            res.rows.forEach(function (r, idx) {
                 let pctCls = r.pct_overdue >= 50 ? 'text-danger' : (r.pct_overdue > 0 ? 'text-warning' : 'text-success');
+                let cc = r.customer_code;
+                function cell(cls, bucket, val) {
+                    return '<td class="' + cls + ' aging-clickable" data-customer="' + cc + '" data-bucket="' + bucket + '">' + fmt(val) + '</td>';
+                }
                 body += '<tr>'
+                    + '<td class="col-no">' + (idx + 1) + '</td>'
                     + '<td class="col-customer text-left">' + r.customer_name + '</td>'
-                    + '<td>' + fmt(r.belum_jatuh_tempo) + '</td>'
-                    + '<td>' + fmt(r.d1_30) + '</td>'
-                    + '<td class="bucket-31">' + fmt(r.d31_60) + '</td>'
-                    + '<td class="bucket-61">' + fmt(r.d61_90) + '</td>'
-                    + '<td class="bucket-90">' + fmt(r.d90plus) + '</td>'
-                    + '<td>' + fmt(r.total_overdue) + '</td>'
-                    + '<td class="font-weight-bold">' + fmt(r.total_piutang) + '</td>'
+                    + cell('', 'belum_jatuh_tempo', r.belum_jatuh_tempo)
+                    + cell('', 'd1_30', r.d1_30)
+                    + cell('bucket-31', 'd31_60', r.d31_60)
+                    + cell('bucket-61', 'd61_90', r.d61_90)
+                    + cell('bucket-90', 'd90plus', r.d90plus)
+                    + cell('', 'total_overdue', r.total_overdue)
+                    + cell('font-weight-bold', 'total_piutang', r.total_piutang)
                     + '<td class="' + pctCls + ' font-weight-bold">' + r.pct_overdue.toFixed(1) + '%</td>'
                     + '</tr>';
             });
@@ -356,6 +420,67 @@ $(document).ready(function () {
 
         if (typeof feather !== 'undefined') feather.replace();
     }
+
+    let bucketTitles = {
+        belum_jatuh_tempo: 'Belum Jatuh Tempo',
+        d1_30: '1 - 30 Hari',
+        d31_60: '31 - 60 Hari',
+        d61_90: '61 - 90 Hari',
+        d90plus: '> 90 Hari',
+        total_overdue: 'Total Overdue',
+        total_piutang: 'Total Piutang'
+    };
+
+    // Klik angka di tabel (per customer) atau di grand total -> buka modal
+    // berisi daftar invoice pembentuk angka tsb.
+    $('#agingTable').on('click', 'td.aging-clickable', function () {
+        if (!lastFilters) return;
+
+        let bucket   = $(this).data('bucket');
+        let customer = $(this).data('customer') || '';
+
+        $('#agingDetailTitle').text('Detail Invoice - ' + (bucketTitles[bucket] || bucket) + (customer ? ' - ' + $(this).closest('tr').find('.col-customer').text() : ' (Semua Customer)'));
+        $('#agingDetailBody').empty();
+        $('#agingDetailTotal').text('0');
+        $('#agingDetailEmpty').addClass('d-none');
+        $('#agingDetailLoading').removeClass('d-none');
+        $('#agingDetailModal').modal('show');
+
+        $.post("{{ route('arAging.detail') }}", {
+            cutoffDate       : lastFilters.cutoffDate,
+            invoiceDateRange : lastFilters.invoiceDateRange,
+            customer         : lastFilters.customer,
+            customerCode     : customer,
+            bucket           : bucket
+        })
+        .done(function (res) {
+            $('#agingDetailLoading').addClass('d-none');
+            if (res.status !== 1) {
+                Swal.fire('Error', res.message || 'Gagal memuat detail.', 'warning');
+                return;
+            }
+            if (!res.rows || res.rows.length === 0) {
+                $('#agingDetailEmpty').removeClass('d-none');
+                return;
+            }
+            let body = '';
+            res.rows.forEach(function (row, idx) {
+                body += '<tr>'
+                    + '<td>' + (idx + 1) + '</td>'
+                    + '<td><a href="' + row.invoice_link + '" target="_blank">' + row.invoice_number + '</a></td>'
+                    + '<td>' + row.jatuh_tempo + '</td>'
+                    + '<td class="text-right">' + fmt(row.balance) + '</td>'
+                    + '</tr>';
+            });
+            $('#agingDetailBody').html(body);
+            $('#agingDetailTotal').text(fmt(res.total));
+        })
+        .fail(function (xhr) {
+            $('#agingDetailLoading').addClass('d-none');
+            let msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan.';
+            Swal.fire('Error', msg, 'error');
+        });
+    });
 
     $('#btnReset').on('click', function () {
         $('#repInvoiceDate').val('');
