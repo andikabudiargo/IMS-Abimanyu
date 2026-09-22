@@ -151,13 +151,8 @@
       <div class="card-body">
         <div class="form-row mb-2">
           <div class="form-group col-md-2">
-            <label for="arYear">Tahun</label>
-            <select class="form-control" id="arYear">
-              @php $currentYear = (int) date('Y'); @endphp
-              @for($y = $currentYear; $y >= 2024; $y--)
-                <option value="{{ $y }}" {{ $y == $currentYear ? 'selected' : '' }}>{{ $y }}</option>
-              @endfor
-            </select>
+            <label for="arCutoff">Per Tanggal (Cut-off)</label>
+            <input type="text" class="form-control flatpickr-single" id="arCutoff" placeholder="DD-MM-YYYY">
           </div>
         </div>
 
@@ -307,8 +302,8 @@
 
   const fmtRp = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(v);
 
-const loadArDashboard = (tahun) => {
-  $.get("{{ route('invoice.analyticsAr') }}", { tahun: tahun }, function (res) {
+const loadArDashboard = (cutoffDate) => {
+  $.get("{{ route('invoice.analyticsAr') }}", { cutoffDate: cutoffDate }, function (res) {
     $('#cardOpeningBalance').text(fmtRp(res.openingBalance));
     $('#cardTotalAr').text(fmtRp(res.totalAr));
     $('#cardTotalPaid').text(fmtRp(res.totalPaid));
@@ -316,15 +311,22 @@ const loadArDashboard = (tahun) => {
   });
 };
 
+initDatePicker(document.querySelector('#arCutoff'), {
+  minDate: "01/01/2010",
+  maxDate: "31/12/2030",
+  dateFormat: "d-m-Y",
+  defaultDate: new Date()
+});
+
 let arDashboardInitialized = false;
 $('#ar-dashboard a[data-action="collapse"]').closest('.card').find('.card-content').on('shown.bs.collapse', function () {
   if (!arDashboardInitialized) {
     arDashboardInitialized = true;
-    loadArDashboard($('#arYear').val());
+    loadArDashboard($('#arCutoff').val());
   }
 });
 
-$('#arYear').on('change', function () {
+$('#arCutoff').on('change', function () {
   loadArDashboard($(this).val());
 });
 

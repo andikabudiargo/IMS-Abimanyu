@@ -1891,32 +1891,39 @@ DB::raw("
 
     public function analyticsAr(Request $request)
 {
-    $tahun = $request->tahun ?? date('Y');
-    $isCurrentYear = ((int) $tahun === (int) date('Y'));
+    $cutoff = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
+    $year      = substr($cutoff, -4);
+    $startDate = "01-01-$year";
+    $dayBeforeStart = date('d-m-Y', strtotime("$year-01-01 -1 day"));
 
-    $startDate = "01-01-$tahun";
-    $asOfDate  = $isCurrentYear ? date('d-m-Y') : "31-12-$tahun";
+    // Semua angka di bawah pakai rumus balance yang SAMA dengan AR Aging
+    // (grand_total - pembayaran ter-approve), bukan invoice_hdr.status='6'
+    // -- status itu bisa ke-flip PAID walau baru dibayar sebagian (lihat
+    // KasPenerimaanController::approve), jadi tidak reliable buat dashboard.
+    $arAging = new ArAgingReportController();
 
-    // Opening balance: invoice terbit sebelum tahun berjalan, dikurangi yang sudah dibayar (status 6/PAID)
-    $opening = DB::table('invoice_hdr')
-        ->whereRaw("to_date(invoice_date,'DD-MM-YYYY') < to_date(?, 'DD-MM-YYYY')", [$startDate])
-        ->where('status', '<>', '5') // exclude cancel
-        ->where('status', '<>', '6') // exclude yang sudah lunas -- sisanya itulah opening balance
-        ->sum('grand_total');
+    // Opening balance = total outstanding riil per akhir tahun sebelumnya
+    $opening = $arAging->totalOutstanding($dayBeforeStart);
 
-    // Total AR: invoice terbit dalam tahun berjalan
+    // Outstanding = total outstanding riil per tanggal cutoff
+    $outstanding = $arAging->totalOutstanding($cutoff);
+
+    // Sales: invoice terbit dalam tahun berjalan s.d. cutoff
     $totalAr = DB::table('invoice_hdr')
-        ->whereRaw("to_date(invoice_date,'DD-MM-YYYY') between to_date(?, 'DD-MM-YYYY') and to_date(?, 'DD-MM-YYYY')", [$startDate, $asOfDate])
+        ->whereRaw("to_date(invoice_date,'DD-MM-YYYY') between to_date(?, 'DD-MM-YYYY') and to_date(?, 'DD-MM-YYYY')", [$startDate, $cutoff])
         ->where('status', '<>', '5')
         ->sum('grand_total');
 
-    // Sudah dibayar: invoice dalam tahun berjalan yang statusnya PAID
-    $totalPaid = DB::table('invoice_hdr')
-        ->whereRaw("to_date(invoice_date,'DD-MM-YYYY') between to_date(?, 'DD-MM-YYYY') and to_date(?, 'DD-MM-YYYY')", [$startDate, $asOfDate])
-        ->where('status', '6')
-        ->sum('grand_total');
-
-    $outstanding = $opening + $totalAr - $totalPaid;
+    // Pembayaran: uang yang benar-benar diterima (voucher approved) dalam periode
+    $totalPaid = DB::selectOne("
+        SELECT COALESCE(SUM(kas_det.credit),0) as total
+        FROM kas_det
+        JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
+        JOIN invoice_hdr ON invoice_hdr.invoice_number = kas_det.reference
+        WHERE kas_hdr.status = '3'
+          AND invoice_hdr.status <> '5'
+          AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN to_date(?,'DD-MM-YYYY') AND to_date(?,'DD-MM-YYYY')
+    ", [$startDate, $cutoff])->total;
 
     return response()->json([
         'openingBalance' => (float) $opening,

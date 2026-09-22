@@ -203,6 +203,25 @@ class ArAgingReportController extends Controller
     }
 
     /**
+     * Total piutang outstanding per tanggal cutoff (tanpa filter customer).
+     * Dipakai bersama oleh AR Aging & AR Dashboard (InvoiceController::analyticsAr)
+     * supaya angka "belum dibayar" di kedua tempat itu SELALU sama -- keduanya
+     * pakai rumus balance yang identik, bukan status invoice_hdr.status='6'
+     * yang terbukti tidak reliable (lihat komentar di buildPiutangSubquery).
+     */
+    public function totalOutstanding($cutoffDate)
+    {
+        $bindings = [
+            'cutoff'             => $cutoffDate,
+            'floorDate'          => $this->floorDate,
+            'pairRequiredBefore' => $this->pairRequiredBefore,
+        ];
+        $subquery = $this->buildPiutangSubquery('');
+        $row = DB::selectOne("SELECT COALESCE(SUM(balance),0) as total FROM ($subquery) piutang WHERE balance > 0.01", $bindings);
+        return (float) $row->total;
+    }
+
+    /**
      * Endpoint AJAX utama. Dipanggil oleh tombol "Generate Report" di view.
      * Mengembalikan JSON: rows per customer + grand total + info balance DRAFT.
      */
