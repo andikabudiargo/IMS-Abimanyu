@@ -410,7 +410,7 @@
                     // supaya garis bawah tabel tidak ketutup kotak putih label itu).
                     $tinggiBarisAsli = (count($details) >= 15 && count($details) <= 30) ? 18.5 : 21;
                     if ($duaHalaman == 'yes') {
-                        $sisaTinggi = (884 - 125) - 32 - (count($details) * $tinggiBarisAsli);
+                        $sisaTinggi = (884 - 118) - 32 - (count($details) * $tinggiBarisAsli);
                         $totalBaris = count($details) + max(0, (int) ceil($sisaTinggi / 21));
                     } else {
                         $totalBaris = 30;
