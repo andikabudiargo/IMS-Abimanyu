@@ -3,10 +3,6 @@
 @section('content')
 @include('layouts.breadcrumb')
 
-{{-- ════════════════════════════════════════════════
-     STYLE: sticky header + freeze kolom customer + zebra
-     (pola sama seperti STO Report)
-════════════════════════════════════════════════ --}}
 <style>
 #agingScroll {
     max-height: 68vh;
@@ -70,9 +66,6 @@
 .aging-clickable:hover { background: #d7e8ff !important; }
 </style>
 
-{{-- ════════════════════════════════════════════════
-     FILTER
-════════════════════════════════════════════════ --}}
 <section id="aging-filter">
     <div class="card">
         <div class="card-header">
@@ -86,20 +79,13 @@
         <div class="card-content collapse show">
             <div class="card-body">
                 <div class="form-row">
-                    <div class="form-group col-md-3">
+                    <div class="form-group col-md-4">
                         <label for="repCutoff">Per Tanggal (Cut-off) <span class="text-danger">*</span></label>
                         <input type="text" class="form-control flatpickr-single" id="repCutoff"
                                placeholder="DD-MM-YYYY">
                         <small class="text-muted">Umur piutang dihitung terhadap tanggal ini.</small>
                     </div>
-                    <div class="form-group col-md-4">
-                        <label for="repInvoiceDate">Rentang Tanggal Invoice
-                            <small class="text-muted">(opsional)</small>
-                        </label>
-                        <input type="text" class="form-control flatpickr-range" id="repInvoiceDate"
-                               placeholder="DD-MM-YYYY to DD-MM-YYYY">
-                    </div>
-                    <div class="form-group col-md-5">
+                    <div class="form-group col-md-8">
                         <label for="repCustomer">Customer <small class="text-muted">(opsional, boleh lebih dari satu)</small></label>
                         <select class="form-control" id="repCustomer" multiple>
                             @foreach($customers as $c)
@@ -132,9 +118,6 @@
     </div>
 </section>
 
-{{-- ════════════════════════════════════════════════
-     SUMMARY CARDS
-════════════════════════════════════════════════ --}}
 <section id="aging-summary" class="d-none">
     <div class="row">
         <div class="col-sm-6 col-lg-3">
@@ -192,9 +175,6 @@
     </div>
 </section>
 
-{{-- ════════════════════════════════════════════════
-     REPORT TABLE
-════════════════════════════════════════════════ --}}
 <section id="aging-result">
     <div class="card">
         <div class="card-header">
@@ -207,7 +187,7 @@
                 <hr class="mt-50">
             </div>
 
-            <div id="agingEmpty" class="alert alert-warning">
+            <div id="agingEmpty" class="alert alert-warning d-none">
                 Pilih <strong>Per Tanggal (Cut-off)</strong>, lalu klik <strong>Generate Report</strong>.
             </div>
 
@@ -249,9 +229,6 @@
     </div>
 </section>
 
-{{-- ════════════════════════════════════════════════
-     MODAL DETAIL INVOICE
-════════════════════════════════════════════════ --}}
 <div class="modal fade" id="agingDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
         <div class="modal-content">
@@ -270,6 +247,9 @@
                         <tr>
                             <th>No</th>
                             <th>No. Invoice</th>
+                            <th>Invoice Date</th>
+                            <th>Sending Date</th>
+                            <th>Term</th>
                             <th>Jatuh Tempo</th>
                             <th class="text-right">Nilai</th>
                         </tr>
@@ -277,7 +257,7 @@
                     <tbody id="agingDetailBody"></tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="3" class="text-right font-weight-bold">Total</td>
+                            <td colspan="6" class="text-right font-weight-bold">Total</td>
                             <td class="text-right font-weight-bold" id="agingDetailTotal">0</td>
                         </tr>
                     </tfoot>
@@ -307,22 +287,12 @@ $(document).ready(function () {
         defaultDate: new Date()
     });
 
-    // Rentang tanggal invoice: opsional, range
-    initDatePicker(document.querySelector('#repInvoiceDate'), {
-        minDate: "01/01/2010",
-        maxDate: "31/12/2030",
-        dateFormat: "d-m-Y",
-        mode: "range"
-    });
-
     function fmt(v) {
         let n = parseFloat(v);
         if (isNaN(n)) return '0';
         return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
 
-    // Filter terakhir yang dipakai utk Generate Report, disimpan supaya modal
-    // detail (klik angka) menghitung dgn cut-off & filter yang sama persis.
     let lastFilters = null;
 
     function resetDisplay() {
@@ -335,7 +305,7 @@ $(document).ready(function () {
         $('#agingEmpty').removeClass('d-none');
     }
 
-    $('#btnGenerate').on('click', function () {
+    function generateReport() {
         let cutoff = $('#repCutoff').val();
         if (!cutoff) {
             Swal.fire('Warning', 'Tanggal Cut-off wajib diisi.', 'warning');
@@ -343,9 +313,8 @@ $(document).ready(function () {
         }
 
         lastFilters = {
-            cutoffDate       : cutoff,
-            invoiceDateRange : $('#repInvoiceDate').val(),
-            customer         : $('#repCustomer').val()
+            cutoffDate : cutoff,
+            customer   : $('#repCustomer').val()
         };
 
         $(".loading-spinner-container").addClass("-show");
@@ -364,7 +333,9 @@ $(document).ready(function () {
             let msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan.';
             Swal.fire('Error', msg, 'error');
         });
-    });
+    }
+
+    $('#btnGenerate').on('click', generateReport);
 
     function renderReport(res) {
         $('#hCutoff').text(res.cutoff);
@@ -431,8 +402,6 @@ $(document).ready(function () {
         total_piutang: 'Total Piutang'
     };
 
-    // Klik angka di tabel (per customer) atau di grand total -> buka modal
-    // berisi daftar invoice pembentuk angka tsb.
     $('#agingTable').on('click', 'td.aging-clickable', function () {
         if (!lastFilters) return;
 
@@ -447,11 +416,10 @@ $(document).ready(function () {
         $('#agingDetailModal').modal('show');
 
         $.post("{{ route('arAging.detail') }}", {
-            cutoffDate       : lastFilters.cutoffDate,
-            invoiceDateRange : lastFilters.invoiceDateRange,
-            customer         : lastFilters.customer,
-            customerCode     : customer,
-            bucket           : bucket
+            cutoffDate   : lastFilters.cutoffDate,
+            customer     : lastFilters.customer,
+            customerCode : customer,
+            bucket       : bucket
         })
         .done(function (res) {
             $('#agingDetailLoading').addClass('d-none');
@@ -468,6 +436,9 @@ $(document).ready(function () {
                 body += '<tr>'
                     + '<td>' + (idx + 1) + '</td>'
                     + '<td><a href="' + row.invoice_link + '" target="_blank">' + row.invoice_number + '</a></td>'
+                    + '<td>' + row.invoice_date + '</td>'
+                    + '<td>' + row.sending_date + '</td>'
+                    + '<td>' + row.term + '</td>'
                     + '<td>' + row.jatuh_tempo + '</td>'
                     + '<td class="text-right">' + fmt(row.balance) + '</td>'
                     + '</tr>';
@@ -483,9 +454,9 @@ $(document).ready(function () {
     });
 
     $('#btnReset').on('click', function () {
-        $('#repInvoiceDate').val('');
         $('#repCustomer').val(null).trigger('change');
         resetDisplay();
+        generateReport();
     });
 
     $('#btnPrint').on('click', function () {
@@ -518,7 +489,6 @@ $(document).ready(function () {
         let $f = $('<form>', { method: 'POST', action: "{{ route('arAging.export') }}" });
         $f.append($('<input>', { type: 'hidden', name: '_token', value: $('meta[name="csrf-token"]').attr('content') }));
         $f.append($('<input>', { type: 'hidden', name: 'cutoffDate', value: $('#repCutoff').val() }));
-        $f.append($('<input>', { type: 'hidden', name: 'invoiceDateRange', value: $('#repInvoiceDate').val() }));
         ($('#repCustomer').val() || []).forEach(function (c) {
             $f.append($('<input>', { type: 'hidden', name: 'customer[]', value: c }));
         });
@@ -528,6 +498,15 @@ $(document).ready(function () {
     });
 
     $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+
+    // Auto-generate begitu halaman dibuka/refresh, pakai cut-off default (hari ini)
+    if (!$('#repCutoff').val()) {
+        let d = new Date();
+        let dd = String(d.getDate()).padStart(2, '0');
+        let mm = String(d.getMonth() + 1).padStart(2, '0');
+        $('#repCutoff').val(dd + '-' + mm + '-' + d.getFullYear());
+    }
+    generateReport();
 });
 </script>
 @endsection
