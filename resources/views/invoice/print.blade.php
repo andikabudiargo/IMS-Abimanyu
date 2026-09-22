@@ -409,7 +409,7 @@
                     // presisi sampai ke pixel, tidak cuma bisa geser per-kelipatan 21px.
                     // $targetDariBawah: geser angka ini kalau masih kurang/kelebihan pas
                     // (kurangi = baris makin turun, tambah = baris makin naik).
-                    $targetDariBawah = 87;
+                    $targetDariBawah = 90;
                     $tinggiBarisAsli = (count($details) >= 15 && count($details) <= 30) ? 18.5 : 21;
                     if ($duaHalaman == 'yes') {
                         $sisaTinggi = max(0, (884 - $targetDariBawah) - 32 - (count($details) * $tinggiBarisAsli));
