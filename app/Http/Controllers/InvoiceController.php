@@ -1974,9 +1974,17 @@ DB::raw("
         $printType = '2';
     }
     $data['printType'] = $printType;
-$capacityPage1 = 22;
-  //$capacityPage1 = ($printType == '12') ? 21 : 26;
 
+    // Kapasitas baris per halaman HARUS sama dengan $totalBaris di blade yang dipakai:
+    // - print.blade.php   (kolom ganda, printType 12): 1 halaman = 30 baris, halaman 1/2 = 37 baris
+    // - printV2.blade.php (kolom tunggal, printType 1/2): 1 halaman = 27 baris, halaman 1/2 = 36 baris
+    if ($printType === '12') {
+        $onePageCapacity = 30;
+        $page1Capacity   = 37;
+    } else {
+        $onePageCapacity = 27;
+        $page1Capacity   = 36;
+    }
 
    // ── Hitung jumlah baris ──────────────────────────────────────────────────
 $jumlahData = DB::table('invoice_det')
@@ -1987,12 +1995,12 @@ $jumlahData = DB::table('invoice_det')
     ->get()
     ->count();
 
- $data['duaHalaman'] = $jumlahData >= $capacityPage1 ? 'yes' : 'no';
+ $data['duaHalaman'] = $jumlahData > $onePageCapacity ? 'yes' : 'no';
 
 // $limits = jumlah item yg masuk halaman 1
-// Kalau 1 halaman: ambil semua tapi max $capacityPage1 supaya ada sisa slot kosong
-// Kalau 2 halaman: ambil $capacityPage1 saja untuk halaman 1
-$limits = $data['duaHalaman'] === 'yes' ? $capacityPage1 : min($jumlahData, $capacityPage1);
+// Kalau 1 halaman: ambil semua (pasti muat, karena <= $onePageCapacity)
+// Kalau 2 halaman: ambil sebanyak $page1Capacity supaya halaman 1 terisi penuh dulu
+$limits = $data['duaHalaman'] === 'yes' ? $page1Capacity : $jumlahData;
 
     // ── Details halaman 1 ────────────────────────────────────────────────────
     $data['details'] = DB::table('invoice_det')
