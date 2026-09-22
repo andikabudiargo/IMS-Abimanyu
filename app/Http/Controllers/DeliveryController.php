@@ -3003,7 +3003,10 @@ private function punyaArAktif($dnNumber)
         ,DB::RAW("case when (select status from invoice_hdr where invoice_number = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code)) = '6'
             then (select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'DD/MM/YYYY') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1)
             else null end as paid_date")
-        ,DB::RAW("(Select coalesce(price,0)+coalesce(price_service,0) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) * delivery_det.qty
+        ,DB::RAW("coalesce(
+                (select grand_total from invoice_hdr where invoice_number = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code)),
+                (Select coalesce(price,0)+coalesce(price_service,0) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) * delivery_det.qty
+            )
             - coalesce((select kas_det.credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status = '3' and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1),0) as balance")
         )
         ->orderBy('delivery_det.id')
