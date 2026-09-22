@@ -460,7 +460,7 @@
         reloadPage();
     });
 
-    $('#supplier').change(function(){
+    $('#supplier').change(function(e, isSync){
         let value= $(this).val();
         let obj = 'poNumber';
         let term = $(this).find(":selected").data("term");
@@ -471,7 +471,10 @@
             $('#term').val(term);
             $('#accountHutang').val(coa + (coaDesc ? ' - '+coaDesc : ''));
             $('#accountHutangCode').val(coa);
-            calcDueDate();
+            // isSync: re-sync setelah load data edit (bukan aksi user), jangan timpa due_date yang sudah tersimpan
+            if(!isSync){
+                calcDueDate();
+            }
             kosongkanData();
             $.ajax({
                 url:"{{ route('accountPayable.list.po') }}",

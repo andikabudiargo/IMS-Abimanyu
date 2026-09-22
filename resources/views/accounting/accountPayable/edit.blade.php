@@ -418,7 +418,7 @@
     function checkVariable() {
         if (listCoa.length > 0 && (apType !== 'NONPO' || listArticleNp.length > 0)) {
             clearInterval(timerId);
-            $('#supplier').val("{{ $header->supplier_id }}").trigger('change');
+            $('#supplier').val("{{ $header->supplier_id }}").trigger('change', [true]);
             let apDetails = @json($apDetails);
             for(i=0;i<apDetails.length;i++){
                 add_new_row_edit(apDetails[i].account,apDetails[i].description,apDetails[i].cost_center,apDetails[i].debit);
