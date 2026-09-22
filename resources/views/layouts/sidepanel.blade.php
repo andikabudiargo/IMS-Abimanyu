@@ -793,6 +793,13 @@
                       </a>
                     </li>
                   @endcan
+                  @can('delivery-report-acc')
+                    <li class="{{ \Request::is(['arPaymentSchedule'])  ? 'active' : '' }}">
+                      <a class="d-flex align-items-center" href="{{ route('arPaymentSchedule.index') }}">
+                        <span class="menu-item text-truncate" data-i18n="AR Payment Schedule">AR Payment Schedule</span>
+                      </a>
+                    </li>
+                  @endcan
                 </ul>
               </li>
 

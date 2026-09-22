@@ -525,6 +525,11 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('arAging/detail', ['uses' => 'ArAgingReportController@detail','as'   => 'arAging.detail',]);
 	Route::post('arAging/export', ['uses' => 'ArAgingReportController@export','as'   => 'arAging.export',]);
 
+	Route::get('arPaymentSchedule', ['uses' => 'ArPaymentScheduleController@index','as'   => 'arPaymentSchedule.index',]);
+	Route::post('arPaymentSchedule/data', ['uses' => 'ArPaymentScheduleController@data','as'   => 'arPaymentSchedule.data',]);
+	Route::post('arPaymentSchedule/detail', ['uses' => 'ArPaymentScheduleController@detail','as'   => 'arPaymentSchedule.detail',]);
+	Route::post('arPaymentSchedule/export', ['uses' => 'ArPaymentScheduleController@export','as'   => 'arPaymentSchedule.export',]);
+
 
 	//Account payable versi 2
 	Route::get('accountPayable',['as'=>'accountPayable.index','uses'=>'Accounting\AccountPayableController@index','middleware' => ['permission:ap-index']]);
