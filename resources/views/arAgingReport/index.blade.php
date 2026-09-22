@@ -249,7 +249,7 @@
                             <th>No. Invoice</th>
                             <th>Invoice Date</th>
                             <th>Sending Date</th>
-                            <th>Term</th>
+                            <th>TOP</th>
                             <th>Jatuh Tempo</th>
                             <th class="text-right">Nilai</th>
                         </tr>
