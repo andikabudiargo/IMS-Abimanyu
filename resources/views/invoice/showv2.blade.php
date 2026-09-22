@@ -172,6 +172,7 @@
                                 <table class="table table-bordered" id="listOfRec">
                                     <thead>
                                         <tr>
+                                            <th scope="col" width="4%">No</th>
                                             <th scope="col" width="20%">Article Code</th>
                                             <th scope="col" width="40%">Desc</th>
                                             <th scope="col" width="10%">Qty</th>
@@ -186,6 +187,7 @@
                                     <tbody>
                                         @foreach($detail as $item)
                                         <tr>
+                                            <td>{{ $loop->iteration }}</td>
                                             <td>{{ $item->article }}</td>
                                             <td>{{ $item->desc }}</td>
                                             <td class="text-right">{{ number_format($item->qty,2) }}</td>
