@@ -223,9 +223,7 @@
         }
 
         #tblContent4{
-            border: thin solid var(--line-color);
             border-collapse: collapse;
-            border-top:none;
         }
 
         #tblContent4  td {

@@ -1978,10 +1978,12 @@ DB::raw("
     // Batas 1-halaman: kotak tabel item TINGGINYA TETAP (fixed height, lihat .sub_div_tengah
     // di blade), dan kotak Total (.sub_div) menutupi dari bawah, bukan mendorong ke bawah.
     // Jadi kalau baris kelebihan dari yang muat di kotak, hasilnya ketutup kotak Total
-    // (bukan otomatis pindah halaman). 22 adalah angka yang sudah lama jalan tanpa masalah
-    // ini — angka $totalBaris di blade (30/27) cuma buat isi baris kosong, BUKAN hasil ukur
-    // beneran, jadi jangan dipakai sebagai batas ini.
-    $onePageCapacity = 22;
+    // (bukan otomatis pindah halaman). Terbukti 29 baris di 1 halaman sampai ketutup 4 baris,
+    // jadi batasnya TIDAK BOLEH lebih dari itu. 24 dipilih karena itu jugalah batas atas yang
+    // dipakai kode ukuran font baris (font-size 10pt) di blade — kemungkinan besar angka itu
+    // hasil uji coba print beneran, bukan angka sembarang. WAJIB dites print langsung kalau
+    // ada invoice 23-24 baris: pastikan baris terakhir tidak ketutup kotak Total.
+    $onePageCapacity = 24;
 
     // Kapasitas halaman 1 saat dipecah 2 halaman: box yang sama tapi TIDAK ketutup kotak
     // Total (kotak Total pindah ke halaman 2), jadi lebih longgar dan aman dipakai lebih
