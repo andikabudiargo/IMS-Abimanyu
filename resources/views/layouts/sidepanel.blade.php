@@ -200,6 +200,7 @@
               @can('salesOrder-index')
                     <li class="{{ \Request::is(['deliveryReportAcc'])  ? 'active' : '' }}">
                       <a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}">
+                        <i data-feather="circle"></i>
                         <span class="menu-item text-truncate" data-i18n="Dn Report Acc">DN Report</span>
                       </a>
                     </li>
