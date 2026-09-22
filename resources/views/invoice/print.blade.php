@@ -409,6 +409,10 @@
                     // presisi sampai ke pixel, tidak cuma bisa geser per-kelipatan 21px.
                     // $targetDariBawah: geser angka ini kalau masih kurang/kelebihan pas
                     // (kurangi = baris makin turun, tambah = baris makin naik).
+                    // Sisa pixel digabung ke baris PENUH terakhir (bukan baris tipis terpisah)
+                    // supaya baris terakhir selalu minimal 21px — baris yang terlalu tipis
+                    // border-nya kadang tidak ikut ke-render saat print beneran (beda dari
+                    // sekadar preview di tab browser).
                     $targetDariBawah = 90;
                     $tinggiBarisAsli = (count($details) >= 15 && count($details) <= 30) ? 18.5 : 21;
                     if ($duaHalaman == 'yes') {
@@ -419,14 +423,20 @@
                         $jumlahBarisPenuh = 30 - count($details);
                         $tinggiBarisSisa = 0;
                     }
+                    $tinggiBarisTerakhir = 21 + $tinggiBarisSisa;
+                    if ($jumlahBarisPenuh > 0) {
+                        $jumlahBarisPenuh -= 1;
+                    } else {
+                        $tinggiBarisTerakhir = $tinggiBarisSisa;
+                    }
                   ?>
 @for ($i = 1; $i <= $jumlahBarisPenuh; $i++)
     <tr style="height:21px">
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
     </tr>
 @endfor
-@if($tinggiBarisSisa > 0)
-    <tr style="height: {{ $tinggiBarisSisa }}px">
+@if($tinggiBarisTerakhir > 0)
+    <tr style="height: {{ $tinggiBarisTerakhir }}px">
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
     </tr>
 @endif
