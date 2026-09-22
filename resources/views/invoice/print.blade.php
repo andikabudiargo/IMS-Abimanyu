@@ -399,28 +399,37 @@
                         </tr>
                     @endforeach
                   <?php
-                    // Baris kosong pengisi DIHITUNG (bukan angka tetap 37), supaya tabel
-                    // selalu mengisi sampai dekat "Page 1 of 2" (yang posisinya tetap dekat
-                    // ujung kertas), berapa pun jumlah baris aslinya. Tinggi baris asli beda
-                    // tergantung jumlahnya (18.5px kalau 15-30 baris, selain itu 21px),
-                    // sedangkan baris kosong pengisi selalu 21px.
+                    // Baris kosong pengisi DIHITUNG (bukan angka tetap), supaya tabel selalu
+                    // mengisi sampai dekat "Page 1 of 2" (yang posisinya tetap dekat ujung
+                    // kertas), berapa pun jumlah baris aslinya. Tinggi baris asli beda
+                    // tergantung jumlahnya (18.5px kalau 15-30 baris, selain itu 21px).
                     // Box tabel: top tetap di 884px dari bawah kertas (355 + tinggi box 529px).
-                    // Target akhir tabel: ~120px dari bawah kertas (di atas kotak
-                    // "Page 1 of 2" yang bottom-nya tetap 55px, dikasih jarak aman ~65px
-                    // supaya garis bawah tabel tidak ketutup kotak putih label itu).
+                    // Baris kosong dipecah jadi: sebanyak mungkin baris penuh 21px, SISANYA
+                    // (kurang dari 21px) dibuat 1 baris terakhir dengan tinggi pas — supaya
+                    // presisi sampai ke pixel, tidak cuma bisa geser per-kelipatan 21px.
+                    // $targetDariBawah: geser angka ini kalau masih kurang/kelebihan pas
+                    // (kurangi = baris makin turun, tambah = baris makin naik).
+                    $targetDariBawah = 97;
                     $tinggiBarisAsli = (count($details) >= 15 && count($details) <= 30) ? 18.5 : 21;
                     if ($duaHalaman == 'yes') {
-                        $sisaTinggi = (884 - 97) - 32 - (count($details) * $tinggiBarisAsli);
-                        $totalBaris = count($details) + max(0, (int) ceil($sisaTinggi / 21));
+                        $sisaTinggi = max(0, (884 - $targetDariBawah) - 32 - (count($details) * $tinggiBarisAsli));
+                        $jumlahBarisPenuh = (int) floor($sisaTinggi / 21);
+                        $tinggiBarisSisa = round($sisaTinggi - ($jumlahBarisPenuh * 21), 1);
                     } else {
-                        $totalBaris = 30;
+                        $jumlahBarisPenuh = 30 - count($details);
+                        $tinggiBarisSisa = 0;
                     }
                   ?>
-@for ($i = count($details) + 1; $i <= $totalBaris; $i++)
+@for ($i = 1; $i <= $jumlahBarisPenuh; $i++)
     <tr style="height:21px">
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
     </tr>
 @endfor
+@if($tinggiBarisSisa > 0)
+    <tr style="height: {{ $tinggiBarisSisa }}px">
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    </tr>
+@endif
                 </tbody>
             </table>
         </div>
