@@ -61,7 +61,13 @@ class ArAgingReportController extends Controller
     private $title = "AR Aging Report";
 
     // Invoice sebelum tanggal ini tidak pernah dibaca oleh report (batas bawah data).
-    private $floorDate = '01-01-2024';
+    private $floorDate = '01-01-2023';
+
+    // Invoice sebelum tanggal ini (yaitu tahun 2023) hanya ikut dihitung
+    // kalau sudah punya pasangan voucher BM/BK di kas_det -- soalnya banyak
+    // invoice 2023 yang voucher pembayarannya belum sempat diinput, jadi
+    // kalau dipaksa ikut akan muncul sebagai piutang palsu.
+    private $pairRequiredBefore = '01-01-2024';
 
     public function index(Request $request)
     {
@@ -174,6 +180,10 @@ class ArAgingReportController extends Controller
         WHERE invoice_hdr.status NOT IN ('1','5')
           AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') >= to_date(:floorDate,'DD-MM-YYYY')
           AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
+          AND (
+                to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') >= to_date(:pairRequiredBefore,'DD-MM-YYYY')
+                OR EXISTS (SELECT 1 FROM kas_det WHERE kas_det.reference = invoice_hdr.invoice_number)
+              )
           $whereExtra
     ";
 }
@@ -204,6 +214,7 @@ class ArAgingReportController extends Controller
         list($whereExtra, $bindings) = $this->buildFilters($request);
         $bindings['cutoff']    = $cutoffDate;
         $bindings['floorDate'] = $this->floorDate;
+        $bindings['pairRequiredBefore'] = $this->pairRequiredBefore;
 
         $subquery = $this->buildPiutangSubquery($whereExtra);
 
@@ -295,6 +306,7 @@ class ArAgingReportController extends Controller
     list($whereExtra, $bindings) = $this->buildFilters($request);
     $bindings['cutoff']    = $cutoffDate;
     $bindings['floorDate'] = $this->floorDate;
+    $bindings['pairRequiredBefore'] = $this->pairRequiredBefore;
 
     if ($customerCode) {
         $whereExtra .= " AND invoice_hdr.customer_id = :detailCustomer ";
@@ -352,6 +364,7 @@ class ArAgingReportController extends Controller
     list($whereExtra, $bindings) = $this->buildFilters($request);
     $bindings['cutoff']    = $cutoffDate;
     $bindings['floorDate'] = $this->floorDate;
+    $bindings['pairRequiredBefore'] = $this->pairRequiredBefore;
 
     $subquery = $this->buildPiutangSubquery($whereExtra);
 
