@@ -405,11 +405,12 @@
                     // tergantung jumlahnya (18.5px kalau 15-30 baris, selain itu 21px),
                     // sedangkan baris kosong pengisi selalu 21px.
                     // Box tabel: top tetap di 884px dari bawah kertas (355 + tinggi box 529px).
-                    // Target akhir tabel: ~90px dari bawah kertas (pas di atas kotak
-                    // "Page 1 of 2" yang bottom-nya tetap 55px).
+                    // Target akhir tabel: ~120px dari bawah kertas (di atas kotak
+                    // "Page 1 of 2" yang bottom-nya tetap 55px, dikasih jarak aman ~65px
+                    // supaya garis bawah tabel tidak ketutup kotak putih label itu).
                     $tinggiBarisAsli = (count($details) >= 15 && count($details) <= 30) ? 18.5 : 21;
                     if ($duaHalaman == 'yes') {
-                        $sisaTinggi = (884 - 90) - 32 - (count($details) * $tinggiBarisAsli);
+                        $sisaTinggi = (884 - 120) - 32 - (count($details) * $tinggiBarisAsli);
                         $totalBaris = count($details) + max(0, (int) ceil($sisaTinggi / 21));
                     } else {
                         $totalBaris = 30;
