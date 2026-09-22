@@ -268,7 +268,7 @@
         .sub_div2 {
             position: absolute;
             /* margin-right: 8mm; */
-            bottom: 355px;
+            bottom: 55px;
             background-color:white;
             width  : 803px;
             margin-left : 1.4mm;
@@ -398,7 +398,17 @@
                             <td  style="border-right: 1px solid black;padding:0 3px 0 3px" align="right">{{ number_format(($val->qty*$val->price_service),2) }}</td>
                         </tr>
                     @endforeach
-                  <?php $totalBaris = $duaHalaman=='yes' ? 37 : 30; ?>
+                  <?php
+                    $totalBaris = $duaHalaman=='yes' ? 37 : 30;
+                    // Posisi "Page 1 of 2" dihitung dari tinggi tabel beneran (bukan angka
+                    // tetap), karena tinggi baris berubah-ubah (18.5px kalau jumlah baris asli
+                    // 15-30, selain itu 21px) sedangkan baris kosong pengisi selalu 21px.
+                    // Box tabel: top tetap di 884px dari bawah kertas (355 + tinggi box 529px).
+                    $tinggiBarisAsli = (count($details) >= 15 && count($details) <= 30) ? 18.5 : 21;
+                    $jumlahBarisKosong = $totalBaris - count($details);
+                    $tinggiTabel = 32 + (count($details) * $tinggiBarisAsli) + ($jumlahBarisKosong * 21);
+                    $posisiPage1Dari2 = 355 + 529 - $tinggiTabel;
+                  ?>
 @for ($i = count($details) + 1; $i <= $totalBaris; $i++)
     <tr style="height:21px">
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
@@ -481,7 +491,7 @@
                 <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
             </div>
         @else
-            <div class="sub_div2">
+            <div class="sub_div2" style="bottom: {{ $posisiPage1Dari2 }}px">
                 <table id="tblContent2" style="table-layout:fixed;">
                     <tbody>
                         <tr>
