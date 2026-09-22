@@ -268,7 +268,7 @@
         .sub_div2 {
             position: absolute;
             /* margin-right: 8mm; */
-            bottom: 55px;
+            bottom: 355px;
             background-color:white;
             width  : 803px;
             margin-left : 1.4mm;
