@@ -30,16 +30,19 @@ use DB;
             Anda ("Invoice berstatus DRAFT tidak dihitung").
       2. Balance = grand_total - total pembayaran yang sudah di-approve.
          Pembayaran customer dicocokkan lewat kas_det.reference =
-         invoice_number, DAN kas_hdr.voucher_type = 'BM' (Bukti Masuk
-         -- dikonfirmasi dari query voucher_type di kas_hdr; voucher_type
-         'INV' adalah posting invoice itu sendiri, BUKAN pembayaran,
-         jadi tidak boleh ikut dihitung sebagai pengurang balance).
-         Status di-filter = '3' (APPROVED) -- dikonfirmasi dari query
-         distribusi status BM: mayoritas (2202) berstatus 3, sisanya
-         1 (DRAFT, 1 baris) dan 5 (CANCELED, 17 baris) sengaja di-exclude.
+         invoice_number DAN kas_hdr.status = '3' (APPROVED) -- TANPA
+         filter voucher_type. Awalnya di-filter ke voucher_type = 'BM'
+         saja, tapi ternyata pelunasan invoice bisa tercatat lewat
+         voucher_type lain juga (mis. BK), jadi filter itu bikin invoice
+         yang sudah lunas kebaca tetap outstanding. Pola tanpa filter
+         voucher_type ini mengikuti kolom 'balance' yang sudah established
+         & terbukti benar di InvoiceController::list() / show().
          Di sini saya pakai SUM (bukan scalar subquery tanpa agregasi)
          supaya kalau satu invoice dibayar bertahap (partial payment /
-         lebih dari satu voucher BM), semua kredit tetap terhitung.
+         lebih dari satu voucher), semua kredit tetap terhitung.
+         Tambahan: pembayaran hanya dihitung kalau voucher_date-nya
+         <= tanggal cut-off (lihat ArAgingReportController::buildPiutangSubquery),
+         supaya cut-off tetap jadi snapshot yang benar terhadap waktu.
       3. Jatuh tempo = invoice_hdr.jatuh_tempo (kalau diisi manual),
          fallback ke sending_date + top_batas_1 (termin, dalam hari)
          dari third_party -- sama seperti kolom jatuh_tempo_2 di
@@ -128,12 +131,19 @@ class ArAgingReportController extends Controller
     /**
      * Subquery per-invoice: balance & umur piutang terhadap :cutoff.
      * - Invoice sebelum $floorDate tidak pernah ikut (batas bawah data).
-     * - Pembayaran (kas_hdr voucher_type BM, status APPROVED) hanya dihitung
-     *   sebagai pengurang balance kalau voucher_date-nya <= :cutoff. Ini
-     *   penting supaya laporan tetap jadi snapshot yang benar: kalau cut-off
-     *   di-set mundur (mis. 22 Sept) tapi pelunasannya baru terjadi setelah
-     *   itu (mis. dibayar 25 Sept), invoice tsb TIDAK boleh kebaca lunas
-     *   pada cut-off 22 Sept.
+     * - Pembayaran dicocokkan lewat kas_det.reference = invoice_number DAN
+     *   kas_hdr.status = '3' (APPROVED) -- TANPA filter voucher_type, sama
+     *   seperti pola balance yang sudah established & terbukti benar di
+     *   InvoiceController::list() (lihat kolom 'balance' di situ). Pelunasan
+     *   invoice ternyata bisa tercatat lewat berbagai jenis voucher kas/bank
+     *   (mis. BM maupun BK), jadi tidak boleh dibatasi ke satu voucher_type
+     *   saja -- itu sebabnya invoice yang sudah lunas via voucher BK dulu
+     *   sempat kebaca tetap outstanding di aging.
+     * - Pembayaran hanya dihitung sebagai pengurang balance kalau
+     *   voucher_date-nya <= :cutoff. Ini penting supaya laporan tetap jadi
+     *   snapshot yang benar: kalau cut-off di-set mundur (mis. 22 Sept)
+     *   tapi pelunasannya baru terjadi setelah itu (mis. dibayar 25 Sept),
+     *   invoice tsb TIDAK boleh kebaca lunas pada cut-off 22 Sept.
      */
     private function buildPiutangSubquery($whereExtra)
     {
@@ -172,7 +182,6 @@ class ArAgingReportController extends Controller
                 FROM kas_det
                 LEFT JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
                 WHERE kas_det.reference = invoice_hdr.invoice_number
-                  AND kas_hdr.voucher_type = 'BM'
                   AND kas_hdr.status = '3'
                   AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
             ) bayar ON true
