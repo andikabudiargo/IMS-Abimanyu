@@ -399,15 +399,21 @@
                         </tr>
                     @endforeach
                   <?php
-                    $totalBaris = $duaHalaman=='yes' ? 37 : 30;
-                    // Posisi "Page 1 of 2" dihitung dari tinggi tabel beneran (bukan angka
-                    // tetap), karena tinggi baris berubah-ubah (18.5px kalau jumlah baris asli
-                    // 15-30, selain itu 21px) sedangkan baris kosong pengisi selalu 21px.
+                    // Baris kosong pengisi DIHITUNG (bukan angka tetap 37), supaya tabel
+                    // selalu mengisi sampai dekat "Page 1 of 2" (yang posisinya tetap dekat
+                    // ujung kertas), berapa pun jumlah baris aslinya. Tinggi baris asli beda
+                    // tergantung jumlahnya (18.5px kalau 15-30 baris, selain itu 21px),
+                    // sedangkan baris kosong pengisi selalu 21px.
                     // Box tabel: top tetap di 884px dari bawah kertas (355 + tinggi box 529px).
+                    // Target akhir tabel: ~90px dari bawah kertas (pas di atas kotak
+                    // "Page 1 of 2" yang bottom-nya tetap 55px).
                     $tinggiBarisAsli = (count($details) >= 15 && count($details) <= 30) ? 18.5 : 21;
-                    $jumlahBarisKosong = $totalBaris - count($details);
-                    $tinggiTabel = 32 + (count($details) * $tinggiBarisAsli) + ($jumlahBarisKosong * 21);
-                    $posisiPage1Dari2 = 355 + 529 - $tinggiTabel;
+                    if ($duaHalaman == 'yes') {
+                        $sisaTinggi = (884 - 90) - 32 - (count($details) * $tinggiBarisAsli);
+                        $totalBaris = count($details) + max(0, (int) ceil($sisaTinggi / 21));
+                    } else {
+                        $totalBaris = 30;
+                    }
                   ?>
 @for ($i = count($details) + 1; $i <= $totalBaris; $i++)
     <tr style="height:21px">
@@ -491,7 +497,7 @@
                 <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
             </div>
         @else
-            <div class="sub_div2" style="bottom: {{ $posisiPage1Dari2 }}px">
+            <div class="sub_div2">
                 <table id="tblContent2" style="table-layout:fixed;">
                     <tbody>
                         <tr>
