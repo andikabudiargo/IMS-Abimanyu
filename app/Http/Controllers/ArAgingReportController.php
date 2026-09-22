@@ -173,6 +173,7 @@ class ArAgingReportController extends Controller
         ) bayar ON true
         WHERE invoice_hdr.status NOT IN ('1','5')
           AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') >= to_date(:floorDate,'DD-MM-YYYY')
+          AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
           $whereExtra
     ";
 }
