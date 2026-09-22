@@ -193,7 +193,7 @@
             <li class="{{ \Request::is(['salesOrderReport']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('salesOrder.report') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Report SO</span>
+                <span class="menu-item text-truncate" data-i18n="Input">SO Report</span>
               </a>
             </li>
             @endcan
