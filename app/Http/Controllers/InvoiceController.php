@@ -1975,16 +1975,20 @@ DB::raw("
     }
     $data['printType'] = $printType;
 
-    // Kapasitas baris per halaman HARUS sama dengan $totalBaris di blade yang dipakai:
-    // - print.blade.php   (kolom ganda, printType 12): 1 halaman = 30 baris, halaman 1/2 = 37 baris
-    // - printV2.blade.php (kolom tunggal, printType 1/2): 1 halaman = 27 baris, halaman 1/2 = 36 baris
-    if ($printType === '12') {
-        $onePageCapacity = 30;
-        $page1Capacity   = 37;
-    } else {
-        $onePageCapacity = 27;
-        $page1Capacity   = 36;
-    }
+    // Batas 1-halaman: kotak tabel item TINGGINYA TETAP (fixed height, lihat .sub_div_tengah
+    // di blade), dan kotak Total (.sub_div) menutupi dari bawah, bukan mendorong ke bawah.
+    // Jadi kalau baris kelebihan dari yang muat di kotak, hasilnya ketutup kotak Total
+    // (bukan otomatis pindah halaman). 22 adalah angka yang sudah lama jalan tanpa masalah
+    // ini — angka $totalBaris di blade (30/27) cuma buat isi baris kosong, BUKAN hasil ukur
+    // beneran, jadi jangan dipakai sebagai batas ini.
+    $onePageCapacity = 22;
+
+    // Kapasitas halaman 1 saat dipecah 2 halaman: box yang sama tapi TIDAK ketutup kotak
+    // Total (kotak Total pindah ke halaman 2), jadi lebih longgar dan aman dipakai lebih
+    // banyak baris. Harus sama dengan $totalBaris di blade yang dipakai:
+    // - print.blade.php   (kolom ganda, printType 12): 37
+    // - printV2.blade.php (kolom tunggal, printType 1/2): 36
+    $page1Capacity = ($printType === '12') ? 37 : 36;
 
    // ── Hitung jumlah baris ──────────────────────────────────────────────────
 $jumlahData = DB::table('invoice_det')
