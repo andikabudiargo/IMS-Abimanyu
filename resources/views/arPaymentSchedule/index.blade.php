@@ -71,6 +71,16 @@
 #scheduleTable thead th.col-weekend .dow  { color:#c8813f; }
 #scheduleTable tfoot td.col-weekend { background:#f7e6d8 !important; }
 
+/* Kolom hari ini */
+#scheduleTable th.col-today, #scheduleTable td.col-today {
+    border-left: 2px solid #2563eb;
+    border-right: 2px solid #2563eb;
+    box-shadow: inset 0 0 0 9999px rgba(37,99,235,.06);
+}
+#scheduleTable thead th.col-today { background:#e5edfd !important; }
+#scheduleTable thead th.col-today .dnum { color:#1d4ed8; }
+#scheduleTable thead th.col-today .dow  { color:#3b6fd6; }
+
 /* Baris lunas penuh */
 #scheduleTable tbody tr.row-paid td { color:#15803d !important; font-weight:600; }
 /* Sel lunas: background hijau lembut + centang */
@@ -352,6 +362,11 @@ $(document).ready(function () {
         let g = new Date(year, month - 1, day).getDay();
         return g === 0 || g === 6;
     }
+    // hari ini (kalau periode yang dipilih = bulan berjalan)
+    function isToday(year, month, day) {
+        let t = new Date();
+        return t.getFullYear() == year && (t.getMonth() + 1) == month && t.getDate() == day;
+    }
 
     function buildFrame(daysInMonth, year, month) {
         let h = '<tr>'
@@ -359,9 +374,9 @@ $(document).ready(function () {
             + '<th class="col-customer text-left">Customer</th>'
             + '<th class="schedule-clickable" data-bucket="opening">Opening</th>';
         for (let d = 1; d <= daysInMonth; d++) {
-            let wk = isWeekend(year, month, d);
             let g = new Date(year, month - 1, d).getDay();
-            h += '<th class="schedule-clickable' + (wk ? ' col-weekend' : '') + '" data-bucket="d' + d + '" data-customer="">'
+            let cls = (isWeekend(year, month, d) ? ' col-weekend' : '') + (isToday(year, month, d) ? ' col-today' : '');
+            h += '<th class="schedule-clickable' + cls + '" data-bucket="d' + d + '" data-customer="">'
                 + '<span class="dnum">' + d + '</span><span class="dow">' + DOW[g] + '</span></th>';
         }
         h += '<th class="schedule-clickable" data-bucket="total" data-customer="">Total</th>'
@@ -376,7 +391,7 @@ $(document).ready(function () {
             + '<td class="col-customer text-left">GRAND TOTAL</td>'
             + '<td class="schedule-clickable" id="tOpening" data-bucket="opening" data-customer="">0</td>';
         for (let d = 1; d <= daysInMonth; d++) {
-            f += '<td class="schedule-clickable' + (isWeekend(year, month, d) ? ' col-weekend' : '') + '" id="tD' + d + '" data-bucket="d' + d + '" data-customer="">0</td>';
+            f += '<td class="schedule-clickable' + (isWeekend(year, month, d) ? ' col-weekend' : '') + (isToday(year, month, d) ? ' col-today' : '') + '" id="tD' + d + '" data-bucket="d' + d + '" data-customer="">0</td>';
         }
         f += '<td class="schedule-clickable" id="tTotal" data-bucket="total" data-customer="">0</td>'
             + '<td id="tPaid">0</td>'
@@ -410,7 +425,7 @@ $(document).ready(function () {
                     + '<td class="col-customer text-left">' + r.customer_name + '</td>'
                     + cell('opening', r.opening, '', r.opening_remain);
                 for (let d = 1; d <= res.daysInMonth; d++) {
-                    row += cell('d' + d, r.days['d' + d], isWeekend(res.year, res.month, d) ? 'col-weekend' : '', r.days_remain['d' + d]);
+                    row += cell('d' + d, r.days['d' + d], (isWeekend(res.year, res.month, d) ? 'col-weekend' : '') + (isToday(res.year, res.month, d) ? ' col-today' : ''), r.days_remain['d' + d]);
                 }
                 row += cell('total', r.total, 'font-weight-bold')
                     + '<td>' + fmt(r.paid) + '</td>'
@@ -529,6 +544,7 @@ $(document).ready(function () {
             + '.text-right{text-align:right;}.text-left{text-align:left;}.text-center{text-align:center;}'
             + '.font-weight-bold{font-weight:bold;}.text-danger{color:#ea5455;}'
             + '.col-weekend{background:#fdeee2 !important;-webkit-print-color-adjust:exact;}'
+            + '.col-today{border-left:2px solid #2563eb !important;border-right:2px solid #2563eb !important;-webkit-print-color-adjust:exact;}'
             + '.cell-paid{background:#e9f7ef !important;color:#15803d;font-weight:bold;-webkit-print-color-adjust:exact;}'
             + '.cell-paid::after{content:"\\2713";margin-left:4px;}'
             + '.dow{display:block;font-size:7px;color:#888;}'
