@@ -3309,7 +3309,9 @@ public function unPosting($recNumber)
             ['data'=>'uom_rec','name'=>'uom_rec','title'=>'UOM'],
             ['data'=>'qty','name'=>'qty','title'=>'Rec Qty'],
             ['data'=>'price','name'=>'price','title'=>'Price'],
-            ['data'=>'grand_total','name'=>'grand_total','title'=>'Grand Total'],
+            ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN'],
+            ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN'],
+            ['data'=>'total_plus_ppn','name'=>'total_plus_ppn','title'=>'Total Plus PPN'],
             ['data'=>'invoice_number','name'=>'invoice_number','title'=>'Invoice Number'],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'paid_date','name'=>'paid_date','title'=>'Paid Date'],
@@ -3364,10 +3366,20 @@ public function unPosting($recNumber)
             }
         }
 
-        // AP invoice number tied to this receiving (posted/paid), used to match payment vouchers
-        $apInv = "(select inv_number from ap_invoice where ap_number =
-                    (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)
-                    and status in ('4','6') limit 1)";
+        // AP dokumen yang terkait receiving ini (posted/paid).
+        // $apInv (nomor invoice supplier) tetap dipakai untuk mencocokkan voucher
+        // pembayaran (kas_det.reference = inv_number). Kolom Invoice Number di
+        // report menampilkan ap_number (nomor AP), bukan inv_number.
+        $apNumberSub = "(select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)";
+        $apInv  = "(select inv_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
+        $apId   = "(select id from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
+        $apNo   = "(select ap_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
+        $apGt   = "(select grand_total from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
+        // Formula PPN disamakan dgn Detail Receiving (listDetail): total_dpp,
+        // total_ppn, total_plus_ppn.
+        $dpp     = "(receiving_det.price*receiving_det.qty)";
+        $ppnCalc = "$dpp*((coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*coalesce(purchase_order_hdr.ppn::numeric,0))/100)";
+        $lineGt  = "($dpp + $ppnCalc)"; // total_plus_ppn — dipakai fallback balance
 
         $data = DB::table('receiving_det')
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
@@ -3385,6 +3397,7 @@ public function unPosting($recNumber)
         ,'article.article_alternative_code'
         ,'receiving_hdr.rec_date'
         ,'receiving_hdr.po_number'
+        ,DB::raw("(select id from purchase_order_hdr where po_number = receiving_hdr.po_number order by id limit 1) as po_id")
         ,'receiving_det.rec_number'
         ,'receiving_hdr.id as rec_id'
         ,'receiving_det.uom_rec'
@@ -3392,20 +3405,18 @@ public function unPosting($recNumber)
         ,'receiving_det.price'
         ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("case when coalesce(purchase_order_hdr.ppn::numeric,0) > 0 then 'PPN' else '' end as ppn")
-        ,DB::raw("(receiving_det.price*receiving_det.qty)*(1 + (coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*coalesce(purchase_order_hdr.ppn::numeric,0))/100) as grand_total")
-        ,DB::raw("$apInv as invoice_number")
-        ,DB::raw("(select id from ap_invoice where inv_number = $apInv limit 1) as invoice_id")
-        ,DB::raw("(select ap_invoice.grand_total from ap_invoice where inv_number = $apInv limit 1) as ap_grand_total")
+        ,DB::raw("$dpp as total_dpp")
+        ,DB::raw("$ppnCalc as total_ppn")
+        ,DB::raw("$lineGt as total_plus_ppn")
+        ,DB::raw("$apNo as invoice_number")
+        ,DB::raw("$apId as invoice_id")
         ,DB::raw("(select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_number")
         ,DB::raw("(select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_id")
         ,DB::raw("(select kas_hdr.voucher_type from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_type")
         ,DB::raw("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'DD/MM/YYYY') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as paid_date")
-        ,DB::raw("case when (select kas_det.credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status = '3' and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) is null
-            then (receiving_det.price*receiving_det.qty)*(1 + (coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*coalesce(purchase_order_hdr.ppn::numeric,0))/100)
-            else coalesce((select ap_invoice.grand_total from ap_invoice where inv_number = $apInv limit 1),
-                (receiving_det.price*receiving_det.qty)*(1 + (coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*coalesce(purchase_order_hdr.ppn::numeric,0))/100))
-                - (select kas_det.credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status = '3' and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1)
-            end as balance")
+        // Balance = grand total AP (kalau ada dokumen AP), fallback ke grand total baris.
+        // TIDAK dikurangi pembayaran kas (BM/BK/KK) — sesuai permintaan.
+        ,DB::raw("coalesce($apGt, $lineGt) as balance")
         )
         ->orderBy('receiving_det.id')
         ->get();
@@ -3415,15 +3426,21 @@ public function unPosting($recNumber)
             if (!$row->rec_id || !$row->rec_number) return $row->rec_number;
             return '<a href="'.route('receiving.show', ['id' => Crypt::encryptString($row->rec_id)]).'" target="_blank">'.$row->rec_number.'</a>';
         })
+        ->addColumn('po_number', function ($row) {
+            if (!$row->po_id || !$row->po_number) return $row->po_number;
+            return '<a href="'.route('purchaseOrder.show', ['id' => Crypt::encryptString($row->po_id)]).'" target="_blank">'.$row->po_number.'</a>';
+        })
         ->addColumn('invoice_number', function ($row) {
-            return $row->invoice_number;
+            // Invoice Number = nomor AP (ap_number) dari Account Payable, link ke dokumen AP.
+            if (!$row->invoice_id || !$row->invoice_number) return $row->invoice_number;
+            return '<a href="'.route('accountPayable.show', ['id' => Crypt::encryptString($row->invoice_id)]).'" target="_blank">'.$row->invoice_number.'</a>';
         })
         ->addColumn('voucher_number', function ($row) {
             if (!$row->voucher_id || !$row->voucher_number) return $row->voucher_number;
             $routeName = $row->voucher_type == 'KK' ? 'kasKeluar.show' : 'bankKeluar.show';
             return '<a href="'.route($routeName, ['id' => Crypt::encryptString($row->voucher_id)]).'" target="_blank">'.$row->voucher_number.'</a>';
         })
-        ->rawColumns(['rec_number', 'voucher_number'])
+        ->rawColumns(['rec_number', 'po_number', 'invoice_number', 'voucher_number'])
         ->make(true);
     }
 
