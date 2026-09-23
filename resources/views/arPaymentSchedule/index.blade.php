@@ -19,8 +19,9 @@
     box-sizing: border-box;
     border-right: 1px solid #e3e6ec;
     border-bottom: 1px solid #e3e6ec;
-    padding: 4px 6px;
+    padding: 5px 8px;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 #scheduleTable { border-top: 1px solid #e3e6ec; border-left: 1px solid #e3e6ec; }
 
@@ -29,7 +30,7 @@
     top: 0;
     z-index: 3;
     background: #eef2f7 !important;
-    height: 34px;
+    height: 42px;
     vertical-align: middle;
 }
 
@@ -58,8 +59,24 @@
 #scheduleTable .col-customer { left: 40px; }
 #scheduleTable thead th.col-customer { left: 40px; }
 
-#scheduleTable tbody tr.row-paid td { color: #28a745 !important; font-weight: 600; }
-#scheduleTable tbody td.cell-paid { color: #28a745 !important; font-weight: 600; }
+/* Header tanggal: angka besar + label hari kecil di bawahnya */
+#scheduleTable thead th .dnum { display:block; font-size:13px; font-weight:700; color:#1f2733; line-height:1.1; }
+#scheduleTable thead th .dow  { display:block; font-size:10px; font-weight:600; color:#8a94a6; }
+
+/* Akhir pekan (Sabtu & Minggu) diarsir */
+#scheduleTable td.col-weekend  { background:#fff6f0 !important; }
+#scheduleTable tbody tr:nth-child(even) td.col-weekend { background:#fdeee2 !important; }
+#scheduleTable thead th.col-weekend { background:#fde9df !important; }
+#scheduleTable thead th.col-weekend .dnum { color:#b45309; }
+#scheduleTable thead th.col-weekend .dow  { color:#c8813f; }
+#scheduleTable tfoot td.col-weekend { background:#f7e6d8 !important; }
+
+/* Baris lunas penuh */
+#scheduleTable tbody tr.row-paid td { color:#15803d !important; font-weight:600; }
+/* Sel lunas: background hijau lembut + centang */
+#scheduleTable tbody td.cell-paid { color:#15803d !important; font-weight:600; background:#e9f7ef !important; }
+#scheduleTable tbody td.cell-paid::after { content:"\2713"; font-size:10px; margin-left:5px; opacity:.8; }
+
 .schedule-clickable { cursor: pointer; text-decoration: underline dotted; }
 .schedule-clickable:hover { background: #d7e8ff !important; }
 </style>
@@ -195,8 +212,13 @@
 
 <section id="schedule-result">
     <div class="card">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
             <h4 class="card-title mb-0">Hasil AR Payment Schedule</h4>
+            <div style="font-size:11.5px; color:#6b7688;">
+                <span class="mr-2"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#e9f7ef;border:1px solid #15803d;vertical-align:-1px;"></span> Lunas</span>
+                <span class="mr-2"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fff;border:1px solid #dc2626;vertical-align:-1px;"></span> Lewat jatuh tempo</span>
+                <span><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fde9df;border:1px solid #b45309;vertical-align:-1px;"></span> Akhir pekan</span>
+            </div>
         </div>
         <div class="card-body">
 
@@ -324,13 +346,23 @@ $(document).ready(function () {
 
     $('#btnGenerate').on('click', generateReport);
 
-    function buildFrame(daysInMonth) {
+    const DOW = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+    // Sabtu (6) / Minggu (0) -> ditandai sebagai akhir pekan
+    function isWeekend(year, month, day) {
+        let g = new Date(year, month - 1, day).getDay();
+        return g === 0 || g === 6;
+    }
+
+    function buildFrame(daysInMonth, year, month) {
         let h = '<tr>'
             + '<th class="col-no">No</th>'
             + '<th class="col-customer text-left">Customer</th>'
             + '<th class="schedule-clickable" data-bucket="opening">Opening</th>';
         for (let d = 1; d <= daysInMonth; d++) {
-            h += '<th class="schedule-clickable" data-bucket="d' + d + '" data-customer="">' + d + '</th>';
+            let wk = isWeekend(year, month, d);
+            let g = new Date(year, month - 1, d).getDay();
+            h += '<th class="schedule-clickable' + (wk ? ' col-weekend' : '') + '" data-bucket="d' + d + '" data-customer="">'
+                + '<span class="dnum">' + d + '</span><span class="dow">' + DOW[g] + '</span></th>';
         }
         h += '<th class="schedule-clickable" data-bucket="total" data-customer="">Total</th>'
             + '<th>Paid</th>'
@@ -344,7 +376,7 @@ $(document).ready(function () {
             + '<td class="col-customer text-left">GRAND TOTAL</td>'
             + '<td class="schedule-clickable" id="tOpening" data-bucket="opening" data-customer="">0</td>';
         for (let d = 1; d <= daysInMonth; d++) {
-            f += '<td class="schedule-clickable" id="tD' + d + '" data-bucket="d' + d + '" data-customer="">0</td>';
+            f += '<td class="schedule-clickable' + (isWeekend(year, month, d) ? ' col-weekend' : '') + '" id="tD' + d + '" data-bucket="d' + d + '" data-customer="">0</td>';
         }
         f += '<td class="schedule-clickable" id="tTotal" data-bucket="total" data-customer="">0</td>'
             + '<td id="tPaid">0</td>'
@@ -355,7 +387,7 @@ $(document).ready(function () {
     }
 
     function renderReport(res) {
-        buildFrame(res.daysInMonth);
+        buildFrame(res.daysInMonth, res.year, res.month);
 
         $('#hPeriod').text($('#repMonth option:selected').text() + ' ' + res.year);
         $('#scheduleHeaderInfo').removeClass('d-none');
@@ -378,7 +410,7 @@ $(document).ready(function () {
                     + '<td class="col-customer text-left">' + r.customer_name + '</td>'
                     + cell('opening', r.opening, '', r.opening_remain);
                 for (let d = 1; d <= res.daysInMonth; d++) {
-                    row += cell('d' + d, r.days['d' + d], '', r.days_remain['d' + d]);
+                    row += cell('d' + d, r.days['d' + d], isWeekend(res.year, res.month, d) ? 'col-weekend' : '', r.days_remain['d' + d]);
                 }
                 row += cell('total', r.total, 'font-weight-bold')
                     + '<td>' + fmt(r.paid) + '</td>'
@@ -496,6 +528,10 @@ $(document).ready(function () {
             + 'tbody tr:nth-child(even) td{background:#f4f7fb;-webkit-print-color-adjust:exact;}'
             + '.text-right{text-align:right;}.text-left{text-align:left;}.text-center{text-align:center;}'
             + '.font-weight-bold{font-weight:bold;}.text-danger{color:#ea5455;}'
+            + '.col-weekend{background:#fdeee2 !important;-webkit-print-color-adjust:exact;}'
+            + '.cell-paid{background:#e9f7ef !important;color:#15803d;font-weight:bold;-webkit-print-color-adjust:exact;}'
+            + '.cell-paid::after{content:"\\2713";margin-left:4px;}'
+            + '.dow{display:block;font-size:7px;color:#888;}'
             + '</style></head><body>');
         w.document.write('<h3 style="margin-bottom:4px;">AR Payment Schedule</h3>');
         w.document.write('<div>' + info + '</div>');
