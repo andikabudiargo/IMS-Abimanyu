@@ -1869,13 +1869,61 @@
                             </div>
                             @endif
 
+                             @if( $outstandingPoCount>0 )
+                            <div class="form-row">
+                                <div class="col-lg-12 col-12">
+                                    <div class="card border-warning">
+                                        <div class="card-header" style="color:#d98a0b">
+                                            <strong>Outstanding PO <div class="badge badge-pill badge-warning">{{ $outstandingPoCount }}</div></strong>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive" style="max-height:300px">
+                                                <table class="table" width="100%">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>No</th>
+                                                            <th>PR Number</th>
+                                                            <th>PO Number</th>
+                                                            <th>Dept</th>
+                                                            <th>Supplier</th>
+                                                            <th>PO Date</th>
+                                                            <th>Status</th>
+                                                            <th>Current Approval</th>
+                                                            <th>Need Approval</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($outstandingPo as $key=>$val)
+                                                        <tr>
+                                                            <td>{{ $key+1 }}</td>
+                                                            <td>
+                                                                <a href="{{ route('purchaseRequest.edit', ['id'=>Crypt::encryptString($val->pr_id)]) }}">{{ $val->pr_number }}</a>
+                                                            </td>
+                                                            <td>{{ $val->po_number }}</td>
+                                                            <td>{{ $val->dept_name }}</td>
+                                                            <td>{{ $val->supplier_name }}</td>
+                                                            <td>{{ $val->po_date }}</td>
+                                                            <td><div class="badge badge-info">{{ $val->status_label }}</div></td>
+                                                            <td class="text-right">{{ $val->current_level }} of {{ $val->max_level }}</td>
+                                                            <td>{{ $val->need_approval_names ?? '-' }}</td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
                             @if( $outstandingTransferInCount>0 )
                             <div class="form-row">
                                 <div class="col-lg-12 col-12">
                                     <div class="card border-warning">
                                         <div class="card-header" style="color:#d98a0b">
                                             <strong>
-                                                Transfer Stock Perlu Diposting
+                                                Outstanding Transfer Stock
                                                 <div class="badge badge-pill badge-warning">{{ $outstandingTransferInCount }}</div>
                                             </strong>
                                             <div class="ml-auto">
@@ -1921,54 +1969,6 @@
                                                                     Detail
                                                                 </a>
                                                             </td>
-                                                        </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
-
-                            @if( $outstandingPoCount>0 )
-                            <div class="form-row">
-                                <div class="col-lg-12 col-12">
-                                    <div class="card border-warning">
-                                        <div class="card-header" style="color:#d98a0b">
-                                            <strong>Outstanding PO <div class="badge badge-pill badge-warning">{{ $outstandingPoCount }}</div></strong>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="table-responsive" style="max-height:300px">
-                                                <table class="table" width="100%">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>No</th>
-                                                            <th>PR Number</th>
-                                                            <th>PO Number</th>
-                                                            <th>Dept</th>
-                                                            <th>Supplier</th>
-                                                            <th>PO Date</th>
-                                                            <th>Status</th>
-                                                            <th>Current Approval</th>
-                                                            <th>Need Approval</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach($outstandingPo as $key=>$val)
-                                                        <tr>
-                                                            <td>{{ $key+1 }}</td>
-                                                            <td>
-                                                                <a href="{{ route('purchaseRequest.edit', ['id'=>Crypt::encryptString($val->pr_id)]) }}">{{ $val->pr_number }}</a>
-                                                            </td>
-                                                            <td>{{ $val->po_number }}</td>
-                                                            <td>{{ $val->dept_name }}</td>
-                                                            <td>{{ $val->supplier_name }}</td>
-                                                            <td>{{ $val->po_date }}</td>
-                                                            <td><div class="badge badge-info">{{ $val->status_label }}</div></td>
-                                                            <td class="text-right">{{ $val->current_level }} of {{ $val->max_level }}</td>
-                                                            <td>{{ $val->need_approval_names ?? '-' }}</td>
                                                         </tr>
                                                         @endforeach
                                                     </tbody>
