@@ -212,7 +212,10 @@ class ArPaymentScheduleController extends Controller
 
         $dayCases = [];
         for ($d = 1; $d <= $daysInMonth; $d++) {
-            $dayCases[] = "SUM(CASE WHEN piutang.jatuh_tempo_actual = (to_date(:periodStart,'DD-MM-YYYY') + " . ($d - 1) . ")::date THEN piutang.balance_open ELSE 0 END) as d$d";
+            $cond = "piutang.jatuh_tempo_actual = (to_date(:periodStart,'DD-MM-YYYY') + " . ($d - 1) . ")::date";
+            $dayCases[] = "SUM(CASE WHEN $cond THEN piutang.balance_open ELSE 0 END) as d$d";
+            // sisa (balance_asof) per tanggal -> dipakai frontend buat tandai sel hijau kalau lunas
+            $dayCases[] = "SUM(CASE WHEN $cond THEN piutang.balance_asof ELSE 0 END) as r$d";
         }
 
         $sql = "
@@ -220,6 +223,7 @@ class ArPaymentScheduleController extends Controller
                 piutang.customer_id as customer_code,
                 third_party.nama    as customer_name,
                 SUM(CASE WHEN piutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') THEN piutang.balance_open ELSE 0 END) as opening,
+                SUM(CASE WHEN piutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') THEN piutang.balance_asof ELSE 0 END) as opening_r,
                 " . implode(",\n                ", $dayCases) . ",
                 SUM(piutang.balance_open) as total,
                 SUM(piutang.paid_in_period) as paid,
@@ -243,9 +247,11 @@ class ArPaymentScheduleController extends Controller
         foreach ($rows as $r) {
             $row  = (array) $r;
             $days = [];
+            $daysRemain = [];
             for ($d = 1; $d <= $daysInMonth; $d++) {
                 $key = 'd' . $d;
                 $days[$key] = (float) $row[$key];
+                $daysRemain[$key] = (float) $row['r' . $d];
                 $grand[$key] += $days[$key];
             }
             $balance = (float) $row['total'] - (float) $row['paid'];
@@ -254,7 +260,9 @@ class ArPaymentScheduleController extends Controller
                 'customer_code' => $r->customer_code,
                 'customer_name' => $r->customer_name,
                 'opening'       => (float) $r->opening,
+                'opening_remain'=> (float) $row['opening_r'],
                 'days'          => $days,
+                'days_remain'   => $daysRemain,
                 'total'         => (float) $row['total'],
                 'paid'          => (float) $row['paid'],
                 'balance'       => $balance,

@@ -59,6 +59,7 @@
 #scheduleTable thead th.col-customer { left: 40px; }
 
 #scheduleTable tbody tr.row-paid td { color: #28a745 !important; font-weight: 600; }
+#scheduleTable tbody td.cell-paid { color: #28a745 !important; font-weight: 600; }
 .schedule-clickable { cursor: pointer; text-decoration: underline dotted; }
 .schedule-clickable:hover { background: #d7e8ff !important; }
 </style>
@@ -365,16 +366,19 @@ $(document).ready(function () {
         } else {
             res.rows.forEach(function (r, idx) {
                 let cc = r.customer_code;
-                function cell(bucket, val, cls) {
-                    return '<td class="' + (cls || '') + ' schedule-clickable" data-customer="' + cc + '" data-bucket="' + bucket + '">' + fmt(val) + '</td>';
+                // sel hijau kalau ada nilai tapi sisa (remaining) sudah lunas
+                function cell(bucket, val, cls, remain) {
+                    let paid = parseFloat(val) > 0 && remain !== undefined && Math.abs(parseFloat(remain)) < 1;
+                    let c = (cls || '') + (paid ? ' cell-paid' : '');
+                    return '<td class="' + c + ' schedule-clickable" data-customer="' + cc + '" data-bucket="' + bucket + '">' + fmt(val) + '</td>';
                 }
                 let paidOff = parseFloat(r.total) > 0 && Math.abs(parseFloat(r.balance)) < 1;
                 let row = '<tr' + (paidOff ? ' class="row-paid"' : '') + '>'
                     + '<td class="col-no">' + (idx + 1) + '</td>'
                     + '<td class="col-customer text-left">' + r.customer_name + '</td>'
-                    + cell('opening', r.opening);
+                    + cell('opening', r.opening, '', r.opening_remain);
                 for (let d = 1; d <= res.daysInMonth; d++) {
-                    row += cell('d' + d, r.days['d' + d]);
+                    row += cell('d' + d, r.days['d' + d], '', r.days_remain['d' + d]);
                 }
                 row += cell('total', r.total, 'font-weight-bold')
                     + '<td>' + fmt(r.paid) + '</td>'
