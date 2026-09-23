@@ -70,6 +70,17 @@ class ConversionReportController extends Controller
     }
 
     /**
+ * FG dengan group_of_material MAKLON/MKL: diproses pihak luar (maklon),
+ * jadi bom_det tidak dihitung sebagai biaya (dianggap tidak ada), dan
+ * hasil konversinya selalu masuk Non Painting terlepas dari UOM.
+ */
+private function isMaklon(string $articleCode): bool
+{
+    $group = DB::table('article')->where('article_code', $articleCode)->value('group_of_material');
+    return in_array(strtoupper(trim($group ?? '')), ['MAKLON', 'MKL']);
+}
+
+    /**
      * Avg cost artikel dari receiving_det (weighted by qty), anchor ke bulan
      * $periode/$tahun kalau diisi (mis. Conversion Report periode Juli 2026
      * -> anchor Juli 2026, BUKAN bulan berjalan saat dokumen dibuat/diedit);
@@ -109,47 +120,42 @@ class ConversionReportController extends Controller
      * itu sendiri.
      */
     private function purchasePrice(string $articleCode, ?int $periode = null, ?int $tahun = null): float
-    {
-        // FIX: dulu filter 'status != 5' (cuma exclude DELETED) -- ikut
-        // meloloskan BOM REVISED (status 7, versi lama yang sudah digantikan)
-        // dan orderByDesc('id') malah bisa ambil revisi basi itu (id-nya lebih
-        // besar) alih-alih BOM yang benar-benar APPROVED. Semua modul lain
-        // yang konsumsi BOM (Production/PurchaseRequest/TargetSo/WorkingOrder
-        // Sheet/WosMixing/TransferStock) konsisten pakai status = '3'
-        // (APPROVED) -- disamakan di sini.
-        $bom = DB::table('bom_hdr')
-            ->where('article_code', $articleCode)
-            ->where('status', '3')
-            ->orderByDesc('id')
-            ->first();
+{
+    $bom = DB::table('bom_hdr')
+        ->where('article_code', $articleCode)
+        ->where('status', '3')
+        ->orderByDesc('id')
+        ->first();
 
-        if (!$bom) {
-            return $this->avgReceivingPrice($articleCode, $periode, $tahun);
-        }
+    if (!$bom) {
+        return $this->avgReceivingPrice($articleCode, $periode, $tahun);
+    }
 
-        $rm = DB::table('bom_rm as b')
-            ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
-            ->where('b.bom_code', $bom->bom_code)
-            ->select('b.article_code', 'a.article_type', 'b.qty')
-            ->get();
+    $rm = DB::table('bom_rm as b')
+        ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
+        ->where('b.bom_code', $bom->bom_code)
+        ->select('b.article_code', 'a.article_type', 'b.qty')
+        ->get();
 
-        $det = DB::table('bom_det as b')
+    $det = $this->isMaklon($articleCode)
+        ? collect()
+        : DB::table('bom_det as b')
             ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
             ->where('b.bom_code', $bom->bom_code)
             ->whereIn('a.article_type', ['RMP', 'RMNP'])
             ->select('b.article_code', 'a.article_type', 'b.qty')
             ->get();
 
-        $total = 0;
-        foreach ($rm->concat($det) as $m) {
-            $type = strtoupper($m->article_type ?? '');
-            $qty  = (float) $m->qty;
-            $price = $type === 'RMNP' ? 0 : $this->avgReceivingPrice($m->article_code, $periode, $tahun);
-            $total += $price * $qty;
-        }
-
-        return $total;
+    $total = 0;
+    foreach ($rm->concat($det) as $m) {
+        $type = strtoupper($m->article_type ?? '');
+        $qty  = (float) $m->qty;
+        $price = $type === 'RMNP' ? 0 : $this->avgReceivingPrice($m->article_code, $periode, $tahun);
+        $total += $price * $qty;
     }
+
+    return $total;
+}
 
     /**
      * Cek apakah periode+tahun sudah dipakai dokumen lain yang masih aktif.
@@ -250,36 +256,30 @@ class ConversionReportController extends Controller
                 if ($l->customer_name) $customerNames[$l->customer_name] = true;
             }
 
-            $avgSelling  = $totalQty > 0 ? $totalValue / $totalQty : 0;
-            $avgPurchase = $this->purchasePrice($articleCode, $periode, $tahun);
-            // Konversi per baris = kontribusi total artikel ini, BUKAN per unit:
-            // margin per unit (avgSelling - avgPurchase) dikali qty total dulu,
-            // baru dibagi conversion_value. Dengan begini SUM konversi seluruh
-            // baris = (Σ(avgSelling*qty) - Σ(avgPurchase*qty)) / conversion_value,
-            // yaitu angka konversi total yang diharapkan.
-            $conversion  = $convVal > 0 ? (($avgSelling - $avgPurchase) * $totalQty) / $convVal : 0;
+           $avgSelling  = $totalQty > 0 ? $totalValue / $totalQty : 0;
+$avgPurchase = $this->purchasePrice($articleCode, $periode, $tahun);
+$conversion  = $convVal > 0 ? (($avgSelling - $avgPurchase) * $totalQty) / $convVal : 0;
 
-            // Painting = artikel dengan UOM PCS/SET; selain itu Non Painting.
-            $uom        = $lines[0]->uom ?? '';
-            $isPainting = in_array(strtoupper(trim($uom)), ['PCS', 'SET']);
+// Painting = artikel UOM PCS/SET; MAKLON selalu Non Painting apapun UOM-nya.
+$uom        = $lines[0]->uom ?? '';
+$isPainting = !$this->isMaklon($articleCode) && in_array(strtoupper(trim($uom)), ['PCS', 'SET']);
 
-            $rows[] = [
-                'article_code'             => $articleCode,
-                'article_alternative_code' => $lines[0]->article_alternative_code ?? $articleCode,
-                'article_desc'             => $lines[0]->article_desc ?? '',
-                'uom'                      => $uom,
-                'customer_names'           => implode(', ', array_keys($customerNames)),
-                'total_qty'                => round($totalQty, 4),
-                'avg_selling_price'        => round($avgSelling, 4),
-                'avg_purchase_price'       => round($avgPurchase, 4),
-                // total value (sudah dikali qty) -- dipakai di export biar lengkap
-                'total_selling_value'      => round($totalValue, 4),
-                'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
-                'conversion'               => round($conversion, 4),
-                'is_painting'              => $isPainting,
-                'conversion_painting'      => round($isPainting ? $conversion : 0, 4),
-                'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
-            ];
+$rows[] = [
+    'article_code'             => $articleCode,
+    'article_alternative_code' => $lines[0]->article_alternative_code ?? $articleCode,
+    'article_desc'             => $lines[0]->article_desc ?? '',
+    'uom'                      => $uom,
+    'customer_names'           => implode(', ', array_keys($customerNames)),
+    'total_qty'                => round($totalQty, 4),
+    'avg_selling_price'        => round($avgSelling, 4),
+    'avg_purchase_price'       => round($avgPurchase, 4),
+    'total_selling_value'      => round($totalValue, 4),
+    'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
+    'conversion'               => round($conversion, 4),
+    'is_painting'              => $isPainting,
+    'conversion_painting'      => round($isPainting ? $conversion : 0, 4),
+    'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
+];
         }
 
         return ['rows' => $rows, 'conversionValue' => $convVal, 'dnByArticle' => $grouped];
@@ -390,27 +390,27 @@ class ConversionReportController extends Controller
                 if ($l->customer_name) $customerNames[$l->customer_name] = true;
             }
 
-            $avgSelling = $totalQty > 0 ? $totalValue / $totalQty : 0;
-            $uom        = $group[0]->uom ?? '';
-            $isPainting = in_array(strtoupper(trim($uom)), ['PCS', 'SET']);
+           $avgSelling = $totalQty > 0 ? $totalValue / $totalQty : 0;
+$uom        = $group[0]->uom ?? '';
+$isPainting = !$this->isMaklon($articleCode) && in_array(strtoupper(trim($uom)), ['PCS', 'SET']);
 
-            $rows[] = [
-                'det_id'                   => $group[0]->det_id,
-                'article_code'             => $articleCode,
-                'article_alternative_code' => $group[0]->article_alternative_code ?? $articleCode,
-                'article_desc'             => $group[0]->article_desc ?? '',
-                'uom'                      => $uom,
-                'customer_names'           => implode(', ', array_keys($customerNames)),
-                'total_qty'                => round($totalQty, 4),
-                'avg_selling_price'        => round($avgSelling, 4),
-                'avg_purchase_price'       => round($avgPurchase, 4),
-                'total_selling_value'      => round($totalValue, 4),
-                'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
-                'conversion'               => round($conversion, 4),
-                'is_painting'              => $isPainting,
-                'conversion_painting'      => round($isPainting ? $conversion : 0, 4),
-                'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
-            ];
+$rows[] = [
+    'det_id'                   => $group[0]->det_id,
+    'article_code'             => $articleCode,
+    'article_alternative_code' => $group[0]->article_alternative_code ?? $articleCode,
+    'article_desc'             => $group[0]->article_desc ?? '',
+    'uom'                      => $uom,
+    'customer_names'           => implode(', ', array_keys($customerNames)),
+    'total_qty'                => round($totalQty, 4),
+    'avg_selling_price'        => round($avgSelling, 4),
+    'avg_purchase_price'       => round($avgPurchase, 4),
+    'total_selling_value'      => round($totalValue, 4),
+    'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
+    'conversion'               => round($conversion, 4),
+    'is_painting'              => $isPainting,
+    'conversion_painting'      => round($isPainting ? $conversion : 0, 4),
+    'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
+];
         }
 
         return ['rows' => $rows, 'conversionValue' => $convVal];

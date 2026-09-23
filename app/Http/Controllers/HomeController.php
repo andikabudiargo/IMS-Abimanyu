@@ -71,6 +71,17 @@ class HomeController extends Controller
     }
 
     /**
+ * Salinan ConversionReportController::isMaklon() -- FG group_of_material
+ * MAKLON/MKL: bom_det tidak dihitung, dan dianggap Non Painting (jadi
+ * dikeluarkan dari widget Sales Achievement yang khusus painting).
+ */
+private function isMaklonHome(string $articleCode): bool
+{
+    $group = DB::table('article')->where('article_code', $articleCode)->value('group_of_material');
+    return in_array(strtoupper(trim($group ?? '')), ['MAKLON', 'MKL']);
+}
+
+    /**
      * Avg harga terima artikel dari receiving_det (weighted by qty), anchor
      * ke bulan $periode/$tahun widget Sales Achievement kalau diisi (BUKAN
      * selalu bulan berjalan -- widget ini bisa difilter ke periode lain lewat
@@ -139,44 +150,42 @@ class HomeController extends Controller
      * material (RM+DET), tidak ada BOM -> avg receiving artikel itu sendiri.
      */
     private function purchasePriceHome(string $articleCode, ?int $periode = null, ?int $tahun = null): float
-    {
-        // FIX: sama seperti ConversionReportController::purchasePrice() --
-        // 'status != 5' ikut meloloskan BOM REVISED (7, versi lama yang sudah
-        // digantikan), disamakan ke status = '3' (APPROVED) seperti semua
-        // modul lain yang konsumsi BOM.
-        $bom = DB::table('bom_hdr')
-            ->where('article_code', $articleCode)
-            ->where('status', '3')
-            ->orderByDesc('id')
-            ->first();
+{
+    $bom = DB::table('bom_hdr')
+        ->where('article_code', $articleCode)
+        ->where('status', '3')
+        ->orderByDesc('id')
+        ->first();
 
-        if (!$bom) {
-            return $this->avgReceivingPriceHome($articleCode, $periode, $tahun);
-        }
+    if (!$bom) {
+        return $this->avgReceivingPriceHome($articleCode, $periode, $tahun);
+    }
 
-        $rm = DB::table('bom_rm as b')
-            ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
-            ->where('b.bom_code', $bom->bom_code)
-            ->select('b.article_code', 'a.article_type', 'b.qty')
-            ->get();
+    $rm = DB::table('bom_rm as b')
+        ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
+        ->where('b.bom_code', $bom->bom_code)
+        ->select('b.article_code', 'a.article_type', 'b.qty')
+        ->get();
 
-        $det = DB::table('bom_det as b')
+    $det = $this->isMaklonHome($articleCode)
+        ? collect()
+        : DB::table('bom_det as b')
             ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
             ->where('b.bom_code', $bom->bom_code)
             ->whereIn('a.article_type', ['RMP', 'RMNP'])
             ->select('b.article_code', 'a.article_type', 'b.qty')
             ->get();
 
-        $total = 0;
-        foreach ($rm->concat($det) as $m) {
-            $type  = strtoupper($m->article_type ?? '');
-            $qty   = (float) $m->qty;
-            $price = $type === 'RMNP' ? 0 : $this->avgReceivingPriceHome($m->article_code, $periode, $tahun);
-            $total += $price * $qty;
-        }
-
-        return $total;
+    $total = 0;
+    foreach ($rm->concat($det) as $m) {
+        $type  = strtoupper($m->article_type ?? '');
+        $qty   = (float) $m->qty;
+        $price = $type === 'RMNP' ? 0 : $this->avgReceivingPriceHome($m->article_code, $periode, $tahun);
+        $total += $price * $qty;
     }
+
+    return $total;
+}
 
     /** 12 nama bulan Indonesia, dipakai buat cari nama bulan target di dalam tso_name. */
     private const BULAN_NAMES = [
@@ -298,13 +307,14 @@ foreach ($candidateHeaders as $h) {
             ? route('targetSo.show', ['id' => Crypt::encryptString($firstMatchedId)])
             : route('targetSo.index');
 
-        $targetLines = empty($matchedTsoCodes) ? collect() : DB::table('target_order_det as t')
-            ->join('article as a', 'a.article_code', '=', 't.article_code')
-            ->whereIn('t.tso_code', $matchedTsoCodes)
-            ->whereRaw("UPPER(TRIM(a.uom)) IN ('PCS','SET')")
-            ->select('t.article_code', DB::raw('SUM(t.qty_target) as qty_target'))
-            ->groupBy('t.article_code')
-            ->get();
+       $targetLines = empty($matchedTsoCodes) ? collect() : DB::table('target_order_det as t')
+    ->join('article as a', 'a.article_code', '=', 't.article_code')
+    ->whereIn('t.tso_code', $matchedTsoCodes)
+    ->whereRaw("UPPER(TRIM(a.uom)) IN ('PCS','SET')")
+    ->whereRaw("COALESCE(UPPER(TRIM(a.group_of_material)), '') NOT IN ('MAKLON','MKL')")
+    ->select('t.article_code', DB::raw('SUM(t.qty_target) as qty_target'))
+    ->groupBy('t.article_code')
+    ->get();
 
         $targetQty = 0;
         $targetConversion = 0;
@@ -322,18 +332,19 @@ foreach ($candidateHeaders as $h) {
         $achievedConversion = 0;
         if ($achievedEnd >= $monthStart) {
             $dnRows = DB::select("
-                SELECT
-                    dd.article_code,
-                    dd.qty,
-                    (COALESCE(sod.price,0)+COALESCE(sod.price_service,0)) AS price_unit
-                FROM delivery_det dd
-                JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
-                LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
-                JOIN article a ON a.article_code = dd.article_code
-                WHERE to_date(dh.delivery_date,'DD-MM-YYYY') BETWEEN ?::date AND ?::date
-                  AND dh.status NOT IN ('5','7')
-                  AND UPPER(TRIM(a.uom)) IN ('PCS','SET')
-            ", [$monthStart, $achievedEnd]);
+    SELECT
+        dd.article_code,
+        dd.qty,
+        (COALESCE(sod.price,0)+COALESCE(sod.price_service,0)) AS price_unit
+    FROM delivery_det dd
+    JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
+    LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
+    JOIN article a ON a.article_code = dd.article_code
+    WHERE to_date(dh.delivery_date,'DD-MM-YYYY') BETWEEN ?::date AND ?::date
+      AND dh.status NOT IN ('5','7')
+      AND UPPER(TRIM(a.uom)) IN ('PCS','SET')
+      AND COALESCE(UPPER(TRIM(a.group_of_material)), '') NOT IN ('MAKLON','MKL')
+", [$monthStart, $achievedEnd]);
 
             $grouped = [];
             foreach ($dnRows as $r) {
