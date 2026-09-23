@@ -467,7 +467,7 @@ foreach ($candidateHeaders as $h) {
                 'third_party.nama as supplier_name',
                 DB::raw("coalesce((select max(approval_order) from approval_history where module_code = 'PO' and module_number = poh.po_number), 0) as current_level"),
                 DB::raw("(select approval_number from approval_master where module_code = 'PO') as max_level"),
-                DB::raw("(select string_agg(distinct u.name, ', ') from approval_level al left join users u on u.username = al.username where al.module_code = 'PO' and al.approval_order = coalesce((select max(approval_order) from approval_history where module_code = 'PO' and module_number = poh.po_number), 0) + 1) as need_approval_names")
+                DB::raw("(select string_agg(distinct u.name, ', ') from approval_level al join users u on u.username = al.username and u.status = '1' where al.module_code = 'PO' and al.approval_order = coalesce((select max(approval_order) from approval_history where module_code = 'PO' and module_number = poh.po_number), 0) + 1) as need_approval_names")
             )
             ->distinct()
             ->orderBy('poh.created_at', 'desc')
@@ -901,6 +901,11 @@ $data['outstandingTransferInCount'] = $data['outstandingTransferIn']->count();
         $data['bomCount'] = count($data['listBom']);
         $data['greeting'] = self::greeting();
         $data['salesAchievement'] = $this->buildSalesAchievement();
+        $data['deptNames'] = DB::table('depts')->whereIn('code', $userDepts)->pluck('name')->implode(', ');
+        $data['actionCenterCount'] = count($data['listPoHome']) + count($data['listBomHome']) + count($data['listPrHome'])
+            + count($data['listSoHome']) + count($data['listTsoHome']) + count($data['listDnHome']) + count($data['listRecHome'])
+            + count($data['listBkHome']) + count($data['listBmHome']) + count($data['listKmHome']) + count($data['listKkHome'])
+            + count($data['listGjHome']) + count($data['listApHome']) + count($data['listArHome']) + count($data['listDebNoteHome']);
 
         return view('home',$data);
     }

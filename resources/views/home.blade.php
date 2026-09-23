@@ -3,29 +3,11 @@
 @section('content')
 @include('layouts.breadcrumb')
 <section id="home">
-    @if ( Session::get('firstLogin') == "success")
-    <div class="form-row">
-        <div class="col-md-12">
-            <div class="card card-transparent">
-                <div class="card-header"></div>
-                <div class="card-body">
-                    <h2 class="font-weight-bold">{{ $greeting }}, {{ strtoupper(Auth::user()->name) }}!</h2>
-                    <h4>{{ $tanggal }}</h4>
-                    @if (session('status'))
-                        <div class="alert alert-success" role="alert">
-                            {{ session('status') }}
-                        </div>
-                    @endif
-                    
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
 
+    {{-- ===== Row 1: Delivery Performance (8) + Greeting (4) ===== --}}
     <div class="form-row">
-        <div class="col-lg-12 col-12">
-            <div class="card" style="border-left:4px solid #7367F0;">
+        <div class="col-lg-8 col-12">
+            <div class="card h-100 mb-0" style="border-left:4px solid #7367F0;">
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                     <div class="d-flex align-items-center">
                         <div class="avatar bg-light-primary p-50 mr-1" style="border-radius:8px;">
@@ -34,9 +16,6 @@
                         <div>
                             <h4 class="card-title mb-0 d-flex align-items-center">
                                 Delivery Performance
-                                {{--<span class="badge badge-pill {{ $salesAchievement['qtyPct'] >= 100 ? 'badge-success' : ($salesAchievement['qtyPct'] >= 75 ? 'badge-info' : 'badge-warning') }} font-medium-1 ml-1" id="saQtyBadge" style="{{ $salesAchievement['hasTarget'] ? '' : 'display:none;' }}">
-                                    <i data-feather="package" class="font-small-3"></i> <span id="saQtyBadgeText">{{ number_format($salesAchievement['qtyPct'], 1) }}% Qty</span>
-                                </span>--}}
                             </h4>
                             <small class="text-muted">Delivery vs Target SO &mdash; <span id="saMonthLabel">{{ $salesAchievement['monthLabel'] }}</span></small>
                         </div>
@@ -117,263 +96,54 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    @if( $listCriticalStock && $criticalStockCount>0 )
-    <div class="form-row">
-        <div class="col-lg-12 col-12">
-            <div class="card border-danger">
-                <div class="card-header" style="color:#EA5455">
-                    <strong>
-                        Critical Stock Alert
-                        <div class="badge badge-pill badge-danger">{{ $criticalStockCount }}</div>
-                    </strong>
-                    <div class="ml-auto">
-                        <a class="btn btn-outline-primary btn-sm" href="{{ route('warehouse.articlev2') }}">
-                            <i data-feather='package'></i>
-                            Lihat Stock
-                        </a>
-                        <a class="btn btn-danger btn-sm" href="{{ route('purchaseRequest.create') }}">
-                            <i data-feather='plus-circle'></i>
-                            Buat PR
-                        </a>
-                    </div>
-                </div>
-                <div class="card-body">
-                   <div class="table-responsive" style="max-height:300px; overflow-y:auto;">
-    <table class="table table-hover mb-0" width="100%">
-        <thead style="position: sticky; top: 0; z-index: 10; background: #fff;">
-            <tr>
-                <th>No</th>
-                <th>Location</th>
-                <th>Code</th>
-                <th>Article</th>
-                <th>Supplier/Customer</th>
-                <th>Stock</th>
-                <th>Safety Stock</th>
-                <th>UOM</th>
-                <th>Min Package</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-   <tbody>
-    @php
-        $lastLocation = '';
-    @endphp
-
-    @foreach($listCriticalStock as $key => $val)
-
-        @if($lastLocation != $val->location_name)
-            <tr style="background:#e8f4fd;">
-                <td colspan="10" class="font-weight-bold text-primary">
-                    {{ $val->location_name }}
-                </td>
-            </tr>
-
-            @php
-                $lastLocation = $val->location_name;
-            @endphp
-        @endif
-
-        <tr>
-            <td>{{ $key+1 }}</td>
-
-            <td class="font-weight-bold">{{ $val->location_name }}</td>
-
-            <td class="font-weight-bold">
-                {{ $val->code }}
-            </td>
-
-            <td class="font-weight-bold">
-                {{ $val->name }}
-            </td>
-
-            <td>{{ $val->supplier_name }}</td>
-
-            <td class="text-right text-danger font-weight-bolder">
-                {{ number_format($val->stock_qty) }}
-            </td>
-
-            <td class="text-right">
-                {{ number_format($val->safety_stock) }}
-            </td>
-
-            <td>{{ $val->uom }}</td>
-
-            <td class="text-right">{{ number_format($val->min_package) }}</td>
-
-            <td>
-                <a class="btn btn-outline-info btn-sm"
-                   href="{{ route('warehouse.article') }}?code={{ $val->code }}">
-                    <i data-feather="eye"></i>
-                    Detail
-                </a>
-            </td>
-        </tr>
-
-    @endforeach
-</tbody>
-</table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-@endif
-
-@if( $outstandingTransferInCount>0 )
-    <div class="form-row">
-        <div class="col-lg-12 col-12">
-            <div class="card border-warning">
-                <div class="card-header" style="color:#d98a0b">
-                    <strong>
-                        Transfer Stock Perlu Diposting
-                        <div class="badge badge-pill badge-warning">{{ $outstandingTransferInCount }}</div>
-                    </strong>
-                    <div class="ml-auto">
-                        <a class="btn btn-outline-primary btn-sm" href="{{ route('transferStock.index') }}">
-                            <i data-feather='list'></i>
-                            Lihat Semua Transfer
-                        </a>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table" width="100%" id="tblTransferPerluDiposting">
-                            <thead>
-                                <tr>
-                                    <th>No</th>
-                                    <th>Transfer Number</th>
-                                    <th>Date</th>
-                                    <th>From</th>
-                                    <th>To</th>
-                                    <th>Created By</th>
-                                    <th>Penerima</th>
-                                    <th>Pending</th>
-                                    <th data-orderable="false" data-searchable="false">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($outstandingTransferIn as $key=>$val)
-                                <tr>
-                                    <td>{{ $key+1 }}</td>
-                                    <td class="font-weight-bolder">{{ $val->tr_number }}</td>
-                                    <td>{{ $val->tr_date }}</td>
-                                    <td>{{ $val->location_name }}</td>
-                                    <td class="font-weight-bolder">{{ $val->location_name_to }}</td>
-                                    <td>{{ $val->created_by }}</td>
-                                    <td>{{ $val->penerima }}</td>
-                                    <td data-order="{{ $val->age_seconds ?? 0 }}">
-                                        <span class="badge badge-{{ $val->aging_level }}">{{ $val->aging_label }}</span>
-                                    </td>
-                                    <td>
-                                        <a class="btn btn-outline-info btn-sm"
-                                            href="{{ route('transferStock.show', ['id'=>Crypt::encryptString($val->id)]) }}">
-                                            <i data-feather='list'></i>
-                                            Detail
-                                        </a>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-@endif
-
-    @if(count($listBom)>0)
-        <div class="form-row">
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header" style="color:#2FA07E"><strong>BOM has been approved for the past two weeks <div class="badge badge-pill badge-info"> {{ count($listBom) }}</div></strong></div>
-                    <div class="card-body" >
-                        <div class="tableFixHead" >
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Bom</th>
-                                        <th>Article FG</th>
-                                        <th>Article Desc</th>
-                                        <th>Customer</th>
-                                        <th>Customer Name</th>
-                                        <th>Note</th>
-                                        <th>Created At</th>
-                                        <th>Updated At</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($listBom as $key=>$val)
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div>
-                                                    <div class="font-weight-bolder">{{ $val->bom_code }}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div>
-                                                    <div class="font-weight-bolder">{{ $val->article_code }}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div>
-                                                    <div class="font-weight-bolder">{{ $val->article_name }}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="">{{ $val->customer }}</td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div>
-                                                    <div class="font-weight-bolder">{{ $val->customer_name }}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div>
-                                                    <div class="font-weight-bolder">{{ $val->note }}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div>
-                                                    <div class="font-weight-bolder">{{ $val->created_at }}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div>
-                                                    <div class="font-weight-bolder">{{ $val->updated_at }}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+        <div class="col-lg-4 col-12">
+            <div class="card h-100 mb-0">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                    <img class="rounded-circle" src="{{ Auth::user()->filename ? asset(Auth::user()->filename) : asset('app-assets/images/avatars/default.png') }}"
+                         onerror="this.src='{{ asset('app-assets/images/avatars/default.png') }}';"
+                         alt="avatar" height="72" width="72">
+                    <h4 class="mt-1 mb-0 font-weight-bold">{{ $greeting }}, {{ Auth::user()->name }}</h4>
+                    @if($deptNames)
+                        <p class="text-muted mb-0">{{ $deptNames }}</p>
+                    @endif
+                    <small class="text-muted">{{ $tanggal }}</small>
+                    @if (session('status'))
+                        <div class="alert alert-success w-100 mt-1 mb-0 py-50" role="alert">
+                            {{ session('status') }}
                         </div>
-                    </div>
+                    @endif
                 </div>
             </div>
-            <!--/ Company Table Card -->
         </div>
-    @endif
-    @if( count($listPoHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
+    </div>
+
+    {{-- ===== Row 2: Action Center ===== --}}
+    <div class="form-row">
+        <div class="col-12">
+            <h4 class="font-weight-bold mb-0">Action Center</h4>
+            <p class="text-muted">Quick access to approve or reject submission.</p>
+            <div style="width:48px;height:3px;background:#7367F0;border-radius:2px;" class="mb-1"></div>
+
+            @if($actionCenterCount == 0)
                 <div class="card">
-                    <div class="card-header"><strong>PO needs to be approved <div class="badge badge-pill badge-info"> {{ count($listPoHome) }}</div></strong></div>
+                    <div class="card-body text-center text-muted py-2">
+                        <i data-feather="check-circle" class="mr-25"></i> Tidak ada approval yang perlu diproses saat ini.
+                    </div>
+                </div>
+            @endif
+
+            @if( count($listPoHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acPo" role="button" aria-expanded="false" aria-controls="acPo">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="shopping-cart" class="mr-1"></i>
+                        <strong>PO Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listPoHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acPo">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -428,10 +198,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailPoHome{{ $key }}" 
-                                                name="cmdDetailPoHome{{ $key }}" 
-                                                href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailPoHome{{ $key }}"
+                                                name="cmdDetailPoHome{{ $key }}"
+                                                href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -466,71 +236,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( $outstandingPoCount>0 )
-        <div class="form-row">
-            <div class="col-lg-12 col-12">
-                <div class="card border-warning">
-                    <div class="card-header" style="color:#d98a0b">
-                        <strong>Outstanding PO <div class="badge badge-pill badge-warning">{{ $outstandingPoCount }}</div></strong>
-                        <div class="ml-auto"><a class="btn btn-outline-primary btn-sm" href="{{ route('purchaseOrders.index') }}">Lihat Semua PO</a></div>
+            @endif
+
+            @if( count($listBomHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acBom" role="button" aria-expanded="false" aria-controls="acBom">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="layers" class="mr-1"></i>
+                        <strong>BOM Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listBomHome) }}</div>
                     </div>
-                    <div class="card-body">
-                        <div class="table-responsive" style="max-height:300px">
-                            <table class="table" width="100%">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>PR Number</th>
-                                        <th>PO Number</th>
-                                        <th>Dept</th>
-                                        <th>Supplier</th>
-                                        <th>PO Date</th>
-                                        <th>Status</th>
-                                        <th>Current Approval</th>
-                                        <th>Need Approval</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($outstandingPo as $key=>$val)
-                                    <tr>
-                                        <td>{{ $key+1 }}</td>
-                                        <td>
-                                            <a href="{{ route('purchaseRequest.edit', ['id'=>Crypt::encryptString($val->pr_id)]) }}">{{ $val->pr_number }}</a>
-                                        </td>
-                                        <td>{{ $val->po_number }}</td>
-                                        <td>{{ $val->dept_name }}</td>
-                                        <td>{{ $val->supplier_name }}</td>
-                                        <td>{{ $val->po_date }}</td>
-                                        <td><div class="badge badge-info">{{ $val->status_label }}</div></td>
-                                        <td class="text-right">{{ $val->current_level }} of {{ $val->max_level }}</td>
-                                        <td>{{ $val->need_approval_names ?? '-' }}</td>
-                                        <td>
-                                            <a class="btn btn-outline-info btn-sm"
-                                                href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->po_id)]) }}">
-                                                <i data-feather='list'></i>
-                                                Detail
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
                 </div>
-            </div>
-        </div>
-    @endif
-    @if( count($listBomHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>BOM needs to be approved <div class="badge badge-pill badge-info"> {{ count($listBomHome) }}</div></strong> </div>
+                <div class="collapse" id="acBom">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -595,24 +313,13 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailBomHome{{ $key }}" 
-                                                name="cmdDetailBomHome{{ $key }}" 
-                                                href="{{ route('bom.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailBomHome{{ $key }}"
+                                                name="cmdDetailBomHome{{ $key }}"
+                                                href="{{ route('bom.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
-                                            {{-- <a href='javascript:;'
-                                                onclick="action(this)"
-                                                id = 'btnDeclineBomHome{{ $key }}'
-                                                class="btn btn-outline-danger btn-sm  buttonBomDecline-{{ $val->id }}"
-                                                data-id-class-decline = "buttonBomDecline-{{ $val->id }}"
-                                                data-id-class = "buttonBom-{{ $val->id }}"
-                                                data-doc-number='{{ $val->bom_code }}'
-                                                data-url='{{ route("bom.approve", ["bomNumber"=>$val->bom_code]) }}'>
-                                                <i data-feather='x-circle'></i>
-                                                Decline
-                                            </a> --}}
                                             <a href='javascript:;'
                                                 onclick="action(this)"
                                                 id = 'buttonBomHome{{ $key }}'
@@ -633,15 +340,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listPrHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>PR needs to be approved <div class="badge badge-pill badge-info"> {{ count($listPrHome) }}</div></strong></div>
+            @endif
+
+            @if( count($listPrHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acPr" role="button" aria-expanded="false" aria-controls="acPr">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="file-text" class="mr-1"></i>
+                        <strong>PR Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listPrHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acPr">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -650,7 +361,6 @@
                                         <th>No</th>
                                         <th>PR Number</th>
                                         <th>Order Type</th>
-                                        {{-- <th>Department</th> --}}
                                         <th>Pr Date</th>
                                         <th>Approved</th>
                                         <th>Created_by</th>
@@ -683,13 +393,6 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        {{-- <td>
-                                            <div class="d-flex align-items-center">
-                                                <div>
-                                                    <div class="font-weight-bolder">{{ $val->dept }}</div>
-                                                </div>
-                                            </div>
-                                        </td> --}}
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div>
@@ -724,10 +427,10 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div>
-                                                    <a class="btn btn-outline-info btn-sm" 
-                                                        id="cmdDetailPrHome{{ $key }}" 
-                                                        name="cmdDetailPrHome{{ $key }}" 
-                                                        href="{{ route('purchaseRequest.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                                    <a class="btn btn-outline-info btn-sm"
+                                                        id="cmdDetailPrHome{{ $key }}"
+                                                        name="cmdDetailPrHome{{ $key }}"
+                                                        href="{{ route('purchaseRequest.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                         <i data-feather='list'></i>
                                                         Detail
                                                     </a>
@@ -752,15 +455,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listSoHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>SO needs to be approved <div class="badge badge-pill badge-info"> {{ count($listSoHome) }}</div> </strong></div>
+            @endif
+
+            @if( count($listSoHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acSo" role="button" aria-expanded="false" aria-controls="acSo">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="shopping-bag" class="mr-1"></i>
+                        <strong>SO Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listSoHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acSo">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -821,15 +528,15 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        
+
                                         <td class="text-right">
                                             #Approved: {{ $val->current_level }} of {{ $val->max_level }}
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailSoHome{{ $key }}" 
-                                                name="cmdDetailSoHome{{ $key }}" 
-                                                href="{{ route('salesOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailSoHome{{ $key }}"
+                                                name="cmdDetailSoHome{{ $key }}"
+                                                href="{{ route('salesOrder.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -852,15 +559,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listTsoHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>TSO needs to be approved <div class="badge badge-pill badge-info"> {{ count($listTsoHome) }}</div> </strong> </div>
+            @endif
+
+            @if( count($listTsoHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acTso" role="button" aria-expanded="false" aria-controls="acTso">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="calendar" class="mr-1"></i>
+                        <strong>TSO Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listTsoHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acTso">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -933,10 +644,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailTsoHome{{ $key }}" 
-                                                name="cmdDetailTsoHome{{ $key }}" 
-                                                href="{{ route('targetSo.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailTsoHome{{ $key }}"
+                                                name="cmdDetailTsoHome{{ $key }}"
+                                                href="{{ route('targetSo.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -959,15 +670,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listDnHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>Delivery needs to be approved <div class="badge badge-pill badge-info"> {{ count($listDnHome) }}</div><strong> </div>
+            @endif
+
+            @if( count($listDnHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acDn" role="button" aria-expanded="false" aria-controls="acDn">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="truck" class="mr-1"></i>
+                        <strong>Delivery Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listDnHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acDn">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -1040,10 +755,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailDnHome{{ $key }}" 
-                                                name="cmdDetailDnHome{{ $key }}" 
-                                                href="{{ route('delivery.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailDnHome{{ $key }}"
+                                                name="cmdDetailDnHome{{ $key }}"
+                                                href="{{ route('delivery.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1066,15 +781,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listRecHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>Receiving needs to be approved <div class="badge badge-pill badge-info"> {{ count($listRecHome) }}</div><strong> </div>
+            @endif
+
+            @if( count($listRecHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acRec" role="button" aria-expanded="false" aria-controls="acRec">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="package" class="mr-1"></i>
+                        <strong>Receiving Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listRecHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acRec">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -1147,10 +866,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailRecHome{{ $key }}" 
-                                                name="cmdDetailRecHome{{ $key }}" 
-                                                href="{{ route('receiving.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailRecHome{{ $key }}"
+                                                name="cmdDetailRecHome{{ $key }}"
+                                                href="{{ route('receiving.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1173,15 +892,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listBkHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>Bank Keluar needs to be approved <div class="badge badge-pill badge-info"> {{ count($listBkHome) }}</div></strong></div>
+            @endif
+
+            @if( count($listBkHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acBk" role="button" aria-expanded="false" aria-controls="acBk">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="arrow-up-circle" class="mr-1"></i>
+                        <strong>Bank Keluar Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listBkHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acBk">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -1246,10 +969,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailBkHome{{ $key }}" 
-                                                name="cmdDetailBkHome{{ $key }}" 
-                                                href="{{ route('bankKeluar.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailBkHome{{ $key }}"
+                                                name="cmdDetailBkHome{{ $key }}"
+                                                href="{{ route('bankKeluar.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1272,15 +995,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listBmHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>Bank Masuk needs to be approved <div class="badge badge-pill badge-info"> {{ count($listBmHome) }}</div></strong></div>
+            @endif
+
+            @if( count($listBmHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acBm" role="button" aria-expanded="false" aria-controls="acBm">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="arrow-down-circle" class="mr-1"></i>
+                        <strong>Bank Masuk Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listBmHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acBm">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -1345,10 +1072,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailBmHome{{ $key }}" 
-                                                name="cmdDetailBmHome{{ $key }}" 
-                                                href="{{ route('bankPenerimaan.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailBmHome{{ $key }}"
+                                                name="cmdDetailBmHome{{ $key }}"
+                                                href="{{ route('bankPenerimaan.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1371,15 +1098,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listKmHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>Kas Masuk needs to be approved <div class="badge badge-pill badge-info"> {{ count($listKmHome) }}</div></strong></div>
+            @endif
+
+            @if( count($listKmHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acKm" role="button" aria-expanded="false" aria-controls="acKm">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="dollar-sign" class="mr-1"></i>
+                        <strong>Kas Masuk Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listKmHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acKm">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -1444,10 +1175,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailKmHome{{ $key }}" 
-                                                name="cmdDetailKmHome{{ $key }}" 
-                                                href="{{ route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailKmHome{{ $key }}"
+                                                name="cmdDetailKmHome{{ $key }}"
+                                                href="{{ route('kasPenerimaan.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1470,15 +1201,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listKkHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>Kas Keluar needs to be approved <div class="badge badge-pill badge-info"> {{ count($listKkHome) }}</div></strong></div>
+            @endif
+
+            @if( count($listKkHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acKk" role="button" aria-expanded="false" aria-controls="acKk">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="minus-circle" class="mr-1"></i>
+                        <strong>Kas Keluar Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listKkHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acKk">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -1551,10 +1286,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailKkHome{{ $key }}" 
-                                                name="cmdDetailKkHome{{ $key }}" 
-                                                href="{{ route('kasKeluar.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailKkHome{{ $key }}"
+                                                name="cmdDetailKkHome{{ $key }}"
+                                                href="{{ route('kasKeluar.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1577,15 +1312,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listGjHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>General Journal needs to be approved <div class="badge badge-pill badge-info"> {{ count($listGjHome) }}</div></strong></div>
+            @endif
+
+            @if( count($listGjHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acGj" role="button" aria-expanded="false" aria-controls="acGj">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="book" class="mr-1"></i>
+                        <strong>General Journal Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listGjHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acGj">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -1650,10 +1389,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailGjHome{{ $key }}" 
-                                                name="cmdDetailGjHome{{ $key }}" 
-                                                href="{{ route('jurnalUmum.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailGjHome{{ $key }}"
+                                                name="cmdDetailGjHome{{ $key }}"
+                                                href="{{ route('jurnalUmum.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1676,15 +1415,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listApHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>Invoice Supplier needs to be approved <div class="badge badge-pill badge-info"> {{ count($listApHome) }}</div></strong></div>
+            @endif
+
+            @if( count($listApHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acAp" role="button" aria-expanded="false" aria-controls="acAp">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="file" class="mr-1"></i>
+                        <strong>Invoice Supplier Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listApHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acAp">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -1757,10 +1500,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailApHome{{ $key }}" 
-                                                name="cmdDetailApHome{{ $key }}" 
-                                                href="{{ route('accountPayable.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailApHome{{ $key }}"
+                                                name="cmdDetailApHome{{ $key }}"
+                                                href="{{ route('accountPayable.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1783,15 +1526,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listArHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>Invoice Customer needs to be approved <div class="badge badge-pill badge-info"> {{ count($listArHome) }}</div></strong></div>
+            @endif
+
+            @if( count($listArHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acAr" role="button" aria-expanded="false" aria-controls="acAr">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="file-plus" class="mr-1"></i>
+                        <strong>Invoice Customer Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listArHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acAr">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -1864,10 +1611,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailArHome{{ $key }}" 
-                                                name="cmdDetailArHome{{ $key }}" 
-                                                href="{{ route('invoice.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailArHome{{ $key }}"
+                                                name="cmdDetailArHome{{ $key }}"
+                                                href="{{ route('invoice.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1890,15 +1637,19 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
-        </div>
-    @endif
-    @if( count($listDebNoteHome)>0 )
-        <div class="form-row">
-            <!-- Company Table Card -->
-            <div class="col-lg-12 col-12">
-                <div class="card">
-                    <div class="card-header"><strong>Debit Note needs to be approved <div class="badge badge-pill badge-info"> {{ count($listDebNoteHome) }}</div></strong></div>
+            @endif
+
+            @if( count($listDebNoteHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acDebitNote" role="button" aria-expanded="false" aria-controls="acDebitNote">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="file-minus" class="mr-1"></i>
+                        <strong>Debit Note Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listDebNoteHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acDebitNote">
                     <div class="card-body">
                         <div class="table-responsive" style="max-height:300px">
                             <table class="table" width="100%">
@@ -1971,10 +1722,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a class="btn btn-outline-info btn-sm" 
-                                                id="cmdDetailDebitNoteHome{{ $key }}" 
-                                                name="cmdDetailDebitNoteHome{{ $key }}" 
-                                                href="{{ route('debitNote.edit', ['id'=>Crypt::encryptString($val->id)]) }}"> 
+                                            <a class="btn btn-outline-info btn-sm"
+                                                id="cmdDetailDebitNoteHome{{ $key }}"
+                                                name="cmdDetailDebitNoteHome{{ $key }}"
+                                                href="{{ route('debitNote.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
                                                 <i data-feather='list'></i>
                                                 Detail
                                             </a>
@@ -1997,10 +1748,340 @@
                     </div>
                 </div>
             </div>
-            <!--/ Company Table Card -->
+            @endif
+
         </div>
-    @endif
-   
+    </div>
+
+    {{-- ===== Row 3: Information Center tabs ===== --}}
+    <div class="form-row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header p-0" style="border-bottom:1px solid #e9ecef;">
+                    <ul class="nav nav-tabs card-header-tabs mb-0" role="tablist" style="border-bottom:0;">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-toggle="tab" href="#tabInformationCenter" role="tab" aria-selected="true">
+                                <i data-feather="info" class="font-small-4 mr-25"></i> Information Center
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="tabInformationCenter" role="tabpanel">
+
+                            @if( $listCriticalStock && $criticalStockCount>0 )
+                            <div class="form-row">
+                                <div class="col-lg-12 col-12">
+                                    <div class="card border-danger">
+                                        <div class="card-header" style="color:#EA5455">
+                                            <strong>
+                                                Critical Stock Alert
+                                                <div class="badge badge-pill badge-danger">{{ $criticalStockCount }}</div>
+                                            </strong>
+                                            <div class="ml-auto">
+                                                <a class="btn btn-outline-primary btn-sm" href="{{ route('warehouse.articlev2') }}">
+                                                    <i data-feather='package'></i>
+                                                    Lihat Stock
+                                                </a>
+                                                <a class="btn btn-danger btn-sm" href="{{ route('purchaseRequest.create') }}">
+                                                    <i data-feather='plus-circle'></i>
+                                                    Buat PR
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                           <div class="table-responsive" style="max-height:300px; overflow-y:auto;">
+                <table class="table table-hover mb-0" width="100%">
+                    <thead style="position: sticky; top: 0; z-index: 10; background: #fff;">
+                        <tr>
+                            <th>No</th>
+                            <th>Location</th>
+                            <th>Code</th>
+                            <th>Article</th>
+                            <th>Supplier/Customer</th>
+                            <th>Stock</th>
+                            <th>Safety Stock</th>
+                            <th>UOM</th>
+                            <th>Min Package</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+               <tbody>
+                @php
+                    $lastLocation = '';
+                @endphp
+
+                @foreach($listCriticalStock as $key => $val)
+
+                    @if($lastLocation != $val->location_name)
+                        <tr style="background:#e8f4fd;">
+                            <td colspan="10" class="font-weight-bold text-primary">
+                                {{ $val->location_name }}
+                            </td>
+                        </tr>
+
+                        @php
+                            $lastLocation = $val->location_name;
+                        @endphp
+                    @endif
+
+                    <tr>
+                        <td>{{ $key+1 }}</td>
+
+                        <td class="font-weight-bold">{{ $val->location_name }}</td>
+
+                        <td class="font-weight-bold">
+                            {{ $val->code }}
+                        </td>
+
+                        <td class="font-weight-bold">
+                            {{ $val->name }}
+                        </td>
+
+                        <td>{{ $val->supplier_name }}</td>
+
+                        <td class="text-right text-danger font-weight-bolder">
+                            {{ number_format($val->stock_qty) }}
+                        </td>
+
+                        <td class="text-right">
+                            {{ number_format($val->safety_stock) }}
+                        </td>
+
+                        <td>{{ $val->uom }}</td>
+
+                        <td class="text-right">{{ number_format($val->min_package) }}</td>
+
+                        <td>
+                            <a class="btn btn-outline-info btn-sm"
+                               href="{{ route('warehouse.article') }}?code={{ $val->code }}">
+                                <i data-feather="eye"></i>
+                                Detail
+                            </a>
+                        </td>
+                    </tr>
+
+                @endforeach
+            </tbody>
+            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                            @endif
+
+                            @if( $outstandingTransferInCount>0 )
+                            <div class="form-row">
+                                <div class="col-lg-12 col-12">
+                                    <div class="card border-warning">
+                                        <div class="card-header" style="color:#d98a0b">
+                                            <strong>
+                                                Transfer Stock Perlu Diposting
+                                                <div class="badge badge-pill badge-warning">{{ $outstandingTransferInCount }}</div>
+                                            </strong>
+                                            <div class="ml-auto">
+                                                <a class="btn btn-outline-primary btn-sm" href="{{ route('transferStock.index') }}">
+                                                    <i data-feather='list'></i>
+                                                    Lihat Semua Transfer
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table" width="100%" id="tblTransferPerluDiposting">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>No</th>
+                                                            <th>Transfer Number</th>
+                                                            <th>Date</th>
+                                                            <th>From</th>
+                                                            <th>To</th>
+                                                            <th>Created By</th>
+                                                            <th>Penerima</th>
+                                                            <th>Pending</th>
+                                                            <th data-orderable="false" data-searchable="false">Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($outstandingTransferIn as $key=>$val)
+                                                        <tr>
+                                                            <td>{{ $key+1 }}</td>
+                                                            <td class="font-weight-bolder">{{ $val->tr_number }}</td>
+                                                            <td>{{ $val->tr_date }}</td>
+                                                            <td>{{ $val->location_name }}</td>
+                                                            <td class="font-weight-bolder">{{ $val->location_name_to }}</td>
+                                                            <td>{{ $val->created_by }}</td>
+                                                            <td>{{ $val->penerima }}</td>
+                                                            <td data-order="{{ $val->age_seconds ?? 0 }}">
+                                                                <span class="badge badge-{{ $val->aging_level }}">{{ $val->aging_label }}</span>
+                                                            </td>
+                                                            <td>
+                                                                <a class="btn btn-outline-info btn-sm"
+                                                                    href="{{ route('transferStock.show', ['id'=>Crypt::encryptString($val->id)]) }}">
+                                                                    <i data-feather='list'></i>
+                                                                    Detail
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                            @if( $outstandingPoCount>0 )
+                            <div class="form-row">
+                                <div class="col-lg-12 col-12">
+                                    <div class="card border-warning">
+                                        <div class="card-header" style="color:#d98a0b">
+                                            <strong>Outstanding PO <div class="badge badge-pill badge-warning">{{ $outstandingPoCount }}</div></strong>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive" style="max-height:300px">
+                                                <table class="table" width="100%">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>No</th>
+                                                            <th>PR Number</th>
+                                                            <th>PO Number</th>
+                                                            <th>Dept</th>
+                                                            <th>Supplier</th>
+                                                            <th>PO Date</th>
+                                                            <th>Status</th>
+                                                            <th>Current Approval</th>
+                                                            <th>Need Approval</th>
+                                                            <th>Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($outstandingPo as $key=>$val)
+                                                        <tr>
+                                                            <td>{{ $key+1 }}</td>
+                                                            <td>
+                                                                <a href="{{ route('purchaseRequest.edit', ['id'=>Crypt::encryptString($val->pr_id)]) }}">{{ $val->pr_number }}</a>
+                                                            </td>
+                                                            <td>{{ $val->po_number }}</td>
+                                                            <td>{{ $val->dept_name }}</td>
+                                                            <td>{{ $val->supplier_name }}</td>
+                                                            <td>{{ $val->po_date }}</td>
+                                                            <td><div class="badge badge-info">{{ $val->status_label }}</div></td>
+                                                            <td class="text-right">{{ $val->current_level }} of {{ $val->max_level }}</td>
+                                                            <td>{{ $val->need_approval_names ?? '-' }}</td>
+                                                            <td>
+                                                                <a class="btn btn-outline-info btn-sm"
+                                                                    href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->po_id)]) }}">
+                                                                    <i data-feather='list'></i>
+                                                                    Detail
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                            @if(count($listBom)>0)
+                            <div class="form-row">
+                                <div class="col-lg-12 col-12">
+                                    <div class="card">
+                                        <div class="card-header" style="color:#2FA07E"><strong>BOM has been approved for the past two weeks <div class="badge badge-pill badge-info"> {{ count($listBom) }}</div></strong></div>
+                                        <div class="card-body" >
+                                            <div class="tableFixHead" >
+                                                <table class="table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Bom</th>
+                                                            <th>Article FG</th>
+                                                            <th>Article Desc</th>
+                                                            <th>Customer</th>
+                                                            <th>Customer Name</th>
+                                                            <th>Note</th>
+                                                            <th>Created At</th>
+                                                            <th>Updated At</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($listBom as $key=>$val)
+                                                        <tr>
+                                                            <td>
+                                                                <div class="d-flex align-items-center">
+                                                                    <div>
+                                                                        <div class="font-weight-bolder">{{ $val->bom_code }}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center">
+                                                                    <div>
+                                                                        <div class="font-weight-bolder">{{ $val->article_code }}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center">
+                                                                    <div>
+                                                                        <div class="font-weight-bolder">{{ $val->article_name }}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td class="">{{ $val->customer }}</td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center">
+                                                                    <div>
+                                                                        <div class="font-weight-bolder">{{ $val->customer_name }}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center">
+                                                                    <div>
+                                                                        <div class="font-weight-bolder">{{ $val->note }}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center">
+                                                                    <div>
+                                                                        <div class="font-weight-bolder">{{ $val->created_at }}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center">
+                                                                    <div>
+                                                                        <div class="font-weight-bolder">{{ $val->updated_at }}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </section>
 @endsection
 
@@ -2019,15 +2100,27 @@
         border-collapse: collapse; /* make the table borders collapse to each other */
         width: 100%;
     }
-    /* th,
-    td {
-    padding: 8px 16px;
-    border: 1px solid #ccc;
+
+    .action-center-item .card-header {
+        cursor: pointer;
+        background-color: #7367F0;
+        color: #fff;
+        border-radius: .357rem;
     }
-    th {
-    background: #eee;
-    } */
-    
+    .action-center-item .card-header.collapsed {
+        border-radius: .357rem;
+    }
+    .action-center-item .ac-chevron {
+        transition: transform .2s ease;
+        transform: rotate(180deg);
+    }
+    .action-center-item .card-header.collapsed .ac-chevron {
+        transform: rotate(0deg);
+    }
+    .action-center-item .badge-light-primary {
+        color: #7367F0;
+        background-color: #fff;
+    }
 </style>
 @endsection
 @section('scripts')
@@ -2059,12 +2152,12 @@
     @endif
 
     action=(me)=>{
-        let meId=me.getAttribute('id'),    
+        let meId=me.getAttribute('id'),
         meDocNumber=me.getAttribute("data-doc-number"),
         meUrl=me.getAttribute("data-url"),
         meClassId = me.getAttribute("data-id-class");
         meClassIdDecline = me.getAttribute("data-id-class-decline");
-        
+
         fetch(meUrl, {
             method: "GET",
             headers: {"Content-type": "application/json;charset=UTF-8"}
@@ -2080,7 +2173,7 @@
                     }
                 }
             }
-            
+
             const eleDecline = document.getElementsByClassName(meClassIdDecline);
             if (eleDecline){
                 for (let i=0; i< eleDecline.length; i++ ) {
@@ -2152,4 +2245,3 @@
     })();
 </script>
 @endsection
-
