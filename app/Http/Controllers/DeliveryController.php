@@ -2841,7 +2841,6 @@ private function punyaArAktif($dnNumber)
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'paid_date','name'=>'paid_date','title'=>'Paid Date'],
             ['data'=>'balance','name'=>'balance','title'=>'Balance'],
-            ['data'=> 'so_number', 'name'=> 'so_number','title'=>'So Number'],
         ];
         return json_encode($kolom, true);
     }
@@ -2985,6 +2984,7 @@ private function punyaArAktif($dnNumber)
         ,'article.article_alternative_code'
         ,'delivery_hdr.delivery_date'
         ,'delivery_det.delivery_number'
+        ,'delivery_hdr.id as delivery_id'
         ,'delivery_det.uom'
         ,'delivery_det.qty'
         ,'delivery_det.so_number'
@@ -2992,7 +2992,9 @@ private function punyaArAktif($dnNumber)
         ,'delivery_hdr.os_number'
         ,'third_party.nama as customer_name'
         // ,'invoice_hdr.invoice_number'
+        ,DB::RAW("(select id from sales_order_hdr where so_code = delivery_det.so_number) as so_id")
         ,DB::RAW("(Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) as invoice_number")
+        ,DB::RAW("(select id from invoice_hdr where invoice_number = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code)) as invoice_id")
         ,DB::RAW("(Select price from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) as price")
         ,DB::RAW("(Select price_service from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) as price_service")
         ,DB::RAW("(Select coalesce(price,0)+coalesce(price_service,0) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) * delivery_det.qty as grand_total")
@@ -3001,18 +3003,42 @@ private function punyaArAktif($dnNumber)
             then (select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1)
             else null end as voucher_number")
         ,DB::RAW("case when (select status from invoice_hdr where invoice_number = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code)) = '6'
+            then (select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1)
+            else null end as voucher_id")
+        ,DB::RAW("case when (select status from invoice_hdr where invoice_number = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code)) = '6'
+            then (select kas_hdr.voucher_type from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1)
+            else null end as voucher_type")
+        ,DB::RAW("case when (select status from invoice_hdr where invoice_number = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code)) = '6'
             then (select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'DD/MM/YYYY') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1)
             else null end as paid_date")
-        ,DB::RAW("coalesce(
-                (select grand_total from invoice_hdr where invoice_number = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code)),
-                (Select coalesce(price,0)+coalesce(price_service,0) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) * delivery_det.qty
-            )
-            - coalesce((select kas_det.credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status = '3' and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1),0) as balance")
+        ,DB::RAW("case when (select kas_det.credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status = '3' and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1) is null
+            then (Select coalesce(price,0)+coalesce(price_service,0) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) * delivery_det.qty
+            else coalesce((select grand_total from invoice_hdr where invoice_number = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code)), (Select coalesce(price,0)+coalesce(price_service,0) from sales_order_det a where a.so_code = delivery_det.so_number and a.article_code = delivery_det.article_code) * delivery_det.qty)
+                - (select kas_det.credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status = '3' and kas_det.reference = (Select invoice_number from invoice_det a where a.dn_number = delivery_det.delivery_number and a.article_code = delivery_det.article_code) limit 1)
+            end as balance")
         )
         ->orderBy('delivery_det.id')
         ->get();
 
         return Datatables::of($data)
+        ->addColumn('delivery_number', function ($row) {
+            if (!$row->delivery_id || !$row->delivery_number) return $row->delivery_number;
+            return '<a href="'.route('delivery.show', ['id' => Crypt::encryptString($row->delivery_id)]).'" target="_blank">'.$row->delivery_number.'</a>';
+        })
+        ->addColumn('so_number', function ($row) {
+            if (!$row->so_id || !$row->so_number) return $row->so_number;
+            return '<a href="'.route('salesOrder.show', ['id' => Crypt::encryptString($row->so_id)]).'" target="_blank">'.$row->so_number.'</a>';
+        })
+        ->addColumn('invoice_number', function ($row) {
+            if (!$row->invoice_id || !$row->invoice_number) return $row->invoice_number;
+            return '<a href="'.route('invoice.show', ['id' => Crypt::encryptString($row->invoice_id)]).'" target="_blank">'.$row->invoice_number.'</a>';
+        })
+        ->addColumn('voucher_number', function ($row) {
+            if (!$row->voucher_id || !$row->voucher_number) return $row->voucher_number;
+            $routeName = $row->voucher_type == 'KM' ? 'kasPenerimaan.show' : 'bankPenerimaan.show';
+            return '<a href="'.route($routeName, ['id' => Crypt::encryptString($row->voucher_id)]).'" target="_blank">'.$row->voucher_number.'</a>';
+        })
+        ->rawColumns(['delivery_number', 'so_number', 'invoice_number', 'voucher_number'])
         ->make(true);
 
     }
