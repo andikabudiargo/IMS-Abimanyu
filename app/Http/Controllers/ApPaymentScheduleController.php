@@ -95,76 +95,84 @@ class ApPaymentScheduleController extends Controller
      * Pembayaran = kas_det.DEBIT (bayar supplier) lewat voucher KK/BK.
      */
     private function buildScheduleSubquery($whereExtra)
-    {
-        $anchor = "COALESCE(
-                    to_date(NULLIF(ap_invoice.ap_date,''),'DD-MM-YYYY'),
-                    to_date(NULLIF(ap_invoice.inv_date,''),'DD-MM-YYYY')
-                  )";
+{
+    $anchor = "COALESCE(
+                to_date(NULLIF(ap_invoice.ap_date,''),'DD-MM-YYYY'),
+                to_date(NULLIF(ap_invoice.inv_date,''),'DD-MM-YYYY')
+              )";
 
-        $jatuhTempo = "COALESCE(
-                    to_date(NULLIF(ap_invoice.due_date,''),'DD-MM-YYYY'),
-                    ($anchor + INTERVAL '1 day' * COALESCE(
-                        (SELECT top_batas_1 FROM third_party tp WHERE tp.kode = ap_invoice.supplier_id),
-                        0
-                    ))::date
-                  )";
-
-        // baris pembayaran AP: DEBIT, voucher KK/BK/BM/KM (BM/KM = offset AR<->AP
-        // pihak sama), pihak via paid_to ATAU receive_from, status<>5.
-        $payWhere = "kas_det.reference = ap_invoice.inv_number
-                     AND (kas_hdr.paid_to = ap_invoice.supplier_id OR kas_hdr.receive_from = ap_invoice.supplier_id)
-                     AND kas_hdr.voucher_type IN ('KK','BK','BM','KM')
-                     AND kas_hdr.status <> '5'";
-
-        return "
-            SELECT
-                ap_invoice.id as ap_id,
-                ap_invoice.ap_number,
-                ap_invoice.inv_number,
-                ap_invoice.supplier_id,
-                to_char($anchor,'DD-MM-YYYY') as ap_date,
-                ap_invoice.inv_date,
-                COALESCE(
+    $jatuhTempo = "COALESCE(
+                to_date(NULLIF(ap_invoice.due_date,''),'DD-MM-YYYY'),
+                ($anchor + INTERVAL '1 day' * COALESCE(
                     (SELECT top_batas_1 FROM third_party tp WHERE tp.kode = ap_invoice.supplier_id),
                     0
-                ) as term,
-                $jatuhTempo as jatuh_tempo_actual,
-                (ap_invoice.grand_total - COALESCE(pb.paid,0)) as balance_open,
-                COALESCE(pp.paid,0) as paid_in_period,
-                (ap_invoice.grand_total - COALESCE(pb.paid,0) - COALESCE(pp.paid,0)) as balance_asof
-            FROM ap_invoice
-            LEFT JOIN LATERAL (
-                SELECT SUM(kas_det.debit) as paid
-                FROM kas_det
-                JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
-                WHERE $payWhere
-                  AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') < to_date(:periodStart,'DD-MM-YYYY')
-            ) pb ON true
-            LEFT JOIN LATERAL (
-                SELECT SUM(kas_det.debit) as paid
-                FROM kas_det
-                JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
-                WHERE $payWhere
-                  AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') >= to_date(:periodStart,'DD-MM-YYYY')
-                  AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:asOf,'DD-MM-YYYY')
-            ) pp ON true
-            WHERE ap_invoice.status NOT IN ('1','5')
-              AND $anchor >= to_date(:floorDate,'DD-MM-YYYY')
-              AND $anchor <= to_date(:asOf,'DD-MM-YYYY')
-              AND (
-                    $anchor >= to_date(:pairRequiredBefore,'DD-MM-YYYY')
-                    OR EXISTS (
-                        SELECT 1 FROM kas_det d
-                        JOIN kas_hdr h ON h.voucher_number = d.voucher_number
-                        WHERE d.reference = ap_invoice.inv_number
-                          AND (h.paid_to = ap_invoice.supplier_id OR h.receive_from = ap_invoice.supplier_id)
-                          AND h.voucher_type IN ('KK','BK','BM','KM')
-                          AND h.status <> '5'
-                    )
-                  )
-              $whereExtra
-        ";
-    }
+                ))::date
+              )";
+
+    // Sama dengan ApAgingReportController::buildHutangSubquery() -- syarat
+    // pihak hanya valid untuk KK/BK (paid_to = supplier). BM/KM (offset)
+    // paid_to selalu NULL & receive_from berisi kode akun kas/bank, bukan
+    // kode supplier, jadi dicocokkan lewat reference saja.
+    $payWhere = "kas_det.reference = ap_invoice.inv_number
+                 AND (
+                     (kas_hdr.voucher_type IN ('KK','BK') AND kas_hdr.paid_to = ap_invoice.supplier_id)
+                     OR kas_hdr.voucher_type IN ('BM','KM')
+                 )
+                 AND kas_hdr.voucher_type IN ('KK','BK','BM','KM')
+                 AND kas_hdr.status <> '5'";
+
+    return "
+        SELECT
+            ap_invoice.id as ap_id,
+            ap_invoice.ap_number,
+            ap_invoice.inv_number,
+            ap_invoice.supplier_id,
+            to_char($anchor,'DD-MM-YYYY') as ap_date,
+            ap_invoice.inv_date,
+            COALESCE(
+                (SELECT top_batas_1 FROM third_party tp WHERE tp.kode = ap_invoice.supplier_id),
+                0
+            ) as term,
+            $jatuhTempo as jatuh_tempo_actual,
+            (ap_invoice.grand_total - COALESCE(pb.paid,0)) as balance_open,
+            COALESCE(pp.paid,0) as paid_in_period,
+            (ap_invoice.grand_total - COALESCE(pb.paid,0) - COALESCE(pp.paid,0)) as balance_asof
+        FROM ap_invoice
+        LEFT JOIN LATERAL (
+            SELECT SUM(kas_det.debit) as paid
+            FROM kas_det
+            JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
+            WHERE $payWhere
+              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') < to_date(:periodStart,'DD-MM-YYYY')
+        ) pb ON true
+        LEFT JOIN LATERAL (
+            SELECT SUM(kas_det.debit) as paid
+            FROM kas_det
+            JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
+            WHERE $payWhere
+              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') >= to_date(:periodStart,'DD-MM-YYYY')
+              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:asOf,'DD-MM-YYYY')
+        ) pp ON true
+        WHERE ap_invoice.status NOT IN ('1','5')
+          AND $anchor >= to_date(:floorDate,'DD-MM-YYYY')
+          AND $anchor <= to_date(:asOf,'DD-MM-YYYY')
+          AND (
+                $anchor >= to_date(:pairRequiredBefore,'DD-MM-YYYY')
+                OR EXISTS (
+                    SELECT 1 FROM kas_det d
+                    JOIN kas_hdr h ON h.voucher_number = d.voucher_number
+                    WHERE d.reference = ap_invoice.inv_number
+                      AND (
+                            (h.voucher_type IN ('KK','BK') AND h.paid_to = ap_invoice.supplier_id)
+                            OR h.voucher_type IN ('BM','KM')
+                          )
+                      AND h.voucher_type IN ('KK','BK','BM','KM')
+                      AND h.status <> '5'
+                )
+              )
+          $whereExtra
+    ";
+}
 
     private function bucketWhere($bucket, $daysInMonth)
     {
