@@ -3303,6 +3303,7 @@ public function unPosting($recNumber)
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
             ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+            ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
@@ -3370,10 +3371,12 @@ public function unPosting($recNumber)
         // $apInv (nomor invoice supplier) tetap dipakai untuk mencocokkan voucher
         // pembayaran (kas_det.reference = inv_number). Kolom Invoice Number di
         // report menampilkan ap_number (nomor AP), bukan inv_number.
+        // status AP: 4=POSTED(belum bayar), 6=PAID(lunas), 7=PARTIALLY PAID
         $apNumberSub = "(select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)";
-        $apInv  = "(select inv_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
-        $apId   = "(select id from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
-        $apNo   = "(select ap_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
+        $apInv    = "(select inv_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)";
+        $apId     = "(select id from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)";
+        $apNo     = "(select ap_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)";
+        $apStatus = "(select status from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)";
         // Formula PPN disamakan dgn Detail Receiving (listDetail): total_dpp,
         // total_ppn, total_plus_ppn.
         $dpp     = "(receiving_det.price*receiving_det.qty)";
@@ -3395,6 +3398,7 @@ public function unPosting($recNumber)
         'article.article_desc'
         ,'article.article_alternative_code'
         ,'receiving_hdr.rec_date'
+        ,'receiving_hdr.do_date'
         ,'receiving_hdr.po_number'
         ,DB::raw("(select id from purchase_order_hdr where po_number = receiving_hdr.po_number order by id limit 1) as po_id")
         ,'receiving_det.rec_number'
@@ -3413,10 +3417,12 @@ public function unPosting($recNumber)
         ,DB::raw("(select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_id")
         ,DB::raw("(select kas_hdr.voucher_type from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_type")
         ,DB::raw("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'DD/MM/YYYY') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as paid_date")
-        // Balance = grand total baris receiving ini sendiri (Total Plus PPN).
-        // BUKAN grand total AP — 1 AP bisa mencakup beberapa receiving, jadi
-        // memakai grand total AP per baris akan salah. TIDAK dikurangi kas.
-        ,DB::raw("$lineGt as balance")
+        // Balance per baris receiving: kalau AP-nya sudah LUNAS (status 6) → 0,
+        // selain itu → Total Plus PPN baris ini. Tidak memakai grand total AP
+        // (1 AP bisa mencakup beberapa receiving) maupun nominal kas.
+        // ponytail: AP dibayar sebagian (status 7) tetap ditampilkan penuh —
+        // pembayaran AP di level dokumen, tidak bisa dibagi bersih per baris.
+        ,DB::raw("case when $apStatus = '6' then 0 else $lineGt end as balance")
         )
         ->orderBy('receiving_det.id')
         ->get();
