@@ -2264,6 +2264,7 @@ class AccountPayableController extends Controller
     $toDate = "";
     $apPeriod1 = $request->apPeriod1;
     $apPeriod2 = $request->apPeriod2;
+    $searchArticle = $request->searchArticle;
 
     if ($apDate) {
         $date = explode("to", $apDate);
@@ -2277,35 +2278,61 @@ class AccountPayableController extends Controller
     }
 
     // === PERUBAHAN UTAMA: jangan ->get() di sini, biarkan Query Builder ===
-    $query = DB::table('ap_invoice')
-        ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
-        ->leftJoin(DB::raw("(
-    select kd.reference, kd.account,
-           sum(kd.debit) as voucher_amount,
-           string_agg(kh.id::text || '::' || kd.voucher_number, ',' order by kh.voucher_date) as voucher_list,
-           max(kh.voucher_date) as voucher_date
-    from kas_det kd
-    join kas_hdr kh on kd.voucher_number = kh.voucher_number
-    where kh.status <> '5'
-    group by kd.reference, kd.account
+   $query = DB::table('ap_invoice')
+    ->leftJoin('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
+    ->leftJoin(DB::raw("(
+select kd.reference, kd.account,
+       sum(kd.debit) as voucher_amount,
+       string_agg(kh.id::text || '::' || kd.voucher_number, ',' order by kh.voucher_date) as voucher_list,
+       max(kh.voucher_date) as voucher_date
+from kas_det kd
+join kas_hdr kh on kd.voucher_number = kh.voucher_number
+where kh.status <> '5'
+group by kd.reference, kd.account
 ) as vch"), function ($join) {
-    $join->on('vch.reference', '=', 'ap_invoice.inv_number')
-         ->on('vch.account', '=', 'third_party.account');
+$join->on('vch.reference', '=', 'ap_invoice.inv_number')
+     ->on('vch.account', '=', 'third_party.account');
 })
-        // subquery untuk id PO (dipakai hyperlink) - sesuaikan nama tabel/kolom kalau beda
-        ->leftJoin(DB::raw("(
-            select id as po_id, po_number from purchase_order_hdr
-        ) as po"), 'po.po_number', '=', 'ap_invoice.po_number')
-        ->where(function ($q) use ($searchAp, $searchPo, $searchSupplier, $searchStatus, $apDate, $fromDate, $toDate, $apPeriod1, $apPeriod2) {
-            $searchPo ? $q->where('po_number', 'ilike', '%' . $searchPo . '%') : '';
-            $searchAp ? $q->where('ap_number', 'ilike', '%' . $searchAp . '%') : '';
-            $searchSupplier ? $q->where('supplier_id', 'ilike', '%' . $searchSupplier . '%') : '';
-            $searchStatus ? $q->where('ap_invoice.status', '=', $searchStatus) : '';
-            $apDate ? $q->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-            $apPeriod1 ? $q->whereBetween(DB::raw("period::integer"), [$apPeriod1, $apPeriod2]) : '';
-        })
-        ->whereNotIn('ap_invoice.status', ['5'])
-        ->select(
+    ->leftJoin(DB::raw("(
+        select id as po_id, po_number from purchase_order_hdr
+    ) as po"), 'po.po_number', '=', 'ap_invoice.po_number')
+    ->where(function ($q) use ($searchAp, $searchPo, $searchSupplier, $searchStatus, $apDate, $fromDate, $toDate, $apPeriod1, $apPeriod2, $searchArticle) {
+        $searchPo ? $q->where('po_number', 'ilike', '%' . $searchPo . '%') : '';
+        $searchAp ? $q->where('ap_number', 'ilike', '%' . $searchAp . '%') : '';
+        $searchSupplier ? $q->where('supplier_id', 'ilike', '%' . $searchSupplier . '%') : '';
+        $searchStatus ? $q->where('ap_invoice.status', '=', $searchStatus) : '';
+        $apDate ? $q->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        $apPeriod1 ? $q->whereBetween(DB::raw("period::integer"), [$apPeriod1, $apPeriod2]) : '';
+
+        // BARU: AP header dianggap match kalau salah satu baris detailnya (PO maupun Non-PO) mengandung article code ini
+        $searchArticle ? $q->where(function ($qArt) use ($searchArticle) {
+            $qArt->whereExists(function ($sub) use ($searchArticle) {
+                // jalur PO: ap_invoice_detail -> receiving_det -> article
+                $sub->select(DB::raw(1))
+                    ->from('ap_invoice_detail')
+                    ->join('receiving_det', 'receiving_det.rec_number', '=', 'ap_invoice_detail.rec_number')
+                    ->leftJoin('article', 'article.article_code', '=', 'receiving_det.article_code')
+                    ->whereColumn('ap_invoice_detail.ap_number', 'ap_invoice.ap_number')
+                    ->where(function ($q3) use ($searchArticle) {
+                        $q3->where('article.article_alternative_code', 'ilike', "%{$searchArticle}%")
+                           ->orWhere('receiving_det.article_code', 'ilike', "%{$searchArticle}%");
+                    });
+            })->orWhereExists(function ($sub) use ($searchArticle) {
+                // jalur Non-PO: ap_invoice_det.reference -> article
+                $sub->select(DB::raw(1))
+                    ->from('ap_invoice_det')
+                    ->leftJoin('article', 'article.article_code', '=', 'ap_invoice_det.reference')
+                    ->whereColumn('ap_invoice_det.ap_number', 'ap_invoice.ap_number')
+                    ->where('ap_invoice_det.reference', '<>', '')
+                    ->where(function ($q3) use ($searchArticle) {
+                        $q3->where('article.article_alternative_code', 'ilike', "%{$searchArticle}%")
+                           ->orWhere('ap_invoice_det.reference', 'ilike', "%{$searchArticle}%");
+                    });
+            });
+        }) : '';
+    })
+    ->whereNotIn('ap_invoice.status', ['5'])
+    ->select(
             'ap_invoice.*',
             'third_party.kode',
             'po.po_id',

@@ -118,9 +118,18 @@
 
 @section('scripts')
 <script type="text/javascript">
-  let currentDate = todayDate('dd-mm-yyyy');  
-  let btnSummary = $('#btnSummary');
-  let btnDetail = $('#btnDetail');
+  let currentDate = todayDate('dd-mm-yyyy');
+let btnSummary = $('#btnSummary');
+let btnDetail = $('#btnDetail');
+
+// BARU: helper untuk suffix tanggal+jam di nama file export
+function getExportDateTimeString(){
+  let now = new Date();
+  let pad = (n) => n.toString().padStart(2, '0');
+  let datePart = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
+  let timePart = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return `${datePart}_${timePart}`;
+}
 
   $(document).ready(function(){    
     let href;
@@ -145,32 +154,28 @@
   }
 
   function dataSearch($type){
-    let searchPo = $("#searchPo").val();
-    let searchAp = $("#searchAp").val();
-    let searchSupplier = $("#searchSupplier").val(); 
-    let searchStatus = $("#searchStatus").val();
-    let apDate = $("#apDate").val();
-    let apPeriod1 = $("#apPeriod1").val();
-    let apPeriod2 = $("#apPeriod2").val();
+  let searchPo = $("#searchPo").val();
+  let searchAp = $("#searchAp").val();
+  let searchSupplier = $("#searchSupplier").val(); 
+  let searchStatus = $("#searchStatus").val();
+  let apDate = $("#apDate").val();
+  let apPeriod1 = $("#apPeriod1").val();
+  let apPeriod2 = $("#apPeriod2").val();
+  let searchArticle = $("#searchArticle").val();
 
-    btnSummary.addClass('d-none');
-    btnDetail.addClass('d-none');
+  btnSummary.addClass('d-none');
+  btnDetail.addClass('d-none');
 
-    $(".loading-spinner-container").addClass("-show");
+  $(".loading-spinner-container").addClass("-show");
 
-    if($type == 'detail'){
-      // btnDetail.addClass('d-none');
-      // btnSummary.removeClass('d-none');
-      showListDetail(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2);
-    }
-
-    if($type == 'summary'){
-      // btnDetail.addClass('d-none');
-      // btnSummary.removeClass('d-none');
-      showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2);  
-    }
-    
+  if($type == 'detail'){
+    showListDetail(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,searchArticle);
   }
+
+  if($type == 'summary'){
+    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,searchArticle);  // BARU: tambah param
+  }
+}
 
   btnDetail.click(function(){
     dataSearch('detail');
@@ -186,107 +191,109 @@
     dataSearch('summary');
   });
 
-  const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2) => {
-    if ($('#detailedTable tr').length >0){
-        let table= $('#detailedTable').DataTable();
-        table.destroy();
-        $('#detailedTable tbody > tr').remove();
-        $("#detailedTable thead > tr").remove();
-    }
-   showDataTables({
-    tableId:"detailedTable",
-    route:"{{ route('accountPayable.list') }}",
-    kolom:{!! $kolom !!},
-    arrColPrint:[1,2,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37],
-    columnDefs :[
-      { width: '5%', targets: 0 },
-      {
-        targets: [ 19,20,21,22,23,24,25,26,29,30],
-        render: $.fn.dataTable.render.number(',', '.', 2, ''),
-        className: "text-right"
-      },
-      {
-        targets: [ 13 ],
-        render: function ( data, type, full, meta ) {
-          return '\u200C'+data;
-        }
+  const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,searchArticle) => {
+  if ($('#detailedTable tr').length >0){
+      let table= $('#detailedTable').DataTable();
+      table.destroy();
+      $('#detailedTable tbody > tr').remove();
+      $("#detailedTable thead > tr").remove();
+  }
+ showDataTables({
+  tableId:"detailedTable",
+  route:"{{ route('accountPayable.list') }}",
+  kolom:{!! $kolom !!},
+  arrColPrint:[1,2,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37],
+  columnDefs :[
+    { width: '5%', targets: 0 },
+    {
+      targets: [ 19,20,21,22,23,24,25,26,29,30],
+      render: $.fn.dataTable.render.number(',', '.', 2, ''),
+      className: "text-right"
+    },
+    {
+      targets: [ 13 ],
+      render: function ( data, type, full, meta ) {
+        return '\u200C'+data;
       }
-    ],
-      type:"POST",
-      excelCustomize:function(xlsx) {
-        let sheet = xlsx.xl.worksheets['sheet1.xml'];
-        $('row:last c', sheet).attr('s','50');
-      },
-      excelMessageBottom:function () { return "Tanggal export : "+currentDate },
-      dataSearch:  {
-        searchPo:searchPo,
-        searchAp:searchAp,
-        searchSupplier:searchSupplier,
-        searchStatus:searchStatus,
-        apDate:apDate,
-        apPeriod1:apPeriod1,
-        apPeriod2:apPeriod2
-      },
-      initComplete: function() {
-        let api = this.api();
-        if (api.data().length > 0) {
-          btnDetail.removeClass('d-none');
-          btnSummary.addClass('d-none');
-        }
-        $(".loading-spinner-container").removeClass("-show");
-      },
-      orderColumn:[[ 35, 'desc' ]],
-      excelFileName:'invoice_supplier'
-    });
-  }
-
-  const showListDetail = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2) => {
-    if ($('#detailedTable tr').length >0){
-        let table= $('#detailedTable').DataTable();
-        table.destroy();
-        $('#detailedTable tbody > tr').remove();
-        $("#detailedTable thead > tr").remove();
     }
-    showDataTables({
-    tableId:"detailedTable",
-    route:"{{ route('accountPayable.list.detail') }}",
-    kolom:{!! $kolomDetail !!},
-    arrColPrint:[0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21],
-    columnDefs :[
-      { width: '5%', targets: 0 },
-      {
-        targets: [19,20,21],
-        render: $.fn.dataTable.render.number(',', '.', 2, ''),
-        className: "text-right"
-      },
-    ],
-      type:"POST",
-      excelCustomize:function(xlsx) {
-        let sheet = xlsx.xl.worksheets['sheet1.xml'];
-        $('row:last c', sheet).attr('s','50');
-      },
-      excelMessageBottom:function () { return "Tanggal export : "+currentDate },
-      dataSearch:  {
-        searchPo:searchPo,
-        searchAp:searchAp,
-        searchSupplier:searchSupplier,
-        searchStatus:searchStatus,
-        apDate:apDate,
-        apPeriod1:apPeriod1,
-        apPeriod2:apPeriod2
-      },
-      initComplete: function() {
-        let api = this.api();
-        if (api.data().length > 0) {
-          btnSummary.removeClass('d-none');
-          btnDetail.addClass('d-none');
-        }
-        $(".loading-spinner-container").removeClass("-show");
-      },
-      orderColumn:[[ 0, 'asc' ],[ 1, 'asc' ]],
-      excelFileName:'invoice_supplier_det'
-    });
+  ],
+    type:"POST",
+    excelCustomize:function(xlsx) {
+      let sheet = xlsx.xl.worksheets['sheet1.xml'];
+      $('row:last c', sheet).attr('s','50');
+    },
+    excelMessageBottom:function () { return "Tanggal export : "+currentDate },
+    dataSearch:  {
+      searchPo:searchPo,
+      searchAp:searchAp,
+      searchSupplier:searchSupplier,
+      searchStatus:searchStatus,
+      apDate:apDate,
+      apPeriod1:apPeriod1,
+      apPeriod2:apPeriod2,
+      searchArticle:searchArticle
+    },
+    initComplete: function() {
+      let api = this.api();
+      if (api.data().length > 0) {
+        btnDetail.removeClass('d-none');
+        btnSummary.addClass('d-none');
+      }
+      $(".loading-spinner-container").removeClass("-show");
+    },
+    orderColumn:[[ 35, 'desc' ]],
+    excelFileName:'invoice_supplier_'+getExportDateTimeString()   // BARU
+  });
+}
+
+  const showListDetail = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,searchArticle) => {
+  if ($('#detailedTable tr').length >0){
+      let table= $('#detailedTable').DataTable();
+      table.destroy();
+      $('#detailedTable tbody > tr').remove();
+      $("#detailedTable thead > tr").remove();
   }
+  showDataTables({
+  tableId:"detailedTable",
+  route:"{{ route('accountPayable.list.detail') }}",
+  kolom:{!! $kolomDetail !!},
+  arrColPrint:[0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21],
+  columnDefs :[
+    { width: '5%', targets: 0 },
+    {
+      targets: [19,20,21],
+      render: $.fn.dataTable.render.number(',', '.', 2, ''),
+      className: "text-right"
+    },
+  ],
+    type:"POST",
+    excelCustomize:function(xlsx) {
+      let sheet = xlsx.xl.worksheets['sheet1.xml'];
+      $('row:last c', sheet).attr('s','50');
+    },
+    excelMessageBottom:function () { return "Tanggal export : "+currentDate },
+    dataSearch:  {
+      searchPo:searchPo,
+      searchAp:searchAp,
+      searchSupplier:searchSupplier,
+      searchStatus:searchStatus,
+      apDate:apDate,
+      apPeriod1:apPeriod1,
+      apPeriod2:apPeriod2,
+      searchArticle:searchArticle
+    },
+    initComplete: function() {
+      let api = this.api();
+      if (api.data().length > 0) {
+        btnSummary.removeClass('d-none');
+        btnDetail.addClass('d-none');
+      }
+      $(".loading-spinner-container").removeClass("-show");
+    },
+    orderColumn:[[ 0, 'asc' ],[ 1, 'asc' ]],
+    excelFileName:'invoice_supplier_det_'+getExportDateTimeString()   // BARU
+  });
+}
 
   $.ajaxSetup({
     headers: {
