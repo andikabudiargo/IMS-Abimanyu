@@ -8,7 +8,15 @@
     max-height: 68vh;
     overflow: auto;
     position: relative;
+    width: 100%;
+    max-width: 100%;
 }
+/* Cegah tabel lebar mendorong seluruh halaman ikut geser -- scroll horizontal
+   harus terkurung di dalam #scheduleScroll saja (min-width:0 melawan default
+   min-width:auto flex/grid ancestor Vuexy yang bikin card ikut melebar). */
+#schedule-result,
+#schedule-result .card,
+#schedule-result .card-body { min-width: 0; max-width: 100%; overflow-x: hidden; }
 #scheduleTable {
     border-collapse: separate;
     border-spacing: 0;
