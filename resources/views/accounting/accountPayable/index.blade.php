@@ -66,6 +66,10 @@
                   @endfor
                 </select>
               </div>
+                <div class="form-group col-md-3">
+    <label for="searchArticle">Article Code</label>
+    <input type="text" class="form-control text-uppercase" id="searchArticle" name="searchArticle" placeholder="" />
+  </div>
             </div>
             <div class="form-row">
                 <div class="col-12"> 
