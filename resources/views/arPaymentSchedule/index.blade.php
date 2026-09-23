@@ -58,6 +58,7 @@
 #scheduleTable .col-customer { left: 40px; }
 #scheduleTable thead th.col-customer { left: 40px; }
 
+#scheduleTable tbody tr.row-paid td { color: #28a745 !important; font-weight: 600; }
 .schedule-clickable { cursor: pointer; text-decoration: underline dotted; }
 .schedule-clickable:hover { background: #d7e8ff !important; }
 </style>
@@ -367,7 +368,8 @@ $(document).ready(function () {
                 function cell(bucket, val, cls) {
                     return '<td class="' + (cls || '') + ' schedule-clickable" data-customer="' + cc + '" data-bucket="' + bucket + '">' + fmt(val) + '</td>';
                 }
-                let row = '<tr>'
+                let paidOff = parseFloat(r.total) > 0 && Math.abs(parseFloat(r.balance)) < 1;
+                let row = '<tr' + (paidOff ? ' class="row-paid"' : '') + '>'
                     + '<td class="col-no">' + (idx + 1) + '</td>'
                     + '<td class="col-customer text-left">' + r.customer_name + '</td>'
                     + cell('opening', r.opening);
