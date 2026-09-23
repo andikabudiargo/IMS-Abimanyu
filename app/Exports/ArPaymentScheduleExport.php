@@ -6,14 +6,13 @@ use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
-class ArPaymentScheduleExport implements FromArray, WithHeadings, WithStyles, WithTitle, WithColumnFormatting, ShouldAutoSize
+class ArPaymentScheduleExport implements FromArray, WithHeadings, WithStyles, WithTitle, ShouldAutoSize
 {
     protected $rows;
     protected $grand;
@@ -81,20 +80,16 @@ class ArPaymentScheduleExport implements FromArray, WithHeadings, WithStyles, Wi
         return 'AR Payment Schedule ' . $this->periodStart;
     }
 
-    public function columnFormats(): array
-    {
-        $fmt = NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1;
-        $formats = [];
-        for ($i = 2; $i <= $this->lastColumnIndex(); $i++) {
-            $formats[Coordinate::stringFromColumnIndex($i)] = $fmt;
-        }
-        return $formats;
-    }
-
     public function styles(Worksheet $sheet)
     {
         $lastRow = count($this->rows) + 2; // +1 header, +1 baris grand total
-        $lastCol = Coordinate::stringFromColumnIndex($this->lastColumnIndex());
+        $firstNumCol = Coordinate::stringFromColumnIndex(2);              // Opening
+        $lastCol     = Coordinate::stringFromColumnIndex($this->lastColumnIndex());
+
+        // Format angka hanya untuk baris data (row 2 ke bawah) -- jangan sentuh
+        // header (row 1) supaya angka tanggal tetap "1","2",... bukan "1,00".
+        $sheet->getStyle("{$firstNumCol}2:{$lastCol}{$lastRow}")
+            ->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1);
 
         $sheet->getStyle("A1:{$lastCol}1")->getFont()->setBold(true);
         $sheet->getStyle("A1:{$lastCol}1")->getFill()
