@@ -21,10 +21,10 @@ use DB;
       - Jatuh tempo    : ap_invoice.due_date (kalau diisi), fallback
                          ap_date + term supplier (third_party.top_batas_1),
                          PERSIS pola due_date di AccountPayableController::list().
-      - Pembayaran     : dicocokkan lewat kas_det.reference = ap_invoice.inv_number
-                         DAN kas_hdr.status = '3' (APPROVED), voucher_date <= cutoff.
-                         TANPA filter voucher_type (pelunasan AP bisa lewat KK
-                         maupun BK) -- sama seperti pola AR Aging.
+      - Pembayaran     : BEDA dgn AR. Pelunasan AP (bayar supplier) tercatat di
+                         kas_det.DEBIT (bukan credit), lewat voucher KK/BK dengan
+                         kas_hdr.paid_to = supplier, status <> '5', voucher_date
+                         <= cutoff. Persis rumus BankKeluarController::getInvoicePaid().
       - Balance = grand_total - total pembayaran approved (<= cutoff).
       - Status ap_invoice: 1 DRAFT, 2 VALIDATED, 3 APPROVED, 4 POSTED,
         5 CANCELED, 6 PAID, 7 PARTIALLY PAID. DRAFT & CANCELED di-exclude;
@@ -121,11 +121,17 @@ class ApAgingReportController extends Controller
                 (to_date(:cutoff,'DD-MM-YYYY') - $jatuhTempo) as diff_hari
             FROM ap_invoice
             LEFT JOIN LATERAL (
-                SELECT SUM(kas_det.credit) as total_dibayar
+                -- Pelunasan AP (bayar supplier) tercatat di kas_det.DEBIT, lewat
+                -- voucher KK/BK dengan paid_to = supplier. status <> '5' (voucher
+                -- deleted tidak dihitung) -- sama persis dengan cara sistem
+                -- menghitung 'sudah dibayar' di BankKeluarController::getInvoicePaid().
+                SELECT SUM(kas_det.debit) as total_dibayar
                 FROM kas_det
-                LEFT JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
+                JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
                 WHERE kas_det.reference = ap_invoice.inv_number
-                  AND kas_hdr.status = '3'
+                  AND kas_hdr.paid_to = ap_invoice.supplier_id
+                  AND kas_hdr.voucher_type IN ('KK','BK')
+                  AND kas_hdr.status <> '5'
                   AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
             ) bayar ON true
             WHERE ap_invoice.status NOT IN ('1','5')
