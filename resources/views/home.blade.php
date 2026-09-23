@@ -121,9 +121,14 @@
     {{-- ===== Row 2: Action Center ===== --}}
     <div class="form-row">
         <div class="col-12">
-            <h4 class="font-weight-bold mb-0">Action Center</h4>
-            <p class="text-muted">Quick access to approve or reject submission.</p>
-            <div style="width:48px;height:3px;background:#7367F0;border-radius:2px;" class="mb-1"></div>
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <strong>Action Center</strong>
+                    <p class="text-muted mb-0 small">Quick access to approve or reject submission.</p>
+                </div>
+            </div>
+            <div class="card-body">
 
             @if($actionCenterCount == 0)
                 <div class="text-muted mb-1">
@@ -1748,6 +1753,8 @@
             </div>
             @endif
 
+            </div>
+        </div>
         </div>
     </div>
 
