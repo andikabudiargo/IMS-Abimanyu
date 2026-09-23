@@ -794,6 +794,13 @@
                     </li>
                   @endcan
                   @can('delivery-report-acc')
+                    <li class="{{ \Request::is(['apAging'])  ? 'active' : '' }}">
+                      <a class="d-flex align-items-center" href="{{ route('apAging.index') }}">
+                        <span class="menu-item text-truncate" data-i18n="AP Aging Report">AP Aging Report</span>
+                      </a>
+                    </li>
+                  @endcan
+                  @can('delivery-report-acc')
                     <li class="{{ \Request::is(['arPaymentSchedule'])  ? 'active' : '' }}">
                       <a class="d-flex align-items-center" href="{{ route('arPaymentSchedule.index') }}">
                         <span class="menu-item text-truncate" data-i18n="AR Payment Schedule">AR Payment Schedule</span>
