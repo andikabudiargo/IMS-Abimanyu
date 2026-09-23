@@ -501,15 +501,13 @@
                                         <td>
                                             <a href="{{ route('purchaseRequest.edit', ['id'=>Crypt::encryptString($val->pr_id)]) }}">{{ $val->pr_number }}</a>
                                         </td>
-                                        <td>
-                                            <a href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->po_id)]) }}">{{ $val->po_number }}</a>
-                                        </td>
+                                        <td>{{ $val->po_number }}</td>
                                         <td>{{ $val->dept_name }}</td>
                                         <td>{{ $val->supplier_name }}</td>
                                         <td>{{ $val->po_date }}</td>
                                         <td><div class="badge badge-info">{{ $val->status_label }}</div></td>
                                         <td class="text-right">{{ $val->current_level }} of {{ $val->max_level }}</td>
-                                        <td>{{ $val->current_level >= $val->max_level ? 'Fully Approved' : ($val->need_approval_names ?? '-') }}</td>
+                                        <td>{{ $val->need_approval_names ?? '-' }}</td>
                                         <td>
                                             <a class="btn btn-outline-info btn-sm"
                                                 href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->po_id)]) }}">

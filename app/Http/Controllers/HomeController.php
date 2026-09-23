@@ -453,7 +453,8 @@ foreach ($candidateHeaders as $h) {
                     $q->select('dept')->from('user_dept')->where('username', $username);
                 });
             })
-            ->whereIn('poh.status', ['1', '2', '7'])
+            ->whereIn('poh.status', ['1', '2'])
+            ->where('poh.po_number', 'not like', '%-R%')
             ->select(
                 'prh.id as pr_id',
                 'prh.pr_number',
@@ -470,7 +471,11 @@ foreach ($candidateHeaders as $h) {
             )
             ->distinct()
             ->orderBy('poh.created_at', 'desc')
-            ->get();
+            ->get()
+            ->filter(function ($row) {
+                return $row->current_level < $row->max_level;
+            })
+            ->values();
 
         $statusPoLabel = ['NEW', 'VALIDATED', 'APPROVED', 'RECEIVED', 'CANCELED', 'CLOSED', 'REVISED', 'DECLINE'];
         $data['outstandingPo']->transform(function ($row) use ($statusPoLabel) {
