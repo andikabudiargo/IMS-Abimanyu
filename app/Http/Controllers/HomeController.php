@@ -458,7 +458,6 @@ foreach ($candidateHeaders as $h) {
             ->select(
                 'prh.id as pr_id',
                 'prh.pr_number',
-                'poh.id as po_id',
                 'poh.po_number',
                 'poh.po_date',
                 'poh.status',

@@ -4,10 +4,30 @@
 @include('layouts.breadcrumb')
 <section id="home">
 
-    {{-- ===== Row 1: Delivery Performance (8) + Greeting (4) ===== --}}
+    {{-- ===== Row 1: Greeting (4) + Delivery Performance (8) ===== --}}
     <div class="form-row">
+        <div class="col-lg-4 col-12">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
+                    <img class="rounded-circle" src="{{ Auth::user()->filename ? asset(Auth::user()->filename) : asset('app-assets/images/avatars/default.png') }}"
+                         onerror="this.src='{{ asset('app-assets/images/avatars/default.png') }}';"
+                         alt="avatar" height="72" width="72">
+                    <h4 class="mt-1 mb-0 font-weight-bold">{{ $greeting }}, {{ Auth::user()->name }}</h4>
+                    @if($deptNames)
+                        <p class="text-muted mb-0">{{ $deptNames }}</p>
+                    @endif
+                    <small class="text-muted">{{ $tanggal }}</small>
+                    @if (session('status'))
+                        <div class="alert alert-success w-100 mt-1 mb-0 py-50" role="alert">
+                            {{ session('status') }}
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
         <div class="col-lg-8 col-12">
-            <div class="card h-100 mb-0" style="border-left:4px solid #7367F0;">
+            <div class="card h-100" style="border-left:4px solid #7367F0;">
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                     <div class="d-flex align-items-center">
                         <div class="avatar bg-light-primary p-50 mr-1" style="border-radius:8px;">
@@ -93,26 +113,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4 col-12">
-            <div class="card h-100 mb-0">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
-                    <img class="rounded-circle" src="{{ Auth::user()->filename ? asset(Auth::user()->filename) : asset('app-assets/images/avatars/default.png') }}"
-                         onerror="this.src='{{ asset('app-assets/images/avatars/default.png') }}';"
-                         alt="avatar" height="72" width="72">
-                    <h4 class="mt-1 mb-0 font-weight-bold">{{ $greeting }}, {{ Auth::user()->name }}</h4>
-                    @if($deptNames)
-                        <p class="text-muted mb-0">{{ $deptNames }}</p>
-                    @endif
-                    <small class="text-muted">{{ $tanggal }}</small>
-                    @if (session('status'))
-                        <div class="alert alert-success w-100 mt-1 mb-0 py-50" role="alert">
-                            {{ session('status') }}
-                        </div>
-                    @endif
                 </div>
             </div>
         </div>
@@ -1953,7 +1953,6 @@
                                                             <th>Status</th>
                                                             <th>Current Approval</th>
                                                             <th>Need Approval</th>
-                                                            <th>Action</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -1970,13 +1969,6 @@
                                                             <td><div class="badge badge-info">{{ $val->status_label }}</div></td>
                                                             <td class="text-right">{{ $val->current_level }} of {{ $val->max_level }}</td>
                                                             <td>{{ $val->need_approval_names ?? '-' }}</td>
-                                                            <td>
-                                                                <a class="btn btn-outline-info btn-sm"
-                                                                    href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->po_id)]) }}">
-                                                                    <i data-feather='list'></i>
-                                                                    Detail
-                                                                </a>
-                                                            </td>
                                                         </tr>
                                                         @endforeach
                                                     </tbody>
