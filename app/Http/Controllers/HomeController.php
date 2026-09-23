@@ -440,6 +440,45 @@ foreach ($candidateHeaders as $h) {
             where current_level+1 = berhak_approve");
         // }
 
+        // Outstanding PO: PR yang sudah dibuatkan PO, di-scope per departemen user (kecuali Purchasing/008 yang lihat semua)
+        $deptPurchasing = DB::table('user_dept')->where('username', $username)->where('dept', '008')->count();
+
+        $data['outstandingPo'] = DB::table('purchase_order_det as pod')
+            ->join('purchase_order_hdr as poh', 'poh.po_number', '=', 'pod.po_number')
+            ->join('purchase_request_hdr as prh', 'prh.pr_number', '=', 'pod.pr_number')
+            ->leftJoin('depts', 'depts.code', '=', 'prh.dept')
+            ->leftJoin('third_party', 'third_party.kode', '=', 'poh.supplier_id')
+            ->when($deptPurchasing == 0, function ($query) use ($username) {
+                $query->whereIn('prh.dept', function ($q) use ($username) {
+                    $q->select('dept')->from('user_dept')->where('username', $username);
+                });
+            })
+            ->whereIn('poh.status', ['1', '2', '7'])
+            ->select(
+                'prh.id as pr_id',
+                'prh.pr_number',
+                'poh.id as po_id',
+                'poh.po_number',
+                'poh.po_date',
+                'poh.status',
+                'poh.created_at',
+                'depts.name as dept_name',
+                'third_party.nama as supplier_name',
+                DB::raw("coalesce((select max(approval_order) from approval_history where module_code = 'PO' and module_number = poh.po_number), 0) as current_level"),
+                DB::raw("(select approval_number from approval_master where module_code = 'PO') as max_level"),
+                DB::raw("(select string_agg(distinct u.name, ', ') from approval_level al left join users u on u.username = al.username where al.module_code = 'PO' and al.approval_order = coalesce((select max(approval_order) from approval_history where module_code = 'PO' and module_number = poh.po_number), 0) + 1) as need_approval_names")
+            )
+            ->distinct()
+            ->orderBy('poh.created_at', 'desc')
+            ->get();
+
+        $statusPoLabel = ['NEW', 'VALIDATED', 'APPROVED', 'RECEIVED', 'CANCELED', 'CLOSED', 'REVISED', 'DECLINE'];
+        $data['outstandingPo']->transform(function ($row) use ($statusPoLabel) {
+            $row->status_label = $statusPoLabel[$row->status - 1] ?? $row->status;
+            return $row;
+        });
+        $data['outstandingPoCount'] = $data['outstandingPo']->count();
+
         $data['listBomHome'] = DB::select("SELECT * from (
             select 
                 id

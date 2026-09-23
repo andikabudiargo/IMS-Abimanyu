@@ -469,6 +469,64 @@
             <!--/ Company Table Card -->
         </div>
     @endif
+    @if( $outstandingPoCount>0 )
+        <div class="form-row">
+            <div class="col-lg-12 col-12">
+                <div class="card border-warning">
+                    <div class="card-header" style="color:#d98a0b">
+                        <strong>Outstanding PO <div class="badge badge-pill badge-warning">{{ $outstandingPoCount }}</div></strong>
+                        <div class="ml-auto"><a class="btn btn-outline-primary btn-sm" href="{{ route('purchaseOrders.index') }}">Lihat Semua PO</a></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>PR Number</th>
+                                        <th>PO Number</th>
+                                        <th>Dept</th>
+                                        <th>Supplier</th>
+                                        <th>PO Date</th>
+                                        <th>Status</th>
+                                        <th>Current Approval</th>
+                                        <th>Need Approval</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($outstandingPo as $key=>$val)
+                                    <tr>
+                                        <td>{{ $key+1 }}</td>
+                                        <td>
+                                            <a href="{{ route('purchaseRequest.edit', ['id'=>Crypt::encryptString($val->pr_id)]) }}">{{ $val->pr_number }}</a>
+                                        </td>
+                                        <td>
+                                            <a href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->po_id)]) }}">{{ $val->po_number }}</a>
+                                        </td>
+                                        <td>{{ $val->dept_name }}</td>
+                                        <td>{{ $val->supplier_name }}</td>
+                                        <td>{{ $val->po_date }}</td>
+                                        <td><div class="badge badge-info">{{ $val->status_label }}</div></td>
+                                        <td class="text-right">{{ $val->current_level }} of {{ $val->max_level }}</td>
+                                        <td>{{ $val->current_level >= $val->max_level ? 'Fully Approved' : ($val->need_approval_names ?? '-') }}</td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm"
+                                                href="{{ route('purchaseOrder.edit', ['id'=>Crypt::encryptString($val->po_id)]) }}">
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
     @if( count($listBomHome)>0 )
         <div class="form-row">
             <!-- Company Table Card -->
