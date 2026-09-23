@@ -21,10 +21,12 @@ use DB;
       - Jatuh tempo    : ap_invoice.due_date (kalau diisi), fallback
                          ap_date + term supplier (third_party.top_batas_1),
                          PERSIS pola due_date di AccountPayableController::list().
-      - Pembayaran     : BEDA dgn AR. Pelunasan AP (bayar supplier) tercatat di
-                         kas_det.DEBIT (bukan credit), lewat voucher KK/BK dengan
-                         kas_hdr.paid_to = supplier, status <> '5', voucher_date
-                         <= cutoff. Persis rumus BankKeluarController::getInvoicePaid().
+      - Pembayaran     : BEDA dgn AR. Pelunasan AP tercatat di kas_det.DEBIT
+                         (bukan credit). Voucher KK/BK/BM/KM (BM/KM dipakai kalau
+                         AP dilunasi via offset -- mis. AR & AP pihak sama saling
+                         impas), pihak dicocokkan via paid_to ATAU receive_from
+                         (voucher masuk BM/KM pakai receive_from), status <> '5',
+                         voucher_date <= cutoff.
       - Balance = grand_total - total pembayaran approved (<= cutoff).
       - Status ap_invoice: 1 DRAFT, 2 VALIDATED, 3 APPROVED, 4 POSTED,
         5 CANCELED, 6 PAID, 7 PARTIALLY PAID. DRAFT & CANCELED di-exclude;
@@ -133,8 +135,8 @@ class ApAgingReportController extends Controller
                 FROM kas_det
                 JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
                 WHERE kas_det.reference = ap_invoice.inv_number
-                  AND kas_hdr.paid_to = ap_invoice.supplier_id
-                  AND kas_hdr.voucher_type IN ('KK','BK')
+                  AND (kas_hdr.paid_to = ap_invoice.supplier_id OR kas_hdr.receive_from = ap_invoice.supplier_id)
+                  AND kas_hdr.voucher_type IN ('KK','BK','BM','KM')
                   AND kas_hdr.status <> '5'
                   AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
             ) bayar ON true
@@ -147,8 +149,8 @@ class ApAgingReportController extends Controller
                         SELECT 1 FROM kas_det d
                         JOIN kas_hdr h ON h.voucher_number = d.voucher_number
                         WHERE d.reference = ap_invoice.inv_number
-                          AND h.paid_to = ap_invoice.supplier_id
-                          AND h.voucher_type IN ('KK','BK')
+                          AND (h.paid_to = ap_invoice.supplier_id OR h.receive_from = ap_invoice.supplier_id)
+                          AND h.voucher_type IN ('KK','BK','BM','KM')
                           AND h.status <> '5'
                     )
                   )

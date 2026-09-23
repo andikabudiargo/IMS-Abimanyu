@@ -109,10 +109,11 @@ class ApPaymentScheduleController extends Controller
                     ))::date
                   )";
 
-        // baris pembayaran AP: debit, voucher KK/BK, paid_to = supplier, status<>5
+        // baris pembayaran AP: DEBIT, voucher KK/BK/BM/KM (BM/KM = offset AR<->AP
+        // pihak sama), pihak via paid_to ATAU receive_from, status<>5.
         $payWhere = "kas_det.reference = ap_invoice.inv_number
-                     AND kas_hdr.paid_to = ap_invoice.supplier_id
-                     AND kas_hdr.voucher_type IN ('KK','BK')
+                     AND (kas_hdr.paid_to = ap_invoice.supplier_id OR kas_hdr.receive_from = ap_invoice.supplier_id)
+                     AND kas_hdr.voucher_type IN ('KK','BK','BM','KM')
                      AND kas_hdr.status <> '5'";
 
         return "
@@ -156,8 +157,8 @@ class ApPaymentScheduleController extends Controller
                         SELECT 1 FROM kas_det d
                         JOIN kas_hdr h ON h.voucher_number = d.voucher_number
                         WHERE d.reference = ap_invoice.inv_number
-                          AND h.paid_to = ap_invoice.supplier_id
-                          AND h.voucher_type IN ('KK','BK')
+                          AND (h.paid_to = ap_invoice.supplier_id OR h.receive_from = ap_invoice.supplier_id)
+                          AND h.voucher_type IN ('KK','BK','BM','KM')
                           AND h.status <> '5'
                     )
                   )
