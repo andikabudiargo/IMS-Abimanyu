@@ -126,10 +126,8 @@
             <div style="width:48px;height:3px;background:#7367F0;border-radius:2px;" class="mb-1"></div>
 
             @if($actionCenterCount == 0)
-                <div class="card">
-                    <div class="card-body text-center text-muted py-2">
-                        <i data-feather="check-circle" class="mr-25"></i> Tidak ada approval yang perlu diproses saat ini.
-                    </div>
+                <div class="text-muted mb-1">
+                    <i data-feather="check-circle" class="font-small-4 mr-25"></i> Tidak ada approval yang perlu diproses saat ini.
                 </div>
             @endif
 
@@ -1753,22 +1751,14 @@
         </div>
     </div>
 
-    {{-- ===== Row 3: Information Center tabs ===== --}}
+    {{-- ===== Row 3: Information Center ===== --}}
     <div class="form-row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header p-0" style="border-bottom:1px solid #e9ecef;">
-                    <ul class="nav nav-tabs card-header-tabs mb-0" role="tablist" style="border-bottom:0;">
-                        <li class="nav-item">
-                            <a class="nav-link active" data-toggle="tab" href="#tabInformationCenter" role="tab" aria-selected="true">
-                                <i data-feather="info" class="font-small-4 mr-25"></i> Information Center
-                            </a>
-                        </li>
-                    </ul>
+                <div class="card-header">
+                    <strong><i data-feather="info" class="font-small-4 mr-25"></i> Information Center</strong>
                 </div>
                 <div class="card-body">
-                    <div class="tab-content">
-                        <div class="tab-pane fade show active" id="tabInformationCenter" role="tabpanel">
 
                             @if( $listCriticalStock && $criticalStockCount>0 )
                             <div class="form-row">
@@ -2075,8 +2065,6 @@
                             </div>
                             @endif
 
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
