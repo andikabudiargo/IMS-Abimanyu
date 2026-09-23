@@ -110,15 +110,14 @@
     @else
       {{-- Read-only: data snapshot yang tersimpan (dokumen sudah VALIDATED/APPROVED/CANCELED). --}}
       @php
-        $isPainting = function ($u) { return in_array(strtoupper(trim($u)), ['PCS', 'SET']); };
-        $sumPainting    = $details->filter(function ($d) use ($isPainting) { return $isPainting($d->uom); })->sum('conversion');
-        $sumNonPainting = $details->filter(function ($d) use ($isPainting) { return !$isPainting($d->uom); })->sum('conversion');
-        $cArticle     = number_format($details->count());
-        $cQty         = number_format($details->sum('total_qty'), 2);
-        $cConversion  = number_format($details->sum('conversion'), 2);
-        $cPainting    = number_format($sumPainting, 2);
-        $cNonPainting = number_format($sumNonPainting, 2);
-      @endphp
+  $sumPainting    = $details->filter(fn ($d) => $d->is_painting)->sum('conversion');
+  $sumNonPainting = $details->filter(fn ($d) => !$d->is_painting)->sum('conversion');
+  $cArticle     = number_format($details->count());
+  $cQty         = number_format($details->sum('total_qty'), 2);
+  $cConversion  = number_format($details->sum('conversion'), 2);
+  $cPainting    = number_format($sumPainting, 2);
+  $cNonPainting = number_format($sumNonPainting, 2);
+@endphp
       @include('conversion.conversionReport._summaryCards', ['cArticle' => $cArticle, 'cQty' => $cQty, 'cConversion' => $cConversion, 'cPainting' => $cPainting, 'cNonPainting' => $cNonPainting])
 
       <div class="table-responsive">
@@ -147,8 +146,8 @@
                 <td class="text-right">{{ number_format($d->total_qty, 2) }} {{ $d->uom }}</td>
                 <td class="text-right">{{ number_format($d->avg_selling_price, 2) }}</td>
                 <td class="text-right">{{ number_format($d->avg_purchase_price, 2) }}</td>
-                <td class="text-right">{{ $isPainting($d->uom) ? number_format($d->conversion, 4) : '-' }}</td>
-                <td class="text-right">{{ $isPainting($d->uom) ? '-' : number_format($d->conversion, 4) }}</td>
+               <td class="text-right">{{ $d->is_painting ? number_format($d->conversion, 4) : '-' }}</td>
+<td class="text-right">{{ $d->is_painting ? '-' : number_format($d->conversion, 4) }}</td>
                 <td class="text-center">
                   <button type="button" class="btn btn-icon btn-flat-primary btn-info-row"
                           data-det-id="{{ $d->id }}" data-label="{{ $d->article_code }}">

@@ -80,7 +80,7 @@
 
       let html = '';
       previewRows.forEach((r, i) => {
-        const painting = isPaintingUom(r.uom);
+         const painting = !!r.is_painting;   // ganti dari: isPaintingUom(r.uom)
         const conv = parseFloat(r.conversion) || 0;
         html += `<tr>
           <td class="text-center">${i + 1}</td>
@@ -104,9 +104,9 @@
       const totalQty        = previewRows.reduce((sum, r) => sum + (parseFloat(r.total_qty) || 0), 0);
       const totalConversion = previewRows.reduce((sum, r) => sum + (parseFloat(r.conversion) || 0), 0);
       const totalConvPainting = previewRows.reduce((sum, r) =>
-        sum + (isPaintingUom(r.uom) ? (parseFloat(r.conversion) || 0) : 0), 0);
-      const totalConvNonPainting = previewRows.reduce((sum, r) =>
-        sum + (isPaintingUom(r.uom) ? 0 : (parseFloat(r.conversion) || 0)), 0);
+    sum + (r.is_painting ? (parseFloat(r.conversion) || 0) : 0), 0);
+const totalConvNonPainting = previewRows.reduce((sum, r) =>
+    sum + (r.is_painting ? 0 : (parseFloat(r.conversion) || 0)), 0);
 
       $('#sumTotalArticle').text(totalArticle);
       $('#sumTotalQty').text(humanize(totalQty));
