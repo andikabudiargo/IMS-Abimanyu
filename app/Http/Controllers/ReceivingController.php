@@ -3374,7 +3374,6 @@ public function unPosting($recNumber)
         $apInv  = "(select inv_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
         $apId   = "(select id from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
         $apNo   = "(select ap_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
-        $apGt   = "(select grand_total from ap_invoice where ap_number = $apNumberSub and status in ('4','6') limit 1)";
         // Formula PPN disamakan dgn Detail Receiving (listDetail): total_dpp,
         // total_ppn, total_plus_ppn.
         $dpp     = "(receiving_det.price*receiving_det.qty)";
@@ -3414,9 +3413,10 @@ public function unPosting($recNumber)
         ,DB::raw("(select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_id")
         ,DB::raw("(select kas_hdr.voucher_type from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_type")
         ,DB::raw("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'DD/MM/YYYY') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as paid_date")
-        // Balance = grand total AP (kalau ada dokumen AP), fallback ke grand total baris.
-        // TIDAK dikurangi pembayaran kas (BM/BK/KK) — sesuai permintaan.
-        ,DB::raw("coalesce($apGt, $lineGt) as balance")
+        // Balance = grand total baris receiving ini sendiri (Total Plus PPN).
+        // BUKAN grand total AP — 1 AP bisa mencakup beberapa receiving, jadi
+        // memakai grand total AP per baris akan salah. TIDAK dikurangi kas.
+        ,DB::raw("$lineGt as balance")
         )
         ->orderBy('receiving_det.id')
         ->get();
