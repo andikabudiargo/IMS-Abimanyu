@@ -5,7 +5,7 @@
 <section id="home">
 
     {{-- ===== Row 1: Greeting (4) + Delivery Performance (8) ===== --}}
-    <div class="form-row">
+    <div class="form-row" style="margin-bottom:2rem;">
         <div class="col-lg-4 col-12">
             <div class="card h-100">
                 <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
