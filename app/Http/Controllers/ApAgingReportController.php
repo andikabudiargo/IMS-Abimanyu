@@ -44,6 +44,10 @@ class ApAgingReportController extends Controller
     // sempat diinput, kalau dipaksa ikut akan muncul sebagai hutang palsu.
     private $pairRequiredBefore = '01-01-2024';
 
+    // Ambang outstanding: balance <= ini dianggap lunas (sisa pembulatan PPN/
+    // diskon bisa menyisakan pecahan < 1 rupiah). Skala IDR, jadi 1 rupiah aman.
+    private $minOutstanding = 1;
+
     public function index(Request $request)
     {
         $data['title'] = $this->title;
@@ -139,7 +143,14 @@ class ApAgingReportController extends Controller
               AND $anchor <= to_date(:cutoff,'DD-MM-YYYY')
               AND (
                     $anchor >= to_date(:pairRequiredBefore,'DD-MM-YYYY')
-                    OR EXISTS (SELECT 1 FROM kas_det WHERE kas_det.reference = ap_invoice.inv_number)
+                    OR EXISTS (
+                        SELECT 1 FROM kas_det d
+                        JOIN kas_hdr h ON h.voucher_number = d.voucher_number
+                        WHERE d.reference = ap_invoice.inv_number
+                          AND h.paid_to = ap_invoice.supplier_id
+                          AND h.voucher_type IN ('KK','BK')
+                          AND h.status <> '5'
+                    )
                   )
               $whereExtra
         ";
@@ -170,7 +181,7 @@ class ApAgingReportController extends Controller
             'pairRequiredBefore' => $this->pairRequiredBefore,
         ];
         $subquery = $this->buildHutangSubquery('');
-        $row = DB::selectOne("SELECT COALESCE(SUM(balance),0) as total FROM ($subquery) hutang WHERE balance > 0.01", $bindings);
+        $row = DB::selectOne("SELECT COALESCE(SUM(balance),0) as total FROM ($subquery) hutang WHERE balance > {$this->minOutstanding}", $bindings);
         return (float) $row->total;
     }
 
@@ -197,7 +208,7 @@ class ApAgingReportController extends Controller
                 SUM(CASE WHEN hutang.diff_hari > 90               THEN hutang.balance ELSE 0 END) as d90plus
             FROM ($subquery) hutang
             LEFT JOIN third_party ON third_party.kode = hutang.supplier_id
-            WHERE hutang.balance > 0.01
+            WHERE hutang.balance > {$this->minOutstanding}
             GROUP BY hutang.supplier_id, third_party.nama
             ORDER BY third_party.nama ASC
         ";
@@ -289,7 +300,7 @@ class ApAgingReportController extends Controller
                 hutang.balance
             FROM ($subquery) hutang
             LEFT JOIN third_party ON third_party.kode = hutang.supplier_id
-            WHERE hutang.balance > 0.01
+            WHERE hutang.balance > {$this->minOutstanding}
             $bucketWhere
             ORDER BY hutang.jatuh_tempo_actual ASC, hutang.ap_number ASC
         ";
@@ -342,7 +353,7 @@ class ApAgingReportController extends Controller
                 SUM(CASE WHEN hutang.diff_hari > 90               THEN hutang.balance ELSE 0 END) as d90plus
             FROM ($subquery) hutang
             LEFT JOIN third_party ON third_party.kode = hutang.supplier_id
-            WHERE hutang.balance > 0.01
+            WHERE hutang.balance > {$this->minOutstanding}
             GROUP BY hutang.supplier_id, third_party.nama
             ORDER BY third_party.nama ASC
         ";
