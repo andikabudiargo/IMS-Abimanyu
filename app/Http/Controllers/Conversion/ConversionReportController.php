@@ -525,13 +525,18 @@ $rows[] = [
         // Painting/Non Painting dipecah dari UOM (PCS/SET = painting), persis aturan
         // yang sama dipakai buildSummary() -- conversion_report_det tidak menyimpan
         // kolom split-nya sendiri, jadi dihitung ulang di sini dari uom+conversion.
-        $agg = DB::table('conversion_report_det')
-            ->select('report_id',
-                DB::raw('COUNT(*) as total_article'),
-                DB::raw("COALESCE(SUM(CASE WHEN UPPER(TRIM(uom)) IN ('PCS','SET') THEN conversion ELSE 0 END),0) as total_painting"),
-                DB::raw("COALESCE(SUM(CASE WHEN UPPER(TRIM(uom)) IN ('PCS','SET') THEN 0 ELSE conversion END),0) as total_non_painting"),
-                DB::raw('COALESCE(SUM(conversion),0) as total_conversion'))
-            ->groupBy('report_id');
+        $agg = DB::table('conversion_report_det as crd')
+    ->leftJoin('article as a', 'a.article_code', '=', 'crd.article_code')
+    ->select('crd.report_id',
+        DB::raw('COUNT(*) as total_article'),
+        DB::raw("COALESCE(SUM(CASE WHEN UPPER(TRIM(crd.uom)) IN ('PCS','SET')
+                    AND COALESCE(UPPER(TRIM(a.group_of_material)),'') NOT IN ('MAKLON','MKL')
+                  THEN crd.conversion ELSE 0 END),0) as total_painting"),
+        DB::raw("COALESCE(SUM(CASE WHEN UPPER(TRIM(crd.uom)) IN ('PCS','SET')
+                    AND COALESCE(UPPER(TRIM(a.group_of_material)),'') NOT IN ('MAKLON','MKL')
+                  THEN 0 ELSE crd.conversion END),0) as total_non_painting"),
+        DB::raw('COALESCE(SUM(crd.conversion),0) as total_conversion'))
+    ->groupBy('crd.report_id');
 
         $data = DB::table('conversion_report_hdr as h')
             ->leftJoinSub($agg, 'agg', 'agg.report_id', '=', 'h.id')
@@ -802,12 +807,17 @@ $rows[] = [
 
         $months = ['', 'January','February','March','April','May','June','July','August','September','October','November','December'];
 
-        $details = DB::table('conversion_report_det as d')
-            ->leftJoin('article as a', 'a.article_code', '=', 'd.article_code')
-            ->where('d.report_id', $id)
-            ->select('d.*', 'a.article_alternative_code', 'a.article_desc')
-            ->orderBy('d.article_code')
-            ->get();
+       $details = DB::table('conversion_report_det as d')
+    ->leftJoin('article as a', 'a.article_code', '=', 'd.article_code')
+    ->where('d.report_id', $id)
+    ->select('d.*', 'a.article_alternative_code', 'a.article_desc')
+    ->orderBy('d.article_code')
+    ->get()
+    ->map(function ($d) {
+        $d->is_painting = !$this->isMaklon($d->article_code)
+            && in_array(strtoupper(trim($d->uom)), ['PCS', 'SET']);
+        return $d;
+    });
 
         $username = Auth::user()->username;
         [$periodeStart, $periodeEnd] = $this->periodeBounds((int) $header->periode, (int) $header->tahun);
@@ -848,12 +858,17 @@ $rows[] = [
 
         $months = ['', 'January','February','March','April','May','June','July','August','September','October','November','December'];
 
-        $details = DB::table('conversion_report_det as d')
-            ->leftJoin('article as a', 'a.article_code', '=', 'd.article_code')
-            ->where('d.report_id', $id)
-            ->select('d.*', 'a.article_alternative_code', 'a.article_desc')
-            ->orderBy('d.article_code')
-            ->get();
+       $details = DB::table('conversion_report_det as d')
+    ->leftJoin('article as a', 'a.article_code', '=', 'd.article_code')
+    ->where('d.report_id', $id)
+    ->select('d.*', 'a.article_alternative_code', 'a.article_desc')
+    ->orderBy('d.article_code')
+    ->get()
+    ->map(function ($d) {
+        $d->is_painting = !$this->isMaklon($d->article_code)
+            && in_array(strtoupper(trim($d->uom)), ['PCS', 'SET']);
+        return $d;
+    });
 
         // riwayat revisi: semua baris (termasuk yang sekarang) yang berbagi
         // origin_report_code yang sama -- persis pola pengelompokan SO.
