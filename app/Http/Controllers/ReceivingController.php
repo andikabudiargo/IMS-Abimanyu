@@ -3424,7 +3424,7 @@ public function unPosting($recNumber)
         // pembayaran AP di level dokumen, tidak bisa dibagi bersih per baris.
         ,DB::raw("case when $apStatus = '6' then 0 else $lineGt end as balance")
         )
-        ->orderBy('receiving_det.id')
+        ->orderByRaw("to_date(nullif(receiving_hdr.do_date,''),'DD-MM-YYYY') asc nulls last, receiving_det.id asc")
         ->get();
 
         return Datatables::of($data)

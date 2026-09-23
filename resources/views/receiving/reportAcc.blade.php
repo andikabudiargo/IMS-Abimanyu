@@ -126,7 +126,7 @@
         recDate:recDate
       },
       type:'POST',
-      orderColumn:[[ 1, 'asc' ]],
+      orderColumn:[], // pertahankan urutan dari server (DO Date terkecil dulu)
       excelFileName:'receiving_report_acc'
     });
   }
