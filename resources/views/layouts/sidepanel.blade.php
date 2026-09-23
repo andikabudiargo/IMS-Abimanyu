@@ -807,6 +807,13 @@
                       </a>
                     </li>
                   @endcan
+                  @can('delivery-report-acc')
+                    <li class="{{ \Request::is(['apPaymentSchedule'])  ? 'active' : '' }}">
+                      <a class="d-flex align-items-center" href="{{ route('apPaymentSchedule.index') }}">
+                        <span class="menu-item text-truncate" data-i18n="AP Payment Schedule">AP Payment Schedule</span>
+                      </a>
+                    </li>
+                  @endcan
                 </ul>
               </li>
 
