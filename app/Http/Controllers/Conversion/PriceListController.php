@@ -184,12 +184,14 @@ private function buildBomPayload($fg): array
         ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'RM' as source"))
         ->get();
 
-    $det = DB::table('bom_det as b')
-        ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
-        ->where('b.bom_code', $hdr->bom_code)
-        ->whereIn('a.article_type', ['RMP', 'RMNP'])
-        ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'DET' as source"))
-        ->get();
+    $det = $this->isMaklon($fg)
+        ? collect()
+        : DB::table('bom_det as b')
+            ->leftJoin('article as a', 'a.article_code', '=', 'b.article_code')
+            ->where('b.bom_code', $hdr->bom_code)
+            ->whereIn('a.article_type', ['RMP', 'RMNP'])
+            ->select('b.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.article_type', 'b.qty', DB::raw("'DET' as source"))
+            ->get();
 
     $materials = [];
     foreach ($rm->concat($det) as $m) {
@@ -255,6 +257,16 @@ private function avgPrice($articleCode, int $maxMonthsBack = 24): array
     }
 
     return ['price' => 0.0, 'last_date' => null];
+}
+/**
+ * Salinan ConversionReportController::isMaklon() -- FG dengan
+ * group_of_material MAKLON/MKL diproses pihak luar, jadi bom_det
+ * (proses/RM yang biasanya dikerjakan sendiri) tidak dihitung.
+ */
+private function isMaklon(string $articleCode): bool
+{
+    $group = DB::table('article')->where('article_code', $articleCode)->value('group_of_material');
+    return in_array(strtoupper(trim($group ?? '')), ['MAKLON', 'MKL']);
 }
 
     private function calcMaterialPrice($mats)
