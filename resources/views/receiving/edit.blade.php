@@ -766,6 +766,49 @@ function updateAddRowVisibility(prNumber){
             return;
         }
 
+        // Kalau rec_date jatuh di tanggal adjustment (OB/SYSTEM CORRECTION) yang
+        // sudah POSTED, tanya posisi before/after opname dulu (sama seperti form
+        // create) sebelum Update meng-repost ke stok.
+        checkOpnamePositionThenUpdate(articles);
+    });
+
+    function checkOpnamePositionThenUpdate(articles){
+        $.ajax({
+            type: 'get',
+            url: "{{ route('sto.check-date') }}",
+            data: { date: $('#recDate').val() },
+            dataType: 'json',
+            success: function(res){
+                if (res && res.hasSto) {
+                    Swal.fire({
+                        title: 'Tanggal Opname (STO)',
+                        html: 'Tanggal receiving ini bertepatan dengan jadwal stock opname (STO). Transaksi ini terjadi kapan?',
+                        input: 'select',
+                        inputOptions: {
+                            before: 'Sebelum/selama opname (08:00-17:00)',
+                            after: 'Sesudah opname (malam hari)'
+                        },
+                        inputPlaceholder: '-- Pilih --',
+                        showCancelButton: true,
+                        confirmButtonText: 'Lanjut Update',
+                        cancelButtonText: 'Batal',
+                        inputValidator: function(value){ return !value ? 'Wajib dipilih' : undefined; }
+                    }).then(function(result){
+                        if (result.isConfirmed) {
+                            submitUpdate(articles, result.value);
+                        } else {
+                            $('#cmdUpdate').removeAttr('disabled');
+                        }
+                    });
+                } else {
+                    submitUpdate(articles, '');
+                }
+            },
+            error: function(){ submitUpdate(articles, ''); }
+        });
+    }
+
+    function submitUpdate(articles, opnamePosition){
         $.ajax({
             type:"post",
             url:"{{ route('receiving.update') }}",
@@ -781,6 +824,7 @@ function updateAddRowVisibility(prNumber){
                 recDate:   $('#recDate').val(),
                 recType:   $('#recType').val(),
                 note:      $('#note').val(),
+                opnamePosition: opnamePosition,
                 articles:  JSON.stringify(articles),
             },
             dataType:"json",
@@ -796,7 +840,7 @@ function updateAddRowVisibility(prNumber){
             },
             error: function(e){ console.log(e); $('#cmdUpdate').removeAttr('disabled'); }
         });
-    });
+    }
 
     /* =====================================================================
        ISI BARIS ARTIKEL DARI DATA TERSIMPAN ($detail)

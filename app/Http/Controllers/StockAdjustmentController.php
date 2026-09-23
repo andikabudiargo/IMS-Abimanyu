@@ -1799,9 +1799,15 @@ class StockAdjustmentController extends Controller
             return response()->json(['hasSto' => false]);
         }
 
-        $hasSto = DB::table('sto_config_mapping')
-            ->where('target_type', 'LOCATION')
-            ->where('sto_date', $dateYmd)
+        // Modal before/after cuma relevan kalau tanggal transaksi PERSIS jatuh di
+        // tanggal anchor (OPENING BALANCE / SYSTEM CORRECTION) yang SUDAH POSTED —
+        // itu satu-satunya kondisi ambigu yang jawabannya dipakai obBoundaryFor().
+        // (Sebelumnya cek sto_config_mapping yang tidak tahu anchor sudah diposting
+        // atau belum, dan tidak bedakan OB vs SC.)
+        $hasSto = DB::table('stock_adjustment_hdr')
+            ->whereIn('adj_type', ['OPENING BALANCE', 'SYSTEM CORRECTION'])
+            ->where('status', self::ST_POSTED)
+            ->whereRaw("TO_DATE(adj_date,'dd-mm-yyyy') = TO_DATE(?,'dd-mm-yyyy')", [$dateYmd])
             ->exists();
 
         return response()->json(['hasSto' => $hasSto]);

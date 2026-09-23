@@ -817,6 +817,12 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
         $note = $request->note;
         $articles = json_decode($request->articles);
         $recType = $request->recType;
+        // 'before'/'after' opname (STO 08:00-17:00), atau null kalau tidak
+        // relevan (rec_date = hari ini, atau lokasi tanpa jadwal opname).
+        // Dipakai StockAdjustmentController::obBoundaryFor() saat rec_date
+        // ini kebetulan sama dengan tanggal SYSTEM CORRECTION aktif.
+        $opnamePosition = in_array($request->opnamePosition, ['before', 'after'], true)
+            ? $request->opnamePosition : null;
         $statusRec ="New";
         $status = '1';
         $authorizedBy = "";
@@ -877,6 +883,7 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
                         'rec_type' => $recType,
                         'status' => $status,
                         'note' => $note,
+                        'opname_position' => $opnamePosition,
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
@@ -1113,6 +1120,11 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
     $note      = $request->note;
     $articles  = json_decode($request->articles);
 
+    // before/after opname — dipakai doPosting() saat rec_date == tanggal SYSTEM
+    // CORRECTION aktif (lihat obBoundaryFor()). Diisi dari modal di form edit.
+    $opnamePosition = in_array($request->opnamePosition, ['before', 'after'], true)
+        ? $request->opnamePosition : null;
+
     // Pertahankan rec_type asli, JANGAN hardcode NORMAL
     $recType   = $currentHeader->rec_type;
     $isManual  = in_array($recType, ['NP', 'TRIAL']);   // FIX: NP & TRIAL sama-sama manual
@@ -1212,6 +1224,7 @@ $hasOldMovement = $this->snapshotMovementLocations($originRec)->isNotEmpty();
                 'prepared_by'   => $username,
                 'rec_type'      => $recType,
                 'note'          => $note,
+                'opname_position' => $opnamePosition,
                 'updated_by'    => $username,
                 'updated_at'    => date('Y-m-d H:i:s'),
             ]);
@@ -1810,6 +1823,7 @@ private function doPosting($recNumber, $username)
         $dataSetMovement[] = [
             'movement_code'     => $seq,
             'movement_date'     => $val->movement_date,
+            'opname_position'   => $recHdrq->opname_position,
             'artikel_code'      => $val->article_code,
             'artikel_desc'      => $val->article_desc,
             'movement_min'      => 0,
@@ -1834,8 +1848,10 @@ private function doPosting($recNumber, $username)
         DB::table('warehouse_movement')->insert($dataSetMovement);
 
         // Dokumen receiving bisa langsung diposting dengan rec_date yang sudah
-        // tercakup OPENING BALANCE aktif (backdate sejak awal) — OB harus
-        // langsung menyerap efeknya saat itu juga, bukan diblokir.
+        // tercakup OPENING BALANCE/SYSTEM CORRECTION aktif (backdate sejak
+        // awal) — adjustment itu harus langsung menyerap efeknya saat itu
+        // juga, bukan diblokir. opname_position dipakai kalau kebetulan
+        // rec_date == tanggal SYSTEM CORRECTION aktif (lihat obBoundaryFor()).
         $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
         foreach ($dataSetMovement as $mv) {
             $signed = (float) $mv['movement_plus'];
@@ -1845,11 +1861,11 @@ private function doPosting($recNumber, $username)
             if (!$mvDt) continue;
             $mvDateYmd = $mvDt->format('Y-m-d');
 
-            if (!$adjOb->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $mvDateYmd)) continue;
+            if (!$adjOb->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $mvDateYmd, $mv['opname_position'])) continue;
 
             $adjOb->absorbIntoLatestOpeningBalance(
                 $mv['artikel_code'], $mv['location_number'], $signed, $username,
-                "Posting Receiving {$recNumber} bertanggal {$mv['movement_date']} (sudah tercakup OB)"
+                "Posting Receiving {$recNumber} bertanggal {$mv['movement_date']} (sudah tercakup OB/SYSTEM CORRECTION)"
             );
         }
     }
@@ -1950,6 +1966,10 @@ public function cancel(Request $request)
         }
         // ----- 1) snapshot artikel+lokasi dari movement LAMA -----
         $snapshot = $this->snapshotMovementLocations($recNumber);
+
+        // Lepas efek yang tadinya diserap anchor OB/SYSTEM CORRECTION (kalau ada)
+        // SEBELUM movement dihapus — supaya adjustment ikut turun, bukan phantom.
+        $this->releaseAbsorbForReceiving($recNumber, $username, "Cancel Receiving {$recNumber} (lepas dari OB/SYSTEM CORRECTION)");
 
 DB::table('warehouse_movement')
     ->where('movement_transnno', $recNumber)
@@ -2296,18 +2316,18 @@ if ($checkNewRec > 0) {
 }
 
 // ── Definisikan SQL saja di sini, JANGAN dieksekusi dulu ──
-$sqlHdr = "INSERT into receiving_hdr 
+$sqlHdr = "INSERT into receiving_hdr
 (
     rec_number, inv_number, inv_date, do_number, do_date, po_number,
     supplier_id, rec_date, authorized_by, authorized_at, prepared_by,
     rec_type, status, note, created_by, updated_by, created_at, updated_at,
-    origin_rec_number, num_revision, revised_by, revised_at, reason
+    origin_rec_number, num_revision, revised_by, revised_at, reason, opname_position
 )
-select 
+select
     ?, inv_number, inv_date, do_number, do_date, po_number,
     supplier_id, rec_date, authorized_by, authorized_at, prepared_by,
     rec_type, '7', note, created_by, ?, created_at, ?,
-    ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, opname_position
 from receiving_hdr where rec_number = ?";
 
 $sqlDet = "INSERT into receiving_det
@@ -2430,6 +2450,11 @@ public function unPosting($recNumber)
 
     // 1) snapshot dari movement lama
     $snapshot = $this->snapshotMovementLocations($recNumber);
+
+    // 1b) lepas efek yang tadinya diserap anchor OB/SYSTEM CORRECTION (kalau ada)
+    //     SEBELUM movement dihapus — supaya adjustment ikut turun, bukan phantom.
+    //     doPosting() nanti akan absorb ulang efek versi baru (revisi/Update).
+    $this->releaseAbsorbForReceiving($recNumber, $username, "unPosting Receiving {$recNumber} (lepas dari OB/SYSTEM CORRECTION)");
 
     // 2) delete movement RECEIVING
     DB::table('warehouse_movement')
@@ -3267,6 +3292,138 @@ public function unPosting($recNumber)
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusRec[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','rec_number'])
+        ->make(true);
+    }
+
+    public function getTableColoumnReportAcc()
+    {
+        $kolom =
+        [
+            ['data'=>'ppn','name'=>'ppn','title'=>'Sts'],
+            ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
+            ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
+            ['data'=>'uom_rec','name'=>'uom_rec','title'=>'UOM'],
+            ['data'=>'qty','name'=>'qty','title'=>'Rec Qty'],
+            ['data'=>'price','name'=>'price','title'=>'Price'],
+            ['data'=>'grand_total','name'=>'grand_total','title'=>'Grand Total'],
+            ['data'=>'invoice_number','name'=>'invoice_number','title'=>'Invoice Number'],
+            ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
+            ['data'=>'paid_date','name'=>'paid_date','title'=>'Paid Date'],
+            ['data'=>'balance','name'=>'balance','title'=>'Balance'],
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function reportAcc(Request $request)
+    {
+        $data['title'] = "Receiving Report";
+
+        $data['suppliers'] = DB::table('third_party')
+        ->where('third_party_type','=','supp')
+        ->select('kode','nama')
+        ->orderBy('nama')
+        ->get();
+
+        $data['poNumbers'] = DB::table('receiving_hdr')
+        ->whereNotIn('status',['5','7'])
+        ->whereNotNull('po_number')
+        ->distinct()
+        ->orderBy('po_number')
+        ->pluck('po_number');
+
+        $data['kolom'] = $this->getTableColoumnReportAcc();
+
+        return view("receiving.reportAcc",$data);
+    }
+
+    public function listReportAcc(Request $request)
+    {
+        $searchSupplier = (array) $request->searchSupplier;
+        $searchPo       = (array) $request->searchPo;
+        $requestDate    = $request->recDate;
+
+        // strip empty "All" entries
+        $searchSupplier = array_filter($searchSupplier, fn($v) => $v !== '' && $v !== null);
+        $searchPo       = array_filter($searchPo, fn($v) => $v !== '' && $v !== null);
+
+        $fromDate = "";
+        $toDate = "";
+
+        if ($requestDate){
+            $date = explode("to",$requestDate);
+            if(count($date)>1){
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
+            }else{
+                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+                $toDate = $fromDate;
+            }
+        }
+
+        // AP invoice number tied to this receiving (posted/paid), used to match payment vouchers
+        $apInv = "(select inv_number from ap_invoice where ap_number =
+                    (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)
+                    and status in ('4','6') limit 1)";
+
+        $data = DB::table('receiving_det')
+        ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
+        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
+        ->leftJoin('article','article.article_code','receiving_det.article_code')
+        ->where(function ($query) use ($searchSupplier,$searchPo,$requestDate,$fromDate,$toDate) {
+            $searchSupplier ? $query->whereIn('receiving_hdr.supplier_id',$searchSupplier) : '';
+            $searchPo ? $query->whereIn('receiving_hdr.po_number',$searchPo) : '';
+            $requestDate ? $query->whereBetween(DB::raw("to_date(receiving_hdr.rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->where('receiving_det.qty','>',0)
+        ->whereNotIn('receiving_hdr.status',['5','7'])
+        ->select(
+        'article.article_desc'
+        ,'article.article_alternative_code'
+        ,'receiving_hdr.rec_date'
+        ,'receiving_hdr.po_number'
+        ,'receiving_det.rec_number'
+        ,'receiving_hdr.id as rec_id'
+        ,'receiving_det.uom_rec'
+        ,'receiving_det.qty'
+        ,'receiving_det.price'
+        ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
+        ,DB::raw("case when coalesce(purchase_order_hdr.ppn::numeric,0) > 0 then 'PPN' else '' end as ppn")
+        ,DB::raw("(receiving_det.price*receiving_det.qty)*(1 + (coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*coalesce(purchase_order_hdr.ppn::numeric,0))/100) as grand_total")
+        ,DB::raw("$apInv as invoice_number")
+        ,DB::raw("(select id from ap_invoice where inv_number = $apInv limit 1) as invoice_id")
+        ,DB::raw("(select ap_invoice.grand_total from ap_invoice where inv_number = $apInv limit 1) as ap_grand_total")
+        ,DB::raw("(select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_number")
+        ,DB::raw("(select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_id")
+        ,DB::raw("(select kas_hdr.voucher_type from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_type")
+        ,DB::raw("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'DD/MM/YYYY') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as paid_date")
+        ,DB::raw("case when (select kas_det.credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status = '3' and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) is null
+            then (receiving_det.price*receiving_det.qty)*(1 + (coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*coalesce(purchase_order_hdr.ppn::numeric,0))/100)
+            else coalesce((select ap_invoice.grand_total from ap_invoice where inv_number = $apInv limit 1),
+                (receiving_det.price*receiving_det.qty)*(1 + (coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*coalesce(purchase_order_hdr.ppn::numeric,0))/100))
+                - (select kas_det.credit from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status = '3' and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1)
+            end as balance")
+        )
+        ->orderBy('receiving_det.id')
+        ->get();
+
+        return Datatables::of($data)
+        ->addColumn('rec_number', function ($row) {
+            if (!$row->rec_id || !$row->rec_number) return $row->rec_number;
+            return '<a href="'.route('receiving.show', ['id' => Crypt::encryptString($row->rec_id)]).'" target="_blank">'.$row->rec_number.'</a>';
+        })
+        ->addColumn('invoice_number', function ($row) {
+            return $row->invoice_number;
+        })
+        ->addColumn('voucher_number', function ($row) {
+            if (!$row->voucher_id || !$row->voucher_number) return $row->voucher_number;
+            $routeName = $row->voucher_type == 'KK' ? 'kasKeluar.show' : 'bankKeluar.show';
+            return '<a href="'.route($routeName, ['id' => Crypt::encryptString($row->voucher_id)]).'" target="_blank">'.$row->voucher_number.'</a>';
+        })
+        ->rawColumns(['rec_number', 'voucher_number'])
         ->make(true);
     }
 
@@ -4261,6 +4418,43 @@ private function snapshotMovementLocations(string $recNumber): \Illuminate\Suppo
 }
 
 /**
+ * Lepas (reverse) efek movement RECEIVING dokumen ini dari anchor OB/SYSTEM
+ * CORRECTION yang tadinya menyerapnya saat posting (lihat doPosting()). Dipanggil
+ * di cancel()/unPosting() SEBELUM movement dihapus, supaya adjustment tetap
+ * dinamis: qty yang tadinya diserap dilepas kembali (delta negatif) — kalau
+ * tidak, qty-nya nyangkut di stock_after anchor jadi phantom stock walau
+ * receiving-nya sudah dibatalkan/direvisi.
+ * ponytail: pakai anchor "latest" yang sama persis dgn doPosting()/obBoundaryFor().
+ * Kalau ada anchor lebih baru diposting SETELAH receiving ini ter-absorb, release
+ * bisa kena anchor yang salah — limitasi desain yang sudah ada di sisi absorb.
+ */
+private function releaseAbsorbForReceiving(string $recNumber, string $username, string $context): void
+{
+    $adjOb = app(\App\Http\Controllers\StockAdjustmentController::class);
+
+    $oldMovs = DB::table('warehouse_movement')
+        ->where('movement_transnno', $recNumber)
+        ->where('movement_type', 'RECEIVING')
+        ->select('artikel_code', 'location_number', 'movement_date', 'movement_plus', 'opname_position')
+        ->get();
+
+    foreach ($oldMovs as $mv) {
+        $signed = (float) $mv->movement_plus;
+        if (abs($signed) < 0.000001) continue;
+
+        $mvDt = \DateTime::createFromFormat('d-m-Y', trim((string) $mv->movement_date));
+        if (!$mvDt) continue;
+        $mvDateYmd = $mvDt->format('Y-m-d');
+
+        if (!$adjOb->obBoundaryFor($mv->artikel_code, $mv->location_number, $mvDateYmd, $mv->opname_position)) continue;
+
+        $adjOb->absorbIntoLatestOpeningBalance(
+            $mv->artikel_code, $mv->location_number, -$signed, $username, $context
+        );
+    }
+}
+
+/**
  * Recalculate ulang array snapshot (dipakai untuk union lokasi lama ∪ baru).
  * $items: Collection|array berisi objek/array dengan artikel_code & location_number.
  */
@@ -4293,16 +4487,22 @@ private function recalculateFromDate(string $articleCode, string $location, stri
 {
     $siteCode = 'HO';
 
+    // Movement <= 2026-06-30 tidak pernah dihitung ledger (floor yang sama
+    // persis dengan get_last_qty_new()) -- walk TIDAK BOLEH mulai lebih awal
+    // dari itu, supaya warehouse_stock konsisten walau $fromDate sendiri
+    // backdate ke sebelum floor.
+    $walkFromDate = $fromDate < '2026-07-01' ? '2026-07-01' : $fromDate;
+
     $balanceBefore = (float) DB::selectOne(
         "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'YYYY-MM-DD') - INTERVAL '1 day', 'YYYY-MM-DD'), ?, ?) AS bal",
-        [$articleCode, $fromDate, $siteCode, $location]
+        [$articleCode, $walkFromDate, $siteCode, $location]
     )->bal;
 
     $movements = DB::table('warehouse_movement')
         ->where('artikel_code', $articleCode)
         ->where('location_number', $location)
         ->where('site_code', $siteCode)
-        ->whereRaw("TO_DATE(movement_date,'DD-MM-YYYY') >= TO_DATE(?,'YYYY-MM-DD')", [$fromDate])
+        ->whereRaw("TO_DATE(movement_date,'DD-MM-YYYY') >= TO_DATE(?,'YYYY-MM-DD')", [$walkFromDate])
         ->orderByRaw("TO_DATE(movement_date,'DD-MM-YYYY') ASC")
         ->orderBy('movement_code', 'asc')
         ->select('movement_code', 'movement_min', 'movement_plus')

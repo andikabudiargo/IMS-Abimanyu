@@ -780,9 +780,9 @@
                     </li>
                   @endcan
                     @can('delivery-report-acc')
-                    <li class="{{ \Request::is(['deliveryReportSoAcc'])  ? 'active' : '' }}">
-                      <a class="d-flex align-items-center" href="{{ route('delivery.report.so.acc') }}">
-                        <span class="menu-item text-truncate" data-i18n="Dn Report Acc">Receiving Report</span>
+                    <li class="{{ \Request::is(['receivingReportAcc'])  ? 'active' : '' }}">
+                      <a class="d-flex align-items-center" href="{{ route('receiving.report.acc') }}">
+                        <span class="menu-item text-truncate" data-i18n="Receiving Report">Receiving Report</span>
                       </a>
                     </li>
                   @endcan
