@@ -725,13 +725,6 @@
                 </li>
               @endcan
 
-               <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Tax">Tax Management</span></a>
-                <ul class="menu-content">
-                
-                 
-                </ul>
-              </li>
-
               @can('ap-index')
                 <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Kas</span></a>
                   <ul class="menu-content">
@@ -799,7 +792,12 @@
                 </li>
               @endcan
               
-              
+               <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Tax">Tax Management</span></a>
+                <ul class="menu-content">
+                
+                 
+                </ul>
+              </li>
 
             </ul>
           </li>
