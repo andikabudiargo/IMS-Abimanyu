@@ -24,10 +24,6 @@
         <label for="searchPo">PO Number</label>
         <input type="text" class="form-control text-uppercase" id="searchPo" name="searchPo" placeholder=""  />
       </div>
-      <div class="form-group col-md-3"> 
-        <label for="searchInv">Invoice Number</label>
-        <input type="text" class="form-control text-uppercase" id="searchInv" name="searchInv" placeholder=""  />
-      </div>
        <div class="form-group col-md-3">
         <label class="form-label" for="recType">Receive Type</label>
                             <select class="select2 form-control" id="recType" name="recType" required>
@@ -229,7 +225,6 @@
 <script type="text/javascript">
  let searchRec = $("#searchRec");
 let searchPo = $("#searchPo");
-let searchInv = $("#searchInv");
 let searchSupplier = $("#searchSupplier"); 
 let searchStatus = $("#searchStatus");
 let recType = $("#recType");
@@ -257,7 +252,7 @@ $(document).ready(function(){
 $('a[data-action="reload"]').on('click', function () {
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
+    showList(searchRec.val(),searchPo.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
 });
 
 rangePickr = $('.flatpickr-range');
@@ -271,22 +266,22 @@ if (rangePickr.length) {
 $("#btnSearch").click(function(e){
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
+    showList(searchRec.val(),searchPo.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
 });
 
 btnSummary.click(function(e){
     btnSummary.hide();
     btnDetail.show();
-    showList(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
+    showList(searchRec.val(),searchPo.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
 });
 
 btnDetail.click(function(e){
     btnSummary.show();
     btnDetail.hide();
-    showListDetail(searchRec.val(),searchPo.val(),searchInv.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
+    showListDetail(searchRec.val(),searchPo.val(),searchSupplier.val(),searchStatus.val(),recDate.val(),doDate.val(),recType.val(),searchArticleCode.val(),searchArticleDesc.val());
 });
 
-const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate,recType,searchArticleCode,searchArticleDesc) => {
+const showList = (searchRec,searchPo,searchSupplier,searchStatus,recDate,doDate,recType,searchArticleCode,searchArticleDesc) => {
   if ($('#detailedTable tr').length >0){
       let table= $('#detailedTable').DataTable();
       table.destroy();
@@ -305,7 +300,6 @@ const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDa
     dataSearch:  {
       searchRec:searchRec,
       searchPo:searchPo,
-      searchInv:searchInv,
       searchSupplier:searchSupplier,
       searchStatus:searchStatus,
       recDate:recDate,
@@ -319,7 +313,7 @@ const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDa
   });
 }
 
-const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDate,doDate,recType,searchArticleCode,searchArticleDesc) => {
+const showListDetail = (searchRec,searchPo,searchSupplier,searchStatus,recDate,doDate,recType,searchArticleCode,searchArticleDesc) => {
   if ($('#detailedTable tr').length >0){
       let table= $('#detailedTable').DataTable();
       table.destroy();
@@ -343,7 +337,6 @@ const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus
     dataSearch:  {
       searchRec:searchRec,
       searchPo:searchPo,
-      searchInv:searchInv,
       searchSupplier:searchSupplier,
       searchStatus:searchStatus,
       recDate:recDate,
@@ -515,7 +508,7 @@ $('#btnSaveChemicalUnit').on('click', function () {
 
  if (res.status === 1) {
   $('#chemicalUnitModal').modal('hide');
-  showList(searchRec.val(), searchPo.val(), searchInv.val(), searchSupplier.val(), searchStatus.val(), recDate.val(), doDate.val(), recType.val());
+  showList(searchRec.val(), searchPo.val(),  searchSupplier.val(), searchStatus.val(), recDate.val(), doDate.val(), recType.val());
 
   Swal.fire({
     title: 'Berhasil',
@@ -859,7 +852,7 @@ $('#btnConfirmLinkPo').on('click', function(){
             icon: 'success',
             confirmButtonText: 'OK'
           }).then(() => {
-            showList(searchRec.val(), searchPo.val(), searchInv.val(), searchSupplier.val(), searchStatus.val(), recDate.val(), doDate.val(), recType.val(), searchArticleCode.val(), searchArticleDesc.val());
+            showList(searchRec.val(), searchPo.val(),  searchSupplier.val(), searchStatus.val(), recDate.val(), doDate.val(), recType.val(), searchArticleCode.val(), searchArticleDesc.val());
           });
         } else {
           let msg = Array.isArray(res.message) ? res.message.join('<br>') : res.message;

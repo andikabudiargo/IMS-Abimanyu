@@ -41,7 +41,7 @@
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group col-md-6">
+              <div class="form-group col-md-3">
                 <label class="form-label" for="searchSupplier">Supplier</label>
                 <select class="select2 form-control" id="searchSupplier" name="searchSupplier[]" multiple>
                     @foreach($suppliers as $val)
@@ -50,7 +50,7 @@
                 </select>
                 <small class="text-muted">Kosongkan = All</small>
               </div>
-              <div class="form-group col-md-6">
+              <div class="form-group col-md-3">
                 <label for="searchPo">PO Number</label>
                 <select class="select2 form-control" id="searchPo" name="searchPo[]" multiple>
                   @foreach($poNumbers as $po)
@@ -59,17 +59,15 @@
                 </select>
                 <small class="text-muted">Kosongkan = All</small>
               </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-6">
+              <div class="form-group col-md-3">
                 <label for="searchInv">Invoice Number</label>
                 <select class="select2 form-control" id="searchInv" name="searchInv[]" multiple data-tags="true" data-token-separators='[",", " "]'></select>
-                <small class="text-muted">Ketik nomor lalu Enter, bisa lebih dari satu. Kosongkan = All</small>
+                <small class="text-muted">Ketik lalu Enter, boleh banyak. Kosong = All</small>
               </div>
-              <div class="form-group col-md-6">
+              <div class="form-group col-md-3">
                 <label for="searchVoucher">Voucher Number</label>
                 <select class="select2 form-control" id="searchVoucher" name="searchVoucher[]" multiple data-tags="true" data-token-separators='[",", " "]'></select>
-                <small class="text-muted">Ketik nomor lalu Enter, bisa lebih dari satu. Kosongkan = All</small>
+                <small class="text-muted">Ketik lalu Enter, boleh banyak. Kosong = All</small>
               </div>
             </div>
             <div class="form-row">
