@@ -3362,6 +3362,62 @@ public function unPosting($recNumber)
         return json_encode($kolom, true);
     }
 
+    // Filter bersama untuk Receiving Report Acc (Detail & Summary).
+    // $detail = true: filter artikel memfilter baris receiving_det (join article sudah ada);
+    // false: filter artikel berlaku sebagai "punya baris yang cocok" (summary per header).
+    private function applyReportAccFilters($q, Request $r, bool $detail)
+    {
+        $multi = fn ($k) => array_values(array_filter((array) $r->$k, fn ($v) => $v !== '' && $v !== null));
+        $range = function ($val) {
+            if (!$val) return null;
+            $p = explode("to", $val);
+            $from = implode("/", array_reverse(explode("-", trim($p[0]))));
+            $to = count($p) > 1 ? implode("/", array_reverse(explode("-", trim($p[1])))) : $from;
+            return [$from, $to];
+        };
+
+        $supplier = $multi('searchSupplier');
+        $po       = $multi('searchPo');
+        $inv      = array_map('strtoupper', $multi('searchInv'));
+        $voucher  = array_map('strtoupper', $multi('searchVoucher'));
+
+        $supplier ? $q->whereIn('receiving_hdr.supplier_id', $supplier) : '';
+        $po       ? $q->whereIn('receiving_hdr.po_number', $po) : '';
+        $r->searchRec  ? $q->where('receiving_hdr.rec_number', 'ilike', '%'.$r->searchRec.'%') : '';
+        $r->searchStatus ? $q->where('receiving_hdr.status', $r->searchStatus) : '';
+        $r->recType    ? $q->where('receiving_hdr.rec_type', $r->recType) : '';
+
+        if ($d = $range($r->recDate)) $q->whereBetween(DB::raw("to_date(receiving_hdr.rec_date,'DD-MM-YYYY')"), $d);
+        if ($d = $range($r->doDate))  $q->whereBetween(DB::raw("to_date(receiving_hdr.do_date,'DD-MM-YYYY')"), $d);
+
+        foreach (['searchArticleCode' => 'article_alternative_code', 'searchArticleDesc' => 'article_desc'] as $key => $col) {
+            if (!$r->$key) continue;
+            if ($detail) {
+                $q->where("article.$col", 'ilike', '%'.$r->$key.'%');
+            } else {
+                $val = $r->$key;
+                $q->whereExists(function ($sub) use ($col, $val) {
+                    $sub->select(DB::raw(1))->from('receiving_det')
+                        ->leftJoin('article', 'article.article_code', 'receiving_det.article_code')
+                        ->whereColumn('receiving_det.rec_number', 'receiving_hdr.rec_number')
+                        ->where("article.$col", 'ilike', '%'.$val.'%');
+                });
+            }
+        }
+
+        // Invoice Number = ap_number; Voucher Number = voucher kas/bank dari AP tsb (sama dgn kolom di report).
+        $apNumberSub = "(select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)";
+        if ($inv) {
+            $q->whereRaw("upper((select ap_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)) in (".implode(',', array_fill(0, count($inv), '?')).")", $inv);
+        }
+        if ($voucher) {
+            $apInv = "(select inv_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)";
+            $q->whereRaw("upper((select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1)) in (".implode(',', array_fill(0, count($voucher), '?')).")", $voucher);
+        }
+
+        return $q;
+    }
+
     public function getTableColoumnReportAccSummary()
     {
         $kolom =
@@ -3407,11 +3463,7 @@ public function unPosting($recNumber)
 
         $data = DB::table('receiving_hdr')
         ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
-        ->where(function ($query) use ($searchSupplier,$searchPo,$requestDate,$fromDate,$toDate) {
-            $searchSupplier ? $query->whereIn('receiving_hdr.supplier_id',$searchSupplier) : '';
-            $searchPo ? $query->whereIn('receiving_hdr.po_number',$searchPo) : '';
-            $requestDate ? $query->whereBetween(DB::raw("to_date(receiving_hdr.rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-        })
+        ->where(fn ($query) => $this->applyReportAccFilters($query, $request, false))
         ->whereNotIn('receiving_hdr.status',['5','7'])
         ->select(
             'receiving_hdr.id as rec_id'
@@ -3478,6 +3530,7 @@ public function unPosting($recNumber)
 
         $data['kolom'] = $this->getTableColoumnReportAcc();
         $data['kolomSummary'] = $this->getTableColoumnReportAccSummary();
+        $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','10'=>'REVISI'];
 
         return view("receiving.reportAcc",$data);
     }
@@ -3527,11 +3580,7 @@ public function unPosting($recNumber)
         ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
         ->leftJoin('article_types','article_types.code','article.article_type')
-        ->where(function ($query) use ($searchSupplier,$searchPo,$requestDate,$fromDate,$toDate) {
-            $searchSupplier ? $query->whereIn('receiving_hdr.supplier_id',$searchSupplier) : '';
-            $searchPo ? $query->whereIn('receiving_hdr.po_number',$searchPo) : '';
-            $requestDate ? $query->whereBetween(DB::raw("to_date(receiving_hdr.rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-        })
+        ->where(fn ($query) => $this->applyReportAccFilters($query, $request, true))
         ->where('receiving_det.qty','>',0)
         ->whereNotIn('receiving_hdr.status',['5','7'])
         ->select(
