@@ -116,6 +116,7 @@ class DeliveryController extends Controller
             ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+            ['data'=>'date_period','name'=>'date_period','title'=>'date_period','visible'=>false],
         ];
         return json_encode($kolom, true);
     }
@@ -2551,6 +2552,7 @@ private function punyaArAktif($dnNumber)
             ,'delivery_hdr.note'
             ,'delivery_hdr.created_by'
             ,'delivery_hdr.created_at'
+            ,DB::raw("to_date(delivery_hdr.delivery_date,'dd-mm-yyyy') as date_period")
         )
         ->orderBy('delivery_det.id')
         ->get();
