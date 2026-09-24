@@ -193,7 +193,11 @@ class ApAgingReportController extends Controller
                 0
             ) as term,
             $jatuhTempo as jatuh_tempo_actual,
-            (CASE WHEN ap_invoice.status = '6' THEN 0
+            -- Status PAID (6): dipaksa 0 HANYA kalau voucher pelunasannya belum lengkap
+            -- (total_semua < grand_total). Kalau sudah lunas di voucher, dihitung normal
+            -- per cutoff, supaya saldo historis (mis. opening tahun lalu) tidak hilang.
+            (CASE WHEN ap_invoice.status = '6'
+                       AND COALESCE(bayar.total_semua,0) < ap_invoice.grand_total - 1 THEN 0
                   ELSE ap_invoice.grand_total - COALESCE(bayar.total_dibayar,0) END) as balance,
             (to_date(:cutoff,'DD-MM-YYYY') - $jatuhTempo) as diff_hari
         FROM ap_invoice
@@ -201,13 +205,13 @@ class ApAgingReportController extends Controller
             -- Pelunasan AP tercatat di kas_det.DEBIT lewat voucher KK/BK
             -- (paid_to = supplier) atau BM/KM (offset, dicocokkan via
             -- reference saja -- lihat catatan partyMatch di atas).
-            SELECT SUM(kas_det.debit) as total_dibayar
+            SELECT SUM(kas_det.debit) FILTER (WHERE to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')) as total_dibayar,
+                   SUM(kas_det.debit) as total_semua
             FROM kas_det
             JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
             WHERE kas_det.reference = ap_invoice.inv_number
               AND $partyMatch
               AND kas_hdr.status <> '5'
-              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
         ) bayar ON true
         WHERE ap_invoice.status NOT IN ('1','5')
           AND $anchor >= to_date(:floorDate,'DD-MM-YYYY')
@@ -252,6 +256,22 @@ class ApAgingReportController extends Controller
         ];
         $subquery = $this->buildHutangSubquery('');
         $row = DB::selectOne("SELECT COALESCE(SUM(balance),0) as total FROM ($subquery) hutang WHERE balance > {$this->minOutstanding}", $bindings);
+        return (float) $row->total;
+    }
+
+    /**
+     * Jumlah saldo yang DIBUANG dari total hutang (balance <= minOutstanding,
+     * termasuk saldo negatif / lebih bayar). Untuk rekonsiliasi AP Dashboard.
+     */
+    public function excludedBalance($cutoffDate)
+    {
+        $bindings = [
+            'cutoff'             => $cutoffDate,
+            'floorDate'          => $this->floorDate,
+            'pairRequiredBefore' => $this->pairRequiredBefore,
+        ];
+        $subquery = $this->buildHutangSubquery('');
+        $row = DB::selectOne("SELECT COALESCE(SUM(balance),0) as total FROM ($subquery) hutang WHERE balance <= {$this->minOutstanding}", $bindings);
         return (float) $row->total;
     }
 

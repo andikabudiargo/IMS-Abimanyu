@@ -2298,6 +2298,11 @@ class AccountPayableController extends Controller
             'totalAp'        => (float) $totalAp,
             'totalPaid'      => (float) $totalPaid,
             'outstanding'    => (float) $outstanding,
+            // Rekonsiliasi: selisih = Opening + Pembelian - Pembayaran - Balance.
+            // Saldo <= 0 (lebih bayar) dibuang dari Opening & Balance, itu salah satu penyebabnya.
+            'selisih'        => (float) ($opening + $totalAp - $totalPaid - $outstanding),
+            'excludedOpening' => $apAging->excludedBalance($dayBeforeStart),
+            'excludedCutoff'  => $apAging->excludedBalance($cutoff),
         ]);
     }
 
