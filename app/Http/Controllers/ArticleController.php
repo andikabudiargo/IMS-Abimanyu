@@ -2091,6 +2091,12 @@ private function buildSummaryRow(array $p)
         {
             // Dump, Die, Debug Fungsinya untuk nge-debug hasil dari submit
             $username =  Auth::user()->username;
+
+            // === Lock Transaction guard: activity (Article tidak punya tanggal) ===
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+            }
+
             $type = $request->articleType;
             $cust = $request->cust;
             $nama = strtoupper($request->nama);
@@ -2219,6 +2225,12 @@ private function buildSummaryRow(array $p)
         public function requestDestroy(Request $request)
         {
             $username =  Auth::user()->username;
+
+            // === Lock Transaction guard: activity (Article tidak punya tanggal) ===
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
+            }
+
             $id=Crypt::decryptString($request->id);
 
             DB::beginTransaction();
@@ -2299,6 +2311,12 @@ private function buildSummaryRow(array $p)
         public function requestUpdate(Request $request)
         {
             $username =  Auth::user()->username;
+
+            // === Lock Transaction guard: activity (Article tidak punya tanggal) ===
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+            }
+
             $id = $request->id;
             $artCode = $request->artCode;
             $articleAltCode = $request->kode;
@@ -2449,6 +2467,12 @@ private function buildSummaryRow(array $p)
         public function requestApprove(Request $request)
         {
             $username =  Auth::user()->username;
+
+            // === Lock Transaction guard: activity ===
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return redirect()->back()->with(['alert' => 'warning', 'title' => "Approve $this->title", 'message' => $err]);
+            }
+
             $id = $request->id;
             $artCode = $request->nama;
             $statusApprove = '2';
@@ -2707,6 +2731,12 @@ private function buildSummaryRow(array $p)
         {
 
             $username =  Auth::user()->username;
+
+            // === Lock Transaction guard: activity — ini yang menyisipkan ke tabel article ===
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return response()->json(['status' => 0, 'title' => "Submit $this->title", 'message' => [[$err]], 'alert' => 'error']);
+            }
+
             $articleCodeRequest = $request->artCode;
             $type = $request->articleType;
             $cust = $request->cust;
@@ -2925,6 +2955,12 @@ private function buildSummaryRow(array $p)
         public function updateSafetyStock(Request $request)
         {
             $username =  Auth::user()->username;
+
+            // === Lock Transaction guard: activity ===
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return response()->json(['status' => 0, 'title' => "Update Safety Stock", 'message' => [[$err]], 'alert' => 'error']);
+            }
+
             $filename = $request->file;
             $type = $request->type;
             $rowAffected = 0;
@@ -3090,6 +3126,12 @@ private function buildSummaryRow(array $p)
         public function bulkUpdateConfirm(Request $request)
         {
             $username = Auth::user()->username;
+
+            // === Lock Transaction guard: activity ===
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return response()->json(['status' => 0, 'title' => "Bulk Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+            }
+
             $batchId = $request->batch_id;
             $type = $request->type;
             $allowed = array_keys($this->bulkUpdateColumns);
