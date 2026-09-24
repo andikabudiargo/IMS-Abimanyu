@@ -26,36 +26,39 @@ class LockTransactionController extends Controller
      * sama persis dengan $this->moduleCode di masing-masing controller).
      *   'period'    => modul punya field tanggal (period lock berlaku)
      *   'overstock' => modul mengurangi stok (overstock lock berlaku)
+     *   'group'     => label pengelompokan di halaman Lock Transaction
      * Activity lock berlaku untuk semua modul di daftar ini.
      */
     public static function lockableModules(): array
     {
         return [
-            // code_key      => [nama,                 period, overstock]
-            'REC'            => ['Receiving',            true,  false],
-            'DN'             => ['Delivery',             true,  true],
-            'TRF'            => ['Transfer Stock',       true,  true],
-            'DN-UMUM'        => ['Temporary DN',         true,  true],
-            'DN-GENERAL'     => ['DN General',           true,  true],
-            'DN-RETURN'      => ['DN Return',            true,  false],
-            'DN-REPLACE'     => ['DN Replace',           true,  false],
-            'REC-RETURN'     => ['Supplier Return',      true,  true],
-            'REC-REPLACE'    => ['Supplier Replace',     true,  false],
-            'ADJ'            => ['Stock Adjustment',     true,  false],
-            'ALP'            => ['Actual Loading',       true,  true],
-            'SCO'            => ['Stock Consumption',    true,  true],
-            'STO'            => ['Stock Taking Order',   true,  false],
-            'INV'            => ['Invoice',              true,  false],
-            'INV-DN'         => ['Debit Note',           true,  false],
-            'PO'             => ['Purchase Order',       true,  false],
-            'SO'             => ['Sales Order',          true,  false],
-            'AP'             => ['Account Payable',      true,  false],
-            'BK'             => ['Bank Keluar',          true,  false],
-            'BM'             => ['Bank Penerimaan',      true,  false],
-            'KK'             => ['Kas Keluar',           true,  false],
-            'KM'             => ['Kas Penerimaan',       true,  false],
-            'GJ'             => ['General Journal',      true,  false],
-            'ART'            => ['Article',              false, false],
+            // code_key    => [nama,                    period, overstock, group]
+            'REC'          => ['Receiving',              true,  false, 'Inventory'],
+            'DN'           => ['Delivery',                true,  true,  'Inventory'],
+            'TRF'          => ['Transfer Stock',          true,  true,  'Inventory'],
+            'DN-UMUM'      => ['Temporary DN',            true,  true,  'Inventory'],
+            'DN-GENERAL'   => ['DN General',              true,  true,  'Inventory'],
+            'DN-RETURN'    => ['DN Return',               true,  false, 'Inventory'],
+            'DN-REPLACE'   => ['DN Replace',              true,  false, 'Inventory'],
+            'REC-RETURN'   => ['Supplier Return',         true,  true,  'Inventory'],
+            'REC-REPLACE'  => ['Supplier Replace',        true,  false, 'Inventory'],
+            'ADJ'          => ['Stock Adjustment',        true,  false, 'Inventory'],
+            'ALP'          => ['Actual Loading',          true,  true,  'Inventory'],
+            'SCO'          => ['Stock Consumption',       true,  true,  'Inventory'],
+            'STO'          => ['Stock Taking Order',      true,  false, 'Inventory'],
+            'ART'          => ['Article',                 false, false, 'Inventory'],
+
+            'PO'           => ['Purchase Order',          true,  false, 'Sales & Purchase'],
+            'SO'           => ['Sales Order',             true,  false, 'Sales & Purchase'],
+
+            'INV'          => ['Invoice Customer',        true,  false, 'Akunting'],
+            'AP'           => ['Invoice Supplier',        true,  false, 'Akunting'],
+            'INV-DN'       => ['Debit Note',              true,  false, 'Akunting'],
+            'BK'           => ['Bank Keluar',             true,  false, 'Akunting'],
+            'BM'           => ['Bank Penerimaan',         true,  false, 'Akunting'],
+            'KK'           => ['Kas Keluar',              true,  false, 'Akunting'],
+            'KM'           => ['Kas Penerimaan',          true,  false, 'Akunting'],
+            'GJ'           => ['General Journal',         true,  false, 'Akunting'],
         ];
     }
 
@@ -69,12 +72,15 @@ class LockTransactionController extends Controller
             ->get()
             ->keyBy('code_key');   // baris aktif terbaru per code_key
 
+        $groupOrder = ['Inventory', 'Sales & Purchase', 'Akunting'];
+
         $menus = collect();
-        foreach (self::lockableModules() as $code => [$name, $period, $overstock]) {
+        foreach (self::lockableModules() as $code => [$name, $period, $overstock, $group]) {
             $lock = $locks->get($code);
             $menus->push((object)[
                 'code_key'       => $code,
                 'module_name'    => $name,
+                'group'          => $group,
                 'has_period'     => $period,
                 'has_overstock'  => $overstock,
                 'lock_date'      => ($lock && $lock->lock_date) ? date('d-m-Y', strtotime($lock->lock_date)) : null,
@@ -85,7 +91,14 @@ class LockTransactionController extends Controller
             ]);
         }
 
-        $data['menus'] = $menus->sortBy('module_name')->values();
+        // Urut per group (sesuai $groupOrder), lalu nama modul di dalam group.
+        $data['menus'] = $menus
+            ->sortBy([
+                fn($m) => array_search($m->group, $groupOrder),
+                fn($m) => $m->module_name,
+            ])
+            ->values()
+            ->groupBy('group');
 
         return view("lockTransaction.index", $data);
     }
