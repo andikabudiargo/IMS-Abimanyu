@@ -747,6 +747,15 @@
                 </li>
               @endcan
 
+               @can('bank-index')
+                <li class="{{ \Request::segment(1) == 'jurnalUmum'  ? 'active' : '' }}">
+                  <a class="d-flex align-items-center" href="{{ route('jurnalUmum.index') }}">
+                    <i data-feather="circle"></i>
+                    <span class="menu-item text-truncate" data-i18n="Input">General Journal</span>
+                  </a>
+                </li>
+              @endcan
+
                <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Report">Financial Statement</span></a>
                 <ul class="menu-content">
                  @can('ap-index')
@@ -782,15 +791,6 @@
               @endcan
                 </ul>
               </li>
-
-              @can('bank-index')
-                <li class="{{ \Request::segment(1) == 'jurnalUmum'  ? 'active' : '' }}">
-                  <a class="d-flex align-items-center" href="{{ route('jurnalUmum.index') }}">
-                    <i data-feather="circle"></i>
-                    <span class="menu-item text-truncate" data-i18n="Input">General Journal</span>
-                  </a>
-                </li>
-              @endcan
               
                <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Tax">Tax Management</span></a>
                 <ul class="menu-content">
