@@ -19,7 +19,7 @@
                         <label for="searchName">Name</label>
                         <input type="text" class="form-control text-uppercase" id="searchName" name="searchName" placeholder="" />
                       </div>
-                      <div class="form-group col-md-4 d-none"> 
+                      <div class="form-group col-md-4">
                         <label class="form-label" for="searchGroup">Group</label>
                         <select class="select2 form-control" id="searchGroup" name="searchGroup">
                             <option value="">All</option>
@@ -44,6 +44,40 @@
                             @foreach($types as $val)
                               <option value="{{$val->code}}" >{{$val->code}} - {{$val->name}}</option>
                             @endforeach
+                        </select>
+                      </div>
+                      <div class="form-group col-md-4">
+                        <label class="form-label" for="searchCoa">Chart of Account (CoA)</label>
+                        <select class="select2 form-control" id="searchCoa" name="searchCoa">
+                            <option value="">All</option>
+                            @foreach($accounts as $val)
+                              <option value="{{$val->account}}">{{$val->account}} - {{$val->description}}</option>
+                            @endforeach
+                        </select>
+                      </div>
+                      <div class="form-group col-md-4">
+                        <label class="form-label" for="searchCashflow">Cashflow Category</label>
+                        <select class="select2 form-control" id="searchCashflow" name="searchCashflow">
+                            <option value="">All</option>
+                            @foreach(['Operation','Investment','Financing'] as $cf)
+                              <option value="{{$cf}}">{{$cf}}</option>
+                            @endforeach
+                        </select>
+                      </div>
+                      <div class="form-group col-md-2">
+                        <label class="form-label" for="searchMarketing">Marketing</label>
+                        <select class="select2 form-control" id="searchMarketing" name="searchMarketing">
+                            <option value="">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                      </div>
+                      <div class="form-group col-md-2">
+                        <label class="form-label" for="searchBuffing">Buffing</label>
+                        <select class="select2 form-control" id="searchBuffing" name="searchBuffing">
+                            <option value="">All</option>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
                         </select>
                       </div>
                   </div>
@@ -471,14 +505,23 @@
   let activeStatusFilter = '';   // '' = semua, '1' = active, '0' = freeze
 
   // ── load stat cards via AJAX ───────────────────────────────
+  function extraFilters() {
+    return {
+        coa:       $("#searchCoa").val(),
+        cashflow:  $("#searchCashflow").val(),
+        marketing: $("#searchMarketing").val(),
+        buffing:   $("#searchBuffing").val(),
+    };
+  }
+
   function loadStats() {
-    $.get("{{ route('article.stats') }}", {
+    $.get("{{ route('article.stats') }}", $.extend({
         name:  $("#searchName").val(),
         code:  $("#seachCode").val(),
         group: $("#searchGroup").val(),
         supp:  $("#searchSupplier").val(),
         type:  $("#searchType").val(),
-    }, function(res) {
+    }, extraFilters()), function(res) {
         $('#statTotal').text(res.total.toLocaleString('id-ID'));
         $('#statActive').text(res.active.toLocaleString('id-ID'));
         $('#statFreeze').text(res.freeze.toLocaleString('id-ID'));
@@ -541,14 +584,14 @@
               { width: '5%', targets: 0 },
               { className: 'text-right', targets: [8,9] },
           ],
-          dataSearch: {
+          dataSearch: $.extend({
               name:         name,
               code:         code,
               group:        group,
               supp:         supp,
               type:         type,
               statusFilter: statusFilter,   // kirim ke controller
-          },
+          }, extraFilters()),
           initComplete: function () {
               $(".loading-spinner-container").removeClass("-show");
           },

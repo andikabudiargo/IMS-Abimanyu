@@ -16,7 +16,7 @@
                       <label for="searchName">Name</label>
                       <input type="text" class="form-control text-uppercase" id="searchName" name="searchName" placeholder="" />
                     </div>
-                    <div class="form-group col-md-4 d-none"> 
+                    <div class="form-group col-md-4">
                       <label class="form-label" for="searchGroup">Group</label>
                       <select class="select2 form-control" id="searchGroup" name="searchGroup">
                           <option value="">All</option>
@@ -50,6 +50,40 @@
                           <option value="1">Requested</option>
                           <option value="2">Approved</option>
                           <option value="3">Submitted</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-md-4">
+                      <label class="form-label" for="searchCoa">Chart of Account (CoA)</label>
+                      <select class="select2 form-control" id="searchCoa" name="searchCoa">
+                          <option value="">All</option>
+                          @foreach($accounts as $val)
+                            <option value="{{$val->account}}">{{$val->account}} - {{$val->description}}</option>
+                          @endforeach
+                      </select>
+                    </div>
+                    <div class="form-group col-md-4">
+                      <label class="form-label" for="searchCashflow">Cashflow Category</label>
+                      <select class="select2 form-control" id="searchCashflow" name="searchCashflow">
+                          <option value="">All</option>
+                          @foreach(['Operation','Investment','Financing'] as $cf)
+                            <option value="{{$cf}}">{{$cf}}</option>
+                          @endforeach
+                      </select>
+                    </div>
+                    <div class="form-group col-md-2">
+                      <label class="form-label" for="searchMarketing">Marketing</label>
+                      <select class="select2 form-control" id="searchMarketing" name="searchMarketing">
+                          <option value="">All</option>
+                          <option value="1">Yes</option>
+                          <option value="0">No</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-md-2">
+                      <label class="form-label" for="searchBuffing">Buffing</label>
+                      <select class="select2 form-control" id="searchBuffing" name="searchBuffing">
+                          <option value="">All</option>
+                          <option value="1">Yes</option>
+                          <option value="0">No</option>
                       </select>
                     </div>
                 </div>
@@ -201,13 +235,22 @@
   let activeStatusFilter = '';
 
   // load angka cards
+  function extraFilters() {
+    return {
+        coa:       $("#searchCoa").val(),
+        cashflow:  $("#searchCashflow").val(),
+        marketing: $("#searchMarketing").val(),
+        buffing:   $("#searchBuffing").val(),
+    };
+  }
+
   function loadStats() {
-    $.get("{{ route('article.request.stats') }}", {
+    $.get("{{ route('article.request.stats') }}", $.extend({
         name:  $("#searchName").val(),
         group: $("#searchGroup").val(),
         supp:  $("#searchSupplier").val(),
         type:  $("#searchType").val(),
-    }, function(res) {
+    }, extraFilters()), function(res) {
         $('#statTotal').text(res.total);
         $('#statRequested').text(res.requested);
         $('#statApproved').text(res.approved);
@@ -278,13 +321,13 @@
         { width: '5%', targets: 0 },
         { className: 'text-right','targets': [ 6,8,9,10 ] },
       ],
-      dataSearch:  {
+      dataSearch:  $.extend({
         name:name,
         status:status,
         group:group,
         supp:supp,
         type:type
-      },
+      }, extraFilters()),
       orderColumn:[[ 13, 'desc' ]],   // created_at terbaru paling atas
       excelFileName:'article_request'
     });

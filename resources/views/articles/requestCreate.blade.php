@@ -73,19 +73,17 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="col-md-12">
+                            <div class="col-6">
                                 <div class="form-group">
                                     <label for="brand" data-toggle="tooltip" data-placement="top" title="Merek/brand dari material (maksimal 100 karakter)">Brand</label>
                                     <input type="text" id="brand" name="brand" class="form-control text-uppercase" value="{{ old('brand') }}" maxlength="100"/>
                                 </div>
                             </div>
-                        </div>
-                        <div class="form-row">
                             <div class="form-group col-md-6 d-none">
                                 <label for="price" data-toggle="tooltip" data-placement="top" title="Harga material">Price</label>
                                 <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price') }}" maxlength="18"/>
                             </div>
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-6">
                                 <label class="form-label" for="uom" data-toggle="tooltip" data-placement="top" title="Satuan unit terkecil yang digunakan untuk material ini">Smallest Unit*</label>
                                 <select class="select2 form-control" id="uom" name="uom" required>
                                     <option value=""></option>
@@ -94,15 +92,6 @@
                                     @endforeach
                                 </select>
                             </div>
-                           <div class="form-group col-md-6">
-    <label class="form-label" for="coa" data-toggle="tooltip" data-placement="top" title="Akun yang dipakai untuk article ini">Chart of Account (CoA)</label>
-    <select class="select2 form-control" id="coa" name="coa">
-        <option value=""></option>
-        @foreach($accounts as $val)
-            <option value="{{ $val->account }}" {{ $val->account == old('coa') ? 'selected' : '' }}>{{ $val->account }} - {{ $val->description }}</option>
-        @endforeach
-    </select>
-</div>
                         </div>
                         <div class="form-row">
                             <div class="col-6">
@@ -116,6 +105,26 @@
                                     <label for="minimumPackage" data-toggle="tooltip" data-placement="top" title="Jumlah minimum pembelian/pengemasan per transaksi">Minimum package*</label>
                                     <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask-digit" value="{{ old('minimumPackage',1) }}" maxlength="10" required/>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label class="form-label" for="coa" data-toggle="tooltip" data-placement="top" title="Akun yang dipakai untuk article ini">Chart of Account (CoA)</label>
+                                <select class="select2 form-control" id="coa" name="coa">
+                                    <option value=""></option>
+                                    @foreach($accounts as $val)
+                                        <option value="{{ $val->account }}" {{ $val->account == old('coa') ? 'selected' : '' }}>{{ $val->account }} - {{ $val->description }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group col-6">
+                                <label class="form-label" for="cashflowCategory" data-toggle="tooltip" data-placement="top" title="Kategori arus kas: Operation, Investment atau Financing">Cashflow Category</label>
+                                <select class="select2 form-control" id="cashflowCategory" name="cashflowCategory">
+                                    <option value=""></option>
+                                    @foreach(['Operation','Investment','Financing'] as $cf)
+                                        <option value="{{ $cf }}" {{ old('cashflowCategory') == $cf ? 'selected' : '' }}>{{ $cf }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         <div class="form-row">

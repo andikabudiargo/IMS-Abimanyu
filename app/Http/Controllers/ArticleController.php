@@ -69,6 +69,7 @@
         ['data'=>'is_marketing','name'=>'article.marketing','title'=>'Marketing'],
         ['data'=>'is_buffing_col','name'=>'article.is_buffing','title'=>'Buffing'],
         ['data'=>'coa_full','name'=>'article.coa','title'=>'COA'],
+        ['data'=>'cashflow_category','name'=>'article.cashflow_category','title'=>'Cashflow Category'],
         ['data'=>'status','name'=>'status','title'=>'Status'],
         ['data'=>'note','name'=>'note','title'=>'Note']
     ];
@@ -95,6 +96,17 @@
             return json_encode($kolom, true);
         }
 
+        // filter tambahan index article & article request: CoA, Cashflow Category, Marketing, Buffing
+        private function applyExtraFilters($query, Request $request, $table)
+        {
+            if ($request->coa)      $query->where("$table.coa", $request->coa);
+            if ($request->cashflow) $query->where("$table.cashflow_category", $request->cashflow);
+            foreach (['marketing' => 'marketing', 'buffing' => 'is_buffing'] as $param => $col) {
+                $v = $request->$param;
+                if ($v === '1')     $query->where("$table.$col", '1');
+                elseif ($v === '0') $query->whereRaw("coalesce($table.$col::text,'0') <> '1'");
+            }
+        }
         public function index(Request $request)
         {
             $data['title'] = $this->title;
@@ -113,6 +125,8 @@
             ->where ('status','=',1)
             ->orderBy('name')
             ->get();
+
+            $data['accounts'] = DB::table('accounts')->where('acc_header','!=','HEADER')->orderBy('account')->get();
 
             $data['kolom'] = $this->getTableColoumn();
             $data['kolomMovement'] = $this->getTableColoumnMovement();
@@ -168,6 +182,8 @@
         $supp  ? $query->where('third_party','ilike','%'.$supp.'%') : '';
         $type  ? $query->where('article_alternative_code','ilike',$type.'%') : '';
     });
+
+    $this->applyExtraFilters($base, $request, 'article');
 
     return response()->json([
         'total'  => (clone $base)->count(),
@@ -446,7 +462,7 @@
             
             $data['article'] = DB::table('article')
             ->where('id',$id)
-            ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing', 'coa'])->first();
+            ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing', 'coa', 'cashflow_category'])->first();
             
 
             $data['images'] = DB::table('images')
@@ -503,7 +519,7 @@
             
             $data['article'] = DB::table('article')
             ->where('id',$id)
-            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','brand', 'third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing', 'coa'])->first();
+            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','brand', 'third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing', 'coa', 'cashflow_category'])->first();
 
             // $data['images'] = DB::table('images')
             // ->where('key',$data['article']->article_code)
@@ -535,6 +551,8 @@
             ->orderBy('id')
             ->pluck('supplier_code')->toArray();
             
+            $data['accounts'] = DB::table('accounts')->where('acc_header','!=','HEADER')->orderBy('account')->get();
+
             return view('articles.show',$data);
             
         }
@@ -557,6 +575,7 @@
             $group = $request->group;
             $uom = $request->uom;
             $coa = $request->coa;
+            $cashflowCategory = $request->cashflowCategory;
             $price = $request->price;
             $price = $price ? str_replace(",","",$price) : $price;
             $sapetiStok = $request->safetyStock;
@@ -600,6 +619,7 @@
                             'note' => $note,
                             'uom' => $uom,
                             'coa' => $coa,
+                            'cashflow_category' => $cashflowCategory,
                             'safety_stock' => $safetyStock,
                             'min_package' => $minimumPackage,
                             'costprice' => $price,
@@ -800,6 +820,8 @@
         $query->where('article.status', $statusFilter);
     })
     ->orderBy('article.updated_at', 'desc'); // <-- tambahan: terbaru diupdate di paling atas
+
+    $this->applyExtraFilters($data, $request, 'article');
 
     $bisaEdit = Auth::user()->can('article-edit');
     $bisaDelete = Auth::user()->can('article-delete');
@@ -1991,6 +2013,7 @@ private function buildSummaryRow(array $p)
         ['data'=>'is_marketing','name'=>'article_request.marketing','title'=>'Marketing'],
         ['data'=>'is_buffing_col','name'=>'article_request.is_buffing','title'=>'Buffing'],
         ['data'=>'coa_full','name'=>'article_request.coa','title'=>'COA'],
+        ['data'=>'cashflow_category','name'=>'article_request.cashflow_category','title'=>'Cashflow Category'],
         ['data'=>'note','name'=>'note','title'=>'Note'],
         ['data'=>'created_by','name'=>'created_by','title'=>'Requested By'],
         ['data'=>'created_at','name'=>'created_at','title'=>'Requested At'],
@@ -2020,6 +2043,8 @@ private function buildSummaryRow(array $p)
             ->orderBy('name')
             ->get();
 
+            $data['accounts'] = DB::table('accounts')->where('acc_header','!=','HEADER')->orderBy('account')->get();
+
             $data['kolom'] = $this->getTableColoumnRequest();
             
             return view("articles.request",$data);
@@ -2048,6 +2073,8 @@ private function buildSummaryRow(array $p)
         $supp  ? $query->where('third_party','ilike','%'.$supp.'%') : '';
         $type  ? $query->where('article_type','ilike',$type.'%') : '';
     });
+
+    $this->applyExtraFilters($base, $request, 'article_request');
 
     return response()->json([
         'total'     => (clone $base)->count(),
@@ -2103,6 +2130,7 @@ private function buildSummaryRow(array $p)
             $group = $request->group;
             $uom = $request->uom;
             $coa = $request->coa;
+            $cashflowCategory = $request->cashflowCategory;
             // $price = $request->price;
             // $price = $price ? str_replace(",","",$price) : $price;
             // $sapetiStok = $request->safetyStock;
@@ -2160,7 +2188,8 @@ private function buildSummaryRow(array $p)
                         'third_party' => $cust[0],
                         'note' => $note,
                         'uom' => $uom,
-                        'coa' => $coa, 
+                        'coa' => $coa,
+                            'cashflow_category' => $cashflowCategory, 
                         'safety_stock' => $safetyStock,
                         'min_package' => $minimumPackage,
                         'costprice' => $price,
@@ -2267,7 +2296,7 @@ private function buildSummaryRow(array $p)
     
     $data['article'] = DB::table('article_request')
     ->where('id',$id)
-    ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','coa','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing','status_approve'])->first();
+    ->get(['brand','article_code','costprice','article_alternative_code as code','article_desc as desc','uom','coa','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing','status_approve','cashflow_category'])->first();
 
     $data['bisaApprove'] = DB::table('article_request')
     ->select('article_request.*'
@@ -2326,6 +2355,7 @@ private function buildSummaryRow(array $p)
             $group = $request->group;
             $uom = $request->uom;
             $coa = $request->coa;
+            $cashflowCategory = $request->cashflowCategory;
             $price = preg_replace('/[^0-9.]/', '', $request->price);
             $safetyStock = preg_replace('/[^0-9.]/', '', $request->safetyStock);
             $minimumPackage = preg_replace('/[^0-9.]/', '', $request->minimumPackage);
@@ -2369,6 +2399,7 @@ private function buildSummaryRow(array $p)
                             'note' => $note,
                             'uom' => $uom,
                             'coa' => $coa,
+                            'cashflow_category' => $cashflowCategory,
                             'safety_stock' => $safetyStock,
                             'min_package' => $minimumPackage,
                             'costprice' => $price,
@@ -2526,7 +2557,7 @@ private function buildSummaryRow(array $p)
             
             $data['article'] = DB::table('article_request')
             ->where('id',$id)
-            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing','coa'])->first();
+            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing','coa','cashflow_category','brand'])->first();
 
             // $data['images'] = DB::table('images')
             // ->where('key',$data['article']->article_code)
@@ -2558,6 +2589,8 @@ private function buildSummaryRow(array $p)
             ->orderBy('id')
             ->pluck('supplier_code')->toArray();
             
+            $data['accounts'] = DB::table('accounts')->where('acc_header','!=','HEADER')->orderBy('account')->get();
+
             return view('articles.requestShow',$data);
             
         }
@@ -2620,6 +2653,8 @@ private function buildSummaryRow(array $p)
                 $type ? $query->where('article_type','ilike',$type.'%') :'';      
                 $status ? $query->where('article_request.status_approve',$status) :''; 
             })->orderBy('article_request.created_at','desc');
+
+            $this->applyExtraFilters($data, $request, 'article_request');
         
             return Datatables::of($data)
             ->addColumn('action', function ($data) {
@@ -2744,6 +2779,7 @@ private function buildSummaryRow(array $p)
             $group = $request->group;
             $uom = $request->uom;
             $coa = $request->coa;
+            $cashflowCategory = $request->cashflowCategory;
             $price = is_null($request->price) ? 0 : preg_replace('/[^0-9.]/', '', $request->price);
             $safetyStock = is_null($request->safetyStock) ? 0 : preg_replace('/[^0-9.]/', '', $request->safetyStock);
             $minimumPackage = preg_replace('/[^0-9.]/', '', $request->minimumPackage);
@@ -2793,6 +2829,7 @@ private function buildSummaryRow(array $p)
                         'note' => $note,
                         'uom' => $uom,
                         'coa' => $coa,
+                            'cashflow_category' => $cashflowCategory,
                         'safety_stock' => $safetyStock,
                         'min_package' => $minimumPackage,
                         'costprice' => $price,

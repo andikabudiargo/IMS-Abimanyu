@@ -85,19 +85,17 @@
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="col-12">
+                            <div class="col-6">
                                 <div class="form-group">
                                 <label for="brand">Brand</label>
                                     <input type="text" id="brand" name="brand" class="form-control text-uppercase" value="{{ old('brand',$article->brand) }}" disabled/>
                                 </div>
                             </div>
-                        </div>
-                        <div class="form-row">
                             <div class="form-group col-md-6 d-none">
                                 <label for="price">Price</label>
                                 <input type="text" id="price" name="price" class="form-control numeral-mask text-right" value="{{ old('price',$article->costprice) }}"  disabled/>
                             </div>
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-6">
                                 <label class="form-label" for="uom">Smallest unit *</label>
                                 <select class="select2 form-control" id="uom" name="uom" disabled>
                                     <option value="">All</option>
@@ -119,6 +117,26 @@
                                     <label for="minimumPackage">Minimum package</label>
                                     <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask" value="{{ old('minimumPackage',$article->min_package) }}" maxlength="10" disabled/>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label class="form-label" for="coa">Chart of Account (CoA)</label>
+                                <select class="select2 form-control" id="coa" name="coa" disabled>
+                                    <option value=""></option>
+                                    @foreach($accounts as $val)
+                                        <option value="{{ $val->account }}" {{ old('coa',$article->coa) == $val->account ? 'selected' : '' }}>{{ $val->account}} - {{ $val->description }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group col-6">
+                                <label class="form-label" for="cashflowCategory">Cashflow Category</label>
+                                <select class="select2 form-control" id="cashflowCategory" name="cashflowCategory" disabled>
+                                    <option value=""></option>
+                                    @foreach(['Operation','Investment','Financing'] as $cf)
+                                        <option value="{{ $cf }}" {{ old('cashflowCategory',$article->cashflow_category) == $cf ? 'selected' : '' }}>{{ $cf }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         <div class="form-row">
