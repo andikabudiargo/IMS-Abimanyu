@@ -873,9 +873,9 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
                         'rec_number' => $recNumber,
                         'do_number' => $doNumber,
                         'do_date' => $doDate,
-                        'inv_number' => $invNumber,
+                        'inv_number' => $invNumber ?? '',   // NP: no invoice → kolom NOT NULL
                         'inv_date' => $invDate,
-                        'po_number' => $poNumber,
+                        'po_number' => $poNumber ?? '',     // NP: no PO → kolom NOT NULL
                         'supplier_id' => $supplier,
                         'rec_date' => $recDate,
                         'authorized_by' => $authorizedBy,
@@ -938,7 +938,7 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
                 DB::rollBack();
                 $title = "Save $this->title";
                 $alert  ="warning";
-                $message  = "$title $recNumber is failed to save";
+                $message  = "$title $recNumber is failed to save: " . $e->getMessage();
                 $statusRec = 'FAILED';
                 \LogActivity::addToLog($title,"username: $username Status $message");
                 return response()->json(array('statusRec' => $statusRec, 'title' => $title, 'status' => 1, 'message' => $message,'alert'=>$alert,'recNumber'=>$recNumber,'idKu'=>''));
