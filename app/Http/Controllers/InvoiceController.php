@@ -409,6 +409,11 @@ class InvoiceController extends Controller
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $invDate)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         // $period = (int)explode('-', $invDate)[1];
         // $periodNomor = (int)explode('-', $invDate)[1];
         $period = $request->aPeriode;
@@ -831,6 +836,11 @@ class InvoiceController extends Controller
         $pph23 = $request->pph23;
         $totalPpn = $request->totalPpn;
         $totalPph = $request->totalPph;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $invDate)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         $soNumber = $request->soNumber;
         $dnNumber  = $request->dnNumber;
         // $poNumber  = $request->poNumber;
@@ -1154,6 +1164,11 @@ class InvoiceController extends Controller
         ->where('id',$id)
         ->first();
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $data->invoice_date)) {
+            return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
+        }
+
         $invStatus = $data->status;
         $invNumber = $data->invoice_number;
         $note = $data->note;
@@ -1278,8 +1293,13 @@ class InvoiceController extends Controller
         ->where('id',$id)
         ->first();
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $data->invoice_date)) {
+            return redirect()->back()->with(['alert' => 'warning', 'title' => "Cancel $this->title", 'message' => $err]);
+        }
+
         $invNumber = $data->invoice_number;
-        
+
         $rowAffected = DB::table('invoice_hdr')
         ->where('invoice_number',$invNumber)
         ->delete();
@@ -1466,6 +1486,7 @@ class InvoiceController extends Controller
     $invDate        = $request->recDate;
     $searchPeriod1  = $request->searchPeriod1;
     $searchPeriod2  = $request->searchPeriod2;
+    $searchArticle  = trim($request->searchArticle);
     $fromDate       = "";
     $toDate         = "";
 
@@ -1483,13 +1504,23 @@ class InvoiceController extends Controller
     // ✅ Query builder, JANGAN ->get() — biarkan DataTables yang paginate
     $query = DB::table('invoice_hdr')
         ->leftJoin('third_party', 'third_party.kode', '=', 'invoice_hdr.customer_id')
-        ->where(function ($q) use ($searchInv, $searchSo, $searchCustomer, $searchStatus, $invDate, $fromDate, $toDate, $searchPeriod1, $searchPeriod2) {
+        ->where(function ($q) use ($searchInv, $searchSo, $searchCustomer, $searchStatus, $invDate, $fromDate, $toDate, $searchPeriod1, $searchPeriod2, $searchArticle) {
             if ($searchInv)      $q->where('invoice_number', 'ilike', '%'.$searchInv.'%');
             if ($searchSo)       $q->where('so_number', 'ilike', '%'.$searchSo.'%');
             if ($searchCustomer) $q->where('customer_id', 'ilike', '%'.$searchCustomer.'%');
             if ($searchStatus)   $q->where('invoice_hdr.status', '=', $searchStatus);
             if ($invDate)        $q->whereBetween(DB::raw("to_date(invoice_date,'DD-MM-YYYY')"), [$fromDate, $toDate]);
             if ($searchPeriod1)  $q->whereBetween(DB::raw("invoice_hdr.period::integer"), [$searchPeriod1, $searchPeriod2]);
+            if ($searchArticle)  $q->whereExists(function ($sub) use ($searchArticle) {
+                $sub->select(DB::raw(1))
+                    ->from('invoice_det')
+                    ->leftJoin('article', 'article.article_code', '=', 'invoice_det.article_code')
+                    ->whereColumn('invoice_det.invoice_number', 'invoice_hdr.invoice_number')
+                    ->where(function ($q3) use ($searchArticle) {
+                        $q3->where('invoice_det.article_code', 'ilike', '%'.$searchArticle.'%')
+                           ->orWhere('article.article_alternative_code', 'ilike', '%'.$searchArticle.'%');
+                    });
+            });
         })
         ->select(
             'invoice_hdr.*',
@@ -1836,6 +1867,7 @@ DB::raw("
         $toDate = "";
         $searchPeriod1 = $request->searchPeriod1;
         $searchPeriod2 = $request->searchPeriod2;
+        $searchArticle = strtolower(trim($request->searchArticle));
 
         if ($invDate){
             $date = explode("to",$invDate);
@@ -1851,13 +1883,17 @@ DB::raw("
         $data = DB::table('invoice_det')
         ->leftJoin('invoice_hdr','invoice_det.invoice_number','invoice_hdr.invoice_number')
         ->leftJoin('article','article.article_code','=','invoice_det.article_code')
-        ->where(function ($query) use ($searchInv,$searchSo,$searchCustomer,$searchStatus,$invDate,$fromDate,$toDate,$searchPeriod1,$searchPeriod2) {
+        ->where(function ($query) use ($searchInv,$searchSo,$searchCustomer,$searchStatus,$invDate,$fromDate,$toDate,$searchPeriod1,$searchPeriod2,$searchArticle) {
             $searchInv ? $query->where('invoice_det.invoice_number','ilike','%'.$searchInv.'%') : '';
             $searchSo ? $query->where('invoice_hdr.so_number','ilike','%'.$searchSo.'%') : '';
             $searchCustomer ? $query->where('invoice_hdr.customer_id','ilike','%'.$searchCustomer.'%') : '';
             $searchStatus ? $query->where('invoice_hdr.status','=',$searchStatus) : '';
             $invDate ? $query->whereBetween(DB::raw("to_date(invoice_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $searchPeriod1 ? $query->whereBetween(db::raw("invoice_hdr.period::integer"),[$searchPeriod1,$searchPeriod2]) : '';
+            $searchArticle ? $query->where(function ($q) use ($searchArticle) {
+                $q->where('invoice_det.article_code','ilike','%'.$searchArticle.'%')
+                  ->orWhere('article.article_alternative_code','ilike','%'.$searchArticle.'%');
+            }) : '';
             // $searchPeriod ? $query->where('invoice_hdr.period','=',$searchPeriod) : '';
         })
         // ->where('invoice_hdr.status','<>','6')
@@ -1925,10 +1961,28 @@ DB::raw("
           AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN to_date(?,'DD-MM-YYYY') AND to_date(?,'DD-MM-YYYY')
     ", [$startDate, $cutoff])->total;
 
+    // Total Invoice Terkirim: invoice yang SEMUA dn_number-nya sudah RECEIVED
+    // (delivery_hdr.status = '8', surat jalan sudah kembali).
+    $totalInvoiceTerkirim = DB::selectOne("
+        SELECT COALESCE(SUM(grand_total),0) as total
+        FROM invoice_hdr
+        WHERE status <> '5'
+          AND to_date(invoice_date,'DD-MM-YYYY') BETWEEN to_date(?,'DD-MM-YYYY') AND to_date(?,'DD-MM-YYYY')
+          AND EXISTS (SELECT 1 FROM invoice_det WHERE invoice_det.invoice_number = invoice_hdr.invoice_number)
+          AND NOT EXISTS (
+                SELECT 1 FROM invoice_det id
+                LEFT JOIN delivery_hdr dh ON dh.delivery_number = id.dn_number
+                WHERE id.invoice_number = invoice_hdr.invoice_number
+                  AND (dh.status IS NULL OR dh.status <> '8')
+              )
+    ", [$startDate, $cutoff])->total;
+
     return response()->json([
-        'openingBalance' => (float) $opening,
-        'totalAr'        => (float) $totalAr,
-        'totalPaid'      => (float) $totalPaid,
+        'openingBalance'       => (float) $opening,
+        'totalAr'              => (float) $totalAr,
+        'totalPaid'            => (float) $totalPaid,
+        'totalInvoiceTerkirim' => (float) $totalInvoiceTerkirim,
+        'pembayaranDiterima'   => (float) $totalPaid, // sama dgn totalPaid, ditampilkan lagi di row 2
         'outstanding'    => (float) $outstanding,
     ]);
 }

@@ -2887,6 +2887,7 @@ DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vc
         $toDate = "";
         $apPeriod1 = $request->apPeriod1;
         $apPeriod2 = $request->apPeriod2;
+        $searchArticle = $request->searchArticle;
         // $apPeriod = $request->apPeriod;
 
         if ($apDate){
@@ -3011,6 +3012,7 @@ DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vc
         // Gabungkan PO + Non-PO jadi satu derived table supaya seluruh addColumn/filterColumn
         // di bawah bisa tetap dipakai apa adanya terhadap nama kolom yang sudah flat.
         $data = DB::query()->fromSub($dataPo->unionAll($dataNonPo), 'ap_detail');
+        if ($searchArticle) $data->where('article', 'ilike', "%{$searchArticle}%");
 
         return Datatables::of($data)
           ->addColumn('pr_number', function ($data) {
