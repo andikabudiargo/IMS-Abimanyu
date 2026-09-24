@@ -234,12 +234,17 @@ private function getUserLocations()
         return response()->json(['status' => 0, 'message' => $error_array, 'alert' => 'warning']);
     }
 
-    // ── VALIDASI QTY vs STOK: DIBOLEHKAN OVER / MINUS (misal ada kasus stok fisik belum sinkron / retur mendahului adjustment) ──
-    // Kalau suatu saat mau dikunci lagi, aktifkan blok ini:
-    // $qtyErrors = $this->checkStockQty($articles, $location, null);
-    // if (!empty($qtyErrors)) {
-    //     return response()->json(['status' => 0, 'message' => $qtyErrors, 'alert' => 'warning']);
-    // }
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $returnDate)) {
+        return response()->json(['status' => 0, 'message' => [[$err]], 'alert' => 'error']);
+    }
+    // Overstock: pakai validator stok modul ini sendiri, di-gate toggle.
+    if (AppHelpers::overstockLocked($this->moduleCode)) {
+        $qtyErrors = $this->checkStockQty($articles, $location, null);
+        if (!empty($qtyErrors)) {
+            return response()->json(['status' => 0, 'message' => $qtyErrors, 'alert' => 'warning']);
+        }
+    }
 
     $hasilUpdate  = AppHelpers::resetCode($leadCode);
     $returnNumber = $this->getLastCode($leadCode);
@@ -586,11 +591,17 @@ private function getUserLocations()
         $locationLama = $hdr->location_number;
 $supplierLama = $hdr->supplier_id;
 
-// ── VALIDASI QTY vs STOK: DIBOLEHKAN OVER / MINUS (sama seperti store) ──
-// $qtyErrors = $this->checkStockQty($articles, $location, ($location == $locationLama ? $returnNumber : null));
-// if (!empty($qtyErrors)) {
-//     return response()->json(['status' => 0, 'message' => $qtyErrors, 'alert' => 'warning']);
-// }
+// === Lock Transaction guard: activity + periode ===
+if ($err = AppHelpers::lockGuard($this->moduleCode, $returnDate)) {
+    return response()->json(['status' => 0, 'message' => [[$err]], 'alert' => 'error']);
+}
+// Overstock: validator modul sendiri (kembalikan stok dokumen ini via excludeReturn), di-gate toggle.
+if (AppHelpers::overstockLocked($this->moduleCode)) {
+    $qtyErrors = $this->checkStockQty($articles, $location, ($location == $locationLama ? $returnNumber : null));
+    if (!empty($qtyErrors)) {
+        return response()->json(['status' => 0, 'message' => $qtyErrors, 'alert' => 'warning']);
+    }
+}
 
        DB::beginTransaction();
 try {
@@ -672,6 +683,11 @@ try {
             $message = "$title $returnNumber sudah dibatalkan sebelumnya.";
             \LogActivity::addToLog($title, "username: $username Status $message");
             return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+        }
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $returnDate)) {
+            return redirect()->back()->with(['title' => "Delete $this->title", 'alert' => 'warning', 'message' => $err]);
         }
 
         if ($this->punyaReplaceAktif($returnNumber)) {

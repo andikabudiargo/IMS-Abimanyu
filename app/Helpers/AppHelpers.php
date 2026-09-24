@@ -86,4 +86,69 @@ class AppHelpers
 
         return $hasilLockDate;
     }
+
+    /**
+     * Gerbang tunggal untuk 3 tipe Lock Transaction. Dipanggil di paling atas
+     * store/update/destroy tiap modul. Kembalikan NULL kalau boleh, atau string
+     * pesan error kalau ditolak (pola manual, tanpa exception — sama seperti
+     * validasi lain di controller).
+     *
+     * @param string      $moduleCode  code_key modul (mis. 'DN','REC','ALP')
+     * @param string|null $date        tanggal dokumen (Y-m-d atau d-m-Y); NULL = lewati period lock
+     * @param array|null  $stockNeeds  daftar [qtyDiminta, qtyTersedia] SUDAH diagregasi
+     *                                 per (artikel,lokasi); NULL = lewati overstock lock.
+     *                                 Boleh juga [ ['need'=>x,'avail'=>y,'label'=>'...'], ... ]
+     */
+    public static function lockGuard(string $moduleCode, ?string $date = null, ?array $stockNeeds = null): ?string
+    {
+        $lock = DB::table('application_lock')
+            ->where('code_key', $moduleCode)
+            ->where('status', '1')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        // 1. ACTIVITY LOCK — blokir semua operasi tulis.
+        if ($lock && $lock->activity_lock) {
+            return "Modul ini sedang dikunci penuh (Activity Lock). Tidak bisa input/edit/hapus sampai di-unlock.";
+        }
+
+        // 2. PERIODE LOCK — tolak dokumen bertanggal <= akhir periode terkunci.
+        //    Pakai cutoff yang sama persis dengan lockDate() (hari-1 bulan lock).
+        if ($date) {
+            $docYmd = date('Y-m-d', strtotime($date));
+            [$lockDateAt] = self::lockDate($moduleCode);      // d-m-Y hari-1 bulan lock
+            $cutoffYmd = date('Y-m-d', strtotime($lockDateAt));
+            if ($docYmd < $cutoffYmd) {
+                return "Tanggal dokumen ($docYmd) berada di periode yang sudah dikunci (mulai $cutoffYmd). Tidak bisa input/edit/hapus mundur.";
+            }
+        }
+
+        // 3. OVERSTOCK LOCK — tolak kalau ada baris qty diminta > qty tersedia.
+        if ($lock && $lock->overstock_lock && $stockNeeds) {
+            foreach ($stockNeeds as $row) {
+                $need  = (float) ($row['need']  ?? $row[0] ?? 0);
+                $avail = (float) ($row['avail'] ?? $row[1] ?? 0);
+                if ($need > $avail + 1e-6) {
+                    $label = $row['label'] ?? ($row[2] ?? '');
+                    return trim("Overstock Lock aktif: qty $need melebihi stok tersedia $avail" . ($label ? " untuk $label" : "") . ".");
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Cek cepat apakah Overstock Lock modul menyala. Dipakai modul yang sudah
+     * punya validator stok sendiri (mis. SupplierReturn::checkStockQty) supaya
+     * validator itu tinggal di-gate toggle-nya, bukan dibangun ulang.
+     */
+    public static function overstockLocked(string $moduleCode): bool
+    {
+        return (bool) DB::table('application_lock')
+            ->where('code_key', $moduleCode)
+            ->where('status', '1')
+            ->orderBy('id', 'desc')
+            ->value('overstock_lock');
+    }
 }

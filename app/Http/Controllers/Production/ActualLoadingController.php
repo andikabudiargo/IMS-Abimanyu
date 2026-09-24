@@ -396,6 +396,12 @@ class ActualLoadingController extends Controller
         // Movement mengikuti loading_date, bukan hari ini
         $this->movementDate = date('d-m-Y', strtotime($loadingDateDb));
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $this->movementDate)) {
+            return response()->json(['status'=>0,'title'=>"Save $this->title",'message'=>[[$err]],'alert'=>'error']);
+        }
+        $overstockLock = AppHelpers::overstockLocked($this->moduleCode);
+
         DB::beginTransaction();
         try {
             // ── Serialkan store() supaya double-submit tidak bikin 2 dokumen ──
@@ -553,6 +559,11 @@ class ActualLoadingController extends Controller
                     $mv->artikel_code, $mv->location_number, $signed, $username,
                     "Save Actual Loading {$prdNumber} langsung bertanggal {$loadingDate} (sudah tercakup OB)"
                 );
+            }
+
+            // Overstock Lock: warning stok minus dijadikan blokir keras.
+            if ($overstockLock && !empty($warnings)) {
+                throw new \Exception("Overstock Lock aktif: stok RM booth tidak cukup:\n- " . implode("\n- ", $warnings));
             }
 
             DB::commit();
@@ -1273,6 +1284,11 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
                 throw new \Exception("Dokumen {$hdr->prod_code} sudah berstatus CANCELED.");
             }
 
+            // === Lock Transaction guard: activity + periode ===
+            if ($err = AppHelpers::lockGuard($this->moduleCode, substr((string) $hdr->loading_date, 0, 10))) {
+                throw new \Exception($err);
+            }
+
             $prdNumber = $hdr->prod_code;
 
             // Guard: jangan cancel kalau sudah dipakai dokumen Finish Goods aktif.
@@ -1344,6 +1360,12 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
         }
 
         $loadingDateDb = $loadingDate ? implode('-', array_reverse(explode('-', $loadingDate))) : null;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $loadingDateDb)) {
+            return response()->json(['status'=>0,'title'=>"Update $this->title",'message'=>[[$err]],'alert'=>'error']);
+        }
+        $overstockLock = AppHelpers::overstockLocked($this->moduleCode);
 
         DB::beginTransaction();
         try {
@@ -1516,6 +1538,11 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
                 'updated_at'    => $now,
             ]);
 
+            // Overstock Lock: warning stok minus dijadikan blokir keras.
+            if ($overstockLock && !empty($warnings)) {
+                throw new \Exception("Overstock Lock aktif: stok RM booth tidak cukup:\n- " . implode("\n- ", $warnings));
+            }
+
             DB::commit();
 
             $title   = "Update $this->title";
@@ -1561,6 +1588,11 @@ private function moveRepaintFromWipAllowMinus(&$seq, $fgArticle, $uom, $qtyNeede
             }
             if ((int) $hdr->status !== 1) {
                 throw new \Exception("Hanya dokumen berstatus NEW yang bisa dihapus. Gunakan Cancel untuk dokumen lain.");
+            }
+
+            // === Lock Transaction guard: activity + periode ===
+            if ($err = AppHelpers::lockGuard($this->moduleCode, substr((string) $hdr->loading_date, 0, 10))) {
+                throw new \Exception($err);
             }
 
             $prdNumber = $hdr->prod_code;

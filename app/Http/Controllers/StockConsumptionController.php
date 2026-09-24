@@ -186,6 +186,28 @@ class StockConsumptionController extends Controller
             return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
         }
 
+        // === Lock Transaction guard (activity + periode + overstock) ===
+        $stockNeeds = [];
+        foreach ($articles as $a) {
+            $code = $a['article_code'] ?? null;
+            if (!$code) continue;
+            $qtyBase = (float) (DB::selectOne(
+                "select ? * coalesce(uom_conversion(?, (select uom from article where article_code = ?)),1) as q",
+                [$a['qty'] ?? 0, $a['uom'] ?? null, $code]
+            )->q ?? ($a['qty'] ?? 0));
+            $stockNeeds[$code]['need']  = ($stockNeeds[$code]['need'] ?? 0) + $qtyBase;
+            $stockNeeds[$code]['label'] = $code;
+        }
+        foreach ($stockNeeds as $code => &$row) {
+            $row['avail'] = (float) (DB::table('warehouse_stock')
+                ->where('article_code', $code)->where('location_number', $location)
+                ->sum('article_qty'));
+        }
+        unset($row);
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $scDate, array_values($stockNeeds))) {
+            return response()->json(['status'=>0,'title'=>$title,'message'=>[[$err]],'alert'=>'error']);
+        }
+
         $deptCode = DB::table('stock_location_master')->where('location_code',$location)->value('dept_code');
 
         DB::beginTransaction();
@@ -335,6 +357,28 @@ class StockConsumptionController extends Controller
         if (empty($articles)) $errors[] = "Artikel harus diisi";
         if ($errors) {
             return response()->json(['status'=>0,'title'=>$title,'message'=>$errors,'alert'=>'error']);
+        }
+
+        // === Lock Transaction guard (activity + periode + overstock) ===
+        $stockNeeds = [];
+        foreach ($articles as $a) {
+            $code = $a['article_code'] ?? null;
+            if (!$code) continue;
+            $qtyBase = (float) (DB::selectOne(
+                "select ? * coalesce(uom_conversion(?, (select uom from article where article_code = ?)),1) as q",
+                [$a['qty'] ?? 0, $a['uom'] ?? null, $code]
+            )->q ?? ($a['qty'] ?? 0));
+            $stockNeeds[$code]['need']  = ($stockNeeds[$code]['need'] ?? 0) + $qtyBase;
+            $stockNeeds[$code]['label'] = $code;
+        }
+        foreach ($stockNeeds as $code => &$row) {
+            $row['avail'] = (float) (DB::table('warehouse_stock')
+                ->where('article_code', $code)->where('location_number', $location)
+                ->sum('article_qty'));
+        }
+        unset($row);
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $scDate, array_values($stockNeeds))) {
+            return response()->json(['status'=>0,'title'=>$title,'message'=>[[$err]],'alert'=>'error']);
         }
 
         $deptCode = DB::table('stock_location_master')->where('location_code',$location)->value('dept_code');
@@ -678,6 +722,11 @@ class StockConsumptionController extends Controller
         }
         if ($hdr->status == '5') {
             return response()->json(['status'=>0,'title'=>$title,'message'=>['Sudah dicancel'],'alert'=>'warning']);
+        }
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $hdr->sc_date)) {
+            return response()->json(['status'=>0,'title'=>$title,'message'=>[[$err]],'alert'=>'error']);
         }
 
         $isCreator = ($hdr->created_by === $username);
@@ -1046,14 +1095,20 @@ class StockConsumptionController extends Controller
             ? \Carbon\Carbon::createFromFormat('d-m-Y', $fromDate)->format('Y-m-d')
             : \Carbon\Carbon::parse($fromDate)->format('Y-m-d');
 
+        // Movement <= 2026-06-30 tidak pernah dihitung ledger (floor yang sama
+        // persis dengan get_last_qty_new()) -- walk TIDAK BOLEH mulai lebih awal
+        // dari itu, supaya warehouse_stock konsisten walau $fromDate sendiri
+        // backdate ke sebelum floor.
+        $walkFromDate = $fromDate < '2026-07-01' ? '2026-07-01' : $fromDate;
+
         $balanceBefore = (float)DB::selectOne(
             "SELECT get_last_qty_new(?, TO_CHAR(TO_DATE(?, 'YYYY-MM-DD') - INTERVAL '1 day', 'YYYY-MM-DD'), ?, ?) AS bal",
-            [$articleCode, $fromDate, $this->siteCode, $location]
+            [$articleCode, $walkFromDate, $this->siteCode, $location]
         )->bal;
 
         $movements = DB::table('warehouse_movement')
             ->where('artikel_code',$articleCode)->where('location_number',$location)->where('site_code',$this->siteCode)
-            ->where(DB::raw("TO_DATE(movement_date,'DD-MM-YYYY')"),'>=',DB::raw("TO_DATE('$fromDate','YYYY-MM-DD')"))
+            ->where(DB::raw("TO_DATE(movement_date,'DD-MM-YYYY')"),'>=',DB::raw("TO_DATE('$walkFromDate','YYYY-MM-DD')"))
             ->whereNotIn('movement_type',['RETURN-CANCEL','RETURN-REVERSE'])
             ->where('movement_type','NOT LIKE','CANCEL %')
             ->where('movement_type','NOT LIKE','DELETE%')

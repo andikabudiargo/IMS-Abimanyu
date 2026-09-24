@@ -583,6 +583,26 @@ $leadCode = $this->codeKeyMap[$prefix];
             return response()->json(['status' => 0, 'message' => ['Minimal 1 artikel harus diisi.'], 'alert' => 'warning']);
         }
 
+        // === Lock Transaction guard (activity + periode + overstock) ===
+        $stockNeeds = [];
+        foreach ($articles as $val) {
+            if ($this->isManualArticle($val->article_code)) continue;
+            $code = $val->article_code;
+            $qtyBase = (float) (DB::selectOne(
+                "select ? * coalesce(uom_conversion(?, (select uom from article where article_code = ?)),1) as q",
+                [$val->qty ?? 0, $val->uom ?? null, $code]
+            )->q ?? ($val->qty ?? 0));
+            $stockNeeds[$code]['need']  = ($stockNeeds[$code]['need'] ?? 0) + $qtyBase;
+            $stockNeeds[$code]['label'] = $code;
+        }
+        foreach ($stockNeeds as $code => &$row) {
+            $row['avail'] = $this->currentStock($code, $location);
+        }
+        unset($row);
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $deliveryDate, array_values($stockNeeds))) {
+            return response()->json(['status' => 0, 'message' => [[$err]], 'alert' => 'error']);
+        }
+
         // ── Validasi dasar saja — TANPA cek stok gudang (overstock diizinkan, stok boleh minus) ──
         $validErrors = [];
         foreach ($articles as $val) {
@@ -851,6 +871,26 @@ $leadCode = $this->codeKeyMap[$prefix];
         return response()->json(['status' => 0, 'message' => ['Minimal 1 artikel harus diisi.'], 'alert' => 'warning']);
     }
 
+    // === Lock Transaction guard (activity + periode + overstock) ===
+    $stockNeeds = [];
+    foreach ($articles as $val) {
+        if ($this->isManualArticle($val->article_code)) continue;
+        $code = $val->article_code;
+        $qtyBase = (float) (DB::selectOne(
+            "select ? * coalesce(uom_conversion(?, (select uom from article where article_code = ?)),1) as q",
+            [$val->qty ?? 0, $val->uom ?? null, $code]
+        )->q ?? ($val->qty ?? 0));
+        $stockNeeds[$code]['need']  = ($stockNeeds[$code]['need'] ?? 0) + $qtyBase;
+        $stockNeeds[$code]['label'] = $code;
+    }
+    foreach ($stockNeeds as $code => &$row) {
+        $row['avail'] = $this->currentStock($code, $location);
+    }
+    unset($row);
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $deliveryDate, array_values($stockNeeds))) {
+        return response()->json(['status' => 0, 'message' => [[$err]], 'alert' => 'error']);
+    }
+
     // ── Validasi dasar saja — TANPA cek stok gudang ──
     $validErrors = [];
     foreach ($articles as $val) {
@@ -1097,6 +1137,11 @@ try {
             'alert'   => 'warning',
             'message' => "{$this->title} {$dnHdr->tdn_number} sudah dibatalkan sebelumnya.",
         ]);
+    }
+
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $dnHdr->delivery_date)) {
+        return redirect()->back()->with(['title' => "Delete {$this->title}", 'alert' => 'warning', 'message' => $err]);
     }
 
     $tDnNumber = $dnHdr->tdn_number;

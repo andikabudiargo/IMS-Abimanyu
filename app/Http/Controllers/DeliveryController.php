@@ -324,6 +324,23 @@ class DeliveryController extends Controller
         $osNumber = $request->osNumber;
         $armada = $request->armada;
 
+        // === Lock Transaction guard (activity + periode + overstock) ===
+        $stockNeeds = [];
+        foreach ((array) $articles as $a) {
+            $code = $a->article_code;
+            $stockNeeds[$code]['need']  = ($stockNeeds[$code]['need'] ?? 0) + (float) $a->qty;
+            $stockNeeds[$code]['label'] = $code;
+        }
+        foreach ($stockNeeds as $code => &$row) {
+            $row['avail'] = (float) (DB::table('warehouse_stock')
+                ->where('article_code', $code)->where('location_number', '007')
+                ->value('article_qty') ?? 0);
+        }
+        unset($row);
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $dnDate, array_values($stockNeeds))) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
+
         $periodNomor=(int)explode('-', $dnDate)[1];
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','8'=>'RECEIVED','10'=>'REVISI'];
@@ -699,6 +716,23 @@ $data['detail'] = DB::table('delivery_det')
         $note=$request->note;
         $osNumber = $request->osNumber;
         $armada = $request->armada;
+
+        // === Lock Transaction guard (activity + periode + overstock) ===
+        $stockNeeds = [];
+        foreach ((array) $articles as $a) {
+            $code = $a->article_code;
+            $stockNeeds[$code]['need']  = ($stockNeeds[$code]['need'] ?? 0) + (float) $a->qty;
+            $stockNeeds[$code]['label'] = $code;
+        }
+        foreach ($stockNeeds as $code => &$row) {
+            $row['avail'] = (float) (DB::table('warehouse_stock')
+                ->where('article_code', $code)->where('location_number', '007')
+                ->value('article_qty') ?? 0);
+        }
+        unset($row);
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $dnDate, array_values($stockNeeds))) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         // $status = '2';
         // status
         // 1. Draft
@@ -1830,6 +1864,11 @@ public function posting(Request $request)
     $note     = $dnHdr->note;
     $dnStatus = $dnHdr->status;
 
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $dnHdr->delivery_date)) {
+        return redirect()->back()->with(['alert' => 'warning', 'title' => "Cancel $this->title", 'message' => $err]);
+    }
+
     if ($this->punyaArAktif($dnNumber)) {
         $title   = "Cancel $this->title";
         $alert   = "warning";
@@ -1997,6 +2036,11 @@ public function posting(Request $request)
     $deliveries = DB::table('delivery_hdr')->where('id', $id)->first();
     $dnOrigin  = $deliveries->delivery_number;
     $dnStatus  = $deliveries->status;
+
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $deliveries->delivery_date)) {
+        return redirect()->back()->with(['alert' => 'warning', 'title' => "Revision $this->title", 'message' => $err]);
+    }
 
     // Revisi TETAP diizinkan walau DN ini masih punya AR/Invoice aktif --
     // cross-module OB sync sudah menjaga OPENING BALANCE tetap benar walau

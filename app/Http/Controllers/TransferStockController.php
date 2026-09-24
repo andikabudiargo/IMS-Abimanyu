@@ -565,6 +565,29 @@ $data['locationsTo'] = DB::table('stock_location_master')
             'articles'     => json_decode($request->articles, true) ?? [],
         ];
 
+        // === Lock Transaction guard (activity + periode + overstock) ===
+        // Overstock: qty (dikonversi ke base uom) vs warehouse_stock di lokasi asal.
+        $stockNeeds = [];
+        foreach ($payload['articles'] as $a) {
+            $code = $a['article_code'] ?? null;
+            if (!$code) continue;
+            $qtyBase = (float) (DB::selectOne(
+                "select ? * coalesce(uom_conversion(?, (select uom from article where article_code = ?)),1) as q",
+                [$a['qty'] ?? 0, $a['uom'] ?? null, $code]
+            )->q ?? ($a['qty'] ?? 0));
+            $stockNeeds[$code]['need']  = ($stockNeeds[$code]['need'] ?? 0) + $qtyBase;
+            $stockNeeds[$code]['label'] = $code;
+        }
+        foreach ($stockNeeds as $code => &$row) {
+            $row['avail'] = (float) (DB::table('warehouse_stock')
+                ->where('article_code', $code)->where('location_number', $payload['locationFrom'])
+                ->sum('article_qty'));
+        }
+        unset($row);
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $payload['trDate'], array_values($stockNeeds))) {
+            return response()->json(['status'=>0,'title'=>$title,'message'=>[[$err]],'alert'=>'error']);
+        }
+
         $result = $this->createTransferProgrammatically($payload, true);
 
         if (!$result['success']) {
@@ -1001,9 +1024,15 @@ $data['locationsTo'] = DB::table('stock_location_master')
         $id    = Crypt::decryptString($request->id);
         $title = "Cancel $this->title";
 
-        $trNumber = DB::table('transfer_stock_hdr')->where('id', $id)->value('tr_number');
+        $hdrRow = DB::table('transfer_stock_hdr')->where('id', $id)->first(['tr_number','tr_date']);
+        $trNumber = $hdrRow->tr_number ?? null;
         if (!$trNumber) {
             return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>'Data tidak ditemukan']);
+        }
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $hdrRow->tr_date)) {
+            return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>$err]);
         }
 
         $res = $this->cancelTransferProgrammatically($trNumber, 'Cancel', true, true);
@@ -1356,6 +1385,28 @@ public function update(Request $request)
         return response()->json(['status'=>0,'title'=>$title,'message'=>['Data tidak ditemukan'],'alert'=>'error']);
     }
 
+    // === Lock Transaction guard (activity + periode + overstock) ===
+    $stockNeeds = [];
+    foreach ((array) $articles as $a) {
+        $code = $a->article_code ?? null;
+        if (!$code) continue;
+        $qtyBase = (float) (DB::selectOne(
+            "select ? * coalesce(uom_conversion(?, (select uom from article where article_code = ?)),1) as q",
+            [$a->qty ?? 0, $a->uom ?? null, $code]
+        )->q ?? ($a->qty ?? 0));
+        $stockNeeds[$code]['need']  = ($stockNeeds[$code]['need'] ?? 0) + $qtyBase;
+        $stockNeeds[$code]['label'] = $code;
+    }
+    foreach ($stockNeeds as $code => &$row) {
+        $row['avail'] = (float) (DB::table('warehouse_stock')
+            ->where('article_code', $code)->where('location_number', $locationCode)
+            ->sum('article_qty'));
+    }
+    unset($row);
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $trDate, array_values($stockNeeds))) {
+        return response()->json(['status'=>0,'title'=>$title,'message'=>[[$err]],'alert'=>'error']);
+    }
+
     // ── GUARD: hanya NEW yang boleh diedit. POSTED harus Cancel. ──
     if ($hdr->status != '1') {
         $map = ['1'=>'NEW','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED'];
@@ -1672,6 +1723,11 @@ private function getArticleDesc(string $articleCode): string
             }
             if ($hdrQ->status == '5') {
                 return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>"$title gagal: sudah dicancel"]);
+            }
+
+            // === Lock Transaction guard: activity + periode ===
+            if ($err = AppHelpers::lockGuard($this->moduleCode, $hdrQ->tr_date)) {
+                return redirect()->back()->with(['title'=>$title,'alert'=>'warning','message'=>$err]);
             }
 
             $trNumber  = $hdrQ->tr_number;
