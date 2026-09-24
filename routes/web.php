@@ -371,6 +371,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receivings/list/detail',['as'=>'receiving.list.detail','uses'=>'ReceivingController@listDetail']);
 	Route::get('receivingReportAcc',['as'=>'receiving.report.acc','uses'=>'ReceivingController@reportAcc','middleware' => ['permission:delivery-report-acc']]);
 	Route::post('receivingReportAcc/list/report',['as'=>'receiving.list.report.acc','uses'=>'ReceivingController@listReportAcc']);
+	Route::post('receivingReportAcc/list/summary',['as'=>'receiving.list.report.acc.summary','uses'=>'ReceivingController@listReportAccSummary']);
 	Route::get('receivings/show',['as'=>'receiving.show','uses'=>'ReceivingController@show']);
 	Route::get('receivings/edit',['as'=>'receiving.edit','uses'=>'ReceivingController@edit','middleware' => ['permission:receiving-edit']]);
 	Route::post('receivings/update',['as'=>'receiving.update','uses'=>'ReceivingController@update']);

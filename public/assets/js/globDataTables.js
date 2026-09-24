@@ -59,6 +59,39 @@ const buttonExportGlob = (arrColPrint) => {
       },
     ]
 }
+// Kolom tanggal dikirim server sebagai 'YYYY-MM-DD' (bisa disort). Tampil dd-mm-yyyy,
+// saat export (orthogonal 'export') tetap ISO lalu diubah jadi sel tanggal asli di Excel.
+const dateRender = (d, type) => {
+  if (!d || type !== 'display') return d || '';
+  const p = String(d).split('-');
+  return p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : d;
+};
+
+const excelDateCustomize = (xlsx) => {
+  const styles = xlsx.xl['styles.xml'];
+  const cellXfs = styles.getElementsByTagName('cellXfs')[0];
+  const xf = styles.createElement('xf');
+  xf.setAttribute('numFmtId', '14');
+  xf.setAttribute('fontId', '0');
+  xf.setAttribute('fillId', '0');
+  xf.setAttribute('borderId', '0');
+  xf.setAttribute('xfId', '0');
+  xf.setAttribute('applyNumberFormat', '1');
+  cellXfs.appendChild(xf);
+  const styleIdx = cellXfs.children.length - 1;
+  cellXfs.setAttribute('count', styleIdx + 1);
+
+  $('row c', xlsx.xl.worksheets['sheet1.xml']).each(function () {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec($(this).text());
+    if (!m) return;
+    const serial = Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000 + 25569;
+    const v = this.ownerDocument.createElement('v');
+    v.textContent = serial;
+    $(this).removeAttr('t').attr('s', styleIdx).empty();
+    this.appendChild(v);
+  });
+};
+
 let showDataTables = (opt) => {
     opt = $.extend({
       tableId:"",
@@ -124,17 +157,17 @@ let showDataTables = (opt) => {
                   extend: 'csv',
                   text: feather.icons['file-text'].toSvg({ class: 'font-small-4 mr-50' }) + 'Csv',
                   className: 'dropdown-item',
-                  exportOptions: { columns: opt.arrColPrint }
+                  exportOptions: opt.excelDates ? { columns: opt.arrColPrint, orthogonal:'export' } : { columns: opt.arrColPrint }
                 },
                 {
                   extend: 'excel',
                   text: feather.icons['file'].toSvg({ class: 'font-small-4 mr-50' }) + 'Excel',
                   className: 'dropdown-item',
-                  exportOptions: { columns: opt.arrColPrint },
+                  exportOptions: opt.excelDates ? { columns: opt.arrColPrint, orthogonal:'export' } : { columns: opt.arrColPrint },
                   action: newExportAction,
                   title:null,
                   filename:opt.excelFileName,
-                  customize:opt.excelCustomize,
+                  customize:opt.excelDates ? excelDateCustomize : opt.excelCustomize,
                   messageBottom:opt.excelMessageBottom
                 },
                 // {

@@ -71,6 +71,11 @@ class ReceivingController extends Controller
 
     }
 
+    private function recTypeLabel($type)
+    {
+        return ['NORMAL'=>'Purchase Order','NP'=>'Non Purchase','TRIAL'=>'Trial & Project','JASA'=>'Jasa','TEMP'=>'Receiving Sementara'][$type] ?? $type;
+    }
+
     public function getTableColoumn(){
     $kolom=
     [
@@ -82,6 +87,7 @@ class ReceivingController extends Controller
         ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
         ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'],
         ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier','searchable'=>false],
+        ['data'=>'rec_type','name'=>'rec_type','title'=>'Receive Type','searchable'=>false],
         ['data'=>'note','name'=>'note','title'=>'Note'],
         ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
         ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By','searchable'=>false],
@@ -124,6 +130,7 @@ class ReceivingController extends Controller
     $kolom=
     [
         ['data'=>'nama_dept','name'=>'nama_dept','title'=>'Departemen','searchable'=>false],
+        ['data'=>'rec_type','name'=>'rec_type','title'=>'Receive Type','searchable'=>false],
         ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
         ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
         ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'],
@@ -135,7 +142,9 @@ class ReceivingController extends Controller
         ['data'=>'article_desc','name'=>'article_desc','title'=>'Article Desc'],
         ['data'=>'qty','name'=>'qty','title'=>'qty'],
         ['data'=>'qty_free','name'=>'qty_free','title'=>'qty Free'],
+        ['data'=>'qty_con','name'=>'qty_con','title'=>'Qty Con'],
         ['data'=>'uom_rec','name'=>'uom_rec','title'=>'uom'],
+        ['data'=>'uom_con','name'=>'uom_con','title'=>'UOM Con'],
         ['data'=>'status','name'=>'status','title'=>'Status'],
         ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
         ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By','searchable'=>false],
@@ -2933,6 +2942,7 @@ public function unPosting($recNumber)
     $bisaChemical = Auth::user()->can('receiving-edit');
 
     return Datatables::of($query)
+        ->editColumn("rec_type", fn ($d) => $this->recTypeLabel($d->rec_type))
         ->addColumn('action', function ($data) use ($lockDateToDate, $bisaEdit, $bisaDelete, $bisaPosting, $bisaApprove, $bisaChemical) {
             $recDate  = date('Y-m-d', strtotime($data->rec_date));
             $bisaUbah = $recDate >= $lockDateToDate;
@@ -3320,6 +3330,7 @@ public function unPosting($recNumber)
             ['data'=>'ppn','name'=>'ppn','title'=>'Tipe PPN'],
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'rec_type','name'=>'rec_type','title'=>'Receive Type'],
             ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
             ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
             ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier Code'],
@@ -3351,6 +3362,103 @@ public function unPosting($recNumber)
         return json_encode($kolom, true);
     }
 
+    public function getTableColoumnReportAccSummary()
+    {
+        $kolom =
+        [
+            ['data'=>'rec_type','name'=>'rec_type','title'=>'Receive Type'],
+            ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
+            ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number'],
+            ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
+            ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
+            ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
+            ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier Code'],
+            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated At'],
+        ];
+        return json_encode($kolom, true);
+    }
+
+    public function listReportAccSummary(Request $request)
+    {
+        $searchSupplier = array_filter((array) $request->searchSupplier, fn($v) => $v !== '' && $v !== null);
+        $searchPo       = array_filter((array) $request->searchPo, fn($v) => $v !== '' && $v !== null);
+        $requestDate    = $request->recDate;
+
+        $fromDate = "";
+        $toDate = "";
+
+        if ($requestDate){
+            $date = explode("to",$requestDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = count($date)>1 ? implode("/", array_reverse(explode("-", trim($date[1])))) : $fromDate;
+        }
+
+        // AP terkait receiving ini (posted/paid/partially paid), sama seperti report detail.
+        $apNumberSub = "(select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)";
+        $apOk        = "ap_number = $apNumberSub and status in ('4','6','7')";
+
+        $data = DB::table('receiving_hdr')
+        ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
+        ->where(function ($query) use ($searchSupplier,$searchPo,$requestDate,$fromDate,$toDate) {
+            $searchSupplier ? $query->whereIn('receiving_hdr.supplier_id',$searchSupplier) : '';
+            $searchPo ? $query->whereIn('receiving_hdr.po_number',$searchPo) : '';
+            $requestDate ? $query->whereBetween(DB::raw("to_date(receiving_hdr.rec_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->whereNotIn('receiving_hdr.status',['5','7'])
+        ->select(
+            'receiving_hdr.id as rec_id'
+            ,'receiving_hdr.rec_type'
+            ,'receiving_hdr.rec_number'
+            ,'receiving_hdr.po_number'
+            ,DB::raw("(select id from purchase_order_hdr where po_number = receiving_hdr.po_number order by id limit 1) as po_id")
+            ,DB::raw("to_char(to_date(nullif(purchase_order_hdr.po_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') as po_date")
+            ,DB::raw("to_char(to_date(nullif(receiving_hdr.rec_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') as rec_date")
+            ,DB::raw("to_char(to_date(nullif(receiving_hdr.do_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') as do_date")
+            ,'receiving_hdr.status'
+            ,'receiving_hdr.supplier_id'
+            ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
+            ,'receiving_hdr.note'
+            ,'receiving_hdr.created_by'
+            ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
+            ,'receiving_hdr.created_at'
+            ,'receiving_hdr.updated_at'
+            ,DB::raw("(select ap_number from ap_invoice where $apOk limit 1) as ap_number")
+            ,DB::raw("(select id from ap_invoice where $apOk limit 1) as ap_id")
+            ,DB::raw("(select to_char(to_date(nullif(ap_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') from ap_invoice where $apOk limit 1) as ap_date")
+        )
+        ->orderByRaw("to_date(nullif(receiving_hdr.do_date,''),'DD-MM-YYYY') asc nulls last, receiving_hdr.id asc")
+        ->get();
+
+        return Datatables::of($data)
+        ->editColumn("rec_type", fn ($row) => $this->recTypeLabel($row->rec_type))
+        ->editColumn('status', function ($row) {
+            $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED','','','','','REVISI'];
+            return $statusRec[$row->status - 1] ?? $row->status;
+        })
+        ->editColumn('rec_number', function ($row) {
+            if (!$row->rec_id || !$row->rec_number) return $row->rec_number;
+            return '<a href="'.route('receiving.show', ['id' => Crypt::encryptString($row->rec_id)]).'" target="_blank">'.$row->rec_number.'</a>';
+        })
+        ->editColumn('po_number', function ($row) {
+            if (!$row->po_id || !$row->po_number) return $row->po_number;
+            return '<a href="'.route('purchaseOrder.show', ['id' => Crypt::encryptString($row->po_id)]).'" target="_blank">'.$row->po_number.'</a>';
+        })
+        ->editColumn('ap_number', function ($row) {
+            if (!$row->ap_id || !$row->ap_number) return $row->ap_number;
+            return '<a href="'.route('accountPayable.show', ['id' => Crypt::encryptString($row->ap_id)]).'" target="_blank">'.$row->ap_number.'</a>';
+        })
+        ->rawColumns(['rec_number', 'po_number', 'ap_number'])
+        ->make(true);
+    }
+
     public function reportAcc(Request $request)
     {
         $data['title'] = "Receiving Report";
@@ -3369,6 +3477,7 @@ public function unPosting($recNumber)
         ->pluck('po_number');
 
         $data['kolom'] = $this->getTableColoumnReportAcc();
+        $data['kolomSummary'] = $this->getTableColoumnReportAccSummary();
 
         return view("receiving.reportAcc",$data);
     }
@@ -3428,8 +3537,8 @@ public function unPosting($recNumber)
         ->select(
         'article.article_desc'
         ,'article.article_alternative_code'
-        ,'receiving_hdr.rec_date'
-        ,'receiving_hdr.do_date'
+        ,DB::raw("to_char(to_date(nullif(receiving_hdr.rec_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') as rec_date")
+        ,DB::raw("to_char(to_date(nullif(receiving_hdr.do_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') as do_date")
         ,'receiving_hdr.po_number'
         ,DB::raw("(select id from purchase_order_hdr where po_number = receiving_hdr.po_number order by id limit 1) as po_id")
         ,'receiving_det.rec_number'
@@ -3441,6 +3550,7 @@ public function unPosting($recNumber)
         ,DB::raw("case when coalesce(receiving_det.conv_to,'') <> '' and receiving_det.conv_to <> receiving_det.uom_rec then receiving_det.conv_to else '' end as uom_conv")
         ,DB::raw("case when coalesce(receiving_det.conv_to,'') <> '' and receiving_det.conv_to <> receiving_det.uom_rec then receiving_det.qty_conv end as qty_conv")
         ,'receiving_hdr.supplier_id'
+        ,'receiving_hdr.rec_type'
         ,'receiving_hdr.status'
         ,'receiving_hdr.created_by'
         ,'receiving_hdr.note'
@@ -3449,7 +3559,7 @@ public function unPosting($recNumber)
         ,'article_types.name as article_type_name'
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("case when receiving_hdr.rec_type = 'NP' then 'Logistic' when receiving_hdr.rec_type = 'TRIAL' then 'Engineering' else (select (select name from depts where code = dept) from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1) end as nama_dept")
-        ,DB::raw("(select ap_date from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1) as invoice_date")
+        ,DB::raw("(select to_char(to_date(nullif(ap_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1) as invoice_date")
         ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("case when coalesce(purchase_order_hdr.ppn::numeric,0) > 0 then 'PPN' else '' end as ppn")
         ,DB::raw("$dpp as total_dpp")
@@ -3460,7 +3570,7 @@ public function unPosting($recNumber)
         ,DB::raw("(select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_number")
         ,DB::raw("(select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_id")
         ,DB::raw("(select kas_hdr.voucher_type from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_type")
-        ,DB::raw("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'DD/MM/YYYY') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as paid_date")
+        ,DB::raw("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'YYYY-MM-DD') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as paid_date")
         // Balance per baris receiving: kalau AP-nya sudah LUNAS (status 6) → 0,
         // selain itu → Total Plus PPN baris ini. Tidak memakai grand total AP
         // (1 AP bisa mencakup beberapa receiving) maupun nominal kas.
@@ -3472,6 +3582,7 @@ public function unPosting($recNumber)
         ->get();
 
         return Datatables::of($data)
+        ->editColumn("rec_type", fn ($d) => $this->recTypeLabel($d->rec_type))
         ->addColumn('rec_number', function ($row) {
             if (!$row->rec_id || !$row->rec_number) return $row->rec_number;
             return '<a href="'.route('receiving.show', ['id' => Crypt::encryptString($row->rec_id)]).'" target="_blank">'.$row->rec_number.'</a>';
@@ -3565,6 +3676,8 @@ public function unPosting($recNumber)
         ,'article_alternative_code'
         ,'article_desc'
         ,'article_types.name as article_type_name'
+        ,DB::raw("case when coalesce(receiving_det.conv_to,'') <> '' and receiving_det.conv_to <> receiving_det.uom_rec then receiving_det.conv_to else '' end as uom_con")
+        ,DB::raw("case when coalesce(receiving_det.conv_to,'') <> '' and receiving_det.conv_to <> receiving_det.uom_rec then receiving_det.qty_conv end as qty_con")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("
@@ -3591,6 +3704,8 @@ public function unPosting($recNumber)
 ");
 
    return Datatables::of($query)
+    ->editColumn("rec_type", fn ($d) => $this->recTypeLabel($d->rec_type))
+    ->editColumn('qty_con', fn ($d) => $d->qty_con ?? '')
     ->addColumn('status', function ($data) {
         $badges = [
             'badge-primary',

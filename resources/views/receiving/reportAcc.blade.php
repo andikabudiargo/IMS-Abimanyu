@@ -62,6 +62,8 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+        <button type="button" class="btn btn-primary" id="btnSummary" title="Tekan tombol untuk melihat data summary" style="display:none;">Summary</button>
+        <button type="button" class="btn btn-primary" id="btnDetail" title="Tekan tombol untuk melihat data detail" style="display:none;">Detail</button>
         <div class="row">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">
@@ -84,9 +86,19 @@
   let searchPo = $("#searchPo");
   let recDate = $("#recDate");
 
-  $('a[data-action="reload"]').on('click', function () {
-    showList(searchSupplier.val(),searchPo.val(),recDate.val());
-  });
+  let btnSummary = $('#btnSummary');
+  let btnDetail = $('#btnDetail');
+  let isSummary = false;
+
+  const reload = () => {
+    if (isSummary) {
+      showSummary(searchSupplier.val(),searchPo.val(),recDate.val());
+    } else {
+      showList(searchSupplier.val(),searchPo.val(),recDate.val());
+    }
+  };
+
+  $('a[data-action="reload"]').on('click', reload);
 
   let rangePickr = $('.flatpickr-range');
   if (rangePickr.length) {
@@ -97,29 +109,70 @@
   }
 
   $("#btnSearch").click(function(e){
-    showList(searchSupplier.val(),searchPo.val(),recDate.val());
+    isSummary = false;
+    btnDetail.hide(); btnSummary.show();
+    reload();
   });
 
-  const showList = (searchSupplier,searchPo,recDate) => {
+  btnSummary.click(function(){
+    isSummary = true;
+    btnSummary.hide(); btnDetail.show();
+    reload();
+  });
+
+  btnDetail.click(function(){
+    isSummary = false;
+    btnDetail.hide(); btnSummary.show();
+    reload();
+  });
+
+  const resetTable = () => {
     if ($('#detailedTable tr').length >0){
-        let table= $('#detailedTable').DataTable();
-        table.destroy();
+        $('#detailedTable').DataTable().destroy();
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
+  }
+
+  const showSummary = (searchSupplier,searchPo,recDate) => {
+    resetTable();
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('receiving.list.report.acc.summary') }}",
+      kolom:{!! $kolomSummary !!},
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+      columnDefs :[
+        { targets: [ 4,5,6,7 ], render: dateRender },
+      ],
+      excelDates:true,
+      dataSearch:  {
+        searchSupplier:searchSupplier,
+        searchPo:searchPo,
+        recDate:recDate
+      },
+      type:'POST',
+      orderColumn:[],
+      excelFileName:'receiving_report_acc_summary'
+    });
+  }
+
+  const showList = (searchSupplier,searchPo,recDate) => {
+    resetTable();
     showDataTables({
       tableId:"detailedTable",
       route:"{{ route('receiving.list.report.acc') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 12,13,14,15,16,17,18,23 ],
+          targets: [ 13,14,15,16,17,18,19,24 ],
           render: $.fn.dataTable.render.number(',','.',2,''),
           className: "text-right"
         },
+        { targets: [ 5,6,21,23 ], render: dateRender },
       ],
+      excelDates:true,
       dataSearch:  {
         searchSupplier:searchSupplier,
         searchPo:searchPo,
