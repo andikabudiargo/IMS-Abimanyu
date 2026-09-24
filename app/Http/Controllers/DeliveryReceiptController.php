@@ -54,7 +54,6 @@ class DeliveryReceiptController extends Controller
             ['data'=>'statusKu','name'=>'statusKu','title'=>'Status'],
             ['data'=>'dr_number','name'=>'dr_number','title'=>'DR Number'],
             ['data'=>'dr_date','name'=>'dr_date','title'=>'DR Date'],
-            ['data'=>'invoice_number','name'=>'invoice_number','title'=>'Invoice Number'],
             ['data'=>'receivedBy','name'=>'receivedBy','title'=>'Received By'],
             ['data'=>'dr_date','name'=>'dr_date','title'=>'Received At'],            
             ['data'=>'submittedBy','name'=>'submittedBy','title'=>'Submitted By'],
@@ -407,6 +406,72 @@ class DeliveryReceiptController extends Controller
         }
     }
 
+    public function bulk(Request $request)
+    {
+        $act = $request->action;
+        $perm = ['receive'=>'dnReceipt-create','submit'=>'dnReceipt-edit','delete'=>'dnReceipt-delete'];
+        if (!isset($perm[$act]) || !Auth::user()->can($perm[$act]) || !is_array($request->ids)) {
+            return response()->json(['status'=>0,'message'=>'Invalid request']);
+        }
+
+        $username = Auth::user()->username;
+        $today = date('Y-m-d');
+        $now = date('Y-m-d H:i:s');
+        $done = 0;
+        $skipped = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->ids as $enc) {
+                $id = Crypt::decryptString($enc);
+                if ($act == 'receive') {
+                    $dn = DB::table('delivery_hdr')->where('id',$id)->lockForUpdate()->first();
+                    if (!$dn || $dn->status != '4' || DB::table('dn_receipt')->where('delivery_number',$dn->delivery_number)->where('status','1')->exists()) {
+                        $skipped[] = $dn->delivery_number ?? $id;
+                        continue;
+                    }
+                    AppHelpers::resetCode($this->moduleCode);
+                    $drNumber = $this->getLastCode($this->moduleCode);
+                    DB::table('dn_receipt')->insert([
+                        'dr_number'=>$drNumber,'dr_date'=>$today,'delivery_number'=>$dn->delivery_number,
+                        'delivery_date'=>$dn->delivery_date,'received_by'=>$username,'status'=>'1',
+                        'created_by'=>$username,'updated_by'=>$username,'created_at'=>$now,'updated_at'=>$now
+                    ]);
+                    DB::table('delivery_hdr')->where('id',$id)->update(['status'=>'8','updated_by'=>$username,'updated_at'=>$now]);
+                } else {
+                    $dr = DB::table('dn_receipt')->where('id',$id)->lockForUpdate()->first();
+                    if (!$dr) {
+                        $skipped[] = $id;
+                        continue;
+                    }
+                    if ($act == 'submit') {
+                        if ($dr->status != '1') {
+                            $skipped[] = $dr->dr_number;
+                            continue;
+                        }
+                        DB::table('dn_receipt')->where('id',$id)->update([
+                            'submitted_at'=>$today,'submitted_by'=>$username,'status'=>'2',
+                            'updated_by'=>$username,'updated_at'=>$now
+                        ]);
+                    } else {
+                        DB::table('dn_receipt')->where('id',$id)->delete();
+                        DB::table('delivery_hdr')->where('delivery_number',$dr->delivery_number)
+                        ->update(['status'=>'4','updated_by'=>$username,'updated_at'=>$now]);
+                    }
+                }
+                $done++;
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status'=>0,'message'=>'Failed: '.$e->getMessage()]);
+        }
+
+        \LogActivity::addToLog("Bulk $act $this->title","username: $username $act $done item(s)");
+        $msg = "$done item(s) processed".($skipped ? ', skipped: '.implode(', ',$skipped) : '');
+        return response()->json(['status'=>1,'message'=>$msg]);
+    }
+
     public function list(Request $request)
     {
         $searchDn = strtolower($request->searchDn);
@@ -451,7 +516,6 @@ class DeliveryReceiptController extends Controller
         $data = DB::table('delivery_hdr')
         ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
         ->leftJoin('dn_receipt','dn_receipt.delivery_number','delivery_hdr.delivery_number')
-        ->leftJoin('invoice_hdr','invoice_hdr.dn_number','invoice_hdr.dn_number')
         ->leftJoin('users as a','dn_receipt.received_by','a.username')
         ->leftJoin('users as b','dn_receipt.submitted_by','b.username')
         ->where(function ($query) use ($searchDn,$drDate,$searchStatus,$fromDate,$toDate,$searchStatusDn,$dnDate,$fromDateDn,$toDateDn,$customer) {
@@ -471,7 +535,6 @@ class DeliveryReceiptController extends Controller
         ,'dn_receipt.status as statusKu'
         ,'dn_receipt.id as idku'
         ,'dn_receipt.note as notesku'
-        ,'invoice_hdr.invoice_number'
         ,'nama'
         ,db::raw("to_char(dn_receipt.submitted_at, 'DD-MM-YYYY') as submitted_at")
         ,db::raw("to_char(to_date(dn_receipt.dr_date,'YYYY-MM-DD'), 'DD-MM-YYYY') as dr_date")        
@@ -483,63 +546,15 @@ class DeliveryReceiptController extends Controller
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
-            // if ( $data->status == '1' ){
-            $buttons = '<div class="d-inline-flex">
-                            <a class="pr-1 dropdown-toggle hide-arrow text-primary" data-toggle="dropdown">
-                                <i data-feather="menu"></i>
-                            </a>';
-            $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-
-            if ( $data->status == '4' and $data->statusKu =='') {
-
-                if (Auth::user()->can('dnReceipt-create')) {
-                    // $buttons .= '<a href="'. route('dnReceipt.create', ['id'=>Crypt::encryptString($data->id)]) .'" class="dropdown-item">
-                    //             <i data-feather="file-text"></i>
-                    //             <span>'. __("Receive") .'</span>
-                    //         </a>';
-                    $buttons .= '<a href="javascript:void(0);" onclick="receiveDr(\''.Crypt::encryptString($data->id).'\')" class="dropdown-item">
-                            <i data-feather="file-text"></i>
-                            <span>'. __("Receive") .'</span>
-                    </a>';
-                    
-                }
-                
+            $user = Auth::user();
+            $canReceive = $data->status == '4' && $data->statusKu == '' && $user->can('dnReceipt-create');
+            $canSubmit = $data->statusKu == '1' && $user->can('dnReceipt-edit');
+            $canDelete = $data->status != '4' && $data->statusKu != '' && $user->can('dnReceipt-delete');
+            if (!$canReceive && !$canSubmit && !$canDelete) {
+                return '';
             }
-
-            if ($data->statusKu == '1'){
-                if (Auth::user()->can('dnReceipt-edit')) {
-                // $buttons .=         '<a href="'. route('dnReceipt.edit', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                //                         <i data-feather="file-text"></i>
-                //                         Submit
-                //                     </a>';
-                    $buttons .= '<a href="javascript:void(0);" onclick="submitDr(\''.Crypt::encryptString($data->idku).'\')" class="dropdown-item">
-                        <i data-feather="check"></i>
-                        <span>'. __("Submit") .'</span>
-                    </a>';
-                }
-            }
-                
-            if (Auth::user()->can('dnReceipt-delete')) {
-                if ($data->status != '4'){
-                    $buttons .=         "<a href='javascript:;'
-                                        class='dropdown-item' 
-                                        data-size='sm'
-                                        data-ajax-delete='true'
-                                        data-confirm='Are You Sure want to Cancel?|This action can not be undone. Do you want to continue?' 
-                                        data-confirm-yes='document.getElementById(\""."delete-form-".$data->idku."\").submit();'
-                                        data-modal-id='".$data->idku."'
-                                        data-url='". route('dnReceipt.destroy', ['id'=>Crypt::encryptString($data->idku)]) ."'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        <span>". __('Delete') ."</span>
-                                    </a>";
-                }
-            }
-
-            $buttons .=     '</div>
-                        </div>';
-
-            return $buttons;
-            // }
+            $id = Crypt::encryptString($canReceive ? $data->id : $data->idku);
+            return '<input type="checkbox" class="chk-dr" value="'.$id.'" data-r="'.(int)$canReceive.'" data-s="'.(int)$canSubmit.'" data-d="'.(int)$canDelete.'">';
         })
         ->addColumn('statusKu', function ($data) {
             $badges=['badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];

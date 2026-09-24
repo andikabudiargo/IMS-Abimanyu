@@ -80,6 +80,12 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+        <div class="mb-1" id="bulkBar" style="display:none">
+          <span id="bulkCount" class="mr-1"></span>
+          <button type="button" class="btn btn-sm btn-primary bulk-btn" data-act="receive" data-flag="r">Received</button>
+          <button type="button" class="btn btn-sm btn-success bulk-btn" data-act="submit" data-flag="s">Submit</button>
+          <button type="button" class="btn btn-sm btn-danger bulk-btn" data-act="delete" data-flag="d">Delete</button>
+        </div>
         <div class="row">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">
@@ -140,7 +146,7 @@
       route:"{{ route('dnReceipt.list') }}",
       kolom:{!! $kolom !!},
       type:'POST',
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14],
       columnDefs :[
         { width: '5%', targets: 0 },
       ],
@@ -177,6 +183,32 @@
     url = url.replace("&amp;", "&");
     window.open(url,"_self");
   }
+
+  const updateBulk = () => {
+    const sel = $('.chk-dr:checked');
+    $('#bulkBar').toggle(sel.length > 0);
+    $('#bulkCount').text(sel.length + ' selected');
+    $('.bulk-btn').each(function(){
+      const f = $(this).data('flag');
+      $(this).toggle(sel.filter(function(){ return $(this).data(f) != 1; }).length === 0);
+    });
+  }
+  $(document).on('change', '.chk-dr', updateBulk);
+  $(document).on('draw.dt', '#detailedTable', updateBulk);
+
+  $(document).on('click', '.bulk-btn', function(){
+    const act = $(this).data('act');
+    const ids = $('.chk-dr:checked').map(function(){ return this.value; }).get();
+    Swal.fire({title: 'Bulk ' + act + ' ' + ids.length + ' item(s)?', icon: 'question', showCancelButton: true})
+    .then((r) => {
+      if (!r.isConfirmed) return;
+      $.post("{{ route('dnReceipt.bulk') }}", {action: act, ids: ids}, function(res){
+        Swal.fire(res.status ? 'Success' : 'Error', res.message, res.status ? 'success' : 'error').then(() => {
+          if (res.status) showList(searchDn.val(),drDate.val(),searchStatus.val(),dnDate.val(),searchCustomer.val());
+        });
+      }).fail(() => Swal.fire('Error','Request failed','error'));
+    });
+  });
 
   $.ajaxSetup({
     headers: {

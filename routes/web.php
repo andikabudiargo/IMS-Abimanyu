@@ -488,6 +488,7 @@ Route::prefix('supplier-replace')->group(function () {
 	
 	Route::get('dnReceipt',['as'=>'dnReceipt.index','uses'=>'DeliveryReceiptController@index','middleware' => ['permission:dnReceipt-index']]);
 	Route::post('dnReceipt/store',['as'=>'dnReceipt.store','uses'=>'DeliveryReceiptController@store']);
+	Route::post('dnReceipt/bulk',['as'=>'dnReceipt.bulk','uses'=>'DeliveryReceiptController@bulk']);
 	Route::post('dnReceipt/list',['as'=>'dnReceipt.list','uses'=>'DeliveryReceiptController@list']);
 	Route::post('dnReceipt/delete',['as'=>'dnReceipt.destroy','uses'=>'DeliveryReceiptController@destroy']);
 	Route::get('dnReceipt/create',['as'=>'dnReceipt.create','uses'=>'DeliveryReceiptController@create','middleware' => ['permission:dnReceipt-create']]);
