@@ -93,10 +93,7 @@ class LockTransactionController extends Controller
 
         // Urut per group (sesuai $groupOrder), lalu nama modul di dalam group.
         $data['menus'] = $menus
-            ->sortBy([
-                fn($m) => array_search($m->group, $groupOrder),
-                fn($m) => $m->module_name,
-            ])
+            ->sortBy(fn($m) => sprintf('%02d-%s', array_search($m->group, $groupOrder), $m->module_name))
             ->values()
             ->groupBy('group');
 
