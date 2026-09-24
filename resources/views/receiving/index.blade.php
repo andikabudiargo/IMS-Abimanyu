@@ -35,8 +35,6 @@
                                 <option value="TEMP">Receiving Sementara</option>
                             </select>
                         </div>
-    </div>
-     <div class="form-row">
     <div class="form-group col-md-3"> 
         <label class="form-label" for="searchSupplier">Supplier</label>
         <select class="select2 form-control" id="searchSupplier" name="searchSupplier">
@@ -46,6 +44,8 @@
             @endforeach
         </select>
       </div>
+    </div>
+    <div class="form-row">
       <div class="col-md-3 form-group">
         <label for="recDate">Receiving Date</label>
         <input type="text" id="recDate" name="recDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
@@ -63,12 +63,12 @@
             @endforeach
         </select>
       </div>
-    </div>
-    <div class="form-row">
       <div class="form-group col-md-3"> 
         <label for="searchArticleCode">Article Code</label>
         <input type="text" class="form-control" id="searchArticleCode" name="searchArticleCode" placeholder="" />
       </div>
+    </div>
+    <div class="form-row">
       <div class="form-group col-md-3"> 
         <label for="searchArticleDesc">Article Desc</label>
         <input type="text" class="form-control" id="searchArticleDesc" name="searchArticleDesc" placeholder="" />
