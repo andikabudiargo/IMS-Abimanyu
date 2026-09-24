@@ -84,6 +84,66 @@
     </div>
   </div>
 </section>
+<section id="ap-dashboard">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">AP Dashboard</h4>
+      <div class="heading-elements">
+        <ul class="list-inline mb-0">
+          <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-content collapse">
+      <div class="card-body">
+        <div class="form-row mb-2">
+          <div class="form-group col-md-2">
+            <label for="apCutoff">Per Tanggal (Cut-off)</label>
+            <input type="text" class="form-control flatpickr-single" id="apCutoff" placeholder="DD-MM-YYYY">
+          </div>
+        </div>
+        <div class="row ap-stat-row">
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ap-stat-card">
+              <div>
+                <h3 class="ap-stat-value text-dark" id="cardApOpeningBalance">0</h3>
+                <span class="ap-stat-label">Opening Balance</span>
+              </div>
+              <div class="ap-stat-icon ap-icon-neutral"><i data-feather="database"></i></div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ap-stat-card">
+              <div>
+                <h3 class="ap-stat-value ap-text-blue" id="cardTotalAp">0</h3>
+                <span class="ap-stat-label">Pembelian</span>
+              </div>
+              <div class="ap-stat-icon ap-icon-blue"><i data-feather="file-text"></i></div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ap-stat-card">
+              <div>
+                <h3 class="ap-stat-value ap-text-green" id="cardApTotalPaid">0</h3>
+                <span class="ap-stat-label">Pembayaran</span>
+              </div>
+              <div class="ap-stat-icon ap-icon-green"><i data-feather="check-circle"></i></div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ap-stat-card">
+              <div>
+                <h3 class="ap-stat-value ap-text-red" id="cardApOutstanding">0</h3>
+                <span class="ap-stat-label">Balance</span>
+              </div>
+              <div class="ap-stat-icon ap-icon-red"><i data-feather="alert-triangle"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 <section id="table-article">
   <div class="card">
     <div class="card-header">
@@ -117,6 +177,18 @@
 @endsection
 @section('styles')
 <style>
+.ap-stat-card { background:#fff; border-radius:10px; padding:1.25rem; box-shadow:0 2px 6px rgba(0,0,0,0.06); display:flex; align-items:flex-start; justify-content:space-between; height:100%; }
+.ap-stat-value { font-weight:700; margin-bottom:0.25rem; }
+.ap-stat-label { color:#6e6b7b; font-size:0.9rem; }
+.ap-stat-icon { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.ap-stat-icon i { width:18px; height:18px; }
+.ap-icon-neutral { background:#ececec; color:#5e5873; }
+.ap-icon-blue    { background:rgba(115,103,240,0.12); color:#7367f0; }
+.ap-icon-green   { background:rgba(40,199,111,0.12); color:#28c76f; }
+.ap-icon-red     { background:rgba(234,84,85,0.12); color:#ea5455; }
+.ap-text-blue  { color:#7367f0; }
+.ap-text-green { color:#28c76f; }
+.ap-text-red   { color:#ea5455; }
 </style>
 @endsection
 
@@ -156,6 +228,36 @@ function getExportDateTimeString(){
       mode: 'range'
     });
   }
+
+  const fmtRp = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(v);
+
+  const loadApDashboard = (cutoffDate) => {
+    $.get("{{ route('accountPayable.analyticsAp') }}", { cutoffDate: cutoffDate }, function (res) {
+      $('#cardApOpeningBalance').text(fmtRp(res.openingBalance));
+      $('#cardTotalAp').text(fmtRp(res.totalAp));
+      $('#cardApTotalPaid').text(fmtRp(res.totalPaid));
+      $('#cardApOutstanding').text(fmtRp(res.outstanding));
+    });
+  };
+
+  initDatePicker(document.querySelector('#apCutoff'), {
+    minDate: "01/01/2010",
+    maxDate: "31/12/2030",
+    dateFormat: "d-m-Y",
+    defaultDate: new Date()
+  });
+
+  let apDashboardInitialized = false;
+  $('#ap-dashboard .card-content').on('shown.bs.collapse', function () {
+    if (!apDashboardInitialized) {
+      apDashboardInitialized = true;
+      loadApDashboard($('#apCutoff').val());
+    }
+  });
+
+  $('#apCutoff').on('change', function () {
+    loadApDashboard($(this).val());
+  });
 
   function dataSearch($type){
   let searchPo = $("#searchPo").val();
