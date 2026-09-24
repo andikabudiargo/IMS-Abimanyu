@@ -181,7 +181,7 @@
         searchStatus:searchStatus,
         dnDate:dnDate
       },
-      orderColumn:[[ 0, 'asc' ]],
+      orderColumn:[[ 15, 'desc' ],[ 0, 'asc' ]],
       excelFileName:'delivery_note_detail'
     });
   }
