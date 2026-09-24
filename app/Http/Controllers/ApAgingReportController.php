@@ -141,7 +141,7 @@ class ApAgingReportController extends Controller
         LEFT JOIN LATERAL (
             -- Pelunasan AP tercatat di kas_det.DEBIT lewat voucher KK/BK
             -- (paid_to = supplier) atau BM/KM (offset, dicocokkan via
-            -- reference saja -- lihat catatan $partyMatch di atas).
+            -- reference saja -- lihat catatan partyMatch di atas).
             SELECT SUM(kas_det.debit) as total_dibayar
             FROM kas_det
             JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
