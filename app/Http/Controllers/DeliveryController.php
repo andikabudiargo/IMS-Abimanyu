@@ -100,34 +100,22 @@ class DeliveryController extends Controller
     {
         $kolom=
         [
+            ['data'=>'delivery_number','name'=>'delivery_number','title'=>'Delivery Number'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Date'],
+            ['data'=>'so_number','name'=>'so_number','title'=>'SO Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
-            ['data'=>'delivery_number','name'=>'delivery_number','title'=>'PR Number'],
-            ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
-            ['data'=>'delivery_date','name'=>'delivery_date','title'=>'Delivery Date'],
+            ['data'=>'customer_name','name'=>'customer_name','title'=>'Customer'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
-            ['data'=>'qtyku','name'=>'qtyku','title'=>'Qty'],
+            ['data'=>'qty','name'=>'qty','title'=>'Qty'],
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
-            ['data'=>'price','name'=>'price','title'=>'Price'],
-            ['data'=>'discount','name'=>'discount','title'=>'Discount'],
-            ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN'],
-            ['data'=>'total_pph22','name'=>'total_pph22','title'=>'PPH22'],
-            ['data'=>'grand_total','name'=>'grand_total','title'=>'Grand Total'],
-            ['data'=>'currency','name'=>'currency','title'=>'Currency'],
-            ['data'=>'kurs','name'=>'kurs','title'=>'Kurs'],
-            ['data'=>'ppn','name'=>'ppn','title'=>'PPN'],
-            ['data'=>'pph22','name'=>'pph22','title'=>'PPH22'],
-            ['data'=>'pkp','name'=>'pkp','title'=>'PKP'],
-            ['data'=>'termin','name'=>'termin','title'=>'Termin'],
+            ['data'=>'os_number','name'=>'os_number','title'=>'OS Number'],
+            ['data'=>'armada','name'=>'armada','title'=>'Armada'],
             ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
-            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier code'],
-            ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
-            ['data'=> 'armada', 'name'=> 'armada','title'=>'Armada'],
-            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
-            ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
-            ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
-            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
         ];
         return json_encode($kolom, true);
     }
@@ -2515,6 +2503,66 @@ private function punyaArAktif($dnNumber)
         ->make(true);
     }
 
+
+    public function listDetail(Request $request)
+    {
+        $searchDn = strtolower($request->searchDn);
+        $searchSo = strtolower($request->searchSo);
+        $searchCustomer = $request->searchCustomer;
+        $searchStatus = $request->searchStatus;
+        $requestDate = $request->dnDate;
+
+        $fromDate = "";
+        $toDate = "";
+
+        if ($requestDate){
+            $date = explode("to",$requestDate);
+            $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $toDate = count($date)>1 ? implode("/", array_reverse(explode("-", trim($date[1])))) : $fromDate;
+        }
+
+        $data = DB::table('delivery_det')
+        ->leftJoin('delivery_hdr','delivery_hdr.delivery_number','delivery_det.delivery_number')
+        ->leftJoin('third_party','third_party.kode','delivery_hdr.customer_id')
+        ->leftJoin('article','article.article_code','delivery_det.article_code')
+        ->whereNotIn('delivery_hdr.status',['5','7'])
+        ->where('delivery_det.qty','>',0)
+        ->where(function ($query) use ($searchDn,$searchSo,$searchCustomer,$searchStatus,$requestDate,$fromDate,$toDate) {
+            $searchDn ? $query->where('delivery_hdr.delivery_number','ilike','%'.$searchDn.'%') : '';
+            $searchSo ? $query->where('delivery_hdr.so_number','ilike','%'.$searchSo.'%') : '';
+            $searchStatus ? $query->where('delivery_hdr.status',$searchStatus) : '';
+            $searchCustomer ? $query->where('delivery_hdr.customer_id',$searchCustomer) : '';
+            $requestDate ? $query->whereBetween(DB::raw("to_date(delivery_hdr.delivery_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        })
+        ->select(
+            'delivery_det.delivery_number'
+            ,'delivery_hdr.status'
+            ,'delivery_hdr.delivery_date'
+            ,'delivery_det.so_number'
+            ,'delivery_det.po_number'
+            ,DB::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
+            ,'article.article_alternative_code'
+            ,'article.article_desc'
+            ,'delivery_det.qty'
+            ,'delivery_det.uom'
+            ,'delivery_hdr.os_number'
+            ,'delivery_hdr.armada'
+            ,'delivery_hdr.num_revision'
+            ,'delivery_hdr.note'
+            ,'delivery_hdr.created_by'
+            ,'delivery_hdr.created_at'
+        )
+        ->orderBy('delivery_det.id')
+        ->get();
+
+        $statusDel = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','8'=>'RECEIVED','10'=>'REVISI'];
+
+        return Datatables::of($data)
+        ->editColumn('status', function ($data) use ($statusDel) {
+            return $statusDel[$data->status] ?? $data->status;
+        })
+        ->make(true);
+    }
 
     public function listOld(Request $request)
     {

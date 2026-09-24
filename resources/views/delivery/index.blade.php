@@ -74,6 +74,8 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+        <button type="button" class="btn btn-primary" id="btnDetail" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data detail">Detail</button>
+        <button type="button" class="btn btn-primary" id="btnSummary" data-toggle="tooltip" data-placement="right" title="Tekan tombol untuk melihat data summary" style="display:none;">Summary</button>
         <div class="row">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">
@@ -140,16 +142,52 @@
   }
 
   $("#btnSearch").click(function(e){
+    $('#btnSummary').hide(); $('#btnDetail').show();
     showList(searchDn.val(),searchSo.val(),searchCustomer.val(),searchStatus.val(),dnDate.val());
   });
 
-  const showList = (searchDn,searchSo,searchCustomer,searchStatus,dnDate) => {
+  $('#btnDetail').click(function(){
+    $('#btnDetail').hide(); $('#btnSummary').show();
+    showListDetail(searchDn.val(),searchSo.val(),searchCustomer.val(),searchStatus.val(),dnDate.val());
+  });
+
+  $('#btnSummary').click(function(){
+    $('#btnSummary').hide(); $('#btnDetail').show();
+    showList(searchDn.val(),searchSo.val(),searchCustomer.val(),searchStatus.val(),dnDate.val());
+  });
+
+  const resetTable = () => {
     if ($('#detailedTable tr').length >0){
-        let table= $('#detailedTable').DataTable();
-        table.destroy();
+        $('#detailedTable').DataTable().destroy();
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
+  }
+
+  const showListDetail = (searchDn,searchSo,searchCustomer,searchStatus,dnDate) => {
+    resetTable();
+    showDataTables({
+      tableId:"detailedTable",
+      route:"{{ route('delivery.list.detail') }}",
+      kolom:{!! $kolomDetail !!},
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+      columnDefs :[
+        { targets: 8, render: $.fn.dataTable.render.number(',', '.',2, ''), className: "text-right" },
+      ],
+      dataSearch:  {
+        searchDn:searchDn,
+        searchSo:searchSo,
+        searchCustomer:searchCustomer,
+        searchStatus:searchStatus,
+        dnDate:dnDate
+      },
+      orderColumn:[[ 0, 'asc' ]],
+      excelFileName:'delivery_note_detail'
+    });
+  }
+
+  const showList = (searchDn,searchSo,searchCustomer,searchStatus,dnDate) => {
+    resetTable();
     showDataTables({
       tableId:"detailedTable",
       route:"{{ route('delivery.list') }}",

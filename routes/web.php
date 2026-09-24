@@ -460,6 +460,7 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::get('delivery/so/det',['as'=>'delivery.so.det','uses'=>'DeliveryController@soDetail']);
 	Route::post('delivery/store',['as'=>'delivery.store','uses'=>'DeliveryController@store']);
 	Route::get('delivery/list',['as'=>'delivery.list','uses'=>'DeliveryController@list']);
+	Route::get('delivery/list/detail',['as'=>'delivery.list.detail','uses'=>'DeliveryController@listDetail']);
 	Route::get('delivery/show',['as'=>'delivery.show','uses'=>'DeliveryController@show']);
 	Route::get('delivery/edit',['as'=>'delivery.edit','uses'=>'DeliveryController@edit','middleware' => ['permission:delivery-edit']]);
 	Route::post('delivery/update',['as'=>'delivery.update','uses'=>'DeliveryController@update']);
