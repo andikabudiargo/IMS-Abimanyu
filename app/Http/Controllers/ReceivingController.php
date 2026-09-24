@@ -873,9 +873,9 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
                         'rec_number' => $recNumber,
                         'do_number' => $doNumber,
                         'do_date' => $doDate,
-                        'inv_number' => $invNumber ?? '',   // NP: no invoice → kolom NOT NULL
+                        'inv_number' => $invNumber,
                         'inv_date' => $invDate,
-                        'po_number' => $poNumber ?? '',     // NP: no PO → kolom NOT NULL
+                        'po_number' => $poNumber,
                         'supplier_id' => $supplier,
                         'rec_date' => $recDate,
                         'authorized_by' => $authorizedBy,

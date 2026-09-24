@@ -690,19 +690,47 @@
             <ul class="menu-content">
               
               @can('ap-index')
-                <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Invoice">Invoice</span></a>
+                <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Invoice">Account Payable (AP)</span></a>
                   <ul class="menu-content">
-                      <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountPayable.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier (AP)</span></a>
+                      <li class="{{ \Request::segment(1) == 'accountPayable'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('accountPayable.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier</span></a>
                       </li>
                       {{-- <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('aps.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier</span></a>
                       </li> --}}
-                      <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('invoice.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Invoice Customer (AR)</span></a>
-                      </li>
-                      <li class="{{ \Request::segment(1) == 'debitnote' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('debitNote.index') }}"><span class="menu-item text-truncate" data-i18n="Debit Note">Debit Note</span></a>
-                      </li>
+                      <li class="{{ \Request::segment(1) == 'apPaymentSchedule'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apPaymentSchedule.index') }}"><span class="menu-item text-truncate" data-i18n="AP Payment Schedule">Supplier Payment</span></a>
+                    </li>
+                     <li class="{{ \Request::segment(1) == 'apAging'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apAging.index') }}"><span class="menu-item text-truncate" data-i18n="AP Aging Report">Supplier Aging</span></a>
+                    </li>
+                    <li class="{{ \Request::segment(1) == 'receivingReportAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('receiving.report.acc') }}"><span class="menu-item text-truncate" data-i18n="Receiving Report">Receiving Report</span></a>
+                    </li>
                   </ul>
                 </li>
               @endcan
+
+               @can('ap-index')
+                <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Invoice">Account Receivable (AR)</span></a>
+                  <ul class="menu-content">
+                       <li class="{{ \Request::segment(1) == 'invoice' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('invoice.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice customer">Invoice Customer</span></a>
+                      </li>
+                      <li class="{{ \Request::segment(1) == 'debitnote' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('debitNote.index') }}"><span class="menu-item text-truncate" data-i18n="Debit Note">Debit Note</span></a>
+                      </li>
+                    <li class="{{ \Request::segment(1) == 'arAgingReport'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('arAging.index') }}"><span class="menu-item text-truncate" data-i18n="AR Aging Report">Customer Aging</span></a>
+                    </li>
+                    <li class="{{ \Request::segment(1) == 'arPaymentSchedule'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('arPaymentSchedule.index') }}"><span class="menu-item text-truncate" data-i18n="AR Payment Schedule">Customer Payment</span></a>
+                    </li>
+                      <li class="{{ \Request::segment(1) == 'deliveryReportSoAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('delivery.report.so.acc') }}"><span class="menu-item text-truncate" data-i18n="Dn Report Acc">SO Report</span></a>
+                    </li>
+                      <li class="{{ \Request::segment(1) == 'deliveryReportAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}"><span class="menu-item text-truncate" data-i18n="Dn Report Acc">DN Report</span></a>
+                    </li>
+                  </ul>
+                </li>
+              @endcan
+
+               <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Tax">Tax Management</span></a>
+                <ul class="menu-content">
+                
+                 
+                </ul>
+              </li>
 
               @can('ap-index')
                 <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Setting">Kas</span></a>
@@ -759,61 +787,6 @@
                 </a>
               </li>
               @endcan
-                </ul>
-              </li>
-
-                <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Account Report">Additional Report</span></a>
-                <ul class="menu-content">
-                  @can('delivery-report-acc')
-                    <li class="{{ \Request::is(['deliveryReportAcc'])  ? 'active' : '' }}">
-                      <a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}">
-                        <span class="menu-item text-truncate" data-i18n="Dn Report Acc">DN Report</span>
-                      </a>
-                    </li>
-                  @endcan
-                  
-                  @can('delivery-report-acc')
-                    <li class="{{ \Request::is(['deliveryReportSoAcc'])  ? 'active' : '' }}">
-                      <a class="d-flex align-items-center" href="{{ route('delivery.report.so.acc') }}">
-                        <span class="menu-item text-truncate" data-i18n="Dn Report Acc">SO Report</span>
-                      </a>
-                    </li>
-                  @endcan
-                    @can('delivery-report-acc')
-                    <li class="{{ \Request::is(['receivingReportAcc'])  ? 'active' : '' }}">
-                      <a class="d-flex align-items-center" href="{{ route('receiving.report.acc') }}">
-                        <span class="menu-item text-truncate" data-i18n="Receiving Report">Receiving Report</span>
-                      </a>
-                    </li>
-                  @endcan
-                  @can('delivery-report-acc')
-                    <li class="{{ \Request::is(['arAgingReport'])  ? 'active' : '' }}">
-                      <a class="d-flex align-items-center" href="{{ route('arAging.index') }}">
-                        <span class="menu-item text-truncate" data-i18n="AR Aging Report">AR Aging Report</span>
-                      </a>
-                    </li>
-                  @endcan
-                  @can('delivery-report-acc')
-                    <li class="{{ \Request::is(['apAging'])  ? 'active' : '' }}">
-                      <a class="d-flex align-items-center" href="{{ route('apAging.index') }}">
-                        <span class="menu-item text-truncate" data-i18n="AP Aging Report">AP Aging Report</span>
-                      </a>
-                    </li>
-                  @endcan
-                  @can('delivery-report-acc')
-                    <li class="{{ \Request::is(['arPaymentSchedule'])  ? 'active' : '' }}">
-                      <a class="d-flex align-items-center" href="{{ route('arPaymentSchedule.index') }}">
-                        <span class="menu-item text-truncate" data-i18n="AR Payment Schedule">AR Payment Schedule</span>
-                      </a>
-                    </li>
-                  @endcan
-                  @can('delivery-report-acc')
-                    <li class="{{ \Request::is(['apPaymentSchedule'])  ? 'active' : '' }}">
-                      <a class="d-flex align-items-center" href="{{ route('apPaymentSchedule.index') }}">
-                        <span class="menu-item text-truncate" data-i18n="AP Payment Schedule">AP Payment Schedule</span>
-                      </a>
-                    </li>
-                  @endcan
                 </ul>
               </li>
 
