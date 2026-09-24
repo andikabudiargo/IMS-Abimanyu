@@ -103,10 +103,12 @@
                                     <input type="text" class="form-control disabled-el"
                                         value="{{ $header->description }}" disabled />
                                 </div>
+                                </div>
+                                <div class="form-row">
                                 @if($header->note)
                                 <div class="form-group col-md-6">
                                     <label>Note</label>
-                                    <textarea class="form-control disabled-el" rows="1"
+                                    <textarea class="form-control disabled-el" rows="5"
                                         disabled>{{ $header->note }}</textarea>
                                 </div>
                                 @endif
