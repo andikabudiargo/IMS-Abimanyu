@@ -837,13 +837,13 @@
               @endcan
 
                @can('lock-transaction-index')
-            <li class="{{ \Request::segment(1) == 'lockTransaction' && \Request::segment(2) == '' ? 'active' : '' }}">
+            <li class="{{ \Request::segment(1) == 'lockTransaction' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('lockTransaction.index') }}">
-                <i data-feather="lock"></i>
+                <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Lock Transaction</span>
               </a>
             </li>
-            <li class="{{ \Request::segment(1) == 'masterPpn' && \Request::segment(2) == '' ? 'active' : '' }}">
+            <li class="{{ \Request::segment(1) == 'masterPpn'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('masterPpn.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Input">Master PPN</span>
