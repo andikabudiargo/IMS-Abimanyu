@@ -2290,20 +2290,8 @@ class AccountPayableController extends Controller
               AND $anchor BETWEEN to_date(?,'DD-MM-YYYY') AND to_date(?,'DD-MM-YYYY')
         ", [$startDate, $cutoff])->total;
 
-        // Pembayaran: voucher keluar/offset (kas_det.debit) atas AP, sama dgn AP Aging
-        $totalPaid = DB::selectOne("
-            SELECT COALESCE(SUM(kas_det.debit),0) as total
-            FROM kas_det
-            JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
-            JOIN ap_invoice ON ap_invoice.inv_number = kas_det.reference
-            WHERE kas_hdr.status <> '5'
-              AND ap_invoice.status NOT IN ('1','5')
-              AND (
-                    (kas_hdr.voucher_type IN ('KK','BK') AND kas_hdr.paid_to = ap_invoice.supplier_id)
-                    OR kas_hdr.voucher_type IN ('BM','KM')
-                  )
-              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN to_date(?,'DD-MM-YYYY') AND to_date(?,'DD-MM-YYYY')
-        ", [$startDate, $cutoff])->total;
+        // Pembayaran: KK/BK/BM/KM + General Journal, populasi & rumus SAMA dgn AP Aging
+        $totalPaid = $apAging->totalPaidBetween($startDate, $cutoff);
 
         return response()->json([
             'openingBalance' => (float) $opening,

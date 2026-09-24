@@ -95,6 +95,67 @@ class ApAgingReportController extends Controller
      * anchor date = coalesce(ap_date, inv_date) supaya AP lama yang ap_date-nya
      * kosong tetap ikut. Jatuh tempo & pembayaran lihat komentar header.
      */
+    /**
+     * Syarat sebuah baris voucher (kas_det) dianggap PEMBAYARAN/pengurang hutang AP.
+     * Sumber: KK/BK (paid_to = supplier), BM/KM (offset, cukup via reference),
+     * dan GJ (General Journal) -- GJ dihitung hanya kalau baris debitnya di akun
+     * hutang supplier (third_party.account), supaya baris beban/lawan tidak ikut.
+     * Semua dicocokkan lewat kas_det.reference = ap_invoice.inv_number.
+     */
+    private function paymentMatchSql($hdr, $det)
+    {
+        return "(
+            ($hdr.voucher_type IN ('KK','BK') AND $hdr.paid_to = ap_invoice.supplier_id)
+            OR $hdr.voucher_type IN ('BM','KM')
+            OR ($hdr.voucher_type = 'GJ'
+                AND $det.account = (SELECT tp2.account FROM third_party tp2 WHERE tp2.kode = ap_invoice.supplier_id))
+        )";
+    }
+
+    /**
+     * Total pembayaran dalam periode [$startDate, $cutoffDate] atas AP yang masuk
+     * populasi aging (aturan floor/pair sama persis dgn buildHutangSubquery).
+     * Dipakai AP Dashboard supaya Opening + Pembelian - Pembayaran = Balance.
+     */
+    public function totalPaidBetween($startDate, $cutoffDate)
+    {
+        $anchor = "COALESCE(
+                to_date(NULLIF(ap_invoice.ap_date,''),'DD-MM-YYYY'),
+                to_date(NULLIF(ap_invoice.inv_date,''),'DD-MM-YYYY')
+              )";
+        $partyMatch = $this->paymentMatchSql('kas_hdr', 'kas_det');
+        $pairMatch  = $this->paymentMatchSql('h', 'd');
+
+        $row = DB::selectOne("
+            SELECT COALESCE(SUM(kas_det.debit),0) as total
+            FROM ap_invoice
+            JOIN kas_det ON kas_det.reference = ap_invoice.inv_number
+            JOIN kas_hdr ON kas_hdr.voucher_number = kas_det.voucher_number
+            WHERE ap_invoice.status NOT IN ('1','5')
+              AND $partyMatch
+              AND kas_hdr.status <> '5'
+              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN to_date(:startDate,'DD-MM-YYYY') AND to_date(:cutoff,'DD-MM-YYYY')
+              AND $anchor >= to_date(:floorDate,'DD-MM-YYYY')
+              AND $anchor <= to_date(:cutoff,'DD-MM-YYYY')
+              AND (
+                    $anchor >= to_date(:pairRequiredBefore,'DD-MM-YYYY')
+                    OR EXISTS (
+                        SELECT 1 FROM kas_det d
+                        JOIN kas_hdr h ON h.voucher_number = d.voucher_number
+                        WHERE d.reference = ap_invoice.inv_number
+                          AND $pairMatch
+                          AND h.status <> '5'
+                    )
+                  )
+        ", [
+            'startDate'          => $startDate,
+            'cutoff'             => $cutoffDate,
+            'floorDate'          => $this->floorDate,
+            'pairRequiredBefore' => $this->pairRequiredBefore,
+        ]);
+        return (float) $row->total;
+    }
+
     private function buildHutangSubquery($whereExtra)
 {
     $anchor = "COALESCE(
@@ -116,10 +177,8 @@ class ApAgingReportController extends Controller
     // BUKAN kode supplier -- jadi tidak bisa dipakai sebagai syarat pihak.
     // kas_det.reference = ap_invoice.inv_number sudah cukup presisi untuk
     // BM/KM karena reference selalu diisi nomor invoice AP yang dituju.
-    $partyMatch = "(
-        (kas_hdr.voucher_type IN ('KK','BK') AND kas_hdr.paid_to = ap_invoice.supplier_id)
-        OR kas_hdr.voucher_type IN ('BM','KM')
-    )";
+    $partyMatch = $this->paymentMatchSql('kas_hdr', 'kas_det');
+    $pairMatch  = $this->paymentMatchSql('h', 'd');
 
     return "
         SELECT
@@ -147,7 +206,6 @@ class ApAgingReportController extends Controller
             JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
             WHERE kas_det.reference = ap_invoice.inv_number
               AND $partyMatch
-              AND kas_hdr.voucher_type IN ('KK','BK','BM','KM')
               AND kas_hdr.status <> '5'
               AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
         ) bayar ON true
@@ -160,11 +218,7 @@ class ApAgingReportController extends Controller
                     SELECT 1 FROM kas_det d
                     JOIN kas_hdr h ON h.voucher_number = d.voucher_number
                     WHERE d.reference = ap_invoice.inv_number
-                      AND (
-                            (h.voucher_type IN ('KK','BK') AND h.paid_to = ap_invoice.supplier_id)
-                            OR h.voucher_type IN ('BM','KM')
-                          )
-                      AND h.voucher_type IN ('KK','BK','BM','KM')
+                      AND $pairMatch
                       AND h.status <> '5'
                 )
               )
