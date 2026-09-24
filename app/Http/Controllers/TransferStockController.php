@@ -1853,11 +1853,26 @@ private function getArticleDesc(string $articleCode): string
         'transfer_stock_hdr.penerima',
         'transfer_stock_hdr.updated_by',
         'transfer_stock_hdr.updated_at',
+        'transfer_stock_hdr.approve_dept',
         'locFrom.location_name as location_name',
         'locTo.location_name as location_name_to'
     )->orderBy('transfer_stock_hdr.created_at', 'desc');
 
+    // Kolom alias / non-teks tidak bisa di-ILIKE langsung -> petakan ke ekspresi asli
+    $like = fn ($expr) => function ($q, $kw) use ($expr) {
+        $q->whereRaw("LOWER(CAST($expr AS TEXT)) LIKE ?", ['%' . strtolower($kw) . '%']);
+    };
+
     return DataTables::of($query)
+        ->filterColumn('tr_number', $like('transfer_stock_hdr.tr_number'))
+        ->filterColumn('tr_date', $like('transfer_stock_hdr.tr_date'))
+        ->filterColumn('status', $like("CASE transfer_stock_hdr.status WHEN '1' THEN 'new' WHEN '2' THEN 'validated' WHEN '3' THEN 'approved' WHEN '4' THEN 'posted' WHEN '5' THEN 'canceled' END"))
+        ->filterColumn('location_name', $like('locFrom.location_name'))
+        ->filterColumn('location_name_to', $like('locTo.location_name'))
+        ->filterColumn('note', $like('transfer_stock_hdr.note'))
+        ->filterColumn('created_by', $like('transfer_stock_hdr.created_by'))
+        ->filterColumn('created_at', $like('transfer_stock_hdr.created_at'))
+        ->filterColumn('penerima', $like('transfer_stock_hdr.penerima'))
        ->addColumn('action', function ($row) use ($username, $canPosting, $userDepts) {
     $encId     = Crypt::encryptString($row->id);
     $isCreator = ($row->created_by === $username);
