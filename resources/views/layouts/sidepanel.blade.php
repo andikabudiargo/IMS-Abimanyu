@@ -872,7 +872,10 @@
                 <ul class="menu-content">
                     <li class="{{ \Request::segment(1) == 'formChangeRequest'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('formChangeRequest.index') }}"><span class="menu-item text-truncate" data-i18n="changeRequest">Change Request</span></a>
                     </li>
-                    
+                    <li class="{{ \Request::segment(1) == 'formCashAdvance'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="#"><span class="menu-item text-truncate" data-i18n="cashAdvance">Cash Advance</span></a>
+                    </li>
+                    <li class="{{ \Request::segment(1) == 'formReimbursement'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="#"><span class="menu-item text-truncate" data-i18n="reimbursement">Reimbursement</span></a>
+                    </li>
                 </ul>
               </li>
            
