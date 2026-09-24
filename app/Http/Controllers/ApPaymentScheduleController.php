@@ -25,8 +25,9 @@ use DB;
     Rumus jatuh tempo & pembayaran PERSIS SAMA dengan ApAgingReportController:
       - anchor date  = ap_date (fallback inv_date).
       - jatuh_tempo  = ap_invoice.due_date, fallback anchor + top_batas_1 hari.
-      - pembayaran   = kas_det.DEBIT (bayar supplier) lewat voucher KK/BK,
-                       kas_hdr.paid_to = supplier, status <> '5'.
+      - pembayaran   = kas_det.DEBIT lewat voucher KK/BK (paid_to = supplier),
+                       BM/KM, dan General Journal; aturan diambil dari
+                       ApAgingReportController::paymentMatchSql(). status <> '5'.
       - ap_invoice DRAFT('1') & CANCELED('5') di-exclude.
     ================================================================
 */
@@ -109,17 +110,13 @@ class ApPaymentScheduleController extends Controller
                 ))::date
               )";
 
-    // Sama dengan ApAgingReportController::buildHutangSubquery() -- syarat
-    // pihak hanya valid untuk KK/BK (paid_to = supplier). BM/KM (offset)
-    // paid_to selalu NULL & receive_from berisi kode akun kas/bank, bukan
-    // kode supplier, jadi dicocokkan lewat reference saja.
-    $payWhere = "kas_det.reference = ap_invoice.inv_number
-                 AND (
-                     (kas_hdr.voucher_type IN ('KK','BK') AND kas_hdr.paid_to = ap_invoice.supplier_id)
-                     OR kas_hdr.voucher_type IN ('BM','KM')
-                 )
-                 AND kas_hdr.voucher_type IN ('KK','BK','BM','KM')
+    // Aturan pembayaran dipakai bersama dgn ApAgingReportController
+    // (KK/BK, BM/KM, dan General Journal) supaya Schedule, Aging & Dashboard selalu sama.
+    $aging      = new ApAgingReportController();
+    $payWhere   = "kas_det.reference = ap_invoice.inv_number
+                 AND " . $aging->paymentMatchSql('kas_hdr', 'kas_det') . "
                  AND kas_hdr.status <> '5'";
+    $pairMatch  = $aging->paymentMatchSql('h', 'd');
 
     return "
         SELECT
@@ -162,11 +159,7 @@ class ApPaymentScheduleController extends Controller
                     SELECT 1 FROM kas_det d
                     JOIN kas_hdr h ON h.voucher_number = d.voucher_number
                     WHERE d.reference = ap_invoice.inv_number
-                      AND (
-                            (h.voucher_type IN ('KK','BK') AND h.paid_to = ap_invoice.supplier_id)
-                            OR h.voucher_type IN ('BM','KM')
-                          )
-                      AND h.voucher_type IN ('KK','BK','BM','KM')
+                      AND $pairMatch
                       AND h.status <> '5'
                 )
               )

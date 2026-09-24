@@ -102,7 +102,7 @@ class ApAgingReportController extends Controller
      * hutang supplier (third_party.account), supaya baris beban/lawan tidak ikut.
      * Semua dicocokkan lewat kas_det.reference = ap_invoice.inv_number.
      */
-    private function paymentMatchSql($hdr, $det)
+    public function paymentMatchSql($hdr, $det)
     {
         return "(
             ($hdr.voucher_type IN ('KK','BK') AND $hdr.paid_to = ap_invoice.supplier_id)
