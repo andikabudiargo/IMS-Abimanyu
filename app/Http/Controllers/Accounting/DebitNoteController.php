@@ -250,6 +250,11 @@ class DebitNoteController extends Controller
         $status = '1';
         $gudang = 'false';
         $kurs = 1;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $debitNDate)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
@@ -501,6 +506,11 @@ class DebitNoteController extends Controller
         $dnNumber = $request->debitNnumber;
         $articles = json_decode($request -> articles);
         $debitNDate = $request->debitNDate;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $debitNDate)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         $customer = $request->customer;
         $ppn = $request->ppn;
         $pph23 = $request->pph23;
@@ -747,8 +757,13 @@ class DebitNoteController extends Controller
     ->where('id',$id)
     ->first();
 
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = \AppHelpers::lockGuard($this->moduleCode, $data->dn_date)) {
+        return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
+    }
+
     $dnNumber = $data->dn_number;
-    
+
     $rowAffected = DB::table('debit_note_hdr')
     ->where('dn_number',$dnNumber)
     ->delete();

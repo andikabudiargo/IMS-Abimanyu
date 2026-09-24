@@ -427,7 +427,14 @@ if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['co
         if ($flag == 1) {
             return response()->json(['status'=>0,'title'=>'Validasi Gagal','message'=>$pesan,'alert'=>'warning']);
         }
- 
+
+        // === Lock Transaction guard: activity + periode (pakai sto_date paling awal) ===
+        $minStoDate = collect($mappings)->pluck('sto_date')->filter()
+            ->map(fn($d) => date('Y-m-d', strtotime($d)))->min();
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $minStoDate)) {
+            return response()->json(['status'=>0,'title'=>"Save $this->title",'message'=>[[$err]],'alert'=>'error']);
+        }
+
         DB::beginTransaction();
         try {
             $stoCode = $this->getLastCode($this->moduleCode);
@@ -699,6 +706,13 @@ if ($flag == 1) {
     return response()->json(['status'=>0,'title'=>'Validasi Gagal','message'=>$pesan,'alert'=>'warning']);
 }
 
+// === Lock Transaction guard: activity + periode (pakai sto_date paling awal) ===
+$minStoDate = collect($mappings)->pluck('sto_date')->filter()
+    ->map(fn($d) => date('Y-m-d', strtotime($d)))->min();
+if ($err = \AppHelpers::lockGuard($this->moduleCode, $minStoDate)) {
+    return response()->json(['status'=>0,'title'=>"Update $this->title",'message'=>[[$err]],'alert'=>'error']);
+}
+
 DB::beginTransaction();
 try {
             $targetPlanGlobal = round(collect($mappings)->avg(fn($m) => (float)($m['target_plan'] ?? 0)), 2);
@@ -795,6 +809,12 @@ if (!empty($toDelete)) {
 
         if (!$hdr) {
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['STO tidak ditemukan atau sudah tidak aktif.'],'alert'=>'error']);
+        }
+
+        // === Lock Transaction guard: activity + periode (sto_date paling awal di mapping) ===
+        $minStoDate = DB::table('sto_config_mapping')->where('config_id', $configId)->min('sto_date');
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $minStoDate)) {
+            return response()->json(['status'=>0,'title'=>"Cancel $this->title",'message'=>[[$err]],'alert'=>'error']);
         }
 
         // blok cancel bila sudah ada counting

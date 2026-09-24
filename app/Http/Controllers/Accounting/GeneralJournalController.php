@@ -289,6 +289,11 @@ class GeneralJournalController extends Controller
         $invoiceDate = $request->invoiceDate;
         $taxNumber = $request->taxNumber;
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $vcDate)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
+
         /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
             $periodNomor=(int)explode('-', $vcDate)[1];
         */
@@ -488,6 +493,11 @@ class GeneralJournalController extends Controller
         $vcNumber = $request->vcNumber;
         $vcDate = $request->vcDate;
         $period = $request->period;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $vcDate)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         $note = $request->note;
         $totalAmount= $request->totalAmount;
         $paidTo = $request->paidTo;
@@ -744,10 +754,15 @@ class GeneralJournalController extends Controller
 
     public function destroy(Request $request)
     {
-        $username =  Auth::user()->username;    
-        $id=Crypt::decryptString($request->id);   
+        $username =  Auth::user()->username;
+        $id=Crypt::decryptString($request->id);
         $status = '5'; //DELETED
-        
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, DB::table('kas_hdr')->where('id',$id)->value('voucher_date'))) {
+            return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
+        }
+
         /*
             status nya bukan 6 bisa di delete
             status 6 = closed

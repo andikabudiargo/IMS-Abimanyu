@@ -256,6 +256,11 @@ class SalesOrderController extends Controller
         $poNumber = $request->poNumber;
         $customer = $request->customer;
         $salesman = $request->salesman;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $orderDate)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         // $ppn = $request->ppn;
         // $pph23 = $request->pph23;
         // $totalPpn = $request->totalPpn;
@@ -689,6 +694,11 @@ class SalesOrderController extends Controller
         $currency = $request->currency;
         $type = $request->type;
         $poNumber = $request->poNumber;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $orderDate)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         $customer = $request->customer;
         $salesman = $request->salesman;
         // $ppn = $request->ppn;
@@ -995,6 +1005,13 @@ class SalesOrderController extends Controller
     {
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
+
+        // === Lock Transaction guard: activity + periode ===
+        $soDate = DB::table('sales_order_hdr')->where('id',$id)->value('so_date');
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $soDate)) {
+            return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
+        }
+
         $so_code = DB::table('sales_order_hdr')->where('id',$id)->value('so_code');
         $rowAffected = DB::table('sales_order_hdr')->where('id',$id)->delete();
         if($rowAffected>0){

@@ -213,7 +213,12 @@ class PurchaseOrderController extends Controller
         $discount = $request->discount;
         $note = $request->note;
         $status = '1';
-        $poLeadCode = $poType=='std' ? 'PO' : 'POSUB'; 
+        $poLeadCode = $poType=='std' ? 'PO' : 'POSUB';
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $orderDate)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
 
         $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
         $dppPembilang = $request->pembilangNumber;
@@ -699,6 +704,11 @@ $data['detail'] = DB::table('purchase_order_det')
         $orderDate = $request->orderDate;
         $deliveryDate = $request->deliveryDate;
         $currency = $request->currency;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $orderDate)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         $supplier = $request->supplier;
         $tax = $request->tax;
         $ppn = $tax ? $request->ppn : 0;
@@ -1093,10 +1103,14 @@ $data['detail'] = DB::table('purchase_order_det')
 
     public function destroy(Request $request)
     {
-        $username =  Auth::user()->username;       
+        $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
-        // $po_number = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->value('po_number');
-        // $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->delete();
+
+        // === Lock Transaction guard: activity + periode ===
+        $poDate = DB::table('purchase_order_hdr')->where('id',$id)->value('po_date');
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $poDate)) {
+            return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
+        }
 
         $po_number = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->value('po_number');
         $rowAffected = DB::table('purchase_order_hdr')->where('id',$id)->where('status','1')->delete();

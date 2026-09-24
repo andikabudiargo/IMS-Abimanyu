@@ -608,6 +608,11 @@ class DnReplaceController extends Controller
         $armada       = $request->armada;   // baru
         $leadCode     = $this->moduleCode;
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $replaceDate)) {
+            return response()->json(['status' => 0, 'message' => [[$err]], 'alert' => 'error']);
+        }
+
         $customMessages = [
             'required' => 'The field is required.',
             'unique'   => 'The code has already been taken',
@@ -1010,6 +1015,11 @@ class DnReplaceController extends Controller
          $armada        = $request->armada;   // baru
         $articles      = json_decode($request->articles);
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $replaceDate)) {
+            return response()->json(['status' => 0, 'message' => [[$err]], 'alert' => 'error']);
+        }
+
         $locationFG = '007';
 
         $customMessages = [
@@ -1248,6 +1258,11 @@ class DnReplaceController extends Controller
     return redirect()->back()->with(['title' => "Cancel $this->title", 'alert' => 'warning', 'message' => "$header->replace_number sudah dibatalkan sebelumnya"]);
 }
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $header->replace_date)) {
+            return redirect()->back()->with(['title' => "Cancel $this->title", 'alert' => 'warning', 'message' => $err]);
+        }
+
         $replaceNumber = $header->replace_number;
         $returnNumber  = $header->return_number;
 
@@ -1324,6 +1339,11 @@ class DnReplaceController extends Controller
             $message = "$title Failed to Delete — document not found or already canceled";
             \LogActivity::addToLog($title, "username: $username Status $message");
             return redirect()->back()->with(['alert' => $alert, 'title' => $title, 'message' => $message]);
+        }
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $header->replace_date)) {
+            return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
         }
 
         $replaceNumber = $header->replace_number;
@@ -1416,6 +1436,11 @@ class DnReplaceController extends Controller
         if ($original->status == '3') {
             $title = "Revision $this->title";
             return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => 'Canceled document cannot be revised']);
+        }
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $original->replace_date)) {
+            return redirect()->back()->with(['title' => "Revision $this->title", 'alert' => 'warning', 'message' => $err]);
         }
 
         $recOrigin    = $original->replace_number;

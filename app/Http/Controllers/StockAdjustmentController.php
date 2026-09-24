@@ -392,6 +392,11 @@ class StockAdjustmentController extends Controller
 
         $adjDate = $this->normalizeAdjDate($request->adjType, $request->adjDate, $request->periode);
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $adjDate)) {
+            return $this->fail($title, [$err]);
+        }
+
         AppHelpers::resetCode($this->moduleCode);
         $adjCode = $this->getLastCode($this->moduleCode);
 
@@ -555,6 +560,11 @@ class StockAdjustmentController extends Controller
         }
         if ($hdr->status === self::ST_CANCELED) {
             return $this->fail("Update {$this->title}", ['Data sudah CANCELED, tidak bisa diubah.']);
+        }
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $hdr->adj_date)) {
+            return $this->fail("Update {$this->title}", [$err]);
         }
 
         return in_array($hdr->status, self::ST_LIVE, true)
@@ -1130,6 +1140,11 @@ class StockAdjustmentController extends Controller
             return $this->backWarn($title, 'Hanya dokumen POSTED atau REVISED yang bisa dicancel.');
         }
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $hdr->adj_date)) {
+            return $this->backWarn($title, $err);
+        }
+
         $adjDateYmd = $this->toYmd($hdr->adj_date);
         if (!$adjDateYmd) {
             return $this->backWarn($title, "Format tanggal adjustment tidak valid: {$hdr->adj_date}");
@@ -1350,6 +1365,11 @@ class StockAdjustmentController extends Controller
         }
         if ($hdr->created_by !== $username && !$this->isPrivileged()) {
             return $this->backWarn('Delete', 'Anda tidak berwenang menghapus data ini.');
+        }
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $hdr->adj_date)) {
+            return $this->backWarn('Delete', $err);
         }
 
         DB::table('stock_adjustment_hdr')->where('id', $id)->delete();  // detail via CASCADE

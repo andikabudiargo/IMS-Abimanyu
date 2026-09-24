@@ -318,6 +318,12 @@
         {
             // Dump, Die, Debug Fungsinya untuk nge-debug hasil dari submit
             $username =  Auth::user()->username;
+
+            // === Lock Transaction guard: activity (Article tidak punya tanggal) ===
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+            }
+
             $type = $request->articleType;
             $cust = $request->cust;
             $nama = strtoupper($request->nama);
@@ -536,6 +542,12 @@
         public function update(Request $request)
         {
             $username =  Auth::user()->username;
+
+            // === Lock Transaction guard: activity (Article tidak punya tanggal) ===
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+            }
+
             $id = $request->id;
             $artCode = $request->artCode;
             $articleAltCode = $request->kode;
@@ -694,6 +706,12 @@
         public function destroy(Request $request)
         {
             $username =  Auth::user()->username;
+
+            // === Lock Transaction guard: activity (Article tidak punya tanggal) ===
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
+            }
+
             $id = $request->id;
             $artCode = $request->artCode;
             $articleAltCode = $request -> articleAltCode;

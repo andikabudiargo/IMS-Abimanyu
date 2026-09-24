@@ -712,6 +712,11 @@ class AccountPayableController extends Controller
         $taxInvoiceNumber=$request->taxInvoiceNumber;
         $recNumberSave = explode(",",$request->recNumberSave);
         $period=$request->period;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $apDate)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         $accountHutang = $request->accountHutang;
         $details = json_decode($request->details);
         $accountBasisA = ''; //untuk account basis amount akan diganti dengan account masing2 item
@@ -1238,6 +1243,12 @@ class AccountPayableController extends Controller
         $username =  Auth::user()->username;
         $id=Crypt::decryptString($request->id);
         $apNumber=$request->apNumber;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $request->apDate)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
+
         $suppCode = $request->supplier;
         $apType = $request->apType == 'NONPO' ? 'NONPO' : 'PO';
         $poNumber = $apType == 'NONPO' ? null : $request->poNumber;
@@ -2203,8 +2214,13 @@ class AccountPayableController extends Controller
         ->where('id',$id)
         ->get()->first();
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $data->ap_date)) {
+            return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
+        }
+
         $apNumber = $data->ap_number;
-        
+
         $rowAffected = DB::table('ap_invoice')
         ->where('ap_number',$apNumber)
         ->delete();

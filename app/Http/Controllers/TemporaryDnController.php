@@ -173,12 +173,17 @@ class TemporaryDnController extends Controller
         return response()->json(['status' => 0, 'message' => $error_array, 'alert' => 'warning']);
     }
 
-    // Cek stock dulu sebelum ambil nomor & insert apapun (validasi awal saja).
-    // Pemotongan stok TIDAK dilakukan di sini - itu terjadi saat posting (klik Print).
-    //$stockErrors = $this->checkStockTdn($articles);
-    //if (!empty($stockErrors)) {
-      //  return response()->json(['status' => 0, 'message' => $stockErrors, 'alert' => 'warning']);
-    //}
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $deliveryDate)) {
+        return response()->json(['status' => 0, 'message' => [[$err]], 'alert' => 'error']);
+    }
+    // Overstock: pakai validator stok modul ini sendiri, di-gate toggle.
+    if (AppHelpers::overstockLocked($this->moduleCode)) {
+        $stockErrors = $this->checkStockTdn($articles);
+        if (!empty($stockErrors)) {
+            return response()->json(['status' => 0, 'message' => $stockErrors, 'alert' => 'warning']);
+        }
+    }
 
     $hasilUpdate = AppHelpers::resetCode($leadCode);
     $tDnNumber   = $this->getLastCode($leadCode);
@@ -1007,6 +1012,18 @@ private function updateWarehouseStock(string $articleCode, string $location, flo
         ]);
     }
 
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $deliveryDate)) {
+        return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+    }
+    // Overstock: validator stok modul sendiri, di-gate toggle.
+    if (AppHelpers::overstockLocked($this->moduleCode)) {
+        $stockErrors = $this->checkStockTdn($articles);
+        if (!empty($stockErrors)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => $stockErrors, 'alert' => 'warning']);
+        }
+    }
+
    DB::beginTransaction();
     try {
         // GUARD (race-safe): kunci header, re-cek status & sudah-posting DI DALAM
@@ -1448,6 +1465,11 @@ private function minDeliveryDate(string $a, string $b): string
     $tDnHdr    = DB::table('temporary_dn_hdr')->where('id', $id)->first();
     $tDnNumber = $tDnHdr->tdn_number;
     $soNumber  = $tDnHdr->so_number;
+
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $tDnHdr->delivery_date)) {
+        return redirect()->back()->with(['title' => "Delete $this->title", 'alert' => 'warning', 'message' => $err]);
+    }
 
     DB::beginTransaction();
     try {

@@ -828,6 +828,11 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
         $authorizedBy = "";
         $leadCode = $this->moduleCode;
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $recDate)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
+
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','7'=>'REVISED','10'=>'REVISI'];
         //  ['NEW','VALIDATE','APPROVED','POSTED','CANCELED','','','','','REVISI']; 
         
@@ -1093,6 +1098,11 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
             'status' => 0, 'title' => "Update $this->title",
             'message' => ["Data $recNumber tidak ditemukan"], 'alert' => 'error',
         ]);
+    }
+
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $currentHeader->rec_date)) {
+        return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
     }
 
     if ($currentHeader->status != '10') {
@@ -1934,6 +1944,11 @@ public function cancel(Request $request)
         ]);
     }
 
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $recHdrq->rec_date)) {
+        return redirect()->back()->with(['title' => $title, 'alert' => 'warning', 'message' => $err]);
+    }
+
     $recNumber = $recHdrq->rec_number;
 
     // ----- validasi AP: tidak boleh cancel kalau sudah ada AP aktif -----
@@ -2185,6 +2200,11 @@ if ($snapshot->isNotEmpty()) {
         return redirect()->back()->with(['alert' => 'warning', 'title' => $title, 'message' => $message]);
     }
 
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $recHdr->rec_date)) {
+        return redirect()->back()->with(['alert' => 'warning', 'title' => $title, 'message' => $err]);
+    }
+
     $recNumber = $recHdr->rec_number;
 
     // BARU: guard — tolak kalau dokumen INI ATAU ORIGIN-nya (rantai revisi) punya
@@ -2290,6 +2310,11 @@ public function revision(Request $request)
     $poNumber  = $receiving->po_number;
     $recType   = $receiving->rec_type;        // FIX: dipakai untuk membedakan NP vs NORMAL/JASA
     $isManual  = in_array($recType, ['NP', 'TRIAL']);        // FIX
+
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $receiving->rec_date)) {
+        return redirect()->back()->with(['alert' => 'warning', 'title' => $title, 'message' => $err]);
+    }
 
     // ----- validasi AP: tidak boleh revisi kalau sudah ada AP aktif -----
     $apNumber = DB::table('ap_invoice_detail')

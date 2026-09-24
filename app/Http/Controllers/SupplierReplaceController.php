@@ -307,6 +307,11 @@ class SupplierReplaceController extends Controller
         $note         = $request->note;
         $leadCode     = $this->moduleCode;
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $replaceDate)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
+
         $validation = Validator::make($request->all(), [
             'returnNumber' => 'required',
             'replaceDate'  => 'required',
@@ -626,6 +631,11 @@ class SupplierReplaceController extends Controller
         $replaceDate   = $request->replaceDate;
         $note          = $request->note;
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $replaceDate)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
+
         $validation = Validator::make($request->all(), [
             'replaceNumber' => 'required',
             'replaceDate'   => 'required',
@@ -742,6 +752,11 @@ class SupplierReplaceController extends Controller
         if (!$header) {
             return redirect()->back()->with(['title' => "Cancel $this->title", 'alert' => 'warning', 'message' => 'Document not found']);
         }
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $header->replace_date)) {
+            return redirect()->back()->with(['title' => "Cancel $this->title", 'alert' => 'warning', 'message' => $err]);
+        }
         if ($header->status == '3') {
             return redirect()->back()->with(['title' => "Cancel $this->title", 'alert' => 'warning', 'message' => "$header->replace_number sudah dibatalkan sebelumnya"]);
         }
@@ -808,6 +823,11 @@ class SupplierReplaceController extends Controller
             return redirect()->back()->with(['alert' => 'warning', 'title' => $title, 'message' => $message]);
         }
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $header->replace_date)) {
+            return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
+        }
+
         $replaceNumber = $header->replace_number;
         $returnNumber  = $header->return_number;
         $location      = $header->location_number;
@@ -870,6 +890,10 @@ class SupplierReplaceController extends Controller
         $original = DB::table('supplier_replace_hdr')->where('id', $id)->first();
         if (!$original) {
             return redirect()->back()->with(['title' => "Revision $this->title", 'alert' => 'warning', 'message' => 'Document not found']);
+        }
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $original->replace_date)) {
+            return redirect()->back()->with(['title' => "Revision $this->title", 'alert' => 'warning', 'message' => $err]);
         }
         if ($original->status == '3') {
             return redirect()->back()->with(['title' => "Revision $this->title", 'alert' => 'warning', 'message' => 'Canceled document cannot be revised']);

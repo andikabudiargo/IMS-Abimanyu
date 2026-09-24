@@ -325,7 +325,12 @@ private $invoiceOpenStatus = '4'; // POSTED — sesuaikan sama filter dropdown i
         $status = '1';
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
-        
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $vcDate)) {
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
+
         /* batal pengkodean untuk angka romawi/bulan  jadi nya dari period
         $periodNomor=(int)explode('-', $vcDate)[1];
         $periodYear=date('Y');
@@ -539,6 +544,11 @@ DB::beginTransaction();
         $vcNumber = $request->vcNumber;
         $vcDate = $request->vcDate;
         $period = $request->period;
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $vcDate)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
         $note = $request->note;
         $totalAmount= $request->totalAmount;
         $paidTo = $request->paidTo;
@@ -827,6 +837,12 @@ try {
         */
 
         $vcStatus = DB::table('kas_hdr')->where('id',$id)->first();
+
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = \AppHelpers::lockGuard($this->moduleCode, $vcStatus->voucher_date)) {
+            return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
+        }
+
         $vcNumber = $vcStatus->voucher_number;
         $rowAffected = 0;
 

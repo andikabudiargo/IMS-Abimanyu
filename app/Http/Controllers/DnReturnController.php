@@ -255,6 +255,11 @@ private function punyaReplaceAktif($returnNumber)
     $todayDate = date('Y-m-d');
     $trType    = $this->mvType;
 
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $returnDate)) {
+        return response()->json(['status' => 0, 'message' => [[$err]], 'alert' => 'error']);
+    }
+
     Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
         $query  = DB::table($parameters[0]);
         $column = $query->getGrammar()->wrap($parameters[1]);
@@ -843,6 +848,11 @@ private function reverseReturn($returnNumber, $username)
     $note         = $request->note;
     $soNumber     = $request->soNumber;
 
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $returnDate)) {
+        return response()->json(['status' => 0, 'message' => [[$err]], 'alert' => 'error']);
+    }
+
     Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
         $query  = DB::table($parameters[0]);
         $column = $query->getGrammar()->wrap($parameters[1]);
@@ -1037,6 +1047,11 @@ private function reverseReturn($returnNumber, $username)
         $message = "$title $returnNumber sudah dibatalkan sebelumnya.";
         \LogActivity::addToLog($title, "username: $username Status $message");
         return redirect()->back()->with(['title' => $title, 'alert' => $alert, 'message' => $message]);
+    }
+
+    // === Lock Transaction guard: activity + periode ===
+    if ($err = AppHelpers::lockGuard($this->moduleCode, $tDnHdr->return_date)) {
+        return redirect()->back()->with(['title' => "Delete $this->title", 'alert' => 'warning', 'message' => $err]);
     }
 
       // ── GUARD: tolak cancel jika return sudah punya DN Replace aktif ──
