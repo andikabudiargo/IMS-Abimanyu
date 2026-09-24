@@ -203,7 +203,7 @@
         searchStatus:searchStatus,
         dnDate:dnDate
       },
-      orderColumn:[[ 13, 'desc' ],[ 1, 'asc' ]],
+      orderColumn:[[ 17, 'desc' ],[ 1, 'desc' ]],
       excelFileName:'delivery_note'
     });
   }
