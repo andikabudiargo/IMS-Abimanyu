@@ -79,8 +79,6 @@ class ReceivingController extends Controller
         ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
         ['data'=>'status','name'=>'status','title'=>'Status','searchable'=>false],
         ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
-        ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number','searchable'=>false],
-        ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date','searchable'=>false],
         ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
         ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'],
         ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier','searchable'=>false],
@@ -129,8 +127,6 @@ class ReceivingController extends Controller
         ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
         ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
         ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'],
-        ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number','searchable'=>false],
-        ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date','searchable'=>false],
         ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
         ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
         ['data'=>'supplier_id','name'=>'supplier_id','title'=>'S.Code'],
@@ -140,10 +136,6 @@ class ReceivingController extends Controller
         ['data'=>'qty','name'=>'qty','title'=>'qty'],
         ['data'=>'qty_free','name'=>'qty_free','title'=>'qty Free'],
         ['data'=>'uom_rec','name'=>'uom_rec','title'=>'uom'],
-        ['data'=>'price','name'=>'price','title'=>'Price'],
-        ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN','searchable'=>false],
-        ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN','searchable'=>false],
-        ['data'=>'total_plus_ppn','name'=>'total_plus_ppn','title'=>'Total Plus PPN','searchable'=>false],
         ['data'=>'status','name'=>'status','title'=>'Status'],
         ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
         ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By','searchable'=>false],
@@ -3324,24 +3316,37 @@ public function unPosting($recNumber)
     {
         $kolom =
         [
-            ['data'=>'ppn','name'=>'ppn','title'=>'Sts'],
+            ['data'=>'nama_dept','name'=>'nama_dept','title'=>'Departemen'],
+            ['data'=>'ppn','name'=>'ppn','title'=>'Tipe PPN'],
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
             ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
             ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
+            ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier Code'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'uom_rec','name'=>'uom_rec','title'=>'UOM'],
+            ['data'=>'uom_conv','name'=>'uom_conv','title'=>'UOM Con'],
             ['data'=>'qty','name'=>'qty','title'=>'Rec Qty'],
+            ['data'=>'qty_free','name'=>'qty_free','title'=>'Qty Free'],
+            ['data'=>'qty_conv','name'=>'qty_conv','title'=>'Qty Con'],
             ['data'=>'price','name'=>'price','title'=>'Price'],
             ['data'=>'total_dpp','name'=>'total_dpp','title'=>'Total Tanpa PPN'],
             ['data'=>'total_ppn','name'=>'total_ppn','title'=>'PPN'],
             ['data'=>'total_plus_ppn','name'=>'total_plus_ppn','title'=>'Total Plus PPN'],
             ['data'=>'invoice_number','name'=>'invoice_number','title'=>'Invoice Number'],
+            ['data'=>'invoice_date','name'=>'invoice_date','title'=>'Invoice Date'],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'paid_date','name'=>'paid_date','title'=>'Paid Date'],
             ['data'=>'balance','name'=>'balance','title'=>'Balance'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
+            ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
+            ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
+            ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
+            ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
+            ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated At'],
         ];
         return json_encode($kolom, true);
     }
@@ -3412,6 +3417,7 @@ public function unPosting($recNumber)
         ->leftJoin('receiving_hdr','receiving_hdr.rec_number','receiving_det.rec_number')
         ->leftJoin('purchase_order_hdr','purchase_order_hdr.po_number','receiving_hdr.po_number')
         ->leftJoin('article','article.article_code','receiving_det.article_code')
+        ->leftJoin('article_types','article_types.code','article.article_type')
         ->where(function ($query) use ($searchSupplier,$searchPo,$requestDate,$fromDate,$toDate) {
             $searchSupplier ? $query->whereIn('receiving_hdr.supplier_id',$searchSupplier) : '';
             $searchPo ? $query->whereIn('receiving_hdr.po_number',$searchPo) : '';
@@ -3430,7 +3436,20 @@ public function unPosting($recNumber)
         ,'receiving_hdr.id as rec_id'
         ,'receiving_det.uom_rec'
         ,'receiving_det.qty'
+        ,'receiving_det.qty_free'
         ,'receiving_det.price'
+        ,DB::raw("case when coalesce(receiving_det.conv_to,'') <> '' and receiving_det.conv_to <> receiving_det.uom_rec then receiving_det.conv_to else '' end as uom_conv")
+        ,DB::raw("case when coalesce(receiving_det.conv_to,'') <> '' and receiving_det.conv_to <> receiving_det.uom_rec then receiving_det.qty_conv end as qty_conv")
+        ,'receiving_hdr.supplier_id'
+        ,'receiving_hdr.status'
+        ,'receiving_hdr.created_by'
+        ,'receiving_hdr.note'
+        ,'receiving_hdr.created_at'
+        ,'receiving_hdr.updated_at'
+        ,'article_types.name as article_type_name'
+        ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
+        ,DB::raw("case when receiving_hdr.rec_type = 'NP' then 'Logistic' when receiving_hdr.rec_type = 'TRIAL' then 'Engineering' else (select (select name from depts where code = dept) from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1) end as nama_dept")
+        ,DB::raw("(select ap_date from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1) as invoice_date")
         ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("case when coalesce(purchase_order_hdr.ppn::numeric,0) > 0 then 'PPN' else '' end as ppn")
         ,DB::raw("$dpp as total_dpp")
@@ -3471,6 +3490,11 @@ public function unPosting($recNumber)
             $routeName = $row->voucher_type == 'KK' ? 'kasKeluar.show' : 'bankKeluar.show';
             return '<a href="'.route($routeName, ['id' => Crypt::encryptString($row->voucher_id)]).'" target="_blank">'.$row->voucher_number.'</a>';
         })
+        ->editColumn('qty_conv', fn ($row) => $row->qty_conv ?? '')
+        ->editColumn('status', function ($row) {
+            $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED','','','','','REVISI'];
+            return $statusRec[$row->status - 1] ?? $row->status;
+        })
         ->rawColumns(['rec_number', 'po_number', 'invoice_number', 'voucher_number'])
         ->make(true);
     }
@@ -3487,23 +3511,6 @@ public function unPosting($recNumber)
     $searchArticleDesc = strtolower($request->searchArticleDesc);
     $recDate = $request->recDate;
     $doDate = $request->doDate;
-
-    // ==========================================
-    // CEK HAK MELIHAT PRICE
-    // ==========================================
-    $user = Auth::user();
-
-    $isPurchasing = DB::table('user_dept')
-        ->where('username', $user->username)
-        ->where('dept', '008')
-        ->exists();
-
-    $isAccounting = $user->hasRole('accounting');
-    $isSuperuser = $user->hasRole('Superuser');
-
-    $canViewPrice = $isPurchasing || $isAccounting || $isSuperuser;
-
-    // ==========================================
 
     $fromDate = "";
     $toDate = "";
@@ -3558,9 +3565,6 @@ public function unPosting($recNumber)
         ,'article_alternative_code'
         ,'article_desc'
         ,'article_types.name as article_type_name'
-        ,DB::raw("price*qty as total_dpp")
-        ,DB::raw("(price*qty)*((coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*(purchase_order_hdr.ppn::numeric))/100) as total_ppn")
-        ,DB::raw("((price*qty)*((coalesce((purchase_order_hdr.dpp_lain_pembilang/purchase_order_hdr.dpp_lain_penyebut),1)*(purchase_order_hdr.ppn::numeric))/100))+(price*qty) as total_plus_ppn")
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) AS main from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("
@@ -3577,11 +3581,6 @@ public function unPosting($recNumber)
                 )
             END as nama_dept
         ")
-        ,DB::raw("(select ap_invoice_detail.ap_number from ap_invoice_detail
-                    left join ap_invoice on ap_invoice.ap_number = ap_invoice_detail.ap_number
-                    where ap_invoice_detail.rec_number = receiving_hdr.rec_number
-                    and ap_invoice.status in ('4','6') limit 1 ) as ap_number")
-        ,DB::raw("(select ap_date from ap_invoice where ap_number = (select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1) and status in('4','6') limit 1) as ap_date")
         ,DB::raw("to_date(receiving_hdr.do_date,'DD-MM-YYYY') as tanggal_do")
     )
     ->orderByRaw("
@@ -3592,22 +3591,6 @@ public function unPosting($recNumber)
 ");
 
    return Datatables::of($query)
-    ->editColumn('price', function ($data) use ($canViewPrice) {
-        return $canViewPrice ? $data->price : '-';
-    })
-
-    ->editColumn('total_dpp', function ($data) use ($canViewPrice) {
-        return $canViewPrice ? $data->total_dpp : '-';
-    })
-
-    ->editColumn('total_ppn', function ($data) use ($canViewPrice) {
-        return $canViewPrice ? $data->total_ppn : '-';
-    })
-
-    ->editColumn('total_plus_ppn', function ($data) use ($canViewPrice) {
-        return $canViewPrice ? $data->total_plus_ppn : '-';
-    })
-
     ->addColumn('status', function ($data) {
         $badges = [
             'badge-primary',
@@ -3641,8 +3624,6 @@ public function unPosting($recNumber)
     ->orderColumn('rec_number', 'receiving_det.rec_number $1')
     ->orderColumn('rec_date', 'receiving_hdr.rec_date $1')
     ->orderColumn('do_date', "to_date(nullif(receiving_hdr.do_date,''),'DD-MM-YYYY') \$1")
-    ->orderColumn('ap_number', 'ap_number $1')
-    ->orderColumn('ap_date', 'ap_date $1')
     ->orderColumn('note', 'receiving_hdr.note $1')
     ->orderColumn('created_by', 'receiving_hdr.created_by $1')
     ->orderColumn('created_at', 'receiving_hdr.created_at $1')

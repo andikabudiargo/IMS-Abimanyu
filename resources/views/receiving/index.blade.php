@@ -298,7 +298,7 @@ const showList = (searchRec,searchPo,searchInv,searchSupplier,searchStatus,recDa
     route:"{{ route('receiving.list') }}",
     kolom:{!! $kolom !!},
     type:'POST',
-    arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,15,16],
+    arrColPrint:[1,2,3,4,5,6,7,8,9,13,14],
     columnDefs :[
       { width: '5%', targets: 0 }
     ],
@@ -331,11 +331,11 @@ const showListDetail = (searchRec,searchPo,searchInv,searchSupplier,searchStatus
     route:"{{ route('receiving.list.detail') }}",
     kolom:{!! $kolomDetail !!},
     type:'POST',
-    arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,25,26],
+    arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,19,20],
     columnDefs :[
       { width: '5%', targets: 0 },
       {
-        targets: [ 12,13,15,16,17,18,19 ],
+        targets: [ 10,11 ],
         render: $.fn.dataTable.render.number(',', '.',2, ''),
         className: "text-right"
       },
