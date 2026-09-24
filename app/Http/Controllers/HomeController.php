@@ -440,15 +440,13 @@ foreach ($candidateHeaders as $h) {
                     ,'$username' as username
                     ,coalesce((select max(approval_order) from approval_history where module_code ='PO' and module_number =a.po_number),0) as current_level
                     ,(select approval_number from approval_master where module_code = 'PO') as max_level
-                    ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PO' and approval_order not in(
-                    select approval_order from approval_history where username = '$username' and module_code = 'PO' and module_number = a.po_number)),0) as berhak_approve
                     ,(SELECT sum(qty*price) from purchase_order_det where po_number = a.po_number) as po_amount
                     ,(select nama from third_party where kode = supplier_id) as supplier_name
                 from purchase_order_hdr a
                 -- where status not in ('3','4','5','6','7','8')
                 where status in ('2')
             ) as Oki
-            where current_level+1 = berhak_approve");
+            where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'PO')");
         // }
 
         // Outstanding PO: PR yang sudah dibuatkan PO, di-scope per departemen user (kecuali Purchasing/008 yang lihat semua)
@@ -505,14 +503,12 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='BOM' and module_number =a.bom_code),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'BOM') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'BOM' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'BOM' and module_number = a.bom_code)),0) as berhak_approve
                 ,(select nama from third_party where kode = customer) as customer_name
             from bom_hdr a
             -- where status not in ('3','4','5','6','7','8')
             where status in ('1','2')
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'BOM')");
 
         $data['listPrHome'] = DB::select("SELECT * from (
             select 
@@ -527,17 +523,12 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='PR' and module_number =a.pr_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'PR') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PR' and username in (select username from user_dept where dept = a.dept and username = '$username')
-                and approval_order not in( select approval_order from approval_history where username = '$username' and module_code = 'PR' and module_number = a.pr_number)),0) as berhak_approve
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'PR'
-                and username in (select username from user_dept where dept = a.dept and username = '$username')
-                and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'PR' and module_number = a.pr_number)),0) as berhak_approve1
             from purchase_request_hdr a
             -- where status not in ('3','4','5','6','7','8','9')
             where status in ('1','2')
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'PR')
+        and dept in (select dept from user_dept where username = '$username')");
 
         $data['listSoHome'] = DB::select("SELECT * from (
             select id
@@ -549,14 +540,12 @@ foreach ($candidateHeaders as $h) {
             ,status
             ,coalesce((select max(approval_order) from approval_history where module_code ='SO' and module_number =sales_order_hdr.so_code),0) as current_level
             ,(select approval_number from approval_master where module_code = 'SO') as max_level
-            ,coalesce((select max(approval_order) from approval_history where module_code = 'SO' and module_number = so_code),0) as sudah_approve,
-            coalesce((select approval_order from approval_level where username = '$username' and module_code = 'SO' limit 1),0) as berhak_approve,
-            (select nama from third_party where kode = customer_id) as customer_name
+            ,(select nama from third_party where kode = customer_id) as customer_name
             from sales_order_hdr 
             -- where status <> '3'
             where status in ('1','2')
             ) as Oki
-        where berhak_approve-1 = sudah_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'SO')");
 
         // $data['listSoHome'] = DB::select("SELECT * from (
         //     select id
@@ -588,13 +577,11 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='TSO' and module_number =a.tso_code),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'TSO') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'TSO' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'TSO' and module_number = a.tso_code)),0) as berhak_approve
             from target_order_hdr a
             -- where status not in ('3','4','5','6','7','8')
             where status in ('1','2')
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'TSO')");
 
         // $data['listTsoHome'] = DB::select("SELECT * from (
         //     select 
@@ -635,12 +622,10 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='DN' and module_number =a.delivery_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'DN') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'DN' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'DN' and module_number = a.delivery_number)),0) as berhak_approve
             from delivery_hdr a
             where status in ('10')
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'DN')");
 
         $data['listBkHome'] = DB::select("SELECT * from (
             select 
@@ -654,13 +639,11 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='BK' and module_number =a.voucher_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'BK') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'BK' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'BK' and module_number = a.voucher_number)),0) as berhak_approve
             from kas_hdr a
             where status in ('2')
             and voucher_type = 'BK'
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'BK')");
 
         $data['listBmHome'] = DB::select("SELECT * from (
             select 
@@ -674,13 +657,11 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='BM' and module_number =a.voucher_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'BM') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'BM' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'BM' and module_number = a.voucher_number)),0) as berhak_approve
             from kas_hdr a
             where status in ('2')
             and voucher_type = 'BM'
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'BM')");
 
         $data['listKmHome'] = DB::select("SELECT * from (
             select 
@@ -694,13 +675,11 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='KM' and module_number =a.voucher_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'KM') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'KM' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'KM' and module_number = a.voucher_number)),0) as berhak_approve
             from kas_hdr a
             where status in ('2')
             and voucher_type = 'KM'
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'KM')");
 
         $data['listKkHome'] = DB::select("SELECT * from (
             select 
@@ -715,13 +694,11 @@ foreach ($candidateHeaders as $h) {
                 ,amount
                 ,coalesce((select max(approval_order) from approval_history where module_code ='KK' and module_number =a.voucher_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'KK') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'KK' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'KK' and module_number = a.voucher_number)),0) as berhak_approve
             from kas_hdr a
             where status in ('2')
             and voucher_type = 'KK'
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'KK')");
 
         $data['listGjHome'] = DB::select("SELECT * from (
             select 
@@ -735,13 +712,11 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='GJ' and module_number =a.voucher_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'GJ') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'GJ' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'GJ' and module_number = a.voucher_number)),0) as berhak_approve
             from kas_hdr a
             where status in ('2')
             and voucher_type = 'GJ'
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'GJ')");
 
         $data['listApHome'] = DB::select("SELECT * from (
             select 
@@ -756,12 +731,10 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='AP' and module_number =a.ap_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'AP') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'AP' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'AP' and module_number = a.ap_number)),0) as berhak_approve
             from ap_invoice a
             where status in ('2')
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'AP')");
 
         $data['listArHome'] = DB::select("SELECT * from (
             select 
@@ -776,12 +749,10 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='INV' and module_number =a.invoice_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'INV') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'INV' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'INV' and module_number = a.invoice_number)),0) as berhak_approve
             from invoice_hdr a
             where status in ('2')
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'INV')");
 
         $data['listRecHome'] =DB::select("SELECT * from (
             select 
@@ -796,12 +767,10 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='REC' and module_number =a.rec_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'REC') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'REC' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'REC' and module_number = a.rec_number)),0) as berhak_approve
             from receiving_hdr a
             where status in ('10')
             ) as Oki
-        where current_level+1 = berhak_approve");     
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'REC')");     
 
         $data['listDebNoteHome'] = DB::select("SELECT * from (
             select 
@@ -815,12 +784,10 @@ foreach ($candidateHeaders as $h) {
                 ,'$username' as username
                 ,coalesce((select max(approval_order) from approval_history where module_code ='INV-DN' and module_number =a.dn_number),0) as current_level
                 ,(select approval_number from approval_master where module_code = 'INV-DN') as max_level
-                ,coalesce((select min(approval_order) from approval_level where username = '$username' and module_code = 'INV-DN' and approval_order not in(
-                select approval_order from approval_history where username = '$username' and module_code = 'INV-DN' and module_number = a.dn_number)),0) as berhak_approve
             from debit_note_hdr a
             where status in ('2')
             ) as Oki
-        where current_level+1 = berhak_approve");
+        where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'INV-DN')");
 
         // Cek dept user (pakai tabel user_dept yang sudah dipakai di query PR)
 $userDepts = DB::table('user_dept')
