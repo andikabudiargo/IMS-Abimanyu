@@ -19,7 +19,7 @@ class DnMonitoringController extends Controller
                     CASE WHEN dh.status = '8' THEN 'DN RECEIVED' ELSE 'DELIVERY' END AS source,
                     CASE dh.status WHEN '1' THEN 'NEW' WHEN '2' THEN 'VALIDATE' WHEN '3' THEN 'APPROVED'
                         WHEN '4' THEN 'POSTED' WHEN '8' THEN
-                        CASE dr.status WHEN '2' THEN 'SUBMITTED AKUNTING' ELSE 'RECEIVED (BELUM SUBMIT AKUNTING)' END END AS status,
+                        CASE dr.status WHEN '2' THEN 'SUBMITTED (BELUM DIBUATKAN INVOICE)' ELSE 'RECEIVED (BELUM SUBMIT AKUNTING)' END END AS status,
                     dh.created_by, dh.created_at
                 FROM delivery_hdr dh
                 LEFT JOIN dn_receipt dr ON dr.delivery_number = dh.delivery_number
