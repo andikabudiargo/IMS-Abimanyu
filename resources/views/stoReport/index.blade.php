@@ -287,6 +287,44 @@
     </div>
 </div>
 
+{{-- MODAL — detail hasil STO (klik angka Qty STO) --}}
+<div class="modal fade" id="stoDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="stoDetailTitle">Detail Hasil STO</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover" style="font-size:.8rem;">
+                        <thead>
+                            <tr>
+                                <th>No. STO</th>
+                                <th>Lokasi</th>
+                                <th>Counter</th>
+                                <th class="text-right">Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stoDetailBody"></tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-right">Total</th>
+                                <th class="text-right" id="stoDetailTotal">0.00</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -541,7 +579,11 @@ $(document).ready(function () {
                     + '<td class="text-right">' + drillLink('opening', 'Opening Balance', r.opening) + '</td>'
                     + moveCells
                     + '<td class="text-right font-weight-bold">' + fmt(r.closing) + '</td>'
-                    + '<td class="text-right">' + (r.qty_sto !== null ? fmt(r.qty_sto) : '<span class="text-muted">-</span>') + '</td>'
+                    + '<td class="text-right">' + (r.qty_sto !== null
+                        ? '<a href="javascript:;" class="sto-drill" data-alt="' + (r.alt_code || '') + '">' + fmt(r.qty_sto) + '</a>'
+                        : (r.sto_conflict
+                            ? '<a href="javascript:;" class="sto-drill text-danger" data-alt="' + (r.alt_code || '') + '" title="Total antar counter berbeda">Beda counter</a>'
+                            : '<span class="text-muted">-</span>')) + '</td>'
                     + '<td class="text-right ' + varCls + '">' + varVal + '</td>'
                     + '<td class="text-center">' + statusBadge(r.sto_status) + '</td>'
                     + '<td class="text-center">' + accuracyCell(r, target, tolerance) + '</td>'
@@ -647,6 +689,49 @@ $(document).ready(function () {
         .fail(function (xhr) {
             let msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan.';
             $('#mvDetailBody').html('<tr><td colspan="3" class="text-center text-danger py-2">' + msg + '</td></tr>');
+        });
+    });
+
+    // ── drill-down: klik Qty STO -> modal no STO, qty, nama counter ──
+    $(document).on('click', '.sto-drill', function () {
+        let alt   = $(this).data('alt');
+        let encId = $('#repStoCode').val();
+        let loc   = $('#repLocation').val();
+        if (!encId || !loc) return;
+
+        let msgRow = function (cls, txt) { return '<tr><td colspan="4" class="text-center ' + cls + ' py-2">' + txt + '</td></tr>'; };
+
+        $('#stoDetailTitle').text('Hasil STO — ' + alt);
+        $('#stoDetailBody').html(msgRow('text-muted', 'Memuat...'));
+        $('#stoDetailTotal').text('0.00');
+        $('#stoDetailModal').modal('show');
+
+        $.post("{{ route('stoReport.stoDetail') }}", { config_id: encId, location_code: loc, alt_code: alt })
+        .done(function (res) {
+            if (!res || res.status !== 1) {
+                $('#stoDetailBody').html(msgRow('text-danger', (res && res.message) || 'Gagal memuat data.'));
+                return;
+            }
+            if (!res.rows.length) {
+                $('#stoDetailBody').html(msgRow('text-muted', 'Tidak ada data hitung.'));
+                return;
+            }
+            let body = '';
+            res.rows.forEach(function (r) {
+                body += '<tr><td>' + (r.sto_number || '-') + '</td>'
+                    + '<td>' + (r.location || '-') + '</td>'
+                    + '<td>' + (res.blind ? 'C' + r.counter + ' — ' : '') + r.counter_name + '</td>'
+                    + '<td class="text-right">' + fmt(r.qty) + '</td></tr>';
+            });
+            $('#stoDetailBody').html(body);
+            // blind: total tiap counter DIBANDINGKAN (bukan dijumlahkan); non-blind: satu total
+            $('#stoDetailTotal').html(res.blind
+                ? res.totals.map(function (t) { return 'C' + t.counter + ': ' + fmt(t.total); }).join(' | ')
+                    + (res.state === 'CONFLICT' ? ' — <span class="text-danger">BEDA</span>' : '')
+                : fmt(res.total));
+        })
+        .fail(function (xhr) {
+            $('#stoDetailBody').html(msgRow('text-danger', (xhr.responseJSON && xhr.responseJSON.message) || 'Terjadi kesalahan.'));
         });
     });
 

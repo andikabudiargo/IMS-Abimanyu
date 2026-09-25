@@ -44,8 +44,9 @@ class StoReportController extends Controller
         '006' => ['CM2', 'CM3', 'RMP', 'RMNP'],
         '005' => ['CM1'],
         '049' => ['CM1'],
-        // '012' (WIP parent) sengaja tidak dibatasi types-nya di StockCountController
-        // (phantomArticleTypeMap-nya cuma FG), jadi di sini juga dibiarkan null → semua tipe.
+        // 012 (Gudang WIP): di report hanya tampil artikel FG (permintaan user).
+        // StockCountController sengaja tidak membatasi 012 — jangan disamakan.
+        '012' => ['FG'],
     ];
 
     // ══════════════════════════════════════════════
@@ -122,16 +123,30 @@ class StoReportController extends Controller
     {
         $stoList = DB::table('sto_config as h')
             ->whereIn('h.status', [1, 2, 3])
-            ->whereExists(function ($q) {
-                $q->select(DB::raw(1))
-                  ->from('sto_config_mapping as m')
-                  ->leftJoin('stock_location_master as l', 'l.location_code', '=', 'm.target_ref')
-                  ->whereColumn('m.config_id', 'h.config_id')
-                  ->where('m.target_type', 'LOCATION')
-                  ->where(function ($w) {
-                      $w->whereIn('m.target_ref', $this->supportedLocations)
-                        ->orWhereIn('l.parent_location', $this->supportedLocations); // child WIP dst
-                  });
+            ->where(function ($outer) {
+                $outer->whereExists(function ($q) {
+                    $q->select(DB::raw(1))
+                      ->from('sto_config_mapping as m')
+                      ->leftJoin('stock_location_master as l', 'l.location_code', '=', 'm.target_ref')
+                      ->whereColumn('m.config_id', 'h.config_id')
+                      ->where('m.target_type', 'LOCATION')
+                      ->where(function ($w) {
+                          $w->whereIn('m.target_ref', $this->supportedLocations)
+                            ->orWhereIn('l.parent_location', $this->supportedLocations); // child WIP dst
+                      });
+                })->orWhereExists(function ($q) { // STO Supplier/Customer: lokasi dipilih per baris (sto_dtl)
+                    $q->select(DB::raw(1))
+                      ->from('sto_config_mapping as m')
+                      ->join('sto_hdr as sh', 'sh.mapping_id', '=', 'm.mapping_id')
+                      ->join('sto_dtl as d', 'd.sto_id', '=', 'sh.sto_id')
+                      ->leftJoin('stock_location_master as l', 'l.location_code', '=', 'd.location_number')
+                      ->whereColumn('m.config_id', 'h.config_id')
+                      ->where('m.target_type', '<>', 'LOCATION')
+                      ->where(function ($w) {
+                          $w->whereIn('d.location_number', $this->supportedLocations)
+                            ->orWhereIn('l.parent_location', $this->supportedLocations);
+                      });
+                });
             })
             ->orderByDesc('h.config_id')
             ->select('h.config_id', 'h.sto_code', 'h.periode', 'h.sto_type')
@@ -173,23 +188,56 @@ class StoReportController extends Controller
                 DB::raw('CASE WHEN m.target_ref IN (' . implode(',', array_fill(0, count($this->supportedLocations), '?')) . ') THEN COALESCE(l.location_name, m.target_ref) ELSE COALESCE(pl.location_name, l.parent_location) END as location_name')
             )
             ->addBinding(array_merge($this->supportedLocations, $this->supportedLocations), 'select')
-            ->get()
-            ->unique('location_code')
-            ->sortBy('location_name')
-            ->values();
+            ->get();
 
-        return response()->json($rows);
+        // STO Supplier/Customer: lokasi gudangnya dipilih per baris (sto_dtl.location_number)
+        $partner = DB::table('sto_config_mapping as m')
+            ->join('sto_config as h', 'h.config_id', '=', 'm.config_id')
+            ->join('sto_hdr as sh', 'sh.mapping_id', '=', 'm.mapping_id')
+            ->join('sto_dtl as d', 'd.sto_id', '=', 'sh.sto_id')
+            ->where('m.config_id', $configId)
+            ->where('m.target_type', '<>', 'LOCATION')
+            ->whereNotNull('d.location_number')
+            ->select('m.mapping_id', 'd.location_number as loc', 'm.sto_date', 'm.target_plan_loc', 'h.periode')
+            ->distinct()
+            ->get();
+
+        foreach ($partner as $p) {
+            $anchor = $this->resolveLocationAnchor($p->loc);
+            if (!in_array($anchor, $this->supportedLocations, true)) continue;
+            $rows->push((object) [
+                'mapping_id'      => $p->mapping_id,
+                'location_code'   => $anchor,
+                'sto_date'        => $p->sto_date,
+                'target_plan_loc' => $p->target_plan_loc,
+                'periode'         => $p->periode,
+                'location_name'   => DB::table('stock_location_master')->where('location_code', $anchor)->value('location_name') ?? $anchor,
+            ]);
+        }
+
+        return response()->json($rows->unique('location_code')->sortBy('location_name')->values());
     }
 
-    // Mapping untuk lokasi report: milik sendiri (prioritas), atau milik child family-nya.
+    // Mapping untuk lokasi report: LOCATION milik sendiri/child family-nya (prioritas),
+    // fallback ke mapping Supplier/Customer yang barisnya memilih lokasi di family ini.
     private function findMapping($configId, $locationCode)
     {
+        $family = $this->resolveLocationFamily($locationCode);
+
         return DB::table('sto_config_mapping')
             ->where('config_id', $configId)
             ->where('target_type', 'LOCATION')
-            ->whereIn('target_ref', $this->resolveLocationFamily($locationCode))
+            ->whereIn('target_ref', $family)
             ->orderByRaw('CASE WHEN target_ref = ? THEN 0 ELSE 1 END', [$locationCode])
-            ->first();
+            ->first()
+            ?? DB::table('sto_config_mapping as m')
+                ->join('sto_hdr as sh', 'sh.mapping_id', '=', 'm.mapping_id')
+                ->join('sto_dtl as d', 'd.sto_id', '=', 'sh.sto_id')
+                ->where('m.config_id', $configId)
+                ->where('m.target_type', '<>', 'LOCATION')
+                ->whereIn('d.location_number', $family)
+                ->select('m.*')
+                ->first();
     }
 
     public function data(Request $request)
@@ -603,37 +651,124 @@ class StoReportController extends Controller
     // oleh StoReportController berdasarkan qty ini vs closing versi report
     // sendiri (lihat buildReport()), bukan dipinjam dari verdict StockCount.
     // ══════════════════════════════════════════════
+    // LOCATION: semua baris mapping sibling. SUPPLIER/CUSTOMER: hanya baris yang
+    // lokasi pilihannya (d.location_number) ada di family ini.
+    private function stoDtlQuery($configId, array $family)
+    {
+        return DB::table('sto_dtl as d')
+            ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
+            ->join('sto_config_mapping as m', 'm.mapping_id', '=', 'h.mapping_id')
+            ->where('m.config_id', $configId)
+            ->where(function ($w) use ($family) {
+                $w->where(fn($x) => $x->where('m.target_type', 'LOCATION')->whereIn('m.target_ref', $family))
+                  ->orWhere(fn($x) => $x->where('m.target_type', '<>', 'LOCATION')->whereIn('d.location_number', $family));
+            })
+            ->whereNotNull('d.article_code');
+    }
+
+    /**
+     * Qty hasil STO satu artikel, MIRROR StockCountController::resolveFamilyArticleStatus():
+     * - NON-BLIND: jumlah per baris (counter1 ?? 2 ?? 3).
+     * - BLIND: total tiap counter aktif dihitung SENDIRI-SENDIRI lalu DIBANDINGKAN
+     *   (tidak dijumlahkan antar counter). Sama semua -> qty = total itu;
+     *   beda -> CONFLICT (qty null, status report NOT MATCH); ada counter aktif
+     *   yang belum isi -> INCOMPLETE.
+     * Return: ['state' => OK|CONFLICT|INCOMPLETE, 'qty' => ?float, 'totals' => [slot => float], 'slots' => [..]]
+     */
+    private function resolveStoQty($items): array
+    {
+        $blind = $items->contains(fn($r) => $r->is_blind === null || filter_var($r->is_blind, FILTER_VALIDATE_BOOLEAN));
+
+        if (!$blind) {
+            $filled = $items->contains(fn($r) => $r->qty_counter1 !== null || $r->qty_counter2 !== null || $r->qty_counter3 !== null);
+            if (!$filled) return ['state' => 'INCOMPLETE', 'qty' => null, 'totals' => [], 'slots' => []];
+            $sum = $items->sum(fn($r) => (float) ($r->qty_counter1 ?? $r->qty_counter2 ?? $r->qty_counter3 ?? 0));
+            return ['state' => 'OK', 'qty' => round($sum, 2), 'totals' => [], 'slots' => []];
+        }
+
+        $slots = array_values(array_filter([1, 2, 3], fn($n) => $items->contains(fn($r) => !empty($r->{"counter{$n}_user"}))));
+        if (!$slots) $slots = [1, 2, 3];
+
+        $totals = [];
+        foreach ($slots as $n) {
+            if (!$items->contains(fn($r) => $r->{"qty_counter{$n}"} !== null)) {
+                return ['state' => 'INCOMPLETE', 'qty' => null, 'totals' => $totals, 'slots' => $slots];
+            }
+            $totals[$n] = round((float) $items->sum("qty_counter{$n}"), 2);
+        }
+
+        if (count(array_unique($totals)) > 1) {
+            return ['state' => 'CONFLICT', 'qty' => null, 'totals' => $totals, 'slots' => $slots];
+        }
+        return ['state' => 'OK', 'qty' => reset($totals), 'totals' => $totals, 'slots' => $slots];
+    }
+
     private function aggregateStoResults($configId, array $family)
     {
-        $siblingMappingIds = DB::table('sto_config_mapping')
-            ->where('config_id', $configId)
-            ->where('target_type', 'LOCATION')
-            ->whereIn('target_ref', $family)
-            ->pluck('mapping_id');
-
-        if ($siblingMappingIds->isEmpty()) return collect();
-
-        $rows = DB::table('sto_dtl as d')
-            ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
-            ->whereIn('h.mapping_id', $siblingMappingIds)
-            ->whereNotNull('d.article_code')
-            ->select('d.article_code as alt_code', 'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3')
+        $rows = $this->stoDtlQuery($configId, $family)
+            ->select('d.article_code as alt_code', 'm.is_blind',
+                'm.counter1_user', 'm.counter2_user', 'm.counter3_user',
+                'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3')
             ->get();
 
         if ($rows->isEmpty()) return collect();
 
         return $rows->groupBy('alt_code')->map(function ($items) {
-            $hasC1 = $items->contains(fn($r) => $r->qty_counter1 !== null);
-            $hasC2 = $items->contains(fn($r) => $r->qty_counter2 !== null);
-            $hasC3 = $items->contains(fn($r) => $r->qty_counter3 !== null);
-
-            $qty = null;
-            if ($hasC1)     $qty = $items->sum('qty_counter1');
-            elseif ($hasC2) $qty = $items->sum('qty_counter2');
-            elseif ($hasC3) $qty = $items->sum('qty_counter3');
-
-            return (object) ['qty_sto' => $qty];
+            $r = $this->resolveStoQty($items);
+            return (object) ['qty_sto' => $r['qty'], 'conflict' => $r['state'] === 'CONFLICT'];
         });
+    }
+
+    // Modal "hasil STO": no STO, qty, nama counter di balik angka qty_sto.
+    // Blind: tampil per counter aktif + total tiap counter (supaya kelihatan kalau beda).
+    public function stoDetail(Request $request)
+    {
+        $configId     = Crypt::decryptString($request->config_id);
+        $locationCode = $request->location_code;
+
+        if (!in_array($locationCode, $this->supportedLocations)) {
+            return response()->json(['status' => 0, 'message' => 'Lokasi ini belum didukung format reportnya.'], 422);
+        }
+
+        $rows = $this->stoDtlQuery($configId, $this->resolveLocationFamily($locationCode))
+            ->where('d.article_code', $request->alt_code)
+            ->leftJoin('users as u1', 'u1.id', '=', 'd.counter1_user')
+            ->leftJoin('users as u2', 'u2.id', '=', 'd.counter2_user')
+            ->leftJoin('users as u3', 'u3.id', '=', 'd.counter3_user')
+            ->orderBy('h.sto_number')
+            ->select('h.sto_number', 'd.location_number', 'm.is_blind',
+                'm.counter1_user', 'm.counter2_user', 'm.counter3_user',
+                'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3',
+                'u1.name as c1', 'u2.name as c2', 'u3.name as c3')
+            ->get();
+
+        $res   = $this->resolveStoQty($rows);
+        $slots = $res['slots'] ?: [1, 2, 3]; // non-blind: tampilkan counter yang terisi per baris
+
+        $list = collect();
+        foreach ($rows as $r) {
+            foreach ($slots as $n) {
+                if ($r->{"qty_counter{$n}"} === null) continue;
+                // non-blind: hanya counter pertama yang terisi di baris itu yang dipakai
+                if (!$res['slots'] && $n !== collect($slots)->first(fn($k) => $r->{"qty_counter{$k}"} !== null)) continue;
+                $list->push([
+                    'sto_number'   => $r->sto_number,
+                    'location'     => $r->location_number,
+                    'counter'      => $n,
+                    'counter_name' => $r->{"c{$n}"} ?? '-',
+                    'qty'          => round((float) $r->{"qty_counter{$n}"}, 2),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'status'  => 1,
+            'state'   => $res['state'],
+            'blind'   => (bool) $res['slots'],
+            'rows'    => $list->sortBy(fn($x) => $x['counter'] . '|' . $x['sto_number'])->values(),
+            'totals'  => collect($res['totals'])->map(fn($t, $n) => ['counter' => $n, 'total' => $t])->values(),
+            'total'   => $res['qty'],
+        ]);
     }
 
     // ══════════════════════════════════════════════
@@ -679,32 +814,39 @@ class StoReportController extends Controller
      * kosong, mundur bulan demi bulan (bulan penuh) sampai maksimum
      * $maxMonthsBack -- sama pola dengan avgReceivingValue().
      */
-    private function avgDnValue(string $articleCode, string $dateFrom, string $dateTo, int $maxMonthsBack = 24): float
+    // Batch: 1 query untuk semua artikel (dulu s/d 25 query PER artikel -> report FG loading tanpa henti).
+    // Return [article_code => avg_price]; bulan terbaru yang ada data menang.
+    private function avgDnValues(array $codes, string $dateFrom, string $dateTo, int $maxMonthsBack = 24): array
     {
         $anchor = \DateTime::createFromFormat('d-m-Y', $dateFrom);
         $cutoff = \DateTime::createFromFormat('d-m-Y', $dateTo);
-        if (!$anchor || !$cutoff) return 0.0;
+        if (!$codes || !$anchor || !$cutoff) return [];
 
-        for ($i = 0; $i <= $maxMonthsBack; $i++) {
-            $monthStart = (clone $anchor)->modify("-{$i} month")->modify('first day of this month');
-            $monthEnd   = $i === 0 ? $cutoff : (clone $monthStart)->modify('last day of this month');
+        $anchorIdx = (int) $anchor->format('Y') * 12 + (int) $anchor->format('n');
+        $start     = (clone $anchor)->modify("-{$maxMonthsBack} month")->modify('first day of this month');
+        $in        = implode(',', array_fill(0, count($codes), '?'));
 
-            $row = DB::selectOne("
-                SELECT COALESCE(SUM(dd.qty * COALESCE(sod.price,0)) / NULLIF(SUM(dd.qty),0), 0) AS avg_price, COUNT(*) AS n
-                FROM delivery_det dd
-                JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
-                LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
-                WHERE dd.article_code = ?
-                  AND to_date(dh.delivery_date, 'DD-MM-YYYY') BETWEEN ?::date AND ?::date
-                  AND dh.status NOT IN ('5','7')
-            ", [$articleCode, $monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')]);
+        $rows = DB::select("
+            SELECT dd.article_code,
+                   GREATEST(0, {$anchorIdx} - (EXTRACT(YEAR FROM d.dt)::int * 12 + EXTRACT(MONTH FROM d.dt)::int)) AS back,
+                   SUM(dd.qty * COALESCE(sod.price,0)) AS val, SUM(dd.qty) AS q
+            FROM delivery_det dd
+            JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
+            CROSS JOIN LATERAL (SELECT to_date(dh.delivery_date, 'DD-MM-YYYY') AS dt) d
+            LEFT JOIN sales_order_det sod ON sod.so_code = dd.so_number AND sod.article_code = dd.article_code
+            WHERE dd.article_code IN ($in)
+              AND d.dt BETWEEN ?::date AND ?::date
+              AND dh.status NOT IN ('5','7')
+            GROUP BY 1, 2
+            ORDER BY 1, 2",
+            array_merge($codes, [$start->format('Y-m-d'), $cutoff->format('Y-m-d')]));
 
-            if ($row && $row->n > 0) {
-                return (float) $row->avg_price;
-            }
+        $out = [];
+        foreach ($rows as $r) {
+            if (isset($out[$r->article_code])) continue;
+            $out[$r->article_code] = (float) $r->q > 0 ? (float) $r->val / (float) $r->q : 0.0;
         }
-
-        return 0.0;
+        return $out;
     }
 
     /**
@@ -715,26 +857,28 @@ class StoReportController extends Controller
      * maksimum $maxMonthsBack -- sama persis pola avgPrice() di
      * PriceListController / avgReceivingPrice() di ConversionReportController.
      */
-    private function avgReceivingValue(string $articleCode, int $maxMonthsBack = 24): float
+    // Batch: 1 query untuk semua artikel; bulan berjalan/terbaru yang ada data menang.
+    private function avgReceivingValues(array $codes, int $maxMonthsBack = 24): array
     {
-        $anchor = new \DateTime('today');
+        if (!$codes) return [];
 
-        for ($i = 0; $i <= $maxMonthsBack; $i++) {
-            $monthStart = (clone $anchor)->modify("-{$i} month")->modify('first day of this month');
-            $monthEnd   = (clone $monthStart)->modify('last day of this month');
+        $start = (new \DateTime('today'))->modify("-{$maxMonthsBack} month")->modify('first day of this month');
+        $in    = implode(',', array_fill(0, count($codes), '?'));
 
-            $row = DB::selectOne("
-                SELECT COALESCE(SUM(price*qty)/NULLIF(SUM(qty),0),0) AS avg_price, COUNT(*) AS n
-                FROM receiving_det
-                WHERE article_code = ?
-                  AND created_at::date BETWEEN ?::date AND ?::date
-            ", [$articleCode, $monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')]);
+        $rows = DB::select("
+            SELECT article_code, SUM(price*qty) AS val, SUM(qty) AS q
+            FROM receiving_det
+            WHERE article_code IN ($in) AND created_at::date >= ?::date
+            GROUP BY article_code, date_trunc('month', created_at)
+            ORDER BY article_code, date_trunc('month', created_at) DESC",
+            array_merge($codes, [$start->format('Y-m-d')]));
 
-            if ($row && $row->n > 0) {
-                return (float) $row->avg_price;
-            }
+        $out = [];
+        foreach ($rows as $r) {
+            if (isset($out[$r->article_code]) || (float) $r->q == 0.0) continue;
+            $out[$r->article_code] = (float) $r->val / (float) $r->q;
         }
-        return 0.0;
+        return $out;
     }
 
     private function emptyTotals($locationCode = null)
@@ -917,6 +1061,10 @@ class StoReportController extends Controller
         $totalPoin    = 0;
         $totalArtikel = 0;
 
+        $fgCodes = $articles->filter(fn($x) => strtoupper($x->article_type ?? '') === 'FG')->keys()->map(fn($c) => (string) $c)->all();
+        $dnAvg   = $this->avgDnValues($fgCodes, $dateFrom, $dateTo);
+        $recAvg  = $this->avgReceivingValues(array_values(array_diff($articles->keys()->map(fn($c) => (string) $c)->all(), $fgCodes)));
+
         foreach ($realCodes as $rc) {
             $meta    = $articles->get($rc);
             $altCode = $meta->article_alternative_code ?? null;
@@ -955,7 +1103,12 @@ class StoReportController extends Controller
             $stoQty   = ($stoRow && $stoRow->qty_sto !== null) ? round((float) $stoRow->qty_sto, 2) : null;
             $variance = $stoQty !== null ? round($stoQty - $closing, 2) : null;
 
-            if ($stoQty === null) {
+            $stoConflict = (bool) ($stoRow->conflict ?? false); // blind: total antar counter beda
+
+            if ($stoConflict) {
+                $stoStatus = 'NOT MATCH';
+                $accurate  = false;
+            } elseif ($stoQty === null) {
                 $stoStatus = 'INCOMPLETE';
                 $accurate  = false;
             } elseif ($closing == 0) {
@@ -973,8 +1126,8 @@ class StoReportController extends Controller
             //    selain FG pakai avg harga receiving (fresh, bukan warehouse_stock.avg_price).
             $articleType = strtoupper($meta->article_type ?? '');
             $unitValue   = $articleType === 'FG'
-                ? $this->avgDnValue($rc, $dateFrom, $dateTo)
-                : $this->avgReceivingValue($rc);
+                ? ($dnAvg[$rc] ?? 0.0)
+                : ($recAvg[$rc] ?? 0.0);
             $valuation   = $stoQty !== null ? round($unitValue * $stoQty, 2) : null;
 
             // ── Consumption: cuma untuk lokasi CHEMICAL (005/006/009).
@@ -1000,6 +1153,7 @@ class StoReportController extends Controller
             ], $moveVals, [
                 'closing'           => $closing,
                 'qty_sto'           => $stoQty,
+                'sto_conflict'      => $stoConflict,
                 'variance'          => $variance,
                 'sto_status'        => $stoStatus,
                 'accurate'          => $accurate,
