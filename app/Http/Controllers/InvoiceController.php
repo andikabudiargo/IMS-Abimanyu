@@ -765,6 +765,8 @@ class InvoiceController extends Controller
         /* cara baru menggunakan join supaya lebih cepat */
 
         $dnNumbers = "'" . implode("','", $dnNumbers) . "'";
+        // SO milik invoice ini harus selalu muncul, walau di luar rentang tanggal SO yang tersimpan
+        $ownSo = "'" . implode("','", array_map(fn($s) => str_replace("'", "''", $s), $data['soNumbers'])) . "'";
         $data['listSo']= DB::select("SELECT DISTINCT soh.so_code, soh.po_number, soh.ppn, soh.pph23 
             FROM sales_order_hdr soh
             INNER JOIN delivery_hdr dh ON soh.so_code = dh.so_number 
@@ -775,7 +777,8 @@ class InvoiceController extends Controller
             AND soh.status = '3'
             AND dh.status = '8'
             AND id.dn_number IS NULL
-            AND to_date(soh.so_date,'DD-MM-YYYY') BETWEEN '$fromDate1' AND '$toDate1'
+            AND (to_date(soh.so_date,'DD-MM-YYYY') BETWEEN '$fromDate1' AND '$toDate1'
+                 OR soh.so_code IN ($ownSo))
             ORDER BY soh.so_code ASC;"
         );
 
