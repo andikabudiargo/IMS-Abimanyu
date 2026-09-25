@@ -53,7 +53,6 @@
   <div class="modal-dialog modal-xl" role="document">
     <div class="modal-content">
       <div class="modal-header"><h5 class="modal-title" id="dnModalTitle"></h5>
-        <a href="#" id="dnExport" class="btn btn-success btn-sm ml-auto mr-2"><i class="fa fa-download"></i> Export Excel</a>
         <button type="button" class="close" data-dismiss="modal">&times;</button></div>
       <div class="modal-body table-responsive">
         <table class="table table-sm table-bordered">
@@ -61,6 +60,7 @@
           <tbody id="dnModalBody"></tbody>
         </table>
       </div>
+      <div class="modal-footer"><a href="#" id="dnExport" class="btn btn-success btn-sm"><i class="fa fa-download"></i> Export Excel</a></div>
     </div>
   </div>
 </div>
