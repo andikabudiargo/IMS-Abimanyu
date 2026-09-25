@@ -49,10 +49,9 @@ class DnMonitoringController extends Controller
         return preg_match('/^\d{4}-\d{2}$/', $request->periode) ? $request->periode : date('Y-m');
     }
 
-    public function index(Request $request)
+    private function summaryData(Request $request)
     {
         $month = $this->month($request);
-        $data['title'] = 'DN Monitoring';
 
         $hasCutOff = Schema::hasColumn('third_party', 'cutt_off_dn');
         $customers = DB::table('third_party')->where('third_party_type', 'cust')
@@ -78,6 +77,13 @@ class DnMonitoringController extends Controller
         $data['periode'] = $month;
         $data['customers'] = $customers;
         $data['selected'] = $selected;
+        return $data;
+    }
+
+    public function index(Request $request)
+    {
+        $data = $this->summaryData($request);
+        $data['title'] = 'DN Monitoring';
         return view('monitoring.dnMonitoring', $data);
     }
 
@@ -104,15 +110,35 @@ class DnMonitoringController extends Controller
         return response()->json($this->detailRows($request));
     }
 
+    private function download(array $rows, array $headings, $name)
+    {
+        $export = new class($rows, $headings) implements FromArray, WithHeadings, ShouldAutoSize {
+            private $rows;
+            private $headings;
+            public function __construct(array $rows, array $headings) { $this->rows = $rows; $this->headings = $headings; }
+            public function array(): array { return $this->rows; }
+            public function headings(): array { return $this->headings; }
+        };
+        return Excel::download($export, $name);
+    }
+
     public function export(Request $request)
     {
         $rows = array_map(fn($r) => [$r->dn_number, $r->source, $r->delivery_date, $r->status, $r->created_by, $r->created_at], $this->detailRows($request));
-        $export = new class($rows) implements FromArray, WithHeadings, ShouldAutoSize {
-            private $rows;
-            public function __construct(array $rows) { $this->rows = $rows; }
-            public function array(): array { return $this->rows; }
-            public function headings(): array { return ['Nomor DN', 'Tipe', 'Delivery Date', 'Status', 'Created By', 'Created At']; }
-        };
-        return Excel::download($export, "dn_belum_invoice_{$request->customer}_W{$request->week}.xlsx");
+        return $this->download($rows, ['Nomor DN', 'Tipe', 'Delivery Date', 'Status', 'Created By', 'Created At'], "dn_belum_invoice_{$request->customer}_W{$request->week}.xlsx");
+    }
+
+    public function exportSummary(Request $request)
+    {
+        $d = $this->summaryData($request);
+        $rows = [];
+        foreach ($d['summary'] as $r) {
+            $w = $r['w'];
+            $rows[] = [$r['name'], $r['cutt_off'], $w[1] ?? 0, $w[2] ?? 0, $w[3] ?? 0, $w[4] ?? 0, array_sum($w)];
+        }
+        if ($rows) {
+            $rows[] = ['TOTAL', ''] + array_map(fn($i) => array_sum(array_column($rows, $i)), [2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6]);
+        }
+        return $this->download($rows, ['Customer', 'Cutt Off DN', 'W1 (1-7)', 'W2 (8-14)', 'W3 (15-21)', 'W4 (22-akhir)', 'Total'], "outstanding_surat_jalan_{$d['periode']}.xlsx");
     }
 }

@@ -4,15 +4,39 @@
 @include('layouts.breadcrumb')
 <section id="dn-monitoring">
   <div class="card">
-    <div class="card-header">
-      <h4 class="card-title">Outstanding Surat Jalan Kembali - {{ $monthLabel }}</h4>
-      <form method="GET" class="form-inline"><label class="mr-1">Periode</label><input type="month" name="periode" value="{{ $periode }}" class="form-control form-control-sm mr-1"><select name="customer[]" class="select2 form-control form-control-sm mr-1" multiple data-placeholder="Semua Customer" style="min-width:300px">@foreach($customers as $c)<option value="{{ $c->kode }}" @if(in_array($c->kode, $selected)) selected @endif>{{ $c->kode }} - {{ $c->nama }}</option>@endforeach</select><button class="btn btn-primary btn-sm">Tampilkan</button></form>
+    <div class="card-header"><h4 class="card-title">Filter</h4></div>
+    <div class="card-body">
+      <form method="GET" autocomplete="off">
+        <div class="form-row align-items-end">
+          <div class="form-group col-md-3">
+            <label for="periode">Periode</label>
+            <input type="month" id="periode" name="periode" value="{{ $periode }}" class="form-control">
+          </div>
+          <div class="form-group col-md-6">
+            <label for="customer">Customer</label>
+            <select id="customer" name="customer[]" class="select2 form-control" multiple>
+              @foreach($customers as $c)
+                <option value="{{ $c->kode }}" @if(in_array($c->kode, $selected)) selected @endif>{{ $c->kode }} - {{ $c->nama }}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="form-group col-md-3">
+            <button class="btn btn-primary"><i class="fa fa-search"></i> Tampilkan</button>
+            <a href="{{ route('dnMonitoring.exportSummary', request()->query()) }}" class="btn btn-success"><i class="fa fa-download"></i> Export Excel</a>
+          </div>
+        </div>
+      </form>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h4 class="card-title">Outstanding Surat Jalan Kembali - {{ $monthLabel }}</h4></div>
     <div class="card-body table-responsive">
-      <table class="table table-bordered table-hover">
+      <table class="table table-bordered table-hover table-striped">
+        <colgroup><col style="width:30%"><col style="width:30%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>
         <thead>
           <tr>
-            <th>Customer</th><th>Cutt Off DN</th>
+            <th class="align-middle">Customer</th><th class="align-middle">Cutt Off Surat Jalan Kembali</th>
             <th class="text-center">W1 (1-7)</th><th class="text-center">W2 (8-14)</th>
             <th class="text-center">W3 (15-21)</th><th class="text-center">W4 (22-akhir)</th><th class="text-center">Total</th>
           </tr>
