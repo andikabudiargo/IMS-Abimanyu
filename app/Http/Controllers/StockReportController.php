@@ -161,20 +161,29 @@ class StockReportController extends StoReportController
         }
         [$dateFrom, $dateTo, $openingDate] = $range;
 
-        $names = DB::table('stock_location_master')
-            ->whereIn('location_code', $this->resolveLocationFamily($locationCode))
-            ->pluck('location_name', 'location_code');
+        $family = array_map('strval', $this->resolveLocationFamily($locationCode));
+        $anchor = (string) $this->resolveLocationAnchor($locationCode);
+        $names  = DB::table('stock_location_master')->whereIn('location_code', $family)->pluck('location_name', 'location_code');
 
-        // Saldo per lokasi murni dari warehouse_movement (child tidak punya article qty di
-        // warehouse_stock): SUM(plus - min) s/d tanggal akhir, filter dokumen batal sama dgn tabel.
+        // Movement child sudah dilipat ke induk (location_number = induk), tapi movement_from/to
+        // masih menyimpan lokasi FISIK asli: masuk (+) -> movement_to, keluar (-) -> movement_from.
+        // Baris tanpa from/to (mis. OB, adjustment) atau di luar family dianggap milik induk.
+        $mv = $this->fetchFilteredMovementRows(
+            $family, $articleCode, '01-01-1900', $dateTo, null,
+            'COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'
+        );
+
+        $sum = [];
+        foreach ($mv as $m) {
+            $phys = (string) ($m['qty'] > 0 ? $m['to'] : $m['from']);
+            if (!in_array($phys, $family, true)) $phys = $anchor;
+            $sum[$phys] = ($sum[$phys] ?? 0) + $m['qty'];
+        }
+
         $rows = [];
-        foreach ($names as $loc => $name) {
-            $mv = $this->fetchFilteredMovementRows(
-                [(string) $loc], $articleCode, '01-01-1900', $dateTo, null,
-                'COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'
-            );
-            $qty = round(array_sum(array_column($mv, 'qty')), 2);
-            if ($qty != 0) $rows[] = ['location' => $name, 'qty' => $qty];
+        foreach ($sum as $loc => $qty) {
+            $qty = round($qty, 2);
+            if ($qty != 0) $rows[] = ['location' => $names[$loc] ?? $loc, 'qty' => $qty];
         }
 
         return response()->json([

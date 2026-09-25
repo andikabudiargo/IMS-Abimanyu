@@ -464,7 +464,7 @@ class StoReportController extends Controller
 
         $sql = "
         WITH ledger AS (
-            SELECT wm.movement_code, wm.movement_date, wm.movement_transnno, wm.movement_type,
+            SELECT wm.movement_code, wm.movement_date, wm.movement_transnno, wm.movement_type, wm.movement_from, wm.movement_to,
                    ($qtyExpr) as qty,
                    CASE wm.movement_type
                        WHEN 'RECEIVING'        THEN (SELECT id FROM receiving_hdr         WHERE rec_number      = wm.movement_transnno LIMIT 1)
@@ -500,7 +500,7 @@ class StoReportController extends Controller
               AND wm.movement_type NOT ILIKE 'REVISI %'
               AND wm.movement_type NOT IN ('RETURN-CANCEL','RETURN-REVERSE')
         )
-        SELECT movement_date, movement_transnno, movement_type, qty, doc_id
+        SELECT movement_date, movement_transnno, movement_type, movement_from, movement_to, qty, doc_id
         FROM ledger
         WHERE hdr_status IS DISTINCT FROM '5'
           AND COALESCE(qty,0) <> 0
@@ -513,6 +513,8 @@ class StoReportController extends Controller
                 'date'       => $r->movement_date,
                 'doc_number' => $r->movement_transnno,
                 'doc_type'   => $r->movement_type,
+                'from'       => $r->movement_from,
+                'to'         => $r->movement_to,
                 'qty'        => round((float) $r->qty, 2),
                 'link'       => $this->documentLink($r->movement_type, $r->doc_id),
             ];
