@@ -987,6 +987,10 @@ Route::post('sto-report/export', 'StoReportController@export')->name('stoReport.
 Route::post('sto-report/movement-detail', 'StoReportController@movementDetail')->name('stoReport.movementDetail');
 Route::post('sto-report/sto-detail', 'StoReportController@stoDetail')->name('stoReport.stoDetail');
 
+Route::get('/stock-report',                    'StockReportController@index')->name('stockReport.index');
+Route::post('/stock-report/data',              'StockReportController@data')->name('stockReport.data');
+Route::post('/stock-report/movement-detail',   'StockReportController@movementDetail')->name('stockReport.movementDetail');
+
 Route::get('stockReconciliation',['as'=>'stockReconciliation.index','uses'=>'StockReconciliationController@index','middleware' => ['permission:transferOut-index']]);
 Route::get('stockReconciliation/list',['as'=>'stockReconciliation.list','uses'=>'StockReconciliationController@list']);
 Route::get('stockReconciliation/list/detail',['as'=>'stockReconciliation.list.detail','uses'=>'StockReconciliationController@listDetail']);

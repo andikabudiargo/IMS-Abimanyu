@@ -496,6 +496,12 @@
                 <span class="menu-item text-truncate" data-i18n="Input">Stock Movement</span>
               </a>
             </li>
+             <li class="{{ \Request::segment(1) == 'stock-report' ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('stockReport.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Stock Report</span>
+              </a>
+            </li>
              <li class="{{ \Request::is(['transferStock','transferStock/create','transferStock/show','transferStock/edit']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('transferStock.index') }}">
                 <i data-feather="circle"></i>

@@ -13,16 +13,16 @@ class StoReportController extends Controller
 {
     use HasStoLocationFamily; // ← BARU: family/anchor/adjustment logic sama persis dgn StockCountController
 
-    private $title;
-    private $moduleCode;
+    protected $title;
+    protected $moduleCode;
 
     // Semua lokasi yang didukung format report-nya (gabungan dari semua grup)
-    private $supportedLocations = ['005', '006', '009', '012', '007', '008'];
+    protected $supportedLocations = ['005', '006', '009', '012', '007', '008'];
 
     // ══════════════════════════════════════════════
     // GRUP LOKASI
     // ══════════════════════════════════════════════
-    private $locationGroups = [
+    protected $locationGroups = [
         'CHEMICAL'   => ['005', '006', '009'],
         'WIP_FG_OT'  => ['012', '007', '008'], // WIP, Finish Goods, OT
     ];
@@ -36,7 +36,7 @@ class StoReportController extends Controller
     // PENTING: kalau map di StockCountController berubah, update juga di sini.
     // Idealnya dipindah ke satu config/service bersama — lihat catatan di akhir file.
     // ══════════════════════════════════════════════
-    private $locationArticleTypeMap = [
+    protected $locationArticleTypeMap = [
         '042' => ['CM1'],
         '009' => ['RMP', 'RMNP'],
         '007' => ['FG'],
@@ -52,7 +52,7 @@ class StoReportController extends Controller
     // ══════════════════════════════════════════════
     // KONFIGURASI KATEGORI MOVEMENT PER GRUP (tidak berubah)
     // ══════════════════════════════════════════════
-    private $movementConfig = [
+    protected $movementConfig = [
         'CHEMICAL' => [
             'in' => [
                 'in_receiving'        => ['label' => 'Receiving',        'types' => ['RECEIVING'],        'qty' => 'movement_plus'],
@@ -80,7 +80,7 @@ class StoReportController extends Controller
         ],
     ];
 
-    private $accuracyThresholdPercent = 2.0;
+    protected $accuracyThresholdPercent = 2.0;
 
     public function __construct()
     {
@@ -91,7 +91,7 @@ class StoReportController extends Controller
     // ══════════════════════════════════════════════
     // HELPER GRUP LOKASI
     // ══════════════════════════════════════════════
-    private function getLocationGroup($locationCode)
+    protected function getLocationGroup($locationCode)
     {
         foreach ($this->locationGroups as $group => $codes) {
             if (in_array($locationCode, $codes, true)) {
@@ -101,13 +101,13 @@ class StoReportController extends Controller
         return null;
     }
 
-    private function getGroupConfig($locationCode)
+    protected function getGroupConfig($locationCode)
     {
         $group = $this->getLocationGroup($locationCode);
         return $this->movementConfig[$group] ?? ['in' => [], 'out' => []];
     }
 
-    private function getColumnKeys($locationCode)
+    protected function getColumnKeys($locationCode)
     {
         $config = $this->getGroupConfig($locationCode);
         return [
@@ -357,7 +357,7 @@ class StoReportController extends Controller
      *    sel tabel (cuma informasional, bukan hasil penjumlahan baris-baris
      *    di modal ini).
      */
-    private function buildOpeningBreakdown($articleCode, array $family, $openingDate, $configId, $locationCode)
+    protected function buildOpeningBreakdown($articleCode, array $family, $openingDate, $configId, $locationCode)
     {
         $stoPeriode = $this->resolveStoPeriode($configId);
         $prevMonth  = null;
@@ -440,7 +440,7 @@ class StoReportController extends Controller
      * movement_plus/movement_min biasa untuk kolom IN/OUT, atau
      * "movement_plus - movement_min" untuk versi signed/opening).
      */
-    private function fetchFilteredMovementRows(array $family, $articleCode, $dateFrom, $dateTo, ?array $types, string $qtyExpr): array
+    protected function fetchFilteredMovementRows(array $family, $articleCode, $dateFrom, $dateTo, ?array $types, string $qtyExpr): array
     {
         $bind = ['dateFrom' => $dateFrom, 'dateTo' => $dateTo, 'article' => $articleCode];
 
@@ -526,7 +526,7 @@ class StoReportController extends Controller
      * tidak ketemu (mis. baris movement lama yang dokumen induknya sudah
      * tidak ada).
      */
-    private function documentLink($movementType, $docId)
+    protected function documentLink($movementType, $docId)
     {
         if (!$docId) return null;
 
@@ -569,7 +569,7 @@ class StoReportController extends Controller
     // baris basi dari data historis lama tertangani lewat filter status
     // dokumen (hdr_status) di bawah.
     // ══════════════════════════════════════════════
-    private function aggregateMovements(array $family, $dateFrom, $dateTo, $locationCode)
+    protected function aggregateMovements(array $family, $dateFrom, $dateTo, $locationCode)
     {
         // group config tetap ditentukan dari lokasi yang DIPILIH user (anchor),
         // karena itu yang menentukan kolom in/out mana yang relevan
@@ -777,12 +777,12 @@ class StoReportController extends Controller
     // (family-aware + exclude adjustment periode berjalan, sama seperti getLastQty()
     // di StockCountController; dulu di sini adjustment TIDAK dikecualikan sama sekali).
     // ══════════════════════════════════════════════
-    private function getOpeningBalance($realCode, $openingDate, $location, $configId)
+    protected function getOpeningBalance($realCode, $openingDate, $location, $configId)
     {
         return $this->resolveFamilyBalance($realCode, $location, $openingDate, $configId);
     }
 
-    private function resolveReportDateRange($periode, $stoDate)
+    protected function resolveReportDateRange($periode, $stoDate)
     {
         [$year, $month] = $this->parsePeriode($periode);
         $dateFrom = sprintf('01-%02d-%04d', $month, $year);
@@ -802,7 +802,7 @@ class StoReportController extends Controller
         return [$dateFrom, $dateTo, $openingDate];
     }
 
-    private function parsePeriode($periode)
+    protected function parsePeriode($periode)
     {
         if (preg_match('/^(\d{4})-(\d{2})/', $periode, $m)) return [(int) $m[1], (int) $m[2]];
         if (preg_match('/^(\d{2})-(\d{4})/', $periode, $m)) return [(int) $m[2], (int) $m[1]];
@@ -882,7 +882,7 @@ class StoReportController extends Controller
         return $out;
     }
 
-    private function emptyTotals($locationCode = null)
+    protected function emptyTotals($locationCode = null)
     {
         $totals = ['opening' => 0];
 
@@ -915,7 +915,7 @@ class StoReportController extends Controller
         ];
     }
 
-    private function buildColumnDefs($locationCode)
+    protected function buildColumnDefs($locationCode)
     {
         $config = $this->getGroupConfig($locationCode);
         $defs   = ['in' => [], 'out' => []];
