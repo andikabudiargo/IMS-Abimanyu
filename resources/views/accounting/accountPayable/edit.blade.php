@@ -304,6 +304,12 @@
                                         <div class="col-sm-5">
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" oninput='inputDecimal(this)' value="{{ $header->pph23_type == 'PPH42' ? number_format($header->pph23,2) : 0 }}" {{ $header->pph23_type == 'PPH42' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH42' ? 'required' : '' }}/>
                                         </div>
+                                        <div class="col-sm-2 pl-0">
+                                            <div class="input-group">
+                                                <input type="number" step="any" min="0" class="form-control text-right" id="pctPPH42" title="Persentase WHT 4(2)"/>
+                                                <div class="input-group-append"><span class="input-group-text">%</span></div>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="form-group row mb-03">
                                         <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total Bill</label>

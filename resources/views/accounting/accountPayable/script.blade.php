@@ -105,11 +105,23 @@
         }
     });
 
+    // persentase WHT 4(2) bisa diubah user; hanya membantu kalkulasi, nominal tetap bisa diedit
+    const pctPph42 = () => { let v = parseFloat($('#pctPPH42').val()); return isNaN(v) ? parseFloat(sNilaiPPH42) : v; };
+    $('#pctPPH42').val(sNilaiPPH42);
+    $('#pctPPH42').on('input', function() {
+        if(!$('#pph42Check').is(':checked')) return;
+        let ba = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
+        $("#totalPPH42").val(parseFloat(ba * (pctPph42()/100)).toFixed(2));
+        $("#nilaiPPH42").text(pctPph42()+'%');
+        mask_thousand_digit(2);
+        hitungTotal();
+    });
+
     $("#pph42Check").change(function() {
         if(this.checked) {
             let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
-            $("#totalPPH42").val(parseFloat(basisAmount * (sNilaiPPH42/100)).toFixed(2));
-            $("#nilaiPPH42").text(sNilaiPPH42+'%');
+            $("#totalPPH42").val(parseFloat(basisAmount * (pctPph42()/100)).toFixed(2));
+            $("#nilaiPPH42").text(pctPph42()+'%');
             $('#pph23Check').prop('checked',false);
             $('#pph21Check').prop('checked',false);
             $("#nilaiPPH21").text('');
@@ -334,7 +346,7 @@
                 if(!$("#totalPPH42").val()){
                     clearTimeout(delayTimerTax);
                     delayTimerTax = setTimeout(function() {
-                        $("#totalPPH42").val(parseFloat(ba * (sNilaiPPH42/100)).toFixed(2));
+                        $("#totalPPH42").val(parseFloat(ba * (pctPph42()/100)).toFixed(2));
                     }, 2100); 
                 }
                 pph42 = parseFloat($('#totalPPH42').val().replace(/[^0-9.]/g, '')) || 0;

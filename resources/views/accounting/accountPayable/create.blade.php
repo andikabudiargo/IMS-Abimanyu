@@ -311,6 +311,12 @@
                                         <div class="col-sm-5">
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPH42" name="totalPPH42" disabled/>
                                         </div>
+                                        <div class="col-sm-2 pl-0">
+                                            <div class="input-group">
+                                                <input type="number" step="any" min="0" class="form-control text-right" id="pctPPH42" title="Persentase WHT 4(2)"/>
+                                                <div class="input-group-append"><span class="input-group-text">%</span></div>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="form-group row mb-03">
                                         <label for="grandTotal" class="col-sm-4 col-form-label titik-dua">Total Bill</label>
