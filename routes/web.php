@@ -1056,6 +1056,8 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::get('deliveryInstruction/article/list',['as'=>'deliveryInstruction.article.list','uses'=>'DeliveryInstructionController@articleList']);
 	Route::get('deliveryInstruction/qty/po',['as'=>'deliveryInstruction.qty.po','uses'=>'DeliveryInstructionController@qtyPo']);
 
+	Route::get('cashbook/{group}',['as'=>'cashbook.index','uses'=>'Accounting\CashBankController@index'])->where('group','kas|bank');
+	Route::get('cashbook/{group}/list',['as'=>'cashbook.list','uses'=>'Accounting\CashBankController@list'])->where('group','kas|bank');
 	Route::get('kasPenerimaan',['as'=>'kasPenerimaan.index','uses'=>'Accounting\KasPenerimaanController@index']);
 	Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create']);
 	Route::post('kasPenerimaan/store',['as'=>'kasPenerimaan.store','uses'=>'Accounting\KasPenerimaanController@store']);

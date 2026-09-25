@@ -15,9 +15,9 @@ class DnMonitoringController extends Controller
 {
     // Semua DN bulan berjalan yang belum punya relasi ke invoice_det:
     //  DELIVERY = DN status 1-4, DN RECEIVED = DN status 8, TEMPORARY DN = surat jalan sementara OPEN.
-    private function pendingRows($month)
+    private function pendingRows($month, $filter = 'invoice')
     {
-        return DB::select("
+        $rows = DB::select("
             SELECT * FROM (
                 SELECT dh.id, dh.delivery_number AS dn_number, dh.customer_id, dh.delivery_date,
                     CASE WHEN dh.status = '8' THEN 'DN RECEIVED' ELSE 'DELIVERY' END AS source,
@@ -37,6 +37,14 @@ class DnMonitoringController extends Controller
             ) x
             WHERE to_char(to_date(x.delivery_date,'DD-MM-YYYY'),'YYYY-MM') = ?
             ORDER BY to_date(x.delivery_date,'DD-MM-YYYY'), x.dn_number", [$month]);
+
+        // Belum kembali = belum di-Receive delivery; DN RECEIVED (submitted/belum) sudah dianggap kembali.
+        return $filter == 'kembali' ? array_filter($rows, fn($r) => $r->source != 'DN RECEIVED') : $rows;
+    }
+
+    private function filter(Request $request)
+    {
+        return $request->filter == 'kembali' ? 'kembali' : 'invoice';
     }
 
     private function week($deliveryDate)
@@ -60,7 +68,7 @@ class DnMonitoringController extends Controller
 
         $summary = [];
         $selected = array_filter((array) $request->customer);
-        foreach ($this->pendingRows($month) as $r) {
+        foreach ($this->pendingRows($month, $this->filter($request)) as $r) {
             if ($selected && !in_array($r->customer_id, $selected)) {
                 continue;
             }
@@ -75,6 +83,7 @@ class DnMonitoringController extends Controller
         $data['summary'] = $summary;
         $data['monthLabel'] = date('F Y', strtotime("$month-01"));
         $data['periode'] = $month;
+        $data['filter'] = $this->filter($request);
         $data['customers'] = $customers;
         $data['selected'] = $selected;
         return $data;
@@ -91,7 +100,7 @@ class DnMonitoringController extends Controller
     {
         $month = $this->month($request);
         $rows = [];
-        foreach ($this->pendingRows($month) as $r) {
+        foreach ($this->pendingRows($month, $this->filter($request)) as $r) {
             if ($r->customer_id != $request->customer || $this->week($r->delivery_date) != (int) $request->week) {
                 continue;
             }

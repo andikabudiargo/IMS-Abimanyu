@@ -12,6 +12,13 @@
             <label for="periode">Periode</label>
             <input type="month" id="periode" name="periode" value="{{ $periode }}" class="form-control">
           </div>
+          <div class="form-group col-md-3">
+            <label for="filter">Filter</label>
+            <select id="filter" name="filter" class="form-control">
+              <option value="invoice" @if($filter == 'invoice') selected @endif>Belum Dibuatkan Invoice</option>
+              <option value="kembali" @if($filter == 'kembali') selected @endif>Belum Kembali</option>
+            </select>
+          </div>
           <div class="form-group col-md-6">
             <label for="customer">Customer</label>
             <select id="customer" name="customer[]" class="select2 form-control" multiple>
@@ -56,7 +63,7 @@
               <td class="text-center font-weight-bold">{{ array_sum($row['w']) }}</td>
             </tr>
           @empty
-            <tr><td colspan="7" class="text-center text-muted">Tidak ada DN yang belum di-invoice bulan ini</td></tr>
+            <tr><td colspan="7" class="text-center text-muted">Tidak ada DN {{ $filter == 'kembali' ? 'yang belum kembali' : 'yang belum di-invoice' }} bulan ini</td></tr>
           @endforelse
         </tbody>
         @if($summary)
@@ -97,10 +104,10 @@
     e.preventDefault();
     const d = $(this).data();
     $('#dnModalTitle').text(d.name + ' - W' + d.week);
-    $('#dnExport').attr('href', "{{ route('dnMonitoring.export') }}?" + $.param({customer: d.customer, week: d.week, periode: '{{ $periode }}'}));
+    $('#dnExport').attr('href', "{{ route('dnMonitoring.export') }}?" + $.param({customer: d.customer, week: d.week, periode: '{{ $periode }}', filter: '{{ $filter }}'}));
     $('#dnModalBody').html('<tr><td colspan="6">Loading...</td></tr>');
     $('#dnModal').modal('show');
-    $.get("{{ route('dnMonitoring.detail') }}", {customer: d.customer, week: d.week, periode: '{{ $periode }}'}, function (rows) {
+    $.get("{{ route('dnMonitoring.detail') }}", {customer: d.customer, week: d.week, periode: '{{ $periode }}', filter: '{{ $filter }}'}, function (rows) {
       $('#dnModalBody').html(rows.map(r => '<tr><td><a href="' + esc(r.url) + '" target="_blank">' + esc(r.dn_number) + '</a></td><td>'
         + esc(r.source) + '</td><td>' + esc(r.delivery_date) + '</td><td>' + esc(r.status) + '</td><td>'
         + esc(r.created_by) + '</td><td>' + esc(r.created_at) + '</td></tr>').join(''));
