@@ -102,10 +102,11 @@ class StockReportController extends StoReportController
         $articles = DB::table('article as a')
             ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
             ->whereIn('a.article_code', $realCodes)
-            ->select('a.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.uom',
+            ->select('a.article_code', 'a.article_alternative_code', 'a.article_desc', 'a.id', 'a.uom', 'a.min_package', 'a.safety_stock',
                 DB::raw('COALESCE(tp.nama, a.third_party) as supp_name'))
             ->get()->keyBy('article_code');
 
+        $canEditArticle = \Auth::user()->can('article-edit');
         $rows = collect();
         foreach ($realCodes as $rc) {
             $meta = $articles->get($rc);
@@ -128,6 +129,9 @@ class StockReportController extends StoReportController
                 'article_desc' => $meta->article_desc ?? $rc,
                 'supp'         => $meta->supp_name ?? '-',
                 'uom'          => $meta->uom ?? '-',
+                'min_package'  => $meta->min_package ?? null,
+                'safety_stock' => (float) ($meta->safety_stock ?? 0),
+                'edit_url'     => ($meta && $canEditArticle) ? route('article.edit', ['id' => \Illuminate\Support\Facades\Crypt::encryptString($meta->id)]) : null,
                 'opening'      => $opening,
             ], $vals, ['closing' => $closing]));
         }

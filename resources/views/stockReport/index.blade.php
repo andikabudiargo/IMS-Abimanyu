@@ -233,15 +233,32 @@ $(document).ready(function () {
             + '<th rowspan="2" class="col-alt">Alt. Code</th>'
             + '<th rowspan="2" class="col-desc">Article Desc</th>'
             + '<th rowspan="2">Supp</th>'
+            + '<th rowspan="2">Min Package</th>'
             + '<th rowspan="2">UoM</th>'
             + '<th rowspan="2">Opening</th>'
             + (inCols.length  ? '<th colspan="' + inCols.length  + '" class="bg-light-primary">IN</th>'  : '')
             + (outCols.length ? '<th colspan="' + outCols.length + '" class="bg-light-danger">OUT</th>' : '')
+            + '<th rowspan="2">Safety Stock</th>'
             + '<th rowspan="2">Balance</th></tr>';
         let r2 = '<tr>';
         inCols.forEach(function (c) { r2 += '<th class="bg-light-primary">' + c.label + '</th>'; });
         outCols.forEach(function (c) { r2 += '<th class="bg-light-danger">' + c.label + '</th>'; });
         $('#reportThead').html(r1 + r2 + '</tr>');
+    }
+
+    // Safety Stock / Min Package -> halaman edit artikel (tab baru); tanpa izin article-edit = teks biasa
+    function editLink(r, text) {
+        return r.edit_url ? '<a href="' + r.edit_url + '" target="_blank" rel="noopener">' + text + '</a>' : text;
+    }
+
+    // warna Balance: minus = merah, kosong (0) = biasa, < safety stock = kuning, >= safety stock = hijau
+    function balanceStyle(bal, safety) {
+        bal = parseFloat(bal) || 0;
+        safety = parseFloat(safety) || 0;
+        if (bal < 0)       return 'color:#ea5455;';
+        if (bal === 0)     return '';
+        if (bal < safety)  return 'color:#ff9f43;';
+        return 'color:#28c76f;';
     }
 
     function resetDisplay() {
@@ -286,7 +303,7 @@ $(document).ready(function () {
 
         let body = '';
         if (!res.rows || res.rows.length === 0) {
-            body = '<tr><td colspan="' + (7 + mvCols.length) + '" class="text-center text-muted py-1">Tidak ada data untuk lokasi/tanggal ini.</td></tr>';
+            body = '<tr><td colspan="' + (9 + mvCols.length) + '" class="text-center text-muted py-1">Tidak ada data untuk lokasi/tanggal ini.</td></tr>';
         } else {
             res.rows.forEach(function (r) {
                 let drill = function (col, label, val) {
@@ -301,20 +318,22 @@ $(document).ready(function () {
                     + '<td class="col-alt">' + (r.alt_code || '-') + '</td>'
                     + '<td class="col-desc">' + (r.article_desc || '-') + '</td>'
                     + '<td>' + (r.supp || '-') + '</td>'
+                    + '<td class="text-right">' + editLink(r, r.min_package !== null && r.min_package !== undefined ? fmt(r.min_package) : '-') + '</td>'
                     + '<td class="text-center">' + (r.uom || '-') + '</td>'
                     + '<td class="text-right">' + drill('opening', 'Opening Balance', r.opening) + '</td>'
                     + cells
-                    + '<td class="text-right font-weight-bold">' + (h.has_children
-                        ? '<a href="javascript:;" class="bal-drill" data-article="' + r.article_code + '" data-alt="' + (r.alt_code || '') + '">' + fmt(r.closing) + '</a>'
+                    + '<td class="text-right">' + editLink(r, fmt(r.safety_stock)) + '</td>'
+                    + '<td class="text-right font-weight-bold" style="' + balanceStyle(r.closing, r.safety_stock) + '">' + (h.has_children
+                        ? '<a href="javascript:;" class="bal-drill" style="color:inherit;" data-article="' + r.article_code + '" data-alt="' + (r.alt_code || '') + '">' + fmt(r.closing) + '</a>'
                         : fmt(r.closing)) + '</td>'
                     + '</tr>';
             });
         }
         $('#reportBody').html(body);
 
-        let foot = '<td colspan="5" class="text-center">TOTAL</td><td>' + fmt(t.opening) + '</td>';
+        let foot = '<td colspan="6" class="text-center">TOTAL</td><td>' + fmt(t.opening) + '</td>';
         mvCols.forEach(function (c) { foot += '<td>' + fmt(t[c.key]) + '</td>'; });
-        foot += '<td>' + fmt(t.closing) + '</td>';
+        foot += '<td></td><td>' + fmt(t.closing) + '</td>';
         $('#reportTfoot').html('<tr>' + foot + '</tr>');
 
         $('#reportEmpty').addClass('d-none');
