@@ -29,6 +29,7 @@ class DnMonitoringController extends Controller
                 LEFT JOIN dn_receipt dr ON dr.delivery_number = dh.delivery_number
                 WHERE dh.status IN ('1','2','3','4','7','8')
                   AND NOT EXISTS (SELECT 1 FROM invoice_det i WHERE i.dn_number = dh.delivery_number)
+                  AND NOT EXISTS (SELECT 1 FROM delivery_hdr r WHERE r.origin_delivery_number = dh.delivery_number AND r.status <> '5')
                 UNION ALL
                 SELECT t.id, t.tdn_number, t.customer_id, t.delivery_date, 'TEMPORARY DN', 'OPEN', t.created_by, t.created_at
                 FROM temporary_dn_hdr t
