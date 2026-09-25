@@ -529,6 +529,8 @@ $rows[] = [
             ['data' => 'total_conversion',    'name' => 'total_conversion',    'title' => 'Total Konversi', 'orderable' => false, 'searchable' => false],
             ['data' => 'target_conversion',   'name' => 'target_conversion',   'title' => 'Target Konversi', 'orderable' => false, 'searchable' => false],
             ['data' => 'selisih_conversion',  'name' => 'selisih_conversion',  'title' => 'Selisih', 'orderable' => false, 'searchable' => false],
+            ['data' => 'pct_tercapai',        'name' => 'pct_tercapai',        'title' => '% Tercapai', 'orderable' => false, 'searchable' => false],
+            ['data' => 'pct_selisih',         'name' => 'pct_selisih',         'title' => '% Selisih', 'orderable' => false, 'searchable' => false],
             ['data' => 'note',        'name' => 'note',        'title' => 'Note'],
             ['data' => 'created_by',  'name' => 'created_by',  'title' => 'Created By'],
             ['data' => 'created_at',  'name' => 'created_at',  'title' => 'Created At'],
@@ -629,7 +631,19 @@ $rows[] = [
                 $class = $this->statusBadge[$d->status] ?? 'badge-secondary';
                 return "<div class='badge badge-pill $class'>$label</div>";
             })
-            ->rawColumns(['action', 'status_label', 'selisih_conversion'])
+            // % Tercapai = Painting / Target x 100; % Selisih = Selisih / Target x 100 (target 0 -> "-").
+            ->addColumn('pct_tercapai', function ($d) {
+                $t = (float) $d->target_conversion;
+                return $t > 0 ? number_format((float) $d->total_painting / $t * 100, 1).'%' : '-';
+            })
+            ->addColumn('pct_selisih', function ($d) {
+                $t = (float) $d->target_conversion;
+                if ($t <= 0) return '-';
+                $p = ((float) $d->total_painting - $t) / $t * 100;
+                $cls = $p < 0 ? 'text-danger' : 'text-success';
+                return "<span class='$cls'>".number_format($p, 1).'%</span>';
+            })
+            ->rawColumns(['action', 'status_label', 'selisih_conversion', 'pct_selisih'])
             ->make(true);
     }
 
