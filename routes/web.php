@@ -1323,6 +1323,8 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 
 	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
 
+	Route::get('dnMonitoring',['as'=>'dnMonitoring.index','uses'=>'DnMonitoringController@index','middleware' => ['permission:delivery-report-acc']]);
+	Route::get('dnMonitoring/detail',['as'=>'dnMonitoring.detail','uses'=>'DnMonitoringController@detail','middleware' => ['permission:delivery-report-acc']]);
 	Route::get('monitoring/qtyNotBalance',['as'=>'monitoring.qtyNotBalance','uses'=>'MonitoringController@qtyNotBalance']);
 	Route::post('monitoring/qtyNotBalance/list',['as'=>'monitoring.qtyNotBalance.list','uses'=>'MonitoringController@qtyNotBalanceList']);
 

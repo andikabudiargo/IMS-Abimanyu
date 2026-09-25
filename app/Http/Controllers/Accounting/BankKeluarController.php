@@ -221,7 +221,9 @@ private $invoiceOpenStatus = '4'; // POSTED — sesuaikan sama filter dropdown i
         })
         // ->where('invoice_number','like',$basicCode1.'%')
         // ->orWhere('invoice_number','like',$basicCode2.'%')
-        ->where('status','<>','5')
+        // voucher status 5 (deleted) barisnya tetap ada di kas_hdr dan masih memegang PK,
+        // jadi harus ikut dihitung -- kalau tidak, nomor terakhir yang dihapus akan dipakai ulang
+        // dan bentrok dengan kas_masuk_hdr_pkey.
         ->where('voucher_type',$key)
         ->orderBy(DB::raw("right(voucher_number,4)::numeric"),'desc')
         ->select(DB::raw("right(voucher_number,4) as last_code"))
