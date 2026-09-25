@@ -281,7 +281,13 @@
               </a>
             </li>
             @endcan
-        
+            
+             <li class="{{ \Request::is(['receivingReportAcc']) ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('receiving.report.acc') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Report LPB</span>
+              </a>
+            </li>
           </ul>
         </li>
         
