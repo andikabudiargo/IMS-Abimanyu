@@ -294,7 +294,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">WHT 4(2) <span class="input-group input-group-sm d-inline-flex align-items-center ml-1" style="width:90px;vertical-align:middle"><input type="number" step="any" min="0" class="form-control text-right" id="pctPPH42" title="Persentase WHT 4(2)"/><span class="input-group-append"><span class="input-group-text">%</span></span></span></label>
+                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">WHT 4(2) <span class="input-group d-inline-flex flex-nowrap align-items-stretch ml-1" style="width:110px;vertical-align:middle"><input type="number" step="any" min="0" class="form-control text-right" style="height:auto" id="pctPPH42" title="Persentase WHT 4(2)"/><span class="input-group-append d-flex"><span class="input-group-text">%</span></span></span></label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph42Check" name="pph42Check" {{ $header->pph23_type == 'PPH42' ?'checked' : '' }}/>
