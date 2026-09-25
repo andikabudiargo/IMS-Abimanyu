@@ -195,6 +195,12 @@
       </div>
       <div class="card-content collapse show">
         <div class="card-body">
+          <div class="mb-1" id="bulkBar" style="display:none">
+            <span id="bulkCount" class="mr-1"></span>
+            <button type="button" class="btn btn-sm btn-primary bulk-btn" data-act="approve" data-flag="a">Approve</button>
+            <button type="button" class="btn btn-sm btn-success bulk-btn" data-act="submit" data-flag="s">Submit</button>
+            <button type="button" class="btn btn-sm btn-warning" id="bulkEdit" data-flag="e">Edit</button>
+          </div>
           <div class="row">
               <div class="col-sm-12">
                 <div class="card-datatable table-responsive pt-0">
@@ -316,10 +322,10 @@
       tableId:"detailedTable",
       route:"{{ route('article.request.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+      arrColPrint:[2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],
       columnDefs :[
         { width: '5%', targets: 0 },
-        { className: 'text-right','targets': [ 6,8,9,10 ] },
+        { className: 'text-right','targets': [ 7,9,10,11 ] },
       ],
       dataSearch:  $.extend({
         name:name,
@@ -328,10 +334,42 @@
         supp:supp,
         type:type
       }, extraFilters()),
-      orderColumn:[[ 13, 'desc' ]],   // created_at terbaru paling atas
+      orderColumn:[[ 14, 'desc' ]],   // created_at terbaru paling atas
       excelFileName:'article_request'
     });
   }
+
+  // ===== checklist: bulk approve/submit, edit hanya jika 1 terpilih =====
+  const updateBulk = () => {
+    const all = $('.chk-req'), sel = all.filter(':checked');
+    $('#bulkBar').toggle(sel.length > 0);
+    $('#bulkCount').text(sel.length + ' selected');
+    $('.bulk-btn').each(function(){
+      const f = $(this).data('flag');
+      $(this).toggle(sel.filter(function(){ return $(this).data(f) != 1; }).length === 0);
+    });
+    $('#bulkEdit').toggle(sel.length === 1 && sel.data('e') == 1);
+    $('#chkAll').prop('checked', all.length > 0 && sel.length === all.length);
+  };
+  $(document).on('change', '.chk-req', updateBulk);
+  $(document).on('change', '#chkAll', function(){ $('.chk-req').prop('checked', this.checked); updateBulk(); });
+  $(document).on('draw.dt', '#detailedTable', updateBulk);
+
+  $('#bulkEdit').click(function(){ window.location.href = $('.chk-req:checked').first().data('url'); });
+
+  $(document).on('click', '.bulk-btn', function(){
+    const act = $(this).data('act');
+    const ids = $('.chk-req:checked').map(function(){ return this.value; }).get();
+    Swal.fire({title: act.charAt(0).toUpperCase() + act.slice(1) + ' ' + ids.length + ' article request?', icon: 'question', showCancelButton: true})
+    .then((r) => {
+      if (!r.isConfirmed) return;
+      $.post("{{ route('article.request.bulk') }}", {action: act, ids: ids}, function(res){
+        Swal.fire(res.status ? 'Success' : 'Error', res.message, res.status ? 'success' : 'error').then(() => {
+          if (res.status) triggerSearch();
+        });
+      }).fail(() => Swal.fire('Error','Request failed','error'));
+    });
+  });
 
   $.ajaxSetup({
     headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }

@@ -244,6 +244,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('articles/show',['as'=>'article.show','uses'=>'ArticleController@show']);
 	Route::get('articles/edit',['as'=>'article.edit','uses'=>'ArticleController@edit','middleware' => ['permission:article-edit']]);
 	Route::post('articles/update',['as'=>'article.update','uses'=>'ArticleController@update']);
+	Route::get('articles/usage',['as'=>'article.usage','uses'=>'ArticleController@usage']);
 	Route::post('articles/delete',['as'=>'article.destroy','uses'=>'ArticleController@destroy']);
 	Route::get('articles/code/create',['as'=>'article.code.create','uses'=>'ArticleController@articleCodeCreate']);
 	Route::post('articles/get/supplier',['as'=>'get.supplier','uses'=>'ArticleController@getSupplier']);
@@ -261,6 +262,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('articles/request',['as'=>'article.request','uses'=>'ArticleController@requestIndex']);
 	Route::get('articles/request/list',['as'=>'article.request.list','uses'=>'ArticleController@requestList']);
 	Route::get('articles/request/create',['as'=>'article.request.create','uses'=>'ArticleController@requestCreate']);
+	Route::post('articles/request/bulk',['as'=>'article.request.bulk','uses'=>'ArticleController@requestBulk']);
 	Route::post('articles/request/similar',['as'=>'article.request.similar','uses'=>'ArticleController@requestSimilar']);
 	Route::post('articles/request/store',['as'=>'article.request.store','uses'=>'ArticleController@requestStore']);
 	Route::post('articles/request/delete',['as'=>'article.request.destroy','uses'=>'ArticleController@requestDestroy']);

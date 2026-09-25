@@ -612,6 +612,18 @@
           event.preventDefault();
           let href = $(this).data('href');
           $('#modalConfirmation').attr("action", href);
+
+          // info pemakaian article di transaksi (dasar Freeze vs Delete di destroy())
+          let $msg = $('#modalConfirmation .modal-body h1').text('Checking usage...');
+          $('#modalConfirmation button[type=submit]').prop('disabled', true);
+          $.get("{{ route('article.usage') }}", {artCode: new URL(href, location.origin).searchParams.get('artCode')}, function(res){
+              $msg.text(res.count > 1
+                  ? 'Article ini sudah dipakai di ' + res.count + ' transaksi, sehingga tidak dihapus tetapi di-Freeze. Lanjutkan?'
+                  : (res.count == 1
+                      ? 'Article ini dipakai di 1 transaksi. Article akan dihapus permanen. Lanjutkan?'
+                      : 'Article ini belum dipakai di transaksi. Article akan dihapus permanen. Lanjutkan?'));
+          }).fail(function(){ $msg.text('Are you sure you want to delete?'); })
+            .always(function(){ $('#modalConfirmation button[type=submit]').prop('disabled', false); });
       });
 
       let getSelectedBulkUpdateColumns = () => $('.bulk-update-column:checked').map(function(){ return this.value; }).get();

@@ -723,6 +723,12 @@
 
         }
 
+        // Jumlah transaksi (movement) yang memakai article; sama dengan dasar keputusan Freeze/Delete di destroy().
+        public function usage(Request $request)
+        {
+            return response()->json(['count' => DB::table('movement')->where('artikel_code', $request->artCode)->count()]);
+        }
+
         public function destroy(Request $request)
         {
             $username =  Auth::user()->username;
@@ -1996,6 +2002,7 @@ private function buildSummaryRow(array $p)
         public function getTableColoumnRequest(){
     $kolom=    
     [
+        ['data'=>'chk','name'=>'chk','title'=>'<input type="checkbox" id="chkAll">','orderable'=>false, 'searchable'=>false],
         ['data'=>'action','name'=>'action','title'=>'action','orderable'=>false, 'searchable'=>false],
         ['data'=>'status_approve','name'=>'status_approve','title'=>'Status'],
         ['data'=>'statusKu','name'=>'statusKu','title'=>'Status','visible'=>false],
@@ -2678,6 +2685,15 @@ private function buildSummaryRow(array $p)
             $this->applyExtraFilters($data, $request, 'article_request');
         
             return Datatables::of($data)
+            ->addColumn('chk', function ($data) {
+                $user = Auth::user();
+                $inDept = $data->bisa_approve > 0;
+                $canApprove = $inDept && $data->status_approve == '1' && $user->can('article-request-approve');
+                $canSubmit = $data->status_approve == '2' && $user->can('article-request-submit');
+                $canEdit = $inDept && in_array($data->status_approve, ['1','2']) && $user->can('article-request-edit');
+                if (!$canApprove && !$canSubmit && !$canEdit) return '';
+                return '<input type="checkbox" class="chk-req" value="'.Crypt::encryptString($data->idku).'" data-a="'.(int)$canApprove.'" data-s="'.(int)$canSubmit.'" data-e="'.(int)$canEdit.'" data-url="'.route('article.request.edit', ['id'=>Crypt::encryptString($data->idku)]).'">';
+            })
             ->addColumn('action', function ($data) {
                 $buttons = '<div class="d-inline-flex">
                                 <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
@@ -2685,36 +2701,6 @@ private function buildSummaryRow(array $p)
                                 </a>';
                 $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
             
-                if (Auth::user()->can('article-request-edit') ) {
-                    if (($data->bisa_approve > 0) && ($data->status_approve == '1' ||  $data->status_approve == '2') ) {
-                    // if ($data->bisa_approve > 0 ) {
-                        $buttons .= '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Edit
-                                    </a>';
-                    }
-                }
-
-                if (Auth::user()->can('article-request-approve')){
-                    if ($data->bisa_approve > 0 && $data->status_approve == '1') {
-                        $buttons .=         '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                                                <i data-feather="check"></i>
-                                                Approve
-                                            </a>';
-                    }
-
-                }
-
-                if (Auth::user()->can('article-request-submit')){
-                    
-                    if ( $data->status_approve == '2' ) {
-                        $buttons .=         '<a href="'. route('article.request.edit',  ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
-                                                <i data-feather="check"></i>
-                                                Submit
-                                            </a>';
-                    }
-
-                }
 
                 $buttons .=         '<a href="'. route('article.request.show', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                         <i data-feather="list"></i>
@@ -2779,8 +2765,121 @@ private function buildSummaryRow(array $p)
         ? e($data->coa_code) . ' - ' . e($data->coa_name)
         : e($data->coa_code);
 })
-           ->rawColumns(['action','status','status_approve','is_marketing','is_buffing_col','coa_full'])
+           ->rawColumns(['chk','action','status','status_approve','is_marketing','is_buffing_col','coa_full'])
             ->make(true);
+        }
+
+        // Insert article (master) dari data request + tandai request Submitted. Dipakai submit satuan & bulk.
+        private function createArticleFromRequest(array $d, array $cust, $articleCodeRequest)
+        {
+            $now = date('Y-m-d H:i:s');
+            $user = Auth::user()->username;
+            $articleCode = $this->articleCodeCreate($cust, $d['type']);
+            $artCode = $this->getArticleCode();
+            $articleDet = explode("~", $articleCode);
+            DB::table('article')->insert([
+                'article_code' => $artCode,
+                'article_alternative_code' => $articleDet[0],
+                'article_desc' => $d['nama'],
+                'group_of_material' => $d['group'],
+                'third_party' => $cust[0],
+                'note' => $d['note'],
+                'uom' => $d['uom'],
+                'coa' => $d['coa'],
+                'cashflow_category' => $d['cashflowCategory'],
+                'safety_stock' => $d['safetyStock'],
+                'min_package' => $d['minimumPackage'],
+                'costprice' => $d['price'],
+                'status' => $d['status'],
+                'color_code' => $d['colorCode'],
+                'variant' => $d['variant'],
+                'article_type' => $articleDet[1],
+                'created_by' => $user,
+                'updated_by' => $user,
+                'created_at' => $now,
+                'updated_at' => $now,
+                'brand' => $d['brand'],
+                'orderable' => $d['orderable'],
+                'marketing' => $d['marketing'],
+                'is_buffing' => $d['buffing']
+            ]);
+
+            foreach ($cust as $val) {
+                DB::table('article_supplier')->insert([
+                    'article_code' => $artCode,
+                    'supplier_code' => $val,
+                    'main_supplier' => $cust[0] == $val ? 'Y' : 'N',
+                    'created_by' => $user,
+                    'updated_by' => $user,
+                    'created_at' => $now,
+                    'updated_at' => $now
+                ]);
+            }
+
+            $this->generateBarcodeForArticle($artCode, $articleDet[0]);
+
+            DB::table('article_request')->where('article_code', $articleCodeRequest)->update([
+                'status_approve' => '3',
+                'submitted_by' => $user,
+                'submitted_at' => $now
+            ]);
+
+            return $articleCode;
+        }
+
+        // Approve / Submit banyak request sekaligus (checklist di list). Hak akses dicek per aksi & per baris.
+        public function requestBulk(Request $request)
+        {
+            $act = $request->action;
+            $perm = ['approve' => 'article-request-approve', 'submit' => 'article-request-submit'];
+            if (!isset($perm[$act]) || !Auth::user()->can($perm[$act]) || !is_array($request->ids)) {
+                return response()->json(['status' => 0, 'message' => 'Invalid request']);
+            }
+            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+                return response()->json(['status' => 0, 'message' => $err]);
+            }
+
+            $username = Auth::user()->username;
+            $done = 0;
+            $skipped = [];
+
+            DB::beginTransaction();
+            try {
+                foreach ($request->ids as $enc) {
+                    $id = Crypt::decryptString($enc);
+                    $row = DB::table('article_request')->where('id', $id)->lockForUpdate()->first();
+                    if (!$row) { $skipped[] = $id; continue; }
+
+                    if ($act == 'approve') {
+                        $sameDept = DB::table('user_dept')->where('username', $row->created_by)
+                            ->whereIn('dept', DB::table('user_dept')->where('username', $username)->select('dept'))->exists();
+                        if ($row->status_approve != '1' || !$sameDept) { $skipped[] = $row->article_desc; continue; }
+                        DB::table('article_request')->where('id', $id)->update([
+                            'status_approve' => '2', 'approved_by' => $username, 'approved_at' => date('Y-m-d H:i:s')
+                        ]);
+                    } else {
+                        if ($row->status_approve != '2') { $skipped[] = $row->article_desc; continue; }
+                        $cust = DB::table('article_supplier_request')->where('article_code', $row->article_code)
+                            ->orderByRaw("case when supplier_code = ? then 0 else 1 end", [$row->third_party])->orderBy('id')
+                            ->pluck('supplier_code')->toArray() ?: [$row->third_party];
+                        $this->createArticleFromRequest([
+                            'type'=>$row->article_type,'nama'=>$row->article_desc,'group'=>$row->group_of_material,'uom'=>$row->uom,
+                            'coa'=>$row->coa,'cashflowCategory'=>$row->cashflow_category,'safetyStock'=>$row->safety_stock,
+                            'minimumPackage'=>$row->min_package,'price'=>$row->costprice,'note'=>$row->note,'status'=>$row->status,
+                            'colorCode'=>$row->color_code,'variant'=>$row->variant,'brand'=>$row->brand,'orderable'=>$row->orderable,
+                            'marketing'=>$row->marketing,'buffing'=>$row->is_buffing,
+                        ], $cust, $row->article_code);
+                    }
+                    $done++;
+                }
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json(['status' => 0, 'message' => 'Failed: ' . $e->getMessage()]);
+            }
+
+            \LogActivity::addToLog("Bulk $act $this->title", "username: $username $act $done item(s)");
+            return response()->json(['status' => 1, 'message' => "$done item(s) processed" . ($skipped ? ', skipped: ' . implode(', ', $skipped) : '')]);
         }
 
         public function requestSubmit(Request $request)
@@ -2839,58 +2938,11 @@ private function buildSummaryRow(array $p)
                     
             DB::beginTransaction();
             try {
-                    $artCode = $this->getArticleCode();
-                    $articleDet =  explode("~",$articleCode); 
-                    DB::table('article')->insert([
-                        'article_code' => $artCode,
-                        'article_alternative_code' => $articleDet[0],
-                        'article_desc' => $nama,
-                        'group_of_material' => $group,
-                        'third_party' => $cust[0],
-                        'note' => $note,
-                        'uom' => $uom,
-                        'coa' => $coa,
-                            'cashflow_category' => $cashflowCategory,
-                        'safety_stock' => $safetyStock,
-                        'min_package' => $minimumPackage,
-                        'costprice' => $price,
-                        'status' => $status,
-                        'color_code' => $colorCode,
-                        'variant' => $variant,
-                        'article_type' => $articleDet[1],
-                        'created_by' => Auth::user()->username,
-                        'updated_by' => Auth::user()->username,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s'),
-                        'brand' => $brand,
-                        'orderable' =>$orderable,
-                        'marketing' =>$marketing,
-                        'is_buffing' => $buffing
-                    ]); 
-
-                    foreach($cust as $val){
-                        DB::table('article_supplier')->insert([
-                            'article_code' => $artCode,
-                            'supplier_code' => $val,
-                            'main_supplier' => $cust[0] == $val ? 'Y' : 'N',
-                            'created_by' => Auth::user()->username,
-                            'updated_by' => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                            'updated_at' => date('Y-m-d H:i:s')
-                        ]); 
-                    }
-
-                    $this->generateBarcodeForArticle($artCode, $articleDet[0]);
-
-                    $rowAffected=DB::table('article_request')
-                    ->where('article_code',$articleCodeRequest)
-                    ->update(
-                        [
-                            'status_approve' => '3',
-                            'submitted_by' => Auth::user()->username,
-                            'submitted_at' => date('Y-m-d H:i:s')
-                        ]
-                    );
+                    $this->createArticleFromRequest([
+                        'type'=>$type,'nama'=>$nama,'group'=>$group,'uom'=>$uom,'coa'=>$coa,'cashflowCategory'=>$cashflowCategory,
+                        'safetyStock'=>$safetyStock,'minimumPackage'=>$minimumPackage,'price'=>$price,'note'=>$note,'status'=>$status,
+                        'colorCode'=>$colorCode,'variant'=>$variant,'brand'=>$brand,'orderable'=>$orderable,'marketing'=>$marketing,'buffing'=>$buffing,
+                    ], $cust, $articleCodeRequest);
 
                     // if($files){
                     //     foreach($files as $val){
