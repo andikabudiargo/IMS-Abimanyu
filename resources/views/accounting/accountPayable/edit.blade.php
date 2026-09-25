@@ -294,7 +294,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
-                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">WHT 4(2) <span id="nilaiPPH42">{{ $header->pph23_type == 'PPH42' ? $nilaiPPH42."%" : '' }}</span> </label>
+                                        <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">WHT 4(2) <span class="input-group input-group-sm d-inline-flex align-items-center ml-1" style="width:90px;vertical-align:middle"><input type="number" step="any" min="0" class="form-control text-right" id="pctPPH42" title="Persentase WHT 4(2)"/><span class="input-group-append"><span class="input-group-text">%</span></span></span></label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="pph42Check" name="pph42Check" {{ $header->pph23_type == 'PPH42' ?'checked' : '' }}/>
@@ -303,12 +303,6 @@
                                         </div> 
                                         <div class="col-sm-5">
                                             <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPPH42" name="totalPPH42" oninput='inputDecimal(this)' value="{{ $header->pph23_type == 'PPH42' ? number_format($header->pph23,2) : 0 }}" {{ $header->pph23_type == 'PPH42' ? '' : 'disabled' }} {{ $header->pph23_type == 'PPH42' ? 'required' : '' }}/>
-                                        </div>
-                                        <div class="col-sm-2 pl-0">
-                                            <div class="input-group">
-                                                <input type="number" step="any" min="0" class="form-control text-right" id="pctPPH42" title="Persentase WHT 4(2)"/>
-                                                <div class="input-group-append"><span class="input-group-text">%</span></div>
-                                            </div>
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
