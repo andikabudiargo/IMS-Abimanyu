@@ -989,7 +989,6 @@ Route::post('sto-report/sto-detail', 'StoReportController@stoDetail')->name('sto
 
 Route::get('/stock-report',                    'StockReportController@index')->name('stockReport.index');
 Route::post('/stock-report/data',              'StockReportController@data')->name('stockReport.data');
-Route::post('/stock-report/balance-detail',    'StockReportController@balanceDetail')->name('stockReport.balanceDetail');
 Route::post('/stock-report/export',            'StockReportController@export')->name('stockReport.export');
 Route::post('/stock-report/movement-detail',   'StockReportController@movementDetail')->name('stockReport.movementDetail');
 

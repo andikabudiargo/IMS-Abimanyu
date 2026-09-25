@@ -88,7 +88,7 @@ class StockReportController extends StoReportController
             'location_name' => DB::table('stock_location_master')->where('location_code', $locationCode)->value('location_name') ?? $locationCode,
             'date_from'     => $dateFrom,
             'date_to'       => $dateTo,
-            'has_children'  => count($family) > 1, // Balance bisa diklik → rincian per lokasi anak
+            'stock_location' => $anchor, // filter lokasi di halaman Stock (parent)
         ];
 
         $columns = $this->buildColumnDefs($locationCode);
@@ -146,53 +146,6 @@ class StockReportController extends StoReportController
 
         return response()->json(['status' => 1, 'header' => $header, 'rows' => $rows, 'totals' => $totals, 'columns' => $columns]);
     }
-
-    // Modal Balance (lokasi punya child, mis. WIP): saldo akhir per lokasi anak, dari movement.
-    public function balanceDetail(Request $request)
-    {
-        $locationCode = $request->location_code;
-        $articleCode  = $request->article_code;
-
-        if (!in_array($locationCode, $this->supportedLocations)) {
-            return response()->json(['status' => 0, 'message' => 'Lokasi ini belum didukung format reportnya.'], 422);
-        }
-        if (!($range = $this->parseRange($request->date_range))) {
-            return response()->json(['status' => 0, 'message' => 'Rentang tanggal wajib diisi.'], 422);
-        }
-        [$dateFrom, $dateTo, $openingDate] = $range;
-
-        $family = array_map('strval', $this->resolveLocationFamily($locationCode));
-        $anchor = (string) $this->resolveLocationAnchor($locationCode);
-        $names  = DB::table('stock_location_master')->whereIn('location_code', $family)->pluck('location_name', 'location_code');
-
-        // Movement child sudah dilipat ke induk (location_number = induk), tapi movement_from/to
-        // masih menyimpan lokasi FISIK asli: masuk (+) -> movement_to, keluar (-) -> movement_from.
-        // Baris tanpa from/to (mis. OB, adjustment) atau di luar family dianggap milik induk.
-        $mv = $this->fetchFilteredMovementRows(
-            $family, $articleCode, '01-01-1900', $dateTo, null,
-            'COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'
-        );
-
-        $sum = [];
-        foreach ($mv as $m) {
-            $phys = (string) ($m['qty'] > 0 ? $m['to'] : $m['from']);
-            if (!in_array($phys, $family, true)) $phys = $anchor;
-            $sum[$phys] = ($sum[$phys] ?? 0) + $m['qty'];
-        }
-
-        $rows = [];
-        foreach ($sum as $loc => $qty) {
-            $qty = round($qty, 2);
-            if ($qty != 0) $rows[] = ['location' => $names[$loc] ?? $loc, 'qty' => $qty];
-        }
-
-        return response()->json([
-            'status' => 1,
-            'rows'   => $rows,
-            'total'  => round(array_sum(array_column($rows, 'qty')), 2),
-        ]);
-    }
-
 
     public function export(Request $request)
     {

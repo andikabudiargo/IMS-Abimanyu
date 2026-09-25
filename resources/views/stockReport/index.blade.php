@@ -177,34 +177,6 @@
     </div>
 </div>
 
-{{-- MODAL — rincian Balance per lokasi anak (WIP) --}}
-<div class="modal fade" id="balanceDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="balDetailTitle">Rincian Balance</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover" style="font-size:.8rem;">
-                        <thead>
-                            <tr><th>Lokasi</th><th class="text-right">Qty</th></tr>
-                        </thead>
-                        <tbody id="balDetailBody"></tbody>
-                        <tfoot>
-                            <tr><th class="text-right">Total</th><th class="text-right" id="balDetailTotal">0.00</th></tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 @endsection
 
 @section('scripts')
@@ -244,6 +216,12 @@ $(document).ready(function () {
         inCols.forEach(function (c) { r2 += '<th class="bg-light-primary">' + c.label + '</th>'; });
         outCols.forEach(function (c) { r2 += '<th class="bg-light-danger">' + c.label + '</th>'; });
         $('#reportThead').html(r1 + r2 + '</tr>');
+    }
+
+    // link ke halaman Stock (WarehouseControllerv2) utk artikel di lokasi report yang sedang tampil
+    let stockLoc = '';
+    function stockUrl(alt) {
+        return "{{ route('warehouse.articlev2') }}?code=" + encodeURIComponent(alt || '') + '&location=' + encodeURIComponent(stockLoc);
     }
 
     // Safety Stock / Min Package -> halaman edit artikel (tab baru); tanpa izin article-edit = teks biasa
@@ -296,6 +274,7 @@ $(document).ready(function () {
         let outCols = (res.columns && res.columns.out) || [];
         let mvCols  = inCols.concat(outCols);
 
+        stockLoc = h.stock_location || h.location_code;
         buildHead(inCols, outCols);
 
         $('#hLoc').text(h.location_code + ' — ' + h.location_name);
@@ -323,9 +302,9 @@ $(document).ready(function () {
                     + '<td class="text-right">' + drill('opening', 'Opening Balance', r.opening) + '</td>'
                     + cells
                     + '<td class="text-right">' + editLink(r, fmt(r.safety_stock)) + '</td>'
-                    + '<td class="text-right font-weight-bold" style="' + balanceStyle(r.closing, r.safety_stock) + '">' + (h.has_children
-                        ? '<a href="javascript:;" class="bal-drill" style="color:inherit;" data-article="' + r.article_code + '" data-alt="' + (r.alt_code || '') + '">' + fmt(r.closing) + '</a>'
-                        : fmt(r.closing)) + '</td>'
+                    // Balance -> halaman Stock (tab baru), semua lokasi termasuk WIP
+                    + '<td class="text-right font-weight-bold" style="' + balanceStyle(r.closing, r.safety_stock) + '">'
+                        + '<a href="' + stockUrl(r.alt_code) + '" target="_blank" rel="noopener" style="color:inherit;">' + fmt(r.closing) + '</a></td>'
                     + '</tr>';
             });
         }
@@ -383,45 +362,6 @@ $(document).ready(function () {
         })
         .fail(function (xhr) {
             $('#mvDetailBody').html(msgRow('text-danger', (xhr.responseJSON && xhr.responseJSON.message) || 'Terjadi kesalahan.'));
-        });
-    });
-
-    // ── klik Balance (lokasi ber-child) -> modal qty per lokasi anak + total ──
-    $(document).on('click', '.bal-drill', function () {
-        let $el = $(this);
-        let loc = $('#repLocation').val();
-        if (!loc) return;
-
-        let msgRow = function (cls, txt) { return '<tr><td colspan="2" class="text-center ' + cls + ' py-2">' + txt + '</td></tr>'; };
-
-        $('#balDetailTitle').text('Balance — ' + $el.data('alt'));
-        $('#balDetailBody').html(msgRow('text-muted', 'Memuat...'));
-        $('#balDetailTotal').text('0.00');
-        $('#balanceDetailModal').modal('show');
-
-        $.post("{{ route('stockReport.balanceDetail') }}", {
-            location_code : loc,
-            article_code  : $el.data('article'),
-            date_range    : $('#repDate').val()
-        })
-        .done(function (res) {
-            if (!res || res.status !== 1) {
-                $('#balDetailBody').html(msgRow('text-danger', (res && res.message) || 'Gagal memuat data.'));
-                return;
-            }
-            if (!res.rows.length) {
-                $('#balDetailBody').html(msgRow('text-muted', 'Tidak ada saldo di lokasi manapun.'));
-                return;
-            }
-            let body = '';
-            res.rows.forEach(function (r) {
-                body += '<tr><td>' + r.location + '</td><td class="text-right">' + fmt(r.qty) + '</td></tr>';
-            });
-            $('#balDetailBody').html(body);
-            $('#balDetailTotal').text(fmt(res.total));
-        })
-        .fail(function (xhr) {
-            $('#balDetailBody').html(msgRow('text-danger', (xhr.responseJSON && xhr.responseJSON.message) || 'Terjadi kesalahan.'));
         });
     });
 
