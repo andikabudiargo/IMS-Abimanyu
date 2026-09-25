@@ -5,7 +5,7 @@
 <section id="dn-monitoring">
   <div class="card">
     <div class="card-header">
-      <h4 class="card-title">Outstanding Delivery Note - {{ $monthLabel }}</h4>
+      <h4 class="card-title">Outstanding Surat Jalan Kembali - {{ $monthLabel }}</h4>
       <form method="GET" class="form-inline"><label class="mr-1">Periode</label><input type="month" name="periode" value="{{ $periode }}" class="form-control form-control-sm mr-1"><select name="customer[]" class="select2 form-control form-control-sm mr-1" multiple data-placeholder="Semua Customer" style="min-width:300px">@foreach($customers as $c)<option value="{{ $c->kode }}" @if(in_array($c->kode, $selected)) selected @endif>{{ $c->kode }} - {{ $c->nama }}</option>@endforeach</select><button class="btn btn-primary btn-sm">Tampilkan</button></form>
     </div>
     <div class="card-body table-responsive">
