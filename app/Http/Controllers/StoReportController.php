@@ -732,11 +732,12 @@ class StoReportController extends Controller
 
         $rows = $this->stoDtlQuery($configId, $this->resolveLocationFamily($locationCode))
             ->where('d.article_code', $request->alt_code)
+            ->leftJoin('stock_location_master as ll', 'll.location_code', '=', 'd.location_number')
             ->leftJoin('users as u1', 'u1.id', '=', 'd.counter1_user')
             ->leftJoin('users as u2', 'u2.id', '=', 'd.counter2_user')
             ->leftJoin('users as u3', 'u3.id', '=', 'd.counter3_user')
             ->orderBy('h.sto_number')
-            ->select('h.sto_number', 'd.location_number', 'm.is_blind',
+            ->select('h.sto_number', 'd.location_number', DB::raw('COALESCE(ll.location_name, d.location_number) as location_name'), 'm.is_blind',
                 'm.counter1_user', 'm.counter2_user', 'm.counter3_user',
                 'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3',
                 'u1.name as c1', 'u2.name as c2', 'u3.name as c3')
@@ -753,7 +754,7 @@ class StoReportController extends Controller
                 if (!$res['slots'] && $n !== collect($slots)->first(fn($k) => $r->{"qty_counter{$k}"} !== null)) continue;
                 $list->push([
                     'sto_number'   => $r->sto_number,
-                    'location'     => $r->location_number,
+                    'location'     => $r->location_name,
                     'counter'      => $n,
                     'counter_name' => $r->{"c{$n}"} ?? '-',
                     'qty'          => round((float) $r->{"qty_counter{$n}"}, 2),
