@@ -125,9 +125,13 @@ class StoReportController extends Controller
             ->whereExists(function ($q) {
                 $q->select(DB::raw(1))
                   ->from('sto_config_mapping as m')
+                  ->leftJoin('stock_location_master as l', 'l.location_code', '=', 'm.target_ref')
                   ->whereColumn('m.config_id', 'h.config_id')
                   ->where('m.target_type', 'LOCATION')
-                  ->whereIn('m.target_ref', $this->supportedLocations);
+                  ->where(function ($w) {
+                      $w->whereIn('m.target_ref', $this->supportedLocations)
+                        ->orWhereIn('l.parent_location', $this->supportedLocations); // child WIP dst
+                  });
             })
             ->orderByDesc('h.config_id')
             ->select('h.config_id', 'h.sto_code', 'h.periode', 'h.sto_type')
@@ -149,24 +153,43 @@ class StoReportController extends Controller
     {
         $configId = Crypt::decryptString($request->config_id);
 
+        // Mapping child (mis. WIP 038/039/040/050) dilaporkan sebagai parent-nya (012).
         $rows = DB::table('sto_config_mapping as m')
             ->join('sto_config as h', 'h.config_id', '=', 'm.config_id')
             ->leftJoin('stock_location_master as l', 'l.location_code', '=', 'm.target_ref')
+            ->leftJoin('stock_location_master as pl', 'pl.location_code', '=', 'l.parent_location')
             ->where('m.config_id', $configId)
             ->where('m.target_type', 'LOCATION')
-            ->whereIn('m.target_ref', $this->supportedLocations)
+            ->where(function ($w) {
+                $w->whereIn('m.target_ref', $this->supportedLocations)
+                  ->orWhereIn('l.parent_location', $this->supportedLocations);
+            })
             ->select(
                 'm.mapping_id',
-                'm.target_ref as location_code',
+                DB::raw('CASE WHEN m.target_ref IN (' . implode(',', array_fill(0, count($this->supportedLocations), '?')) . ') THEN m.target_ref ELSE l.parent_location END as location_code'),
                 'm.sto_date',
                 'm.target_plan_loc',
                 'h.periode',
-                DB::raw('COALESCE(l.location_name, m.target_ref) as location_name')
+                DB::raw('CASE WHEN m.target_ref IN (' . implode(',', array_fill(0, count($this->supportedLocations), '?')) . ') THEN COALESCE(l.location_name, m.target_ref) ELSE COALESCE(pl.location_name, l.parent_location) END as location_name')
             )
-            ->orderBy('location_name')
-            ->get();
+            ->addBinding(array_merge($this->supportedLocations, $this->supportedLocations), 'select')
+            ->get()
+            ->unique('location_code')
+            ->sortBy('location_name')
+            ->values();
 
         return response()->json($rows);
+    }
+
+    // Mapping untuk lokasi report: milik sendiri (prioritas), atau milik child family-nya.
+    private function findMapping($configId, $locationCode)
+    {
+        return DB::table('sto_config_mapping')
+            ->where('config_id', $configId)
+            ->where('target_type', 'LOCATION')
+            ->whereIn('target_ref', $this->resolveLocationFamily($locationCode))
+            ->orderByRaw('CASE WHEN target_ref = ? THEN 0 ELSE 1 END', [$locationCode])
+            ->first();
     }
 
     public function data(Request $request)
@@ -215,11 +238,7 @@ class StoReportController extends Controller
             return response()->json(['status' => 0, 'message' => 'STO tidak ditemukan.'], 404);
         }
 
-        $mapping = DB::table('sto_config_mapping')
-            ->where('config_id', $configId)
-            ->where('target_type', 'LOCATION')
-            ->where('target_ref', $locationCode)
-            ->first();
+        $mapping = $this->findMapping($configId, $locationCode);
         if (!$mapping) {
             return response()->json(['status' => 0, 'message' => 'Lokasi tidak terdaftar pada STO ini.'], 404);
         }
@@ -779,11 +798,7 @@ class StoReportController extends Controller
             return ['status' => 0, 'message' => 'STO tidak ditemukan.', 'code' => 404];
         }
 
-        $mapping = DB::table('sto_config_mapping')
-            ->where('config_id', $configId)
-            ->where('target_type', 'LOCATION')
-            ->where('target_ref', $locationCode)
-            ->first();
+        $mapping = $this->findMapping($configId, $locationCode);
 
         if (!$mapping) {
             return ['status' => 0, 'message' => 'Lokasi tidak terdaftar pada STO ini.', 'code' => 404];
