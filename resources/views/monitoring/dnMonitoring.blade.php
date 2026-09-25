@@ -14,7 +14,7 @@
           <tr>
             <th>Customer</th><th>Cutt Off DN</th>
             <th class="text-center">W1 (1-7)</th><th class="text-center">W2 (8-14)</th>
-            <th class="text-center">W3 (15-21)</th><th class="text-center">W4 (22-akhir)</th>
+            <th class="text-center">W3 (15-21)</th><th class="text-center">W4 (22-akhir)</th><th class="text-center">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -29,11 +29,21 @@
                   @else - @endif
                 </td>
               @endforeach
+              <td class="text-center font-weight-bold">{{ array_sum($row['w']) }}</td>
             </tr>
           @empty
-            <tr><td colspan="6" class="text-center text-muted">Tidak ada DN yang belum di-invoice bulan ini</td></tr>
+            <tr><td colspan="7" class="text-center text-muted">Tidak ada DN yang belum di-invoice bulan ini</td></tr>
           @endforelse
         </tbody>
+        @if($summary)
+        <tfoot>
+          <tr class="font-weight-bold">
+            <td colspan="2" class="text-right">Total</td>
+            @foreach([1,2,3,4] as $w)<td class="text-center">{{ collect($summary)->sum(fn($r) => $r['w'][$w] ?? 0) }}</td>@endforeach
+            <td class="text-center">{{ collect($summary)->sum(fn($r) => array_sum($r['w'])) }}</td>
+          </tr>
+        </tfoot>
+        @endif
       </table>
     </div>
   </div>
