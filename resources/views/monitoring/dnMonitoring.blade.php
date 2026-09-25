@@ -40,10 +40,10 @@
     <div class="card-header"><h4 class="card-title">Outstanding Surat Jalan Kembali - {{ $monthLabel }}</h4></div>
     <div class="card-body table-responsive">
       <table class="table table-bordered table-hover table-striped">
-        <colgroup><col style="width:30%"><col style="width:30%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>
+        <colgroup><col style="width:4%"><col style="width:28%"><col style="width:28%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>
         <thead>
           <tr>
-            <th class="align-middle">Customer</th><th class="align-middle">Cutt Off Surat Jalan Kembali</th>
+            <th class="align-middle text-center">No</th><th class="align-middle">Customer</th><th class="align-middle">Cutt Off Surat Jalan Kembali</th>
             <th class="text-center">W1 (1-7)</th><th class="text-center">W2 (8-14)</th>
             <th class="text-center">W3 (15-21)</th><th class="text-center">W4 (22-akhir)</th><th class="text-center">Total</th>
           </tr>
@@ -51,7 +51,7 @@
         <tbody>
           @forelse($summary as $kode => $row)
             <tr>
-              <td>{{ $row['name'] }}</td>
+              <td class="text-center">{{ $loop->iteration }}</td><td>{{ $row['name'] }}</td>
               <td>@if($row['cutt_off']){{ $row['cutt_off'] }}@else<small><em class="text-muted">Belum Ada Cut Off Tanggal Kembali Surat Jalan</em></small>@endif</td>
               @foreach([1,2,3,4] as $w)
                 <td class="text-center">
@@ -63,13 +63,13 @@
               <td class="text-center font-weight-bold">{{ array_sum($row['w']) }}</td>
             </tr>
           @empty
-            <tr><td colspan="7" class="text-center text-muted">Tidak ada DN {{ $filter == 'kembali' ? 'yang belum kembali' : 'yang belum di-invoice' }} bulan ini</td></tr>
+            <tr><td colspan="8" class="text-center text-muted">Tidak ada DN {{ $filter == 'kembali' ? 'yang belum kembali' : 'yang belum di-invoice' }} bulan ini</td></tr>
           @endforelse
         </tbody>
         @if($summary)
         <tfoot>
           <tr class="font-weight-bold">
-            <td colspan="2" class="text-right">Total</td>
+            <td colspan="3" class="text-right">Total</td>
             @foreach([1,2,3,4] as $w)<td class="text-center">{{ collect($summary)->sum(fn($r) => $r['w'][$w] ?? 0) }}</td>@endforeach
             <td class="text-center">{{ collect($summary)->sum(fn($r) => array_sum($r['w'])) }}</td>
           </tr>
@@ -87,7 +87,7 @@
         <button type="button" class="close" data-dismiss="modal">&times;</button></div>
       <div class="modal-body table-responsive">
         <table class="table table-sm table-bordered">
-          <thead><tr><th>Nomor DN</th><th>Tipe</th><th>Delivery Date</th><th>Status</th><th>Created By</th><th>Created At</th></tr></thead>
+          <thead><tr><th>No</th><th>Nomor DN</th><th>Tipe</th><th>Delivery Date</th><th>Status</th><th>Created By</th><th>Created At</th></tr></thead>
           <tbody id="dnModalBody"></tbody>
         </table>
       </div>
@@ -105,10 +105,10 @@
     const d = $(this).data();
     $('#dnModalTitle').text(d.name + ' - W' + d.week);
     $('#dnExport').attr('href', "{{ route('dnMonitoring.export') }}?" + $.param({customer: d.customer, week: d.week, periode: '{{ $periode }}', filter: '{{ $filter }}'}));
-    $('#dnModalBody').html('<tr><td colspan="6">Loading...</td></tr>');
+    $('#dnModalBody').html('<tr><td colspan="7">Loading...</td></tr>');
     $('#dnModal').modal('show');
     $.get("{{ route('dnMonitoring.detail') }}", {customer: d.customer, week: d.week, periode: '{{ $periode }}', filter: '{{ $filter }}'}, function (rows) {
-      $('#dnModalBody').html(rows.map(r => '<tr><td><a href="' + esc(r.url) + '" target="_blank">' + esc(r.dn_number) + '</a></td><td>'
+      $('#dnModalBody').html(rows.map((r, i) => '<tr><td>' + (i + 1) + '</td><td><a href="' + esc(r.url) + '" target="_blank">' + esc(r.dn_number) + '</a></td><td>'
         + esc(r.source) + '</td><td>' + esc(r.delivery_date) + '</td><td>' + esc(r.status) + '</td><td>'
         + esc(r.created_by) + '</td><td>' + esc(r.created_at) + '</td></tr>').join(''));
     });
