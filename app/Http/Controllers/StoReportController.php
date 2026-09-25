@@ -17,13 +17,13 @@ class StoReportController extends Controller
     protected $moduleCode;
 
     // Semua lokasi yang didukung format report-nya (gabungan dari semua grup)
-    protected $supportedLocations = ['005', '006', '009', '012', '007', '008'];
+    protected $supportedLocations = ['005', '006', '009', '042', '049', '012', '007', '008'];
 
     // ══════════════════════════════════════════════
     // GRUP LOKASI
     // ══════════════════════════════════════════════
     protected $locationGroups = [
-        'CHEMICAL'   => ['005', '006', '009'],
+        'CHEMICAL'   => ['005', '006', '009', '042', '049'],
         'WIP_FG_OT'  => ['012', '007', '008'], // WIP, Finish Goods, OT
     ];
 
