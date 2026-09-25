@@ -98,10 +98,12 @@ private function isMaklonHome(string $articleCode): bool
             $monthEnd   = (clone $monthStart)->modify('last day of this month');
 
             $row = DB::selectOne("
-                SELECT COALESCE(SUM(price*qty)/NULLIF(SUM(qty),0),0) AS avg_price, COUNT(*) AS n
-                FROM receiving_det
-                WHERE article_code = ?
-                  AND created_at::date BETWEEN ?::date AND ?::date
+                SELECT COALESCE(SUM(d.price*d.qty)/NULLIF(SUM(d.qty),0),0) AS avg_price, COUNT(*) AS n
+                FROM receiving_det d
+                JOIN receiving_hdr h ON h.rec_number = d.rec_number
+                WHERE d.article_code = ?
+                  AND d.qty > 0 AND d.price > 0
+                  AND to_date(h.rec_date,'DD-MM-YYYY') BETWEEN ?::date AND ?::date
             ", [$articleCode, $monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')]);
 
             if ($row && $row->n > 0) {
@@ -156,6 +158,21 @@ private function isMaklonHome(string $articleCode): bool
         ->where('status', '3')
         ->orderByDesc('id')
         ->first();
+
+    // BOM lagi direvisi / belum full approved (baris utama status 1/2) -> pakai
+    // snapshot revisi terakhir (status 7 = versi approved sebelumnya), bukan
+    // dianggap "tanpa BOM". Sama dengan ConversionReportController::purchasePrice().
+    if (!$bom) {
+        $bom = DB::table('bom_hdr as s')
+            ->join('bom_hdr as o', 'o.bom_code', '=', 's.origin_bom_code')
+            ->where('s.article_code', $articleCode)
+            ->where('s.status', '7')
+            ->whereIn('o.status', ['1', '2'])
+            ->orderByDesc('s.num_revision')
+            ->orderByDesc('s.id')
+            ->select('s.bom_code')
+            ->first();
+    }
 
     if (!$bom) {
         return $this->avgReceivingPriceHome($articleCode, $periode, $tahun);
@@ -239,7 +256,7 @@ private function isMaklonHome(string $articleCode): bool
      * painting (UOM lain, mis. TRIP/KG/LTR) sengaja tidak ikut dihitung di
      * widget Home ini.
      */
-    private function buildSalesAchievement(?int $periode = null, ?int $tahun = null): array
+    public function buildSalesAchievement(?int $periode = null, ?int $tahun = null): array
     {
         $now     = Carbon::now();
         $periode = $periode ?: (int) $now->format('n');

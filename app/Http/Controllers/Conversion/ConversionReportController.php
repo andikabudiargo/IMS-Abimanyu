@@ -100,10 +100,12 @@ private function isMaklon(string $articleCode): bool
             $monthEnd   = (clone $monthStart)->modify('last day of this month');
 
             $row = DB::selectOne("
-                SELECT COALESCE(SUM(price*qty)/NULLIF(SUM(qty),0),0) AS avg_price, COUNT(*) AS n
-                FROM receiving_det
-                WHERE article_code = ?
-                  AND created_at::date BETWEEN ?::date AND ?::date
+                SELECT COALESCE(SUM(d.price*d.qty)/NULLIF(SUM(d.qty),0),0) AS avg_price, COUNT(*) AS n
+                FROM receiving_det d
+                JOIN receiving_hdr h ON h.rec_number = d.rec_number
+                WHERE d.article_code = ?
+                  AND d.qty > 0 AND d.price > 0
+                  AND to_date(h.rec_date,'DD-MM-YYYY') BETWEEN ?::date AND ?::date
             ", [$articleCode, $monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')]);
 
             if ($row && $row->n > 0) {
@@ -126,6 +128,21 @@ private function isMaklon(string $articleCode): bool
         ->where('status', '3')
         ->orderByDesc('id')
         ->first();
+
+    // BOM lagi direvisi / belum full approved (baris utama status 1/2) -> pakai
+    // snapshot revisi terakhir (status 7 = versi approved sebelumnya), bukan
+    // dianggap "tanpa BOM".
+    if (!$bom) {
+        $bom = DB::table('bom_hdr as s')
+            ->join('bom_hdr as o', 'o.bom_code', '=', 's.origin_bom_code')
+            ->where('s.article_code', $articleCode)
+            ->where('s.status', '7')
+            ->whereIn('o.status', ['1', '2'])
+            ->orderByDesc('s.num_revision')
+            ->orderByDesc('s.id')
+            ->select('s.bom_code')
+            ->first();
+    }
 
     if (!$bom) {
         return $this->avgReceivingPrice($articleCode, $periode, $tahun);
@@ -163,6 +180,17 @@ private function isMaklon(string $articleCode): bool
      * untuk periode yang sama kalau dokumen sebelumnya sudah dibatalkan.
      * $excludeId dipakai saat update supaya dokumen tidak bentrok dgn dirinya sendiri.
      */
+    /**
+     * Target konversi (painting) periode/tahun, sama persis dengan widget
+     * Sales Achievement di Home. Di-snapshot ke conversion_report_hdr.target_conversion
+     * saat store/update; public supaya bisa dipakai buat backfill report lama.
+     */
+    public function targetConversionFor(int $periode, int $tahun): float
+    {
+        return (float) app(\App\Http\Controllers\HomeController::class)
+            ->buildSalesAchievement($periode, $tahun)['targetConversion'];
+    }
+
     private function periodeAlreadyUsed(int $periode, int $tahun, ?int $excludeId = null): ?string
     {
         $existing = DB::table('conversion_report_hdr')
@@ -499,6 +527,7 @@ $rows[] = [
             ['data' => 'total_painting',      'name' => 'total_painting',      'title' => 'Painting', 'orderable' => false, 'searchable' => false],
             ['data' => 'total_non_painting',  'name' => 'total_non_painting',  'title' => 'Non Painting', 'orderable' => false, 'searchable' => false],
             ['data' => 'total_conversion',    'name' => 'total_conversion',    'title' => 'Total Konversi', 'orderable' => false, 'searchable' => false],
+            ['data' => 'target_conversion',   'name' => 'target_conversion',   'title' => 'Target Konversi', 'orderable' => false, 'searchable' => false],
             ['data' => 'note',        'name' => 'note',        'title' => 'Note'],
             ['data' => 'created_by',  'name' => 'created_by',  'title' => 'Created By'],
             ['data' => 'created_at',  'name' => 'created_at',  'title' => 'Created At'],
@@ -544,7 +573,8 @@ $rows[] = [
                 DB::raw('COALESCE(agg.total_article,0) as total_article'),
                 DB::raw('COALESCE(agg.total_painting,0) as total_painting'),
                 DB::raw('COALESCE(agg.total_non_painting,0) as total_non_painting'),
-                DB::raw('COALESCE(agg.total_conversion,0) as total_conversion'))
+                DB::raw('COALESCE(agg.total_conversion,0) as total_conversion'),
+                DB::raw('COALESCE(h.target_conversion,0) as target_conversion'))
             ->where('h.status', '!=', 8)
             ->when($request->reportCode, fn($q) => $q->where('h.report_code', 'ilike', '%'.$request->reportCode.'%'))
             ->when($request->reportName, fn($q) => $q->where('h.report_name', 'ilike', '%'.$request->reportName.'%'))
@@ -556,6 +586,7 @@ $rows[] = [
             ->editColumn('total_painting', fn($d) => number_format((float) $d->total_painting, 2))
             ->editColumn('total_non_painting', fn($d) => number_format((float) $d->total_non_painting, 2))
             ->editColumn('total_conversion', fn($d) => number_format((float) $d->total_conversion, 2))
+            ->editColumn('target_conversion', fn($d) => number_format((float) $d->target_conversion, 2))
             ->addColumn('action', function ($d) {
                 $id = Crypt::encryptString($d->id);
                 $buttons = '<div class="d-inline-flex">
@@ -773,6 +804,7 @@ $rows[] = [
                 'tahun'                 => $tahun,
                 'note'                  => $request->note,
                 'conversion_value_used' => $summary['conversionValue'],
+                'target_conversion'     => $this->targetConversionFor($periode, $tahun),
                 'status'                => 1,
                 'num_revision'          => 0,
                 'created_by'            => $username,
@@ -986,6 +1018,7 @@ $rows[] = [
                 'tahun'                 => $tahun,
                 'note'                  => $request->note,
                 'conversion_value_used' => $summary['conversionValue'],
+                'target_conversion'     => $this->targetConversionFor($periode, $tahun),
                 'updated_by'            => $username,
                 'updated_at'            => date('Y-m-d H:i:s'),
             ]);
@@ -1043,6 +1076,7 @@ $rows[] = [
                 'tahun'                 => $header->tahun,
                 'note'                  => $header->note,
                 'conversion_value_used' => $header->conversion_value_used,
+                'target_conversion'     => $header->target_conversion,
                 'status'                => 8,
                 'num_revision'          => $numRevision,
                 'reason'                => $reason,

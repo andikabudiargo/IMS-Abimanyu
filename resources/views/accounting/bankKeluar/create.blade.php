@@ -324,6 +324,9 @@
                         },
                         error: function(error) {
                             console.log(error);
+                            $('#cmdSave').removeAttr('disabled');
+                            let msg = (error.responseJSON && error.responseJSON.message) || error.statusText || 'Unknown error';
+                            Swal.fire('Error ' + error.status, msg, 'error');
                         }
                     });
                 }else{
