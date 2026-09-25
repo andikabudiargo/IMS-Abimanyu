@@ -88,6 +88,7 @@ class StockReportController extends StoReportController
             'location_name' => DB::table('stock_location_master')->where('location_code', $locationCode)->value('location_name') ?? $locationCode,
             'date_from'     => $dateFrom,
             'date_to'       => $dateTo,
+            'has_children'  => count($family) > 1, // Balance bisa diklik → rincian per lokasi anak
         ];
 
         $columns = $this->buildColumnDefs($locationCode);
@@ -140,6 +141,65 @@ class StockReportController extends StoReportController
         });
 
         return response()->json(['status' => 1, 'header' => $header, 'rows' => $rows, 'totals' => $totals, 'columns' => $columns]);
+    }
+
+    // Modal Balance (lokasi punya child, mis. WIP): balance akhir per lokasi anak.
+    // Rumus sama dgn tabel (Opening + IN - OUT), tapi dihitung per lokasi, jadi total = Balance di tabel.
+    public function balanceDetail(Request $request)
+    {
+        $locationCode = $request->location_code;
+        $articleCode  = $request->article_code;
+
+        if (!in_array($locationCode, $this->supportedLocations)) {
+            return response()->json(['status' => 0, 'message' => 'Lokasi ini belum didukung format reportnya.'], 422);
+        }
+        if (!($range = $this->parseRange($request->date_range))) {
+            return response()->json(['status' => 0, 'message' => 'Rentang tanggal wajib diisi.'], 422);
+        }
+        [$dateFrom, $dateTo, $openingDate] = $range;
+
+        $cols  = $this->getColumnKeys($locationCode);
+        $names = DB::table('stock_location_master')
+            ->whereIn('location_code', $this->resolveLocationFamily($locationCode))
+            ->pluck('location_name', 'location_code');
+
+        $rows = [];
+        foreach ($names as $loc => $name) {
+            $opening = (float) (DB::selectOne(
+                "SELECT get_last_qty_new(?, ?, 'HO', ?) AS q", [$articleCode, $openingDate, (string) $loc]
+            )->q ?? 0);
+
+            $mv  = $this->aggregateMovements([(string) $loc], $dateFrom, $dateTo, $locationCode)->get($articleCode);
+            $qty = $opening;
+            foreach ($cols['in'] as $k)  $qty += $mv ? (float) ($mv->{$k} ?? 0) : 0;
+            foreach ($cols['out'] as $k) $qty -= $mv ? (float) ($mv->{$k} ?? 0) : 0;
+
+            $qty = round($qty, 2);
+            if ($qty != 0) $rows[] = ['location' => $name, 'qty' => $qty];
+        }
+
+        return response()->json([
+            'status' => 1,
+            'rows'   => $rows,
+            'total'  => round(array_sum(array_column($rows, 'qty')), 2),
+        ]);
+    }
+
+    public function export(Request $request)
+    {
+        $res = $this->data($request);
+        $d   = $res->getData(true);
+
+        if (($d['status'] ?? 0) !== 1) {
+            return back()->with('error', $d['message'] ?? 'Gagal export.');
+        }
+
+        // rows sudah berupa array (hasil serialisasi JSON)
+        $h = $d['header'];
+        $fileName = sprintf('Stock_Report_%s_%s_sd_%s_%s.xlsx',
+            $h['location_code'], $h['date_from'], $h['date_to'], date('Ymd_His'));
+
+        return \Excel::download(new \App\Exports\StockReportExport($d), $fileName);
     }
 
     // Drill-down angka opening/in/out → daftar dokumen (filter sama dgn STO Report).

@@ -105,10 +105,16 @@
                     <span class="align-middle d-sm-inline-block d-none">Generate Report</span>
                 </button>
                 <button type="button" class="btn btn-light" id="btnReset">Reset</button>
-                <button type="button" class="btn btn-outline-secondary d-none float-right" id="btnPrint">
+                <span class="float-right">
+                    <button type="button" class="btn btn-outline-success d-none mr-50" id="btnExport">
+                        <i data-feather="download" class="align-middle mr-sm-25 mr-0"></i>
+                        <span class="align-middle d-sm-inline-block d-none">Export</span>
+                    </button>
+                <button type="button" class="btn btn-outline-secondary d-none" id="btnPrint">
                     <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i>
                     <span class="align-middle">Print</span>
                 </button>
+                </span>
             </div>
         </div>
     </div>
@@ -171,6 +177,34 @@
     </div>
 </div>
 
+{{-- MODAL — rincian Balance per lokasi anak (WIP) --}}
+<div class="modal fade" id="balanceDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="balDetailTitle">Rincian Balance</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover" style="font-size:.8rem;">
+                        <thead>
+                            <tr><th>Lokasi</th><th class="text-right">Qty</th></tr>
+                        </thead>
+                        <tbody id="balDetailBody"></tbody>
+                        <tfoot>
+                            <tr><th class="text-right">Total</th><th class="text-right" id="balDetailTotal">0.00</th></tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -212,7 +246,7 @@ $(document).ready(function () {
 
     function resetDisplay() {
         $('#reportBody').empty();
-        $('#reportHeaderInfo, #reportScroll, #btnPrint').addClass('d-none');
+        $('#reportHeaderInfo, #reportScroll, #btnPrint, #btnExport').addClass('d-none');
         $('#reportEmpty').removeClass('d-none');
     }
 
@@ -270,7 +304,9 @@ $(document).ready(function () {
                     + '<td class="text-center">' + (r.uom || '-') + '</td>'
                     + '<td class="text-right">' + drill('opening', 'Opening Balance', r.opening) + '</td>'
                     + cells
-                    + '<td class="text-right font-weight-bold">' + fmt(r.closing) + '</td>'
+                    + '<td class="text-right font-weight-bold">' + (h.has_children
+                        ? '<a href="javascript:;" class="bal-drill" data-article="' + r.article_code + '" data-alt="' + (r.alt_code || '') + '">' + fmt(r.closing) + '</a>'
+                        : fmt(r.closing)) + '</td>'
                     + '</tr>';
             });
         }
@@ -282,7 +318,7 @@ $(document).ready(function () {
         $('#reportTfoot').html('<tr>' + foot + '</tr>');
 
         $('#reportEmpty').addClass('d-none');
-        $('#reportHeaderInfo, #reportScroll, #btnPrint').removeClass('d-none');
+        $('#reportHeaderInfo, #reportScroll, #btnPrint, #btnExport').removeClass('d-none');
         if (typeof feather !== 'undefined') feather.replace();
     }
 
@@ -329,6 +365,61 @@ $(document).ready(function () {
         .fail(function (xhr) {
             $('#mvDetailBody').html(msgRow('text-danger', (xhr.responseJSON && xhr.responseJSON.message) || 'Terjadi kesalahan.'));
         });
+    });
+
+    // ── klik Balance (lokasi ber-child) -> modal qty per lokasi anak + total ──
+    $(document).on('click', '.bal-drill', function () {
+        let $el = $(this);
+        let loc = $('#repLocation').val();
+        if (!loc) return;
+
+        let msgRow = function (cls, txt) { return '<tr><td colspan="2" class="text-center ' + cls + ' py-2">' + txt + '</td></tr>'; };
+
+        $('#balDetailTitle').text('Balance — ' + $el.data('alt'));
+        $('#balDetailBody').html(msgRow('text-muted', 'Memuat...'));
+        $('#balDetailTotal').text('0.00');
+        $('#balanceDetailModal').modal('show');
+
+        $.post("{{ route('stockReport.balanceDetail') }}", {
+            location_code : loc,
+            article_code  : $el.data('article'),
+            date_range    : $('#repDate').val()
+        })
+        .done(function (res) {
+            if (!res || res.status !== 1) {
+                $('#balDetailBody').html(msgRow('text-danger', (res && res.message) || 'Gagal memuat data.'));
+                return;
+            }
+            if (!res.rows.length) {
+                $('#balDetailBody').html(msgRow('text-muted', 'Tidak ada saldo di lokasi manapun.'));
+                return;
+            }
+            let body = '';
+            res.rows.forEach(function (r) {
+                body += '<tr><td>' + r.location + '</td><td class="text-right">' + fmt(r.qty) + '</td></tr>';
+            });
+            $('#balDetailBody').html(body);
+            $('#balDetailTotal').text(fmt(res.total));
+        })
+        .fail(function (xhr) {
+            $('#balDetailBody').html(msgRow('text-danger', (xhr.responseJSON && xhr.responseJSON.message) || 'Terjadi kesalahan.'));
+        });
+    });
+
+    // ── export excel (backend; nama file otomatis memuat tanggal-jam) ──
+    $('#btnExport').on('click', function () {
+        let loc = $('#repLocation').val(), range = $('#repDate').val();
+        if (!loc || !range) {
+            Swal.fire('Warning', 'Generate report dulu sebelum export.', 'warning');
+            return;
+        }
+        let $f = $('<form>', { method: 'POST', action: "{{ route('stockReport.export') }}" });
+        $f.append($('<input>', { type: 'hidden', name: '_token', value: $('meta[name="csrf-token"]').attr('content') }));
+        $f.append($('<input>', { type: 'hidden', name: 'location_code', value: loc }));
+        $f.append($('<input>', { type: 'hidden', name: 'date_range', value: range }));
+        $('body').append($f);
+        $f.submit();
+        $f.remove();
     });
 
     $('#btnReset').on('click', function () {
