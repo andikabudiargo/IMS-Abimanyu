@@ -2127,8 +2127,9 @@ private function buildSummaryRow(array $p)
                 }
             };
             $master = DB::table('article')->where($like)
-                ->select('article_code', 'article_desc', 'article_type', 'uom', DB::raw("'Master' as source"));
+                ->select(DB::raw('article_alternative_code as article_code'), 'article_desc', 'article_type', 'uom', DB::raw("'Master' as source"));
             $req = DB::table('article_request')->where($like)->where('status', '<>', '4')
+                ->when($request->exclude, fn($q, $ex) => $q->where('article_code', '<>', $ex)) // saat edit: abaikan diri sendiri
                 ->select('article_code', 'article_desc', 'article_type', 'uom', DB::raw("'Request' as source"));
 
             return response()->json($master->unionAll($req)->orderBy('article_desc')->limit(20)->get());

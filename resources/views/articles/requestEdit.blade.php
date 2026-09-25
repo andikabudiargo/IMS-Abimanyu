@@ -217,6 +217,29 @@
         </div> --}}
     </div>
 </section>
+<div class="modal fade" id="similarModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Article dengan description mirip ditemukan</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>Pastikan article yang akan disimpan bukan duplikat dari daftar berikut:</p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead><tr><th>Source</th><th>Code</th><th>Description</th><th>Type</th><th>UoM</th></tr></thead>
+                        <tbody id="similarBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="similarContinue">Lanjutkan Save</button>
+            </div>
+        </div>
+    </div>
+</div>
 {{-- <div id="viewImg" class="modal bisa-geser fade text-left" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
@@ -281,15 +304,36 @@
         mask_thousand_digit(2);
     });
 
+    function submitUpdate() {
+        $('.disabled-el').removeAttr('disabled');
+        $("#frmAdd").attr("action", "{{ route('article.request.update',['id'=> $article->id]) }}").submit();
+    }
+
     $("#cmdSave").click(function (e) {
         e.preventDefault();
-        if (!$("#frmAdd")[0].checkValidity()){
+        // form invalid -> submit agar validasi/toast bawaan tampil
+        if (!$("#frmAdd")[0].checkValidity() || !$('#nama').val().trim()){
             $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").submit();
-        }else{
-            $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").attr("action", "{{ route('article.request.update',['id'=> $article->id]) }}").submit();
+            return $("#frmAdd").submit();
         }
+
+        $.post("{{ route('article.request.similar') }}", {
+            _token: $('meta[name="csrf-token"]').attr('content'),
+            nama: $('#nama').val(),
+            exclude: $('#artCode').val()
+        }).done(function (rows) {
+            if (!rows.length) return submitUpdate();
+            let esc = s => $('<div>').text(s ?? '').html();
+            $('#similarBody').html(rows.map(r =>
+                '<tr><td>' + esc(r.source) + '</td><td>' + esc(r.article_code) + '</td><td>' + esc(r.article_desc) +
+                '</td><td>' + esc(r.article_type) + '</td><td>' + esc(r.uom) + '</td></tr>').join(''));
+            $('#similarModal').modal('show');
+        }).fail(submitUpdate); // ponytail: cek gagal tidak memblokir save
+    });
+
+    $('#similarContinue').click(function () {
+        $(this).prop('disabled', true);
+        submitUpdate();
     });
 
     $("#cmdSubmit").click(function (e) {
