@@ -623,7 +623,8 @@ $('#customer').on('change', function() {
                                 totalDppNilaiLain:aTotalDppNilaiLain,
                                 aPeriode:aPeriode,
                                 aBuktiPotong:aBuktiPotong,
-                                aBupotDate:aBupotDate
+                                aBupotDate:aBupotDate,
+                                soDate:$('#soDate').val()
                             },
                             dataType: "json",
                             success: function(data) {

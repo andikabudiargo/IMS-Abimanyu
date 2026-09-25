@@ -965,7 +965,7 @@ class InvoiceController extends Controller
                             'dpp_lain_penyebut' => $dppPenyebut,
                             'bukti_potong' => $buktiPotong,
                             'bupot_date' => $bupotDate
-                        ]
+                        ] + ($startDate !== "" ? ['start_date' => $startDate, 'end_date' => $endDate] : [])
                     );
 
                     if ($statusInvoice != '6') {
