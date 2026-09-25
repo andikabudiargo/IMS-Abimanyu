@@ -143,8 +143,7 @@ class StockReportController extends StoReportController
         return response()->json(['status' => 1, 'header' => $header, 'rows' => $rows, 'totals' => $totals, 'columns' => $columns]);
     }
 
-    // Modal Balance (lokasi punya child, mis. WIP): balance akhir per lokasi anak.
-    // Rumus sama dgn tabel (Opening + IN - OUT), tapi dihitung per lokasi, jadi total = Balance di tabel.
+    // Modal Balance (lokasi punya child, mis. WIP): saldo akhir per lokasi anak, dari movement.
     public function balanceDetail(Request $request)
     {
         $locationCode = $request->location_code;
@@ -158,23 +157,19 @@ class StockReportController extends StoReportController
         }
         [$dateFrom, $dateTo, $openingDate] = $range;
 
-        $cols  = $this->getColumnKeys($locationCode);
         $names = DB::table('stock_location_master')
             ->whereIn('location_code', $this->resolveLocationFamily($locationCode))
             ->pluck('location_name', 'location_code');
 
+        // Saldo per lokasi murni dari warehouse_movement (child tidak punya article qty di
+        // warehouse_stock): SUM(plus - min) s/d tanggal akhir, filter dokumen batal sama dgn tabel.
         $rows = [];
         foreach ($names as $loc => $name) {
-            $opening = (float) (DB::selectOne(
-                "SELECT get_last_qty_new(?, ?, 'HO', ?) AS q", [$articleCode, $openingDate, (string) $loc]
-            )->q ?? 0);
-
-            $mv  = $this->aggregateMovements([(string) $loc], $dateFrom, $dateTo, $locationCode)->get($articleCode);
-            $qty = $opening;
-            foreach ($cols['in'] as $k)  $qty += $mv ? (float) ($mv->{$k} ?? 0) : 0;
-            foreach ($cols['out'] as $k) $qty -= $mv ? (float) ($mv->{$k} ?? 0) : 0;
-
-            $qty = round($qty, 2);
+            $mv = $this->fetchFilteredMovementRows(
+                [(string) $loc], $articleCode, '01-01-1900', $dateTo, null,
+                'COALESCE(wm.movement_plus,0) - COALESCE(wm.movement_min,0)'
+            );
+            $qty = round(array_sum(array_column($mv, 'qty')), 2);
             if ($qty != 0) $rows[] = ['location' => $name, 'qty' => $qty];
         }
 
@@ -184,6 +179,7 @@ class StockReportController extends StoReportController
             'total'  => round(array_sum(array_column($rows, 'qty')), 2),
         ]);
     }
+
 
     public function export(Request $request)
     {
