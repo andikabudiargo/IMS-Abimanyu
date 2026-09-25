@@ -528,6 +528,7 @@ $rows[] = [
             ['data' => 'total_non_painting',  'name' => 'total_non_painting',  'title' => 'Non Painting', 'orderable' => false, 'searchable' => false],
             ['data' => 'total_conversion',    'name' => 'total_conversion',    'title' => 'Total Konversi', 'orderable' => false, 'searchable' => false],
             ['data' => 'target_conversion',   'name' => 'target_conversion',   'title' => 'Target Konversi', 'orderable' => false, 'searchable' => false],
+            ['data' => 'selisih_conversion',  'name' => 'selisih_conversion',  'title' => 'Selisih', 'orderable' => false, 'searchable' => false],
             ['data' => 'note',        'name' => 'note',        'title' => 'Note'],
             ['data' => 'created_by',  'name' => 'created_by',  'title' => 'Created By'],
             ['data' => 'created_at',  'name' => 'created_at',  'title' => 'Created At'],
@@ -587,6 +588,12 @@ $rows[] = [
             ->editColumn('total_non_painting', fn($d) => number_format((float) $d->total_non_painting, 2))
             ->editColumn('total_conversion', fn($d) => number_format((float) $d->total_conversion, 2))
             ->editColumn('target_conversion', fn($d) => number_format((float) $d->target_conversion, 2))
+            // Selisih = Konversi Painting - Target Konversi (target hanya painting; dihitung, tidak disimpan); merah kalau di bawah target.
+            ->addColumn('selisih_conversion', function ($d) {
+                $s = (float) $d->total_painting - (float) $d->target_conversion;
+                $cls = $s < 0 ? 'text-danger' : 'text-success';
+                return "<span class='$cls'>".number_format($s, 2).'</span>';
+            })
             ->addColumn('action', function ($d) {
                 $id = Crypt::encryptString($d->id);
                 $buttons = '<div class="d-inline-flex">
@@ -622,7 +629,7 @@ $rows[] = [
                 $class = $this->statusBadge[$d->status] ?? 'badge-secondary';
                 return "<div class='badge badge-pill $class'>$label</div>";
             })
-            ->rawColumns(['action', 'status_label'])
+            ->rawColumns(['action', 'status_label', 'selisih_conversion'])
             ->make(true);
     }
 
