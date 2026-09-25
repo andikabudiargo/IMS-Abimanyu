@@ -18,6 +18,13 @@ class DnMonitoringController extends Controller
     private function pendingRows($month)
     {
         return DB::select("
+            WITH RECURSIVE anc(dn, anc_dn) AS (
+                SELECT delivery_number, origin_delivery_number FROM delivery_hdr
+                WHERE origin_delivery_number IS NOT NULL AND origin_delivery_number <> delivery_number
+                UNION
+                SELECT a.dn, h.origin_delivery_number FROM anc a JOIN delivery_hdr h ON h.delivery_number = a.anc_dn
+                WHERE h.origin_delivery_number IS NOT NULL AND h.origin_delivery_number <> h.delivery_number
+            )
             SELECT * FROM (
                 SELECT dh.id, dh.delivery_number AS dn_number, dh.customer_id, dh.delivery_date,
                     CASE WHEN dh.status = '8' THEN 'DN RECEIVED' ELSE 'DELIVERY' END AS source,
@@ -30,6 +37,7 @@ class DnMonitoringController extends Controller
                 WHERE dh.status IN ('1','2','3','4','7','8')
                   AND NOT EXISTS (SELECT 1 FROM invoice_det i WHERE i.dn_number = dh.delivery_number)
                   AND NOT EXISTS (SELECT 1 FROM delivery_hdr r WHERE r.origin_delivery_number = dh.delivery_number AND r.status <> '5')
+                  AND (dh.status = '7' OR NOT EXISTS (SELECT 1 FROM anc JOIN invoice_det i ON i.dn_number = anc.anc_dn WHERE anc.dn = dh.delivery_number))
                 UNION ALL
                 SELECT t.id, t.tdn_number, t.customer_id, t.delivery_date, 'TEMPORARY DN', 'OPEN', t.created_by, t.created_at
                 FROM temporary_dn_hdr t
