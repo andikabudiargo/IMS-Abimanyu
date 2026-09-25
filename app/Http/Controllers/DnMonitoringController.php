@@ -22,12 +22,12 @@ class DnMonitoringController extends Controller
                 SELECT dh.id, dh.delivery_number AS dn_number, dh.customer_id, dh.delivery_date,
                     CASE WHEN dh.status = '8' THEN 'DN RECEIVED' ELSE 'DELIVERY' END AS source,
                     CASE dh.status WHEN '1' THEN 'NEW' WHEN '2' THEN 'VALIDATE' WHEN '3' THEN 'APPROVED'
-                        WHEN '4' THEN 'POSTED' WHEN '8' THEN
+                        WHEN '4' THEN 'POSTED' WHEN '7' THEN 'REVISED' WHEN '8' THEN
                         CASE dr.status WHEN '2' THEN 'SUBMITTED (BELUM DIBUATKAN INVOICE)' ELSE 'RECEIVED (BELUM SUBMIT AKUNTING)' END END AS status,
                     dh.created_by, dh.created_at
                 FROM delivery_hdr dh
                 LEFT JOIN dn_receipt dr ON dr.delivery_number = dh.delivery_number
-                WHERE dh.status IN ('1','2','3','4','8')
+                WHERE dh.status IN ('1','2','3','4','7','8')
                   AND NOT EXISTS (SELECT 1 FROM invoice_det i WHERE i.dn_number = dh.delivery_number)
                 UNION ALL
                 SELECT t.id, t.tdn_number, t.customer_id, t.delivery_date, 'TEMPORARY DN', 'OPEN', t.created_by, t.created_at
