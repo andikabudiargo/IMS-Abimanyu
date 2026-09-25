@@ -53,6 +53,7 @@
   <div class="modal-dialog modal-xl" role="document">
     <div class="modal-content">
       <div class="modal-header"><h5 class="modal-title" id="dnModalTitle"></h5>
+        <a href="#" id="dnExport" class="btn btn-success btn-sm ml-auto mr-2"><i class="fa fa-download"></i> Export Excel</a>
         <button type="button" class="close" data-dismiss="modal">&times;</button></div>
       <div class="modal-body table-responsive">
         <table class="table table-sm table-bordered">
@@ -72,6 +73,7 @@
     e.preventDefault();
     const d = $(this).data();
     $('#dnModalTitle').text(d.name + ' - W' + d.week);
+    $('#dnExport').attr('href', "{{ route('dnMonitoring.export') }}?" + $.param({customer: d.customer, week: d.week, periode: '{{ $periode }}'}));
     $('#dnModalBody').html('<tr><td colspan="6">Loading...</td></tr>');
     $('#dnModal').modal('show');
     $.get("{{ route('dnMonitoring.detail') }}", {customer: d.customer, week: d.week, periode: '{{ $periode }}'}, function (rows) {

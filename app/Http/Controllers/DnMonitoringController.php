@@ -6,6 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Schema;
 use DB;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 class DnMonitoringController extends Controller
 {
@@ -76,7 +80,7 @@ class DnMonitoringController extends Controller
         return view('monitoring.dnMonitoring', $data);
     }
 
-    public function detail(Request $request)
+    private function detailRows(Request $request)
     {
         $month = $this->month($request);
         $rows = [];
@@ -91,6 +95,23 @@ class DnMonitoringController extends Controller
             unset($r->id);
             $rows[] = $r;
         }
-        return response()->json($rows);
+        return $rows;
+    }
+
+    public function detail(Request $request)
+    {
+        return response()->json($this->detailRows($request));
+    }
+
+    public function export(Request $request)
+    {
+        $rows = array_map(fn($r) => [$r->dn_number, $r->source, $r->delivery_date, $r->status, $r->created_by, $r->created_at], $this->detailRows($request));
+        $export = new class($rows) implements FromArray, WithHeadings, ShouldAutoSize {
+            private $rows;
+            public function __construct(array $rows) { $this->rows = $rows; }
+            public function array(): array { return $this->rows; }
+            public function headings(): array { return ['Nomor DN', 'Tipe', 'Delivery Date', 'Status', 'Created By', 'Created At']; }
+        };
+        return Excel::download($export, "dn_belum_invoice_{$request->customer}_W{$request->week}.xlsx");
     }
 }
