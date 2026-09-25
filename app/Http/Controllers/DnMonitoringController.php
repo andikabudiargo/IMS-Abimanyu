@@ -11,16 +11,15 @@ class DnMonitoringController extends Controller
 {
     // Semua DN bulan berjalan yang belum punya relasi ke invoice_det:
     //  DELIVERY = DN status 1-4, DN RECEIVED = DN status 8, TEMPORARY DN = surat jalan sementara OPEN.
-    private function pendingRows()
+    private function pendingRows($month)
     {
-        $month = date('Y-m');
         return DB::select("
             SELECT * FROM (
                 SELECT dh.id, dh.delivery_number AS dn_number, dh.customer_id, dh.delivery_date,
                     CASE WHEN dh.status = '8' THEN 'DN RECEIVED' ELSE 'DELIVERY' END AS source,
                     CASE dh.status WHEN '1' THEN 'NEW' WHEN '2' THEN 'VALIDATE' WHEN '3' THEN 'APPROVED'
                         WHEN '4' THEN 'POSTED' WHEN '8' THEN
-                        CASE dr.status WHEN '2' THEN 'RECEIVED - SUBMITTED' ELSE 'RECEIVED' END END AS status,
+                        CASE dr.status WHEN '2' THEN 'SUBMITTED AKUNTING' ELSE 'RECEIVED (BELUM SUBMIT AKUNTING)' END END AS status,
                     dh.created_by, dh.created_at
                 FROM delivery_hdr dh
                 LEFT JOIN dn_receipt dr ON dr.delivery_number = dh.delivery_number
@@ -40,8 +39,14 @@ class DnMonitoringController extends Controller
         return min(4, (int) ceil((int) substr($deliveryDate, 0, 2) / 7));
     }
 
-    public function index()
+    private function month(Request $request)
     {
+        return preg_match('/^\d{4}-\d{2}$/', $request->periode) ? $request->periode : date('Y-m');
+    }
+
+    public function index(Request $request)
+    {
+        $month = $this->month($request);
         $data['title'] = 'DN Monitoring';
 
         $hasCutOff = Schema::hasColumn('third_party', 'cutt_off_dn');
@@ -50,7 +55,11 @@ class DnMonitoringController extends Controller
             ->get()->keyBy('kode');
 
         $summary = [];
-        foreach ($this->pendingRows() as $r) {
+        $selected = array_filter((array) $request->customer);
+        foreach ($this->pendingRows($month) as $r) {
+            if ($selected && !in_array($r->customer_id, $selected)) {
+                continue;
+            }
             $c = $r->customer_id;
             $summary[$c]['name'] = $customers[$c]->nama ?? $c;
             $summary[$c]['cutt_off'] = $customers[$c]->cutt_off ?? '';
@@ -60,14 +69,18 @@ class DnMonitoringController extends Controller
         uasort($summary, fn($a, $b) => strcmp($a['name'], $b['name']));
 
         $data['summary'] = $summary;
-        $data['monthLabel'] = date('F Y');
+        $data['monthLabel'] = date('F Y', strtotime("$month-01"));
+        $data['periode'] = $month;
+        $data['customers'] = $customers;
+        $data['selected'] = $selected;
         return view('monitoring.dnMonitoring', $data);
     }
 
     public function detail(Request $request)
     {
+        $month = $this->month($request);
         $rows = [];
-        foreach ($this->pendingRows() as $r) {
+        foreach ($this->pendingRows($month) as $r) {
             if ($r->customer_id != $request->customer || $this->week($r->delivery_date) != (int) $request->week) {
                 continue;
             }

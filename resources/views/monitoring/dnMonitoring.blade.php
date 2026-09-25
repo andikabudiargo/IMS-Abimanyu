@@ -6,6 +6,7 @@
   <div class="card">
     <div class="card-header">
       <h4 class="card-title">DN Belum Dibuatkan Invoice - {{ $monthLabel }}</h4>
+      <form method="GET" class="form-inline"><label class="mr-1">Periode</label><input type="month" name="periode" value="{{ $periode }}" class="form-control form-control-sm mr-1"><select name="customer[]" class="select2 form-control form-control-sm mr-1" multiple data-placeholder="Semua Customer" style="min-width:300px">@foreach($customers as $c)<option value="{{ $c->kode }}" @if(in_array($c->kode, $selected)) selected @endif>{{ $c->kode }} - {{ $c->nama }}</option>@endforeach</select><button class="btn btn-primary btn-sm">Tampilkan</button></form>
     </div>
     <div class="card-body table-responsive">
       <table class="table table-bordered table-hover">
@@ -20,7 +21,7 @@
           @forelse($summary as $kode => $row)
             <tr>
               <td>{{ $row['name'] }}</td>
-              <td>{{ $row['cutt_off'] }}</td>
+              <td>@if($row['cutt_off']){{ $row['cutt_off'] }}@else<small><em class="text-muted">Belum Ada Cut Off Tanggal Kembali Surat Jalan</em></small>@endif</td>
               @foreach([1,2,3,4] as $w)
                 <td class="text-center">
                   @if(!empty($row['w'][$w]))
@@ -55,6 +56,7 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
+  $('.select2').select2({placeholder: 'Semua Customer', allowClear: true});
   const esc = s => $('<div>').text(s ?? '').html();
   $('.btn-dn').on('click', function (e) {
     e.preventDefault();
@@ -62,7 +64,7 @@
     $('#dnModalTitle').text(d.name + ' - W' + d.week);
     $('#dnModalBody').html('<tr><td colspan="6">Loading...</td></tr>');
     $('#dnModal').modal('show');
-    $.get("{{ route('dnMonitoring.detail') }}", {customer: d.customer, week: d.week}, function (rows) {
+    $.get("{{ route('dnMonitoring.detail') }}", {customer: d.customer, week: d.week, periode: '{{ $periode }}'}, function (rows) {
       $('#dnModalBody').html(rows.map(r => '<tr><td><a href="' + esc(r.url) + '" target="_blank">' + esc(r.dn_number) + '</a></td><td>'
         + esc(r.source) + '</td><td>' + esc(r.delivery_date) + '</td><td>' + esc(r.status) + '</td><td>'
         + esc(r.created_by) + '</td><td>' + esc(r.created_at) + '</td></tr>').join(''));
