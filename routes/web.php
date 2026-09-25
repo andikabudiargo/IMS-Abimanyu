@@ -261,6 +261,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('articles/request',['as'=>'article.request','uses'=>'ArticleController@requestIndex']);
 	Route::get('articles/request/list',['as'=>'article.request.list','uses'=>'ArticleController@requestList']);
 	Route::get('articles/request/create',['as'=>'article.request.create','uses'=>'ArticleController@requestCreate']);
+	Route::post('articles/request/similar',['as'=>'article.request.similar','uses'=>'ArticleController@requestSimilar']);
 	Route::post('articles/request/store',['as'=>'article.request.store','uses'=>'ArticleController@requestStore']);
 	Route::post('articles/request/delete',['as'=>'article.request.destroy','uses'=>'ArticleController@requestDestroy']);
 	Route::get('articles/request/edit',['as'=>'article.request.edit','uses'=>'ArticleController@requestEdit']);

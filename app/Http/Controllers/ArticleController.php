@@ -2114,6 +2114,26 @@ private function buildSummaryRow(array $p)
             return view("articles.requestCreate",$data);
         }
 
+        // Cari article (master) & article request (belum rejected) yang description-nya mirip:
+        // semua kata pada input harus ada di description (urutan bebas).
+        public function requestSimilar(Request $request)
+        {
+            $words = array_filter(preg_split('/\s+/', trim(strtoupper((string) $request->nama))), fn($w) => strlen($w) >= 2);
+            if (!$words) return response()->json([]);
+
+            $like = function ($q) use ($words) {
+                foreach ($words as $w) {
+                    $q->where('article_desc', 'ilike', '%' . addcslashes($w, '%_\\') . '%');
+                }
+            };
+            $master = DB::table('article')->where($like)
+                ->select('article_code', 'article_desc', 'article_type', 'uom', DB::raw("'Master' as source"));
+            $req = DB::table('article_request')->where($like)->where('status', '<>', '4')
+                ->select('article_code', 'article_desc', 'article_type', 'uom', DB::raw("'Request' as source"));
+
+            return response()->json($master->unionAll($req)->orderBy('article_desc')->limit(20)->get());
+        }
+
         public function requestStore(Request $request)
         {
             // Dump, Die, Debug Fungsinya untuk nge-debug hasil dari submit

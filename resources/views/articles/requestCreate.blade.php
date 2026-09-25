@@ -164,6 +164,29 @@
         </div>
     </div>
 </section>
+<div class="modal fade" id="similarModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Article dengan description mirip ditemukan</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>Pastikan article yang akan dibuat bukan duplikat dari daftar berikut:</p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead><tr><th>Source</th><th>Code</th><th>Description</th><th>Type</th><th>UoM</th></tr></thead>
+                        <tbody id="similarBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="similarContinue">Lanjutkan Save</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 @section('styles')
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/jquery-ui.css') }}">
@@ -233,15 +256,31 @@
     //     }
     // };
 
+    function submitForm() {
+        $('.disabled-el').removeAttr('disabled');
+        $("#frmAdd").submit();
+    }
+
     $("#cmdSave").click(function (e) {
         e.preventDefault();
-        if (!$("#frmAdd")[0].checkValidity()){
-            $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").submit();
-        }else{
-            $('.disabled-el').removeAttr('disabled');
-            $("#frmAdd").submit();
-        }
+        // form invalid -> langsung submit agar validasi/toast bawaan tampil
+        if (!$("#frmAdd")[0].checkValidity() || !$('#nama').val().trim()) return submitForm();
+
+        $.post("{{ route('article.request.similar') }}", { nama: $('#nama').val() })
+            .done(function (rows) {
+                if (!rows.length) return submitForm();
+                let esc = s => $('<div>').text(s ?? '').html();
+                $('#similarBody').html(rows.map(r =>
+                    '<tr><td>' + esc(r.source) + '</td><td>' + esc(r.article_code) + '</td><td>' + esc(r.article_desc) +
+                    '</td><td>' + esc(r.article_type) + '</td><td>' + esc(r.uom) + '</td></tr>').join(''));
+                $('#similarModal').modal('show');
+            })
+            .fail(submitForm); // ponytail: cek gagal tidak memblokir save
+    });
+
+    $('#similarContinue').click(function () {
+        $(this).prop('disabled', true);
+        submitForm();
     });
       
     $("#cmdNew").click(function() {
