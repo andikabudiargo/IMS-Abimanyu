@@ -746,6 +746,17 @@
             $artCode = $request->artCode;
             $articleAltCode = $request -> articleAltCode;
 
+            $usedInBom = DB::table('bom_det')->where('article_code',$artCode)->exists()
+                || DB::table('bom_rm')->where('article_code',$artCode)->exists()
+                || DB::table('bom_hdr')->where('article_code',$artCode)->exists();
+
+            if ($usedInBom) {
+                $title = "Delete $this->title";
+                $message = "$this->title $articleAltCode $artCode cannot be deleted because it is used in a BOM";
+                \LogActivity::addToLog($title,"username: $username Status $message");
+                return redirect()->back()->with(['alert' => 'warning', 'title' => $title, 'message' => $message]);
+            }
+
             $count = DB::table('movement')
             ->where('artikel_code',$artCode)
             ->count();
