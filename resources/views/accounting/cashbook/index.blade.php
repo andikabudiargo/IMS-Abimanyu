@@ -99,7 +99,7 @@
 </section>
 
 <div class="modal fade" id="createModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-dialog-centered" role="document">
+  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Create {{ $title }}</h5>
@@ -215,7 +215,6 @@
   btnDetail.click(showDetail);
   btnSummary.click(searchData);
   $('#btnSearch').click(searchData);
-  searchData();
   $('a[data-action="reload"]').on('click', searchData);
 
   $.ajaxSetup({headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')}});
