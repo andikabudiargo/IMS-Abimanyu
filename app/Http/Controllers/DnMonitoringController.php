@@ -70,6 +70,21 @@ class DnMonitoringController extends Controller
         return (int) ceil(date('t', strtotime("$month-01")) / 7);
     }
 
+    // Cut-off berulang tiap bulan (tanggal 1-31), dibandingkan ke hari ini:
+    // 'over' kalau tanggal cut-off bulan ini sudah lewat, 'near' kalau H-3 atau kurang.
+    private function cutOffStatus($cuttOff)
+    {
+        if (!$cuttOff) {
+            return '';
+        }
+        $day = min((int) $cuttOff, (int) date('t'));
+        $remaining = $day - (int) date('j');
+        if ($remaining < 0) {
+            return 'over';
+        }
+        return $remaining <= 3 ? 'near' : '';
+    }
+
     private function month(Request $request)
     {
         return preg_match('/^\d{4}-\d{2}$/', $request->periode) ? $request->periode : date('Y-m');
@@ -93,6 +108,7 @@ class DnMonitoringController extends Controller
             $c = $r->customer_id;
             $summary[$c]['name'] = $customers[$c]->nama ?? $c;
             $summary[$c]['cutt_off'] = $customers[$c]->cutt_off ?? '';
+            $summary[$c]['cutt_off_status'] = $this->cutOffStatus($customers[$c]->cutt_off ?? null);
             $w = $this->week($r->delivery_date);
             $summary[$c]['w'][$w] = ($summary[$c]['w'][$w] ?? 0) + 1;
         }

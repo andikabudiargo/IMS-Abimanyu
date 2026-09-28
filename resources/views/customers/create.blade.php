@@ -179,7 +179,17 @@
                                 </div>
                             </div>
                         </div>
-                    </div>        
+                        <div class="form-group col-md-3">
+                            <label class="form-label" for="cuttOffDn">Tanggal Invoice Cut-Off</label>
+                            <div class="input-group input-group-merge">
+                                <input type="text" id="cuttOffDn" name="cuttOffDn" value="{{ old('cuttOffDn') }}" class="form-control angka" maxlength="2" placeholder="1-31"/>
+                                <div class="input-group-append">
+                                    <span class="input-group-text">Tgl</span>
+                                </div>
+                            </div>
+                            <small class="text-muted">Batas tanggal DN customer ini harus sudah di-invoice, dipakai di DN Monitoring</small>
+                        </div>
+                    </div>
                     <div class="form-row">
                         <div class="form-group col-md-6">
                             <label class="form-label" for="sales">Sales</label>

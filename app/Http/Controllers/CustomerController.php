@@ -42,6 +42,7 @@ class CustomerController extends Controller
             ['data'=>'account','name'=>'account','title'=>'COA Piutang'],
             ['data'=>'coa_penjualan','name'=>'coa_penjualan','title'=>'COA Penjualan'],
             ['data'=>'top_batas_1','name'=>'top_batas_1','title'=>'TOP'],
+            ['data'=>'cutt_off_dn','name'=>'cutt_off_dn','title'=>'Tanggal Invoice Cut-Off'],
         ];
         return json_encode($kolom, true);
     }
@@ -162,6 +163,7 @@ class CustomerController extends Controller
         $syaratKirim = $request->syaratKirim;
         $topBatas1 = $request->topBatas1;
         $topBatas2 = $request->topBatas2;
+        $cuttOffDn = $request->cuttOffDn ?: null;
         $sales = $request->sales;
         $areaKirim = $request->areaKirim;
         $account = $request->account;
@@ -252,6 +254,7 @@ class CustomerController extends Controller
                     'account'=> $account,
                     'top_batas_1'=> $topBatas1,
                     'top_batas_2'=> $topBatas2,
+                    'cutt_off_dn'=> $cuttOffDn,
                     'aktif'=> $aktif,
                     'blacklist'=> $blacklist,
                     'epte'=>$epte,
@@ -374,6 +377,7 @@ class CustomerController extends Controller
         $syaratKirim = $request->input('syaratKirim');
         $topBatas1 = $request->input('topBatas1');
         $topBatas2 = $request->input('topBatas2');
+        $cuttOffDn = $request->input('cuttOffDn') ?: null;
         $sales = $request->input('sales');
         $areaKirim = $request->input('areaKirim');
         $account = $request->input('account');
@@ -470,6 +474,7 @@ class CustomerController extends Controller
                     'account'=> $account,
                     'top_batas_1'=> $topBatas1,
                     'top_batas_2'=> $topBatas2,
+                    'cutt_off_dn'=> $cuttOffDn,
                     'aktif'=> $aktif,
                     'blacklist'=> $blacklist,
                     'epte'=>$epte,

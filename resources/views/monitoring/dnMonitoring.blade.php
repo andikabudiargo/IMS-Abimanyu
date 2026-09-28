@@ -53,7 +53,15 @@
           @forelse($summary as $kode => $row)
             <tr>
               <td class="text-center">{{ $loop->iteration }}</td><td>{{ $row['name'] }}</td>
-              <td>@if($row['cutt_off']){{ $row['cutt_off'] }}@else<small><em class="text-muted">Belum Ada Cut Off Tanggal Kembali Surat Jalan</em></small>@endif</td>
+              <td>
+                @if($row['cutt_off'])
+                  <span class="{{ ['over' => 'text-danger font-weight-bold', 'near' => 'text-warning font-weight-bold'][$row['cutt_off_status']] ?? '' }}">
+                    Tgl {{ $row['cutt_off'] }}
+                  </span>
+                @else
+                  <small><em class="text-muted">Belum Ada Cut Off Tanggal Kembali Surat Jalan</em></small>
+                @endif
+              </td>
               @foreach($weeks as $w)
                 <td class="text-center">
                   @if(!empty($row['w'][$w]))
