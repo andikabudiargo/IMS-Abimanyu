@@ -17,6 +17,7 @@
             <select id="filter" name="filter" class="form-control">
               <option value="invoice" @if($filter == 'invoice') selected @endif>Belum Dibuatkan Invoice</option>
               <option value="kembali" @if($filter == 'kembali') selected @endif>Belum Kembali</option>
+              <option value="all" @if($filter == 'all') selected @endif>All</option>
             </select>
           </div>
           <div class="form-group col-md-6">
@@ -63,7 +64,7 @@
               <td class="text-center font-weight-bold">{{ array_sum($row['w']) }}</td>
             </tr>
           @empty
-            <tr><td colspan="8" class="text-center text-muted">Tidak ada DN {{ $filter == 'kembali' ? 'yang belum kembali' : 'yang belum di-invoice' }} bulan ini</td></tr>
+            <tr><td colspan="8" class="text-center text-muted">Tidak ada DN {{ ['invoice' => 'yang belum di-invoice', 'kembali' => 'yang belum kembali'][$filter] ?? 'outstanding' }} bulan ini</td></tr>
           @endforelse
         </tbody>
         @if($summary)

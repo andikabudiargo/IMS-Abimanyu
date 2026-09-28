@@ -13,8 +13,10 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 class DnMonitoringController extends Controller
 {
-    // Semua DN bulan berjalan yang belum punya relasi ke invoice_det:
-    //  DELIVERY = DN status 1-4, DN RECEIVED = DN status 8, TEMPORARY DN = surat jalan sementara OPEN.
+    // Semua DN bulan berjalan yang belum kelar salah satu dari dua hal:
+    //  - belum di-invoice (belum ada relasi ke invoice_det)
+    //  - belum kembali (surat jalan belum di-Receive, DELIVERY yang belum berstatus DN RECEIVED)
+    // DELIVERY = DN status 1-4/10, DN RECEIVED = DN status 8, TEMPORARY DN = surat jalan sementara OPEN.
     private function pendingRows($month, $filter = 'invoice')
     {
         $rows = DB::select("
@@ -24,27 +26,35 @@ class DnMonitoringController extends Controller
                     CASE dh.status WHEN '1' THEN 'NEW' WHEN '2' THEN 'VALIDATE' WHEN '3' THEN 'APPROVED'
                         WHEN '4' THEN 'POSTED' WHEN '10' THEN 'REVISED' WHEN '8' THEN
                         CASE dr.status WHEN '2' THEN 'SUBMITTED (BELUM DIBUATKAN INVOICE)' ELSE 'RECEIVED (BELUM SUBMIT AKUNTING)' END END AS status,
-                    dh.created_by, dh.created_at
+                    dh.created_by, dh.created_at,
+                    NOT EXISTS (SELECT 1 FROM invoice_det i WHERE i.dn_number = dh.delivery_number) AS belum_invoice,
+                    dh.status <> '8' AS belum_kembali
                 FROM delivery_hdr dh
                 LEFT JOIN dn_receipt dr ON dr.delivery_number = dh.delivery_number
                 WHERE dh.status IN ('1','2','3','4','8','10')
                   AND (dh.origin_delivery_number IS NULL OR dh.origin_delivery_number = dh.delivery_number)
-                  AND NOT EXISTS (SELECT 1 FROM invoice_det i WHERE i.dn_number = dh.delivery_number)
                 UNION ALL
-                SELECT t.id, t.tdn_number, t.customer_id, t.delivery_date, 'TEMPORARY DN', 'OPEN', t.created_by, t.created_at
+                SELECT t.id, t.tdn_number, t.customer_id, t.delivery_date, 'TEMPORARY DN', 'OPEN', t.created_by, t.created_at,
+                    true, true
                 FROM temporary_dn_hdr t
                 WHERE t.status = '1'
             ) x
             WHERE to_char(to_date(x.delivery_date,'DD-MM-YYYY'),'YYYY-MM') = ?
+              AND (x.belum_invoice OR x.belum_kembali)
             ORDER BY to_date(x.delivery_date,'DD-MM-YYYY'), x.dn_number", [$month]);
 
-        // Belum kembali = belum di-Receive delivery; DN RECEIVED (submitted/belum) sudah dianggap kembali.
-        return $filter == 'kembali' ? array_filter($rows, fn($r) => $r->source != 'DN RECEIVED') : $rows;
+        if ($filter == 'invoice') {
+            return array_values(array_filter($rows, fn($r) => $r->belum_invoice));
+        }
+        if ($filter == 'kembali') {
+            return array_values(array_filter($rows, fn($r) => $r->belum_kembali));
+        }
+        return $rows; // all
     }
 
     private function filter(Request $request)
     {
-        return $request->filter == 'kembali' ? 'kembali' : 'invoice';
+        return in_array($request->filter, ['kembali', 'all']) ? $request->filter : 'invoice';
     }
 
     private function week($deliveryDate)
