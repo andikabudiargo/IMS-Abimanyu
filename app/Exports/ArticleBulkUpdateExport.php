@@ -30,6 +30,10 @@ class ArticleBulkUpdateExport implements WithMultipleSheets
             $sheets[] = new ArticleBulkUpdateCoaRefSheet($this->accounts);
         }
 
+        if (in_array('cashflow_category', $this->columns)) {
+            $sheets[] = new ArticleBulkUpdateCashflowGuideSheet();
+        }
+
         return $sheets;
     }
 }
