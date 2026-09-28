@@ -167,8 +167,11 @@ class ArPaymentScheduleController extends Controller
         if ($bucket === 'opening') {
             return " AND piutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') ";
         }
+        if ($bucket === 'outstanding_opening') {
+            return " AND piutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') AND piutang.balance_asof > 0.01 ";
+        }
         if ($bucket === 'outstanding') {
-            return " AND piutang.jatuh_tempo_actual <= to_date(:asOf,'DD-MM-YYYY') AND piutang.balance_asof > 0.01 ";
+            return " AND piutang.jatuh_tempo_actual >= to_date(:periodStart,'DD-MM-YYYY') AND piutang.jatuh_tempo_actual <= to_date(:asOf,'DD-MM-YYYY') AND piutang.balance_asof > 0.01 ";
         }
         if (preg_match('/^d(\d+)$/', (string) $bucket, $m)) {
             $day = (int) $m[1];
@@ -183,7 +186,8 @@ class ArPaymentScheduleController extends Controller
     {
         if ($bucket === 'opening') return 'Opening Balance';
         if ($bucket === 'total') return 'Total';
-        if ($bucket === 'outstanding') return 'Outstanding (Sudah Lewat Jatuh Tempo)';
+        if ($bucket === 'outstanding_opening') return 'Outstanding dari Periode Sebelumnya';
+        if ($bucket === 'outstanding') return 'Outstanding Periode Berjalan';
         if (preg_match('/^d(\d+)$/', (string) $bucket, $m)) return 'Jatuh Tempo Tanggal ' . $m[1];
         return $bucket;
     }
@@ -227,7 +231,8 @@ class ArPaymentScheduleController extends Controller
                 " . implode(",\n                ", $dayCases) . ",
                 SUM(piutang.balance_open) as total,
                 SUM(piutang.paid_in_period) as paid,
-                SUM(CASE WHEN piutang.jatuh_tempo_actual <= to_date(:asOf,'DD-MM-YYYY') AND piutang.balance_asof > 0.01 THEN piutang.balance_asof ELSE 0 END) as outstanding
+                SUM(CASE WHEN piutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') AND piutang.balance_asof > 0.01 THEN piutang.balance_asof ELSE 0 END) as outstanding_opening,
+                SUM(CASE WHEN piutang.jatuh_tempo_actual >= to_date(:periodStart,'DD-MM-YYYY') AND piutang.jatuh_tempo_actual <= to_date(:asOf,'DD-MM-YYYY') AND piutang.balance_asof > 0.01 THEN piutang.balance_asof ELSE 0 END) as outstanding
             FROM ($subquery) piutang
             LEFT JOIN third_party ON third_party.kode = piutang.customer_id
             WHERE piutang.jatuh_tempo_actual <= to_date(:periodEnd,'DD-MM-YYYY')
@@ -238,7 +243,7 @@ class ArPaymentScheduleController extends Controller
 
         $rows = DB::select($sql, $bindings);
 
-        $grand = ['opening' => 0.0, 'total' => 0.0, 'paid' => 0.0, 'balance' => 0.0, 'outstanding' => 0.0];
+        $grand = ['opening' => 0.0, 'total' => 0.0, 'paid' => 0.0, 'balance' => 0.0, 'outstanding_opening' => 0.0, 'outstanding' => 0.0];
         for ($d = 1; $d <= $daysInMonth; $d++) {
             $grand['d' . $d] = 0.0;
         }
@@ -266,14 +271,16 @@ class ArPaymentScheduleController extends Controller
                 'total'         => (float) $row['total'],
                 'paid'          => (float) $row['paid'],
                 'balance'       => $balance,
+                'outstanding_opening' => (float) $row['outstanding_opening'],
                 'outstanding'   => (float) $row['outstanding'],
             ];
 
-            $grand['opening']     += (float) $r->opening;
-            $grand['total']       += (float) $row['total'];
-            $grand['paid']        += (float) $row['paid'];
-            $grand['balance']     += $balance;
-            $grand['outstanding'] += (float) $row['outstanding'];
+            $grand['opening']             += (float) $r->opening;
+            $grand['total']               += (float) $row['total'];
+            $grand['paid']                += (float) $row['paid'];
+            $grand['balance']             += $balance;
+            $grand['outstanding_opening'] += (float) $row['outstanding_opening'];
+            $grand['outstanding']         += (float) $row['outstanding'];
         }
 
         return [
@@ -341,7 +348,7 @@ class ArPaymentScheduleController extends Controller
 
         $result = [];
         foreach ($rows as $r) {
-            $balance = $bucket === 'outstanding' ? (float) $r->balance_asof : (float) $r->balance_open;
+            $balance = in_array($bucket, ['outstanding', 'outstanding_opening'], true) ? (float) $r->balance_asof : (float) $r->balance_open;
             if ($balance <= 0.01) {
                 continue;
             }

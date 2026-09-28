@@ -368,7 +368,8 @@ $(document).ready(function () {
         let h = '<tr>'
             + '<th class="col-no">No</th>'
             + '<th class="col-supplier text-left">Supplier</th>'
-            + '<th class="schedule-clickable" data-bucket="opening">Opening</th>';
+            + '<th class="schedule-clickable" data-bucket="opening">Opening</th>'
+            + '<th class="schedule-clickable" data-bucket="outstanding_opening" data-supplier="">Outstanding</th>';
         for (let d = 1; d <= daysInMonth; d++) {
             let g = new Date(year, month - 1, d).getDay();
             let cls = (isWeekend(year, month, d) ? ' col-weekend' : '') + (isToday(year, month, d) ? ' col-today' : '');
@@ -385,7 +386,8 @@ $(document).ready(function () {
         let f = '<tr>'
             + '<td class="col-no"></td>'
             + '<td class="col-supplier text-left">GRAND TOTAL</td>'
-            + '<td class="schedule-clickable" id="tOpening" data-bucket="opening" data-supplier="">0</td>';
+            + '<td class="schedule-clickable" id="tOpening" data-bucket="opening" data-supplier="">0</td>'
+            + '<td class="schedule-clickable" id="tOutstandingOpening" data-bucket="outstanding_opening" data-supplier="">0</td>';
         for (let d = 1; d <= daysInMonth; d++) {
             f += '<td class="schedule-clickable' + (isWeekend(year, month, d) ? ' col-weekend' : '') + (isToday(year, month, d) ? ' col-today' : '') + '" id="tD' + d + '" data-bucket="d' + d + '" data-supplier="">0</td>';
         }
@@ -405,7 +407,7 @@ $(document).ready(function () {
 
         let body = '';
         if (!res.rows || res.rows.length === 0) {
-            body = '<tr><td colspan="' + (res.daysInMonth + 7) + '" class="text-center text-muted py-1">Tidak ada tagihan untuk periode ini.</td></tr>';
+            body = '<tr><td colspan="' + (res.daysInMonth + 8) + '" class="text-center text-muted py-1">Tidak ada tagihan untuk periode ini.</td></tr>';
         } else {
             res.rows.forEach(function (r, idx) {
                 let sc = r.supplier_code;
@@ -418,7 +420,8 @@ $(document).ready(function () {
                 let row = '<tr' + (paidOff ? ' class="row-paid"' : '') + '>'
                     + '<td class="col-no">' + (idx + 1) + '</td>'
                     + '<td class="col-supplier text-left">' + r.supplier_name + '</td>'
-                    + cell('opening', r.opening, '', r.opening_remain);
+                    + cell('opening', r.opening, '', r.opening_remain)
+                    + cell('outstanding_opening', r.outstanding_opening, 'text-danger font-weight-bold');
                 for (let d = 1; d <= res.daysInMonth; d++) {
                     row += cell('d' + d, r.days['d' + d], (isWeekend(res.year, res.month, d) ? 'col-weekend' : '') + (isToday(res.year, res.month, d) ? ' col-today' : ''), r.days_remain['d' + d]);
                 }
@@ -434,6 +437,7 @@ $(document).ready(function () {
 
         let g = res.grand;
         $('#tOpening').text(fmtAlways(g.opening));
+        $('#tOutstandingOpening').text(fmtAlways(g.outstanding_opening));
         for (let d = 1; d <= res.daysInMonth; d++) {
             $('#tD' + d).text(fmtAlways(g['d' + d]));
         }
@@ -445,7 +449,7 @@ $(document).ready(function () {
         $('#sumSupplierCount').text(res.rows.length);
         $('#sumTotalSchedule').text(fmtAlways(g.total));
         $('#sumTotalPaid').text(fmtAlways(g.paid));
-        $('#sumTotalOutstanding').text(fmtAlways(g.outstanding));
+        $('#sumTotalOutstanding').text(fmtAlways((parseFloat(g.outstanding_opening) || 0) + (parseFloat(g.outstanding) || 0)));
         $('#schedule-summary').removeClass('d-none');
 
         $('#scheduleEmpty').addClass('d-none');
@@ -459,7 +463,8 @@ $(document).ready(function () {
     function bucketTitle(bucket) {
         if (bucket === 'opening') return 'Opening Balance';
         if (bucket === 'total') return 'Total';
-        if (bucket === 'outstanding') return 'Outstanding (Lewat Jatuh Tempo)';
+        if (bucket === 'outstanding_opening') return 'Outstanding dari Periode Sebelumnya';
+        if (bucket === 'outstanding') return 'Outstanding Periode Berjalan';
         if (bucket && bucket.charAt(0) === 'd') return 'Jatuh Tempo Tanggal ' + bucket.substring(1);
         return bucket;
     }

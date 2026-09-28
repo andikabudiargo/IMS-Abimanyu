@@ -27,10 +27,10 @@ class ArPaymentScheduleExport implements FromArray, WithHeadings, WithStyles, Wi
         $this->periodStart = $periodStart;
     }
 
-    // Customer + Opening + hari-hari + Total/Paid/Balance/Outstanding
+    // Customer + Opening + Outstanding(opening) + hari-hari + Total/Paid/Balance/Outstanding
     private function lastColumnIndex(): int
     {
-        return 2 + $this->daysInMonth + 4;
+        return 3 + $this->daysInMonth + 4;
     }
 
     public function array(): array
@@ -38,7 +38,7 @@ class ArPaymentScheduleExport implements FromArray, WithHeadings, WithStyles, Wi
         $data = [];
 
         foreach ($this->rows as $r) {
-            $line = [$r['customer_name'], $r['opening']];
+            $line = [$r['customer_name'], $r['opening'], $r['outstanding_opening']];
             for ($d = 1; $d <= $this->daysInMonth; $d++) {
                 $line[] = $r['days']['d' . $d];
             }
@@ -49,7 +49,7 @@ class ArPaymentScheduleExport implements FromArray, WithHeadings, WithStyles, Wi
             $data[] = $line;
         }
 
-        $grandLine = ['GRAND TOTAL', $this->grand['opening']];
+        $grandLine = ['GRAND TOTAL', $this->grand['opening'], $this->grand['outstanding_opening']];
         for ($d = 1; $d <= $this->daysInMonth; $d++) {
             $grandLine[] = $this->grand['d' . $d];
         }
@@ -64,7 +64,7 @@ class ArPaymentScheduleExport implements FromArray, WithHeadings, WithStyles, Wi
 
     public function headings(): array
     {
-        $h = ['Customer', 'Opening'];
+        $h = ['Customer', 'Opening', 'Outstanding'];
         for ($d = 1; $d <= $this->daysInMonth; $d++) {
             $h[] = (string) $d;
         }
