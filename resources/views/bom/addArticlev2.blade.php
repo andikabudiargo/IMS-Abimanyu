@@ -267,21 +267,17 @@
     };
 
     // Same dependent type always returns the same option list (doesn't vary per row),
-    // and the query behind it (article_bom) is heavy, so fetch it once and reuse.
-    if (dependentOptionsCache[dependent]) {
-        applyResult(dependentOptionsCache[dependent]);
-        return;
+    // and the query behind it (article_bom) is heavy. Rows are added in a synchronous
+    // loop on page load, so cache the in-flight promise (not just the resolved result)
+    // or every row fires its own request before the first one ever comes back.
+    if (!dependentOptionsCache[dependent]) {
+        dependentOptionsCache[dependent] = $.ajax({
+            url: "{{route('dynamic.dependent')}}",
+            method: "POST",
+            data: { dependent: dependent }
+        });
     }
-
-    $.ajax({
-        url: "{{route('dynamic.dependent')}}",
-        method: "POST",
-        data: { dependent: dependent },
-        success: function (result) {
-            dependentOptionsCache[dependent] = result;
-            applyResult(result);
-        }
-    });
+    dependentOptionsCache[dependent].done(applyResult);
 }
 
     fillPos = (obj) => {
