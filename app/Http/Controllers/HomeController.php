@@ -894,7 +894,12 @@ $data['outstandingTransferIn'] = DB::table('transfer_stock_hdr')
 $data['outstandingTransferInCount'] = $data['outstandingTransferIn']->count();
         $data['bomCount'] = count($data['listBom']);
         $data['greeting'] = self::greeting();
-        $data['salesAchievement'] = $this->buildSalesAchievement();
+        // ponytail: Delivery Performance dimatikan sementara -- buildSalesAchievement()
+        // menghitung avg selling/purchase price per artikel dalam loop, bikin login ke
+        // dashboard berat. Aktifkan lagi setelah query-nya dioptimasi (batch, bukan N+1).
+        $data['salesAchievement'] = ['hasTarget' => false, 'disabled' => true, 'periode' => (int) date('n'), 'tahun' => (int) date('Y'),
+            'monthLabel' => '', 'targetQty' => 0, 'achievedQty' => 0, 'qtyPct' => 0,
+            'targetConversion' => 0, 'achievedConversion' => 0, 'conversionPct' => 0, 'targetSoUrl' => route('targetSo.index')];
         $data['deptNames'] = DB::table('depts')->whereIn('code', $userDepts)->pluck('name')->implode(', ');
         $data['actionCenterCount'] = count($data['listPoHome']) + count($data['listBomHome']) + count($data['listPrHome'])
             + count($data['listSoHome']) + count($data['listTsoHome']) + count($data['listDnHome']) + count($data['listRecHome'])

@@ -40,7 +40,7 @@
                             <small class="text-muted">Delivery vs Target SO &mdash; <span id="saMonthLabel">{{ $salesAchievement['monthLabel'] }}</span></small>
                         </div>
                     </div>
-                    <div class="d-flex align-items-end flex-wrap" style="gap:.5rem;">
+                    <div class="d-flex align-items-end flex-wrap" style="gap:.5rem;{{ !empty($salesAchievement['disabled']) ? 'display:none;' : '' }}">
                         <div>
                             <label class="mb-0 small d-block">Periode</label>
                             <select id="saPeriode" class="form-control form-control-sm">
@@ -66,6 +66,11 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    @if(!empty($salesAchievement['disabled']))
+                    <div class="text-center text-muted py-2">
+                        <i data-feather="pause-circle" class="mr-25"></i> Delivery Performance sedang dinonaktifkan sementara untuk mempercepat login ke dashboard.
+                    </div>
+                    @else
                     <div id="saEmpty" class="text-center text-muted py-2" style="{{ $salesAchievement['hasTarget'] ? 'display:none;' : '' }}">
                         <i data-feather="info" class="mr-25"></i> Belum ada Target SO yang APPROVED untuk periode <span id="saEmptyLabel">{{ $salesAchievement['monthLabel'] }}</span>.
                     </div>
@@ -113,6 +118,7 @@
                             </div>
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>
