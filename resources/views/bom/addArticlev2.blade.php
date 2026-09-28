@@ -264,6 +264,13 @@
 
     let applyResult = (result) => {
         $('#' + obj).html(result);
+        // Existing BOM rows can reference an article_code the article_bom query excludes
+        // (e.g. article_type is RM), so it won't be among the loaded options. Without a
+        // matching <option>, .val() silently leaves the select blank forever, which also
+        // makes the "all selects filled" loading check never pass.
+        if (article && !$('#' + obj).find('option[value="' + article + '"]').length) {
+            $('#' + obj).append(new Option(article, article));
+        }
         $('#' + obj).val(article).trigger('change');
         $('#' + obj).removeAttr('disabled');
         $('#' + obj).select2();
