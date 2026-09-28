@@ -63,7 +63,7 @@ class ConversionReportController extends Controller
     //  CONVERSION VALUE (dari Conversion Setting, sama seperti Price List)
     // =========================================================================
 
-    private function activeConversionValue(): float
+    public function activeConversionValue(): float
     {
         $conv = DB::table('conversion_setting')->where('status', '1')->orderByDesc('id')->first();
         return $conv ? (float) $conv->conversion_value : 0;
@@ -121,7 +121,7 @@ private function isMaklon(string $articleCode): bool
      * dijual apa adanya, bukan hasil produksi), pakai avg receiving artikel
      * itu sendiri.
      */
-    private function purchasePrice(string $articleCode, ?int $periode = null, ?int $tahun = null): float
+    public function purchasePrice(string $articleCode, ?int $periode = null, ?int $tahun = null): float
 {
     $bom = DB::table('bom_hdr')
         ->where('article_code', $articleCode)

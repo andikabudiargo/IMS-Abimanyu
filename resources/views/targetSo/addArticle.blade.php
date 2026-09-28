@@ -7,7 +7,7 @@
                     <span class="input-group-text" id ="number" name="number[]"></span>
                 </div>
             </div>
-            <div class="col-md-6 col-12">
+            <div class="col-md-4 col-12">
                 <div class="form-group margin-nol">
                     <label  class="d-block d-md-none">Article</label>
                     <select class="form-control" id="articleId" name="articleId[]" data-dependent="articleId">
@@ -42,12 +42,18 @@
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
                     <label for="qtyForcast" class="d-block d-md-none">QTY Forcast</label>
-                    <input type="text" class="form-control numeral-mask-satuan text-right tombol-panah" 
-                        data-type-el-kiri="input" 
+                    <input type="text" class="form-control numeral-mask-satuan text-right tombol-panah"
+                        data-type-el-kiri="input"
                         data-nama-el-kiri='qtyTarget'
                         data-type-el-kanan='select'
                         data-nama-el-kanan='articleId'
                         id ="qtyForcast" name="qtyForcast[]" maxlength="9" />
+                </div>
+            </div>
+            <div class="col-md-2 col-12">
+                <div class="form-group margin-nol">
+                    <label class="d-block d-md-none">Conversion</label>
+                    <input type="text" class="form-control text-right conversion-preview" readonly tabindex="-1" value="0" />
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -438,6 +444,41 @@
         $('#'+obj).removeAttr('disabled');
         // $('#'+obj).select2('focus');
     }
+
+    let conversionPreviewDebounce;
+    function previewConversion($row) {
+        let articleCode = $row.find('select[name="articleId[]"]').val();
+        let $preview = $row.find('.conversion-preview');
+
+        if (!articleCode) {
+            $preview.val('0');
+            return;
+        }
+
+        let qtyTarget = ($row.find('input[name="qtyTarget[]"]').val() || '0').replace(/,/gi, '');
+        let tsoDate = $('#tsoDate').val();
+
+        $.ajax({
+            url: "{{ route('targetSo.conversion') }}",
+            method: 'GET',
+            data: { articleCode: articleCode, qtyTarget: qtyTarget, tsoDate: tsoDate },
+            success: function (res) {
+                if (res.status == 1) {
+                    $preview.val(res.data.total_conversion);
+                }
+            }
+        });
+    }
+
+    $(document).on('change', '#article_row select[name="articleId[]"]', function () {
+        previewConversion($(this).closest('.tanda-baris'));
+    });
+
+    $(document).on('keyup', '#article_row input[name="qtyTarget[]"]', function () {
+        let $row = $(this).closest('.tanda-baris');
+        clearTimeout(conversionPreviewDebounce);
+        conversionPreviewDebounce = setTimeout(() => previewConversion($row), 400);
+    });
 
     function splitArticle(){
         let objArticle = $('#article_row select[name="articleId[]"]');

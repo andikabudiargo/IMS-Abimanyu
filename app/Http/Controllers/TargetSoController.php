@@ -14,6 +14,7 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Http\Controllers\Conversion\ConversionReportController;
 
 class TargetSoController extends Controller
 {
@@ -53,6 +54,8 @@ class TargetSoController extends Controller
             ['data'=>'qty_forcast','name'=>'qty_forcast','title'=>'Qty Forcast'],
             ['data'=>'qty_actual','name'=>'qty_actual','title'=>'Qty Actual'],
             ['data'=>'uom','name'=>'uom','title'=>'UOM'],
+            ['data'=>'conversion','name'=>'conversion','title'=>'Conversion','orderable'=>false,'searchable'=>false],
+            ['data'=>'total_conversion','name'=>'total_conversion','title'=>'Total Conversion','orderable'=>false,'searchable'=>false],
             // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
@@ -755,6 +758,25 @@ class TargetSoController extends Controller
         ,'uom_group'
         ,'qty_target'
         ,'qty_forcast'
+        // harga jual rata-rata tertimbang qty dari SO: bulan terakhir yang punya SO (s/d bulan tso_date), SO batal/revisi (5,8) dikecualikan
+        ,DB::raw("(select sum(d.price*d.qty)/nullif(sum(d.qty),0) from sales_order_det d join sales_order_hdr h on h.so_code = d.so_code
+            where d.article_code = target_order_det.article_code and h.status not in ('5','8')
+            and date_trunc('month', to_date(h.so_date,'DD-MM-YYYY')) = (select max(date_trunc('month', to_date(h2.so_date,'DD-MM-YYYY')))
+                from sales_order_det d2 join sales_order_hdr h2 on h2.so_code = d2.so_code
+                where d2.article_code = target_order_det.article_code and h2.status not in ('5','8')
+                and to_date(h2.so_date,'DD-MM-YYYY') < date_trunc('month', to_date(target_order_hdr.tso_date,'DD-MM-YYYY')) + interval '1 month')) as so_avg_price")
+        // material price + conversion value dari Conversion Report terakhir (bukan Price List) -- avg_purchase_price sudah dihitung live dari BOM/receiving saat report dibuat, jadi tidak stale seperti Price List
+        ,DB::raw("(select crd.avg_purchase_price from conversion_report_det crd
+            join conversion_report_hdr crh on crh.id = crd.report_id
+            where crd.article_code = target_order_det.article_code and crh.status not in (5,8)
+            order by crh.tahun desc, crh.periode desc, crh.id desc limit 1) as cr_material_price")
+        ,DB::raw("(select crh.conversion_value_used from conversion_report_det crd
+            join conversion_report_hdr crh on crh.id = crd.report_id
+            where crd.article_code = target_order_det.article_code and crh.status not in (5,8)
+            order by crh.tahun desc, crh.periode desc, crh.id desc limit 1) as cr_conversion_value")
+        // fallback kalau artikel belum pernah ada di Conversion Report
+        ,DB::raw("(select material_price from price_list_fg where article_code = target_order_det.article_code and status = '1' order by id desc limit 1) as pl_material_price")
+        ,DB::raw("(select conversion_value from price_list_fg where article_code = target_order_det.article_code and status = '1' order by id desc limit 1) as pl_conversion_value")
         // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
         //,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
         )
@@ -767,8 +789,68 @@ class TargetSoController extends Controller
         //     $statusTso = ['NEW','VALIDATED','APPROVED'];
         //     return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
         // })
+        ->addColumn('conversion', fn($r) => number_format($r->conversion ?? ($r->conversion = self::soConversion($r)), 2))
+        ->addColumn('total_conversion', fn($r) => number_format(($r->conversion ?? ($r->conversion = self::soConversion($r))) * $r->qty_target, 2))
         ->rawColumns(['status'])
         ->make(true);
+    }
+
+    // (rata-rata harga jual SO - material price) / conversion_value; cost cascade: Conversion Report terakhir -> Price List aktif -> hitung live dari BOM/receiving. 0 kalau tidak ada SO.
+    private static function soConversion($r)
+    {
+        if ($r->so_avg_price === null) return 0;
+
+        $materialPrice = $r->cr_material_price ?? $r->pl_material_price;
+        $conversionValue = $r->cr_conversion_value ?? $r->pl_conversion_value;
+
+        if ($materialPrice === null || $conversionValue === null) {
+            $cvr = app(ConversionReportController::class);
+            $materialPrice ??= $cvr->purchasePrice($r->article_code);
+            $conversionValue ??= $cvr->activeConversionValue();
+        }
+
+        if ($conversionValue <= 0) return 0;
+        return ($r->so_avg_price - $materialPrice) / $conversionValue;
+    }
+
+    // preview live per artikel dipanggil dari form Create/Edit, sebelum target_order_det disimpan
+    public function conversionPreview(Request $request)
+    {
+        $articleCode = $request->articleCode;
+        $qtyTarget = (float) ($request->qtyTarget ?: 0);
+        $tsoDate = $request->tsoDate ?: date('d-m-Y');
+
+        if (!$articleCode) {
+            return response()->json(['status' => 0, 'message' => 'articleCode wajib diisi']);
+        }
+
+        $r = DB::selectOne("select
+            (select sum(d.price*d.qty)/nullif(sum(d.qty),0) from sales_order_det d join sales_order_hdr h on h.so_code = d.so_code
+                where d.article_code = ? and h.status not in ('5','8')
+                and date_trunc('month', to_date(h.so_date,'DD-MM-YYYY')) = (select max(date_trunc('month', to_date(h2.so_date,'DD-MM-YYYY')))
+                    from sales_order_det d2 join sales_order_hdr h2 on h2.so_code = d2.so_code
+                    where d2.article_code = ? and h2.status not in ('5','8')
+                    and to_date(h2.so_date,'DD-MM-YYYY') < date_trunc('month', to_date(?,'DD-MM-YYYY')) + interval '1 month')) as so_avg_price
+            ,(select crd.avg_purchase_price from conversion_report_det crd
+                join conversion_report_hdr crh on crh.id = crd.report_id
+                where crd.article_code = ? and crh.status not in (5,8)
+                order by crh.tahun desc, crh.periode desc, crh.id desc limit 1) as cr_material_price
+            ,(select crh.conversion_value_used from conversion_report_det crd
+                join conversion_report_hdr crh on crh.id = crd.report_id
+                where crd.article_code = ? and crh.status not in (5,8)
+                order by crh.tahun desc, crh.periode desc, crh.id desc limit 1) as cr_conversion_value
+            ,(select material_price from price_list_fg where article_code = ? and status = '1' order by id desc limit 1) as pl_material_price
+            ,(select conversion_value from price_list_fg where article_code = ? and status = '1' order by id desc limit 1) as pl_conversion_value
+        ", [$articleCode, $articleCode, $tsoDate, $articleCode, $articleCode, $articleCode, $articleCode]);
+
+        $r->article_code = $articleCode;
+        $conversion = self::soConversion($r);
+
+        return response()->json(['status' => 1, 'data' => [
+            'so_avg_price' => $r->so_avg_price !== null ? number_format($r->so_avg_price, 2) : null,
+            'conversion' => number_format($conversion, 2),
+            'total_conversion' => number_format($conversion * $qtyTarget, 2),
+        ]]);
     }
 
     public function revision(Request $request){
