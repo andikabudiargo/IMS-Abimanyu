@@ -240,8 +240,13 @@ class ApPaymentScheduleController extends Controller
             LEFT JOIN third_party ON third_party.kode = hutang.supplier_id
             GROUP BY hutang.supplier_id, third_party.nama
         ";
+        // Postgres (native prepare) menolak binding yg tidak dipakai di query
+        // -- openingSql tidak pakai :periodEnd sama sekali.
+        $openingBindings = $bindings;
+        unset($openingBindings['periodEnd']);
+
         $openingMap = [];
-        foreach (DB::select($openingSql, $bindings) as $o) {
+        foreach (DB::select($openingSql, $openingBindings) as $o) {
             $openingMap[$o->supplier_code] = [
                 'name'                => $o->supplier_name,
                 'opening'             => (float) $o->opening,
@@ -402,7 +407,14 @@ class ApPaymentScheduleController extends Controller
             ORDER BY hutang.jatuh_tempo_actual ASC, hutang.ap_number ASC
         ";
 
-        $rows = DB::select($sql, $bindings);
+        // Postgres (native prepare) menolak binding yg tidak dipakai --
+        // periodEnd tidak dipakai kalau $periodBound kosong (bucket opening).
+        $detailBindings = $bindings;
+        if ($periodBound === "") {
+            unset($detailBindings['periodEnd']);
+        }
+
+        $rows = DB::select($sql, $detailBindings);
 
         $result = [];
         foreach ($rows as $r) {
