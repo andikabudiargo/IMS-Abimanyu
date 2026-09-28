@@ -57,6 +57,18 @@ class CashBankController extends Controller
             ['data' => 'created_by', 'name' => 'created_by', 'title' => 'Created By'],
             ['data' => 'created_at', 'name' => 'created_at', 'title' => 'Created At'],
         ]);
+        $data['kolomDetail'] = json_encode([
+            ['data' => 'tipe', 'name' => 'tipe', 'title' => 'Tipe'],
+            ['data' => 'voucher_number', 'name' => 'voucher_number', 'title' => 'Voucher Number'],
+            ['data' => 'voucher_date', 'name' => 'voucher_date', 'title' => 'Date'],
+            ['data' => 'account_number', 'name' => 'account_number', 'title' => 'Account Number'],
+            ['data' => 'account_name', 'name' => 'account_name', 'title' => 'Account Name'],
+            ['data' => 'debit', 'name' => 'debit', 'title' => 'Debit'],
+            ['data' => 'credit', 'name' => 'credit', 'title' => 'Credit'],
+            ['data' => 'memo', 'name' => 'memo', 'title' => 'Memo'],
+            ['data' => 'created_by', 'name' => 'created_by', 'title' => 'Created By'],
+            ['data' => 'created_at', 'name' => 'created_at', 'title' => 'Created At'],
+        ]);
         return view('accounting.cashbook.index', $data);
     }
 
@@ -135,6 +147,56 @@ class CashBankController extends Controller
                 return "<a href='$href' target='_blank' style='padding:0px'>$d->voucher_number</a>";
             })
             ->rawColumns(['action', 'tipe', 'statusku', 'voucher_number'])
+            ->make(true);
+    }
+
+    // Baris per akun (kas_det/bank_det disatukan di kas_det), sama seperti tombol
+    // Detail di Invoice Supplier/Customer — menu toggle summary <-> detail.
+    public function listDetail(Request $request, $group)
+    {
+        list(, $types) = $this->group($group);
+        $search = strtolower($request->seachVc);
+        $type = array_key_exists($request->searchType, $types) ? $request->searchType : null;
+
+        $from = $to = '';
+        if ($request->vcDate) {
+            $date = explode('to', $request->vcDate);
+            $from = implode('/', array_reverse(explode('-', trim($date[0]))));
+            $to = count($date) > 1 ? implode('/', array_reverse(explode('-', trim($date[1])))) : $from;
+        }
+
+        $data = DB::table('kas_det')
+            ->join('kas_hdr', 'kas_hdr.voucher_number', 'kas_det.voucher_number')
+            ->leftJoin('accounts', 'accounts.account', 'kas_det.account')
+            ->whereIn('kas_hdr.voucher_type', $type ? [$type] : array_keys($types))
+            ->where('kas_hdr.status', '<>', '5')
+            ->when($search, function ($q) use ($search) { $q->where('kas_det.voucher_number', 'ilike', "%$search%"); })
+            ->when($request->vcDate, function ($q) use ($from, $to) { $q->whereBetween(DB::raw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY')"), [$from, $to]); })
+            ->when($request->period1, function ($q) use ($request) { $q->whereBetween(DB::raw('kas_hdr.period::integer'), [$request->period1, $request->period2 ?: $request->period1]); })
+            ->when($request->year, function ($q) use ($request) { $q->where('kas_hdr.year', $request->year); })
+            ->when($request->searchStatus, function ($q) use ($request) { $q->where('kas_hdr.status', $request->searchStatus); })
+            ->select(
+                'kas_hdr.voucher_type',
+                'kas_det.voucher_number',
+                DB::raw("to_char(to_date(kas_hdr.voucher_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as voucher_date"),
+                'kas_det.account as account_number',
+                'accounts.description as account_name',
+                'kas_det.debit',
+                'kas_det.credit',
+                'kas_det.memo',
+                'kas_det.created_by',
+                'kas_det.created_at'
+            )
+            ->orderBy('kas_det.voucher_number')
+            ->orderBy('kas_det.order_no')
+            ->get();
+
+        return Datatables::of($data)
+            ->addColumn('tipe', function ($d) use ($types) {
+                $cls = substr($d->voucher_type, 1) == 'M' ? 'badge-light-success' : 'badge-light-danger';
+                return "<div class='badge $cls'>" . $types[$d->voucher_type][0] . '</div>';
+            })
+            ->rawColumns(['tipe'])
             ->make(true);
     }
 }

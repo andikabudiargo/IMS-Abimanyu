@@ -88,6 +88,8 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+        <button type="button" class="btn btn-primary d-none" id="btnDetail" data-toggle="tooltip" title="Tekan tombol untuk melihat data per akun">Detail</button>
+        <button type="button" class="btn btn-primary d-none" id="btnSummary" data-toggle="tooltip" title="Tekan tombol untuk melihat data summary">Summary</button>
         <div class="card-datatable table-responsive pt-0">
           <table id="detailedTable" class="table"><thead class="thead-light"></thead></table>
         </div>
@@ -132,12 +134,33 @@
 
   $('.flatpickr-range').flatpickr({dateFormat: 'd-m-Y', mode: 'range'});
 
-  function searchData() {
+  const btnDetail = $('#btnDetail');
+  const btnSummary = $('#btnSummary');
+
+  function currentSearch() {
+    return {
+      seachVc: $('#seachVc').val(),
+      vcDate: $('#vcDate').val(),
+      searchType: $('#searchType').val(),
+      searchStatus: $('#searchStatus').val(),
+      period1: $('#period1').val(),
+      period2: $('#period2').val(),
+      year: $('#year').val()
+    };
+  }
+
+  function resetTable() {
     if ($('#detailedTable tr').length > 0) {
       $('#detailedTable').DataTable().destroy();
       $('#detailedTable tbody > tr').remove();
       $('#detailedTable thead > tr').remove();
     }
+  }
+
+  function searchData() {
+    resetTable();
+    btnDetail.addClass('d-none');
+    btnSummary.addClass('d-none');
     showDataTables({
       tableId: 'detailedTable',
       route: "{{ route('cashbook.list', ['group' => $group]) }}",
@@ -151,20 +174,46 @@
         $('row:last c', xlsx.xl.worksheets['sheet1.xml']).attr('s', '50');
       },
       excelMessageBottom: function () { return 'Tanggal export : ' + currentDate },
-      dataSearch: {
-        seachVc: $('#seachVc').val(),
-        vcDate: $('#vcDate').val(),
-        searchType: $('#searchType').val(),
-        searchStatus: $('#searchStatus').val(),
-        period1: $('#period1').val(),
-        period2: $('#period2').val(),
-        year: $('#year').val()
+      dataSearch: currentSearch(),
+      initComplete: function () {
+        if (this.api().data().length > 0) {
+          btnDetail.removeClass('d-none');
+        }
       },
       orderColumn: [[13, 'desc']],
       excelFileName: '{{ $group }}'
     });
   }
 
+  function showDetail() {
+    resetTable();
+    btnDetail.addClass('d-none');
+    btnSummary.addClass('d-none');
+    showDataTables({
+      tableId: 'detailedTable',
+      route: "{{ route('cashbook.list.detail', ['group' => $group]) }}",
+      kolom: {!! $kolomDetail !!},
+      arrColPrint: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+      columnDefs: [
+        {targets: [5, 6], render: $.fn.dataTable.render.number(',', '.', 2, ''), className: 'text-right'},
+      ],
+      excelCustomize: function (xlsx) {
+        $('row:last c', xlsx.xl.worksheets['sheet1.xml']).attr('s', '50');
+      },
+      excelMessageBottom: function () { return 'Tanggal export : ' + currentDate },
+      dataSearch: currentSearch(),
+      initComplete: function () {
+        if (this.api().data().length > 0) {
+          btnSummary.removeClass('d-none');
+        }
+      },
+      orderColumn: [[1, 'desc']],
+      excelFileName: '{{ $group }}_detail'
+    });
+  }
+
+  btnDetail.click(showDetail);
+  btnSummary.click(searchData);
   $('#btnSearch').click(searchData);
   searchData();
   $('a[data-action="reload"]').on('click', searchData);

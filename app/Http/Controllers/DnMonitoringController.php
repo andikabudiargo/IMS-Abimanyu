@@ -27,6 +27,7 @@ class DnMonitoringController extends Controller
                         WHEN '4' THEN 'POSTED' WHEN '10' THEN 'REVISED' WHEN '8' THEN
                         CASE dr.status WHEN '2' THEN 'SUBMITTED (BELUM DIBUATKAN INVOICE)' ELSE 'RECEIVED (BELUM SUBMIT AKUNTING)' END END AS status,
                     dh.created_by, dh.created_at,
+                    to_char(to_date(dr.dr_date,'YYYY-MM-DD'), 'DD-MM-YYYY') AS received_date,
                     NOT EXISTS (SELECT 1 FROM invoice_det i WHERE i.dn_number = dh.delivery_number) AS belum_invoice,
                     dh.status <> '8' AS belum_kembali
                 FROM delivery_hdr dh
@@ -35,7 +36,7 @@ class DnMonitoringController extends Controller
                   AND (dh.origin_delivery_number IS NULL OR dh.origin_delivery_number = dh.delivery_number)
                 UNION ALL
                 SELECT t.id, t.tdn_number, t.customer_id, t.delivery_date, 'TEMPORARY DN', 'OPEN', t.created_by, t.created_at,
-                    true, true
+                    NULL, true, true
                 FROM temporary_dn_hdr t
                 WHERE t.status = '1'
             ) x
@@ -59,7 +60,14 @@ class DnMonitoringController extends Controller
 
     private function week($deliveryDate)
     {
-        return min(4, (int) ceil((int) substr($deliveryDate, 0, 2) / 7));
+        return (int) ceil((int) substr($deliveryDate, 0, 2) / 7);
+    }
+
+    // Kebanyakan bulan punya 4 minggu (28-31 hari); bulan yang tanggal 29-31-nya
+    // jatuh ke minggu ke-5 (ceil > 4) dapat kolom W5 tambahan di tabel.
+    private function weekCount($month)
+    {
+        return (int) ceil(date('t', strtotime("$month-01")) / 7);
     }
 
     private function month(Request $request)
@@ -90,7 +98,15 @@ class DnMonitoringController extends Controller
         }
         uasort($summary, fn($a, $b) => strcmp($a['name'], $b['name']));
 
+        $weeks = range(1, $this->weekCount($month));
+        $daysInMonth = date('t', strtotime("$month-01"));
         $data['summary'] = $summary;
+        $data['weeks'] = $weeks;
+        $data['weekLabels'] = [];
+        foreach ($weeks as $w) {
+            $end = min($w * 7, $daysInMonth);
+            $data['weekLabels'][$w] = "W$w (" . ($w * 7 - 6) . "-" . ($w == count($weeks) ? 'akhir' : $end) . ')';
+        }
         $data['monthLabel'] = date('F Y', strtotime("$month-01"));
         $data['periode'] = $month;
         $data['filter'] = $this->filter($request);
@@ -143,21 +159,24 @@ class DnMonitoringController extends Controller
 
     public function export(Request $request)
     {
-        $rows = array_map(fn($r) => [$r->dn_number, $r->source, $r->delivery_date, $r->status, $r->created_by, $r->created_at], $this->detailRows($request));
-        return $this->download($rows, ['Nomor DN', 'Tipe', 'Delivery Date', 'Status', 'Created By', 'Created At'], "dn_belum_invoice_{$request->customer}_W{$request->week}.xlsx");
+        $rows = array_map(fn($r) => [$r->dn_number, $r->source, $r->delivery_date, $r->received_date ?? '', $r->status, $r->created_by, $r->created_at], $this->detailRows($request));
+        return $this->download($rows, ['Nomor DN', 'Tipe', 'Delivery Date', 'Received Date', 'Status', 'Created By', 'Created At'], "dn_belum_invoice_{$request->customer}_W{$request->week}.xlsx");
     }
 
     public function exportSummary(Request $request)
     {
         $d = $this->summaryData($request);
+        $weeks = $d['weeks'];
         $rows = [];
         foreach ($d['summary'] as $r) {
             $w = $r['w'];
-            $rows[] = [$r['name'], $r['cutt_off'], $w[1] ?? 0, $w[2] ?? 0, $w[3] ?? 0, $w[4] ?? 0, array_sum($w)];
+            $rows[] = array_merge([$r['name'], $r['cutt_off']], array_map(fn($i) => $w[$i] ?? 0, $weeks), [array_sum($w)]);
         }
         if ($rows) {
-            $rows[] = ['TOTAL', ''] + array_map(fn($i) => array_sum(array_column($rows, $i)), [2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6]);
+            $totalCol = count($weeks) + 2;
+            $rows[] = array_merge(['TOTAL', ''], array_map(fn($i) => array_sum(array_column($rows, $i)), range(2, $totalCol)));
         }
-        return $this->download($rows, ['Customer', 'Cutt Off DN', 'W1 (1-7)', 'W2 (8-14)', 'W3 (15-21)', 'W4 (22-akhir)', 'Total'], "outstanding_surat_jalan_{$d['periode']}.xlsx");
+        $headings = array_merge(['Customer', 'Cutt Off DN'], array_map(fn($i) => $d['weekLabels'][$i], $weeks), ['Total']);
+        return $this->download($rows, $headings, "outstanding_surat_jalan_{$d['periode']}.xlsx");
     }
 }
