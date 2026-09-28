@@ -161,12 +161,13 @@
                     let qtyForcast=objQtyForcast.eq(i).val().replace(/,/gi,'')||0;
                     let note=objNote.eq(i).val();
                     let uom=$this.eq(i).find(":selected").data("uom")||'PCS';
-                
+                    let totalConversion=($('#article_row .conversion-preview').eq(i).val()||'0').replace(/,/gi,'');
+
                     // es6
                     let obj = articles.find(obj => obj.article_code == plu);
-                    
+
                     if(obj) {
-                        pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                        pesan +="Article "+articleName+" entered more than once !! <br>";
                         flag=1;
                     } else {
                         // if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
@@ -176,10 +177,11 @@
                                 "article_code":plu,
                                 "qtyTarget":qtyTarget,
                                 "qtyForcast":qtyForcast,
-                                "uom":uom
+                                "uom":uom,
+                                "totalConversion":totalConversion
                             });
                         }
-                    } 
+                    }
                 
                     // if (qtyTarget == 0 || qtyForcast == 0){
                     //     pesan +="QTY of items "+ articleName +" cannot be 0 <br>"; 
@@ -268,26 +270,28 @@
                     let qtyForcast=objQtyForcast.eq(i).val().replace(/,/gi,'')||0;
                     let note=objNote.eq(i).val();
                     let uom=objUom.eq(i).text();
-                
+                    let totalConversion=($('#article_row .conversion-preview').eq(i).val()||'0').replace(/,/gi,'');
+
                     // es6
                     let obj = articles.find(obj => obj.article_code == plu);
-             
+
                     if(obj) {
-                        pesan +="Article "+articleName+" entered more than once !! <br>"; 
+                        pesan +="Article "+articleName+" entered more than once !! <br>";
                         flag=1;
                     } else {
                         // if ((plu!=='') && (qtyTarget > 0) && (qtyForcast > 0)){
                         //if ((plu!=='') && (qtyTarget > 0)){
-                            
+
                         if ((plu!=='') && (qtyTarget != 0) || (qtyForcast != 0)){
                             articles.push({
                                 "article_code":plu,
                                 "qtyTarget":qtyTarget,
                                 "qtyForcast":qtyForcast,
-                                "uom":uom
+                                "uom":uom,
+                                "totalConversion":totalConversion
                             });
                         }
-                    } 
+                    }
                     
                     /* Permintaan dari ASN qty forcast dan target boleh 0
                         tapi kalau dua2nya 0 tidak boleh
@@ -413,6 +417,7 @@
         $('#qtyTarget'+ cloneCount).val(qtyTarget);
         $('#qtyForcast'+ cloneCount).val(qtyForcast);
         $('#number'+ cloneCount).text(cloneCount);
+        previewConversion($("#new_row"+ cloneCount));
         // $('#remove_button').tooltip();
         // tombolPanah('qtyTarget','','qtyForcast');
         // tombolPanah('qtyForcast','qtyTarget','');

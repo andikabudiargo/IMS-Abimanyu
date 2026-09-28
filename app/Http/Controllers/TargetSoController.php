@@ -186,6 +186,7 @@ class TargetSoController extends Controller
                             'qty_target' => $val->qtyTarget,
                             'qty_forcast' => $val->qtyForcast,
                             'uom' => $val->uom,
+                            'conversion' => $val->totalConversion ?? 0,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                         ];
@@ -424,6 +425,7 @@ class TargetSoController extends Controller
                             'qty_target' => $val->qtyTarget,
                             'qty_forcast' => $val->qtyForcast,
                             'uom' => $val->uom,
+                            'conversion' => $val->totalConversion ?? 0,
                             'created_by' => Auth::user()->username,
                             'created_at' => date('Y-m-d H:i:s'),
                             ]
