@@ -147,7 +147,8 @@
         $("#new_row" + cloneCount).find('#uom').attr('id', 'uom' + cloneCount);
         $("#new_row" + cloneCount).find('#uomCon').attr('id', 'uomCon' + cloneCount);
         changeselect('article_bom', 'article_id' + cloneCount);
-        $("#article_id" + cloneCount).select2();
+        // article_id's select2 is initialized inside changeselect(), once its options are loaded —
+        // calling it here too (on the still-empty select) makes select2 ignore the later init.
         $("#uom" + cloneCount).select2();
         $("#uomCon" + cloneCount).select2();
         $("#pos" + cloneCount).select2();
@@ -176,7 +177,9 @@
         $("#type" + cloneCount).text(typeName);
         $("#qtyCon" + cloneCount).val(parseFloat(qty) * parseFloat(factor));
 
-        ['article_id', 'pos', 'aTone', 'uom', 'uomCon'].forEach(id => {
+        // article_id's select2 is initialized inside changeselect(), once its options are loaded —
+        // calling it here too (on the still-empty select) makes select2 ignore the later init.
+        ['pos', 'aTone', 'uom', 'uomCon'].forEach(id => {
             $("#" + id + cloneCount).select2();
         });
 
