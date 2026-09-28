@@ -183,12 +183,12 @@ class CashBankController extends Controller
                 'accounts.description as account_name',
                 'kas_det.debit',
                 'kas_det.credit',
-                'kas_det.memo',
+                'kas_det.description as memo',
                 'kas_det.created_by',
                 'kas_det.created_at'
             )
             ->orderBy('kas_det.voucher_number')
-            ->orderBy('kas_det.order_no')
+            ->orderBy('kas_det.id')
             ->get();
 
         return Datatables::of($data)
