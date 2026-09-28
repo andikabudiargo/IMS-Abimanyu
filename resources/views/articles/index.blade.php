@@ -127,6 +127,10 @@
                                 <input type="checkbox" class="custom-control-input bulk-update-column" id="colMinPackage" value="min_package">
                                 <label class="custom-control-label" for="colMinPackage">Min Package</label>
                             </div>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input bulk-update-column" id="colCashflowCategory" value="cashflow_category">
+                                <label class="custom-control-label" for="colCashflowCategory">Cashflow Category</label>
+                            </div>
                         </div>
                     </div>
                 </div>

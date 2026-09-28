@@ -32,10 +32,14 @@
     // whitelist kolom yang boleh disertakan di "Bulk Update Article";
     // nambah kolom baru = nambah 1 entry di sini, tidak perlu ubah arsitektur.
     private $bulkUpdateColumns = [
-        'safety_stock' => 'Safety Stock',
-        'coa'          => 'COA',
-        'min_package'  => 'Min Package',
+        'safety_stock'      => 'Safety Stock',
+        'coa'               => 'COA',
+        'min_package'       => 'Min Package',
+        'cashflow_category' => 'Cashflow Category',
     ];
+
+    // nilai valid Cashflow Category (harus sama persis dengan dropdown di form Article)
+    private $cashflowCategoryValues = ['Operation', 'Investment', 'Financing'];
 
     public function __construct()
 {
@@ -3136,7 +3140,7 @@ private function buildSummaryRow(array $p)
                 ? DB::table('accounts')->select('account', 'description')->orderBy('account')->get()
                 : collect();
 
-            return Excel::download(new ArticleBulkUpdateExport($columns, $articles, $accounts), 'article_bulk_update_template.xlsx');
+            return Excel::download(new ArticleBulkUpdateExport($columns, $articles, $accounts, $this->cashflowCategoryValues), 'article_bulk_update_template.xlsx');
         }
 
         public function bulkUpdateImportExcel(Request $request)
@@ -3179,6 +3183,12 @@ private function buildSummaryRow(array $p)
             if (in_array('min_package', $columns)) {
                 $select[] = 'article_bulk_update_tmp.min_package';
                 $noteExprs[] = "case when article_bulk_update_tmp.min_package is null or article_bulk_update_tmp.min_package !~ '^[0-9.]+$' then concat('Urutan ',row_number() over(),': Min Package \"',coalesce(article_bulk_update_tmp.min_package,''),'\" tidak valid') end";
+            }
+
+            if (in_array('cashflow_category', $columns)) {
+                $validValues = implode(',', array_map(fn ($v) => "'" . strtolower($v) . "'", $this->cashflowCategoryValues));
+                $select[] = 'article_bulk_update_tmp.cashflow_category';
+                $noteExprs[] = "case when lower(trim(article_bulk_update_tmp.cashflow_category)) not in ($validValues) then concat('Urutan ',row_number() over(),': Cashflow Category \"',coalesce(article_bulk_update_tmp.cashflow_category,''),'\" tidak valid, harus salah satu dari: " . implode(', ', $this->cashflowCategoryValues) . "') end";
             }
 
             $select[] = DB::raw('concat(' . implode(',', $noteExprs) . ') as notes');
@@ -3268,6 +3278,12 @@ private function buildSummaryRow(array $p)
 
                         if (in_array('min_package', $columns) && $row->min_package !== null) {
                             $payload['min_package'] = $row->min_package;
+                        }
+
+                        if (in_array('cashflow_category', $columns) && $row->cashflow_category !== null) {
+                            $canonical = collect($this->cashflowCategoryValues)
+                                ->first(fn ($v) => strcasecmp(trim($v), trim($row->cashflow_category)) === 0);
+                            $payload['cashflow_category'] = $canonical ?? $row->cashflow_category;
                         }
 
                         if (!empty($payload)) {

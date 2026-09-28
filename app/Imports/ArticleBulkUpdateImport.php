@@ -24,6 +24,7 @@ class ArticleBulkUpdateImport implements ToModel, WithStartRow, WithHeadingRow
             'safety_stock' => $row['safety_stock'] ?? null,
             'coa'          => $row['coa'] ?? null,
             'min_package'  => $row['min_package'] ?? null,
+            'cashflow_category' => $row['cashflow_category'] ?? null,
         ]);
     }
 

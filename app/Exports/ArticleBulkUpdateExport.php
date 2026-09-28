@@ -9,18 +9,20 @@ class ArticleBulkUpdateExport implements WithMultipleSheets
     protected $columns;
     protected $articles;
     protected $accounts;
+    protected $cashflowCategoryValues;
 
-    public function __construct(array $columns, $articles = null, $accounts = null)
+    public function __construct(array $columns, $articles = null, $accounts = null, array $cashflowCategoryValues = [])
     {
         $this->columns  = $columns;
         $this->articles = $articles ?? collect();
         $this->accounts = $accounts ?? collect();
+        $this->cashflowCategoryValues = $cashflowCategoryValues;
     }
 
     public function sheets(): array
     {
         $sheets = [
-            new ArticleBulkUpdateTemplateSheet($this->columns),
+            new ArticleBulkUpdateTemplateSheet($this->columns, $this->cashflowCategoryValues),
             new ArticleBulkUpdateArticleRefSheet($this->articles),
         ];
 
