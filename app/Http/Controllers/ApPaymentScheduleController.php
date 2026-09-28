@@ -15,12 +15,16 @@ use DB;
     ================================================================
     Kembaran AR Payment Schedule, sisi HUTANG. Filter utama PERIODE
     (bulan & tahun). Tiap supplier di-pecah:
-      - Opening    : saldo AP yang jatuh tempo SEBELUM awal periode.
+      - Opening    : seluruh saldo AP belum lunas per awal periode, jatuh
+                     tempo atau belum (acuan: rumus Excel jadwal bayar).
+      - Outstanding (setelah Opening): bagian Opening yg jatuh temponya
+                     sudah lewat sebelum awal periode & masih belum dibayar.
       - Kolom 1..N : AP yang jatuh tempo pada tanggal itu dalam periode.
-      - Total      : Opening + seluruh kolom tanggal.
+      - Total      : AP yang jatuh tempo dalam periode ini (<= akhir periode).
       - Paid       : uang keluar ke supplier selama periode.
-      - Balance    : Total - Paid.
-      - Outstanding: bagian Total yang jatuh tempo-nya lewat & belum dibayar.
+      - Balance    : Opening - Paid.
+      - Outstanding (setelah Balance): AP jatuh tempo DALAM periode ini yg
+                     sudah lewat tanggal jatuh tempo & masih belum dibayar.
 
     Rumus jatuh tempo & pembayaran PERSIS SAMA dengan ApAgingReportController:
       - anchor date  = ap_date (fallback inv_date).
@@ -169,9 +173,9 @@ class ApPaymentScheduleController extends Controller
 
     private function bucketWhere($bucket, $daysInMonth)
     {
-        if ($bucket === 'opening') {
-            return " AND hutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') ";
-        }
+        // 'opening' sengaja tanpa filter jatuh tempo: Opening = seluruh saldo
+        // belum lunas per awal periode, jatuh tempo atau belum (lihat catatan
+        // di computeSchedule).
         if ($bucket === 'outstanding_opening') {
             return " AND hutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') AND hutang.balance_asof > {$this->minOutstanding} ";
         }
@@ -221,26 +225,62 @@ class ApPaymentScheduleController extends Controller
             $dayCases[] = "SUM(CASE WHEN $cond THEN hutang.balance_asof ELSE 0 END) as r$d";
         }
 
+        // Opening = seluruh saldo AP belum lunas per awal periode, TANPA syarat
+        // jatuh tempo (beda dari Total/kolom-hari yg dibatasi ke periode
+        // terpilih) -- acuan: rumus Excel jadwal bayar (SUMIFS total
+        // dikurangi paid sebelum periodStart, tanpa filter jatuh tempo).
+        $openingSql = "
+            SELECT
+                hutang.supplier_id as supplier_code,
+                third_party.nama   as supplier_name,
+                SUM(hutang.balance_open) as opening,
+                SUM(hutang.balance_asof) as opening_remain,
+                SUM(CASE WHEN hutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') AND hutang.balance_asof > {$this->minOutstanding} THEN hutang.balance_asof ELSE 0 END) as outstanding_opening
+            FROM ($subquery) hutang
+            LEFT JOIN third_party ON third_party.kode = hutang.supplier_id
+            GROUP BY hutang.supplier_id, third_party.nama
+        ";
+        $openingMap = [];
+        foreach (DB::select($openingSql, $bindings) as $o) {
+            $openingMap[$o->supplier_code] = [
+                'name'                => $o->supplier_name,
+                'opening'             => (float) $o->opening,
+                'opening_remain'      => (float) $o->opening_remain,
+                'outstanding_opening' => (float) $o->outstanding_opening,
+            ];
+        }
+
+        // Total/hari/Paid/Outstanding = HANYA AP yg jatuh tempo DI DALAM
+        // periode terpilih (periodStart..periodEnd) -- persis rumus Excel
+        // Total = SUM(kolom tanggal 1..31), tidak termasuk saldo sebelum
+        // periode (itu sudah masuk Opening).
         $sql = "
             SELECT
                 hutang.supplier_id as supplier_code,
                 third_party.nama   as supplier_name,
-                SUM(CASE WHEN hutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') THEN hutang.balance_open ELSE 0 END) as opening,
-                SUM(CASE WHEN hutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') THEN hutang.balance_asof ELSE 0 END) as opening_r,
                 " . implode(",\n                ", $dayCases) . ",
                 SUM(hutang.balance_open) as total,
                 SUM(hutang.paid_in_period) as paid,
-                SUM(CASE WHEN hutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') AND hutang.balance_asof > {$this->minOutstanding} THEN hutang.balance_asof ELSE 0 END) as outstanding_opening,
-                SUM(CASE WHEN hutang.jatuh_tempo_actual >= to_date(:periodStart,'DD-MM-YYYY') AND hutang.jatuh_tempo_actual <= to_date(:asOf,'DD-MM-YYYY') AND hutang.balance_asof > {$this->minOutstanding} THEN hutang.balance_asof ELSE 0 END) as outstanding
+                SUM(CASE WHEN hutang.jatuh_tempo_actual <= to_date(:asOf,'DD-MM-YYYY') AND hutang.balance_asof > {$this->minOutstanding} THEN hutang.balance_asof ELSE 0 END) as outstanding
             FROM ($subquery) hutang
             LEFT JOIN third_party ON third_party.kode = hutang.supplier_id
-            WHERE hutang.jatuh_tempo_actual <= to_date(:periodEnd,'DD-MM-YYYY')
+            WHERE hutang.jatuh_tempo_actual >= to_date(:periodStart,'DD-MM-YYYY')
+              AND hutang.jatuh_tempo_actual <= to_date(:periodEnd,'DD-MM-YYYY')
             GROUP BY hutang.supplier_id, third_party.nama
-            HAVING SUM(hutang.balance_open) > {$this->minOutstanding}
-            ORDER BY third_party.nama ASC
         ";
 
-        $rows = DB::select($sql, $bindings);
+        $scheduleMap = [];
+        foreach (DB::select($sql, $bindings) as $r) {
+            $scheduleMap[$r->supplier_code] = (array) $r;
+        }
+
+        // Baris yang tampil = union supplier yg punya Opening ATAU jadwal di
+        // periode ini (supaya supplier yg cuma punya utang lama tanpa jadwal
+        // bulan ini tetap kelihatan, dan sebaliknya).
+        $names = [];
+        foreach ($openingMap as $code => $o) { $names[$code] = $o['name']; }
+        foreach ($scheduleMap as $code => $s) { $names[$code] = $names[$code] ?? $s['supplier_name']; }
+        asort($names);
 
         $grand = ['opening' => 0.0, 'total' => 0.0, 'paid' => 0.0, 'balance' => 0.0, 'outstanding_opening' => 0.0, 'outstanding' => 0.0];
         for ($d = 1; $d <= $daysInMonth; $d++) {
@@ -248,38 +288,48 @@ class ApPaymentScheduleController extends Controller
         }
 
         $result = [];
-        foreach ($rows as $r) {
-            $row  = (array) $r;
+        foreach (array_keys($names) as $code) {
+            $op  = $openingMap[$code] ?? ['opening' => 0.0, 'opening_remain' => 0.0, 'outstanding_opening' => 0.0];
+            $row = $scheduleMap[$code] ?? null;
+
             $days = [];
             $daysRemain = [];
             for ($d = 1; $d <= $daysInMonth; $d++) {
                 $key = 'd' . $d;
-                $days[$key] = (float) $row[$key];
-                $daysRemain[$key] = (float) $row['r' . $d];
+                $days[$key] = $row ? (float) $row[$key] : 0.0;
+                $daysRemain[$key] = $row ? (float) $row['r' . $d] : 0.0;
                 $grand[$key] += $days[$key];
             }
-            $balance = (float) $row['total'] - (float) $row['paid'];
+            $total       = $row ? (float) $row['total'] : 0.0;
+            $paid        = $row ? (float) $row['paid'] : 0.0;
+            $outstanding = $row ? (float) $row['outstanding'] : 0.0;
+            // Balance = Opening - Paid (acuan rumus Excel: B - AJ), bukan Total - Paid.
+            $balance     = $op['opening'] - $paid;
+
+            if ($op['opening'] <= $this->minOutstanding && $total <= $this->minOutstanding) {
+                continue;
+            }
 
             $result[] = [
-                'supplier_code' => $r->supplier_code,
-                'supplier_name' => $r->supplier_name,
-                'opening'       => (float) $r->opening,
-                'opening_remain'=> (float) $row['opening_r'],
+                'supplier_code' => $code,
+                'supplier_name' => $names[$code],
+                'opening'       => $op['opening'],
+                'opening_remain'=> $op['opening_remain'],
                 'days'          => $days,
                 'days_remain'   => $daysRemain,
-                'total'         => (float) $row['total'],
-                'paid'          => (float) $row['paid'],
+                'total'         => $total,
+                'paid'          => $paid,
                 'balance'       => $balance,
-                'outstanding_opening' => (float) $row['outstanding_opening'],
-                'outstanding'   => (float) $row['outstanding'],
+                'outstanding_opening' => $op['outstanding_opening'],
+                'outstanding'   => $outstanding,
             ];
 
-            $grand['opening']             += (float) $r->opening;
-            $grand['total']               += (float) $row['total'];
-            $grand['paid']                += (float) $row['paid'];
+            $grand['opening']             += $op['opening'];
+            $grand['total']               += $total;
+            $grand['paid']                += $paid;
             $grand['balance']             += $balance;
-            $grand['outstanding_opening'] += (float) $row['outstanding_opening'];
-            $grand['outstanding']         += (float) $row['outstanding'];
+            $grand['outstanding_opening'] += $op['outstanding_opening'];
+            $grand['outstanding']         += $outstanding;
         }
 
         return [
@@ -324,6 +374,13 @@ class ApPaymentScheduleController extends Controller
 
         $subquery    = $this->buildScheduleSubquery($whereExtra);
         $bucketWhere = $this->bucketWhere($bucket, $daysInMonth);
+        // Opening & outstanding_opening lintas periode (jatuh tempo < periodStart,
+        // sudah dijamin oleh bucketWhere) -- bucket lain (total/hari/outstanding)
+        // dibatasi PERSIS ke periode terpilih, sama seperti rumus Excel
+        // Total = SUM(kolom tanggal 1..31).
+        $periodBound = in_array($bucket, ['opening', 'outstanding_opening'], true)
+            ? ""
+            : " AND hutang.jatuh_tempo_actual >= to_date(:periodStart,'DD-MM-YYYY') AND hutang.jatuh_tempo_actual <= to_date(:periodEnd,'DD-MM-YYYY') ";
 
         $sql = "
             SELECT
@@ -339,7 +396,8 @@ class ApPaymentScheduleController extends Controller
                 hutang.balance_asof
             FROM ($subquery) hutang
             LEFT JOIN third_party ON third_party.kode = hutang.supplier_id
-            WHERE hutang.jatuh_tempo_actual <= to_date(:periodEnd,'DD-MM-YYYY')
+            WHERE 1=1
+            $periodBound
             $bucketWhere
             ORDER BY hutang.jatuh_tempo_actual ASC, hutang.ap_number ASC
         ";
