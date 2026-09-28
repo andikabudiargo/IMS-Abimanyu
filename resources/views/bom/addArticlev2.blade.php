@@ -254,17 +254,32 @@
         });
     }
 
+    let dependentOptionsCache = {};
+
     changeselect = (dependent, obj, article) => {
     $('#' + obj).attr('disabled', 'disabled');
+
+    let applyResult = (result) => {
+        $('#' + obj).html(result);
+        $('#' + obj).val(article).trigger('change');
+        $('#' + obj).removeAttr('disabled');
+        $('#' + obj).select2();
+    };
+
+    // Same dependent type always returns the same option list (doesn't vary per row),
+    // and the query behind it (article_bom) is heavy, so fetch it once and reuse.
+    if (dependentOptionsCache[dependent]) {
+        applyResult(dependentOptionsCache[dependent]);
+        return;
+    }
+
     $.ajax({
         url: "{{route('dynamic.dependent')}}",
         method: "POST",
         data: { dependent: dependent },
         success: function (result) {
-            $('#' + obj).html(result);
-            $('#' + obj).val(article).trigger('change');
-            $('#' + obj).removeAttr('disabled');
-            $('#' + obj).select2();  // ← pindah ke sini
+            dependentOptionsCache[dependent] = result;
+            applyResult(result);
         }
     });
 }
