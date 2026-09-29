@@ -643,23 +643,23 @@
           </a>
           <ul class="menu-content">
 
-            @can('defect-index')
+           
             <li class="{{ \Request::segment(1) == 'defects' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('defect.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Master Defect">Defect</span>
               </a>
             </li>
-            @endcan
+           
 
-            @can('inspection-post-index')
+    
             <li class="{{ \Request::segment(1) == 'inspectionPosts' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('inspectionPost.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Master Inspection Post">Inspection Post</span>
               </a>
             </li>
-            @endcan
+            
 
             @can('actualLoading-index')
             <li class="{{ \Request::is(['actualLoading','actualLoading/create','actualLoading/edit','actualLoading/show']) ? 'active' : '' }}" >
