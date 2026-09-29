@@ -30,9 +30,15 @@
             </div> --}}
             <div class="col-md-2 col-12">
                 <div class="form-group margin-nol">
+                    <label class="d-block d-md-none">Conversion</label>
+                    <input type="text" class="form-control text-right conversion-preview" name="conversion[]" value="0" />
+                </div>
+            </div>
+            <div class="col-md-2 col-12">
+                <div class="form-group margin-nol">
                     <label  class="d-block d-md-none">QTY Target</label>
-                    <input type="text" class="form-control numeral-mask-satuan text-right tombol-panah" 
-                        data-type-el-kiri="select" 
+                    <input type="text" class="form-control numeral-mask-satuan text-right tombol-panah"
+                        data-type-el-kiri="select"
                         data-nama-el-kiri='articleId'
                         data-type-el-kanan='input'
                         data-nama-el-kanan='qtyForcast'
@@ -48,12 +54,6 @@
                         data-type-el-kanan='select'
                         data-nama-el-kanan='articleId'
                         id ="qtyForcast" name="qtyForcast[]" maxlength="9" />
-                </div>
-            </div>
-            <div class="col-md-2 col-12">
-                <div class="form-group margin-nol">
-                    <label class="d-block d-md-none">Conversion</label>
-                    <input type="text" class="form-control text-right conversion-preview" readonly tabindex="-1" value="0" />
                 </div>
             </div>
             <div class="col-md-1 col-12">

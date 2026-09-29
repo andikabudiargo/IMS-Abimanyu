@@ -81,6 +81,7 @@
                                                 <tr>
                                                     <th>No</th>
                                                     <th width="20%">Article Code</th>
+                                                    <th class="text-right">Konversi</th>
                                                     <th class="text-right">Qty Target</th>
                                                     <th class="text-right">Qty Forcast</th>
 
@@ -110,6 +111,7 @@
                                                     <tr>
                                                         <td ></td>
                                                         <td width="20%">{{ $item->article }}</td>
+                                                        <td class="text-right">{{ number_format($item->conversion, 2) }} </td>
                                                         <td class="text-right">{{ number_format($item->qty_target) }} </td>
                                                         <td class="text-right">{{ number_format($item->qty_forcast) }} </td>
                                                         @php
