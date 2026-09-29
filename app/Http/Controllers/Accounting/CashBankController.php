@@ -69,8 +69,40 @@ class CashBankController extends Controller
             ['data' => 'created_by', 'name' => 'created_by', 'title' => 'Created By'],
             ['data' => 'created_at', 'name' => 'created_at', 'title' => 'Created At'],
         ]);
+        if ($group === 'bank') {
+    $data['suppliers'] = DB::table('supplier')->select('supplier_code as code', 'supplier_name as name')->orderBy('supplier_name')->get();
+    $data['customers'] = DB::table('customer')->select('customer_code as code', 'customer_name as name')->orderBy('customer_name')->get();
+}
         return view('accounting.cashbook.index', $data);
     }
+
+    // Filter grup pihak (khusus menu bank): supplier -> invoice AP, customer -> invoice AR,
+// dicocokkan lewat kas_det.reference.
+private function applyPartyFilter($q, Request $request, $group)
+{
+    if ($group !== 'bank' || !in_array($request->partyType, ['supplier', 'customer'])) {
+        return $q;
+    }
+    $party = $request->party;
+
+    if ($request->partyType === 'supplier') {
+        return $q->whereExists(function ($s) use ($party) {
+            $s->select(DB::raw(1))
+              ->from('kas_det as kd')
+              ->join('ap_invoice as ai', 'ai.inv_number', '=', 'kd.reference')
+              ->whereColumn('kd.voucher_number', 'kas_hdr.voucher_number')
+              ->when($party, function ($x) use ($party) { $x->where('ai.supplier_code', $party); });
+        });
+    }
+
+    return $q->whereExists(function ($s) use ($party) {
+        $s->select(DB::raw(1))
+          ->from('kas_det as kd')
+          ->join('invoice_hdr as ih', 'ih.invoice_number', '=', 'kd.reference')
+          ->whereColumn('kd.voucher_number', 'kas_hdr.voucher_number')
+          ->when($party, function ($x) use ($party) { $x->where('ih.customer_code', $party); });
+    });
+}
 
     public function list(Request $request, $group)
     {
@@ -94,6 +126,7 @@ class CashBankController extends Controller
             ->when($request->period1, function ($q) use ($request) { $q->whereBetween(DB::raw('period::integer'), [$request->period1, $request->period2 ?: $request->period1]); })
             ->when($request->year, function ($q) use ($request) { $q->where('year', $request->year); })
             ->when($request->searchStatus, function ($q) use ($request) { $q->where('kas_hdr.status', $request->searchStatus); })
+            ->tap(function ($q) use ($request, $group) { $this->applyPartyFilter($q, $request, $group); })
             ->select(
                 'kas_hdr.*',
                 DB::raw("to_char(to_date(voucher_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as voucher_date"),
@@ -175,6 +208,7 @@ class CashBankController extends Controller
             ->when($request->period1, function ($q) use ($request) { $q->whereBetween(DB::raw('kas_hdr.period::integer'), [$request->period1, $request->period2 ?: $request->period1]); })
             ->when($request->year, function ($q) use ($request) { $q->where('kas_hdr.year', $request->year); })
             ->when($request->searchStatus, function ($q) use ($request) { $q->where('kas_hdr.status', $request->searchStatus); })
+            ->tap(function ($q) use ($request, $group) { $this->applyPartyFilter($q, $request, $group); })
             ->select(
                 'kas_hdr.voucher_type',
                 'kas_det.voucher_number',

@@ -44,6 +44,26 @@
               </select>
             </div>
           </div>
+          @if($group === 'bank')
+          <div class="form-row">
+            <div class="form-group col-md-4">
+              <label for="party">Supplier / Customer</label>
+              <select class="select2 form-control" id="party">
+                <option value="">All</option>
+                <optgroup label="Supplier">
+                  @foreach($suppliers as $s)
+                    <option value="{{ $s->code }}" data-party-type="supplier">{{ $s->name }}</option>
+                  @endforeach
+                </optgroup>
+                <optgroup label="Customer">
+                  @foreach($customers as $c)
+                    <option value="{{ $c->code }}" data-party-type="customer">{{ $c->name }}</option>
+                  @endforeach
+                </optgroup>
+              </select>
+            </div>
+          </div>
+          @endif
           <div class="form-row">
             <div class="form-group col-md-2">
               <label for="period1">Period Awal</label>
@@ -145,7 +165,9 @@
       searchStatus: $('#searchStatus').val(),
       period1: $('#period1').val(),
       period2: $('#period2').val(),
-      year: $('#year').val()
+      year: $('#year').val(),
+      party: $('#party').val(),
+      partyType: $('#party').find(':selected').data('party-type')
     };
   }
 
