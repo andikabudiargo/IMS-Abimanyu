@@ -70,9 +70,9 @@ class CashBankController extends Controller
             ['data' => 'created_at', 'name' => 'created_at', 'title' => 'Created At'],
         ]);
         if ($group === 'bank') {
-    $data['suppliers'] = DB::table('supplier')->select('supplier_code as code', 'supplier_name as name')->orderBy('supplier_name')->get();
-    $data['customers'] = DB::table('customer')->select('customer_code as code', 'customer_name as name')->orderBy('customer_name')->get();
-}
+            $data['suppliers'] = DB::table('third_party')->where('third_party_type', 'supp')->select('kode as code', 'nama as name')->orderBy('nama')->get();
+            $data['customers'] = DB::table('third_party')->where('third_party_type', 'cust')->select('kode as code', 'nama as name')->orderBy('nama')->get();
+        }
         return view('accounting.cashbook.index', $data);
     }
 
@@ -91,7 +91,7 @@ private function applyPartyFilter($q, Request $request, $group)
               ->from('kas_det as kd')
               ->join('ap_invoice as ai', 'ai.inv_number', '=', 'kd.reference')
               ->whereColumn('kd.voucher_number', 'kas_hdr.voucher_number')
-              ->when($party, function ($x) use ($party) { $x->where('ai.supplier_code', $party); });
+              ->when($party, function ($x) use ($party) { $x->where('ai.supplier_id', $party); });
         });
     }
 
@@ -100,7 +100,7 @@ private function applyPartyFilter($q, Request $request, $group)
           ->from('kas_det as kd')
           ->join('invoice_hdr as ih', 'ih.invoice_number', '=', 'kd.reference')
           ->whereColumn('kd.voucher_number', 'kas_hdr.voucher_number')
-          ->when($party, function ($x) use ($party) { $x->where('ih.customer_code', $party); });
+          ->when($party, function ($x) use ($party) { $x->where('ih.customer_id', $party); });
     });
 }
 
