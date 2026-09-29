@@ -419,10 +419,11 @@
               </a>
             </li>
             @endcan
-            <li class="{{ \Request::segment(1) == 'dnMonitoring'  ? 'active' : '' }}">
+
+            <li class="{{ \Request::segment(1) == 'dnMonitoringDelivery'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('dnMonitoring.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="DN Monitoring">DN Monitoring</span></a>
+                <span class="menu-item text-truncate" data-i18n="DN Monitoring Delivery">DN Monitoring</span></a>
                     </li>
 
           </ul>
