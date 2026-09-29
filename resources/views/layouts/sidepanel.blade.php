@@ -282,10 +282,10 @@
             </li>
             @endcan
             
-             <li class="{{ \Request::is(['receivingReportAcc']) ? 'active' : '' }}">
+             <li class="{{ \Request::is(['receivingReportPurchasing']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('receiving.report.acc') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Report LPB</span>
+                <span class="menu-item text-truncate" data-i18n="Receiving Report Purchasing">Report LPB</span>
               </a>
             </li>
           </ul>
@@ -420,10 +420,10 @@
             </li>
             @endcan
 
-            <li class="{{ \Request::segment(1) == 'dnMonitoringDelivery'  ? 'active' : '' }}">
+            <li class="{{ \Request::segment(1) == 'dnMonitoring'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('dnMonitoring.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="DN Monitoring Delivery">DN Monitoring</span></a>
+                <span class="menu-item text-truncate" data-i18n="DN Monitoring">DN Monitoring</span></a>
                     </li>
 
           </ul>
@@ -748,7 +748,7 @@
                     </li>
                       <li class="{{ \Request::segment(1) == 'deliveryReportAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}"><span class="menu-item text-truncate" data-i18n="Dn Report Acc">DN Report</span></a>
                     </li>
-                      <li class="{{ \Request::segment(1) == 'dnMonitoring'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnMonitoring.index') }}"><span class="menu-item text-truncate" data-i18n="DN Monitoring">DN Monitoring</span></a>
+                      <li class="{{ \Request::segment(1) == 'dnMonitoringAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnMonitoring.index') }}"><span class="menu-item text-truncate" data-i18n="DN Monitoring Acc">DN Monitoring</span></a>
                     </li>
                   </ul>
                 </li>
