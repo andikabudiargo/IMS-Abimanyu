@@ -635,13 +635,31 @@
           </ul>
         </li>
 
-         <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods']) ? 'active' : '' }} nav-item">
+         <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods','inspectionPosts','defects']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='zoom-in'></i>
             <span class="menu-title text-truncate" data-i18n="Production">Quality Control
             </span>
           </a>
           <ul class="menu-content">
+
+            @can('defect-index')
+            <li class="{{ \Request::segment(1) == 'defects' ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('defect.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Master Defect">Master Defect</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('inspection-post-index')
+            <li class="{{ \Request::segment(1) == 'inspectionPosts' ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('inspectionPost.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Master Inspection Post">Master Inspection Post</span>
+              </a>
+            </li>
+            @endcan
 
             @can('actualLoading-index')
             <li class="{{ \Request::is(['actualLoading','actualLoading/create','actualLoading/edit','actualLoading/show']) ? 'active' : '' }}" >

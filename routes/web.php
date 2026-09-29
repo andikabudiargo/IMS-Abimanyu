@@ -740,6 +740,22 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('production/approve',['as'=>'production.approve','uses'=>'ProductionController@approve']);
 	Route::get('production/revision',['as'=>'production.revision','uses'=>'ProductionController@revision','middleware' => ['permission:production-revision']]);
 
+	Route::get('inspectionPosts',['as'=>'inspectionPost.index','uses'=>'InspectionPostController@index','middleware' => ['permission:inspection-post-index']]);
+	Route::get('inspectionPosts/create',['as'=>'inspectionPost.create','uses'=>'InspectionPostController@create','middleware' => ['permission:inspection-post-create']]);
+	Route::post('inspectionPosts/store',['as'=>'inspectionPost.store','uses'=>'InspectionPostController@store']);
+	Route::get('inspectionPosts/list',['as'=>'inspectionPost.list','uses'=>'InspectionPostController@list']);
+	Route::get('inspectionPosts/edit',['as'=>'inspectionPost.edit','uses'=>'InspectionPostController@edit','middleware' => ['permission:inspection-post-edit']]);
+	Route::post('inspectionPosts/update',['as'=>'inspectionPost.update','uses'=>'InspectionPostController@update']);
+	Route::post('inspectionPosts/delete',['as'=>'inspectionPost.destroy','uses'=>'InspectionPostController@destroy']);
+
+	Route::get('defects',['as'=>'defect.index','uses'=>'DefectController@index','middleware' => ['permission:defect-index']]);
+	Route::get('defects/create',['as'=>'defect.create','uses'=>'DefectController@create','middleware' => ['permission:defect-create']]);
+	Route::post('defects/store',['as'=>'defect.store','uses'=>'DefectController@store']);
+	Route::get('defects/list',['as'=>'defect.list','uses'=>'DefectController@list']);
+	Route::get('defects/edit',['as'=>'defect.edit','uses'=>'DefectController@edit','middleware' => ['permission:defect-edit']]);
+	Route::post('defects/update',['as'=>'defect.update','uses'=>'DefectController@update']);
+	Route::post('defects/delete',['as'=>'defect.destroy','uses'=>'DefectController@destroy']);
+
 	Route::get('actualLoading',['as'=>'production.actualLoading.index','uses'=>'Production\ActualLoadingController@index','middleware' => ['permission:actualLoading-index']]);
 	Route::get('actualLoading/create',['as'=>'production.actualLoading.create','uses'=>'Production\ActualLoadingController@create','middleware' => ['permission:actualLoading-create']]);
 	Route::post('actualLoading/store',['as'=>'production.actualLoading.store','uses'=>'Production\ActualLoadingController@store']);
