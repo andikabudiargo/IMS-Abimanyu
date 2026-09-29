@@ -41,12 +41,19 @@ class StoReportController extends Controller
         '009' => ['RMP', 'RMNP'],
         '007' => ['FG'],
         '008' => ['FG'],
-        '006' => ['CM2', 'CM3', 'RMP', 'RMNP'],
+        '006' => ['CM2', 'CM3'],
         '005' => ['CM1'],
         '049' => ['CM1'],
         // 012 (Gudang WIP): di report hanya tampil artikel FG (permintaan user).
         // StockCountController sengaja tidak membatasi 012 — jangan disamakan.
         '012' => ['FG'],
+    ];
+
+    // DISALIN 1:1 dari StockCountController::$locationGroupOfMaterialMap —
+    // artikel yang group_of_material-nya masuk sini tetap dihitung di lokasi
+    // ini meski article_type-nya tidak ada di $locationArticleTypeMap di atas.
+    protected $locationGroupOfMaterialMap = [
+        '006' => ['CPA'],
     ];
 
     // ══════════════════════════════════════════════
@@ -980,33 +987,37 @@ class StoReportController extends Controller
         $stoResults = $this->aggregateStoResults($configId, $family);
 
         // ── BARU: article_type filter, konsisten dengan locationArticleTypeMap di STO ──
-        $allowedTypes = $this->locationArticleTypeMap[$anchor] ?? null;
+        $allowedTypes  = $this->locationArticleTypeMap[$anchor] ?? null;
+        $allowedGroups = $this->locationGroupOfMaterialMap[$anchor] ?? null;
+
+        $applyTypeFilter = function ($query, $typeCol, $groupCol) use ($allowedTypes, $allowedGroups) {
+            if (!$allowedTypes) return;
+            $query->where(function ($q) use ($typeCol, $groupCol, $allowedTypes, $allowedGroups) {
+                $q->whereIn($typeCol, $allowedTypes);
+                if ($allowedGroups) $q->orWhereIn($groupCol, $allowedGroups);
+            });
+        };
 
         $stockQuery = DB::table('warehouse_stock as ws')
             ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
             ->whereIn('ws.location_number', $family) // ← BARU: family, dulu single location
             ->where('ws.article_qty', '<>', 0);
 
-        if ($allowedTypes) {
-            $stockQuery->whereIn('a.article_type', $allowedTypes); // ← BARU
-        }
+        $applyTypeFilter($stockQuery, 'a.article_type', 'a.group_of_material');
 
         $stockCodes = $stockQuery->pluck('a.article_code');
 
         $stoAltCodes  = $stoResults->keys();
         $stoRealCodesQuery = DB::table('article')->whereIn('article_alternative_code', $stoAltCodes);
-        if ($allowedTypes) {
-            $stoRealCodesQuery->whereIn('article_type', $allowedTypes); // ← BARU
-        }
+        $applyTypeFilter($stoRealCodesQuery, 'article_type', 'group_of_material');
         $stoRealCodes = $stoRealCodesQuery->pluck('article_code');
 
         $movementRealCodes = $movements->keys();
         if ($allowedTypes) {
             // movement query tidak join article, filter type-nya belakangan di sini
-            $movementRealCodes = DB::table('article')
-                ->whereIn('article_code', $movementRealCodes)
-                ->whereIn('article_type', $allowedTypes)
-                ->pluck('article_code');
+            $movementRealCodesQuery = DB::table('article')->whereIn('article_code', $movementRealCodes);
+            $applyTypeFilter($movementRealCodesQuery, 'article_type', 'group_of_material');
+            $movementRealCodes = $movementRealCodesQuery->pluck('article_code');
         }
 
         $realCodes = $movementRealCodes

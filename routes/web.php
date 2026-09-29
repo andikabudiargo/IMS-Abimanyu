@@ -991,6 +991,7 @@ Route::get('stockCount/getArticles',      ['as'=>'stockCount.getArticles', 'uses
 Route::post('stockCount/storeLine',       ['as'=>'stockCount.storeLine',   'uses'=>'StockCountController@storeLine']);
 Route::delete('stockCount/line/{dtlId}',  ['as'=>'stockCount.deleteLine',  'uses'=>'StockCountController@deleteLine']);
 Route::post('stockCount/finish',          ['as'=>'stockCount.finish',      'uses'=>'StockCountController@finish']);
+Route::post('stockCount/fillPhantomsAndFinish', ['as'=>'stockCount.fillPhantomsAndFinish', 'uses'=>'StockCountController@fillPhantomsAndFinish']);
 Route::get('stockCount/auditList', ['as'=>'stockCount.auditList', 'uses'=>'StockCountController@auditList']);
 Route::post('stock-count/store-sheet', ['as'=>'stockCount.storeSheet', 'uses'=>'StockCountController@storeSheet']);
 Route::get('stockCount/getAvailableNumbers', ['as'=>'stockCount.getAvailableNumbers', 'uses'=>'StockCountController@getAvailableNumbers']);

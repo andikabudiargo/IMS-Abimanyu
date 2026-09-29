@@ -623,6 +623,15 @@ function loadArticlesInto($sel, opts) {
         });
         html += '</optgroup>';
     }
+    if (opts.manual_used && opts.manual_used.length) {
+        // artikel manual yang PERNAH diketik di lokasi/periode ini — pilih ini
+        // (bukan ketik ulang) supaya teksnya identik dan tidak dianggap artikel baru.
+        html += '<optgroup label="Pernah Diinput Manual">';
+        opts.manual_used.forEach(a => {
+            html += `<option value="${MANUAL_PREFIX}${a.article_desc}" data-desc="${a.article_desc||''}" data-uom="${a.uom||''}" data-min-pkg="${a.min_package||''}">${a.article_desc}</option>`;
+        });
+        html += '</optgroup>';
+    }
     $sel.html(html);
 }
 
@@ -696,8 +705,12 @@ $(document).ready(function () {
          $(document).on('change', '#inArticle', function() {
             const val = $(this).val();
             if (isManualValue(val)) {
+                const opt = $(this).find(':selected');
+                const knownUom = opt.data('uom') || '';       // terisi kalau pilih dari "Pernah Diinput Manual"
+                const knownMinPkg = opt.data('min-pkg') || '0';
                 if ($('#inUom').is('select')) $('#inUom').replaceWith('<input type="text" class="form-control" id="inUom" placeholder="UOM* (wajib diisi)">');
-                $('#inMinPkg').val('0');
+                $('#inUom').val(knownUom);
+                $('#inMinPkg').val(knownMinPkg);
                 return;
             }
             if ($('#inUom').is('input')) $('#inUom').replaceWith('<select class="form-control" id="inUom"></select>');
@@ -734,10 +747,15 @@ $(document).ready(function () {
             const $pkg  = $row.find('.sheet-minpkg');
 
             if (isManualValue(val)) {
+                const opt = $(this).find(':selected');
+                const knownUom = opt.data('uom') || '';       // terisi kalau pilih dari "Pernah Diinput Manual"
+                const knownMinPkg = opt.data('min-pkg') || '0';
                 if ($uom.is('select')) {
                     $uom.replaceWith('<input type="text" class="form-control sheet-uom" placeholder="UOM* (wajib diisi)">');
+                    $uom = $row.find('.sheet-uom');
                 }
-                $pkg.val('0');
+                $uom.val(knownUom);
+                $pkg.val(knownMinPkg);
                 return;
             }
 
@@ -801,6 +819,8 @@ $(document).ready(function () {
            if (res.status == 1) {
     show_msg(res.title, res.message, res.alert);
     setTimeout(() => window.location.href = res.redirect_url, 1200);
+} else if (Array.isArray(res.phantoms) && res.phantoms.length > 0) {
+    openPhantomFillModal(res.phantoms);
 } else if (Array.isArray(res.message) && res.message.length > 1) {
     Swal.fire({
         title: res.title,
@@ -815,6 +835,60 @@ $(document).ready(function () {
         }, 'json');
     });
 });
+
+// ════ MODAL: isi qty artikel phantom lalu langsung selesaikan ════
+function openPhantomFillModal(phantoms) {
+    const rows = phantoms.map((p, i) => `
+        <tr>
+            <td style="text-align:left">${p.article_code} - ${p.article_desc}</td>
+            <td>${p.location_name || p.location_number || '-'}</td>
+            <td>${p.uom || ''}</td>
+            <td><input type="number" step="any" class="form-control phantom-qty" data-idx="${i}" value="0" style="width:110px;margin:0 auto"></td>
+        </tr>
+    `).join('');
+
+    Swal.fire({
+        title: 'Konfirmasi Stock Artikel',
+        html: `
+            <div style="max-height:400px;overflow:auto">
+            <table class="table table-sm" style="text-align:center">
+                <thead><tr><th>Artikel</th><th>Lokasi</th><th>UOM</th><th>QTY</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+            </div>`,
+        width: 600,
+        showCancelButton: true,
+        confirmButtonText: 'Simpan & Selesaikan',
+        cancelButtonText: 'Batal',
+        preConfirm: () => {
+            const lines = phantoms.map((p, i) => ({
+                article_code:    p.article_code,
+                article_desc:    p.article_desc,
+                uom:             p.uom,
+                min_package:     p.min_package,
+                location_number: p.location_number,
+                qty: document.querySelector(`.phantom-qty[data-idx="${i}"]`).value || 0,
+            }));
+            return lines;
+        }
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        $.post("{{ route('stockCount.fillPhantomsAndFinish') }}", {
+            _token: "{{ csrf_token() }}",
+            mapping_id: encMappingId,
+            lines: r.value,
+        }, function(res) {
+            if (res.status == 1) {
+                show_msg(res.title, res.message, res.alert);
+                setTimeout(() => window.location.href = res.redirect_url, 1200);
+            } else if (Array.isArray(res.phantoms) && res.phantoms.length > 0) {
+                openPhantomFillModal(res.phantoms);
+            } else {
+                show_msg(res.title, Array.isArray(res.message) ? res.message[0] : res.message, res.alert);
+            }
+        }, 'json');
+    });
+}
 
     // ════ INIT MODAL TAMBAH ARTIKEL ════
     initModalAddArticle();

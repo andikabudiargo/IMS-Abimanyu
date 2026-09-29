@@ -658,6 +658,12 @@ if (is_array($mappings)) {
         if (!empty($m['counter2']) && !empty($m['counter1']) && $m['counter1'] == $m['counter2']) {
             $pesan[] = "Counter 1 dan Counter 2 baris $rowNo tidak boleh sama."; $flag = 1;
         }
+        if (!empty($m['counter3']) && !empty($m['counter1']) && $m['counter1'] == $m['counter3']) {
+            $pesan[] = "Counter 1 dan Counter 3 baris $rowNo tidak boleh sama."; $flag = 1;
+        }
+        if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['counter3']) {
+            $pesan[] = "Counter 2 dan Counter 3 baris $rowNo tidak boleh sama."; $flag = 1;
+        }
         if (!empty($m['target_ref'])) {
             $key = $ttype . '|' . $m['target_ref'];
             if (in_array($key, $refSeen)) { $pesan[] = "Target baris $rowNo duplikat."; $flag = 1; }
@@ -699,6 +705,20 @@ if (is_array($mappings)) {
             $pesan[] = "Baris $rowNo: target sudah punya progress counting, tipe/targetnya tidak bisa diubah.";
             $flag = 1;
         }
+    }
+}
+
+// ── guard: baris yang sudah punya progress counting tidak boleh DIHAPUS dari form ──
+// (frontend sudah cegah ini, tapi backend jangan percaya begitu saja ke request)
+$submittedMappingIds = is_array($mappings)
+    ? collect($mappings)->pluck('mapping_id')->filter()->map(fn($v) => (int) $v)->all()
+    : [];
+foreach ($existingRows as $mappingId => $old) {
+    if (in_array($mappingId, $submittedMappingIds)) continue; // masih ada di form, bukan dihapus
+    $oldKey = $old->target_type . '|' . $old->target_ref;
+    if (in_array($oldKey, $progressCombos)) {
+        $pesan[] = "Target \"{$old->target_ref}\" sudah punya progress counting dan tidak bisa dihapus dari STO ini.";
+        $flag = 1;
     }
 }
 

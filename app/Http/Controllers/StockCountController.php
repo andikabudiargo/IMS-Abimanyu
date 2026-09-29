@@ -25,7 +25,7 @@ class StockCountController extends Controller
         '009' => ['RMP', 'RMNP'],
         '007' => ['FG'],
         '008' => ['FG'],
-        '006' => ['CM2', 'CM3', 'RMP', 'RMNP'],
+        '006' => ['CM2', 'CM3'],
         '005' => ['CM1'],
         '049' => ['CM1'],
     ];
@@ -148,7 +148,8 @@ private function getTableColoumnAuditDetail()
     //  - LOCATION lain:
     //      unik hanya dalam SATU sto_id (nomor STO) yang sama
     //  - PARTNER (SUPPLIER/CUSTOMER):
-    //      unik per location_number yang sama (lintas nomor STO)
+    //      unik hanya dalam SATU sto_id (nomor STO) yang sama — nomor STO
+    //      beda meski lokasi sama dianggap kartu berbeda, duplikat DIPERBOLEHKAN
     // ══════════════════════════════════════════════
   private function isDuplicateArticle($m, $mappingId, $stoId, $article, $isManual, $articleDesc, $locationNumber = null, $excludeDtlId = null)
 {
@@ -185,7 +186,7 @@ private function getTableColoumnAuditDetail()
         if ($m->target_type === 'LOCATION') {
             return "Artikel {$label} sudah ada di baris lain pada sheet yang sama.";
         }
-        return "Artikel {$label} sudah pernah diinput untuk lokasi ini (partner sama).";
+        return "Artikel {$label} sudah ada di kartu (nomor STO) yang sama untuk partner/lokasi ini.";
     }
  
     // ══════════════════════════════════════════════
@@ -815,39 +816,87 @@ public function auditListDetail(Request $request)
         $mappingId = Crypt::decryptString($request->mapping_id);
         $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->first();
         if (!$m) return response()->json([]);
- 
-        if ($m->target_type === 'LOCATION') {
-            return response()->json($this->articlesByLocation($m->target_ref));
+
+        $result = $m->target_type === 'LOCATION'
+            ? $this->articlesByLocation($m->target_ref)
+            : $this->resolveArticlesForPartner($m->target_ref, $m->target_type);
+
+        // Autocomplete manual HANYA untuk BLIND — di blind, beberapa counter
+        // WAJIB konvergen ke baris yang sama (qty_counter1/2/3 digabung), jadi teks
+        // manual harus persis sama. Di NON-blind cuma 1 counter yang dipakai per
+        // baris (lihat resolveSingleRowStatus) — tiap input manual berdiri sendiri,
+        // tidak perlu diarahkan untuk "cocok" dengan input sebelumnya.
+        if ($m->is_blind ?? true) {
+            $result['manual_used'] = DB::table('sto_dtl as d')
+                ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
+                ->where('h.mapping_id', $mappingId)
+                ->whereNull('d.article_code')
+                ->whereNotNull('d.article_desc')
+                ->select('d.article_desc', DB::raw('MAX(d.uom) as uom'), DB::raw('MAX(d.min_package) as min_package'))
+                ->groupBy('d.article_desc')
+                ->orderBy('d.article_desc')
+                ->get();
         }
-        return response()->json($this->resolveArticlesForPartner($m->target_ref, $m->target_type));
+
+        return response()->json($result);
     }
- 
+
+    // Tolak input manual kalau teksnya cocok artikel yang SUDAH ADA di master
+    // untuk target ini — harus pilih dari dropdown, bukan ketik ulang manual,
+    // supaya tidak ada 2 baris (manual vs kode asli) untuk artikel yang sama.
+    private function blockManualIfKnownArticle($m, $articleDesc)
+    {
+        $needle = strtoupper(trim((string) $articleDesc));
+        if ($needle === '') return null;
+
+        if ($m->target_type === 'LOCATION') {
+            $data = $this->articlesByLocation($m->target_ref);
+            $pool = collect($data['in_stock'])->concat($data['others']);
+        } else {
+            $data = $this->resolveArticlesForPartner($m->target_ref, $m->target_type);
+            $pool = collect($data['in_stock']);
+        }
+
+        $match = $pool->first(fn($a) => strtoupper(trim($a->article_desc)) === $needle);
+        if (!$match) return null;
+
+        return "Artikel \"{$articleDesc}\" sudah terdaftar di master ({$match->article_alternative_code}). Silakan pilih dari dropdown, jangan input manual.";
+    }
+
     private function articlesByLocation($locationCode)
     {
-        $types = $this->locationArticleTypeMap[$locationCode] ?? null;
- 
+        $types  = $this->locationArticleTypeMap[$locationCode] ?? null;
+        $groups = $this->locationGroupOfMaterialMap[$locationCode] ?? null;
+
+        $applyTypeFilter = function ($query) use ($types, $groups) {
+            if (!$types) return;
+            // artikel masuk kalau article_type cocok, ATAU group_of_material termasuk
+            // yang di-whitelist khusus lokasi ini (mis. CPA di 006) — supaya artikel
+            // begini tetap muncul di dropdown dan tidak perlu diketik manual.
+            $query->where(function ($q) use ($types, $groups) {
+                $q->whereIn('a.article_type', $types);
+                if ($groups) $q->orWhereIn('a.group_of_material', $groups);
+            });
+        };
+
         $query = DB::table('warehouse_stock as ws')
             ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
             ->where('ws.location_number', $locationCode)
             ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 'a.article_type');
- 
-        if ($types) {
-            $query->whereIn('a.article_type', $types);
-        }
- 
+
+        $applyTypeFilter($query);
+
         $inStock = $query->orderBy('a.article_desc')->get();
         $inStockCodes = $inStock->pluck('article_alternative_code');
- 
+
         $othersQuery = DB::table('article as a')
             ->whereNotIn('a.article_alternative_code', $inStockCodes)
             ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 'a.article_type');
- 
-        if ($types) {
-            $othersQuery->whereIn('a.article_type', $types);
-        }
- 
+
+        $applyTypeFilter($othersQuery);
+
         $others = $othersQuery->orderBy('a.article_desc')->get();
- 
+
         return ['in_stock' => $inStock, 'others' => $others];
     }
  
@@ -901,7 +950,11 @@ public function auditListDetail(Request $request)
         $article  = $isManual ? null : $request->article;
         $qty      = (float) str_replace(',', '', $request->qty);
         $confirmAccumulate = filter_var($request->confirm_accumulate, FILTER_VALIDATE_BOOLEAN);
- 
+
+        if ($isManual && ($m->is_blind ?? true) && ($msg = $this->blockManualIfKnownArticle($m, $request->article_desc))) {
+            return response()->json(['status'=>0,'title'=>'Warning','message'=>[$msg],'alert'=>'warning']);
+        }
+
         //if ($qty <= 0) {
           //  return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY harus lebih dari 0.'],'alert'=>'warning']);
         //}
@@ -1241,6 +1294,10 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
         if ($m->target_type !== 'LOCATION' && !$lineLocationNumber) {
             $label = $articleLine ?: $descLine;
             return response()->json(['status'=>0,'title'=>'Warning','message'=>["Lokasi wajib dipilih untuk artikel: {$label}"],'alert'=>'warning']);
+        }
+
+        if ($isManualLine && ($m->is_blind ?? true) && ($msg = $this->blockManualIfKnownArticle($m, $descLine))) {
+            return response()->json(['status'=>0,'title'=>'Warning','message'=>[$msg],'alert'=>'warning']);
         }
 
         if ($this->isDuplicateArticle($m, $mappingId, null, $articleLine, $isManualLine, $descLine, $lineLocationNumber)) {
@@ -1729,6 +1786,22 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 
     if (!$ranFamily || $hasStandalone) {
         $this->recalcSingleMappingProgress($m);
+
+        // Partner (SUPPLIER/CUSTOMER) tidak punya akurasi sendiri — dibebankan
+        // ke akurasi LOKASI fisiknya. Untuk lokasi standalone (bukan family,
+        // yang sudah otomatis ke-refresh lewat recalcFamilyProgress di atas),
+        // pastikan mapping LOCATION di lokasi itu ikut di-refresh juga.
+        if ($m->target_type !== 'LOCATION') {
+            foreach ($usedLocations as $loc) {
+                if (!$loc || count($this->resolveLocationFamily($loc)) > 1) continue;
+                $locMapping = DB::table('sto_config_mapping')
+                    ->where('config_id', $m->config_id)
+                    ->where('target_type', 'LOCATION')
+                    ->where('target_ref', $loc)
+                    ->first();
+                if ($locMapping) $this->recalcSingleMappingProgress($locMapping);
+            }
+        }
     }
 }
 
@@ -2097,50 +2170,151 @@ private function withinTolerance($counted, $qtySystem, $tolerance)
         if (!$access['ok']) {
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$access['message']],'alert'=>'error']);
         }
- 
-        $m      = $access['mapping'];
+
+        // race condition guard: kunci baris mapping supaya dua klik Finish (atau
+        // klik Finish bersamaan dengan Simpan & Selesaikan phantom) tidak dobel-proses.
+        return DB::transaction(function () use ($mappingId, $access) {
+            return $this->doFinish($mappingId, $access);
+        });
+    }
+
+    // Inti proses finish, dipakai finish() dan fillPhantomsAndFinish().
+    // WAJIB dipanggil di dalam DB::transaction() oleh caller.
+    private function doFinish($mappingId, $access)
+    {
+        $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->lockForUpdate()->first();
+        if (!$m) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Target STO tidak ditemukan.'],'alert'=>'error']);
+        }
+
         $stoIds = DB::table('sto_hdr')->where('mapping_id', $mappingId)->pluck('sto_id');
- 
+
         if ($stoIds->isEmpty()) {
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Belum ada baris yang diinput.'],'alert'=>'warning']);
         }
- 
+
         $pending = DB::table('sto_dtl')->whereIn('sto_id', $stoIds)
-    ->whereIn('count_status', ['INCOMPLETE', 'NOT MATCH'])->count();
-if ($pending > 0 && $access['role'] !== 'accounting') {
-    return response()->json(['status'=>0,'title'=>'Belum Bisa Selesai','message'=>["Masih ada $pending baris berstatus INCOMPLETE/NOT MATCH."],'alert'=>'warning']);
-}
+            ->whereIn('count_status', ['INCOMPLETE', 'NOT MATCH'])->count();
+        if ($pending > 0 && $access['role'] !== 'accounting') {
+            return response()->json(['status'=>0,'title'=>'Belum Bisa Selesai','message'=>["Masih ada $pending baris berstatus INCOMPLETE/NOT MATCH."],'alert'=>'warning']);
+        }
 
-// ── BARU: cek phantom (artikel punya stok tapi belum pernah diinput) ──
-$phantoms = $this->resolveOutstandingPhantoms($m);
-if ($phantoms->isNotEmpty() && $access['role'] !== 'accounting') {
-    $list = $phantoms->map(fn($p) => "{$p->article_code} - {$p->article_desc}")->values()->all();
+        // ── cek phantom (artikel punya stok tapi belum pernah diinput) ──
+        $phantoms = $this->resolveOutstandingPhantoms($m);
+        if ($phantoms->isNotEmpty() && $access['role'] !== 'accounting') {
+            return response()->json([
+                'status'   => 0,
+                'title'    => 'Belum Bisa Selesai',
+                'message'  => ["Masih ada ".$phantoms->count()." artikel yang perlu konfirmasi stock."],
+                'alert'    => 'warning',
+                'phantoms' => $phantoms->map(fn($p) => [
+                    'article_code'    => $p->article_code,
+                    'article_desc'    => $p->article_desc,
+                    'uom'             => $p->uom,
+                    'min_package'     => $p->min_package,
+                    'location_number' => $p->location_number,
+                    'location_name'   => $this->resolveLocationName($p->location_number),
+                ])->values()->all(),
+            ]);
+        }
 
-    return response()->json([
-        'status'  => 0,
-        'title'   => 'Belum Bisa Selesai',
-        'message' => array_merge(
-            ["Masih ada ".count($list)." artikel yang perlu konfirmasi stock:"],
-            $list
-        ),
-        'alert'   => 'warning',
-    ]);
-}
- 
         $now = date('Y-m-d H:i:s');
         DB::table('sto_hdr')->whereIn('sto_id', $stoIds)->update(['status' => 2, 'updated_at' => $now]);
         DB::table('sto_config_mapping')->where('mapping_id', $mappingId)
             ->update(['finish_time' => $now, 'updated_at' => $now]);
- 
+
         $maxFinish  = DB::table('sto_config_mapping')->where('config_id', $m->config_id)->whereNotNull('finish_time')->max('finish_time');
         $unfinished = DB::table('sto_config_mapping')->where('config_id', $m->config_id)->whereNull('finish_time')->count();
- 
+
         $update = ['finish_time' => $maxFinish, 'updated_at' => $now];
         if ($unfinished == 0) $update['status'] = 3;
- 
+
         DB::table('sto_config')->where('config_id', $m->config_id)->whereIn('status', [1, 2])->update($update);
- 
+
         return response()->json(['status'=>1,'title'=>'Berhasil','message'=>'Target ditandai selesai.','alert'=>'success','redirect_url'=>route('stockCount.index')]);
+    }
+
+    // ══════════════════════════════════════════════
+    // FILL PHANTOM + FINISH — isi qty semua artikel phantom dari modal
+    // finish, lalu langsung coba selesaikan, dalam satu transaksi terkunci.
+    // ══════════════════════════════════════════════
+    public function fillPhantomsAndFinish(Request $request)
+    {
+        $mappingId = Crypt::decryptString($request->mapping_id);
+        $access    = $this->checkAccess($mappingId);
+        if (!$access['ok']) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$access['message']],'alert'=>'error']);
+        }
+
+        $lines = $request->lines ?? [];
+        if (empty($lines)) {
+            return response()->json(['status'=>0,'title'=>'Warning','message'=>['Tidak ada artikel untuk disimpan.'],'alert'=>'warning']);
+        }
+
+        return DB::transaction(function () use ($mappingId, $access, $lines) {
+            $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->lockForUpdate()->first();
+            if (!$m) {
+                return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Target STO tidak ditemukan.'],'alert'=>'error']);
+            }
+
+            $userId = Auth::id();
+            $dbRole = $this->dbRole($access['role']);
+            $now    = date('Y-m-d H:i:s');
+
+            // race/idempotency guard: kalau submit ini adalah retry (mis. respon pertama
+            // sempat timeout tapi sudah tersimpan), jangan insert ulang artikel yang
+            // sudah ada — sama seperti storeSheet(), duplikat dicek sebelum insert.
+            $filtered = [];
+            foreach ($lines as $l) {
+                if (empty($l['article_code'])) continue;
+                $lineLocationNumber = $m->target_type === 'LOCATION' ? $m->target_ref : ($l['location_number'] ?? null);
+                if ($this->isDuplicateArticle($m, $mappingId, null, $l['article_code'], false, null, $lineLocationNumber)) continue;
+                $filtered[] = $l;
+            }
+
+            if (!empty($filtered)) {
+                $stoNumber = $this->generateStoNumber($mappingId);
+
+                $stoId = DB::table('sto_hdr')->insertGetId([
+                    'sto_number'  => $stoNumber,
+                    'mapping_id'  => $mappingId,
+                    'config_id'   => $m->config_id,
+                    'target_type' => $m->target_type,
+                    'target_ref'  => $m->target_ref,
+                    'status'      => 1,
+                    'created_by'  => Auth::user()->username,
+                    'created_at'  => $now,
+                    'updated_by'  => Auth::user()->username,
+                    'updated_at'  => $now,
+                ], 'sto_id');
+
+                foreach ($filtered as $l) {
+                    $qty = isset($l['qty']) && $l['qty'] !== '' ? (float) str_replace(',', '', $l['qty']) : 0;
+
+                    $dtlId = DB::table('sto_dtl')->insertGetId([
+                        'sto_id'          => $stoId,
+                        'article_code'    => $l['article_code'],
+                        'article_desc'    => $l['article_desc'] ?? null,
+                        'is_manual'       => false,
+                        'uom'             => $l['uom'] ?? null,
+                        'min_package'     => $l['min_package'] ?: null,
+                        'location_number' => $m->target_type === 'LOCATION' ? $m->target_ref : ($l['location_number'] ?? null),
+                        "qty_{$dbRole}"   => $qty,
+                        "{$dbRole}_user"  => $userId,
+                        "{$dbRole}_at"    => $now,
+                        'created_at'      => $now,
+                        'updated_at'      => $now,
+                    ], 'dtl_id');
+
+                    $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
+                    $this->syncArticleStatus($m, $dtl);
+                }
+
+                $this->recalcMappingProgress($mappingId);
+            }
+
+            return $this->doFinish($mappingId, $access);
+        });
     }
 
    
@@ -2404,9 +2578,9 @@ private function resolveRealArticleCode($alternativeCode)
         ->value('article_code');
 }
 
-private function buildPhantomArticlesForLocation($m, array $countedCodes, $periode = null)
+private function buildPhantomArticlesForLocation($m, array $countedCodes, $periode = null, $targetRefOverride = null)
 {
-    $targetRef    = $m->target_ref;
+    $targetRef    = $targetRefOverride ?? $m->target_ref;
     $locationName = $this->resolveLocationName($targetRef);
     $types        = $this->locationArticleTypeMap[$targetRef] ?? null;  // ← dipindah ke atas, dipakai grup 1 & 2
 
@@ -2467,6 +2641,84 @@ private function buildPhantomArticlesForLocation($m, array $countedCodes, $perio
     }
 
     return $phantoms;
+}
+
+// Partner (SUPPLIER/CUSTOMER) tidak punya 1 lokasi tetap — phantom dicek di
+// SEMUA lokasi LOCATION yang aktif pada sto_config (sto_code) yang sama,
+// untuk artikel yang memang tercatat milik partner ini di master.
+private function buildPhantomArticlesForPartner($m, $periode)
+{
+    // Lokasi yang dicek BUKAN "pernah dipakai di mapping ini" — tapi lokasi
+    // yang memang AKTIF di STO config (sto_code) yang sama, supaya artikel
+    // partner yang belum pernah disentuh sama sekali pun tetap ketahuan
+    // ada gerakan/stok di lokasi mana.
+    $activeLocations = DB::table('sto_config_mapping')
+        ->where('config_id', $m->config_id)
+        ->where('target_type', 'LOCATION')
+        ->pluck('target_ref')
+        ->unique()->values();
+
+    if ($activeLocations->isEmpty()) return collect();
+
+    // artikel yang secara master memang milik partner ini (cross-reference SUPP<->CUST)
+    $partnerArticles = collect($this->resolveArticlesForPartner($m->target_ref, $m->target_type)['in_stock'] ?? [])
+        ->keyBy(fn($a) => strtoupper($a->article_alternative_code));
+    if ($partnerArticles->isEmpty()) return collect();
+
+    $countedCodes = DB::table('sto_dtl as d')
+        ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
+        ->where('h.mapping_id', $m->mapping_id)
+        ->whereNotNull('d.article_code')
+        ->pluck('d.article_code')
+        ->map(fn($c) => strtoupper($c))->unique()->all();
+
+    $openingDate = $this->resolvePeriodeOpeningDate($periode);
+    $phantoms = collect();
+
+    foreach ($activeLocations as $loc) {
+        $locationName = $this->resolveLocationName($loc);
+
+        // ── grup 1: artikel partner ini yang ADA gerakan di lokasi ini periode ini ──
+        $movementQuery = DB::table('warehouse_movement as wm')
+            ->join('article as a', 'a.article_code', '=', 'wm.artikel_code')
+            ->where('wm.location_number', $loc)
+            ->where('wm.movement_type', 'not ilike', 'CANCEL %')
+            ->select('a.article_alternative_code')
+            ->distinct();
+        if ($periode) {
+            $movementQuery->whereRaw("TO_CHAR(TO_DATE(wm.movement_date,'DD-MM-YYYY'), 'YYYY-MM') = ?", [$periode]);
+        }
+        $movedHere = $movementQuery->pluck('article_alternative_code')->map(fn($c) => strtoupper($c))->all();
+
+        foreach ($movedHere as $code) {
+            if (!isset($partnerArticles[$code]) || in_array($code, $countedCodes)) continue;
+            $phantoms->push($this->makePhantomRowForLocation($m, $loc, $locationName, $this->toPhantomSa($partnerArticles[$code])));
+        }
+
+        // ── grup 2: TIDAK ada gerakan periode ini, tapi saldo AWAL periode > 0 ──
+        if ($openingDate) {
+            foreach ($partnerArticles as $code => $a) {
+                if (in_array($code, $countedCodes) || in_array($code, $movedHere)) continue;
+                $openingBalance = $this->getBalanceAtDate($a->article_alternative_code, $loc, $openingDate, null);
+                if ($openingBalance == 0) continue;
+                $phantoms->push($this->makePhantomRowForLocation($m, $loc, $locationName, $this->toPhantomSa($a)));
+            }
+        }
+    }
+
+    return $phantoms;
+}
+
+// resolveArticlesForPartner() pakai field 'article_alternative_code', sementara
+// makePhantomRowForLocation() minta field 'article_code' — jembatani di sini.
+private function toPhantomSa($a)
+{
+    return (object) [
+        'article_code' => $a->article_alternative_code,
+        'article_desc' => $a->article_desc,
+        'uom'          => $a->uom,
+        'min_package'  => $a->min_package,
+    ];
 }
 
 private function makePhantomRowForLocation($m, $targetRef, $locationName, $sa)
@@ -2884,14 +3136,16 @@ private function resolvePeriodeOpeningDate($periode)
 // ══════════════════════════════════════════════
 private function resolveOutstandingPhantoms($m)
 {
-    // partner (SUPPLIER/CUSTOMER) tidak punya konsep phantom
+    $periode = DB::table('sto_config')->where('config_id', $m->config_id)->value('periode');
+    $periode = $periode ? substr($periode, 0, 7) : null;
+
+    // partner (SUPPLIER/CUSTOMER) tidak punya 1 lokasi tetap — cek per lokasi
+    // yang PERNAH dipakai di mapping ini (lokasi dipilih bebas tiap baris).
     if ($m->target_type !== 'LOCATION') {
-        return collect();
+        return $this->buildPhantomArticlesForPartner($m, $periode);
     }
 
     $family  = $this->resolveLocationFamily($m->target_ref);
-    $periode = DB::table('sto_config')->where('config_id', $m->config_id)->value('periode');
-    $periode = $periode ? substr($periode, 0, 7) : null;
 
     if (count($family) > 1) {
         // ── family: counted codes dari SEMUA sibling mapping dalam config ini ──
