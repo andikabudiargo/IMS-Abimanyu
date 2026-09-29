@@ -166,7 +166,8 @@ class AccountPayableController extends Controller
         ['data'=> 'tax_inv_number', 'name'=> 'tax_inv_number','title'=>'Tax Inv Number','searchable'=>true], //12  search via filterColumn
         ['data'=> 'inv_date', 'name'=> 'inv_date','title'=>'Inv Date','searchable'=>false], //13  order via alias OK
         ['data'=> 'due_date', 'name'=> 'due_date','title'=>'Due date','searchable'=>false,'orderable'=>false], //14
-        ['data'=> 'article', 'name'=> 'article','title'=>'Article Code'], //15
+        ['data'=> 'coa', 'name'=> 'coa','title'=>'COA','searchable'=>false,'orderable'=>false], //15
+        ['data'=> 'article', 'name'=> 'article','title'=>'Article Code'], //16
         ['data'=> 'desc', 'name'=> 'desc','title'=>'Description'], //16
         ['data'=> 'dept', 'name'=> 'dept','title'=>'Dept','searchable'=>false,'orderable'=>false], //17
         ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'], //18
@@ -3001,6 +3002,7 @@ DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vc
             ,db::raw("max(ap_invoice.supplier_id) as kode")
             ,db::raw("max(third_party.nama) as supplier_name")
             ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
+            ,db::raw("max((select a.account from ap_invoice_det a where a.ap_number = ap_invoice.ap_number and a.reference = receiving_det.article_code limit 1)) as account")
         )
         ->groupBy('article.article_alternative_code')
         ->groupBy('article.article_desc')
@@ -3044,11 +3046,14 @@ DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vc
             ,'ap_invoice.supplier_id as kode'
             ,'third_party.nama as supplier_name'
             ,DB::raw("(select STRING_AGG ( a.rec_number,',' ORDER BY a.id) as list_rec from ap_invoice_detail a where ap_number = ap_invoice.ap_number) as list_rec")
+            ,'ap_invoice_det.account'
         );
 
         // Gabungkan PO + Non-PO jadi satu derived table supaya seluruh addColumn/filterColumn
         // di bawah bisa tetap dipakai apa adanya terhadap nama kolom yang sudah flat.
-        $data = DB::query()->fromSub($dataPo->unionAll($dataNonPo), 'ap_detail');
+        $data = DB::query()->fromSub($dataPo->unionAll($dataNonPo), 'ap_detail')
+            ->leftJoin('accounts','accounts.account','ap_detail.account')
+            ->select('ap_detail.*', db::raw("case when ap_detail.account is null or ap_detail.account = '' then '' else ap_detail.account || ' - ' || coalesce(accounts.description,'') end as coa"));
         if ($searchArticle) $data->where('article', 'ilike', "%{$searchArticle}%");
 
         return Datatables::of($data)

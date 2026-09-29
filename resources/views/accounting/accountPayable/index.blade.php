@@ -140,6 +140,7 @@
             </div>
           </div>
         </div>
+        <small class="text-muted" id="apRecon"></small>
       </div>
     </div>
   </div>
@@ -237,6 +238,8 @@ function getExportDateTimeString(){
       $('#cardTotalAp').text(fmtRp(res.totalAp));
       $('#cardApTotalPaid').text(fmtRp(res.totalPaid));
       $('#cardApOutstanding').text(fmtRp(res.outstanding));
+      $('#apRecon').text('Selisih rekonsiliasi (Opening + Pembelian - Pembayaran - Balance): ' + fmtRp(res.selisih)
+        + ' | Saldo <=0 / lebih bayar yang dibuang: opening ' + fmtRp(res.excludedOpening) + ', cut-off ' + fmtRp(res.excludedCutoff));
     });
   };
 
@@ -363,11 +366,11 @@ function getExportDateTimeString(){
   tableId:"detailedTable",
   route:"{{ route('accountPayable.list.detail') }}",
   kolom:{!! $kolomDetail !!},
-  arrColPrint:[0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21],
+  arrColPrint:[0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,22],
   columnDefs :[
     { width: '5%', targets: 0 },
     {
-      targets: [19,20,21],
+      targets: [20,21,22],
       render: $.fn.dataTable.render.number(',', '.', 2, ''),
       className: "text-right"
     },
