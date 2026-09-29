@@ -647,7 +647,7 @@
             <li class="{{ \Request::segment(1) == 'defects' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('defect.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Master Defect">Master Defect</span>
+                <span class="menu-item text-truncate" data-i18n="Master Defect">Defect</span>
               </a>
             </li>
             @endcan
@@ -656,7 +656,7 @@
             <li class="{{ \Request::segment(1) == 'inspectionPosts' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('inspectionPost.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Master Inspection Post">Master Inspection Post</span>
+                <span class="menu-item text-truncate" data-i18n="Master Inspection Post">Inspection Post</span>
               </a>
             </li>
             @endcan
@@ -666,15 +666,6 @@
               <a class="d-flex align-items-center" href="{{ route('production.actualLoading.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Actual Loading">Inspection Order</span>
-              </a>
-            </li>
-            @endcan
-
-            @can('actualLoading-index')
-            <li class="{{ \Request::is(['actualFinishGoods','actualFinishGoods/edit','actualFinishGoods/show']) ? 'active' : '' }}" >
-              <a class="d-flex align-items-center" href="{{ route('production.actualFinishGoods.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Actual Loading">Defects</span>
               </a>
             </li>
             @endcan
