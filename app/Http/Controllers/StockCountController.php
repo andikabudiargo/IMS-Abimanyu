@@ -494,12 +494,15 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 // P1: kode artikel sama + lokasi se-family → satu unit, qty digabung.
 private function collectFamilyDtlRowsByLocation($configId, array $family, $articleCode)
 {
+    // orderBy WAJIB ADA: syncArticleStatus() pakai hasil ini buat UPDATE ... WHERE dtl_id IN (...).
+    // Urutan konsisten mencegah deadlock waktu dua booth sibling di-submit bersamaan.
     return DB::table('sto_dtl as d')
         ->join('sto_hdr as h', 'h.sto_id', '=', 'd.sto_id')
         ->where('h.config_id', $configId)
         ->whereIn('d.location_number', $family)
         ->where('d.article_code', $articleCode)
         ->select('d.dtl_id', 'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3')
+        ->orderBy('d.dtl_id')
         ->get();
 }
  
@@ -1871,10 +1874,14 @@ private function recalcSingleMappingProgress($m)
 // ── BARU: gabung seluruh sibling dalam satu keluarga jadi satu unit skor ──
 private function recalcFamilyProgress($configId, array $family)
 {
+    // orderBy WAJIB ADA: dipakai sebagai urutan lock waktu UPDATE ... WHERE mapping_id IN (...)
+    // di bawah. Tanpa urutan konsisten, dua transaksi yang rebutan sibling yang sama
+    // (mis. dua counter beda booth submit bersamaan) bisa saling kunci silang → deadlock.
     $siblingMappings = DB::table('sto_config_mapping')
         ->where('config_id', $configId)
         ->where('target_type', 'LOCATION')
         ->whereIn('target_ref', $family)
+        ->orderBy('mapping_id')
         ->get();
     if ($siblingMappings->isEmpty()) return;
 
