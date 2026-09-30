@@ -680,6 +680,13 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::get('bom/report',['as'=>'bom.report.index','uses'=>'BomReportController@index','middleware' => ['permission:bom-index']]);
 	Route::post('bom/report/list',['as'=>'bom.report.list','uses'=>'BomReportController@list']);
 
+	Route::get('masterScheduleProject',['as'=>'msp.index','uses'=>'MasterScheduleProjectController@index','middleware' => ['permission:msp-index']]);
+	Route::get('masterScheduleProject/create',['as'=>'msp.create','uses'=>'MasterScheduleProjectController@create','middleware' => ['permission:msp-create']]);
+	Route::post('masterScheduleProject',['as'=>'msp.store','uses'=>'MasterScheduleProjectController@store','middleware' => ['permission:msp-create']]);
+	Route::get('masterScheduleProject/{id}/edit',['as'=>'msp.edit','uses'=>'MasterScheduleProjectController@edit','middleware' => ['permission:msp-edit']]);
+	Route::put('masterScheduleProject/{id}',['as'=>'msp.update','uses'=>'MasterScheduleProjectController@update','middleware' => ['permission:msp-edit']]);
+	Route::get('masterScheduleProject/{id}/history',['as'=>'msp.history','uses'=>'MasterScheduleProjectController@history','middleware' => ['permission:msp-index']]);
+
 	Route::get('bomsUpload',['as'=>'boms.indexUpload','uses'=>'BomController@indexUpload','middleware' => ['permission:bom-create']]);
 	Route::post('bom/upload-excel',['as'=>'bom.upload.excel','uses'=>'BomController@uploadExcel']);
 	Route::get('bom/export-template',['as'=>'bom.export.template','uses'=>'BomController@exportTemplate']);

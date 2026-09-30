@@ -578,7 +578,7 @@
         <li class=" navigation-header"><span data-i18n="Logistic">Manufacturing</span><i data-feather="more-horizontal"></i>
         </li>
         
-        <li class=" {{ in_array(\Request::segment(1), ['engineering','boms','bomsUpload','bom']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['engineering','boms','bomsUpload','bom','masterScheduleProject']) ? 'active' : '' }} nav-item">
   <a class="d-flex align-items-center" href="javascript:void(0);">
     <i data-feather='tool'></i>
     <span class="menu-title text-truncate" data-i18n="Form Elements">Engineering
@@ -600,6 +600,15 @@
       <a class="d-flex align-items-center" href="{{ route('bom.report.index') }}">
         <i data-feather="circle"></i>
         <span class="menu-item text-truncate" data-i18n="Input">BOM Report</span>
+      </a>
+    </li>
+    @endcan
+
+    @can('msp-index')
+    <li class="{{ \Request::segment(1) == 'masterScheduleProject' ? 'active' : '' }}">
+      <a class="d-flex align-items-center" href="{{ route('msp.index') }}">
+        <i data-feather="circle"></i>
+        <span class="menu-item text-truncate" data-i18n="Input">Master Schedule Project</span>
       </a>
     </li>
     @endcan
