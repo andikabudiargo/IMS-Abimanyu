@@ -768,7 +768,7 @@ public function auditListDetail(Request $request)
                 ->map(function ($l) use ($access) {
                     $userId = Auth::id();
                     $l->my_qty = null;
-                    if ($access['role'] === 'accounting')             $l->my_qty = $l->qty_counter1;
+                    if ($access['role'] === 'accounting')             $l->my_qty = $l->qty_counter1 ?? $l->qty_counter2 ?? ($l->qty_counter3 ?? null);
                     elseif ($l->counter1_user == $userId)             $l->my_qty = $l->qty_counter1;
                     elseif ($l->counter2_user == $userId)             $l->my_qty = $l->qty_counter2;
                     elseif (($l->counter3_user ?? null) == $userId)   $l->my_qty = $l->qty_counter3;

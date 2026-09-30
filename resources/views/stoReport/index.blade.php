@@ -639,7 +639,9 @@ $(document).ready(function () {
         $('#reportScroll').removeClass('d-none');
         $('#btnPrint').removeClass('d-none');
         $('#btnExport').removeClass('d-none');
-        $('#btnAdjustment').removeClass('d-none');
+        $('#btnAdjustment').removeClass('d-none')
+            .prop('disabled', !h.is_finished)
+            .attr('title', h.is_finished ? '' : 'Lokasi ini belum ditandai selesai counting');
 
         if (typeof feather !== 'undefined') feather.replace();
     }
@@ -830,6 +832,10 @@ $('#btnAdjustment').on('click', function () {
         Swal.fire('Warning', 'Generate report dulu sebelum buat adjustment.', 'warning');
         return;
     }
+    if (!res.header.is_finished) {
+        Swal.fire('Warning', 'Lokasi ini belum ditandai selesai counting.', 'warning');
+        return;
+    }
 
     let rows = res.rows
         .filter(function (r) { return r.qty_sto !== null && r.qty_sto !== undefined; })
@@ -847,12 +853,15 @@ $('#btnAdjustment').on('click', function () {
         return;
     }
 
-    let stoDate = res.header.sto_date; // 'YYYY-MM-DD'
-    let adjDate = stoDate ? stoDate.split('-').reverse().join('-') : '';
+    let adjDate = res.header.sto_date || ''; // sudah format 'DD-MM-YYYY', sama seperti input Cut-Off Date
+
+    // periode STO formatnya 'YYYY-MM', select Adjustment cuma butuh angka bulan (1-12)
+    let periodeParts = String(res.header.periode || '').split('-');
+    let periode = periodeParts.length > 1 ? parseInt(periodeParts[1], 10) : parseInt(periodeParts[0], 10);
 
     sessionStorage.setItem('stoAdjImport', JSON.stringify({
         location: res.header.location_code,
-        periode: res.header.periode,
+        periode: periode || '',
         adjDate: adjDate,
         description: 'Adjustment dari STO ' + res.header.sto_code,
         rows: rows

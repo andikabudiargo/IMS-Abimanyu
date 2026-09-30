@@ -1037,6 +1037,7 @@ class StoReportController extends Controller
             'date_to'         => $dateTo,
             'sto_date'        => $mapping->sto_date ?? null,
             'target_plan_loc' => $mapping->target_plan_loc ?? 98,
+            'is_finished'     => !empty($mapping->finish_time),
         ];
 
         if ($realCodes->isEmpty()) {
