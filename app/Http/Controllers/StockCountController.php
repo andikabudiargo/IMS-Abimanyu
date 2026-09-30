@@ -339,7 +339,7 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     $this->recalcMappingProgress($stoHdr->mapping_id);
     $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc');
 
-    $myQty = $isAccounting ? $dtl->qty_counter1 : $dtl->{"qty_{$role}"};
+    $myQty = $isAccounting ? ($dtl->qty_counter1 ?? $dtl->qty_counter2 ?? ($dtl->qty_counter3 ?? null)) : $dtl->{"qty_{$role}"};
 
     return response()->json([
         'status'  => 1,
@@ -794,7 +794,22 @@ public function auditListDetail(Request $request)
                 ->select('location_code', 'location_name')
                 ->orderBy('location_name')->get();
         }
- 
+
+        // ── BARU: target sudah Selesai tapi masih ada artikel phantom (movement/
+        // stok ada, belum pernah diinput) — sodorkan lagi ke accounting saat buka
+        // halaman Detail, supaya bisa dikonfirmasi/diisi (termasuk diisi 0).
+        $outstandingPhantoms = collect();
+        if ($access['role'] === 'accounting' && $m->finish_time) {
+            $outstandingPhantoms = $this->resolveOutstandingPhantoms($m)->map(fn($p) => [
+                'article_code'    => $p->article_code,
+                'article_desc'    => $p->article_desc,
+                'uom'             => $p->uom,
+                'min_package'     => $p->min_package,
+                'location_number' => $p->location_number,
+                'location_name'   => $this->resolveLocationName($p->location_number),
+            ])->values();
+        }
+
         return view('stockCount.create', [
             'title'        => 'Stock Count — '.$targetName,
             'mapping'      => $m,
@@ -805,6 +820,7 @@ public function auditListDetail(Request $request)
             'locations'    => $locations,
             'isPartner'    => $isPartner,
             'isAuto'       => $isAuto,
+            'outstandingPhantoms' => $outstandingPhantoms,
         ]);
     }
  
@@ -2200,8 +2216,9 @@ private function withinTolerance($counted, $qtySystem, $tolerance)
         }
 
         // ── cek phantom (artikel punya stok tapi belum pernah diinput) ──
+        // BARU: accounting/Leo juga wajib konfirmasi phantom, tidak lagi di-bypass.
         $phantoms = $this->resolveOutstandingPhantoms($m);
-        if ($phantoms->isNotEmpty() && $access['role'] !== 'accounting') {
+        if ($phantoms->isNotEmpty()) {
             return response()->json([
                 'status'   => 0,
                 'title'    => 'Belum Bisa Selesai',
