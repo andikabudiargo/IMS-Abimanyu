@@ -133,10 +133,27 @@
     </div>
     <div class="card-body" style="overflow-x:auto;">
       <div id="mspGanttChart"></div>
-      <div class="mt-2" style="font-size:12px;">
-        <span style="display:inline-block;width:14px;height:8px;border:1.5px solid #5a4fcf;border-radius:2px;margin-right:4px;"></span> Plan
-        <span style="display:inline-block;width:14px;height:8px;background:#5a4fcf;border-radius:2px;margin-left:14px;margin-right:4px;"></span> Actual
-        <span style="display:inline-block;width:14px;height:8px;background:#fffbe6;border:1px solid #e6d47a;border-radius:2px;margin-left:14px;margin-right:4px;"></span> Notes (isi lewat kolom Notes di tabel schedule, mis. "OK HPM 15 Des 2025")
+      <div class="mt-2" style="font-size:12px;line-height:2;">
+        <span style="display:inline-block;width:14px;height:8px;border:1.5px solid #5a4fcf;border-radius:2px;margin-right:4px;"></span> Plan (bar)
+        <span style="display:inline-block;width:14px;height:8px;background:#5a4fcf;border-radius:2px;margin-left:14px;margin-right:4px;"></span> Actual (bar)
+        <span style="display:inline-block;width:14px;height:8px;background:#fffbe6;border:1px solid #e6d47a;border-radius:2px;margin-left:14px;margin-right:4px;"></span> Notes
+        <br>
+        <span class="msp-marker msp-marker-plan" style="position:static;display:inline-block;margin-right:2px;">D</span>
+        <span class="msp-marker msp-marker-plan" style="position:static;display:inline-block;margin-right:2px;">AI</span>
+        <span class="msp-marker msp-marker-plan" style="position:static;display:inline-block;margin-right:8px;">AE</span>
+        Plan Draft / Approval Internal / Approval External
+        <br>
+        <span class="msp-marker msp-marker-actual" style="position:static;display:inline-block;margin-right:2px;">D</span>
+        <span class="msp-marker msp-marker-actual" style="position:static;display:inline-block;margin-right:2px;">AI</span>
+        <span class="msp-marker msp-marker-actual" style="position:static;display:inline-block;margin-right:8px;">AE</span>
+        Actual Draft / Approval Internal / Approval External
+        <br>
+        <span class="msp-marker msp-marker-resch" style="position:static;display:inline-block;margin-right:2px;">RD</span>
+        <span class="msp-marker msp-marker-resch" style="position:static;display:inline-block;margin-right:2px;">RAI</span>
+        <span class="msp-marker msp-marker-resch" style="position:static;display:inline-block;margin-right:8px;">RAE</span>
+        Reschedule Draft / Approval Internal / Approval External
+        <br>
+        <small class="text-muted">Isi tanggal D/AI/AE lewat tombol <i data-feather="flag"></i> di tiap baris schedule.</small>
       </div>
     </div>
   </div>
@@ -165,6 +182,14 @@
   background: #fffbe6; border: 1px solid #e6d47a; border-radius: 3px;
   padding: 1px 5px; pointer-events: none; z-index: 2;
 }
+.msp-marker {
+  position: absolute; width: 22px; height: 14px; line-height: 13px;
+  font-size: 8px; font-weight: 700; text-align: center; border-radius: 2px;
+  pointer-events: none; z-index: 3;
+}
+.msp-marker-plan { background: #fff; border: 1.5px solid #333; color: #333; }
+.msp-marker-actual { background: #333; color: #fff; }
+.msp-marker-resch { background: #1e88e5; color: #fff; }
 </style>
 @endsection
 
@@ -174,7 +199,7 @@
 // e.g. item 2's 2nd document line shows "2.2" — recomputed after every add/remove.
 function mspRenumberLines() {
   const counters = {};
-  document.querySelectorAll('#mspLineTable tbody tr').forEach(function (row) {
+  document.querySelectorAll('#mspLineTable tbody tr.msp-line-row').forEach(function (row) {
     const itemNo = row.dataset.itemNo;
     counters[itemNo] = (counters[itemNo] || 0) + 1;
     const badge = row.querySelector('.msp-line-no');
@@ -182,22 +207,45 @@ function mspRenumberLines() {
   });
 }
 
-// per-row "+" duplicates that row (same item), keeping hidden item_no/item_name/stage_group
+// each schedule line is a pair of rows: the visible .msp-line-row and a
+// hidden .msp-milestone-row (D/AI/AE dates) right after it — always move/
+// clone/remove them together so the array indices submitted to the server
+// stay aligned across both rows.
 document.addEventListener('click', function (e) {
-  if (e.target.closest('.msp-add-line')) {
+  if (e.target.closest('.msp-toggle-milestone')) {
     const row = e.target.closest('tr');
-    const clone = row.cloneNode(true);
-    clone.querySelectorAll('input').forEach(function (input) {
+    const milestoneRow = row.nextElementSibling;
+    if (milestoneRow && milestoneRow.classList.contains('msp-milestone-row')) {
+      milestoneRow.style.display = milestoneRow.style.display === 'none' ? '' : 'none';
+    }
+  } else if (e.target.closest('.msp-add-line')) {
+    const row = e.target.closest('tr');
+    const milestoneRow = row.nextElementSibling && row.nextElementSibling.classList.contains('msp-milestone-row') ? row.nextElementSibling : null;
+
+    const rowClone = row.cloneNode(true);
+    rowClone.querySelectorAll('input').forEach(function (input) {
       if (input.name === 'dtl_id[]') { input.value = ''; }
       else if (input.type !== 'hidden') { input.value = ''; }
     });
-    row.parentNode.insertBefore(clone, row.nextSibling);
+    row.parentNode.insertBefore(rowClone, row.nextSibling);
+
+    if (milestoneRow) {
+      const milestoneClone = milestoneRow.cloneNode(true);
+      milestoneClone.querySelectorAll('input').forEach(function (input) { input.value = ''; });
+      milestoneClone.style.display = 'none';
+      rowClone.parentNode.insertBefore(milestoneClone, rowClone.nextSibling);
+    }
+
     if (window.feather) feather.replace();
     mspRenumberLines();
   } else if (e.target.closest('.msp-remove-line')) {
     const row = e.target.closest('tr');
-    const sameItemRows = document.querySelectorAll('tr[data-item-no="' + row.dataset.itemNo + '"]');
-    if (sameItemRows.length > 1) row.remove();
+    const sameItemRows = document.querySelectorAll('tr.msp-line-row[data-item-no="' + row.dataset.itemNo + '"]');
+    if (sameItemRows.length > 1) {
+      const milestoneRow = row.nextElementSibling && row.nextElementSibling.classList.contains('msp-milestone-row') ? row.nextElementSibling : null;
+      if (milestoneRow) milestoneRow.remove();
+      row.remove();
+    }
     mspRenumberLines();
   }
 });
@@ -213,7 +261,8 @@ function mspRenderGantt() {
   const container = document.getElementById('mspGanttChart');
   if (!container) return;
 
-  const rows = document.querySelectorAll('#mspLineTable tbody tr');
+  const milestoneFields = ['plan_draft','plan_ai','plan_ae','actual_draft','actual_ai','actual_ae','resch_draft','resch_ai','resch_ae'];
+  const rows = document.querySelectorAll('#mspLineTable tbody tr.msp-line-row');
   const lines = [];
   let minDate = null, maxDate = null;
   const lineNoCounters = {};
@@ -227,7 +276,15 @@ function mspRenderGantt() {
     const as = row.querySelector('.actual-start').value;
     const ae = row.querySelector('.actual-end').value;
 
-    [ps, pe, as, ae].filter(Boolean).forEach(function (d) {
+    const milestoneRow = row.nextElementSibling;
+    const milestones = {};
+    milestoneFields.forEach(function (f) {
+      const input = milestoneRow ? milestoneRow.querySelector('input[name="' + f + '[]"]') : null;
+      milestones[f] = input ? input.value : '';
+    });
+
+    const allDates = [ps, pe, as, ae].concat(milestoneFields.map(function (f) { return milestones[f]; }));
+    allDates.filter(Boolean).forEach(function (d) {
       const dt = new Date(d);
       if (!minDate || dt < minDate) minDate = dt;
       if (!maxDate || dt > maxDate) maxDate = dt;
@@ -245,6 +302,7 @@ function mspRenderGantt() {
       pic: row.querySelector('.pic-input').value,
       note: row.querySelector('.notes-input').value,
       ps: ps, pe: pe, as: as, ae: ae,
+      milestones: milestones,
     });
   });
 
@@ -371,12 +429,44 @@ function mspRenderGantt() {
     container.appendChild(label);
   }
 
+  // single-date approval-workflow markers (D/AI/AE legend): small square with
+  // a short label, placed on its own date's column instead of a bar range.
+  const markerDefs = [
+    { field: 'plan_draft', text: 'D', cls: 'msp-marker-plan' },
+    { field: 'plan_ai', text: 'AI', cls: 'msp-marker-plan' },
+    { field: 'plan_ae', text: 'AE', cls: 'msp-marker-plan' },
+    { field: 'actual_draft', text: 'D', cls: 'msp-marker-actual' },
+    { field: 'actual_ai', text: 'AI', cls: 'msp-marker-actual' },
+    { field: 'actual_ae', text: 'AE', cls: 'msp-marker-actual' },
+    { field: 'resch_draft', text: 'RD', cls: 'msp-marker-resch' },
+    { field: 'resch_ai', text: 'RAI', cls: 'msp-marker-resch' },
+    { field: 'resch_ae', text: 'RAE', cls: 'msp-marker-resch' },
+  ];
+
+  function addMarker(row, col, text, cls) {
+    if (!col) return;
+    const cells = row.querySelectorAll('td.msp-gantt-cell');
+    const td = cells[col - 1];
+    if (!td) return;
+    const rect = td.getBoundingClientRect();
+    const marker = document.createElement('div');
+    marker.className = 'msp-marker ' + cls;
+    marker.textContent = text;
+    marker.title = text;
+    marker.style.left = (rect.left - containerRect.left + 1) + 'px';
+    marker.style.top = (rect.top - containerRect.top + 7) + 'px';
+    container.appendChild(marker);
+  }
+
   lines.forEach(function (line, idx) {
     const row = bodyRows[idx];
     const peCol = colIndex(line.pe), aeCol = colIndex(line.ae);
     addBar(row, colIndex(line.ps), peCol, 'msp-bar-plan', 4);
     addBar(row, colIndex(line.as), aeCol, 'msp-bar-actual', 16);
     addNote(row, aeCol || peCol, line.note);
+    markerDefs.forEach(function (m) {
+      addMarker(row, colIndex(line.milestones[m.field]), m.text, m.cls);
+    });
   });
 }
 

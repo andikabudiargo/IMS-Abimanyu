@@ -28,6 +28,22 @@ class MasterScheduleProjectController extends Controller
         13 => ['stage' => 'Mass Production Stage', 'name' => 'Mass Production'],
     ];
 
+    /**
+     * Approval-workflow milestone markers (D/AI/AE/RD/RAI/RAE legend from the
+     * Excel template). Form field name => DB column name.
+     */
+    const MILESTONE_FIELDS = [
+        'plan_draft' => 'plan_draft_date',
+        'plan_ai' => 'plan_ai_date',
+        'plan_ae' => 'plan_ae_date',
+        'actual_draft' => 'actual_draft_date',
+        'actual_ai' => 'actual_ai_date',
+        'actual_ae' => 'actual_ae_date',
+        'resch_draft' => 'resch_draft_date',
+        'resch_ai' => 'resch_ai_date',
+        'resch_ae' => 'resch_ae_date',
+    ];
+
     private $title = 'Master Schedule Project';
 
     public function index(Request $request)
@@ -197,6 +213,11 @@ class MasterScheduleProjectController extends Controller
         $notes = $request->input('notes', []);
         $reason = $request->input('revision_reason');
 
+        $milestoneInputs = [];
+        foreach (self::MILESTONE_FIELDS as $field => $column) {
+            $milestoneInputs[$column] = $request->input($field, []);
+        }
+
         $anyChanged = false;
 
         foreach ($itemNos as $i => $itemNo) {
@@ -218,6 +239,9 @@ class MasterScheduleProjectController extends Controller
                 'progress' => (int) ($progresses[$i] ?? 0),
                 'notes' => $notes[$i] ?: null,
             ];
+            foreach (self::MILESTONE_FIELDS as $column) {
+                $newData[$column] = $milestoneInputs[$column][$i] ?: null;
+            }
 
             if ($dtlId) {
                 $old = DB::table('msp_dtl')->where('id', $dtlId)->first();
@@ -235,6 +259,9 @@ class MasterScheduleProjectController extends Controller
                     'progress' => $old->progress,
                     'notes' => $old->notes,
                 ];
+                foreach (self::MILESTONE_FIELDS as $column) {
+                    $oldData[$column] = $old->$column;
+                }
 
                 $changed = $oldData != $newData;
 

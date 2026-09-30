@@ -35,6 +35,15 @@
                 'actual_end_date' => 'Actual End',
                 'progress' => 'Progress %',
                 'notes' => 'Notes',
+                'plan_draft_date' => 'Plan Draft (D)',
+                'plan_ai_date' => 'Plan Approval Internal (AI)',
+                'plan_ae_date' => 'Plan Approval External (AE)',
+                'actual_draft_date' => 'Actual Draft (D)',
+                'actual_ai_date' => 'Actual Approval Internal (AI)',
+                'actual_ae_date' => 'Actual Approval External (AE)',
+                'resch_draft_date' => 'Reschedule Draft (RD)',
+                'resch_ai_date' => 'Reschedule Approval Internal (RAI)',
+                'resch_ae_date' => 'Reschedule Approval External (RAE)',
               ];
               $changedFields = array_filter($fieldLabels, function ($key) use ($h) {
                 return ($h->old_data[$key] ?? null) != ($h->new_data[$key] ?? null);
