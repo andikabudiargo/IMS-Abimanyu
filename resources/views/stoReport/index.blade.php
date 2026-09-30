@@ -594,8 +594,8 @@ $(document).ready(function () {
         }
         $('#reportBody').html(body);
 
-        // akumulasi persentase
-        let avgAcc = accCount > 0 ? (accSum / accCount) : 0;
+        // rasio lolos toleransi (match + dalam toleransi% target) / total, samakan dgn STO Config
+        let avgAcc = accCount > 0 ? (meetCount / accCount * 100) : 0;
 
         // summary cards
         $('#sumTotal').text(s.total_artikel);

@@ -130,7 +130,7 @@
               <div class="card-header py-2 msp-item-toggle" style="cursor:pointer;background:#f8f8fb;">
                 <div class="d-flex justify-content-between align-items-center">
                   <div>
-                    <span class="badge badge-light mr-2">{{ $item['stage'] }}</span>
+                    <span class="badge msp-stage-badge mr-2">{{ $item['stage'] }}</span>
                     <strong>{{ $itemNo }}. {{ $item['name'] }}</strong>
                   </div>
                   <i data-feather="chevron-down"></i>
@@ -164,6 +164,7 @@
 <style>
 .msp-field-label { font-size: 11px; color: #6e6b7b; margin-bottom: 2px; display: block; }
 .msp-line-panel { background: #fff; }
+.msp-stage-badge { background: #e0def7; color: #5a4fcf; }
 .msp-item-toggle svg { transition: transform .15s ease; }
 .msp-item-toggle.msp-collapsed svg { transform: rotate(-90deg); }
 
