@@ -7,9 +7,12 @@
     <input type="hidden" name="item_name[]" value="{{ $item['name'] }}">
     <input type="hidden" name="stage_group[]" value="{{ $item['stage'] }}">
     <input type="hidden" name="dtl_id[]" value="{{ $line->id ?? '' }}">
-    <input type="text" name="document_report[]" class="form-control form-control-sm document-report" value="{{ $line->document_report ?? '' }}">
+    <div class="input-group input-group-sm">
+      <div class="input-group-prepend"><span class="input-group-text msp-line-no">{{ $itemNo }}.1</span></div>
+      <input type="text" name="document_report[]" class="form-control form-control-sm document-report" value="{{ $line->document_report ?? '' }}">
+    </div>
   </td>
-  <td><input type="text" name="pic[]" class="form-control form-control-sm" value="{{ $line->pic ?? '' }}"></td>
+  <td><input type="text" name="pic[]" class="form-control form-control-sm pic-input" value="{{ $line->pic ?? '' }}"></td>
   <td><input type="date" name="plan_start[]" class="form-control form-control-sm plan-start" value="{{ $line->plan_start_date ?? '' }}"></td>
   <td><input type="date" name="plan_end[]" class="form-control form-control-sm plan-end" value="{{ $line->plan_end_date ?? '' }}"></td>
   <td><input type="date" name="actual_start[]" class="form-control form-control-sm actual-start" value="{{ $line->actual_start_date ?? '' }}"></td>

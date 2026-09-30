@@ -153,20 +153,28 @@
   overflow: hidden; text-overflow: ellipsis; background: #fafafa;
 }
 .msp-gantt-odd td { background: #fbfbfd; }
-.msp-gantt-cell { position: relative; }
-.msp-bar-plan {
-  position: absolute; top: 4px; left: 1px; right: 1px; height: 8px;
-  border: 1.5px solid #5a4fcf; border-radius: 2px; display: block;
+.msp-bar-plan, .msp-bar-actual {
+  position: absolute; height: 8px; border-radius: 2px; pointer-events: none;
 }
-.msp-bar-actual {
-  position: absolute; bottom: 4px; left: 1px; right: 1px; height: 8px;
-  background: #5a4fcf; border-radius: 2px; display: block;
-}
+.msp-bar-plan { border: 1.5px solid #5a4fcf; background: #fff; }
+.msp-bar-actual { background: #5a4fcf; }
 </style>
 @endsection
 
 @section('scripts')
 <script>
+// document/report line numbering: "<item no>.<line index within that item>",
+// e.g. item 2's 2nd document line shows "2.2" — recomputed after every add/remove.
+function mspRenumberLines() {
+  const counters = {};
+  document.querySelectorAll('#mspLineTable tbody tr').forEach(function (row) {
+    const itemNo = row.dataset.itemNo;
+    counters[itemNo] = (counters[itemNo] || 0) + 1;
+    const badge = row.querySelector('.msp-line-no');
+    if (badge) badge.textContent = itemNo + '.' + counters[itemNo];
+  });
+}
+
 // per-row "+" duplicates that row (same item), keeping hidden item_no/item_name/stage_group
 document.addEventListener('click', function (e) {
   if (e.target.closest('.msp-add-line')) {
@@ -178,12 +186,16 @@ document.addEventListener('click', function (e) {
     });
     row.parentNode.insertBefore(clone, row.nextSibling);
     if (window.feather) feather.replace();
+    mspRenumberLines();
   } else if (e.target.closest('.msp-remove-line')) {
     const row = e.target.closest('tr');
     const sameItemRows = document.querySelectorAll('tr[data-item-no="' + row.dataset.itemNo + '"]');
     if (sameItemRows.length > 1) row.remove();
+    mspRenumberLines();
   }
 });
+
+document.addEventListener('DOMContentLoaded', mspRenumberLines);
 
 function mspMonthName(m) {
   return ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][m];
@@ -197,6 +209,7 @@ function mspRenderGantt() {
   const rows = document.querySelectorAll('#mspLineTable tbody tr');
   const lines = [];
   let minDate = null, maxDate = null;
+  const lineNoCounters = {};
 
   // every row (all 13 fixed items + any extra lines) always shows up as a row,
   // even with no dates yet — only the date range used for the header is driven
@@ -212,11 +225,17 @@ function mspRenderGantt() {
       if (!minDate || dt < minDate) minDate = dt;
       if (!maxDate || dt > maxDate) maxDate = dt;
     });
+
+    const itemNo = row.dataset.itemNo;
+    lineNoCounters[itemNo] = (lineNoCounters[itemNo] || 0) + 1;
+
     lines.push({
       stage: row.dataset.stageGroup,
-      itemNo: row.dataset.itemNo,
+      itemNo: itemNo,
       itemName: row.dataset.itemName,
+      lineNo: itemNo + '.' + lineNoCounters[itemNo],
       doc: row.querySelector('.document-report').value,
+      pic: row.querySelector('.pic-input').value,
       ps: ps, pe: pe, as: as, ae: ae,
     });
   });
@@ -255,7 +274,8 @@ function mspRenderGantt() {
     + '<th class="msp-gantt-label" rowspan="2">Stage</th>'
     + '<th rowspan="2">No</th>'
     + '<th class="msp-gantt-label" rowspan="2">Item</th>'
-    + '<th class="msp-gantt-label" rowspan="2">Document / Report</th>';
+    + '<th class="msp-gantt-label" rowspan="2">Document / Report</th>'
+    + '<th rowspan="2">PIC</th>';
   months.forEach(function (m) {
     thead += '<th colspan="' + weeksPerMonth + '" class="msp-gantt-month">' + mspMonthName(m.month) + ' ' + m.year + '</th>';
   });
@@ -286,27 +306,52 @@ function mspRenderGantt() {
 
   let tbody = '';
   lines.forEach(function (line, idx) {
-    const psCol = colIndex(line.ps), peCol = colIndex(line.pe);
-    const asCol = colIndex(line.as), aeCol = colIndex(line.ae);
     tbody += '<tr class="' + (idx % 2 ? 'msp-gantt-odd' : '') + '">';
     if (stageSpan[idx]) tbody += '<td class="msp-gantt-label" rowspan="' + stageSpan[idx] + '">' + line.stage + '</td>';
     if (itemSpan[idx]) {
       tbody += '<td rowspan="' + itemSpan[idx] + '">' + line.itemNo + '</td>';
       tbody += '<td class="msp-gantt-label" rowspan="' + itemSpan[idx] + '">' + line.itemName + '</td>';
     }
-    tbody += '<td class="msp-gantt-label" title="' + line.doc + '">' + (line.doc || '') + '</td>';
+    const docLabel = line.doc ? (line.lineNo + ' ' + line.doc) : '';
+    tbody += '<td class="msp-gantt-label" title="' + docLabel + '">' + docLabel + '</td>';
+    tbody += '<td>' + (line.pic || '') + '</td>';
     for (let c = 1; c <= totalCols; c++) {
-      let inner = '';
-      if (psCol && peCol && c >= psCol && c <= peCol) inner += '<span class="msp-bar-plan"></span>';
-      if (asCol && aeCol && c >= asCol && c <= aeCol) inner += '<span class="msp-bar-actual"></span>';
-      tbody += '<td class="msp-gantt-cell">' + inner + '</td>';
+      tbody += '<td class="msp-gantt-cell"></td>';
     }
     tbody += '</tr>';
   });
 
-  const colgroup = '<colgroup><col style="width:110px"><col style="width:36px"><col style="width:180px"><col style="width:200px">'
+  const colgroup = '<colgroup><col style="width:110px"><col style="width:36px"><col style="width:180px"><col style="width:180px"><col style="width:90px">'
     + '<col style="width:26px">'.repeat(totalCols) + '</colgroup>';
+  container.style.position = 'relative';
   container.innerHTML = '<table class="msp-gantt-table">' + colgroup + '<thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table>';
+
+  // draw plan/actual as one continuous bar per line (spanning start..end column)
+  // instead of a separate little box per week cell.
+  const containerRect = container.getBoundingClientRect();
+  const bodyRows = container.querySelectorAll('tbody tr');
+
+  function addBar(row, startCol, endCol, cls, top) {
+    if (!startCol || !endCol) return;
+    const cells = row.querySelectorAll('td.msp-gantt-cell');
+    const startTd = cells[startCol - 1];
+    const endTd = cells[endCol - 1];
+    if (!startTd || !endTd) return;
+    const sRect = startTd.getBoundingClientRect();
+    const eRect = endTd.getBoundingClientRect();
+    const bar = document.createElement('div');
+    bar.className = cls;
+    bar.style.left = (sRect.left - containerRect.left + 1) + 'px';
+    bar.style.width = Math.max(2, eRect.right - sRect.left - 2) + 'px';
+    bar.style.top = (sRect.top - containerRect.top + top) + 'px';
+    container.appendChild(bar);
+  }
+
+  lines.forEach(function (line, idx) {
+    const row = bodyRows[idx];
+    addBar(row, colIndex(line.ps), colIndex(line.pe), 'msp-bar-plan', 4);
+    addBar(row, colIndex(line.as), colIndex(line.ae), 'msp-bar-actual', 16);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
