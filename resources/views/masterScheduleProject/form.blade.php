@@ -133,14 +133,37 @@
     <div class="card-body" style="overflow-x:auto;">
       <div id="mspGanttChart"></div>
       <div class="mt-2" style="font-size:12px;">
-        <span style="display:inline-block;width:14px;height:8px;border:1px solid #333;margin-right:4px;"></span> Plan
-        <span style="display:inline-block;width:14px;height:8px;background:#000;margin-left:14px;margin-right:4px;"></span> Actual
+        <span style="display:inline-block;width:14px;height:8px;border:1.5px solid #5a4fcf;border-radius:2px;margin-right:4px;"></span> Plan
+        <span style="display:inline-block;width:14px;height:8px;background:#5a4fcf;border-radius:2px;margin-left:14px;margin-right:4px;"></span> Actual
       </div>
     </div>
   </div>
   @endif
 </section>
 
+@endsection
+
+@section('styles')
+<style>
+.msp-gantt-table { border-collapse: collapse; font-size: 11px; table-layout: fixed; }
+.msp-gantt-table th, .msp-gantt-table td { border: 1px solid #dcdcdc; text-align: center; padding: 0; height: 28px; }
+.msp-gantt-table thead th { background: #f3f2f7; font-weight: 600; padding: 4px 2px; }
+.msp-gantt-label {
+  text-align: left !important; padding: 4px 8px !important; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; background: #fafafa;
+  position: sticky; left: 0; z-index: 1;
+}
+.msp-gantt-odd td { background: #fbfbfd; }
+.msp-gantt-cell { position: relative; }
+.msp-bar-plan {
+  position: absolute; top: 4px; left: 1px; right: 1px; height: 8px;
+  border: 1.5px solid #5a4fcf; border-radius: 2px; display: block;
+}
+.msp-bar-actual {
+  position: absolute; bottom: 4px; left: 1px; right: 1px; height: 8px;
+  background: #5a4fcf; border-radius: 2px; display: block;
+}
+</style>
 @endsection
 
 @section('scripts')
@@ -176,16 +199,17 @@ function mspRenderGantt() {
   const lines = [];
   let minDate = null, maxDate = null;
 
+  // every row (all 13 fixed items + any extra lines) always shows up as a row,
+  // even with no dates yet — only the date range used for the header is driven
+  // by whichever rows actually have dates.
   rows.forEach(function (row) {
     const ps = row.querySelector('.plan-start').value;
     const pe = row.querySelector('.plan-end').value;
     const as = row.querySelector('.actual-start').value;
     const ae = row.querySelector('.actual-end').value;
-    if (!ps && !pe && !as && !ae) return;
-
     const doc = row.querySelector('.document-report').value;
-    const itemNo = row.dataset.itemNo;
-    const label = itemNo + '. ' + (doc || row.dataset.itemName);
+    let label = row.dataset.itemNo + '. ' + row.dataset.itemName;
+    if (doc) label += ' — ' + doc;
 
     [ps, pe, as, ae].filter(Boolean).forEach(function (d) {
       const dt = new Date(d);
@@ -196,8 +220,13 @@ function mspRenderGantt() {
   });
 
   if (!lines.length) {
-    container.innerHTML = '<p class="text-muted">Isi tanggal plan/actual untuk melihat chart.</p>';
+    container.innerHTML = '<p class="text-muted">Belum ada baris schedule.</p>';
     return;
+  }
+
+  if (!minDate) {
+    minDate = new Date();
+    maxDate = new Date();
   }
 
   const months = [];
@@ -220,36 +249,35 @@ function mspRenderGantt() {
     return mi * weeksPerMonth + week;
   }
 
-  let html = '<div style="display:grid;grid-template-columns:240px repeat(' + totalCols + ',24px);font-size:11px;">';
-  html += '<div style="border:1px solid #ddd;"></div>';
+  let thead = '<tr><th class="msp-gantt-label" rowspan="2">Item</th>';
   months.forEach(function (m) {
-    html += '<div style="grid-column: span ' + weeksPerMonth + ';text-align:center;font-weight:600;border:1px solid #ddd;padding:2px;">' + mspMonthName(m.month) + ' ' + m.year + '</div>';
+    thead += '<th colspan="' + weeksPerMonth + '" class="msp-gantt-month">' + mspMonthName(m.month) + ' ' + m.year + '</th>';
   });
-  html += '<div style="border:1px solid #eee;"></div>';
+  thead += '</tr><tr>';
   months.forEach(function () {
     for (let w = 1; w <= weeksPerMonth; w++) {
-      html += '<div style="text-align:center;border:1px solid #eee;">' + mspRoman(w) + '</div>';
+      thead += '<th class="msp-gantt-week">' + mspRoman(w) + '</th>';
     }
   });
+  thead += '</tr>';
 
-  lines.forEach(function (line) {
-    html += '<div style="border:1px solid #eee;padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + line.label + '">' + line.label + '</div>';
+  let tbody = '';
+  lines.forEach(function (line, idx) {
     const psCol = colIndex(line.ps), peCol = colIndex(line.pe);
     const asCol = colIndex(line.as), aeCol = colIndex(line.ae);
+    tbody += '<tr class="' + (idx % 2 ? 'msp-gantt-odd' : '') + '">';
+    tbody += '<td class="msp-gantt-label" title="' + line.label + '">' + line.label + '</td>';
     for (let c = 1; c <= totalCols; c++) {
       let inner = '';
-      if (psCol && peCol && c >= psCol && c <= peCol) {
-        inner += '<div style="position:absolute;top:2px;left:1px;right:1px;height:7px;border:1px solid #333;"></div>';
-      }
-      if (asCol && aeCol && c >= asCol && c <= aeCol) {
-        inner += '<div style="position:absolute;bottom:2px;left:1px;right:1px;height:7px;background:#000;"></div>';
-      }
-      html += '<div style="border:1px solid #f4f4f4;position:relative;height:22px;">' + inner + '</div>';
+      if (psCol && peCol && c >= psCol && c <= peCol) inner += '<span class="msp-bar-plan"></span>';
+      if (asCol && aeCol && c >= asCol && c <= aeCol) inner += '<span class="msp-bar-actual"></span>';
+      tbody += '<td class="msp-gantt-cell">' + inner + '</td>';
     }
+    tbody += '</tr>';
   });
 
-  html += '</div>';
-  container.innerHTML = html;
+  const colgroup = '<colgroup><col style="width:260px">' + '<col style="width:26px">'.repeat(totalCols) + '</colgroup>';
+  container.innerHTML = '<table class="msp-gantt-table">' + colgroup + '<thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table>';
 }
 
 document.addEventListener('DOMContentLoaded', function () {
