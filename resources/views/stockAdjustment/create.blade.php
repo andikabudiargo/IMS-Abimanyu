@@ -230,6 +230,21 @@
             $('#adjDate').val(currentDate);
             isiArticle('trArticle');   // load article list via AJAX
 
+            /* ── prefill dari STO Report (tombol "Buat Adjustment") ── */
+            let stoImport = sessionStorage.getItem('stoAdjImport');
+            if (stoImport) {
+                sessionStorage.removeItem('stoAdjImport');
+                try {
+                    let payload = JSON.parse(stoImport);
+                    $('#adjDate').val(payload.adjDate || currentDate);
+                    $('#periode').val(payload.periode).trigger('change');
+                    $('#location').val(payload.location).trigger('change');
+                    $('#adjType').val('SYSTEM CORRECTION').trigger('change');
+                    $('#description').val(payload.description || '');
+                    if (payload.rows && payload.rows.length) importRowsFast(payload.rows);
+                } catch (e) { /* payload rusak, abaikan */ }
+            }
+
             /* ── location change → reload stock per article ── */
             $('#location').on('change', function () {
                 refreshStockOnRows();

@@ -136,6 +136,10 @@
         <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i>
         <span class="align-middle">Print</span>
     </button>
+    <button type="button" class="btn btn-outline-warning d-none" id="btnAdjustment">
+        <i data-feather="edit-3" class="align-middle mr-sm-25 mr-0"></i>
+        <span class="align-middle d-sm-inline-block d-none">Buat Adjustment</span>
+    </button>
 </span>
                     </div>
                 </div>
@@ -517,6 +521,7 @@ $(document).ready(function () {
 
     // ── render ──
     function renderReport(res) {
+        window.__stoReportRes = res; // dipakai tombol "Buat Adjustment"
         let h = res.header;
         let s = res.summary;
         let t = res.totals;
@@ -634,6 +639,7 @@ $(document).ready(function () {
         $('#reportScroll').removeClass('d-none');
         $('#btnPrint').removeClass('d-none');
         $('#btnExport').removeClass('d-none');
+        $('#btnAdjustment').removeClass('d-none');
 
         if (typeof feather !== 'undefined') feather.replace();
     }
@@ -742,6 +748,7 @@ $(document).ready(function () {
     $('#reportScroll').addClass('d-none');
     $('#btnPrint').addClass('d-none');
     $('#btnExport').addClass('d-none');
+    $('#btnAdjustment').addClass('d-none');
     $('#reportEmpty').removeClass('d-none');
     $('#sto-report-summary').addClass('d-none');
 }
@@ -814,6 +821,44 @@ $('#btnExport').on('click', function () {
     $('body').append($f);
     $f.submit();
     $f.remove();
+});
+
+// ── buat adjustment dari hasil STO ──
+$('#btnAdjustment').on('click', function () {
+    let res = window.__stoReportRes;
+    if (!res || !res.rows || !res.rows.length) {
+        Swal.fire('Warning', 'Generate report dulu sebelum buat adjustment.', 'warning');
+        return;
+    }
+
+    let rows = res.rows
+        .filter(function (r) { return r.qty_sto !== null && r.qty_sto !== undefined; })
+        .map(function (r) {
+            return {
+                article_code: r.article_code,
+                qty_adjustment: r.qty_sto, // saldo akhir yang dituju = hasil STO
+                uom: r.uom,
+                notes: 'STO ' + res.header.sto_code
+            };
+        });
+
+    if (!rows.length) {
+        Swal.fire('Warning', 'Tidak ada artikel dengan hasil STO untuk dijadikan adjustment.', 'warning');
+        return;
+    }
+
+    let stoDate = res.header.sto_date; // 'YYYY-MM-DD'
+    let adjDate = stoDate ? stoDate.split('-').reverse().join('-') : '';
+
+    sessionStorage.setItem('stoAdjImport', JSON.stringify({
+        location: res.header.location_code,
+        periode: res.header.periode,
+        adjDate: adjDate,
+        description: 'Adjustment dari STO ' + res.header.sto_code,
+        rows: rows
+    }));
+
+    window.location.href = "{{ route('stockAdjustment.create') }}";
 });
 
 $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
