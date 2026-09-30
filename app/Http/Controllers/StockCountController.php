@@ -1548,7 +1548,9 @@ private function collectFamilyDtlRows($mapping, $articleCode, $isManual, $articl
         $query->where('article_code', $articleCode);
     }
 
-    return $query->select('dtl_id', 'qty_counter1', 'qty_counter2', 'qty_counter3')->get();
+    // orderBy WAJIB ADA: hasil ini dipakai UPDATE ... WHERE dtl_id IN (...) di deleteLine()
+    // dan resolveFamilyArticleStatus() — urutan konsisten mencegah deadlock lintas sibling.
+    return $query->select('dtl_id', 'qty_counter1', 'qty_counter2', 'qty_counter3')->orderBy('dtl_id')->get();
 }
 
 private function resolveTolerancePercent($targetPlanLoc)
