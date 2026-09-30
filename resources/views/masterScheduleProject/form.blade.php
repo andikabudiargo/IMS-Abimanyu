@@ -98,6 +98,7 @@
               <th style="width:130px">Actual Start</th>
               <th style="width:130px">Actual End</th>
               <th style="width:70px">Progress %</th>
+              <th style="width:160px">Notes</th>
               <th style="width:36px"></th>
             </tr>
           </thead>
@@ -135,6 +136,7 @@
       <div class="mt-2" style="font-size:12px;">
         <span style="display:inline-block;width:14px;height:8px;border:1.5px solid #5a4fcf;border-radius:2px;margin-right:4px;"></span> Plan
         <span style="display:inline-block;width:14px;height:8px;background:#5a4fcf;border-radius:2px;margin-left:14px;margin-right:4px;"></span> Actual
+        <span style="display:inline-block;width:14px;height:8px;background:#fffbe6;border:1px solid #e6d47a;border-radius:2px;margin-left:14px;margin-right:4px;"></span> Notes (isi lewat kolom Notes di tabel schedule, mis. "OK HPM 15 Des 2025")
       </div>
     </div>
   </div>
@@ -158,6 +160,11 @@
 }
 .msp-bar-plan { border: 1.5px solid #5a4fcf; background: #fff; }
 .msp-bar-actual { background: #5a4fcf; }
+.msp-gantt-note {
+  position: absolute; white-space: nowrap; font-size: 10px; color: #444;
+  background: #fffbe6; border: 1px solid #e6d47a; border-radius: 3px;
+  padding: 1px 5px; pointer-events: none; z-index: 2;
+}
 </style>
 @endsection
 
@@ -236,6 +243,7 @@ function mspRenderGantt() {
       lineNo: itemNo + '.' + lineNoCounters[itemNo],
       doc: row.querySelector('.document-report').value,
       pic: row.querySelector('.pic-input').value,
+      note: row.querySelector('.notes-input').value,
       ps: ps, pe: pe, as: as, ae: ae,
     });
   });
@@ -347,10 +355,28 @@ function mspRenderGantt() {
     container.appendChild(bar);
   }
 
+  // free-text note per line, shown as a callout right after its bar — this is
+  // the "panduan/keterangan" per progress point, e.g. "OK HPM 15 Des 2025".
+  function addNote(row, col, text) {
+    if (!text || !col) return;
+    const cells = row.querySelectorAll('td.msp-gantt-cell');
+    const td = cells[col - 1];
+    if (!td) return;
+    const rect = td.getBoundingClientRect();
+    const label = document.createElement('div');
+    label.className = 'msp-gantt-note';
+    label.textContent = text;
+    label.style.left = (rect.right - containerRect.left + 4) + 'px';
+    label.style.top = (rect.top - containerRect.top + 5) + 'px';
+    container.appendChild(label);
+  }
+
   lines.forEach(function (line, idx) {
     const row = bodyRows[idx];
-    addBar(row, colIndex(line.ps), colIndex(line.pe), 'msp-bar-plan', 4);
-    addBar(row, colIndex(line.as), colIndex(line.ae), 'msp-bar-actual', 16);
+    const peCol = colIndex(line.pe), aeCol = colIndex(line.ae);
+    addBar(row, colIndex(line.ps), peCol, 'msp-bar-plan', 4);
+    addBar(row, colIndex(line.as), aeCol, 'msp-bar-actual', 16);
+    addNote(row, aeCol || peCol, line.note);
   });
 }
 

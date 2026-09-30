@@ -18,6 +18,7 @@
   <td><input type="date" name="actual_start[]" class="form-control form-control-sm actual-start" value="{{ $line->actual_start_date ?? '' }}"></td>
   <td><input type="date" name="actual_end[]" class="form-control form-control-sm actual-end" value="{{ $line->actual_end_date ?? '' }}"></td>
   <td><input type="number" name="progress[]" min="0" max="100" class="form-control form-control-sm" value="{{ $line->progress ?? 0 }}"></td>
+  <td><input type="text" name="notes[]" class="form-control form-control-sm notes-input" placeholder="mis. OK HPM 15 Des 2025" value="{{ $line->notes ?? '' }}"></td>
   <td class="text-nowrap">
     <button type="button" class="btn btn-sm btn-outline-primary msp-add-line" title="Add line"><i data-feather="plus"></i></button>
     <button type="button" class="btn btn-sm btn-outline-danger msp-remove-line" title="Remove line"><i data-feather="minus"></i></button>

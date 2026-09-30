@@ -194,6 +194,7 @@ class MasterScheduleProjectController extends Controller
         $actualStarts = $request->input('actual_start', []);
         $actualEnds = $request->input('actual_end', []);
         $progresses = $request->input('progress', []);
+        $notes = $request->input('notes', []);
         $reason = $request->input('revision_reason');
 
         $anyChanged = false;
@@ -215,6 +216,7 @@ class MasterScheduleProjectController extends Controller
                 'actual_start_date' => $actualStarts[$i] ?: null,
                 'actual_end_date' => $actualEnds[$i] ?: null,
                 'progress' => (int) ($progresses[$i] ?? 0),
+                'notes' => $notes[$i] ?: null,
             ];
 
             if ($dtlId) {
@@ -231,6 +233,7 @@ class MasterScheduleProjectController extends Controller
                     'actual_start_date' => $old->actual_start_date,
                     'actual_end_date' => $old->actual_end_date,
                     'progress' => $old->progress,
+                    'notes' => $old->notes,
                 ];
 
                 $changed = $oldData != $newData;

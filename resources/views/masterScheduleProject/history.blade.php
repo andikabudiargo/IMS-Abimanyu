@@ -34,6 +34,7 @@
                 'actual_start_date' => 'Actual Start',
                 'actual_end_date' => 'Actual End',
                 'progress' => 'Progress %',
+                'notes' => 'Notes',
               ];
               $changedFields = array_filter($fieldLabels, function ($key) use ($h) {
                 return ($h->old_data[$key] ?? null) != ($h->new_data[$key] ?? null);
