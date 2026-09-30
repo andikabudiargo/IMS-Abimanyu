@@ -1,4 +1,4 @@
-<tr data-item-no="{{ $itemNo }}" data-item-name="{{ $item['name'] }}">
+<tr data-item-no="{{ $itemNo }}" data-item-name="{{ $item['name'] }}" data-stage-group="{{ $item['stage'] }}">
   <td>{{ $item['stage'] }}</td>
   <td class="text-center">{{ $itemNo }}</td>
   <td>{{ $item['name'] }}</td>

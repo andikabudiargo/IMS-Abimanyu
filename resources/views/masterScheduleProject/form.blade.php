@@ -151,7 +151,6 @@
 .msp-gantt-label {
   text-align: left !important; padding: 4px 8px !important; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis; background: #fafafa;
-  position: sticky; left: 0; z-index: 1;
 }
 .msp-gantt-odd td { background: #fbfbfd; }
 .msp-gantt-cell { position: relative; }
@@ -207,16 +206,19 @@ function mspRenderGantt() {
     const pe = row.querySelector('.plan-end').value;
     const as = row.querySelector('.actual-start').value;
     const ae = row.querySelector('.actual-end').value;
-    const doc = row.querySelector('.document-report').value;
-    let label = row.dataset.itemNo + '. ' + row.dataset.itemName;
-    if (doc) label += ' — ' + doc;
 
     [ps, pe, as, ae].filter(Boolean).forEach(function (d) {
       const dt = new Date(d);
       if (!minDate || dt < minDate) minDate = dt;
       if (!maxDate || dt > maxDate) maxDate = dt;
     });
-    lines.push({ label: label, ps: ps, pe: pe, as: as, ae: ae });
+    lines.push({
+      stage: row.dataset.stageGroup,
+      itemNo: row.dataset.itemNo,
+      itemName: row.dataset.itemName,
+      doc: row.querySelector('.document-report').value,
+      ps: ps, pe: pe, as: as, ae: ae,
+    });
   });
 
   if (!lines.length) {
@@ -249,7 +251,11 @@ function mspRenderGantt() {
     return mi * weeksPerMonth + week;
   }
 
-  let thead = '<tr><th class="msp-gantt-label" rowspan="2">Item</th>';
+  let thead = '<tr>'
+    + '<th class="msp-gantt-label" rowspan="2">Stage</th>'
+    + '<th rowspan="2">No</th>'
+    + '<th class="msp-gantt-label" rowspan="2">Item</th>'
+    + '<th class="msp-gantt-label" rowspan="2">Document / Report</th>';
   months.forEach(function (m) {
     thead += '<th colspan="' + weeksPerMonth + '" class="msp-gantt-month">' + mspMonthName(m.month) + ' ' + m.year + '</th>';
   });
@@ -261,12 +267,34 @@ function mspRenderGantt() {
   });
   thead += '</tr>';
 
+  // group consecutive rows sharing the same stage / item so those columns can
+  // be rendered as merged (rowspan) cells, same as the Excel template.
+  const stageSpan = new Array(lines.length).fill(0);
+  const itemSpan = new Array(lines.length).fill(0);
+  for (let i = 0; i < lines.length; i++) {
+    if (i === 0 || lines[i].stage !== lines[i - 1].stage) {
+      let span = 1;
+      for (let j = i + 1; j < lines.length && lines[j].stage === lines[i].stage; j++) span++;
+      stageSpan[i] = span;
+    }
+    if (i === 0 || lines[i].itemNo !== lines[i - 1].itemNo) {
+      let span = 1;
+      for (let j = i + 1; j < lines.length && lines[j].itemNo === lines[i].itemNo; j++) span++;
+      itemSpan[i] = span;
+    }
+  }
+
   let tbody = '';
   lines.forEach(function (line, idx) {
     const psCol = colIndex(line.ps), peCol = colIndex(line.pe);
     const asCol = colIndex(line.as), aeCol = colIndex(line.ae);
     tbody += '<tr class="' + (idx % 2 ? 'msp-gantt-odd' : '') + '">';
-    tbody += '<td class="msp-gantt-label" title="' + line.label + '">' + line.label + '</td>';
+    if (stageSpan[idx]) tbody += '<td class="msp-gantt-label" rowspan="' + stageSpan[idx] + '">' + line.stage + '</td>';
+    if (itemSpan[idx]) {
+      tbody += '<td rowspan="' + itemSpan[idx] + '">' + line.itemNo + '</td>';
+      tbody += '<td class="msp-gantt-label" rowspan="' + itemSpan[idx] + '">' + line.itemName + '</td>';
+    }
+    tbody += '<td class="msp-gantt-label" title="' + line.doc + '">' + (line.doc || '') + '</td>';
     for (let c = 1; c <= totalCols; c++) {
       let inner = '';
       if (psCol && peCol && c >= psCol && c <= peCol) inner += '<span class="msp-bar-plan"></span>';
@@ -276,7 +304,8 @@ function mspRenderGantt() {
     tbody += '</tr>';
   });
 
-  const colgroup = '<colgroup><col style="width:260px">' + '<col style="width:26px">'.repeat(totalCols) + '</colgroup>';
+  const colgroup = '<colgroup><col style="width:110px"><col style="width:36px"><col style="width:180px"><col style="width:200px">'
+    + '<col style="width:26px">'.repeat(totalCols) + '</colgroup>';
   container.innerHTML = '<table class="msp-gantt-table">' + colgroup + '<thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table>';
 }
 
