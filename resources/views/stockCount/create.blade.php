@@ -839,7 +839,9 @@ $(document).ready(function () {
 } else {
     show_msg(res.title, Array.isArray(res.message) ? res.message[0] : res.message, res.alert);
 }
-        }, 'json');
+        }, 'json').fail((xhr) => {
+            show_msg('Error', ajaxErrorMsg(xhr), 'error');
+        });
     });
 });
 
@@ -898,7 +900,9 @@ function openPhantomFillModal(phantoms) {
             } else {
                 show_msg(res.title, Array.isArray(res.message) ? res.message[0] : res.message, res.alert);
             }
-        }, 'json');
+        }, 'json').fail((xhr) => {
+            show_msg('Error', ajaxErrorMsg(xhr), 'error');
+        });
     });
 }
 
@@ -915,7 +919,11 @@ function ajaxErrorMsg(xhr) {
         if (j.message) return Array.isArray(j.message) ? j.message.join(', ') : j.message;
         if (j.errors) return Object.values(j.errors).flat().join(', ');
     }
-    return xhr.responseText ? xhr.responseText.substring(0, 300) : (xhr.statusText || 'Unknown error');
+    if (!xhr.responseText) return xhr.statusText || 'Unknown error';
+    // fallback HTML (halaman error Laravel dsb) — lucuti tag-nya dulu, toastr render
+    // message sebagai HTML mentah, jadi teks bisa hilang/rusak kalau tidak di-strip.
+    const text = xhr.responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return text.substring(0, 300) || (xhr.statusText || 'Unknown error');
 }
 
 // ════════════════════════════════════════════════

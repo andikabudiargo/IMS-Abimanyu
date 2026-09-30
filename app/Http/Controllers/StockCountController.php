@@ -2215,6 +2215,26 @@ private function withinTolerance($counted, $qtySystem, $tolerance)
     // WAJIB dipanggil di dalam DB::transaction() oleh caller.
     private function doFinish($mappingId, $access)
     {
+        $mRaw = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->first();
+        if (!$mRaw) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Target STO tidak ditemukan.'],'alert'=>'error']);
+        }
+
+        // Kalau lokasi ini punya sibling (family/pool), kunci SEMUA sibling di sini,
+        // urutan konsisten (mapping_id ASC) — recalcMappingProgress() di bawah nulis
+        // ke semua sibling sekaligus, jadi kalau dua sibling di-Finish nyaris
+        // bersamaan, salah satu tinggal nunggu, bukan saling kunci silang (deadlock).
+        $family = $mRaw->target_type === 'LOCATION' ? $this->resolveLocationFamily($mRaw->target_ref) : [];
+        if (count($family) > 1) {
+            DB::table('sto_config_mapping')
+                ->where('config_id', $mRaw->config_id)
+                ->where('target_type', 'LOCATION')
+                ->whereIn('target_ref', $family)
+                ->orderBy('mapping_id')
+                ->lockForUpdate()
+                ->get();
+        }
+
         $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->lockForUpdate()->first();
         if (!$m) {
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Target STO tidak ditemukan.'],'alert'=>'error']);
