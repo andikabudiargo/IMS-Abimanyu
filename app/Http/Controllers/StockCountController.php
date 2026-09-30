@@ -336,7 +336,7 @@ private function getTableColoumnAuditDetail()
   $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 $this->syncArticleStatus($m, $dtl);
 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-    $this->recalcMappingProgress($stoHdr->mapping_id);
+    $this->recalcMappingProgress($stoHdr->mapping_id, false);
     $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc');
 
     $myQty = $isAccounting ? ($dtl->qty_counter1 ?? $dtl->qty_counter2 ?? ($dtl->qty_counter3 ?? null)) : $dtl->{"qty_{$role}"};
@@ -1059,7 +1059,7 @@ return $this->storeLineInline($mappingId, $m, $access, $userId, $locationNumber,
           $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 $this->syncArticleStatus($m, $dtl);
 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
-            $this->recalcMappingProgress($mappingId);
+            $this->recalcMappingProgress($mappingId, false);
             $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
             $myQty = $dtl->{"qty_{$dbRole}"};
 
@@ -1128,7 +1128,7 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
       $dtl = DB::table('sto_dtl')->where('dtl_id', $existingDtl->dtl_id)->first();
 $this->syncArticleStatus($m, $dtl);
 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtl->dtl_id)->first();
-        $this->recalcMappingProgress($mappingId);
+        $this->recalcMappingProgress($mappingId, false);
         $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
         $myQty = $dtl->{"qty_{$dbRole}"};
 
@@ -1222,7 +1222,7 @@ private function storeLineInline($mappingId, $m, $access, $userId, $locationNumb
 $this->syncArticleStatus($m, $dtl);
 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 
-        $this->recalcMappingProgress($mappingId);
+        $this->recalcMappingProgress($mappingId, false);
         $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
 
         $myQty = $dtl->{"qty_{$dbRole}"};
@@ -1409,7 +1409,7 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
             ];
         }
 
-        $this->recalcMappingProgress($mappingId);
+        $this->recalcMappingProgress($mappingId, false);
         $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->value('target_act_loc');
 
         return response()->json([
@@ -1699,7 +1699,7 @@ private function resolveTolerancePercent($targetPlanLoc)
                 ]);
             }
         }
-        $this->recalcMappingProgress($stoHdr->mapping_id);
+        $this->recalcMappingProgress($stoHdr->mapping_id, false);
         $freshTargetAct = DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc');
     }
 
@@ -1730,7 +1730,7 @@ if ($m) {
 }
 
 if ($stoHdr) {
-    $this->recalcMappingProgress($stoHdr->mapping_id);
+    $this->recalcMappingProgress($stoHdr->mapping_id, false);
 }
 $freshTargetAct = $stoHdr ? DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->value('target_act_loc') : null;
 $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
@@ -1761,7 +1761,11 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     // ══════════════════════════════════════════════
     // RECALC PROGRESS
     // ══════════════════════════════════════════════
-   public function recalcMappingProgress($mappingId)
+   // $includeFamily=false: skip recalc utk lokasi yg punya sibling (family/pool) —
+   // dipakai tiap submit baris, supaya sibling booth yg input bersamaan tidak rebutan
+   // lock di UPDATE lintas-mapping. Family baru dihitung sekali waktu doFinish()
+   // (yg panggil dgn default true).
+   public function recalcMappingProgress($mappingId, $includeFamily = true)
 {
     $m = DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->first();
     if (!$m) return;
@@ -1790,6 +1794,10 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
         if (!$loc) continue;
         $family = $this->resolveLocationFamily($loc);
         if (count($family) <= 1) continue;
+
+        // ditunda ke finish time — tandai ranFamily supaya fallback single di bawah
+        // tidak ikut jalan utk lokasi ini, tapi jangan sentuh sibling-nya sekarang.
+        if (!$includeFamily) { $ranFamily = true; continue; }
 
         $anchor = $this->resolveLocationAnchor($loc);
         if (in_array($anchor, $anchorsDone, true)) continue;
@@ -2244,6 +2252,11 @@ private function withinTolerance($counted, $qtySystem, $tolerance)
             ]);
         }
 
+        // recalc penuh (termasuk family) baru dilakukan DI SINI, sekali, waktu
+        // benar-benar mau finish — bukan tiap submit baris (lihat catatan di
+        // recalcMappingProgress()).
+        $this->recalcMappingProgress($mappingId);
+
         $now = date('Y-m-d H:i:s');
         DB::table('sto_hdr')->whereIn('sto_id', $stoIds)->update(['status' => 2, 'updated_at' => $now]);
         DB::table('sto_config_mapping')->where('mapping_id', $mappingId)
@@ -2336,7 +2349,7 @@ private function withinTolerance($counted, $qtySystem, $tolerance)
                     $this->syncArticleStatus($m, $dtl);
                 }
 
-                $this->recalcMappingProgress($mappingId);
+                $this->recalcMappingProgress($mappingId, false);
             }
 
             return $this->doFinish($mappingId, $access);
