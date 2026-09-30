@@ -526,6 +526,8 @@ const IS_ACCOUNTING = {{ $accessRole == 'accounting' ? 'true' : 'false' }};
 const MANUAL_PREFIX = 'MANUAL::';
 // dipakai untuk isi ulang dropdown Lokasi di modal Edit (select2 butuh option di-generate manual)
 const LOCATIONS_DATA = {!! json_encode($isPartner ? $locations->map(fn($l) => ['code' => $l->location_code, 'name' => $l->location_name])->values() : []) !!};
+// artikel phantom (movement/stok ada, belum diinput) yang masih outstanding walau target sudah Selesai
+const OUTSTANDING_PHANTOMS = {!! json_encode($outstandingPhantoms ?? []) !!};
 
 // ── helpers ──
 function statusBadge(st) {
@@ -689,6 +691,11 @@ function updateStoNumberFilterOptions() {
 
 $(document).ready(function () {
 
+    // ════ TARGET SUDAH SELESAI TAPI MASIH ADA PHANTOM — sodorkan lagi ke accounting ════
+    if (OUTSTANDING_PHANTOMS.length > 0) {
+        openPhantomFillModal(OUTSTANDING_PHANTOMS);
+    }
+
     // ════ SELECT2 UNTUK DROPDOWN LOKASI (partner) ════
     if (IS_PARTNER) {
         if ($('#inLocation').length) initLocationSelect2($('#inLocation'));
@@ -841,22 +848,27 @@ function openPhantomFillModal(phantoms) {
     const rows = phantoms.map((p, i) => `
         <tr>
             <td style="text-align:left">${p.article_code} - ${p.article_desc}</td>
-            <td>${p.location_name || p.location_number || '-'}</td>
+            ${IS_PARTNER ? `<td>${p.location_name || p.location_number || '-'}</td>` : ''}
             <td>${p.uom || ''}</td>
-            <td><input type="number" step="any" class="form-control phantom-qty" data-idx="${i}" value="0" style="width:110px;margin:0 auto"></td>
+            <td><input type="number" step="any" class="form-control phantom-qty no-spinner" data-idx="${i}" value="0" style="width:110px;margin:0 auto" onwheel="this.blur()"></td>
         </tr>
     `).join('');
 
     Swal.fire({
         title: 'Konfirmasi Stock Artikel',
         html: `
-            <div style="max-height:400px;overflow:auto">
+            <style>
+                .phantom-qty.no-spinner::-webkit-outer-spin-button,
+                .phantom-qty.no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+                .phantom-qty.no-spinner { -moz-appearance: textfield; }
+            </style>
+            <div style="max-height:500px;overflow:auto">
             <table class="table table-sm" style="text-align:center">
-                <thead><tr><th>Artikel</th><th>Lokasi</th><th>UOM</th><th>QTY</th></tr></thead>
+                <thead><tr><th>Artikel</th>${IS_PARTNER ? '<th>Lokasi</th>' : ''}<th>UOM</th><th>QTY</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>
             </div>`,
-        width: 600,
+        width: 900,
         showCancelButton: true,
         confirmButtonText: 'Simpan & Selesaikan',
         cancelButtonText: 'Batal',
@@ -893,6 +905,18 @@ function openPhantomFillModal(phantoms) {
     // ════ INIT MODAL TAMBAH ARTIKEL ════
     initModalAddArticle();
 });
+
+// ════════════════════════════════════════════════
+// AMBIL PESAN ERROR ASLI DARI RESPONSE AJAX
+// ════════════════════════════════════════════════
+function ajaxErrorMsg(xhr) {
+    const j = xhr.responseJSON;
+    if (j) {
+        if (j.message) return Array.isArray(j.message) ? j.message.join(', ') : j.message;
+        if (j.errors) return Object.values(j.errors).flat().join(', ');
+    }
+    return xhr.responseText ? xhr.responseText.substring(0, 300) : (xhr.statusText || 'Unknown error');
+}
 
 // ════════════════════════════════════════════════
 // SUBMIT LINE (AUTO)
@@ -956,10 +980,10 @@ function submitLineAuto(confirmAccumulate) {
         } else {
             (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
         }
-   }, 'json').fail(() => {
+   }, 'json').fail((xhr) => {
         $btn.prop('disabled', false).html($btn.data('original-html'));
         if (typeof feather !== 'undefined') feather.replace();
-        show_msg('Error', 'Terjadi kesalahan, cek console.', 'error');
+        show_msg('Error', ajaxErrorMsg(xhr), 'error');
     });
 }
 
@@ -1035,10 +1059,10 @@ function submitSheet() {
         } else {
             (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
         }
-    }, 'json').fail(() => {
+    }, 'json').fail((xhr) => {
         $btn.prop('disabled', false).html($btn.data('original-html'));
         if (typeof feather !== 'undefined') feather.replace();
-        show_msg('Error', 'Terjadi kesalahan, cek console.', 'error');
+        show_msg('Error', ajaxErrorMsg(xhr), 'error');
     });
 }
 
@@ -1432,8 +1456,7 @@ function editLine(dtlId, el) {
                 }
             },
             error: function(xhr) {
-                console.log('Status :', xhr.status);
-                console.log('Response :', xhr.responseText);
+                show_msg('Error', ajaxErrorMsg(xhr), 'error');
             }
         });
     });
@@ -1602,8 +1625,8 @@ function postAddArticle(stoNumber, payload, confirmAccumulate) {
         } else {
             (Array.isArray(res.message) ? res.message : [res.message]).forEach(m => show_msg(res.title, m, res.alert));
         }
-    }, 'json').fail(() => {
-        show_msg('Error', 'Terjadi kesalahan, cek console.', 'error');
+    }, 'json').fail((xhr) => {
+        show_msg('Error', ajaxErrorMsg(xhr), 'error');
     });
 }
 
