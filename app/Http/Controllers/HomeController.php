@@ -335,7 +335,7 @@ foreach ($candidateHeaders as $h) {
 
         $targetQty = 0;
         $targetConversion = 0;
-        $lines = [];
+        $targetArticleLines = [];
         foreach ($targetLines as $line) {
             $qty = (float) $line->qty_target;
             $targetQty += $qty;
@@ -345,7 +345,7 @@ foreach ($candidateHeaders as $h) {
             $lineConversion = $convVal > 0 ? (($avgSelling - $avgPurchase) * $qty) / $convVal : 0;
             $targetConversion += $lineConversion;
 
-            $lines[$line->article_code] = [
+            $targetArticleLines[$line->article_code] = [
                 'qty_target'        => $qty,
                 'target_conversion' => $lineConversion,
             ];
@@ -404,7 +404,7 @@ foreach ($candidateHeaders as $h) {
             'achievedConversion' => round($achievedConversion, 2),
             'conversionPct'      => $targetConversion > 0 ? round($achievedConversion / $targetConversion * 100, 1) : 0,
             'targetSoUrl'        => $targetSoUrl,
-            'lines'              => $lines,
+            'lines'              => $targetArticleLines,
         ];
     }
 
