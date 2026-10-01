@@ -604,14 +604,14 @@
     </li>
     @endcan
 
-   
+    @can('bom-index')
     <li class="{{ \Request::segment(1) == 'masterScheduleProject' ? 'active' : '' }}">
       <a class="d-flex align-items-center" href="{{ route('msp.index') }}">
         <i data-feather="circle"></i>
         <span class="menu-item text-truncate" data-i18n="Input">Project Development</span>
       </a>
     </li>
-   
+    @endcan
 
      </ul>
 </li>
