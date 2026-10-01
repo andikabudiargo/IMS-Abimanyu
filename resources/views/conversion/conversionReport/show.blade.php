@@ -86,10 +86,16 @@
             <th>Article Desc</th>
             <th>Customer</th>
             <th class="text-right">Qty</th>
+            <th class="text-right">Qty Target</th>
+            <th class="text-right">Qty Selisih</th>
             <th class="text-right">Avg Selling Price</th>
             <th class="text-right">Avg Purchase Price</th>
-            <th class="text-right">Konversi Painting</th>
             <th class="text-right">Konversi Non Painting</th>
+            <th class="text-right">Konversi Painting</th>
+            <th class="text-right">Konversi Target</th>
+            <th class="text-right">Selisih</th>
+            <th class="text-right">% Tercapai</th>
+            <th class="text-right">% Selisih</th>
             <th style="width:6%">Action</th>
           </tr>
         </thead>
@@ -101,10 +107,16 @@
               <td>{{ $d->article_desc }}</td>
               <td>{{ $d->customer_names }}</td>
               <td class="text-right">{{ number_format($d->total_qty, 2) }} {{ $d->uom }}</td>
+              <td class="text-right">{{ number_format($d->qty_target, 2) }}</td>
+              <td class="text-right">{{ number_format($d->qty_selisih, 2) }}</td>
               <td class="text-right">{{ number_format($d->avg_selling_price, 2) }}</td>
               <td class="text-right">{{ number_format($d->avg_purchase_price, 2) }}</td>
-              <td class="text-right">{{ $d->is_painting ? number_format($d->conversion, 4) : '-' }}</td>
-<td class="text-right">{{ $d->is_painting ? '-' : number_format($d->conversion, 4) }}</td>
+              <td class="text-right">{{ $d->is_painting ? '-' : number_format($d->conversion, 4) }}</td>
+<td class="text-right">{{ $d->is_painting ? number_format($d->conversion, 4) : '-' }}</td>
+              <td class="text-right">{{ number_format($d->target_conversion, 4) }}</td>
+              <td class="text-right"><span class="{{ $d->selisih_conversion < 0 ? 'text-danger' : 'text-success' }}">{{ number_format($d->selisih_conversion, 4) }}</span></td>
+              <td class="text-right">{{ $d->pct_tercapai === null ? '-' : number_format($d->pct_tercapai, 1).'%' }}</td>
+              <td class="text-right">{!! $d->pct_selisih === null ? '-' : '<span class="'.($d->pct_selisih < 0 ? 'text-danger' : 'text-success').'">'.number_format($d->pct_selisih, 1).'%</span>' !!}</td>
               <td class="text-center">
                 <button type="button" class="btn btn-icon btn-flat-primary btn-info-row"
                         data-det-id="{{ $d->id }}" data-label="{{ $d->article_code }}">
@@ -113,7 +125,7 @@
               </td>
             </tr>
           @empty
-            <tr><td colspan="10" class="text-center text-muted">Tidak ada data.</td></tr>
+            <tr><td colspan="14" class="text-center text-muted">Tidak ada data.</td></tr>
           @endforelse
         </tbody>
       </table>
@@ -147,16 +159,26 @@
     let html = '';
     rows.forEach((r, i) => {
       const isPainting = !!r.is_painting;
+      const selisih = parseFloat(r.selisih_conversion) || 0;
+      const selisihCls = selisih < 0 ? 'text-danger' : 'text-success';
+      const pctTercapai = r.pct_tercapai === null || r.pct_tercapai === undefined ? '-' : humanizeShow(r.pct_tercapai) + '%';
+      const pctSelisih = r.pct_selisih === null || r.pct_selisih === undefined ? '-' : `<span class="${selisihCls}">${humanizeShow(r.pct_selisih)}%</span>`;
       html += `<tr>
         <td class="text-center">${i + 1}</td>
         <td>${r.article_alternative_code || r.article_code}</td>
         <td>${r.article_desc || ''}</td>
         <td>${r.customer_names || ''}</td>
         <td class="text-right">${humanizeShow(r.total_qty)} ${r.uom || ''}</td>
+        <td class="text-right">${humanizeShow(r.qty_target)}</td>
+        <td class="text-right">${humanizeShow(r.qty_selisih)}</td>
         <td class="text-right">${humanizeShow(r.avg_selling_price)}</td>
         <td class="text-right">${humanizeShow(r.avg_purchase_price)}</td>
-        <td class="text-right">${isPainting ? humanizeShow(r.conversion) : '-'}</td>
         <td class="text-right">${isPainting ? '-' : humanizeShow(r.conversion)}</td>
+        <td class="text-right">${isPainting ? humanizeShow(r.conversion) : '-'}</td>
+        <td class="text-right">${humanizeShow(r.target_conversion)}</td>
+        <td class="text-right"><span class="${selisihCls}">${humanizeShow(selisih)}</span></td>
+        <td class="text-right">${pctTercapai}</td>
+        <td class="text-right">${pctSelisih}</td>
         <td class="text-center">
           <button type="button" class="btn btn-icon btn-flat-primary btn-info-row"
                   data-det-id="${r.det_id}" data-label="${r.article_code}">
@@ -165,7 +187,7 @@
         </td>
       </tr>`;
     });
-    $('#articleDetailBody').html(html || '<tr><td colspan="10" class="text-center text-muted">Tidak ada data.</td></tr>');
+    $('#articleDetailBody').html(html || '<tr><td colspan="14" class="text-center text-muted">Tidak ada data.</td></tr>');
     if (window.feather) feather.replace({ width: 14, height: 14 });
   }
 

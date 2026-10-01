@@ -198,6 +198,32 @@ private function isMaklon(string $articleCode): bool
             ->buildSalesAchievement($periode, $tahun)['lines'] ?? [];
     }
 
+    /**
+     * Tempel qty_target/target_conversion/selisih/pct ke collection $details
+     * (hasil query conversion_report_det, sudah punya is_painting+conversion).
+     * Dipakai bareng oleh show() & edit() supaya tabel Article Detail di
+     * kedua halaman itu konsisten dengan preview Create/Edit.
+     */
+    private function attachTargetLines($details, int $periode, int $tahun)
+    {
+        $targetLines = $this->targetLinesFor($periode, $tahun);
+
+        return $details->map(function ($d) use ($targetLines) {
+            $qtyTarget        = (float) ($targetLines[$d->article_code]['qty_target'] ?? 0);
+            $targetConversion = (float) ($targetLines[$d->article_code]['target_conversion'] ?? 0);
+            $convPainting     = $d->is_painting ? (float) $d->conversion : 0;
+            $selisihConv      = $convPainting - $targetConversion;
+
+            $d->qty_target         = round($qtyTarget, 4);
+            $d->qty_selisih        = round((float) $d->total_qty - $qtyTarget, 4);
+            $d->target_conversion  = round($targetConversion, 4);
+            $d->selisih_conversion = round($selisihConv, 4);
+            $d->pct_tercapai       = $targetConversion > 0 ? round($convPainting / $targetConversion * 100, 1) : null;
+            $d->pct_selisih        = $targetConversion > 0 ? round($selisihConv / $targetConversion * 100, 1) : null;
+            return $d;
+        });
+    }
+
     private function periodeAlreadyUsed(int $periode, int $tahun, ?int $excludeId = null): ?string
     {
         $existing = DB::table('conversion_report_hdr')
@@ -394,6 +420,7 @@ $rows[] = [
             return ['rows' => [], 'conversionValue' => 0];
         }
         $convVal = (float) $header->conversion_value_used;
+        $targetLines = $this->targetLinesFor((int) $header->periode, (int) $header->tahun);
 
         $lines = DB::select("
             SELECT
@@ -441,6 +468,11 @@ $rows[] = [
 $uom        = $group[0]->uom ?? '';
 $isPainting = !$this->isMaklon($articleCode) && in_array(strtoupper(trim($uom)), ['PCS', 'SET']);
 
+$qtyTarget        = (float) ($targetLines[$articleCode]['qty_target'] ?? 0);
+$targetConversion = (float) ($targetLines[$articleCode]['target_conversion'] ?? 0);
+$convPainting     = $isPainting ? $conversion : 0;
+$selisihConv      = $convPainting - $targetConversion;
+
 $rows[] = [
     'det_id'                   => $group[0]->det_id,
     'article_code'             => $articleCode,
@@ -455,8 +487,14 @@ $rows[] = [
     'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
     'conversion'               => round($conversion, 4),
     'is_painting'              => $isPainting,
-    'conversion_painting'      => round($isPainting ? $conversion : 0, 4),
+    'conversion_painting'      => round($convPainting, 4),
     'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
+    'qty_target'               => round($qtyTarget, 4),
+    'qty_selisih'              => round($totalQty - $qtyTarget, 4),
+    'target_conversion'        => round($targetConversion, 4),
+    'selisih_conversion'       => round($selisihConv, 4),
+    'pct_tercapai'             => $targetConversion > 0 ? round($convPainting / $targetConversion * 100, 1) : null,
+    'pct_selisih'              => $targetConversion > 0 ? round($selisihConv / $targetConversion * 100, 1) : null,
 ];
         }
 
@@ -890,6 +928,7 @@ $rows[] = [
             && in_array(strtoupper(trim($d->uom)), ['PCS', 'SET']);
         return $d;
     });
+        $details = $this->attachTargetLines($details, (int) $header->periode, (int) $header->tahun);
 
         $username = Auth::user()->username;
         [$periodeStart, $periodeEnd] = $this->periodeBounds((int) $header->periode, (int) $header->tahun);
@@ -941,6 +980,7 @@ $rows[] = [
             && in_array(strtoupper(trim($d->uom)), ['PCS', 'SET']);
         return $d;
     });
+        $details = $this->attachTargetLines($details, (int) $header->periode, (int) $header->tahun);
 
         // riwayat revisi: semua baris (termasuk yang sekarang) yang berbagi
         // origin_report_code yang sama -- persis pola pengelompokan SO.
