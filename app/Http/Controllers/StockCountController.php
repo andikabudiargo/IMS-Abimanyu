@@ -125,19 +125,29 @@ private function getTableColoumnAuditDetail()
         $noDari   = $m->no_dari   ?? 1;
         $noSampai = $m->no_sampai ?? 9999;
         $current  = (int) ($m->no_current ?? 0);
- 
-        // kalau belum pernah dipakai / masih di bawah no_dari, mulai dari no_dari
+        $periode  = str_replace('-', '/', substr($config->periode, 0, 7));
+
+        // no_current bisa drift dari kenyataan — nomor NON-AUTO dipilih manual lewat
+        // storeSheet() tanpa pernah lewat sini/update no_current. Jangan percaya buta:
+        // lompati nomor yang ternyata SUDAH ada di sto_hdr, baru pakai yang beneran
+        // kosong. Masih race-safe karena lockForUpdate() di atas dipegang sepanjang
+        // transaksi caller, sampai baris sto_hdr-nya ikut ter-insert.
         $nextNo = ($current < $noDari) ? $noDari : $current + 1;
- 
+        while ($nextNo <= $noSampai) {
+            $candidate = $periode . '/' . str_pad($nextNo, 4, '0', STR_PAD_LEFT);
+            $taken = DB::table('sto_hdr')->where('mapping_id', $mappingId)->where('sto_number', $candidate)->exists();
+            if (!$taken) break;
+            $nextNo++;
+        }
+
         if ($nextNo > $noSampai) {
             abort(422, "Nomor STO untuk target ini sudah mencapai batas maksimum ({$noSampai}). Hubungi Accounting untuk perluas range.");
         }
- 
+
         DB::table('sto_config_mapping')
             ->where('mapping_id', $mappingId)
             ->update(['no_current' => $nextNo, 'updated_at' => date('Y-m-d H:i:s')]);
- 
-        $periode = str_replace('-', '/', substr($config->periode, 0, 7));
+
         return $periode . '/' . str_pad($nextNo, 4, '0', STR_PAD_LEFT);
     }
  
