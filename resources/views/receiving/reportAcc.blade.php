@@ -198,6 +198,9 @@
       arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
       columnDefs :[
         { targets: [ 4,5,6,7 ], render: dateRender },
+        // ap_number/ap_date/supp_name/approval_by = correlated subquery; kecualikan
+        // dari search/sort generik DataTable, sama alasannya dengan list Detail.
+        { targets: [ 3,7,10,13 ], orderable: false, searchable: false },
       ],
       excelDates:true,
       dataSearch: filters(),
@@ -222,6 +225,12 @@
           className: "text-right"
         },
         { targets: [ 5,6,21,23 ], render: dateRender },
+        // Kolom hasil correlated subquery berat (dept, supplier, invoice, voucher,
+        // paid date, balance, approval chain) — jangan ikut di-scan oleh kotak
+        // search/sort bawaan DataTable, karena itu memaksa evaluasi subquery di
+        // SEMUA baris sebelum LIMIT dan bikin timeout/exhaust untuk dataset besar.
+        // Pencarian untuk field ini sudah ada lewat form filter (searchInv, searchVoucher, dst).
+        { targets: [ 0,8,20,21,22,23,24,27 ], orderable: false, searchable: false },
       ],
       excelDates:true,
       dataSearch: filters(),

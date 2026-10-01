@@ -373,7 +373,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('receivings/store',['as'=>'receiving.store','uses'=>'ReceivingController@store2']);
 	Route::post('receivings/list',['as'=>'receiving.list','uses'=>'ReceivingController@list']);
 	Route::post('receivings/list/detail',['as'=>'receiving.list.detail','uses'=>'ReceivingController@listDetail']);
-	Route::get('receivingReportAcc',['as'=>'receiving.report.acc','uses'=>'ReceivingController@reportAcc','middleware' => ['permission:delivery-report-acc']]);
+	Route::get('receivingReportAcc',['as'=>'receiving.report.acc','uses'=>'ReceivingController@reportAcc']);
 	Route::post('receivingReportAcc/list/report',['as'=>'receiving.list.report.acc','uses'=>'ReceivingController@listReportAcc']);
 	Route::post('receivingReportAcc/list/summary',['as'=>'receiving.list.report.acc.summary','uses'=>'ReceivingController@listReportAccSummary']);
 	Route::get('receivings/show',['as'=>'receiving.show','uses'=>'ReceivingController@show']);
@@ -680,12 +680,12 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::get('bom/report',['as'=>'bom.report.index','uses'=>'BomReportController@index','middleware' => ['permission:bom-index']]);
 	Route::post('bom/report/list',['as'=>'bom.report.list','uses'=>'BomReportController@list']);
 
-	Route::get('masterScheduleProject',['as'=>'msp.index','uses'=>'MasterScheduleProjectController@index','middleware' => ['permission:msp-index']]);
-	Route::get('masterScheduleProject/create',['as'=>'msp.create','uses'=>'MasterScheduleProjectController@create','middleware' => ['permission:msp-create']]);
-	Route::post('masterScheduleProject',['as'=>'msp.store','uses'=>'MasterScheduleProjectController@store','middleware' => ['permission:msp-create']]);
-	Route::get('masterScheduleProject/{id}/edit',['as'=>'msp.edit','uses'=>'MasterScheduleProjectController@edit','middleware' => ['permission:msp-edit']]);
-	Route::put('masterScheduleProject/{id}',['as'=>'msp.update','uses'=>'MasterScheduleProjectController@update','middleware' => ['permission:msp-edit']]);
-	Route::get('masterScheduleProject/{id}/history',['as'=>'msp.history','uses'=>'MasterScheduleProjectController@history','middleware' => ['permission:msp-index']]);
+	Route::get('masterScheduleProject',['as'=>'msp.index','uses'=>'MasterScheduleProjectController@index']);
+	Route::get('masterScheduleProject/create',['as'=>'msp.create','uses'=>'MasterScheduleProjectController@create']);
+	Route::post('masterScheduleProject',['as'=>'msp.store','uses'=>'MasterScheduleProjectController@store']);
+	Route::get('masterScheduleProject/{id}/edit',['as'=>'msp.edit','uses'=>'MasterScheduleProjectController@edit']);
+	Route::put('masterScheduleProject/{id}',['as'=>'msp.update','uses'=>'MasterScheduleProjectController@update']);
+	Route::get('masterScheduleProject/{id}/history',['as'=>'msp.history','uses'=>'MasterScheduleProjectController@history']);
 
 	Route::get('bomsUpload',['as'=>'boms.indexUpload','uses'=>'BomController@indexUpload','middleware' => ['permission:bom-create']]);
 	Route::post('bom/upload-excel',['as'=>'bom.upload.excel','uses'=>'BomController@uploadExcel']);
@@ -1351,10 +1351,10 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 
 	Route::post('dynamic/dependent',['as'=>'dynamic.dependent','uses'=>'DependentController@dependentFetch']);
 
-	Route::get('dnMonitoring',['as'=>'dnMonitoring.index','uses'=>'DnMonitoringController@index','middleware' => ['permission:delivery-report-acc']]);
-	Route::get('dnMonitoring/detail',['as'=>'dnMonitoring.detail','uses'=>'DnMonitoringController@detail','middleware' => ['permission:delivery-report-acc']]);
-	Route::get('dnMonitoring/export',['as'=>'dnMonitoring.export','uses'=>'DnMonitoringController@export','middleware' => ['permission:delivery-report-acc']]);
-	Route::get('dnMonitoring/exportSummary',['as'=>'dnMonitoring.exportSummary','uses'=>'DnMonitoringController@exportSummary','middleware' => ['permission:delivery-report-acc']]);
+	Route::get('dnMonitoring',['as'=>'dnMonitoring.index','uses'=>'DnMonitoringController@index']);
+	Route::get('dnMonitoring/detail',['as'=>'dnMonitoring.detail','uses'=>'DnMonitoringController@detail']);
+	Route::get('dnMonitoring/export',['as'=>'dnMonitoring.export','uses'=>'DnMonitoringController@export']);
+	Route::get('dnMonitoring/exportSummary',['as'=>'dnMonitoring.exportSummary','uses'=>'DnMonitoringController@exportSummary']);
 	Route::get('monitoring/qtyNotBalance',['as'=>'monitoring.qtyNotBalance','uses'=>'MonitoringController@qtyNotBalance']);
 	Route::post('monitoring/qtyNotBalance/list',['as'=>'monitoring.qtyNotBalance.list','uses'=>'MonitoringController@qtyNotBalanceList']);
 
