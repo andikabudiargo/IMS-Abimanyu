@@ -199,6 +199,42 @@ private function isMaklon(string $articleCode): bool
     }
 
     /**
+     * Baris "target meleset total" -- artikel ditarget (Target SO) tapi nol
+     * delivery, jadi tidak pernah muncul lewat agregasi delivery biasa.
+     * is_painting selalu true karena targetLinesFor() cuma pernah berisi
+     * artikel painting (lihat filter UOM PCS/SET di HomeController::buildSalesAchievement).
+     */
+    private function missedTargetRow(string $articleCode, array $target, $article, ?int $detId = null): array
+    {
+        $qtyTarget        = (float) ($target['qty_target'] ?? 0);
+        $targetConversion = (float) ($target['target_conversion'] ?? 0);
+
+        return [
+            'det_id'                   => $detId,
+            'article_code'             => $articleCode,
+            'article_alternative_code' => $article->article_alternative_code ?? $articleCode,
+            'article_desc'             => $article->article_desc ?? '',
+            'uom'                      => $article->uom ?? '',
+            'customer_names'           => '',
+            'total_qty'                => 0,
+            'avg_selling_price'        => 0,
+            'avg_purchase_price'       => 0,
+            'total_selling_value'      => 0,
+            'total_purchase_value'     => 0,
+            'conversion'               => 0,
+            'is_painting'              => true,
+            'conversion_painting'      => 0,
+            'conversion_non_painting'  => 0,
+            'qty_target'               => round($qtyTarget, 4),
+            'qty_selisih'              => round(-$qtyTarget, 4),
+            'target_conversion'        => round($targetConversion, 4),
+            'selisih_conversion'       => round(-$targetConversion, 4),
+            'pct_tercapai'             => $targetConversion > 0 ? 0.0 : null,
+            'pct_selisih'              => $targetConversion > 0 ? -100.0 : null,
+        ];
+    }
+
+    /**
      * Tempel qty_target/target_conversion/selisih/pct ke collection $details
      * (hasil query conversion_report_det, sudah punya is_painting+conversion).
      * Dipakai bareng oleh show() & edit() supaya tabel Article Detail di
@@ -355,6 +391,22 @@ $rows[] = [
 ];
         }
 
+        // Artikel yang ditarget (Target SO periode ini) tapi NOL delivery --
+        // tidak pernah masuk $grouped sama sekali, jadi harus ditambahkan manual
+        // supaya target yang meleset total tetap kelihatan di report (bukan cuma
+        // artikel yang kebetulan ada pengirimannya).
+        $missedArticles = array_diff_key($targetLines, $grouped);
+        if (!empty($missedArticles)) {
+            $articles = DB::table('article')
+                ->whereIn('article_code', array_keys($missedArticles))
+                ->get()->keyBy('article_code');
+
+            foreach ($missedArticles as $articleCode => $target) {
+                if ((float) ($target['qty_target'] ?? 0) <= 0) continue;
+                $rows[] = $this->missedTargetRow($articleCode, $target, $articles[$articleCode] ?? (object) []);
+            }
+        }
+
         return ['rows' => $rows, 'conversionValue' => $convVal, 'dnByArticle' => $grouped];
     }
 
@@ -496,6 +548,28 @@ $rows[] = [
     'pct_tercapai'             => $targetConversion > 0 ? round($convPainting / $targetConversion * 100, 1) : null,
     'pct_selisih'              => $targetConversion > 0 ? round($selisihConv / $targetConversion * 100, 1) : null,
 ];
+        }
+
+        // Artikel target yang meleset total (qty=0) tersimpan di conversion_report_det
+        // sejak store/update (lihat buildSummary()), tapi tidak punya baris
+        // conversion_report_dn_det sama sekali -- jadi tidak ikut ke-JOIN di query
+        // $lines di atas walau range tanggalnya seluas apapun. Ditambahkan manual
+        // di sini, TANPA filter tanggal (karena memang tidak ada tanggal delivery-nya).
+        $missedArticles = array_diff_key($targetLines, $grouped);
+        if (!empty($missedArticles)) {
+            $missedDet = DB::table('conversion_report_det as d')
+                ->leftJoin('article as a', 'a.article_code', '=', 'd.article_code')
+                ->where('d.report_id', $reportId)
+                ->where('d.total_qty', 0)
+                ->whereIn('d.article_code', array_keys($missedArticles))
+                ->select('d.id as det_id', 'd.article_code', 'd.uom', 'a.article_alternative_code', 'a.article_desc')
+                ->get()->keyBy('article_code');
+
+            foreach ($missedDet as $articleCode => $m) {
+                $target = $missedArticles[$articleCode];
+                if ((float) ($target['qty_target'] ?? 0) <= 0) continue;
+                $rows[] = $this->missedTargetRow($articleCode, $target, $m, $m->det_id);
+            }
         }
 
         return ['rows' => $rows, 'conversionValue' => $convVal];
