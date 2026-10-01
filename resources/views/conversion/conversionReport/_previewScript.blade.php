@@ -82,14 +82,24 @@
       previewRows.forEach((r, i) => {
          const painting = !!r.is_painting;   // ganti dari: isPaintingUom(r.uom)
         const conv = parseFloat(r.conversion) || 0;
+        const selisih = parseFloat(r.selisih_conversion) || 0;
+        const selisihCls = selisih < 0 ? 'text-danger' : 'text-success';
+        const pctTercapai = r.pct_tercapai === null || r.pct_tercapai === undefined ? '-' : humanize(r.pct_tercapai) + '%';
+        const pctSelisih = r.pct_selisih === null || r.pct_selisih === undefined ? '-' : `<span class="${selisihCls}">${humanize(r.pct_selisih)}%</span>`;
         html += `<tr>
           <td class="text-center">${i + 1}</td>
           <td>${r.article_alternative_code}</td>
           <td>${r.article_desc}</td>
           <td>${r.customer_names}</td>
           <td class="text-right">${humanize(r.total_qty)} ${r.uom || ''}</td>
-          <td class="text-right">${painting ? humanize(conv) : '-'}</td>
+          <td class="text-right">${humanize(r.qty_target)}</td>
+          <td class="text-right">${humanize(r.qty_selisih)}</td>
           <td class="text-right">${painting ? '-' : humanize(conv)}</td>
+          <td class="text-right">${painting ? humanize(conv) : '-'}</td>
+          <td class="text-right">${humanize(r.target_conversion)}</td>
+          <td class="text-right"><span class="${selisihCls}">${humanize(selisih)}</span></td>
+          <td class="text-right">${pctTercapai}</td>
+          <td class="text-right">${pctSelisih}</td>
           <td class="text-center">
             <button type="button" class="btn btn-icon btn-flat-primary btn-info-row" data-article="${r.article_code}" data-label="${r.article_alternative_code} - ${r.article_desc}">
               <i data-feather="info"></i>

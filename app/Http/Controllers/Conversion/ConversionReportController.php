@@ -191,6 +191,13 @@ private function isMaklon(string $articleCode): bool
             ->buildSalesAchievement($periode, $tahun)['targetConversion'];
     }
 
+    /** Target qty + target konversi per artikel periode/tahun, pecahan dari widget Sales Achievement (lihat targetConversionFor()). */
+    private function targetLinesFor(int $periode, int $tahun): array
+    {
+        return app(\App\Http\Controllers\HomeController::class)
+            ->buildSalesAchievement($periode, $tahun)['lines'] ?? [];
+    }
+
     private function periodeAlreadyUsed(int $periode, int $tahun, ?int $excludeId = null): ?string
     {
         $existing = DB::table('conversion_report_hdr')
@@ -266,6 +273,7 @@ private function isMaklon(string $articleCode): bool
     {
         $dnRows = $this->dnRowsForPeriod($periode, $tahun);
         $convVal = $this->activeConversionValue();
+        $targetLines = $this->targetLinesFor($periode, $tahun);
 
         $grouped = [];
         foreach ($dnRows as $r) {
@@ -292,6 +300,11 @@ $conversion  = $convVal > 0 ? (($avgSelling - $avgPurchase) * $totalQty) / $conv
 $uom        = $lines[0]->uom ?? '';
 $isPainting = !$this->isMaklon($articleCode) && in_array(strtoupper(trim($uom)), ['PCS', 'SET']);
 
+$qtyTarget        = (float) ($targetLines[$articleCode]['qty_target'] ?? 0);
+$targetConversion = (float) ($targetLines[$articleCode]['target_conversion'] ?? 0);
+$convPainting     = $isPainting ? $conversion : 0;
+$selisihConv      = $convPainting - $targetConversion;
+
 $rows[] = [
     'article_code'             => $articleCode,
     'article_alternative_code' => $lines[0]->article_alternative_code ?? $articleCode,
@@ -305,8 +318,14 @@ $rows[] = [
     'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
     'conversion'               => round($conversion, 4),
     'is_painting'              => $isPainting,
-    'conversion_painting'      => round($isPainting ? $conversion : 0, 4),
+    'conversion_painting'      => round($convPainting, 4),
     'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
+    'qty_target'               => round($qtyTarget, 4),
+    'qty_selisih'              => round($totalQty - $qtyTarget, 4),
+    'target_conversion'        => round($targetConversion, 4),
+    'selisih_conversion'       => round($selisihConv, 4),
+    'pct_tercapai'             => $targetConversion > 0 ? round($convPainting / $targetConversion * 100, 1) : null,
+    'pct_selisih'              => $targetConversion > 0 ? round($selisihConv / $targetConversion * 100, 1) : null,
 ];
         }
 

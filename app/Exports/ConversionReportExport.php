@@ -32,6 +32,8 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
             $totalPurch   = $r['total_purchase_value'] ?? ($avgPurchase * $qty);
             $isPainting   = $r['is_painting'] ?? in_array(strtoupper(trim($r['uom'] ?? '')), ['PCS', 'SET']);
             $conversion   = $r['conversion'] ?? 0;
+            $qtyTarget    = $r['qty_target'] ?? 0;
+            $targetConv   = $r['target_conversion'] ?? 0;
 
             return [
                 $i + 1,
@@ -40,12 +42,18 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
                 $r['customer_names'] ?? '',
                 $r['uom'] ?? '',
                 $qty,
+                $qtyTarget,
+                $r['qty_selisih'] ?? ($qty - $qtyTarget),
                 $avgSelling,
                 $avgPurchase,
                 $totalSelling,
                 $totalPurch,
-                $isPainting ? $conversion : 0,
                 $isPainting ? 0 : $conversion,
+                $isPainting ? $conversion : 0,
+                $targetConv,
+                $r['selisih_conversion'] ?? (($isPainting ? $conversion : 0) - $targetConv),
+                $r['pct_tercapai'] ?? '',
+                $r['pct_selisih'] ?? '',
             ];
         });
     }
@@ -54,9 +62,10 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
     {
         return [
             'No', 'Article Code', 'Article Desc', 'Customer', 'UOM',
-            'Qty', 'Avg Selling Price', 'Avg Purchase Price',
+            'Qty', 'Qty Target', 'Qty Selisih', 'Avg Selling Price', 'Avg Purchase Price',
             'Total Selling (Qty x Avg)', 'Total Purchase (Qty x Avg)',
-            'Konversi Painting', 'Konversi Non Painting',
+            'Konversi Non Painting', 'Konversi Painting', 'Konversi Target',
+            'Selisih', '% Tercapai', '% Selisih',
         ];
     }
 

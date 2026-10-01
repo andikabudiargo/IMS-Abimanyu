@@ -335,13 +335,20 @@ foreach ($candidateHeaders as $h) {
 
         $targetQty = 0;
         $targetConversion = 0;
+        $lines = [];
         foreach ($targetLines as $line) {
             $qty = (float) $line->qty_target;
             $targetQty += $qty;
 
             $avgSelling  = $this->avgSellingPriceHome($line->article_code, $periode, $tahun);
             $avgPurchase = $this->purchasePriceHome($line->article_code, $periode, $tahun);
-            $targetConversion += $convVal > 0 ? (($avgSelling - $avgPurchase) * $qty) / $convVal : 0;
+            $lineConversion = $convVal > 0 ? (($avgSelling - $avgPurchase) * $qty) / $convVal : 0;
+            $targetConversion += $lineConversion;
+
+            $lines[$line->article_code] = [
+                'qty_target'        => $qty,
+                'target_conversion' => $lineConversion,
+            ];
         }
 
         // ---- ACHIEVED (delivery aktual dalam rentang periode, s.d. hari ini kalau periode berjalan) ----
@@ -397,6 +404,7 @@ foreach ($candidateHeaders as $h) {
             'achievedConversion' => round($achievedConversion, 2),
             'conversionPct'      => $targetConversion > 0 ? round($achievedConversion / $targetConversion * 100, 1) : 0,
             'targetSoUrl'        => $targetSoUrl,
+            'lines'              => $lines,
         ];
     }
 
