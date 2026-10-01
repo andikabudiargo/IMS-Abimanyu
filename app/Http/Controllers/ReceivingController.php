@@ -3486,8 +3486,7 @@ public function unPosting($recNumber)
             ,DB::raw("(select id from ap_invoice where $apOk limit 1) as ap_id")
             ,DB::raw("(select to_char(to_date(nullif(ap_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') from ap_invoice where $apOk limit 1) as ap_date")
         )
-        ->orderByRaw("to_date(nullif(receiving_hdr.do_date,''),'DD-MM-YYYY') asc nulls last, receiving_hdr.id asc")
-        ->get();
+        ->orderByRaw("to_date(nullif(receiving_hdr.do_date,''),'DD-MM-YYYY') asc nulls last, receiving_hdr.id asc");
 
         return Datatables::of($data)
         ->editColumn("rec_type", fn ($row) => $this->recTypeLabel($row->rec_type))
@@ -3627,8 +3626,7 @@ public function unPosting($recNumber)
         // pembayaran AP di level dokumen, tidak bisa dibagi bersih per baris.
         ,DB::raw("case when $apStatus = '6' then 0 else $lineGt end as balance")
         )
-        ->orderByRaw("to_date(nullif(receiving_hdr.do_date,''),'DD-MM-YYYY') asc nulls last, receiving_det.id asc")
-        ->get();
+        ->orderByRaw("to_date(nullif(receiving_hdr.do_date,''),'DD-MM-YYYY') asc nulls last, receiving_det.id asc");
 
         return Datatables::of($data)
         ->editColumn("rec_type", fn ($d) => $this->recTypeLabel($d->rec_type))
