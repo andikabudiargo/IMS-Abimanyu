@@ -26,6 +26,7 @@
     private $title;
     private $decimalPlaces;
     private $moduleCode;
+    private $moduleCodeRequest;
     private $lockDate;
     private $lockDateIndex;
 
@@ -46,6 +47,7 @@
     $this->title = "Article";
     $this->decimalPlaces = config('globalParam.decimal');
     $this->moduleCode = "ART";
+    $this->moduleCodeRequest = "ARTREQ";
 }
 
     private function isModuleLocked()
@@ -2163,7 +2165,7 @@ private function buildSummaryRow(array $p)
             $username =  Auth::user()->username;
 
             // === Lock Transaction guard: activity (Article tidak punya tanggal) ===
-            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+            if ($err = \AppHelpers::lockGuard($this->moduleCodeRequest)) {
                 return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
             }
 
@@ -2299,7 +2301,7 @@ private function buildSummaryRow(array $p)
             $username =  Auth::user()->username;
 
             // === Lock Transaction guard: activity (Article tidak punya tanggal) ===
-            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+            if ($err = \AppHelpers::lockGuard($this->moduleCodeRequest)) {
                 return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
             }
 
@@ -2385,7 +2387,7 @@ private function buildSummaryRow(array $p)
             $username =  Auth::user()->username;
 
             // === Lock Transaction guard: activity (Article tidak punya tanggal) ===
-            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+            if ($err = \AppHelpers::lockGuard($this->moduleCodeRequest)) {
                 return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
             }
 
@@ -2543,7 +2545,7 @@ private function buildSummaryRow(array $p)
             $username =  Auth::user()->username;
 
             // === Lock Transaction guard: activity ===
-            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+            if ($err = \AppHelpers::lockGuard($this->moduleCodeRequest)) {
                 return redirect()->back()->with(['alert' => 'warning', 'title' => "Approve $this->title", 'message' => $err]);
             }
 
@@ -2850,7 +2852,7 @@ private function buildSummaryRow(array $p)
             if (!isset($perm[$act]) || !Auth::user()->can($perm[$act]) || !is_array($request->ids)) {
                 return response()->json(['status' => 0, 'message' => 'Invalid request']);
             }
-            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+            if ($err = \AppHelpers::lockGuard($this->moduleCodeRequest)) {
                 return response()->json(['status' => 0, 'message' => $err]);
             }
 
@@ -2903,7 +2905,7 @@ private function buildSummaryRow(array $p)
             $username =  Auth::user()->username;
 
             // === Lock Transaction guard: activity — ini yang menyisipkan ke tabel article ===
-            if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
+            if ($err = \AppHelpers::lockGuard($this->moduleCodeRequest)) {
                 return response()->json(['status' => 0, 'title' => "Submit $this->title", 'message' => [[$err]], 'alert' => 'error']);
             }
 

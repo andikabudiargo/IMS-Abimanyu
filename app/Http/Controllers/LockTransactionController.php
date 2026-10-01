@@ -47,6 +47,7 @@ class LockTransactionController extends Controller
             'SCO'          => ['Stock Consumption',       true,  true,  'Inventory'],
             'STO'          => ['Stock Taking Order',      true,  false, 'Inventory'],
             'ART'          => ['Article',                 false, false, 'Inventory'],
+            'ARTREQ'       => ['Article Request',         false, false, 'Inventory'],
 
             'PO'           => ['Purchase Order',          true,  false, 'Sales & Purchase'],
             'SO'           => ['Sales Order',             true,  false, 'Sales & Purchase'],
