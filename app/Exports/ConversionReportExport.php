@@ -34,6 +34,7 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
             $conversion   = $r['conversion'] ?? 0;
             $qtyTarget    = $r['qty_target'] ?? 0;
             $targetConv   = $r['target_conversion'] ?? 0;
+            $convPerUnit  = $r['conversion_per_unit'] ?? 0;
 
             return [
                 $i + 1,
@@ -48,6 +49,7 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
                 $avgPurchase,
                 $totalSelling,
                 $totalPurch,
+                $convPerUnit,
                 $isPainting ? 0 : $conversion,
                 $isPainting ? $conversion : 0,
                 $targetConv,
@@ -64,7 +66,7 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
             'No', 'Article Code', 'Article Desc', 'Customer', 'UOM',
             'Qty', 'Qty Target', 'Qty Selisih', 'Avg Selling Price', 'Avg Purchase Price',
             'Total Selling (Qty x Avg)', 'Total Purchase (Qty x Avg)',
-            'Konversi Non Painting', 'Konversi Painting', 'Konversi Target',
+            'Harga Konversi /PCS', 'Konversi Non Painting', 'Konversi Painting', 'Konversi Target',
             'Selisih', '% Tercapai', '% Selisih',
         ];
     }

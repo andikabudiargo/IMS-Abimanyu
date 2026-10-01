@@ -94,6 +94,7 @@
           <td class="text-right">${humanize(r.total_qty)} ${r.uom || ''}</td>
           <td class="text-right">${humanize(r.qty_target)}</td>
           <td class="text-right">${humanize(r.qty_selisih)}</td>
+          <td class="text-right">${humanize(r.conversion_per_unit)}</td>
           <td class="text-right">${painting ? '-' : humanize(conv)}</td>
           <td class="text-right">${painting ? humanize(conv) : '-'}</td>
           <td class="text-right">${humanize(r.target_conversion)}</td>

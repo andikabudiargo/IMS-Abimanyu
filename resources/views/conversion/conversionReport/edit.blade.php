@@ -100,6 +100,7 @@
               <th class="text-right">Qty</th>
               <th class="text-right">Qty Target</th>
               <th class="text-right">Qty Selisih</th>
+              <th class="text-right">Harga Konversi /PCS</th>
               <th class="text-right">Konversi Non Painting</th>
               <th class="text-right">Konversi Painting</th>
               <th class="text-right">Konversi Target</th>
@@ -139,6 +140,7 @@
               <th class="text-right">Qty Selisih</th>
               <th class="text-right">Avg Selling Price</th>
               <th class="text-right">Avg Purchase Price</th>
+              <th class="text-right">Harga Konversi /PCS</th>
               <th class="text-right">Konversi Non Painting</th>
               <th class="text-right">Konversi Painting</th>
               <th class="text-right">Konversi Target</th>
@@ -160,6 +162,7 @@
                 <td class="text-right">{{ number_format($d->qty_selisih, 2) }}</td>
                 <td class="text-right">{{ number_format($d->avg_selling_price, 2) }}</td>
                 <td class="text-right">{{ number_format($d->avg_purchase_price, 2) }}</td>
+                <td class="text-right">{{ number_format($d->conversion_per_unit, 4) }}</td>
                <td class="text-right">{{ $d->is_painting ? '-' : number_format($d->conversion, 4) }}</td>
 <td class="text-right">{{ $d->is_painting ? number_format($d->conversion, 4) : '-' }}</td>
                 <td class="text-right">{{ number_format($d->target_conversion, 4) }}</td>
@@ -174,7 +177,7 @@
                 </td>
               </tr>
             @empty
-              <tr><td colspan="14" class="text-center text-muted">Tidak ada data.</td></tr>
+              <tr><td colspan="15" class="text-center text-muted">Tidak ada data.</td></tr>
             @endforelse
           </tbody>
         </table>

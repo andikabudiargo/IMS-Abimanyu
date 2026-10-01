@@ -77,6 +77,7 @@
               <th class="text-right">Qty</th>
               <th class="text-right">Qty Target</th>
               <th class="text-right">Qty Selisih</th>
+              <th class="text-right">Harga Konversi /PCS</th>
               <th class="text-right">Konversi Non Painting</th>
               <th class="text-right">Konversi Painting</th>
               <th class="text-right">Konversi Target</th>

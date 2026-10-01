@@ -222,6 +222,7 @@ private function isMaklon(string $articleCode): bool
             'total_selling_value'      => 0,
             'total_purchase_value'     => 0,
             'conversion'               => 0,
+            'conversion_per_unit'      => 0,
             'is_painting'              => true,
             'conversion_painting'      => 0,
             'conversion_non_painting'  => 0,
@@ -240,11 +241,11 @@ private function isMaklon(string $articleCode): bool
      * Dipakai bareng oleh show() & edit() supaya tabel Article Detail di
      * kedua halaman itu konsisten dengan preview Create/Edit.
      */
-    private function attachTargetLines($details, int $periode, int $tahun)
+    private function attachTargetLines($details, int $periode, int $tahun, float $convVal = 0)
     {
         $targetLines = $this->targetLinesFor($periode, $tahun);
 
-        return $details->map(function ($d) use ($targetLines) {
+        return $details->map(function ($d) use ($targetLines, $convVal) {
             $qtyTarget        = (float) ($targetLines[$d->article_code]['qty_target'] ?? 0);
             $targetConversion = (float) ($targetLines[$d->article_code]['target_conversion'] ?? 0);
             $convPainting     = $d->is_painting ? (float) $d->conversion : 0;
@@ -252,6 +253,7 @@ private function isMaklon(string $articleCode): bool
 
             $d->qty_target         = round($qtyTarget, 4);
             $d->qty_selisih        = round((float) $d->total_qty - $qtyTarget, 4);
+            $d->conversion_per_unit = $convVal > 0 ? round(((float) $d->avg_selling_price - (float) $d->avg_purchase_price) / $convVal, 4) : 0;
             $d->target_conversion  = round($targetConversion, 4);
             $d->selisih_conversion = round($selisihConv, 4);
             $d->pct_tercapai       = $targetConversion > 0 ? round($convPainting / $targetConversion * 100, 1) : null;
@@ -357,6 +359,7 @@ private function isMaklon(string $articleCode): bool
            $avgSelling  = $totalQty > 0 ? $totalValue / $totalQty : 0;
 $avgPurchase = $this->purchasePrice($articleCode, $periode, $tahun);
 $conversion  = $convVal > 0 ? (($avgSelling - $avgPurchase) * $totalQty) / $convVal : 0;
+$conversionPerUnit = $convVal > 0 ? ($avgSelling - $avgPurchase) / $convVal : 0;
 
 // Painting = artikel UOM PCS/SET; MAKLON selalu Non Painting apapun UOM-nya.
 $uom        = $lines[0]->uom ?? '';
@@ -379,6 +382,7 @@ $rows[] = [
     'total_selling_value'      => round($totalValue, 4),
     'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
     'conversion'               => round($conversion, 4),
+    'conversion_per_unit'      => round($conversionPerUnit, 4),
     'is_painting'              => $isPainting,
     'conversion_painting'      => round($convPainting, 4),
     'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
@@ -517,6 +521,7 @@ $rows[] = [
             }
 
            $avgSelling = $totalQty > 0 ? $totalValue / $totalQty : 0;
+$conversionPerUnit = $convVal > 0 ? ($avgSelling - $avgPurchase) / $convVal : 0;
 $uom        = $group[0]->uom ?? '';
 $isPainting = !$this->isMaklon($articleCode) && in_array(strtoupper(trim($uom)), ['PCS', 'SET']);
 
@@ -538,6 +543,7 @@ $rows[] = [
     'total_selling_value'      => round($totalValue, 4),
     'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
     'conversion'               => round($conversion, 4),
+    'conversion_per_unit'      => round($conversionPerUnit, 4),
     'is_painting'              => $isPainting,
     'conversion_painting'      => round($convPainting, 4),
     'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
@@ -1002,7 +1008,7 @@ $rows[] = [
             && in_array(strtoupper(trim($d->uom)), ['PCS', 'SET']);
         return $d;
     });
-        $details = $this->attachTargetLines($details, (int) $header->periode, (int) $header->tahun);
+        $details = $this->attachTargetLines($details, (int) $header->periode, (int) $header->tahun, (float) $header->conversion_value_used);
 
         $username = Auth::user()->username;
         [$periodeStart, $periodeEnd] = $this->periodeBounds((int) $header->periode, (int) $header->tahun);
@@ -1054,7 +1060,7 @@ $rows[] = [
             && in_array(strtoupper(trim($d->uom)), ['PCS', 'SET']);
         return $d;
     });
-        $details = $this->attachTargetLines($details, (int) $header->periode, (int) $header->tahun);
+        $details = $this->attachTargetLines($details, (int) $header->periode, (int) $header->tahun, (float) $header->conversion_value_used);
 
         // riwayat revisi: semua baris (termasuk yang sekarang) yang berbagi
         // origin_report_code yang sama -- persis pola pengelompokan SO.
