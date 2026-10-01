@@ -767,14 +767,16 @@ class TargetSoController extends Controller
                 from sales_order_det d2 join sales_order_hdr h2 on h2.so_code = d2.so_code
                 where d2.article_code = target_order_det.article_code and h2.status not in ('5','8')
                 and to_date(h2.so_date,'DD-MM-YYYY') < date_trunc('month', to_date(target_order_hdr.tso_date,'DD-MM-YYYY')) + interval '1 month')) as so_avg_price")
-        // material price + conversion value dari Conversion Report terakhir (bukan Price List) -- avg_purchase_price sudah dihitung live dari BOM/receiving saat report dibuat, jadi tidak stale seperti Price List
+        // material price + conversion value dari Conversion Report bulan sebelumnya tso_date (bukan Price List) -- avg_purchase_price sudah dihitung live dari BOM/receiving saat report dibuat, jadi tidak stale seperti Price List
         ,DB::raw("(select crd.avg_purchase_price from conversion_report_det crd
             join conversion_report_hdr crh on crh.id = crd.report_id
             where crd.article_code = target_order_det.article_code and crh.status not in (5,8)
+            and make_date(crh.tahun, crh.periode, 1) < date_trunc('month', to_date(target_order_hdr.tso_date,'DD-MM-YYYY'))
             order by crh.tahun desc, crh.periode desc, crh.id desc limit 1) as cr_material_price")
         ,DB::raw("(select crh.conversion_value_used from conversion_report_det crd
             join conversion_report_hdr crh on crh.id = crd.report_id
             where crd.article_code = target_order_det.article_code and crh.status not in (5,8)
+            and make_date(crh.tahun, crh.periode, 1) < date_trunc('month', to_date(target_order_hdr.tso_date,'DD-MM-YYYY'))
             order by crh.tahun desc, crh.periode desc, crh.id desc limit 1) as cr_conversion_value")
         // fallback kalau artikel belum pernah ada di Conversion Report
         ,DB::raw("(select material_price from price_list_fg where article_code = target_order_det.article_code and status = '1' order by id desc limit 1) as pl_material_price")
@@ -836,14 +838,16 @@ class TargetSoController extends Controller
             ,(select crd.avg_purchase_price from conversion_report_det crd
                 join conversion_report_hdr crh on crh.id = crd.report_id
                 where crd.article_code = ? and crh.status not in (5,8)
+                and make_date(crh.tahun, crh.periode, 1) < date_trunc('month', to_date(?,'DD-MM-YYYY'))
                 order by crh.tahun desc, crh.periode desc, crh.id desc limit 1) as cr_material_price
             ,(select crh.conversion_value_used from conversion_report_det crd
                 join conversion_report_hdr crh on crh.id = crd.report_id
                 where crd.article_code = ? and crh.status not in (5,8)
+                and make_date(crh.tahun, crh.periode, 1) < date_trunc('month', to_date(?,'DD-MM-YYYY'))
                 order by crh.tahun desc, crh.periode desc, crh.id desc limit 1) as cr_conversion_value
             ,(select material_price from price_list_fg where article_code = ? and status = '1' order by id desc limit 1) as pl_material_price
             ,(select conversion_value from price_list_fg where article_code = ? and status = '1' order by id desc limit 1) as pl_conversion_value
-        ", [$articleCode, $articleCode, $tsoDate, $articleCode, $articleCode, $articleCode, $articleCode]);
+        ", [$articleCode, $articleCode, $tsoDate, $articleCode, $tsoDate, $articleCode, $tsoDate, $articleCode, $articleCode]);
 
         $r->article_code = $articleCode;
         $conversion = self::soConversion($r);
