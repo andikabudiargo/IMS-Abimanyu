@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ApPaymentPlanningExport;
 use App\Http\Controllers\Concerns\PaymentPlanActions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Maatwebsite\Excel\Facades\Excel;
 use DB;
+use PDF;
 
 /*
     ================================================================
@@ -29,6 +32,8 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
 {
     use PaymentPlanActions;
 
+    private $monthNames = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
+
     public function index(Request $request)
     {
         $data['title'] = 'AP Payment Planning';
@@ -41,7 +46,7 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
         return view('apPaymentPlanning.index', $data);
     }
 
-    public function data(Request $request)
+    private function buildRows(Request $request)
     {
         $month  = $request->month ? (int) $request->month : (int) date('n');
         $year   = $request->year  ? (int) $request->year  : (int) date('Y');
@@ -77,10 +82,10 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
                 ap_invoice.pph23,
                 hutang.jatuh_tempo_actual,
                 hutang.balance_asof as nominal,
-                (select STRING_AGG(DISTINCT kas_hdr.voucher_number, ',')
+                (select STRING_AGG(DISTINCT kas_hdr.voucher_type || '::' || kas_hdr.id::text || '::' || kas_hdr.voucher_number, ',')
                    from kas_det
                    join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number
-                   where $payWhere) as voucher_number,
+                   where $payWhere) as voucher_raw,
                 plan.status as plan_status,
                 plan.hold_reason,
                 plan.biaya_administrasi
@@ -116,7 +121,7 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
                 'supplier_name'      => $r->supplier_name,
                 'invoice_date'       => $r->inv_date ?: '-',
                 'due_date'           => $r->jatuh_tempo_actual ? date('d-m-Y', strtotime($r->jatuh_tempo_actual)) : '-',
-                'voucher_number'     => $isPaid ? $r->voucher_number : '',
+                'vouchers'           => $isPaid ? $this->buildVoucherLinks($r->voucher_raw) : [],
                 'receive_ap'         => $r->receive_ap ?: '-',
                 'note'               => $r->note,
                 'nominal'            => $nominal,
@@ -134,10 +139,21 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
             $grand['total']              += $total;
         }
 
+        return [
+            'rows'        => $result,
+            'grand'       => $grand,
+            'periodLabel' => ($this->monthNames[$month] ?? $month) . ' ' . $year,
+        ];
+    }
+
+    public function data(Request $request)
+    {
+        $s = $this->buildRows($request);
+
         return response()->json([
             'status' => 1,
-            'rows'   => $result,
-            'grand'  => $grand,
+            'rows'   => $s['rows'],
+            'grand'  => $s['grand'],
         ]);
     }
 
@@ -149,5 +165,28 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
     public function updateFee(Request $request)
     {
         return $this->updateFeePlanned('AP', $request);
+    }
+
+    public function export(Request $request)
+    {
+        $s = $this->buildRows($request);
+
+        return Excel::download(
+            new ApPaymentPlanningExport($s['rows'], $s['grand'], $s['periodLabel']),
+            'AP_Payment_Planning_' . str_replace(' ', '_', $s['periodLabel']) . '.xlsx'
+        );
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $s = $this->buildRows($request);
+
+        $pdf = PDF::loadView('apPaymentPlanning.print', [
+            'rows'        => $s['rows'],
+            'grand'       => $s['grand'],
+            'periodLabel' => $s['periodLabel'],
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->stream('AP_Payment_Planning_' . str_replace(' ', '_', $s['periodLabel']) . '.pdf');
     }
 }

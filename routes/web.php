@@ -555,11 +555,15 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('apPaymentPlanning/data', ['uses' => 'ApPaymentPlanningController@data','as'   => 'apPaymentPlanning.data',]);
 	Route::post('apPaymentPlanning/mark', ['uses' => 'ApPaymentPlanningController@mark','as'   => 'apPaymentPlanning.mark',]);
 	Route::post('apPaymentPlanning/updateFee', ['uses' => 'ApPaymentPlanningController@updateFee','as'   => 'apPaymentPlanning.updateFee',]);
+	Route::post('apPaymentPlanning/export', ['uses' => 'ApPaymentPlanningController@export','as'   => 'apPaymentPlanning.export',]);
+	Route::post('apPaymentPlanning/exportPdf', ['uses' => 'ApPaymentPlanningController@exportPdf','as'   => 'apPaymentPlanning.exportPdf',]);
 
 	Route::get('arPaymentPlanning', ['uses' => 'ArPaymentPlanningController@index','as'   => 'arPaymentPlanning.index',]);
 	Route::post('arPaymentPlanning/data', ['uses' => 'ArPaymentPlanningController@data','as'   => 'arPaymentPlanning.data',]);
 	Route::post('arPaymentPlanning/mark', ['uses' => 'ArPaymentPlanningController@mark','as'   => 'arPaymentPlanning.mark',]);
 	Route::post('arPaymentPlanning/updateFee', ['uses' => 'ArPaymentPlanningController@updateFee','as'   => 'arPaymentPlanning.updateFee',]);
+	Route::post('arPaymentPlanning/export', ['uses' => 'ArPaymentPlanningController@export','as'   => 'arPaymentPlanning.export',]);
+	Route::post('arPaymentPlanning/exportPdf', ['uses' => 'ArPaymentPlanningController@exportPdf','as'   => 'arPaymentPlanning.exportPdf',]);
 
 
 	//Account payable versi 2

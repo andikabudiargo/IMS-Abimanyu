@@ -8,10 +8,13 @@
 #planTable { margin-bottom: 0; }
 #planTable th, #planTable td { white-space: nowrap; font-size: .82rem; vertical-align: middle; }
 #planTable td.col-note { white-space: normal; max-width: 220px; }
-#planTable thead th { position: sticky; top: 0; z-index: 2; background: #eef2f7; }
+#planTable thead th { position: sticky; top: 0; z-index: 2; background: #eef2f7; height: 46px; padding: 10px 8px; }
 #planTable tfoot td { position: sticky; bottom: 0; font-weight: bold; background: #eef2f7; }
 #planTable .fee-input { width: 110px; text-align: right; }
 .status-badge { font-size: .72rem; padding: .3em .6em; }
+#planTable tbody tr:nth-child(odd) td { background: #ffffff; }
+#planTable tbody tr:nth-child(even) td { background: #f6f8fb; }
+#planTable tbody tr:hover td { background: #e8f1ff !important; }
 tr.row-hold td { background: #fff5f5 !important; }
 tr.row-to_be_paid td { background: #f0f7ff !important; }
 tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
@@ -88,11 +91,19 @@ tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
             <h4 class="card-title mb-0">Hasil AP Payment Planning</h4>
-            <div id="planActions" class="d-none">
-                <span class="mr-2 text-muted" id="planSelectedCount">0 dipilih</span>
-                <button type="button" class="btn btn-sm btn-outline-danger" id="btnHold">Tandai Hold</button>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="btnToBePaid">Tandai To Be Paid</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPending">Kembalikan ke Pending</button>
+            <div>
+                <div id="planActions" class="d-inline d-none">
+                    <span class="mr-2 text-muted" id="planSelectedCount">0 dipilih</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnHold">Tandai Hold</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnToBePaid">Tandai To Be Paid</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPending">Kembalikan ke Pending</button>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-success ml-1" id="btnExportExcel">
+                    <i data-feather="file-text" class="align-middle mr-sm-25 mr-0"></i> Export Excel
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary ml-1" id="btnExportPdf">
+                    <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i> Export PDF
+                </button>
             </div>
         </div>
         <div class="card-body">
@@ -198,15 +209,18 @@ $(document).ready(function () {
         let body = '';
         res.rows.forEach(function (r, idx) {
             let disabled = r.status === 'paid' ? 'disabled' : '';
+            let vouchers = (r.vouchers || []).map(function (v) {
+                return v.link ? '<a href="' + v.link + '" target="_blank">' + v.number + '</a>' : v.number;
+            }).join(', ');
             body += '<tr class="row-' + r.status + '" data-ref="' + r.ap_number + '">'
                 + '<td class="text-center"><input type="checkbox" class="rowChk" value="' + r.ap_number + '" ' + disabled + '></td>'
                 + '<td>' + (idx + 1) + '</td>'
                 + '<td>' + r.supplier_name + '</td>'
                 + '<td>' + r.invoice_date + '</td>'
-                + '<td><a href="' + r.ap_link + '" target="_blank">' + r.ap_number + '</a><br><small class="text-muted">' + (r.inv_number || '') + '</small></td>'
+                + '<td><a href="' + r.ap_link + '" target="_blank">' + (r.inv_number || '-') + '</a></td>'
                 + '<td>' + (r.receive_ap || '-') + '</td>'
                 + '<td>' + r.due_date + '</td>'
-                + '<td>' + (r.voucher_number || '-') + '</td>'
+                + '<td>' + (vouchers || '-') + '</td>'
                 + '<td class="col-note">' + (r.note || '') + '</td>'
                 + '<td class="text-right">' + fmt(r.nominal) + '</td>'
                 + '<td class="text-right"><input type="number" class="form-control form-control-sm fee-input feeInput" data-ref="' + r.ap_number + '" value="' + (r.biaya_administrasi || 0) + '" ' + (disabled || r.status === 'pending' ? 'disabled' : '') + '></td>'
@@ -295,6 +309,24 @@ $(document).ready(function () {
     $('#btnPending').on('click', function () {
         mark('pending');
     });
+
+    function submitExport(url) {
+        let f = filters();
+        let $f = $('<form>', { method: 'POST', action: url });
+        $f.append($('<input>', { type: 'hidden', name: '_token', value: $('meta[name="csrf-token"]').attr('content') }));
+        $f.append($('<input>', { type: 'hidden', name: 'month', value: f.month }));
+        $f.append($('<input>', { type: 'hidden', name: 'year', value: f.year }));
+        $f.append($('<input>', { type: 'hidden', name: 'status', value: f.status || '' }));
+        (f.supplier || []).forEach(function (c) {
+            $f.append($('<input>', { type: 'hidden', name: 'supplier[]', value: c }));
+        });
+        $('body').append($f);
+        $f.submit();
+        $f.remove();
+    }
+
+    $('#btnExportExcel').on('click', function () { submitExport("{{ route('apPaymentPlanning.export') }}"); });
+    $('#btnExportPdf').on('click', function () { submitExport("{{ route('apPaymentPlanning.exportPdf') }}"); });
 
     $('#planTable').on('change', '.feeInput', function () {
         let $input = $(this);

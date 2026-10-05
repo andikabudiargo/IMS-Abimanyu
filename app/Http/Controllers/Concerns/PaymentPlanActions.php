@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Concerns;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use DB;
 
 /*
@@ -62,5 +63,38 @@ trait PaymentPlanActions
         }
 
         return response()->json(['status' => 1]);
+    }
+
+    // Parse "voucher_type::kas_hdr.id::voucher_number,..." (lihat subquery di
+    // ApPaymentPlanningController/ArPaymentPlanningController) jadi link ke
+    // halaman show voucher yang bener sesuai tipenya -- satu invoice bisa
+    // dibayar lewat beberapa voucher sekaligus (partial payment).
+    protected function buildVoucherLinks($raw)
+    {
+        if (!$raw) {
+            return [];
+        }
+
+        $routeMap = [
+            'KK' => 'kasKeluar.show',
+            'BK' => 'bankKeluar.show',
+            'KM' => 'kasPenerimaan.show',
+            'BM' => 'bankPenerimaan.show',
+            'GJ' => 'jurnalUmum.show',
+        ];
+
+        $out = [];
+        foreach (explode(',', $raw) as $part) {
+            [$type, $id, $number] = array_pad(explode('::', $part, 3), 3, null);
+            if ($number === null) {
+                continue;
+            }
+            $out[] = [
+                'number' => $number,
+                'link'   => isset($routeMap[$type]) ? route($routeMap[$type], ['id' => Crypt::encryptString($id)]) : null,
+            ];
+        }
+
+        return $out;
     }
 }
