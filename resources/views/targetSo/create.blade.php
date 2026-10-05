@@ -29,16 +29,9 @@
                                     <label for="tsoDate">Date*</label>
                                     <input type="text" id="tsoDate" name="tsoDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="tsoPeriode">Periode TSO*</label>
-                                    <select class="select2 form-control" id="tsoPeriode" name="tsoPeriode" required>
-                                        <option value="">-- Periode --</option>
-                                        @for ($y = 2023; $y <= date('Y') + 1; $y++)
-                                            @foreach(['January','February','March','April','May','June','July','August','September','October','November','December'] as $i => $m)
-                                                <option value="{{ $i + 1 }}-{{ $y }}">{{ $m }} {{ $y }}</option>
-                                            @endforeach
-                                        @endfor
-                                    </select>
+                                    <input type="month" id="tsoPeriode" name="tsoPeriode" class="form-control" required />
                                 </div>
                             </div>
                             <div class="form-row">
@@ -159,8 +152,7 @@
         validateFormToast("frmAdd");
         isiArticle('tsoArticle');
         $('#customerList').select2();
-        $('#tsoPeriode').select2();
-        $('#tsoPeriode').val((new Date().getMonth() + 1) + '-' + new Date().getFullYear()).trigger('change');
+        $('#tsoPeriode').val(new Date().toISOString().slice(0, 7));
         $('#tsoDate').val(currentDate);
     });
 

@@ -2104,6 +2104,13 @@ class StockAdjustmentController extends Controller
     {
         if (!$trDate) return ['', ''];
 
+        // Month picker (YYYY-MM) -> seluruh bulan tersebut.
+        if (preg_match('/^\d{4}-\d{2}$/', trim($trDate))) {
+            $from = \DateTime::createFromFormat('Y-m-d', trim($trDate) . '-01');
+            $to   = (clone $from)->modify('last day of this month');
+            return [$from->format('d/m/Y'), $to->format('d/m/Y')];
+        }
+
         $parts    = explode('to', $trDate);
         $fromDate = implode('/', array_reverse(explode('-', trim($parts[0]))));
         $toDate   = count($parts) > 1

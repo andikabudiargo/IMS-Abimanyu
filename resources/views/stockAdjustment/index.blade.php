@@ -22,8 +22,8 @@
               <input type="text" class="form-control text-uppercase" id="searchAdj" name="searchAdj" placeholder="" />
             </div>
             <div class="col-md-4 form-group">
-              <label for="adjDate">Adjustment Date</label>
-              <input type="text" id="adjDate" name="adjDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
+              <label for="adjDate">Adjustment Periode</label>
+              <input type="month" id="adjDate" name="adjDate" class="form-control" />
             </div>
             <div class="form-group col-md-4">
               <label class="form-label" for="searchStatus">Status</label>
@@ -129,16 +129,8 @@
   let adjDate        = document.querySelector('#adjDate');
   let search         = document.querySelector('#btnSearch');
   let refresh        = document.querySelector('a[data-action="reload"]');
-  let rangePickr     = document.querySelector('.flatpickr-range');
   let btnSummary     = $('#btnSummary');
   let btnDetail      = $('#btnDetail');
-
-  initDatePicker(rangePickr, {
-    minDate: "01/01/2010",
-    maxDate: "31/12/2030",
-    dateFormat: "d-m-Y",
-    mode: "range"
-  });
 
   function dataSearch($type) {
     btnSummary.addClass('d-none');

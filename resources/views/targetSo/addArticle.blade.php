@@ -130,10 +130,10 @@
     let cloneCount = 0;
     let suppressConversionAjax = false;
 
-    // Field #tsoPeriode di UI satu dropdown "Bulan Tahun" (value "M-YYYY"),
+    // Field #tsoPeriode di UI pakai <input type="month"> (value native "YYYY-MM"),
     // tapi backend/kolom DB tetap terpisah tso_periode + tso_tahun.
     function splitPeriodeTso() {
-        let [periode, tahun] = ($('#tsoPeriode').val() || '').split('-');
+        let [tahun, periode] = ($('#tsoPeriode').val() || '').split('-');
         return [periode || '', tahun || ''];
     }
         
