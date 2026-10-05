@@ -68,6 +68,16 @@
                                     </div>
                                 </div>
                                 <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label for="buktiPotong">No Bukti Potong</label>
+                                        <input type="text" id="buktiPotong" name="buktiPotong" class="form-control" />
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="bupotDate">Bukti Potong Date</label>
+                                        <input type="text" id="bupotDate" name="bupotDate" class="form-control" placeholder="DD-MM-YYYY" />
+                                    </div>
+                                </div>
+                                <div class="form-row">
                                     <div class="form-group col-md-12">
                                         <label class="form-label" for="note">Notes</label>
                                         <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
@@ -289,6 +299,13 @@
         });
     }
 
+    bupotDate = $('#bupotDate');
+    if (bupotDate.length) {
+        bupotDate.flatpickr({
+            dateFormat: "d-m-Y"
+        });
+    }
+
     function reloadPage(){
         window.location.reload();
     }
@@ -377,7 +394,9 @@
                     let aPembilangNumber = $('#pembilangNumber').val();
                     let aPenyebutNumber = $('#penyebutNumber').val();
                     let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
-    
+                    let buktiPotong = $('#buktiPotong').val();
+                    let bupotDate = $('#bupotDate').val();
+
                     $.ajax({
                         type: "post",
                         url: "{{ route('debitNote.store') }}",
@@ -397,7 +416,9 @@
                             grandTotal:grandTotal,
                             pembilangNumber:aPembilangNumber,
                             penyebutNumber:aPenyebutNumber,
-                            totalDppNilaiLain:aTotalDppNilaiLain
+                            totalDppNilaiLain:aTotalDppNilaiLain,
+                            buktiPotong:buktiPotong,
+                            bupotDate:bupotDate
                         },
                         dataType: "json",
                         success: function(data) {

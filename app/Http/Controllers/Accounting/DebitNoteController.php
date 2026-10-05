@@ -91,7 +91,11 @@ class DebitNoteController extends Controller
             ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By' ],
             ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At' ],
             ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By' ],
-            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At' ]
+            ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At' ],
+            // ditambahkan di akhir (bukan disisip) supaya index kolom lama di atas
+            // (dipakai arrColPrint & orderColumn di index.blade.php) tidak geser.
+            ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'],
+            ['data'=> 'bupot_date', 'name'=> 'bupot_date','title'=>'Bukti Potong Date']
         ];
         return json_encode($kolom, true);
     }
@@ -250,6 +254,8 @@ class DebitNoteController extends Controller
         $status = '1';
         $gudang = 'false';
         $kurs = 1;
+        $buktiPotong = $request->buktiPotong;
+        $bupotDate = $request->bupotDate;
 
         // === Lock Transaction guard: activity + periode ===
         if ($err = \AppHelpers::lockGuard($this->moduleCode, $debitNDate)) {
@@ -344,7 +350,9 @@ class DebitNoteController extends Controller
                     'account_penjualan' =>$accountPenjualan,
                     'dpp_lain_value' => $dppLainValue,
                     'dpp_lain_pembilang' => $dppPembilang,
-                    'dpp_lain_penyebut' => $dppPenyebut 
+                    'dpp_lain_penyebut' => $dppPenyebut,
+                    'bukti_potong' => $buktiPotong,
+                    'bupot_date' => $bupotDate
                 ]);
 
                 $dataSet = [];
@@ -522,6 +530,8 @@ class DebitNoteController extends Controller
         $status = '1';
         $gudang = 'false';
         $kurs = 1;
+        $buktiPotong = $request->buktiPotong;
+        $bupotDate = $request->bupotDate;
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
@@ -601,7 +611,9 @@ class DebitNoteController extends Controller
                             'account_penjualan' =>$accountPenjualan,
                             'dpp_lain_value' => $dppLainValue,
                             'dpp_lain_pembilang' => $dppPembilang,
-                            'dpp_lain_penyebut' => $dppPenyebut 
+                            'dpp_lain_penyebut' => $dppPenyebut,
+                            'bukti_potong' => $buktiPotong,
+                            'bupot_date' => $bupotDate
                         ]
                     );
 
