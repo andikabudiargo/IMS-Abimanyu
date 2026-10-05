@@ -163,10 +163,10 @@
                 <td class="text-right">{{ number_format($d->avg_selling_price, 2) }}</td>
                 <td class="text-right">{{ number_format($d->avg_purchase_price, 2) }}</td>
                 <td class="text-right">{{ number_format($d->conversion_per_unit, 8) }}</td>
-               <td class="text-right">{{ $d->is_painting ? '-' : number_format($d->conversion, 4) }}</td>
-<td class="text-right">{{ $d->is_painting ? number_format($d->conversion, 4) : '-' }}</td>
-                <td class="text-right">{{ number_format($d->target_conversion, 4) }}</td>
-                <td class="text-right"><span class="{{ $d->selisih_conversion < 0 ? 'text-danger' : 'text-success' }}">{{ number_format($d->selisih_conversion, 4) }}</span></td>
+               <td class="text-right">{{ $d->is_painting ? '-' : number_format($d->conversion, 8) }}</td>
+<td class="text-right">{{ $d->is_painting ? number_format($d->conversion, 8) : '-' }}</td>
+                <td class="text-right">{{ number_format($d->target_conversion, 8) }}</td>
+                <td class="text-right"><span class="{{ $d->selisih_conversion < 0 ? 'text-danger' : 'text-success' }}">{{ number_format($d->selisih_conversion, 8) }}</span></td>
                 <td class="text-right">{{ $d->pct_tercapai === null ? '-' : number_format($d->pct_tercapai, 1).'%' }}</td>
                 <td class="text-right">{!! $d->pct_selisih === null ? '-' : '<span class="'.($d->pct_selisih < 0 ? 'text-danger' : 'text-success').'">'.number_format($d->pct_selisih, 1).'%</span>' !!}</td>
                 <td class="text-center">
