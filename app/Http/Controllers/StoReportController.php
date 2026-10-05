@@ -17,7 +17,7 @@ class StoReportController extends Controller
     protected $moduleCode;
 
     // Semua lokasi yang didukung format report-nya (gabungan dari semua grup)
-    protected $supportedLocations = ['005', '006', '009', '042', '049', '012', '007', '008'];
+    protected $supportedLocations = ['005', '006', '009', '042', '049', '012', '007', '008', '037'];
 
     // ══════════════════════════════════════════════
     // GRUP LOKASI
@@ -25,6 +25,7 @@ class StoReportController extends Controller
     protected $locationGroups = [
         'CHEMICAL'   => ['005', '006', '009', '042', '049'],
         'WIP_FG_OT'  => ['012', '007', '008'], // WIP, Finish Goods, OT
+        'NG_RM'      => ['037'], // Gudang NG RM
     ];
 
     // ══════════════════════════════════════════════
@@ -83,6 +84,16 @@ class StoReportController extends Controller
                 'out_dn_umum'      => ['label' => 'DN Umum',      'types' => ['DN UMUM'],       'qty' => 'movement_min'],
                 'out_dn_sementara' => ['label' => 'DN Sementara', 'types' => ['DN SEMENTARA'],  'qty' => 'movement_min'],
                 'out_replacement'  => ['label' => 'Replacement',  'types' => ['REPLACEMENT'],   'qty' => 'movement_min'],
+            ],
+        ],
+        'NG_RM' => [
+            'in' => [
+                'in_transfer' => ['label' => 'Transfer In', 'types' => ['TRANSFER'], 'qty' => 'movement_plus'],
+            ],
+            'out' => [
+                'out_transfer'        => ['label' => 'Transfer Out',    'types' => ['TRANSFER'],         'qty' => 'movement_min'],
+                'out_dn_umum'         => ['label' => 'DN Umum',         'types' => ['DN UMUM'],          'qty' => 'movement_min'],
+                'out_return_supplier' => ['label' => 'Supplier Return', 'types' => ['SUPPLIER RETURN'],  'qty' => 'movement_min'],
             ],
         ],
     ];
