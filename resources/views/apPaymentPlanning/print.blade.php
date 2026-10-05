@@ -52,7 +52,7 @@
                     <td class="center">{{ $i + 1 }}</td>
                     <td>{{ $r['supplier_name'] }}</td>
                     <td class="center">{{ $r['invoice_date'] }}</td>
-                    <td>{{ $r['inv_number'] }}</td>
+                    <td>{{ $r['ap_number'] }}</td>
                     <td class="center">{{ $r['receive_ap'] }}</td>
                     <td class="center">{{ $r['due_date'] }}</td>
                     <td>{{ implode(', ', array_column($r['vouchers'], 'number')) ?: '-' }}</td>

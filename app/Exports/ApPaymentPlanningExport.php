@@ -73,7 +73,7 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
                 $i + 1,
                 $r['supplier_name'],
                 $r['invoice_date'],
-                $r['inv_number'],
+                $r['ap_number'],
                 $r['receive_ap'],
                 $r['due_date'],
                 $this->voucherText($r),

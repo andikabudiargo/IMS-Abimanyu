@@ -117,7 +117,6 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
 
             $result[] = [
                 'ap_number'          => $r->ap_number,
-                'inv_number'         => $r->inv_number,
                 'supplier_name'      => $r->supplier_name,
                 'invoice_date'       => $r->inv_date ?: '-',
                 'due_date'           => $r->jatuh_tempo_actual ? date('d-m-Y', strtotime($r->jatuh_tempo_actual)) : '-',

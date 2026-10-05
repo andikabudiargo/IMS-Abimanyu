@@ -80,6 +80,12 @@ tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
                             <span class="align-middle d-sm-inline-block d-none">Generate</span>
                         </button>
                         <button type="button" class="btn btn-light" id="btnReset">Reset</button>
+                        <button type="button" class="btn btn-outline-success ml-1" id="btnExportExcel">
+                            <i data-feather="file-text" class="align-middle mr-sm-25 mr-0"></i> Export Excel
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary ml-1" id="btnExportPdf">
+                            <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i> Export PDF
+                        </button>
                     </div>
                 </div>
             </div>
@@ -91,19 +97,11 @@ tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
             <h4 class="card-title mb-0">Hasil AR Payment Planning</h4>
-            <div>
-                <div id="planActions" class="d-inline d-none">
-                    <span class="mr-2 text-muted" id="planSelectedCount">0 dipilih</span>
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnHold">Tandai Hold</button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnToBePaid">Tandai To Be Paid</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPending">Kembalikan ke Pending</button>
-                </div>
-                <button type="button" class="btn btn-sm btn-outline-success ml-1" id="btnExportExcel">
-                    <i data-feather="file-text" class="align-middle mr-sm-25 mr-0"></i> Export Excel
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary ml-1" id="btnExportPdf">
-                    <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i> Export PDF
-                </button>
+            <div id="planActions" class="d-none">
+                <span class="mr-2 text-muted" id="planSelectedCount">0 dipilih</span>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="btnHold">Tandai Hold</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnToBePaid">Tandai To Be Paid</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPending">Kembalikan ke Pending</button>
             </div>
         </div>
         <div class="card-body">
