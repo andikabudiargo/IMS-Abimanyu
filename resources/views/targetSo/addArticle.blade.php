@@ -128,6 +128,7 @@
     const currentDate = "{{ $currentDateValue }}";
     const orderDate = $('#orderDate');
     let cloneCount = 0;
+    let suppressConversionAjax = false;
         
     if (orderDate.length) {
         orderDate.flatpickr({
@@ -428,6 +429,45 @@
         // $('[data-toggle="tooltip"]').tooltip();
     };
 
+    // Upload Excel: baris langsung diisi beserta conversion yang sudah dihitung
+    // server-side (bulk, per artikel unik) -- berbeda dari add_new_row_edit yang
+    // selalu memanggil previewConversion() per baris, di sini sengaja dilewati
+    // supaya upload ratusan baris tidak memicu ratusan ajax conversion terpisah.
+    function add_new_row_import(articleId, qtyTarget, qtyForcast, totalConversion) {
+        $("#article_row").append($("#new_row").clone().html());
+        cloneCount++;
+        $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#number').attr('id', 'number'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
+        changeselect('tsoArticle','articleId'+ cloneCount,articleId);
+        $("#new_row"+ cloneCount).find('#qtyTarget').attr('id', 'qtyTarget'+ cloneCount);
+        $("#new_row"+ cloneCount).find('#qtyForcast').attr('id', 'qtyForcast'+ cloneCount);
+        $('#qtyTarget'+ cloneCount).val(qtyTarget);
+        $('#qtyForcast'+ cloneCount).val(qtyForcast);
+        $('#number'+ cloneCount).text(cloneCount);
+        $("#new_row"+ cloneCount).find('.conversion-preview').val(totalConversion);
+    }
+
+    function importRowsTargetSo(rows) {
+        whenArticlesReady(function () {
+            suppressConversionAjax = true;
+            rows.forEach(function (r) {
+                add_new_row_import(r.article_code, r.qty_target, r.qty_forcast, r.total_conversion);
+            });
+            suppressConversionAjax = false;
+            mask_thousand_satuan();
+            hitungGrandTotal();
+        });
+    }
+
+    function whenArticlesReady(done) {
+        if (typeof dataArticle !== 'undefined' && dataArticle) {
+            done();
+        } else {
+            setTimeout(() => whenArticlesReady(done), 200);
+        }
+    }
+
     function isiArticle(dependent) {
         $.ajax({
             url:"{{route('dynamic.dependent')}}",
@@ -452,6 +492,7 @@
 
     let conversionPreviewDebounce;
     function previewConversion($row) {
+        if (suppressConversionAjax) return;
         let articleCode = $row.find('select[name="articleId[]"]').val();
         let $preview = $row.find('.conversion-preview');
 
@@ -471,6 +512,7 @@
                 if (res.status == 1) {
                     $preview.val(res.data.total_conversion);
                 }
+                hitungGrandTotal();
             }
         });
     }
@@ -483,6 +525,12 @@
         let $row = $(this).closest('.tanda-baris');
         clearTimeout(conversionPreviewDebounce);
         conversionPreviewDebounce = setTimeout(() => previewConversion($row), 400);
+    });
+
+    let qtyForcastDebounce;
+    $(document).on('keyup', '#article_row input[name="qtyForcast[]"]', function () {
+        clearTimeout(qtyForcastDebounce);
+        qtyForcastDebounce = setTimeout(() => hitungGrandTotal(), 400);
     });
 
     function splitArticle(){
@@ -514,21 +562,20 @@
         // });    
     }
       
+    let grandTotalDebounce;
     hitungGrandTotal = ()=>{
-        // let objArticle = $('#article_row select[name="articleId[]"]');
-        // let objQtyTiw= $('#article_row input[name="qty_order[]"]');
-        // let objQTYTarget= $('#article_row input[name="qtyTarget[]"]');
-        // let objQTYForcast= $('#article_row input[name="qtyForcast[]"]');
-        // let totalQtyTarget= 0;
-        // let totalQtyForcast= 0;
-        // let qtyTarget = objQTYTarget.map(function(){return $(this).val();}).get();
-        // let qtyForcast = objQTYForcast.map(function(){return $(this).val();}).get();
-        // totalQtyTarget = sumFromArray(qtyTarget);
-        // totalQtyForcast = sumFromArray(qtyForcast);
-        // objArticle.length>0 ?$('#customer').attr('disabled','disabled'):$('#customer').removeAttr('disabled');
-        // $("#totalRow").val(objArticle.length);
-        // $("#totalQtyTarget").val(humanizeNumber(totalQtyTarget));
-        // $("#totalQtyForcast").val(humanizeNumber(totalQtyForcast));
+        clearTimeout(grandTotalDebounce);
+        grandTotalDebounce = setTimeout(() => {
+            let totalConversion = 0, totalQtyTarget = 0, totalQtyForcast = 0;
+            $('#article_row .tanda-baris').each(function () {
+                totalConversion += parseFloat(($(this).find('.conversion-preview').val() || '0').toString().replace(/,/gi, '')) || 0;
+                totalQtyTarget += parseFloat(($(this).find('input[name="qtyTarget[]"]').val() || '0').toString().replace(/,/gi, '')) || 0;
+                totalQtyForcast += parseFloat(($(this).find('input[name="qtyForcast[]"]').val() || '0').toString().replace(/,/gi, '')) || 0;
+            });
+            $('#totalConversion').val(humanizeNumber(totalConversion));
+            $('#totalQtyTarget').val(humanizeNumber(totalQtyTarget));
+            $('#totalQtyForcast').val(humanizeNumber(totalQtyForcast));
+        }, 300);
     }
 
     $("input[type='text']").click(function () {
