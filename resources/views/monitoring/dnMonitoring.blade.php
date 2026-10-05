@@ -7,6 +7,7 @@
     <div class="card-header"><h4 class="card-title">Filter</h4></div>
     <div class="card-body">
       <form method="GET" autocomplete="off">
+        @if(request('src') == 'delivery')<input type="hidden" name="src" value="delivery">@endif
         <div class="form-row align-items-end">
           <div class="form-group col-md-3">
             <label for="periode">Periode</label>
@@ -15,7 +16,9 @@
           <div class="form-group col-md-3">
             <label for="filter">Filter</label>
             <select id="filter" name="filter" class="form-control">
+              @if(request('src') != 'delivery')
               <option value="invoice" @if($filter == 'invoice') selected @endif>Belum Dibuatkan Invoice</option>
+              @endif
               <option value="kembali" @if($filter == 'kembali') selected @endif>Belum Kembali</option>
               <option value="all" @if($filter == 'all') selected @endif>All</option>
             </select>
