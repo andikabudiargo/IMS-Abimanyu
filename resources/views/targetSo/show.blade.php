@@ -150,11 +150,17 @@
                                             </tbody>
                                         </table>
                                     </div>
+                                    @php
+                                        $revisionDetails = collect($details)->where('tso_code', $header2->tso_code);
+                                    @endphp
                                     <div class="d-flex justify-content-between align-items-end mt-75">
                                         <div class="col-md-4">
                                             <span>ROW : {{ $header2->sum_row }}</span>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-4 text-right">
+                                            <div>Total Konversi : <strong>{{ number_format($revisionDetails->sum('conversion'), 2) }}</strong></div>
+                                            <div>Total Qty Target : <strong>{{ number_format($revisionDetails->sum('qty_target')) }}</strong></div>
+                                            <div>Total Qty Forcast : <strong>{{ number_format($revisionDetails->sum('qty_forcast')) }}</strong></div>
                                         </div>
                                     </div>
                                     <br>

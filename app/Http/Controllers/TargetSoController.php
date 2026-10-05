@@ -15,6 +15,10 @@ use PDF;
 use AppHelpers;
 use Approval;
 use App\Http\Controllers\Conversion\ConversionReportController;
+use App\Imports\TargetSoImport;
+use App\Exports\TargetSoExport;
+use Illuminate\Support\Str;
+use Excel;
 
 class TargetSoController extends Controller
 {
@@ -817,17 +821,9 @@ class TargetSoController extends Controller
         return ($r->so_avg_price - $materialPrice) / $conversionValue;
     }
 
-    // preview live per artikel dipanggil dari form Create/Edit, sebelum target_order_det disimpan
-    public function conversionPreview(Request $request)
+    // dipakai conversionPreview() (satu artikel, live di form) dan importExcel() (bulk, per artikel unik di file)
+    private function unitConversionData($articleCode, $tsoDate)
     {
-        $articleCode = $request->articleCode;
-        $qtyTarget = (float) ($request->qtyTarget ?: 0);
-        $tsoDate = $request->tsoDate ?: date('d-m-Y');
-
-        if (!$articleCode) {
-            return response()->json(['status' => 0, 'message' => 'articleCode wajib diisi']);
-        }
-
         $r = DB::selectOne("select
             (select sum(d.price*d.qty)/nullif(sum(d.qty),0) from sales_order_det d join sales_order_hdr h on h.so_code = d.so_code
                 where d.article_code = ? and h.status not in ('5','8')
@@ -850,6 +846,21 @@ class TargetSoController extends Controller
         ", [$articleCode, $articleCode, $tsoDate, $articleCode, $tsoDate, $articleCode, $tsoDate, $articleCode, $articleCode]);
 
         $r->article_code = $articleCode;
+        return $r;
+    }
+
+    // preview live per artikel dipanggil dari form Create/Edit, sebelum target_order_det disimpan
+    public function conversionPreview(Request $request)
+    {
+        $articleCode = $request->articleCode;
+        $qtyTarget = (float) ($request->qtyTarget ?: 0);
+        $tsoDate = $request->tsoDate ?: date('d-m-Y');
+
+        if (!$articleCode) {
+            return response()->json(['status' => 0, 'message' => 'articleCode wajib diisi']);
+        }
+
+        $r = $this->unitConversionData($articleCode, $tsoDate);
         $conversion = self::soConversion($r);
 
         return response()->json(['status' => 1, 'data' => [
@@ -857,6 +868,91 @@ class TargetSoController extends Controller
             'conversion' => number_format($conversion, 2),
             'total_conversion' => number_format($conversion * $qtyTarget, 2),
         ]]);
+    }
+
+    public function exportTemplate()
+    {
+        return Excel::download(new TargetSoExport, 'target_so_template.xlsx');
+    }
+
+    private function fail(string $title, array $messages)
+    {
+        return response()->json(['status' => 0, 'title' => $title, 'message' => $messages, 'alert' => 'error']);
+    }
+
+    // upload Excel di form Create/Edit: validasi article_code lalu hitung conversion otomatis per artikel unik (bukan per baris)
+    public function importExcel(Request $request)
+    {
+        $this->validate($request, ['file' => 'required|mimes:xls,xlsx|max:5120']);
+
+        $batchId = (string) Str::uuid();
+        $title   = "Import {$this->title}";
+        $tsoDate = $request->tsoDate ?: date('d-m-Y');
+
+        try {
+            try {
+                Excel::import(new TargetSoImport($batchId), $request->file('file'));
+            } catch (\Exception $e) {
+                return $this->fail($title, ['Gagal membaca file: ' . $e->getMessage()]);
+            }
+
+            $rows = DB::table('import_target_so_tmp as t')
+                ->leftJoin('article as a', 'a.article_alternative_code', '=', 't.article_code')
+                ->where('t.batch_id', $batchId)
+                ->select('t.article_code as input_code', 't.qty_target', 't.qty_forcast', 'a.article_code', 'a.article_desc', 'a.uom')
+                ->get();
+
+            if ($rows->isEmpty()) {
+                return $this->fail($title, ['File kosong atau format kolom tidak sesuai template.']);
+            }
+
+            $errors = [];
+            foreach ($rows as $r) {
+                if (is_null($r->article_code)) {
+                    $errors[] = "Article Code {$r->input_code} tidak terdaftar.";
+                } elseif ((float) $r->qty_target == 0 && (float) $r->qty_forcast == 0) {
+                    $errors[] = "QTY Target/Forcast article {$r->input_code} tidak boleh 0 semua.";
+                }
+            }
+
+            if ($errors) {
+                return response()->json([
+                    'status'  => 0,
+                    'title'   => $title,
+                    'message' => array_map(fn($e) => [$e], $errors),
+                    'alert'   => 'error',
+                    'pesan'   => 'Ada error pada data yang diupload!',
+                ]);
+            }
+
+            // conversion dihitung sekali per artikel unik, bukan per baris file (artikel bisa berulang)
+            $conversionMap = [];
+            foreach ($rows->pluck('article_code')->unique() as $articleCode) {
+                $r = $this->unitConversionData($articleCode, $tsoDate);
+                $conversionMap[$articleCode] = self::soConversion($r);
+            }
+
+            $data = $rows->map(function ($r) use ($conversionMap) {
+                $qtyTarget = (float) $r->qty_target;
+                $conversion = $conversionMap[$r->article_code] ?? 0;
+
+                return [
+                    'article_code'     => $r->article_code,
+                    'article_desc'     => $r->article_desc,
+                    'qty_target'       => $qtyTarget,
+                    'qty_forcast'      => (float) $r->qty_forcast,
+                    'uom'              => $r->uom,
+                    'total_conversion' => number_format($conversion * $qtyTarget, 2, '.', ''),
+                ];
+            })->values();
+
+            return response()->json([
+                'status' => 1, 'title' => $title, 'message' => "{$title} berhasil diimport.",
+                'alert'  => 'success', 'pesan' => '', 'dataDetail' => $data,
+            ]);
+        } finally {
+            DB::table('import_target_so_tmp')->where('batch_id', $batchId)->delete();
+        }
     }
 
     public function revision(Request $request){

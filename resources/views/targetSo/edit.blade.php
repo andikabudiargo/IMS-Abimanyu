@@ -52,6 +52,30 @@
                     <h4 class="card-title">Article</h4>
                 </div>
                 <div class="card-body">
+                    @if( (strtoupper($statusTso) != 'APPROVED') && (strtoupper($statusTso) != 'VALIDATED') )
+                    <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="form-row align-items-center">
+                            <div class="col-lg-3 col-md-12">
+                                <div class="form-group">
+                                    <input type="file" class="custom-file-input" name="file"
+                                        id="file" accept=".xls,.xlsx" required />
+                                    <label class="custom-file-label" for="file" id="fileLabel">Choose file</label>
+                                </div>
+                            </div>
+                            <div class="col-lg-6 col-md-12 mb-1">
+                                <a href="{{ route('targetSo.export.template') }}" class="btn btn-light">
+                                    <i class="fa fa-download"></i> Download Template
+                                </a>
+                                <button type="button" class="btn btn-primary" id="uploadExcel">
+                                    <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                                    <span class="align-middle d-sm-inline-block d-none">Upload Excel</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    <hr style="margin-top:0">
+                    @endif
                     <div class="container-list-item">
                         <div class="lebar-list-item">
                             @include('targetSo.headerColumn')
@@ -82,31 +106,28 @@
                         @endif
                     </div>
 
-                    {{-- pada saat ngitung qty jadi bikin lambat input  qty nya --}}
-                    {{-- <div class="d-flex justify-content-between align-items-end mt-75">
-                        <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-end mt-75">
+                        <div class="col-md-5 offset-md-7">
                             <div class="form-group row mb-03">
-                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
-                                <div class="col-sm-3">
-                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" />
+                                <label for="totalConversion" class="col-sm-5 col-form-label titik-dua">Total Konversi</label>
+                                <div class="col-sm-7">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalConversion" disabled />
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-5">
                             <div class="form-group row mb-03">
-                                <label for="totalQtyTarget" class="col-sm-3 col-form-label titik-dua">Total QTY Target</label>
-                                <div class="col-sm-6">
+                                <label for="totalQtyTarget" class="col-sm-5 col-form-label titik-dua">Total QTY Target</label>
+                                <div class="col-sm-7">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQtyTarget" disabled />
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalQtyForcast" class="col-sm-3 col-form-label titik-dua">Total QTY Forcast</label>
-                                <div class="col-sm-6">
+                                <label for="totalQtyForcast" class="col-sm-5 col-form-label titik-dua">Total QTY Forcast</label>
+                                <div class="col-sm-7">
                                     <input type="text" class="form-control text-right font-weight-bold" id="totalQtyForcast" disabled />
                                 </div>
                             </div>
                         </div>
-                    </div> --}}
+                    </div>
                     <hr>
                     <div class="form-row">
                         <div class="col-md-12">
@@ -249,6 +270,58 @@
             approve(tsoCode,'cmdApprove');
         },{ once:true});
     }
-                
+
+    $('#frmExcel').on('submit', function (e) {
+        e.preventDefault();
+        if (!$('#file').val()) { Swal.fire('Error..', 'File is empty!', 'error'); return; }
+
+        $(".loading-spinner-container").addClass("-show");
+        $('#uploadExcel').attr('disabled', 'disabled');
+
+        $.ajax({
+            url: "{{ route('targetSo.import.excel') }}",
+            method: "POST",
+            data: (() => { let fd = new FormData(this); fd.append('tsoDate', $('#tsoDate').val()); return fd; })(),
+            dataType: "json",
+            contentType: false,
+            cache: false,
+            processData: false,
+            success: function (data) {
+                $('#uploadExcel').removeAttr('disabled');
+                $(".loading-spinner-container").removeClass("-show");
+                if (data.status == 1 && data.dataDetail.length > 0) {
+                    importRowsTargetSo(data.dataDetail);
+                    clearFileInput('file');
+                } else if (data.status == 0) {
+                    data.message.forEach(m => show_msg(data.title, m, data.alert));
+                    Swal.fire('Warning', data.pesan || 'Ada error pada data yang diupload.', 'warning');
+                } else {
+                    Swal.fire('Warning', 'Excel file is empty!', 'warning');
+                }
+            },
+            error: function (xhr) {
+                $('#uploadExcel').removeAttr('disabled');
+                $(".loading-spinner-container").removeClass("-show");
+                Swal.fire('Error..', 'Gagal mengupload file.', 'error');
+            }
+        });
+    });
+
+    $('#uploadExcel').on('click', function () {
+        $('#frmExcel').submit();
+    });
+
+    $('#file').on('change', function () {
+        let name = $(this).val().split('\\').pop() || 'Choose file';
+        $('#fileLabel').text(name);
+    });
+
+    function clearFileInput(id) {
+        let inp = $('#' + id);
+        inp.wrap('<form>').closest('form').get(0).reset();
+        inp.unwrap();
+        $('#fileLabel').text('Choose file');
+    }
+
 </script>
 @endsection

@@ -363,6 +363,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('targetSo/itemList',['as'=>'targetSo.itemList','uses'=>'TargetSoController@listItemByCustomer']);
 	Route::post('targetSo/revision',['as'=>'targetSo.revision','uses'=>'TargetSoController@revision','middleware' => ['permission:targetSo-revision']]);
 	Route::get('targetSo/conversion',['as'=>'targetSo.conversion','uses'=>'TargetSoController@conversionPreview']);
+	Route::get('targetSo/export/template',['as'=>'targetSo.export.template','uses'=>'TargetSoController@exportTemplate']);
+	Route::post('targetSo/import/excel',['as'=>'targetSo.import.excel','uses'=>'TargetSoController@importExcel']);
 	
 	Route::get('receivings',['as'=>'receivings.index','uses'=>'ReceivingController@index','middleware' => ['permission:receiving-index']]);
 	Route::get('receivings/create',['as'=>'receiving.create','uses'=>'ReceivingController@create','middleware' => ['permission:receiving-create']]);
