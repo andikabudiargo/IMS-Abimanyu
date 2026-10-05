@@ -74,18 +74,22 @@ tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
                     </div>
                 </div>
                 <div class="form-row">
-                    <div class="col-12">
-                        <button type="button" class="btn btn-primary" id="btnGenerate">
-                            <i data-feather="search" class="align-middle mr-sm-25 mr-0"></i>
-                            <span class="align-middle d-sm-inline-block d-none">Generate</span>
-                        </button>
-                        <button type="button" class="btn btn-light" id="btnReset">Reset</button>
-                        <button type="button" class="btn btn-outline-success ml-1" id="btnExportExcel">
-                            <i data-feather="file-text" class="align-middle mr-sm-25 mr-0"></i> Export Excel
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary ml-1" id="btnExportPdf">
-                            <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i> Export PDF
-                        </button>
+                    <div class="col-12 d-flex justify-content-between align-items-start flex-wrap">
+                        <div>
+                            <button type="button" class="btn btn-primary" id="btnGenerate">
+                                <i data-feather="search" class="align-middle mr-sm-25 mr-0"></i>
+                                <span class="align-middle d-sm-inline-block d-none">Generate</span>
+                            </button>
+                            <button type="button" class="btn btn-light" id="btnReset">Reset</button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-outline-success" id="btnExportExcel">
+                                <i data-feather="file-text" class="align-middle mr-sm-25 mr-0"></i> Export Excel
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="btnExportPdf">
+                                <i data-feather="printer" class="align-middle mr-sm-25 mr-0"></i> Export PDF
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
