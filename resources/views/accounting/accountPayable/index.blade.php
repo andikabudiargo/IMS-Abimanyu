@@ -98,8 +98,8 @@
       <div class="card-body">
         <div class="form-row mb-2">
           <div class="form-group col-md-2">
-            <label for="apCutoff">Per Tanggal (Cut-off)</label>
-            <input type="text" class="form-control flatpickr-single" id="apCutoff" placeholder="DD-MM-YYYY">
+            <label for="apCutoff">Periode (Cut-off)</label>
+            <input type="month" class="form-control" id="apCutoff">
           </div>
         </div>
         <div class="row ap-stat-row">
@@ -232,6 +232,13 @@ function getExportDateTimeString(){
 
   const fmtRp = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(v);
 
+  const monthToCutoff = (monthStr) => {
+    if (!monthStr) return '';
+    const [y, m] = monthStr.split('-');
+    const lastDay = new Date(y, m, 0).getDate();
+    return `${String(lastDay).padStart(2,'0')}-${m}-${y}`;
+  };
+
   const loadApDashboard = (cutoffDate) => {
     $.get("{{ route('accountPayable.analyticsAp') }}", { cutoffDate: cutoffDate }, function (res) {
       $('#cardApOpeningBalance').text(fmtRp(res.openingBalance));
@@ -243,23 +250,18 @@ function getExportDateTimeString(){
     });
   };
 
-  initDatePicker(document.querySelector('#apCutoff'), {
-    minDate: "01/01/2010",
-    maxDate: "31/12/2030",
-    dateFormat: "d-m-Y",
-    defaultDate: new Date()
-  });
+  $('#apCutoff').val(new Date().toISOString().slice(0,7));
 
   let apDashboardInitialized = false;
   $('#ap-dashboard .card-content').on('shown.bs.collapse', function () {
     if (!apDashboardInitialized) {
       apDashboardInitialized = true;
-      loadApDashboard($('#apCutoff').val());
+      loadApDashboard(monthToCutoff($('#apCutoff').val()));
     }
   });
 
   $('#apCutoff').on('change', function () {
-    loadApDashboard($(this).val());
+    loadApDashboard(monthToCutoff($(this).val()));
   });
 
   function dataSearch($type){

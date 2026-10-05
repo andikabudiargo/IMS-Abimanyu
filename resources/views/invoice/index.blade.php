@@ -113,6 +113,10 @@
                   @endfor
                 </select>
               </div>
+              <div class="form-group col-md-3">
+                <label for="searchArticle">Article Code</label>
+                <input type="text" class="form-control text-uppercase" id="searchArticle" name="searchArticle" placeholder="" />
+              </div>
 
               {{-- <div class="form-group col-md-2">
                 <label class="form-label" for="period">Period</label>
@@ -151,8 +155,8 @@
       <div class="card-body">
         <div class="form-row mb-2">
           <div class="form-group col-md-2">
-            <label for="arCutoff">Per Tanggal (Cut-off)</label>
-            <input type="text" class="form-control flatpickr-single" id="arCutoff" placeholder="DD-MM-YYYY">
+            <label for="arCutoff">Periode (Cut-off)</label>
+            <input type="month" class="form-control" id="arCutoff">
           </div>
         </div>
 
@@ -204,6 +208,9 @@
               </div>
             </div>
           </div>
+        </div>
+
+       
         </div>
       </div>
     </div>
@@ -302,32 +309,36 @@
 
   const fmtRp = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(v);
 
+const monthToCutoff = (monthStr) => {
+  if (!monthStr) return '';
+  const [y, m] = monthStr.split('-');
+  const lastDay = new Date(y, m, 0).getDate();
+  return `${String(lastDay).padStart(2,'0')}-${m}-${y}`;
+};
+
 const loadArDashboard = (cutoffDate) => {
   $.get("{{ route('invoice.analyticsAr') }}", { cutoffDate: cutoffDate }, function (res) {
     $('#cardOpeningBalance').text(fmtRp(res.openingBalance));
     $('#cardTotalAr').text(fmtRp(res.totalAr));
     $('#cardTotalPaid').text(fmtRp(res.totalPaid));
     $('#cardOutstanding').text(fmtRp(res.outstanding));
+    $('#cardInvoiceTerkirim').text(fmtRp(res.totalInvoiceTerkirim));
+    $('#cardPembayaranDiterima').text(fmtRp(res.pembayaranDiterima));
   });
 };
 
-initDatePicker(document.querySelector('#arCutoff'), {
-  minDate: "01/01/2010",
-  maxDate: "31/12/2030",
-  dateFormat: "d-m-Y",
-  defaultDate: new Date()
-});
+$('#arCutoff').val(new Date().toISOString().slice(0,7));
 
 let arDashboardInitialized = false;
 $('#ar-dashboard a[data-action="collapse"]').closest('.card').find('.card-content').on('shown.bs.collapse', function () {
   if (!arDashboardInitialized) {
     arDashboardInitialized = true;
-    loadArDashboard($('#arCutoff').val());
+    loadArDashboard(monthToCutoff($('#arCutoff').val()));
   }
 });
 
 $('#arCutoff').on('change', function () {
-  loadArDashboard($(this).val());
+  loadArDashboard(monthToCutoff($(this).val()));
 });
 
   function searcData($type){
@@ -338,17 +349,18 @@ $('#arCutoff').on('change', function () {
     let recDate = $("#recDate").val();
     let searchPeriod1 = $("#arPeriod1").val();
     let searchPeriod2 = $("#arPeriod2").val();
+    let searchArticle = $("#searchArticle").val();
     btnSummary.addClass('d-none');
     btnDetail.removeClass('d-none');
     if($type == 'detail'){
       btnDetail.addClass('d-none');
       btnSummary.removeClass('d-none');
-      showListDetail(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2);
+      showListDetail(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle);
     }
     if($type == 'summary'){
       btnSummary.addClass('d-none');
       btnDetail.removeClass('d-none');
-      showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2);
+      showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle);
     }
   }
 
@@ -366,7 +378,7 @@ $('#arCutoff').on('change', function () {
     searcData('summary');
   });
 
-  const showList = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2) => {
+  const showList = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -399,7 +411,8 @@ $('#arCutoff').on('change', function () {
         searchStatus:searchStatus,
         recDate:recDate,
         searchPeriod1:searchPeriod1,
-        searchPeriod2:searchPeriod2
+        searchPeriod2:searchPeriod2,
+        searchArticle:searchArticle
         // searchPeriod:searchPeriod
       },
       initComplete: function() {
@@ -415,7 +428,7 @@ $('#arCutoff').on('change', function () {
     });
   }
 
-  const showListDetail = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2) => {
+  const showListDetail = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -448,7 +461,8 @@ $('#arCutoff').on('change', function () {
         searchStatus:searchStatus,
         recDate:recDate,
         searchPeriod1:searchPeriod1,
-        searchPeriod2:searchPeriod2
+        searchPeriod2:searchPeriod2,
+        searchArticle:searchArticle
         // searchPeriod:searchPeriod
       },
       orderColumn:[[ 1, 'asc' ],[ 2, 'asc' ]],
