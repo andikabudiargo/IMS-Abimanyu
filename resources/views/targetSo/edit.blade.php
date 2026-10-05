@@ -28,6 +28,17 @@
                                     <label for="tsoDate">Date*</label>
                                     <input type="text" id="tsoDate" name="tsoDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header->tso_date }}" required />
                                 </div>
+                                <div class="form-group col-md-3">
+                                    <label for="tsoPeriode">Periode TSO*</label>
+                                    <select class="select2 form-control" id="tsoPeriode" name="tsoPeriode" required>
+                                        <option value="">-- Periode --</option>
+                                        @for ($y = 2023; $y <= date('Y') + 1; $y++)
+                                            @foreach(['January','February','March','April','May','June','July','August','September','October','November','December'] as $i => $m)
+                                                <option value="{{ $i + 1 }}-{{ $y }}" {{ $header->tso_periode == $i + 1 && $header->tso_tahun == $y ? 'selected' : '' }}>{{ $m }} {{ $y }}</option>
+                                            @endforeach
+                                        @endfor
+                                    </select>
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-5">
@@ -206,9 +217,10 @@
     const updateBtn = document.querySelector('#cmdUpdate');
     const approveBtn = document.querySelector('#cmdApprove');
 
-    $(document).ready(function(){           
+    $(document).ready(function(){
         validateForm('frmAdd');
         isiArticle('tsoArticle');
+        $('#tsoPeriode').select2();
         setTimeout(function () {
             $(".loading-spinner-container").addClass("-show");
         }, 500);

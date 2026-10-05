@@ -129,6 +129,13 @@
     const orderDate = $('#orderDate');
     let cloneCount = 0;
     let suppressConversionAjax = false;
+
+    // Field #tsoPeriode di UI satu dropdown "Bulan Tahun" (value "M-YYYY"),
+    // tapi backend/kolom DB tetap terpisah tso_periode + tso_tahun.
+    function splitPeriodeTso() {
+        let [periode, tahun] = ($('#tsoPeriode').val() || '').split('-');
+        return [periode || '', tahun || ''];
+    }
         
     if (orderDate.length) {
         orderDate.flatpickr({
@@ -208,6 +215,7 @@
                 $('.disabled-el').removeAttr('disabled');
                 let tsoDate = $('#tsoDate').val();
                 let tsoName = $('#tsoName').val();
+                let [tsoPeriode, tsoTahun] = splitPeriodeTso();
                 let note = $('#note').val();
                 let url ="";
                 let tsoCode = "";
@@ -218,6 +226,8 @@
                         articles:JSON.stringify(articles),
                         tsoDate:tsoDate,
                         tsoName:tsoName,
+                        tsoPeriode:tsoPeriode,
+                        tsoTahun:tsoTahun,
                         note:note,
                         tsoCode:tsoCode
                     },
@@ -318,6 +328,7 @@
             if (flag==0){
                 let tsoDate = $('#tsoDate').val();
                 let tsoName = $('#tsoName').val();
+                let [tsoPeriode, tsoTahun] = splitPeriodeTso();
                 let customer = "none";
                 let tsoCode = $('#tsoCode').val();
                 let note = $('#note').val();
@@ -329,6 +340,8 @@
                         tsoCode:tsoCode,
                         tsoDate:tsoDate,
                         tsoName:tsoName,
+                        tsoPeriode:tsoPeriode,
+                        tsoTahun:tsoTahun,
                         customer:customer,
                         note:note
                     },

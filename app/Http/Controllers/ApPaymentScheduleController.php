@@ -308,8 +308,14 @@ class ApPaymentScheduleController extends Controller
             $total       = $row ? (float) $row['total'] : 0.0;
             $paid        = $row ? (float) $row['paid'] : 0.0;
             $outstanding = $row ? (float) $row['outstanding'] : 0.0;
-            // Balance = Opening - Paid (acuan rumus Excel: B - AJ), bukan Total - Paid.
-            $balance     = $op['opening'] - $paid;
+            // Balance = saldo riil saat ini (opening_remain = SUM balance_asof
+            // SEMUA AP, tanpa batas jatuh tempo periode). Dulu dihitung
+            // Opening - Paid, tapi $paid di sini scoped ke AP yang jatuh
+            // temponya DI DALAM periode (lihat WHERE $sql di atas) -- jadi
+            // pembayaran atas AP LAMA yang jatuh tempo di periode sebelumnya
+            // tidak ikut ngurangin Balance, bikin beda sama AP Dashboard yang
+            // ngurangin SEMUA pembayaran tanpa peduli AP mana yang di bayar.
+            $balance     = $op['opening_remain'];
 
             if ($op['opening'] <= $this->minOutstanding && $total <= $this->minOutstanding) {
                 continue;

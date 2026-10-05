@@ -128,10 +128,12 @@ class TargetSoController extends Controller
         $articles = json_decode($request->articles);
         $tsoDate = $request->tsoDate;
         $tsoName = $request->tsoName;
+        $tsoPeriode = $request->tsoPeriode;
+        $tsoTahun = $request->tsoTahun;
         $customer = 'none';
         $note = $request->note;
         $status = '1';
-        $poLeadCode = $this->moduleCode; 
+        $poLeadCode = $this->moduleCode;
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED'];
 
@@ -149,8 +151,10 @@ class TargetSoController extends Controller
 
         $validation = Validator::make($request->all(),$messages = [
             'tsoName'  => 'required',
+            'tsoPeriode'  => 'required',
+            'tsoTahun'  => 'required',
         ]);
-        
+
         $error_array = array();
         $success_output = '';
         // return $validation;
@@ -158,7 +162,7 @@ class TargetSoController extends Controller
             foreach ($validation->messages()->getMessages() as $field_name => $messages){
                 $error_array[] = $messages;
             }
-           
+
             $title="Save $this->title";
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
@@ -173,6 +177,8 @@ class TargetSoController extends Controller
                         'origin_tso_code'=>$tsoCode,
                         'tso_name' => $tsoName ,
                         'tso_date' => $tsoDate,
+                        'tso_periode' => $tsoPeriode,
+                        'tso_tahun' => $tsoTahun,
                         'customer_id' => $customer,
                         'status' => $status,
                         'note' => $note,
@@ -344,6 +350,8 @@ class TargetSoController extends Controller
         $tsoCode = $request->tsoCode;
         $tsoDate = $request->tsoDate;
         $tsoName = $request->tsoName;
+        $tsoPeriode = $request->tsoPeriode;
+        $tsoTahun = $request->tsoTahun;
         $customer = $request->customer;
         $note = $request->note;
         $status = '1';
@@ -374,6 +382,8 @@ class TargetSoController extends Controller
         $validation = Validator::make($request->all(),$messages = [
             'tsoDate'  => 'required',
             'tsoName'  => 'required',
+            'tsoPeriode'  => 'required',
+            'tsoTahun'  => 'required',
             'customer'  => 'required',
 
         ]);
@@ -398,6 +408,8 @@ class TargetSoController extends Controller
                         [
                             'tso_code' => $tsoCode,
                             'tso_name' => $tsoName ,
+                            'tso_periode' => $tsoPeriode,
+                            'tso_tahun' => $tsoTahun,
                             'status' => $status,
                             'note' => $note,
                             'updated_by' => Auth::user()->username,
@@ -987,6 +999,8 @@ class TargetSoController extends Controller
             po_number,
             tso_name,
             tso_date,
+            tso_periode,
+            tso_tahun,
             customer_id,
             status,
             note,
@@ -1001,12 +1015,14 @@ class TargetSoController extends Controller
             reason
         )
 
-        select 
+        select
             '$tsoNew',
             '$tsoOrigin',
             po_number,
             tso_name,
             tso_date,
+            tso_periode,
+            tso_tahun,
             customer_id,
             '7',
             note,

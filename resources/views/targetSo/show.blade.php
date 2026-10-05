@@ -45,6 +45,14 @@
                                                 <label for="tsoDate">Date*</label>
                                                 <input type="text" id="tsoDate" name="tsoDate" class="form-control" placeholder="DD-MM-YYYY" value="{{ $header2->tso_date }}" disabled />
                                             </div>
+                                            <div class="form-group col-md-2">
+                                                <label for="tsoPeriode">Periode TSO</label>
+                                                @php
+                                                    $bulanNama = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+                                                    $periodeTso = $header2->tso_periode ? ($bulanNama[$header2->tso_periode] ?? '') . ' ' . $header2->tso_tahun : '';
+                                                @endphp
+                                                <input type="text" id="tsoPeriode" name="tsoPeriode" class="form-control" value="{{ $periodeTso }}" disabled />
+                                            </div>
                                         </div>
                                         <div class="form-row">
                                             <div class="form-group col-md-5">
