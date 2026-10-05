@@ -126,6 +126,7 @@ tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
                             <th>Note</th>
                             <th class="text-right">Nominal</th>
                             <th>Bank</th>
+                            <th>No. Rekening</th>
                             <th class="text-right">Biaya Administrasi</th>
                             <th class="text-right">PPH23</th>
                             <th class="text-right">Total</th>
@@ -137,6 +138,7 @@ tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
                         <tr>
                             <td colspan="9" class="text-right">GRAND TOTAL</td>
                             <td class="text-right" id="gNominal">0</td>
+                            <td></td>
                             <td></td>
                             <td class="text-right" id="gBiaya">0</td>
                             <td class="text-right" id="gPph23">0</td>
@@ -228,6 +230,7 @@ $(document).ready(function () {
                 + '<td class="col-note">' + (r.note || '') + '</td>'
                 + '<td class="text-right">' + fmt(r.nominal) + '</td>'
                 + '<td>' + (r.bank_name || '-') + '</td>'
+                + '<td>' + (r.account_number || '-') + '</td>'
                 + '<td class="text-right"><input type="number" class="form-control form-control-sm fee-input feeInput" data-ref="' + r.ap_number + '" value="' + (r.biaya_administrasi || 0) + '" ' + (disabled || r.status === 'pending' ? 'disabled' : '') + '></td>'
                 + '<td class="text-right">' + fmt(r.pph23) + '</td>'
                 + '<td class="text-right font-weight-bold rowTotal">' + fmt(r.total) + '</td>'

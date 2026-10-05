@@ -38,6 +38,7 @@
                 <th>Note</th>
                 <th>Nominal</th>
                 <th>Bank</th>
+                <th>No. Rekening</th>
                 <th>Biaya Administrasi</th>
                 <th>PPH23</th>
                 <th>Total</th>
@@ -60,6 +61,7 @@
                     <td>{{ $r['note'] }}</td>
                     <td class="num">{{ number_format($r['nominal'], 0) }}</td>
                     <td>{{ $r['bank_name'] }}</td>
+                    <td>{{ $r['account_number'] }}</td>
                     <td class="num">{{ number_format($r['biaya_administrasi'], 0) }}</td>
                     <td class="num">{{ number_format($r['pph23'], 0) }}</td>
                     <td class="num">{{ number_format($r['total'], 0) }}</td>
@@ -69,7 +71,7 @@
             <tr class="grand">
                 <td colspan="8" class="num">GRAND TOTAL</td>
                 <td class="num">{{ number_format($grand['nominal'], 0) }}</td>
-                <td></td>
+                <td colspan="2"></td>
                 <td class="num">{{ number_format($grand['biaya_administrasi'], 0) }}</td>
                 <td class="num">{{ number_format($grand['pph23'], 0) }}</td>
                 <td class="num">{{ number_format($grand['total'], 0) }}</td>
@@ -79,7 +81,7 @@
             <tr>
                 <td class="appr-blank" colspan="8" rowspan="6"></td>
                 <td class="appr-label">Disetujui</td>
-                <td class="appr-blank" rowspan="6"></td>
+                <td class="appr-blank" colspan="2" rowspan="6"></td>
                 <td class="appr-label" colspan="2">Diperiksa</td>
                 <td class="appr-label">Dibuat</td>
                 <td class="appr-blank" rowspan="6"></td>
