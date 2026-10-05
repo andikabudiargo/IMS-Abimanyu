@@ -100,7 +100,7 @@
             @foreach([
                 'CDD PAGI', 'CDD MALAM', 'VJB 1 PAGI', 'VJB 1 MALAM',
                 'VJB 2 PAGI', 'VJB 2 MALAM', 'GRANDMAX PAGI', 'GRANDMAX MALAM',
-                'LUXIO', 'MOBILE SEWA PAGI', 'PICKUP'
+                'LUXIO', 'MOBILE SEWA PAGI', 'PICKUP', 'KPA PAGI', 'KPA MALAM'
             ] as $val)
                 <option value="{{ $val }}" {{ $header->armada == $val ? 'selected' : '' }}>{{ $val }}</option>
             @endforeach

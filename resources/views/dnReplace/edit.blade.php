@@ -42,7 +42,7 @@
     <label class="form-label" for="armada">Armada*</label>
     <select class="select2 form-control" id="armada" name="armada">
         <option value="">Choose Armada</option>
-        @foreach(['CDD PAGI', 'CDD MALAM', 'VJB 1 PAGI', 'VJB 1 MALAM', 'VJB 2 PAGI', 'VJB 2 MALAM', 'GRANDMAX PAGI','GRANDMAX MALAM','LUXIO', 'MOBIL SEWA PAGI', 'PICKUP'] as $val)
+        @foreach(['CDD PAGI', 'CDD MALAM', 'VJB 1 PAGI', 'VJB 1 MALAM', 'VJB 2 PAGI', 'VJB 2 MALAM', 'GRANDMAX PAGI','GRANDMAX MALAM','LUXIO', 'MOBIL SEWA PAGI', 'PICKUP', 'KPA PAGI', 'KPA MALAM'] as $val)
             <option value="{{ $val }}" {{ $header->armada == $val ? 'selected' : '' }}>{{ $val }}</option>
         @endforeach
     </select>
