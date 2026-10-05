@@ -253,7 +253,7 @@ private function isMaklon(string $articleCode): bool
 
             $d->qty_target         = round($qtyTarget, 4);
             $d->qty_selisih        = round((float) $d->total_qty - $qtyTarget, 4);
-            $d->conversion_per_unit = $convVal > 0 ? round(((float) $d->avg_selling_price - (float) $d->avg_purchase_price) / $convVal, 4) : 0;
+            $d->conversion_per_unit = $convVal > 0 ? round(((float) $d->avg_selling_price - (float) $d->avg_purchase_price) / $convVal, 8) : 0;
             $d->target_conversion  = round($targetConversion, 4);
             $d->selisih_conversion = round($selisihConv, 4);
             $d->pct_tercapai       = $targetConversion > 0 ? round($convPainting / $targetConversion * 100, 1) : null;
@@ -382,7 +382,7 @@ $rows[] = [
     'total_selling_value'      => round($totalValue, 4),
     'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
     'conversion'               => round($conversion, 4),
-    'conversion_per_unit'      => round($conversionPerUnit, 4),
+    'conversion_per_unit'      => round($conversionPerUnit, 8),
     'is_painting'              => $isPainting,
     'conversion_painting'      => round($convPainting, 4),
     'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
@@ -543,7 +543,7 @@ $rows[] = [
     'total_selling_value'      => round($totalValue, 4),
     'total_purchase_value'     => round($avgPurchase * $totalQty, 4),
     'conversion'               => round($conversion, 4),
-    'conversion_per_unit'      => round($conversionPerUnit, 4),
+    'conversion_per_unit'      => round($conversionPerUnit, 8),
     'is_painting'              => $isPainting,
     'conversion_painting'      => round($convPainting, 4),
     'conversion_non_painting'  => round($isPainting ? 0 : $conversion, 4),
@@ -818,14 +818,21 @@ $rows[] = [
             ->get()
             ->keyBy('periode');
 
+        // Target per bulan: query terpisah dari hdr supaya tidak ikut fan-out join det.
+        $perTarget = DB::table('conversion_report_hdr')
+            ->where('tahun', $tahun)->whereNotIn('status', [5, 8])
+            ->select('periode', DB::raw('COALESCE(SUM(target_conversion),0) as target'))
+            ->groupBy('periode')->get()->keyBy('periode');
+
         $monthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 
-        $labels = $totalArticle = $totalDelivery = $totalConversion = [];
+        $labels = $totalArticle = $totalDelivery = $totalConversion = $targetConversion = [];
         for ($m = 1; $m <= 12; $m++) {
             $labels[]         = $monthLabels[$m - 1];
             $totalArticle[]   = (int) ($perArticle[$m]->total_article ?? 0);
             $totalConversion[]= round((float) ($perArticle[$m]->total_conversion ?? 0), 2);
             $totalDelivery[]  = (int) ($perDelivery[$m]->total_delivery ?? 0);
+            $targetConversion[] = round((float) ($perTarget[$m]->target ?? 0), 2);
         }
 
         return response()->json([
@@ -834,6 +841,7 @@ $rows[] = [
             'totalArticle'    => $totalArticle,
             'totalDelivery'   => $totalDelivery,
             'totalConversion' => $totalConversion,
+            'targetConversion' => $targetConversion,
             'sumArticle'      => array_sum($totalArticle),
             'sumDelivery'     => array_sum($totalDelivery),
             'sumConversion'   => round(array_sum($totalConversion), 2),

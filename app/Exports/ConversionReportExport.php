@@ -12,7 +12,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Illuminate\Support\Collection;
 
-class ConversionReportExport implements FromCollection, WithHeadings, ShouldAutoSize, WithTitle, WithStyles
+class ConversionReportExport implements FromCollection, WithHeadings, ShouldAutoSize, WithTitle, WithStyles, \Maatwebsite\Excel\Concerns\WithColumnFormatting
 {
     protected $rows;
 
@@ -69,6 +69,11 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
             'Harga Konversi /PCS', 'Konversi Non Painting', 'Konversi Painting', 'Konversi Target',
             'Selisih', '% Tercapai', '% Selisih',
         ];
+    }
+
+    public function columnFormats(): array
+    {
+        return ['M' => '0.00000000']; // Harga Konversi /PCS
     }
 
     public function title(): string

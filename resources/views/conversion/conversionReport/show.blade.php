@@ -112,7 +112,7 @@
               <td class="text-right">{{ number_format($d->qty_selisih, 2) }}</td>
               <td class="text-right">{{ number_format($d->avg_selling_price, 2) }}</td>
               <td class="text-right">{{ number_format($d->avg_purchase_price, 2) }}</td>
-              <td class="text-right">{{ number_format($d->conversion_per_unit, 4) }}</td>
+              <td class="text-right">{{ number_format($d->conversion_per_unit, 8) }}</td>
               <td class="text-right">{{ $d->is_painting ? '-' : number_format($d->conversion, 4) }}</td>
 <td class="text-right">{{ $d->is_painting ? number_format($d->conversion, 4) : '-' }}</td>
               <td class="text-right">{{ number_format($d->target_conversion, 4) }}</td>
@@ -175,7 +175,7 @@
         <td class="text-right">${humanizeShow(r.qty_selisih)}</td>
         <td class="text-right">${humanizeShow(r.avg_selling_price)}</td>
         <td class="text-right">${humanizeShow(r.avg_purchase_price)}</td>
-        <td class="text-right">${humanizeShow(r.conversion_per_unit)}</td>
+        <td class="text-right">${(parseFloat(r.conversion_per_unit) || 0).toLocaleString("id-ID", { minimumFractionDigits: 8, maximumFractionDigits: 8 })}</td>
         <td class="text-right">${isPainting ? '-' : humanizeShow(r.conversion)}</td>
         <td class="text-right">${isPainting ? humanizeShow(r.conversion) : '-'}</td>
         <td class="text-right">${humanizeShow(r.target_conversion)}</td>

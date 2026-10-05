@@ -137,7 +137,10 @@
 
       const options = {
         chart: { type: 'line', height: 320, toolbar: { show: false } },
-        series: [{ name: 'Total Konversi', data: res.totalConversion }],
+        series: [
+          { name: 'Actual Konversi', data: res.totalConversion },
+          { name: 'Target Konversi', data: res.targetConversion }
+        ],
         xaxis: { categories: res.labels },
         stroke: { curve: 'smooth', width: 3 },
         markers: { size: 4 },
@@ -147,7 +150,7 @@
           offsetY: -6,
           formatter: (val) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(val)
         },
-        colors: ['#7367F0'],
+        colors: ['#7367F0', '#FF9F43'],
         tooltip: {
           y: { formatter: (val) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(val) }
         }

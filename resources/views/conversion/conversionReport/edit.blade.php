@@ -162,7 +162,7 @@
                 <td class="text-right">{{ number_format($d->qty_selisih, 2) }}</td>
                 <td class="text-right">{{ number_format($d->avg_selling_price, 2) }}</td>
                 <td class="text-right">{{ number_format($d->avg_purchase_price, 2) }}</td>
-                <td class="text-right">{{ number_format($d->conversion_per_unit, 4) }}</td>
+                <td class="text-right">{{ number_format($d->conversion_per_unit, 8) }}</td>
                <td class="text-right">{{ $d->is_painting ? '-' : number_format($d->conversion, 4) }}</td>
 <td class="text-right">{{ $d->is_painting ? number_format($d->conversion, 4) : '-' }}</td>
                 <td class="text-right">{{ number_format($d->target_conversion, 4) }}</td>
