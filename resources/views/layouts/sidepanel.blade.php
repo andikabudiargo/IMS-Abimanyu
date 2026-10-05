@@ -732,7 +732,9 @@
                       </li>
                       {{-- <li class="{{ \Request::segment(1) == 'aps'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('aps.index') }}"><span class="menu-item text-truncate" data-i18n="Invoice supplier">Invoice Supplier</span></a>
                       </li> --}}
-                      <li class="{{ \Request::segment(1) == 'apPaymentSchedule'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apPaymentSchedule.index') }}"><span class="menu-item text-truncate" data-i18n="AP Payment Schedule">Supplier Payment</span></a>
+                      <li class="{{ \Request::segment(1) == 'apPaymentSchedule'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apPaymentSchedule.index') }}"><span class="menu-item text-truncate" data-i18n="AP Payment Schedule">Payment Schedule</span></a>
+                    </li>
+                      <li class="{{ \Request::segment(1) == 'apPaymentPlanning'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apPaymentPlanning.index') }}"><span class="menu-item text-truncate" data-i18n="AP Payment Planning">Payment Planning</span></a>
                     </li>
                      <li class="{{ \Request::segment(1) == 'apAging'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apAging.index') }}"><span class="menu-item text-truncate" data-i18n="AP Aging Report">Supplier Aging</span></a>
                     </li>
@@ -751,7 +753,9 @@
                       </li>
                     <li class="{{ \Request::segment(1) == 'arAgingReport'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('arAging.index') }}"><span class="menu-item text-truncate" data-i18n="AR Aging Report">Customer Aging</span></a>
                     </li>
-                    <li class="{{ \Request::segment(1) == 'arPaymentSchedule'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('arPaymentSchedule.index') }}"><span class="menu-item text-truncate" data-i18n="AR Payment Schedule">Customer Payment</span></a>
+                    <li class="{{ \Request::segment(1) == 'arPaymentSchedule'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('arPaymentSchedule.index') }}"><span class="menu-item text-truncate" data-i18n="AR Payment Schedule">Payment Schedule</span></a>
+                    </li>
+                    <li class="{{ \Request::segment(1) == 'arPaymentPlanning'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('arPaymentPlanning.index') }}"><span class="menu-item text-truncate" data-i18n="AR Payment Planning">Payment Planning</span></a>
                     </li>
                       <li class="{{ \Request::segment(1) == 'deliveryReportSoAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('delivery.report.so.acc') }}"><span class="menu-item text-truncate" data-i18n="Dn Report Acc">SO Report</span></a>
                     </li>

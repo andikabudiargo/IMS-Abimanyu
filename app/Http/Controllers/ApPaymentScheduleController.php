@@ -40,11 +40,13 @@ class ApPaymentScheduleController extends Controller
 {
     private $title = "AP Payment Schedule";
 
-    private $floorDate = '01-01-2023';
-    private $pairRequiredBefore = '01-01-2024';
+    // protected: direuse oleh ApPaymentPlanningController (extends controller ini
+    // supaya rumus jatuh tempo & balance_asof tidak perlu ditulis ulang).
+    protected $floorDate = '01-01-2023';
+    protected $pairRequiredBefore = '01-01-2024';
 
     // balance <= ini dianggap lunas (sisa pembulatan PPN/diskon).
-    private $minOutstanding = 1;
+    protected $minOutstanding = 1;
 
     public function index(Request $request)
     {
@@ -58,7 +60,7 @@ class ApPaymentScheduleController extends Controller
         return view('apPaymentSchedule.index', $data);
     }
 
-    private function periodBounds($month, $year)
+    protected function periodBounds($month, $year)
     {
         $month = max(1, min(12, (int) $month));
         $year  = (int) $year;
@@ -72,14 +74,14 @@ class ApPaymentScheduleController extends Controller
         return [$start->format('d-m-Y'), $end->format('d-m-Y'), $daysInMonth];
     }
 
-    private function resolveAsOf($periodEnd)
+    protected function resolveAsOf($periodEnd)
     {
         $periodEndDt = \DateTime::createFromFormat('d-m-Y', $periodEnd);
         $today = new \DateTime();
         return $periodEndDt < $today ? $periodEnd : $today->format('d-m-Y');
     }
 
-    private function buildFilters(Request $request)
+    protected function buildFilters(Request $request)
     {
         $supplierCodes = $request->supplier;
 
@@ -99,7 +101,7 @@ class ApPaymentScheduleController extends Controller
      * jadi balance_open (sebelum periode) & balance_asof (open - paid periode).
      * Pembayaran = kas_det.DEBIT (bayar supplier) lewat voucher KK/BK.
      */
-    private function buildScheduleSubquery($whereExtra)
+    protected function buildScheduleSubquery($whereExtra)
 {
     $anchor = "COALESCE(
                 to_date(NULLIF(ap_invoice.ap_date,''),'DD-MM-YYYY'),
@@ -404,9 +406,12 @@ class ApPaymentScheduleController extends Controller
                 hutang.term,
                 hutang.jatuh_tempo_actual,
                 hutang.balance_open,
-                hutang.balance_asof
+                hutang.balance_asof,
+                plan.status as plan_status,
+                plan.hold_reason
             FROM ($subquery) hutang
             LEFT JOIN third_party ON third_party.kode = hutang.supplier_id
+            LEFT JOIN payment_plan plan ON plan.module = 'AP' AND plan.ref_number = hutang.ap_number
             WHERE 1=1
             $periodBound
             $bucketWhere
@@ -438,6 +443,8 @@ class ApPaymentScheduleController extends Controller
                 'jatuh_tempo'   => $r->jatuh_tempo_actual ? date('d-m-Y', strtotime($r->jatuh_tempo_actual)) : '-',
                 'balance'       => $balance,
                 'ap_link'       => route('accountPayable.show', ['id' => Crypt::encryptString($r->ap_id)]),
+                'plan_status'   => $r->plan_status,
+                'hold_reason'   => $r->hold_reason,
             ];
         }
 

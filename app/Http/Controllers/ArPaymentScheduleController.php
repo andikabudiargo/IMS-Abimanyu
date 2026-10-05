@@ -50,8 +50,10 @@ class ArPaymentScheduleController extends Controller
 {
     private $title = "AR Payment Schedule";
 
-    private $floorDate = '01-01-2023';
-    private $pairRequiredBefore = '01-01-2024';
+    // protected: direuse oleh ArPaymentPlanningController (extends controller ini
+    // supaya rumus jatuh tempo & balance_asof tidak perlu ditulis ulang).
+    protected $floorDate = '01-01-2023';
+    protected $pairRequiredBefore = '01-01-2024';
 
     public function index(Request $request)
     {
@@ -65,7 +67,7 @@ class ArPaymentScheduleController extends Controller
         return view('arPaymentSchedule.index', $data);
     }
 
-    private function periodBounds($month, $year)
+    protected function periodBounds($month, $year)
     {
         $month = max(1, min(12, (int) $month));
         $year  = (int) $year;
@@ -83,14 +85,14 @@ class ArPaymentScheduleController extends Controller
     // hari ini kalau periode yang dipilih belum selesai (sedang berjalan
     // atau di masa depan) -- supaya tidak "membaca" pembayaran yang belum
     // terjadi.
-    private function resolveAsOf($periodEnd)
+    protected function resolveAsOf($periodEnd)
     {
         $periodEndDt = \DateTime::createFromFormat('d-m-Y', $periodEnd);
         $today = new \DateTime();
         return $periodEndDt < $today ? $periodEnd : $today->format('d-m-Y');
     }
 
-    private function buildFilters(Request $request)
+    protected function buildFilters(Request $request)
     {
         $customerCodes = $request->customer;
 
@@ -114,7 +116,7 @@ class ArPaymentScheduleController extends Controller
      *   - paid_in_period: yang dibayar DI DALAM periode (:periodStart..:asOf).
      *   - balance_asof  : saldo saat ini (= balance_open - paid_in_period).
      */
-    private function buildScheduleSubquery($whereExtra)
+    protected function buildScheduleSubquery($whereExtra)
     {
         return "
             SELECT
@@ -407,9 +409,12 @@ class ArPaymentScheduleController extends Controller
                 piutang.term,
                 piutang.jatuh_tempo_actual,
                 piutang.balance_open,
-                piutang.balance_asof
+                piutang.balance_asof,
+                plan.status as plan_status,
+                plan.hold_reason
             FROM ($subquery) piutang
             LEFT JOIN third_party ON third_party.kode = piutang.customer_id
+            LEFT JOIN payment_plan plan ON plan.module = 'AR' AND plan.ref_number = piutang.invoice_number
             WHERE 1=1
             $periodBound
             $bucketWhere
@@ -440,6 +445,8 @@ class ArPaymentScheduleController extends Controller
                 'jatuh_tempo'    => $r->jatuh_tempo_actual ? date('d-m-Y', strtotime($r->jatuh_tempo_actual)) : '-',
                 'balance'        => $balance,
                 'invoice_link'   => route('invoice.show', ['id' => Crypt::encryptString($r->invoice_id)]),
+                'plan_status'    => $r->plan_status,
+                'hold_reason'    => $r->hold_reason,
             ];
         }
 

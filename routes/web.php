@@ -551,6 +551,16 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('arPaymentSchedule/detail', ['uses' => 'ArPaymentScheduleController@detail','as'   => 'arPaymentSchedule.detail',]);
 	Route::post('arPaymentSchedule/export', ['uses' => 'ArPaymentScheduleController@export','as'   => 'arPaymentSchedule.export',]);
 
+	Route::get('apPaymentPlanning', ['uses' => 'ApPaymentPlanningController@index','as'   => 'apPaymentPlanning.index',]);
+	Route::post('apPaymentPlanning/data', ['uses' => 'ApPaymentPlanningController@data','as'   => 'apPaymentPlanning.data',]);
+	Route::post('apPaymentPlanning/mark', ['uses' => 'ApPaymentPlanningController@mark','as'   => 'apPaymentPlanning.mark',]);
+	Route::post('apPaymentPlanning/updateFee', ['uses' => 'ApPaymentPlanningController@updateFee','as'   => 'apPaymentPlanning.updateFee',]);
+
+	Route::get('arPaymentPlanning', ['uses' => 'ArPaymentPlanningController@index','as'   => 'arPaymentPlanning.index',]);
+	Route::post('arPaymentPlanning/data', ['uses' => 'ArPaymentPlanningController@data','as'   => 'arPaymentPlanning.data',]);
+	Route::post('arPaymentPlanning/mark', ['uses' => 'ArPaymentPlanningController@mark','as'   => 'arPaymentPlanning.mark',]);
+	Route::post('arPaymentPlanning/updateFee', ['uses' => 'ArPaymentPlanningController@updateFee','as'   => 'arPaymentPlanning.updateFee',]);
+
 
 	//Account payable versi 2
 	Route::get('accountPayable',['as'=>'accountPayable.index','uses'=>'Accounting\AccountPayableController@index','middleware' => ['permission:ap-index']]);

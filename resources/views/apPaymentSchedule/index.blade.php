@@ -277,6 +277,7 @@
                             <th>TOP</th>
                             <th>Jatuh Tempo</th>
                             <th class="text-right">Nilai</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody id="scheduleDetailBody"></tbody>
@@ -284,6 +285,7 @@
                         <tr>
                             <td colspan="7" class="text-right font-weight-bold">Total</td>
                             <td class="text-right font-weight-bold" id="scheduleDetailTotal">0</td>
+                            <td></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -499,8 +501,18 @@ $(document).ready(function () {
                 $('#scheduleDetailEmpty').removeClass('d-none');
                 return;
             }
+            let planBadge = {
+                hold:       ['danger', 'Hold'],
+                to_be_paid: ['primary', 'To Be Paid'],
+            };
             let body = '';
             res.rows.forEach(function (row, idx) {
+                let badge = '';
+                if (planBadge[row.plan_status]) {
+                    let [cls, label] = planBadge[row.plan_status];
+                    let title = row.plan_status === 'hold' && row.hold_reason ? row.hold_reason : label;
+                    badge = '<span class="badge badge-' + cls + '" title="' + $('<div>').text(title).html() + '">' + label + '</span>';
+                }
                 body += '<tr>'
                     + '<td>' + (idx + 1) + '</td>'
                     + '<td><a href="' + row.ap_link + '" target="_blank">' + row.ap_number + '</a></td>'
@@ -510,6 +522,7 @@ $(document).ready(function () {
                     + '<td>' + row.term + '</td>'
                     + '<td>' + row.jatuh_tempo + '</td>'
                     + '<td class="text-right">' + fmtAlways(row.balance) + '</td>'
+                    + '<td>' + badge + '</td>'
                     + '</tr>';
             });
             $('#scheduleDetailBody').html(body);
