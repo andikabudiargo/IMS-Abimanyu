@@ -13,9 +13,8 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 class DnMonitoringController extends Controller
 {
-    // Semua DN bulan berjalan yang belum kelar salah satu dari dua hal:
-    //  - belum di-invoice (belum ada relasi ke invoice_det)
-    //  - belum kembali (surat jalan belum di-Receive, DELIVERY yang belum berstatus DN RECEIVED)
+    // Semua DN bulan berjalan. filter=invoice -> belum di-invoice saja, filter=kembali -> belum kembali saja,
+    // filter=all -> semua DN bulan itu tanpa syarat outstanding (sudah/belum invoice & kembali sama-sama tampil).
     // DELIVERY = DN status 1-4/10, DN RECEIVED = DN status 8, TEMPORARY DN = surat jalan sementara OPEN.
     private function pendingRows($month, $filter = 'invoice')
     {
@@ -41,7 +40,6 @@ class DnMonitoringController extends Controller
                 WHERE t.status = '1'
             ) x
             WHERE to_char(to_date(x.delivery_date,'DD-MM-YYYY'),'YYYY-MM') = ?
-              AND (x.belum_invoice OR x.belum_kembali)
             ORDER BY to_date(x.delivery_date,'DD-MM-YYYY'), x.dn_number", [$month]);
 
         if ($filter == 'invoice') {
@@ -50,7 +48,7 @@ class DnMonitoringController extends Controller
         if ($filter == 'kembali') {
             return array_values(array_filter($rows, fn($r) => $r->belum_kembali));
         }
-        return $rows; // all
+        return $rows; // all: semua DN bulan ini, tanpa syarat outstanding
     }
 
     private function filter(Request $request)

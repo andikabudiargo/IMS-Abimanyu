@@ -24,11 +24,12 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
     protected $grand;
     protected $periodLabel;
 
-    const TOTAL_COLS  = 13;
+    const TOTAL_COLS  = 14;
     const IDX_NOMINAL = 9;
-    const IDX_BIAYA   = 10;
-    const IDX_PPH23   = 11;
-    const IDX_TOTAL   = 12;
+    const IDX_BANK    = 10;
+    const IDX_BIAYA   = 11;
+    const IDX_PPH23   = 12;
+    const IDX_TOTAL   = 13;
 
     public function __construct(array $rows, array $grand, string $periodLabel)
     {
@@ -66,7 +67,7 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
         $out[] = ['AP PAYMENT PLANNING'];
         $out[] = ['Periode: ' . $this->periodLabel];
         $out[] = [];
-        $out[] = ['No', 'Supplier', 'Invoice Date', 'Invoice Number', 'Receive AP', 'Due Date', 'Voucher Number', 'Note', 'Nominal', 'Biaya Administrasi', 'PPH23', 'Total', 'Status'];
+        $out[] = ['No', 'Supplier', 'Invoice Date', 'Invoice Number', 'Receive AP', 'Due Date', 'Voucher Number', 'Note', 'Nominal', 'Bank', 'Biaya Administrasi', 'PPH23', 'Total', 'Status'];
 
         foreach ($this->rows as $i => $r) {
             $out[] = [
@@ -79,6 +80,7 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
                 $this->voucherText($r),
                 $r['note'],
                 $r['nominal'],
+                $r['bank_name'],
                 $r['biaya_administrasi'],
                 $r['pph23'],
                 $r['total'],
@@ -86,7 +88,7 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
             ];
         }
 
-        $out[] = ['', '', '', '', '', '', '', 'GRAND TOTAL', $this->grand['nominal'], $this->grand['biaya_administrasi'], $this->grand['pph23'], $this->grand['total'], ''];
+        $out[] = ['', '', '', '', '', '', '', 'GRAND TOTAL', $this->grand['nominal'], '', $this->grand['biaya_administrasi'], $this->grand['pph23'], $this->grand['total'], ''];
 
         return $out;
     }
@@ -95,7 +97,7 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
     {
         return [
             'A' => 5, 'B' => 22, 'C' => 12, 'D' => 16, 'E' => 12, 'F' => 12,
-            'G' => 18, 'H' => 26, 'I' => 14, 'J' => 16, 'K' => 12, 'L' => 14, 'M' => 16,
+            'G' => 18, 'H' => 26, 'I' => 14, 'J' => 18, 'K' => 16, 'L' => 12, 'M' => 14, 'N' => 16,
         ];
     }
 
