@@ -4,9 +4,12 @@
 @include('layouts.breadcrumb')
 
 <style>
+#planTableScroll { max-height: 68vh; overflow: auto; position: relative; width: 100%; }
+#planTable { margin-bottom: 0; }
 #planTable th, #planTable td { white-space: nowrap; font-size: .82rem; vertical-align: middle; }
 #planTable td.col-note { white-space: normal; max-width: 220px; }
-#planTable tfoot td { font-weight: bold; background: #eef2f7; }
+#planTable thead th { position: sticky; top: 0; z-index: 2; background: #eef2f7; }
+#planTable tfoot td { position: sticky; bottom: 0; font-weight: bold; background: #eef2f7; }
 #planTable .fee-input { width: 110px; text-align: right; }
 .status-badge { font-size: .72rem; padding: .3em .6em; }
 tr.row-hold td { background: #fff5f5 !important; }
@@ -94,9 +97,10 @@ tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
         </div>
         <div class="card-body">
             <div id="planEmpty" class="alert alert-warning d-none">Tidak ada data untuk filter ini.</div>
-            <div class="table-responsive d-none" id="planTableWrap">
+            <div class="d-none" id="planTableWrap">
+              <div id="planTableScroll">
                 <table class="table table-sm table-bordered" id="planTable">
-                    <thead class="text-center" style="background:#eef2f7;">
+                    <thead class="text-center">
                         <tr>
                             <th><input type="checkbox" id="chkAll"></th>
                             <th>No</th>
@@ -126,6 +130,7 @@ tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
                         </tr>
                     </tfoot>
                 </table>
+              </div>
             </div>
         </div>
     </div>
@@ -197,7 +202,7 @@ $(document).ready(function () {
                 + '<td class="text-center"><input type="checkbox" class="rowChk" value="' + r.ap_number + '" ' + disabled + '></td>'
                 + '<td>' + (idx + 1) + '</td>'
                 + '<td>' + r.supplier_name + '</td>'
-                + '<td>' + r.ap_date + '</td>'
+                + '<td>' + r.invoice_date + '</td>'
                 + '<td><a href="' + r.ap_link + '" target="_blank">' + r.ap_number + '</a><br><small class="text-muted">' + (r.inv_number || '') + '</small></td>'
                 + '<td>' + (r.receive_ap || '-') + '</td>'
                 + '<td>' + r.due_date + '</td>'

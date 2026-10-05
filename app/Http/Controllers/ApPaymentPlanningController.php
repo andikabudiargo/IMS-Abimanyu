@@ -71,12 +71,12 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
                 hutang.inv_number,
                 hutang.supplier_id,
                 third_party.nama as supplier_name,
-                hutang.ap_date,
+                hutang.inv_date,
+                hutang.ap_date as receive_ap,
                 ap_invoice.note,
                 ap_invoice.pph23,
                 hutang.jatuh_tempo_actual,
                 hutang.balance_asof as nominal,
-                (select STRING_AGG(a.rec_number, ',' ORDER BY a.id) from ap_invoice_detail a where a.ap_number = hutang.ap_number) as receive_ap,
                 (select STRING_AGG(DISTINCT kas_hdr.voucher_number, ',')
                    from kas_det
                    join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number
@@ -114,10 +114,10 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
                 'ap_number'          => $r->ap_number,
                 'inv_number'         => $r->inv_number,
                 'supplier_name'      => $r->supplier_name,
-                'ap_date'            => $r->ap_date ?: '-',
+                'invoice_date'       => $r->inv_date ?: '-',
                 'due_date'           => $r->jatuh_tempo_actual ? date('d-m-Y', strtotime($r->jatuh_tempo_actual)) : '-',
                 'voucher_number'     => $isPaid ? $r->voucher_number : '',
-                'receive_ap'         => $r->receive_ap,
+                'receive_ap'         => $r->receive_ap ?: '-',
                 'note'               => $r->note,
                 'nominal'            => $nominal,
                 'biaya_administrasi' => $biayaAdmin,
