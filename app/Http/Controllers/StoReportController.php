@@ -911,15 +911,23 @@ class StoReportController extends Controller
         if (!$fgCodes) return [];
 
         $in   = implode(',', array_fill(0, count($fgCodes), '?'));
+        // BOM baru: RM di bom_rm. BOM lama: RM tunggal di bom_hdr.article_code_rm (qty 1).
+        // BOM yang dipilih = terbaru yang punya RM (salah satu sumber).
         $rows = DB::select("
-            SELECT h.article_code AS fg, r.article_code AS rm, r.qty
-            FROM bom_hdr h
-            JOIN bom_rm r ON r.bom_code = h.bom_code
-            WHERE h.article_code IN ($in)
-              AND h.status NOT IN ('5','7')
-              AND h.id = (SELECT MAX(h2.id) FROM bom_hdr h2
-                          WHERE h2.article_code = h.article_code AND h2.status NOT IN ('5','7'))",
-            $fgCodes);
+            WITH rm AS (
+                SELECT h.id, h.article_code AS fg, r.article_code AS rm, r.qty
+                FROM bom_hdr h JOIN bom_rm r ON r.bom_code = h.bom_code
+                WHERE h.article_code IN ($in) AND h.status NOT IN ('5','7')
+                UNION ALL
+                SELECT h.id, h.article_code, h.article_code_rm, 1
+                FROM bom_hdr h
+                WHERE h.article_code IN ($in) AND h.status NOT IN ('5','7')
+                  AND h.article_code_rm IS NOT NULL AND h.article_code_rm <> ''
+                  AND NOT EXISTS (SELECT 1 FROM bom_rm r WHERE r.bom_code = h.bom_code)
+            )
+            SELECT fg, rm, qty FROM rm
+            WHERE id = (SELECT MAX(id) FROM rm x WHERE x.fg = rm.fg)",
+            array_merge($fgCodes, $fgCodes));
 
         $rmPrice = $this->avgReceivingValues(array_values(array_unique(array_map(fn($r) => (string) $r->rm, $rows))));
 
