@@ -900,6 +900,36 @@ class StoReportController extends Controller
         return $out;
     }
 
+    /**
+     * Gudang WIP (012): harga FG = jumlah (bom_rm.qty x avg harga receiving RM)
+     * dari BOM aktif terbaru FG tsb (status bukan 5 deleted / 7 revised).
+     * Multi RM & qty > 1 ikut dihitung. RM tanpa receiving = harga 0.
+     * Return [fg_article_code => harga_per_unit_FG].
+     */
+    private function avgBomRmValues(array $fgCodes): array
+    {
+        if (!$fgCodes) return [];
+
+        $in   = implode(',', array_fill(0, count($fgCodes), '?'));
+        $rows = DB::select("
+            SELECT h.article_code AS fg, r.article_code AS rm, r.qty
+            FROM bom_hdr h
+            JOIN bom_rm r ON r.bom_code = h.bom_code
+            WHERE h.article_code IN ($in)
+              AND h.status NOT IN ('5','7')
+              AND h.id = (SELECT MAX(h2.id) FROM bom_hdr h2
+                          WHERE h2.article_code = h.article_code AND h2.status NOT IN ('5','7'))",
+            $fgCodes);
+
+        $rmPrice = $this->avgReceivingValues(array_values(array_unique(array_map(fn($r) => (string) $r->rm, $rows))));
+
+        $out = [];
+        foreach ($rows as $r) {
+            $out[$r->fg] = ($out[$r->fg] ?? 0.0) + (float) $r->qty * ($rmPrice[$r->rm] ?? 0.0);
+        }
+        return $out;
+    }
+
     protected function emptyTotals($locationCode = null)
     {
         $totals = ['opening' => 0];
@@ -1086,7 +1116,8 @@ class StoReportController extends Controller
         $totalArtikel = 0;
 
         $fgCodes = $articles->filter(fn($x) => strtoupper($x->article_type ?? '') === 'FG')->keys()->map(fn($c) => (string) $c)->all();
-        $dnAvg   = $this->avgDnValues($fgCodes, $dateFrom, $dateTo);
+        $isWip   = $anchor === '012';
+        $dnAvg   = $isWip ? $this->avgBomRmValues($fgCodes) : $this->avgDnValues($fgCodes, $dateFrom, $dateTo);
         $recAvg  = $this->avgReceivingValues(array_values(array_diff($articles->keys()->map(fn($c) => (string) $c)->all(), $fgCodes)));
 
         foreach ($realCodes as $rc) {
