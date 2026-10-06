@@ -14,7 +14,7 @@
                 <h5 class="mb-25">Pengumuman: Alur Article Request berubah</h5>
                 <p class="mb-0">
                     Alur sekarang: <strong>User</strong> mengajukan request &rarr; <strong>Atasan terkait</strong> approve &rarr; <strong>Accounting</strong> mengisi <strong>COA</strong> dan <strong>Cashflow Category</strong>, lalu submit.
-                    User tidak perlu lagi mengisi COA dan Cashflow Category saat membuat request.
+                    Hubungi Accounting untuk submit Article Request.
                 </p>
             </div>
         </div>
