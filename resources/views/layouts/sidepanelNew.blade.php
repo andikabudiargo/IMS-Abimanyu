@@ -551,6 +551,15 @@
               @endcan
 
               @can('ap-index')
+              <li class="{{ \Request::segment(1) == 'bukuBesarV2'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('bukuBesarV2.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Buku Besar v2</span>
+                </a>
+              </li>
+              @endcan
+
+              @can('ap-index')
               <li class="{{ \Request::segment(1) == 'balanceSheet'  ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('balanceSheet.index') }}">
                   <i data-feather="circle"></i>

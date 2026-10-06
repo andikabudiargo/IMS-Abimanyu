@@ -1173,6 +1173,9 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::get('bukuBesar',['as'=>'bukuBesar.index','uses'=>'Accounting\BukuBesarController@index']);
 	Route::get('bukuBesar/list',['as'=>'bukuBesar.list','uses'=>'Accounting\BukuBesarController@list']);
 
+	Route::get('bukuBesarV2',['as'=>'bukuBesarV2.index','uses'=>'Accounting\BukuBesarV2Controller@index']);
+	Route::get('bukuBesarV2/data',['as'=>'bukuBesarV2.data','uses'=>'Accounting\BukuBesarV2Controller@data']);
+
 	Route::get('forecastSales',['as'=>'forecastSales.index','uses'=>'Forecasting\ForcastingSalesController@index']);
 	Route::get('forecastSales/create',['as'=>'forecastSales.create','uses'=>'Forecasting\ForcastingSalesController@create']);
 	Route::get('forecastSales/edit',['as'=>'forecastSales.edit','uses'=>'Forecasting\ForcastingSalesController@edit']);
