@@ -1090,9 +1090,26 @@ class StoReportController extends Controller
             $movementRealCodes = $movementRealCodesQuery->pluck('article_code');
         }
 
+        // Tanpa referensi STO tidak ada daftar artikel hasil hitung, dan warehouse_stock bisa kosong/basi
+        // (saldo sebenarnya dari ledger movement). Ambil semua artikel yang pernah bergerak di lokasi ini
+        // s/d akhir periode supaya dead stock yang tidak bergerak di periode ini tetap tampil.
+        $ledgerCodes = collect();
+        if (!$configId) {
+            $ledgerCodes = DB::table('warehouse_movement as wm')
+                ->whereIn('wm.location_number', $family)
+                ->whereRaw("TO_DATE(wm.movement_date, 'DD-MM-YYYY') <= TO_DATE(?, 'DD-MM-YYYY')", [$dateTo])
+                ->distinct()->pluck('wm.artikel_code');
+            if ($allowedTypes && $ledgerCodes->isNotEmpty()) {
+                $ledgerQuery = DB::table('article')->whereIn('article_code', $ledgerCodes);
+                $applyTypeFilter($ledgerQuery, 'article_type', 'group_of_material');
+                $ledgerCodes = $ledgerQuery->pluck('article_code');
+            }
+        }
+
         $realCodes = $movementRealCodes
             ->merge($stockCodes)
             ->merge($stoRealCodes)
+            ->merge($ledgerCodes)
             ->filter()
             ->map(fn($c) => (string) $c)
             ->unique()->values();
