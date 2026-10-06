@@ -88,6 +88,8 @@
             <th class="text-right">Qty</th>
             <th class="text-right">Qty Target</th>
             <th class="text-right">Qty Selisih</th>
+              <th class="text-right">% Qty Tercapai</th>
+              <th class="text-right">% Qty Selisih</th>
             <th class="text-right">Avg Selling Price</th>
             <th class="text-right">Avg Purchase Price</th>
             <th class="text-right">Harga Konversi /PCS</th>
@@ -110,6 +112,8 @@
               <td class="text-right">{{ number_format($d->total_qty, 2) }} {{ $d->uom }}</td>
               <td class="text-right">{{ number_format($d->qty_target, 2) }}</td>
               <td class="text-right">{{ number_format($d->qty_selisih, 2) }}</td>
+<td class="text-right">{{ $d->qty_target > 0 ? number_format($d->total_qty / $d->qty_target * 100, 1).'%' : '-' }}</td>
+<td class="text-right">{!! $d->qty_target > 0 ? '<span class="'.($d->qty_selisih < 0 ? 'text-danger' : 'text-success').'">'.number_format($d->qty_selisih / $d->qty_target * 100, 1).'%</span>' : '-' !!}</td>
               <td class="text-right">{{ number_format($d->avg_selling_price, 2) }}</td>
               <td class="text-right">{{ number_format($d->avg_purchase_price, 2) }}</td>
               <td class="text-right">{{ number_format($d->conversion_per_unit, 8) }}</td>
@@ -127,7 +131,7 @@
               </td>
             </tr>
           @empty
-            <tr><td colspan="15" class="text-center text-muted">Tidak ada data.</td></tr>
+            <tr><td colspan="17" class="text-center text-muted">Tidak ada data.</td></tr>
           @endforelse
         </tbody>
       </table>
@@ -173,6 +177,8 @@
         <td class="text-right">${humanizeShow(r.total_qty)} ${r.uom || ''}</td>
         <td class="text-right">${humanizeShow(r.qty_target)}</td>
         <td class="text-right">${humanizeShow(r.qty_selisih)}</td>
+        <td class="text-right">${(parseFloat(r.qty_target) || 0) > 0 ? humanizeShow(r.total_qty / r.qty_target * 100) + '%' : '-'}</td>
+        <td class="text-right">${(parseFloat(r.qty_target) || 0) > 0 ? `<span class="${r.qty_selisih < 0 ? 'text-danger' : 'text-success'}">${humanizeShow(r.qty_selisih / r.qty_target * 100)}%</span>` : '-'}</td>
         <td class="text-right">${humanizeShow(r.avg_selling_price)}</td>
         <td class="text-right">${humanizeShow(r.avg_purchase_price)}</td>
         <td class="text-right">${(parseFloat(r.conversion_per_unit) || 0).toLocaleString("id-ID", { minimumFractionDigits: 8, maximumFractionDigits: 8 })}</td>
@@ -190,7 +196,7 @@
         </td>
       </tr>`;
     });
-    $('#articleDetailBody').html(html || '<tr><td colspan="15" class="text-center text-muted">Tidak ada data.</td></tr>');
+    $('#articleDetailBody').html(html || '<tr><td colspan="17" class="text-center text-muted">Tidak ada data.</td></tr>');
     if (window.feather) feather.replace({ width: 14, height: 14 });
   }
 
@@ -255,6 +261,7 @@
       }
 
       renderArticleDetailRows(res.rows);
+      renderTargetCards(res.rows);
       $('#sumTotalArticle').text(res.totals.article);
       $('#sumTotalQty').text(humanizeShow(res.totals.qty));
       $('#sumConvPainting').text(humanizeShow(res.totals.painting));

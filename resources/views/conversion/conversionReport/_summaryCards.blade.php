@@ -2,7 +2,17 @@
   Kartu ringkasan Conversion Report (dipakai create/show/edit).
   Var opsional (kalau tidak diisi -> tampil "0", biasanya diisi via JS by-id):
     $cArticle, $cQty, $cConversion, $cPainting, $cNonPainting
+  Target & persentase dihitung dari $details (scope parent) bila ada; selain itu diisi
+  via window.renderTargetCards(rows) (JS).
 --}}
+@php
+  $tQty   = isset($details) ? (float) $details->sum('qty_target') : 0;
+  $tConv  = isset($details) ? (float) $details->sum('target_conversion') : 0;
+  $sQty   = isset($details) ? (float) $details->sum('total_qty') : 0;
+  $sPaint = isset($details) ? (float) $details->filter(fn ($d) => $d->is_painting)->sum('conversion') : 0;
+  $pQty   = $tQty > 0 ? number_format($sQty / $tQty * 100, 1) . '%' : '-';
+  $pPaint = $tConv > 0 ? number_format($sPaint / $tConv * 100, 1) . '%' : '-';
+@endphp
 <div class="row mb-1">
   <div class="col-sm-6 col-xl">
     <div class="card border shadow-none mb-1">
@@ -21,12 +31,12 @@
   <div class="col-sm-6 col-xl">
     <div class="card border shadow-none mb-1">
       <div class="card-body d-flex align-items-center p-1">
-        <div class="avatar bg-light-info p-50 mr-1" style="border-radius:8px;">
-          <i data-feather="truck" class="font-medium-3 text-info"></i>
+        <div class="avatar bg-light-dark p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="target" class="font-medium-3 text-dark"></i>
         </div>
         <div>
-          <h4 class="mb-0 font-weight-bolder" id="sumTotalQty">{{ $cQty ?? '0' }}</h4>
-          <small class="text-muted">Total Qty Kirim</small>
+          <h4 class="mb-0 font-weight-bolder" id="sumTargetQty">{{ number_format($tQty, 2) }}</h4>
+          <small class="text-muted">Target Qty Kirim</small>
         </div>
       </div>
     </div>
@@ -35,12 +45,12 @@
   <div class="col-sm-6 col-xl">
     <div class="card border shadow-none mb-1">
       <div class="card-body d-flex align-items-center p-1">
-        <div class="avatar bg-light-warning p-50 mr-1" style="border-radius:8px;">
-          <i data-feather="volume-2" class="font-medium-3 text-warning"></i>
+        <div class="avatar bg-light-info p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="truck" class="font-medium-3 text-info"></i>
         </div>
         <div>
-          <h4 class="mb-0 font-weight-bolder" id="sumConvPainting">{{ $cPainting ?? '0' }}</h4>
-          <small class="text-muted">Painting</small>
+          <h4 class="mb-0 font-weight-bolder" id="sumTotalQty">{{ $cQty ?? '0' }}</h4>
+          <small class="text-muted">Total Qty Kirim <b class="text-info" id="sumPctQty">({{ $pQty }})</b></small>
         </div>
       </div>
     </div>
@@ -61,6 +71,34 @@
   </div>
 
   <div class="col-sm-6 col-xl">
+    <div class="card border shadow-none mb-1">
+      <div class="card-body d-flex align-items-center p-1">
+        <div class="avatar bg-light-warning p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="volume-2" class="font-medium-3 text-warning"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 font-weight-bolder" id="sumConvPainting">{{ $cPainting ?? '0' }}</h4>
+          <small class="text-muted">Painting <b class="text-warning" id="sumPctPainting">({{ $pPaint }})</b></small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl">
+    <div class="card border shadow-none mb-1">
+      <div class="card-body d-flex align-items-center p-1">
+        <div class="avatar bg-light-dark p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="flag" class="font-medium-3 text-dark"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 font-weight-bolder" id="sumTargetConversion">{{ number_format($tConv, 2) }}</h4>
+          <small class="text-muted">Target Konversi</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl">
     <div class="card border shadow-none mb-1" style="border-color:#28c76f33 !important;background:#28c76f0d;">
       <div class="card-body d-flex align-items-center p-1">
         <div class="avatar bg-light-success p-50 mr-1" style="border-radius:8px;">
@@ -74,3 +112,18 @@
     </div>
   </div>
 </div>
+
+<script>
+  // Isi kartu target + persentase dari rows (create/edit-NEW preview & filter range di show).
+  window.renderTargetCards = function (rows) {
+    const f = (n) => (parseFloat(n) || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const sum = (fn) => rows.reduce((a, r) => a + (parseFloat(fn(r)) || 0), 0);
+    const tQty = sum(r => r.qty_target), tConv = sum(r => r.target_conversion);
+    const qty = sum(r => r.total_qty), paint = sum(r => r.is_painting ? r.conversion : 0);
+    const pct = (a, b) => '(' + (b > 0 ? f(a / b * 100) + '%' : '-') + ')';
+    $('#sumTargetQty').text(f(tQty));
+    $('#sumTargetConversion').text(f(tConv));
+    $('#sumPctQty').text(pct(qty, tQty));
+    $('#sumPctPainting').text(pct(paint, tConv));
+  };
+</script>

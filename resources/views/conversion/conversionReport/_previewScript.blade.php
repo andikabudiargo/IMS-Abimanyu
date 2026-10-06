@@ -94,6 +94,8 @@
           <td class="text-right">${humanize(r.total_qty)} ${r.uom || ''}</td>
           <td class="text-right">${humanize(r.qty_target)}</td>
           <td class="text-right">${humanize(r.qty_selisih)}</td>
+          <td class="text-right">${(parseFloat(r.qty_target) || 0) > 0 ? humanize(r.total_qty / r.qty_target * 100) + '%' : '-'}</td>
+          <td class="text-right">${(parseFloat(r.qty_target) || 0) > 0 ? `<span class="${r.qty_selisih < 0 ? 'text-danger' : 'text-success'}">${humanize(r.qty_selisih / r.qty_target * 100)}%</span>` : '-'}</td>
           <td class="text-right">${(parseFloat(r.conversion_per_unit) || 0).toLocaleString("id-ID", { minimumFractionDigits: 8, maximumFractionDigits: 8 })}</td>
           <td class="text-right">${painting ? '-' : humanize(conv)}</td>
           <td class="text-right">${painting ? humanize(conv) : '-'}</td>
@@ -125,6 +127,7 @@ const totalConvNonPainting = previewRows.reduce((sum, r) =>
       $('#sumConvPainting').text(humanize(totalConvPainting));
       $('#sumConvNonPainting').text(humanize(totalConvNonPainting));
 
+      renderTargetCards(previewRows);
       $('#previewWrap').show();
       $('#btnExport').removeClass('d-none');
       $('#btnSave').prop('disabled', false);

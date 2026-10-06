@@ -35,6 +35,7 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
             $qtyTarget    = $r['qty_target'] ?? 0;
             $targetConv   = $r['target_conversion'] ?? 0;
             $convPerUnit  = $r['conversion_per_unit'] ?? 0;
+            $qtySelisih   = $r['qty_selisih'] ?? ($qty - $qtyTarget);
 
             return [
                 $i + 1,
@@ -44,7 +45,9 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
                 $r['uom'] ?? '',
                 $qty,
                 $qtyTarget,
-                $r['qty_selisih'] ?? ($qty - $qtyTarget),
+                $qtySelisih,
+                $qtyTarget > 0 ? round($qty / $qtyTarget * 100, 2) : '',
+                $qtyTarget > 0 ? round($qtySelisih / $qtyTarget * 100, 2) : '',
                 $avgSelling,
                 $avgPurchase,
                 $totalSelling,
@@ -64,7 +67,7 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
     {
         return [
             'No', 'Article Code', 'Article Desc', 'Customer', 'UOM',
-            'Qty', 'Qty Target', 'Qty Selisih', 'Avg Selling Price', 'Avg Purchase Price',
+            'Qty', 'Qty Target', 'Qty Selisih', '% Qty Tercapai', '% Qty Selisih', 'Avg Selling Price', 'Avg Purchase Price',
             'Total Selling (Qty x Avg)', 'Total Purchase (Qty x Avg)',
             'Harga Konversi /PCS', 'Konversi Non Painting', 'Konversi Painting', 'Konversi Target',
             'Selisih', '% Tercapai', '% Selisih',
@@ -73,7 +76,7 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
 
     public function columnFormats(): array
     {
-        return ['M' => '0.00000000']; // Harga Konversi /PCS
+        return ['O' => '0.00000000']; // Harga Konversi /PCS
     }
 
     public function title(): string
