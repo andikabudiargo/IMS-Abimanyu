@@ -96,8 +96,8 @@
                         <div class="form-row">
                             <div class="col-6">
                                 <div class="form-group">
-                                    <label for="safetyStock" data-toggle="tooltip" data-placement="top" title="Jumlah minimum stok yang harus selalu tersedia di gudang">Safety Stock</label>
-                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask-digit" value="{{ old('safetyStock',0) }}" maxlength="10"/>
+                                    <label for="safetyStock" data-toggle="tooltip" data-placement="top" title="Jumlah minimum stok yang harus selalu tersedia di gudang">Safety Stock*</label>
+                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask-digit" value="{{ old('safetyStock',0) }}" maxlength="10" required/>
                                 </div>
                             </div>
                             <div class="col-6">

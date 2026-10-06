@@ -15,6 +15,9 @@ class StoReportController extends Controller
 
     protected $title;
     protected $indexView = 'stoReport.index';
+    // true = daftar artikel juga mencakup semua yang pernah bergerak di lokasi (ledger), tidak hanya yang dihitung di STO.
+    // STO Report biasa false (perilaku lama); Inventory Valuation true agar mode STO & on the fly sama.
+    protected $includeLedgerArticles = false;
     protected $moduleCode;
 
     // Semua lokasi yang didukung format report-nya (gabungan dari semua grup)
@@ -1094,7 +1097,7 @@ class StoReportController extends Controller
         // (saldo sebenarnya dari ledger movement). Ambil semua artikel yang pernah bergerak di lokasi ini
         // s/d akhir periode supaya dead stock yang tidak bergerak di periode ini tetap tampil.
         $ledgerCodes = collect();
-        if (!$configId) {
+        if ($this->includeLedgerArticles || !$configId) {
             $ledgerCodes = DB::table('warehouse_movement as wm')
                 ->whereIn('wm.location_number', $family)
                 ->whereRaw("TO_DATE(wm.movement_date, 'DD-MM-YYYY') <= TO_DATE(?, 'DD-MM-YYYY')", [$dateTo])

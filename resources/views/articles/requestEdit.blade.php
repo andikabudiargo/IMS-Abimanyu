@@ -100,14 +100,14 @@
                         <div class="form-row">
                             <div class="col-6">
                                 <div class="form-group">
-                                    <label for="safetyStock">Safety Stock</label>
-                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask-digit" value="{{ old('safetyStock',$article->safety_stock ? $article->safety_stock : 0 ) }}" maxlength="10"/>
+                                    <label for="safetyStock">Safety Stock*</label>
+                                    <input type="text" id="safetyStock" name="safetyStock" class="form-control numeral-mask-digit" value="{{ old('safetyStock',$article->safety_stock ? $article->safety_stock : 0 ) }}" maxlength="10" required/>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="form-group">
-                                    <label for="minimumPackage">Minimum package</label>
-                                    <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask-digit" value="{{ old('minimumPackage',$article->min_package ? $article->min_package : 1) }}" maxlength="10"/>
+                                    <label for="minimumPackage">Minimum package*</label>
+                                    <input type="text" id="minimumPackage" name="minimumPackage" class="form-control numeral-mask-digit" value="{{ old('minimumPackage',$article->min_package ? $article->min_package : 1) }}" maxlength="10" required/>
                                 </div>
                             </div>
                         </div>

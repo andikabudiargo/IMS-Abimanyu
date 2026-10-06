@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 class InventoryValuationStoController extends StoReportController
 {
     protected $indexView = 'inventoryValuation.sto';
+    protected $includeLedgerArticles = true;
 
     public function __construct()
     {
