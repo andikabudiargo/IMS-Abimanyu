@@ -892,6 +892,12 @@ public function auditListDetail(Request $request)
         return "Artikel \"{$articleDesc}\" sudah terdaftar di master ({$match->article_alternative_code}). Silakan pilih dari dropdown, jangan input manual.";
     }
 
+    // UoM pilihan dropdown = unit_to (satuan stok) dari UoM Conversion v2; kosong -> view fallback ke article.uom
+    private function uomMemberSql()
+    {
+        return DB::raw("(select string_agg(distinct unit_to, ',' order by unit_to) from uom_con_v2 where article_code = a.article_code) as uom_member");
+    }
+
     private function articlesByLocation($locationCode)
     {
         $types  = $this->locationArticleTypeMap[$locationCode] ?? null;
@@ -911,7 +917,7 @@ public function auditListDetail(Request $request)
         $query = DB::table('warehouse_stock as ws')
             ->join('article as a', 'a.article_alternative_code', '=', 'ws.article_code')
             ->where('ws.location_number', $locationCode)
-            ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 'a.article_type');
+            ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 'a.article_type', $this->uomMemberSql());
 
         $applyTypeFilter($query);
 
@@ -920,7 +926,7 @@ public function auditListDetail(Request $request)
 
         $othersQuery = DB::table('article as a')
             ->whereNotIn('a.article_alternative_code', $inStockCodes)
-            ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 'a.article_type');
+            ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package', 'a.article_type', $this->uomMemberSql());
 
         $applyTypeFilter($othersQuery);
 
@@ -943,7 +949,7 @@ public function auditListDetail(Request $request)
         $rows = DB::table('article as a')
             ->whereIn('a.third_party', $partnerCodes)
             ->select('a.article_alternative_code', 'a.article_desc', 'a.uom', 'a.min_package',
-                     'a.article_type', 'a.third_party')
+                     'a.article_type', 'a.third_party', $this->uomMemberSql())
             ->orderBy('a.third_party')   // grouping visual: CUST dulu / SUPP dulu
             ->orderBy('a.article_desc')
             ->get();

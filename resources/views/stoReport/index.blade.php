@@ -582,7 +582,8 @@ $(document).ready(function () {
                     + '<td class="col-alt">' + (r.alt_code || '-') + '</td>'
                     + '<td class="col-desc">' + (r.article_desc || '-') + '</td>'
                     + '<td>' + (r.supp || '-') + '</td>'
-                    + '<td class="text-center">' + (r.uom || '-') + '</td>'
+                    + '<td class="text-center">' + (r.uom || '-')
+                        + (r.uom_conv ? '<br><small class="text-muted" title="UoM Con v2 (harga receiving per UoM terima, dikonversi ke UoM stok)">' + r.uom_conv + '</small>' : '') + '</td>'
                     + '<td class="text-right">' + drillLink('opening', 'Opening Balance', r.opening) + '</td>'
                     + moveCells
                     + '<td class="text-right font-weight-bold">' + fmt(r.closing) + '</td>'

@@ -896,7 +896,8 @@ class StoReportController extends Controller
         $in    = implode(',', array_fill(0, count($codes), '?'));
 
         $rows = DB::select("
-            SELECT article_code, SUM(price*qty) AS val, SUM(qty) AS q
+            SELECT article_code, SUM(price*qty) AS val,
+                   SUM(qty * COALESCE(NULLIF(conv_factor,0),1)) AS q -- qty satuan stok (mis. 1 pax = 500 pcs), harga receiving per uom_rec
             FROM receiving_det
             WHERE article_code IN ($in) AND created_at::date >= ?::date
             GROUP BY article_code, date_trunc('month', created_at)
@@ -1160,6 +1161,12 @@ class StoReportController extends Controller
         // group dipakai buat gate kolom Consumption (cuma CHEMICAL: 005/006/009)
         $group = $this->getLocationGroup($locationCode);
 
+        // Info konversi UoM Con v2 per artikel, mis. "1 PAX = 500 PCS" (beda supplier digabung, duplikat dibuang)
+        $uomConv = DB::table('uom_con_v2')->whereIn('article_code', $realCodes)
+            ->select('article_code', 'unit_from', 'unit_to', 'unit_factor')->distinct()->get()
+            ->groupBy('article_code')
+            ->map(fn($g) => $g->map(fn($c) => '1 ' . $c->unit_from . ' = ' . (float) $c->unit_factor . ' ' . $c->unit_to)->unique()->implode('; '));
+
         $rows         = collect();
         $totalPoin    = 0;
         $totalArtikel = 0;
@@ -1253,6 +1260,7 @@ class StoReportController extends Controller
                 'article_desc' => $meta->article_desc ?? $rc,
                 'supp'         => $meta->supp_name ?? '-',
                 'uom'          => $meta->uom ?? '-',
+                'uom_conv'     => $uomConv[$rc] ?? null,
                 'opening'      => $opening,
             ], $moveVals, [
                 'closing'           => $closing,
