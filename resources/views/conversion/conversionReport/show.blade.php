@@ -77,7 +77,7 @@
 @endphp
     @include('conversion.conversionReport._summaryCards', ['cArticle' => $cArticle, 'cQty' => $cQty, 'cConversion' => $cConversion, 'cPainting' => $cPainting, 'cNonPainting' => $cNonPainting])
 
-    <div class="table-responsive">
+    <div class="table-responsive cr-sticky">
       <table class="table table-bordered table-sm">
         <thead class="thead-light">
           <tr>

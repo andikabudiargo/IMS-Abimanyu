@@ -820,7 +820,7 @@ foreach ($candidateHeaders as $h) {
                 ->leftJoin('third_party as tp', 'tp.kode', '=', 'ar.third_party')
                 ->where('ar.status_approve', '2')
                 ->orderBy('ar.approved_at')
-                ->get(['ar.id', 'ar.article_desc', 'ar.article_type', 'ar.uom', 'ar.coa', 'ar.cashflow_category', 'ar.created_by', 'ar.approved_by', 'ar.approved_at', 'tp.nama as cust'])
+                ->get(['ar.id', 'ar.article_desc', 'ar.article_type', 'ar.uom', 'ar.coa', 'ar.cashflow_category', 'ar.created_by', 'ar.created_at', 'ar.approved_by', 'ar.approved_at', 'tp.nama as cust'])
             : collect();
 
         // Cek dept user (pakai tabel user_dept yang sudah dipakai di query PR)

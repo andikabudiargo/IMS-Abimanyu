@@ -1799,7 +1799,9 @@
                                         <th>COA</th>
                                         <th>Cashflow</th>
                                         <th>Requested by</th>
+                                        <th>Created At</th>
                                         <th>Approved by</th>
+                                        <th>Approved At</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
@@ -1814,7 +1816,9 @@
                                         <td>{{ $val->coa ?: '-' }}</td>
                                         <td>{{ $val->cashflow_category ?: '-' }}</td>
                                         <td>{{ $val->created_by }}</td>
+                                        <td>{{ $val->created_at ? \Carbon\Carbon::parse($val->created_at)->format('d-m-Y H:i') : '-' }}</td>
                                         <td>{{ $val->approved_by }}</td>
+                                        <td>{{ $val->approved_at ? \Carbon\Carbon::parse($val->approved_at)->format('d-m-Y H:i') : '-' }}</td>
                                         <td>
                                             <a class="btn btn-outline-success btn-sm"
                                                 href="{{ route('article.request.edit', ['id'=>Crypt::encryptString($val->id)]) }}">

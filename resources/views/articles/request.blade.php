@@ -272,7 +272,11 @@
         let href = $(this).data('href');
         $('#modalConfirmation').attr("action", href);        
     });
-    
+
+    // default terfilter Requested (status 1): sinkronkan card, dropdown, dan state
+    activeStatusFilter = '1';
+    $('.stat-card[data-filter="1"]').addClass('active-filter');
+    $('#searchStatus').val('1').trigger('change');
     triggerSearch();
   });
 

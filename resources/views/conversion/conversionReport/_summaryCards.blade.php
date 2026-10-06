@@ -135,3 +135,10 @@
     dev(conv, tConv, '#sumDevConv');
   };
 </script>
+
+<style>
+  /* Header tabel tetap terlihat saat scroll (create/edit/show) */
+  .cr-sticky { max-height: 70vh; overflow: auto; }
+  .cr-sticky thead th { position: sticky; top: 0; z-index: 2; background: #f3f2f7; box-shadow: inset 0 -1px 0 #ebe9f1; }
+  .dark-layout .cr-sticky thead th { background: #343d55; }
+</style>
