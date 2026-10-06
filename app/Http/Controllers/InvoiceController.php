@@ -773,12 +773,13 @@ class InvoiceController extends Controller
                                     AND soh.customer_id = dh.customer_id
             LEFT JOIN invoice_det id ON dh.delivery_number = id.dn_number 
                                     AND id.dn_number not in ($dnNumbers)
-            WHERE soh.customer_id = '$customerID' 
+            WHERE soh.customer_id = '$customerID'
             AND soh.status = '3'
-            AND dh.status = '8'
             AND id.dn_number IS NULL
-            AND (to_date(soh.so_date,'DD-MM-YYYY') BETWEEN '$fromDate1' AND '$toDate1'
-                 OR soh.so_code IN ($ownSo))
+            AND (
+                (dh.status = '8' AND to_date(soh.so_date,'DD-MM-YYYY') BETWEEN '$fromDate1' AND '$toDate1')
+                OR soh.so_code IN ($ownSo)
+            )
             ORDER BY soh.so_code ASC;"
         );
 
@@ -2515,12 +2516,22 @@ $jumlahData = count($jumlahDataRaw);
         $statusInvoice = db::table("invoice_hdr")->where("invoice_number",$invNumber)->value("status");
 
         if($edit == 'true'){
-            $data= DB::table("delivery_hdr") 
+            // DN yang sudah tertarik ke invoice ini harus selalu muncul, walau status
+            // delivery_hdr/dn_receipt-nya sudah berubah (lihat kasus yang sama di edit()
+            // untuk listSo) -- supaya bisa dilihat/di-uncheck saat invoice diedit.
+            $ownDn = $invNumber
+                ? DB::table('invoice_det')->where('invoice_number',$invNumber)->pluck('dn_number')->toArray()
+                : [];
+            $data= DB::table("delivery_hdr")
             ->leftJoin('dn_receipt','dn_receipt.delivery_number','delivery_hdr.delivery_number')
             ->whereIn("so_number",$soNumber)
-            ->where("delivery_hdr.status","<>","7")
-            ->where('dn_receipt.status','2') //sudah di submitt di dn receipt
-            // ->where("status","8") //sudah di received
+            ->where(function($query) use ($ownDn) {
+                $query->where(function($q) {
+                    $q->where("delivery_hdr.status","<>","7")
+                      ->where('dn_receipt.status','2'); //sudah di submitt di dn receipt
+                })
+                ->orWhereIn('delivery_hdr.delivery_number', $ownDn);
+            })
             ->whereNotIn(DB::raw("delivery_hdr.delivery_number"), function($query) use ($invNumber) {
                 $query->select('dn_number')
                 ->from('invoice_det')
