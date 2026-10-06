@@ -1296,6 +1296,9 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::get('/inventory-valuation',          'InventoryValuationController@index')   ->name('inventoryValuation.index');
 	Route::get('/inventory-valuation/data',     'InventoryValuationController@getData') ->name('inventoryValuation.getData');
 	Route::get('/inventory-valuation/export',   'InventoryValuationController@export')  ->name('inventoryValuation.export');
+	// Inventory Valuation versi STO (Debit/Kredit dalam nilai)
+	Route::get('/inventory-valuation-sto',      'InventoryValuationStoController@index')->name('inventoryValuation.sto');
+	Route::post('/inventory-valuation-sto/data','InventoryValuationStoController@data') ->name('inventoryValuation.sto.data');
  
 
 	Route::get('conversion',['as'=>'conversion.index','uses'=>'Conversion\ConversionController@index']);

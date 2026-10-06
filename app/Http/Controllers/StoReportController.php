@@ -14,6 +14,7 @@ class StoReportController extends Controller
     use HasStoLocationFamily; // ← BARU: family/anchor/adjustment logic sama persis dgn StockCountController
 
     protected $title;
+    protected $indexView = 'stoReport.index';
     protected $moduleCode;
 
     // Semua lokasi yang didukung format report-nya (gabungan dari semua grup)
@@ -174,7 +175,7 @@ class StoReportController extends Controller
                 return $r;
             });
 
-        return view('stoReport.index', [
+        return view($this->indexView, [
             'title'              => $this->title,
             'subtitle'           => $this->title,
             'stoList'            => $stoList,
@@ -988,7 +989,7 @@ class StoReportController extends Controller
     // ══════════════════════════════════════════════
     // CORE — bangun report (dipakai data() & export())
     // ══════════════════════════════════════════════
-    private function buildReport($configId, $locationCode, $dateRange = null)
+    protected function buildReport($configId, $locationCode, $dateRange = null)
     {
         if (!in_array($locationCode, $this->supportedLocations)) {
             return ['status' => 0, 'message' => 'Lokasi ini belum didukung format reportnya.', 'code' => 422];
