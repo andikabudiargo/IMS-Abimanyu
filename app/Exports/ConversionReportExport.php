@@ -46,8 +46,8 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
                 $qty,
                 $qtyTarget,
                 $qtySelisih,
-                $qtyTarget > 0 ? round($qty / $qtyTarget * 100, 2) : '',
-                $qtyTarget > 0 ? round($qtySelisih / $qtyTarget * 100, 2) : '',
+                $qtyTarget > 0 ? round($qty / $qtyTarget, 4) : '',
+                $qtyTarget > 0 ? round($qtySelisih / $qtyTarget, 4) : '',
                 $avgSelling,
                 $avgPurchase,
                 $totalSelling,
@@ -57,8 +57,8 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
                 $isPainting ? $conversion : 0,
                 $targetConv,
                 $r['selisih_conversion'] ?? (($isPainting ? $conversion : 0) - $targetConv),
-                $r['pct_tercapai'] ?? '',
-                $r['pct_selisih'] ?? '',
+                isset($r['pct_tercapai']) ? $r['pct_tercapai'] / 100 : '',
+                isset($r['pct_selisih']) ? $r['pct_selisih'] / 100 : '',
             ];
         });
     }
@@ -76,7 +76,7 @@ class ConversionReportExport implements FromCollection, WithHeadings, ShouldAuto
 
     public function columnFormats(): array
     {
-        return ['O' => '0.00000000']; // Harga Konversi /PCS
+        return ['O' => '0.00000000', 'I' => '0.00%', 'J' => '0.00%', 'T' => '0.00%', 'U' => '0.00%']; // Harga Konversi /PCS
     }
 
     public function title(): string

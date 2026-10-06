@@ -12,6 +12,9 @@
   $sPaint = isset($details) ? (float) $details->filter(fn ($d) => $d->is_painting)->sum('conversion') : 0;
   $pQty   = $tQty > 0 ? number_format($sQty / $tQty * 100, 1) . '%' : '-';
   $pPaint = $tConv > 0 ? number_format($sPaint / $tConv * 100, 1) . '%' : '-';
+  $sConv  = isset($details) ? (float) $details->sum('conversion') : 0;
+  $dev    = fn ($a, $b) => $b > 0 ? (($a - $b) >= 0 ? '+' : '') . number_format(($a - $b) / $b * 100, 1) . '%' : '-';
+  $devCls = fn ($a, $b) => $a >= $b ? 'text-success' : 'text-danger';
 @endphp
 <div class="row mb-1">
   <div class="col-sm-6 col-xl">
@@ -35,7 +38,7 @@
           <i data-feather="target" class="font-medium-3 text-dark"></i>
         </div>
         <div>
-          <h4 class="mb-0 font-weight-bolder" id="sumTargetQty">{{ number_format($tQty, 2) }}</h4>
+          <h4 class="mb-0 font-weight-bolder text-nowrap"><span id="sumTargetQty">{{ number_format($tQty, 2) }}</span> <small class="font-weight-bold {{ $devCls($sQty, $tQty) }}" id="sumDevQty">({{ $dev($sQty, $tQty) }})</small></h4>
           <small class="text-muted">Target Qty Kirim</small>
         </div>
       </div>
@@ -91,7 +94,7 @@
           <i data-feather="flag" class="font-medium-3 text-dark"></i>
         </div>
         <div>
-          <h4 class="mb-0 font-weight-bolder" id="sumTargetConversion">{{ number_format($tConv, 2) }}</h4>
+          <h4 class="mb-0 font-weight-bolder text-nowrap"><span id="sumTargetConversion">{{ number_format($tConv, 2) }}</span> <small class="font-weight-bold {{ $devCls($sConv, $tConv) }}" id="sumDevConv">({{ $dev($sConv, $tConv) }})</small></h4>
           <small class="text-muted">Target Konversi</small>
         </div>
       </div>
@@ -125,5 +128,10 @@
     $('#sumTargetConversion').text(f(tConv));
     $('#sumPctQty').text(pct(qty, tQty));
     $('#sumPctPainting').text(pct(paint, tConv));
+    const conv = sum(r => r.conversion);
+    const dev = (a, b, id) => $(id).text('(' + (b > 0 ? (a >= b ? '+' : '') + f((a - b) / b * 100) + '%' : '-') + ')')
+      .toggleClass('text-success', a >= b).toggleClass('text-danger', a < b);
+    dev(qty, tQty, '#sumDevQty');
+    dev(conv, tConv, '#sumDevConv');
   };
 </script>
