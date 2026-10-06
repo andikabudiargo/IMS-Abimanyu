@@ -85,6 +85,7 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
                 ap_invoice.pph23,
                 hutang.jatuh_tempo_actual,
                 hutang.balance_asof as nominal,
+                ap_invoice.grand_total as outstanding,
                 (select STRING_AGG(DISTINCT kas_hdr.voucher_type || '::' || kas_hdr.id::text || '::' || kas_hdr.voucher_number, ',')
                    from kas_det
                    join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number
@@ -98,14 +99,40 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
             LEFT JOIN payment_plan plan ON plan.module = 'AP' AND plan.ref_number = hutang.ap_number
             WHERE hutang.jatuh_tempo_actual >= to_date(:periodStart,'DD-MM-YYYY')
               AND hutang.jatuh_tempo_actual <= to_date(:periodEnd,'DD-MM-YYYY')
-            ORDER BY hutang.jatuh_tempo_actual ASC, hutang.ap_number ASC
+            ORDER BY third_party.nama ASC, hutang.supplier_id ASC, hutang.jatuh_tempo_actual ASC, hutang.ap_number ASC
         ";
 
         $rows = DB::select($sql, $bindings);
 
         $result = [];
-        $grand = ['nominal' => 0.0, 'biaya_administrasi' => 0.0, 'pph23' => 0.0, 'total' => 0.0];
+        $grand = ['outstanding' => 0.0, 'paid' => 0.0, 'nominal' => 0.0, 'biaya_administrasi' => 0.0, 'pph23' => 0.0, 'total' => 0.0];
 
+        // Biaya admin otomatis: bank non-BCA kena 2.900 per transfer, satu transfer
+        // maksimal 500 juta -> per supplier jumlah transfer = ceil(total balance
+        // To Be Paid / 500jt). Dihitung sebelum filter status supaya tetap benar
+        // walau tabel difilter. Isian manual (> 0) di salah satu invoice supplier
+        // itu menggantikan perhitungan otomatis supplier tersebut.
+        $autoFee   = [];
+        $hasManual = [];
+        $sumTbp    = [];
+        $bankOf    = [];
+        foreach ($rows as $r) {
+            $bankOf[$r->supplier_id] = $r->bank_type;
+            if ((float) $r->nominal <= $this->minOutstanding || $r->plan_status !== 'to_be_paid') {
+                continue;
+            }
+            $sumTbp[$r->supplier_id] = ($sumTbp[$r->supplier_id] ?? 0) + (float) $r->nominal;
+            if ((float) $r->biaya_administrasi > 0) {
+                $hasManual[$r->supplier_id] = true;
+            }
+        }
+        foreach ($sumTbp as $sid => $sum) {
+            if (empty($hasManual[$sid]) && strtoupper(trim((string) $bankOf[$sid])) !== 'BCA') {
+                $autoFee[$sid] = (int) ceil($sum / 500000000) * 2900;
+            }
+        }
+
+        $prevSupplier = null;
         foreach ($rows as $r) {
             $nominal         = (float) $r->nominal;
             $isPaid          = $nominal <= $this->minOutstanding;
@@ -116,11 +143,18 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
             }
 
             $biayaAdmin = (float) ($r->biaya_administrasi ?? 0);
-            $total      = $nominal - $biayaAdmin;
+            if ($effectiveStatus === 'to_be_paid' && $biayaAdmin <= 0 && isset($autoFee[$r->supplier_id])) {
+                $biayaAdmin = (float) $autoFee[$r->supplier_id];
+                unset($autoFee[$r->supplier_id]); // cukup di baris pertama supplier
+            }
+            $total       = $nominal - $biayaAdmin;
+            $outstanding = (float) $r->outstanding;
+            $paid        = $outstanding - $nominal;
 
             $result[] = [
                 'ap_number'          => $r->ap_number,
                 'supplier_name'      => $r->supplier_name,
+                'supplier_label'     => $r->supplier_id === $prevSupplier ? '' : $r->supplier_name,
                 'invoice_date'       => $r->inv_date ?: '-',
                 'due_date'           => $r->jatuh_tempo_actual ? date('d-m-Y', strtotime($r->jatuh_tempo_actual)) : '-',
                 'vouchers'           => $isPaid ? $this->buildVoucherLinks($r->voucher_raw) : [],
@@ -128,6 +162,8 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
                 'note'               => $r->note,
                 'bank_name'          => $r->bank_name ?: '-',
                 'account_number'     => $r->account_number ?: '-',
+                'outstanding'        => $outstanding,
+                'paid'               => $paid,
                 'nominal'            => $nominal,
                 'biaya_administrasi' => $biayaAdmin,
                 'pph23'              => (float) $r->pph23,
@@ -137,6 +173,10 @@ class ApPaymentPlanningController extends ApPaymentScheduleController
                 'ap_link'            => route('accountPayable.show', ['id' => Crypt::encryptString($r->id)]),
             ];
 
+            $prevSupplier = $r->supplier_id;
+
+            $grand['outstanding']        += $outstanding;
+            $grand['paid']               += $paid;
             $grand['nominal']            += $nominal;
             $grand['biaya_administrasi'] += $biayaAdmin;
             $grand['pph23']              += (float) $r->pph23;

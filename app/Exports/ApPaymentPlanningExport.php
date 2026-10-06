@@ -24,13 +24,15 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
     protected $grand;
     protected $periodLabel;
 
-    const TOTAL_COLS  = 15;
-    const IDX_NOMINAL = 9;
-    const IDX_BANK    = 10;
-    const IDX_ACC_NO  = 11;
-    const IDX_BIAYA   = 12;
-    const IDX_PPH23   = 13;
-    const IDX_TOTAL   = 14;
+    const TOTAL_COLS  = 17;
+    const IDX_OUTSTD  = 9;
+    const IDX_PAID    = 10;
+    const IDX_NOMINAL = 11; // Balance
+    const IDX_BANK    = 12;
+    const IDX_ACC_NO  = 13;
+    const IDX_BIAYA   = 14;
+    const IDX_PPH23   = 15;
+    const IDX_TOTAL   = 16;
 
     public function __construct(array $rows, array $grand, string $periodLabel)
     {
@@ -68,18 +70,20 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
         $out[] = ['AP PAYMENT PLANNING'];
         $out[] = ['Periode: ' . $this->periodLabel];
         $out[] = [];
-        $out[] = ['No', 'Supplier', 'Invoice Date', 'Invoice Number', 'Receive AP', 'Due Date', 'Voucher Number', 'Note', 'Nominal', 'Bank', 'No. Rekening', 'Biaya Administrasi', 'PPH23', 'Total', 'Status'];
+        $out[] = ['No', 'Supplier', 'Invoice Date', 'Invoice Number', 'Receive AP', 'Due Date', 'Voucher Number', 'Note', 'Outstanding', 'Paid', 'Balance', 'Bank', 'No. Rekening', 'Biaya Administrasi', 'PPH23', 'Total', 'Status'];
 
         foreach ($this->rows as $i => $r) {
             $out[] = [
                 $i + 1,
-                $r['supplier_name'],
+                $r['supplier_label'],
                 $r['invoice_date'],
                 $r['ap_number'],
                 $r['receive_ap'],
                 $r['due_date'],
                 $this->voucherText($r),
                 $r['note'],
+                $r['outstanding'],
+                $r['paid'],
                 $r['nominal'],
                 $r['bank_name'],
                 $r['account_number'],
@@ -90,7 +94,7 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
             ];
         }
 
-        $out[] = ['', '', '', '', '', '', '', 'GRAND TOTAL', $this->grand['nominal'], '', '', $this->grand['biaya_administrasi'], $this->grand['pph23'], $this->grand['total'], ''];
+        $out[] = ['', '', '', '', '', '', '', 'GRAND TOTAL', $this->grand['outstanding'], $this->grand['paid'], $this->grand['nominal'], '', '', $this->grand['biaya_administrasi'], $this->grand['pph23'], $this->grand['total'], ''];
 
         return $out;
     }
@@ -99,7 +103,7 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
     {
         return [
             'A' => 5, 'B' => 22, 'C' => 12, 'D' => 16, 'E' => 12, 'F' => 12,
-            'G' => 18, 'H' => 26, 'I' => 14, 'J' => 18, 'K' => 18, 'L' => 16, 'M' => 12, 'N' => 14, 'O' => 16,
+            'G' => 18, 'H' => 26, 'I' => 14, 'J' => 14, 'K' => 14, 'L' => 18, 'M' => 18, 'N' => 16, 'O' => 12, 'P' => 14, 'Q' => 16,
         ];
     }
 
@@ -144,7 +148,7 @@ class ApPaymentPlanningExport implements FromArray, WithTitle, WithStyles, WithC
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E9EDF3']],
                 ]);
 
-                foreach ([self::IDX_NOMINAL, self::IDX_BIAYA, self::IDX_PPH23, self::IDX_TOTAL] as $idx) {
+                foreach ([self::IDX_OUTSTD, self::IDX_PAID, self::IDX_NOMINAL, self::IDX_BIAYA, self::IDX_PPH23, self::IDX_TOTAL] as $idx) {
                     $c = Coordinate::stringFromColumnIndex($idx);
                     $sheet->getStyle("{$c}{$dataStart}:{$c}{$grandRow}")
                         ->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1);

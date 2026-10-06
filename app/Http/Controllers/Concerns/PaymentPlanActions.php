@@ -28,46 +28,15 @@ trait PaymentPlanActions
 
         $user = Auth::user()->username ?? Auth::user()->name ?? null;
 
-        // Biaya administrasi default: kalau user tidak isi manual, turunkan dari
-        // bank supplier (AP only) -- BCA transfer gratis (0), bank lain kena 2.900.
-        // Satu transfer bank = satu kali biaya admin, jadi kalau beberapa invoice
-        // punya supplier (= rekening tujuan) yang sama dan ditandai bareng dalam
-        // satu aksi ini, cuma invoice PERTAMA dari supplier itu yang kena biaya,
-        // sisanya 0 -- supaya tidak dobel-hitung dalam satu transaksi transfer.
-        $bankTypeBySupplier = [];
-        $supplierByRef      = [];
-        if ($module === 'AP' && $action === 'to_be_paid' && !$request->filled('biaya_administrasi')) {
-            $info = DB::table('ap_invoice')
-                ->join('third_party', 'third_party.kode', '=', 'ap_invoice.supplier_id')
-                ->whereIn('ap_invoice.ap_number', $refs)
-                ->get(['ap_invoice.ap_number', 'ap_invoice.supplier_id', 'third_party.bank_type']);
-            foreach ($info as $row) {
-                $supplierByRef[$row->ap_number]           = $row->supplier_id;
-                $bankTypeBySupplier[$row->supplier_id]     = $row->bank_type;
-            }
-        }
-
-        $feeChargedForSupplier = [];
-
+        // Biaya admin otomatis (AP) dihitung saat tampil di ApPaymentPlanningController
+        // (per supplier, per 500jt); yang disimpan di sini cuma isian manual.
         foreach ($refs as $ref) {
             if ($action === 'pending') {
                 DB::table('payment_plan')->where('module', $module)->where('ref_number', $ref)->delete();
                 continue;
             }
 
-            $fee = 0;
-            if ($action === 'to_be_paid') {
-                if ($request->filled('biaya_administrasi')) {
-                    $fee = (float) $request->biaya_administrasi;
-                } elseif (isset($supplierByRef[$ref])) {
-                    $supplierId = $supplierByRef[$ref];
-                    $baseFee    = strtoupper((string) ($bankTypeBySupplier[$supplierId] ?? '')) === 'BCA' ? 0 : 2900;
-                    if ($baseFee > 0 && empty($feeChargedForSupplier[$supplierId])) {
-                        $fee = $baseFee;
-                        $feeChargedForSupplier[$supplierId] = true;
-                    }
-                }
-            }
+            $fee = $action === 'to_be_paid' && $request->filled('biaya_administrasi') ? (float) $request->biaya_administrasi : 0;
 
             DB::table('payment_plan')->updateOrInsert(
                 ['module' => $module, 'ref_number' => $ref],

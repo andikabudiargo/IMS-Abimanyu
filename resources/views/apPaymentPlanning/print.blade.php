@@ -36,7 +36,9 @@
                 <th>Due Date</th>
                 <th>Voucher Number</th>
                 <th>Note</th>
-                <th>Nominal</th>
+                <th>Outstanding</th>
+                <th>Paid</th>
+                <th>Balance</th>
                 <th>Bank</th>
                 <th>No. Rekening</th>
                 <th>Biaya Administrasi</th>
@@ -52,13 +54,15 @@
             @foreach ($rows as $i => $r)
                 <tr>
                     <td class="center">{{ $i + 1 }}</td>
-                    <td>{{ $r['supplier_name'] }}</td>
+                    <td>{{ $r['supplier_label'] }}</td>
                     <td class="center">{{ $r['invoice_date'] }}</td>
                     <td>{{ $r['ap_number'] }}</td>
                     <td class="center">{{ $r['receive_ap'] }}</td>
                     <td class="center">{{ $r['due_date'] }}</td>
                     <td>{{ implode(', ', array_column($r['vouchers'], 'number')) ?: '-' }}</td>
                     <td>{{ $r['note'] }}</td>
+                    <td class="num">{{ number_format($r['outstanding'], 0) }}</td>
+                    <td class="num">{{ number_format($r['paid'], 0) }}</td>
                     <td class="num">{{ number_format($r['nominal'], 0) }}</td>
                     <td>{{ $r['bank_name'] }}</td>
                     <td>{{ $r['account_number'] }}</td>
@@ -70,6 +74,8 @@
             @endforeach
             <tr class="grand">
                 <td colspan="8" class="num">GRAND TOTAL</td>
+                <td class="num">{{ number_format($grand['outstanding'], 0) }}</td>
+                <td class="num">{{ number_format($grand['paid'], 0) }}</td>
                 <td class="num">{{ number_format($grand['nominal'], 0) }}</td>
                 <td colspan="2"></td>
                 <td class="num">{{ number_format($grand['biaya_administrasi'], 0) }}</td>
@@ -79,7 +85,7 @@
             </tr>
 
             <tr>
-                <td class="appr-blank" colspan="8" rowspan="6"></td>
+                <td class="appr-blank" colspan="10" rowspan="6"></td>
                 <td class="appr-label">Disetujui</td>
                 <td class="appr-blank" colspan="2" rowspan="6"></td>
                 <td class="appr-label" colspan="2">Diperiksa</td>

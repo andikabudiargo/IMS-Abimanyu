@@ -124,7 +124,9 @@ tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
                             <th>Due Date</th>
                             <th>Voucher Number</th>
                             <th>Note</th>
-                            <th class="text-right">Nominal</th>
+                            <th class="text-right">Outstanding</th>
+                            <th class="text-right">Paid</th>
+                            <th class="text-right">Balance</th>
                             <th>Bank</th>
                             <th>No. Rekening</th>
                             <th class="text-right">Biaya Administrasi</th>
@@ -137,6 +139,8 @@ tr.row-paid td { background: #f0fbf4 !important; color: #15803d; }
                     <tfoot>
                         <tr>
                             <td colspan="9" class="text-right">GRAND TOTAL</td>
+                            <td class="text-right" id="gOutstanding">0</td>
+                            <td class="text-right" id="gPaid">0</td>
                             <td class="text-right" id="gNominal">0</td>
                             <td></td>
                             <td></td>
@@ -221,13 +225,15 @@ $(document).ready(function () {
             body += '<tr class="row-' + r.status + '" data-ref="' + r.ap_number + '">'
                 + '<td class="text-center"><input type="checkbox" class="rowChk" value="' + r.ap_number + '" ' + disabled + '></td>'
                 + '<td>' + (idx + 1) + '</td>'
-                + '<td>' + r.supplier_name + '</td>'
+                + '<td>' + (r.supplier_label || '') + '</td>'
                 + '<td>' + r.invoice_date + '</td>'
                 + '<td><a href="' + r.ap_link + '" target="_blank">' + r.ap_number + '</a></td>'
                 + '<td>' + (r.receive_ap || '-') + '</td>'
                 + '<td>' + r.due_date + '</td>'
                 + '<td>' + (vouchers || '-') + '</td>'
                 + '<td class="col-note">' + (r.note || '') + '</td>'
+                + '<td class="text-right">' + fmt(r.outstanding) + '</td>'
+                + '<td class="text-right">' + fmt(r.paid) + '</td>'
                 + '<td class="text-right">' + fmt(r.nominal) + '</td>'
                 + '<td>' + (r.bank_name || '-') + '</td>'
                 + '<td>' + (r.account_number || '-') + '</td>'
@@ -239,6 +245,8 @@ $(document).ready(function () {
         });
         $('#planBody').html(body);
 
+        $('#gOutstanding').text(fmt(res.grand.outstanding));
+        $('#gPaid').text(fmt(res.grand.paid));
         $('#gNominal').text(fmt(res.grand.nominal));
         $('#gBiaya').text(fmt(res.grand.biaya_administrasi));
         $('#gPph23').text(fmt(res.grand.pph23));
@@ -305,7 +313,7 @@ $(document).ready(function () {
     $('#btnToBePaid').on('click', function () {
         Swal.fire({
             title: 'Tandai To Be Paid',
-            text: 'Biaya administrasi otomatis terisi dari bank supplier (BCA = 0, Non BCA = 2.900, satu kali per supplier per transaksi) -- bisa diedit lagi langsung di tabel.',
+            text: 'Biaya administrasi otomatis dihitung dari bank supplier (BCA = 0, Non BCA = 2.900 per supplier per 500 juta) -- bisa diedit lagi langsung di tabel.',
             showCancelButton: true,
             confirmButtonText: 'Tandai To Be Paid',
             cancelButtonText: 'Batal',
