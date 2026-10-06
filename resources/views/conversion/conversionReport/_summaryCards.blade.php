@@ -49,8 +49,8 @@
           <i data-feather="truck" class="font-medium-3 text-info"></i>
         </div>
         <div>
-          <h4 class="mb-0 font-weight-bolder" id="sumTotalQty">{{ $cQty ?? '0' }}</h4>
-          <small class="text-muted">Total Qty Kirim <b class="text-info" id="sumPctQty">({{ $pQty }})</b></small>
+          <h4 class="mb-0 font-weight-bolder text-nowrap"><span id="sumTotalQty">{{ $cQty ?? '0' }}</span> <small class="text-info font-weight-bold" id="sumPctQty">({{ $pQty }})</small></h4>
+          <small class="text-muted text-nowrap">Total Qty Kirim</small>
         </div>
       </div>
     </div>
@@ -77,8 +77,8 @@
           <i data-feather="volume-2" class="font-medium-3 text-warning"></i>
         </div>
         <div>
-          <h4 class="mb-0 font-weight-bolder" id="sumConvPainting">{{ $cPainting ?? '0' }}</h4>
-          <small class="text-muted">Painting <b class="text-warning" id="sumPctPainting">({{ $pPaint }})</b></small>
+          <h4 class="mb-0 font-weight-bolder text-nowrap"><span id="sumConvPainting">{{ $cPainting ?? '0' }}</span> <small class="text-warning font-weight-bold" id="sumPctPainting">({{ $pPaint }})</small></h4>
+          <small class="text-muted text-nowrap">Painting</small>
         </div>
       </div>
     </div>
