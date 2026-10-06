@@ -336,6 +336,8 @@
 $(document).ready(function () {
 
     $('#repStoCode, #repLocation').select2({ width: '100%' });
+    // layout menjalankan $('.select2').select2() tiap modal terbuka -> ikut kena container select2 & merusak filter
+    $('#movementDetailModal, #stoDetailModal').off('shown.bs.modal');
 
     initDatePicker(document.querySelector('#repDate'), {
         minDate: "01/01/2010",

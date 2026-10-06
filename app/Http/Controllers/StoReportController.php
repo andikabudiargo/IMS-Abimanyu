@@ -291,7 +291,8 @@ class StoReportController extends Controller
     // ══════════════════════════════════════════════
     public function movementDetail(Request $request)
     {
-        $configId     = Crypt::decryptString($request->config_id);
+        // config_id kosong = tanpa referensi STO (Inventory Valuation): tanggal wajib dari date_range
+        $configId     = $request->filled('config_id') ? Crypt::decryptString($request->config_id) : null;
         $locationCode = $request->location_code;
         $articleCode  = $request->article_code;
         $columnKey    = $request->column_key;
@@ -300,19 +301,24 @@ class StoReportController extends Controller
             return response()->json(['status' => 0, 'message' => 'Lokasi ini belum didukung format reportnya.'], 422);
         }
 
-        $config = DB::table('sto_config')->where('config_id', $configId)->first();
-        if (!$config) {
-            return response()->json(['status' => 0, 'message' => 'STO tidak ditemukan.'], 404);
-        }
+        $dateFrom = $dateTo = $openingDate = null;
+        if ($configId) {
+            $config = DB::table('sto_config')->where('config_id', $configId)->first();
+            if (!$config) {
+                return response()->json(['status' => 0, 'message' => 'STO tidak ditemukan.'], 404);
+            }
 
-        $mapping = $this->findMapping($configId, $locationCode);
-        if (!$mapping) {
-            return response()->json(['status' => 0, 'message' => 'Lokasi tidak terdaftar pada STO ini.'], 404);
+            $mapping = $this->findMapping($configId, $locationCode);
+            if (!$mapping) {
+                return response()->json(['status' => 0, 'message' => 'Lokasi tidak terdaftar pada STO ini.'], 404);
+            }
+
+            [$dateFrom, $dateTo, $openingDate] = $this->resolveReportDateRange($config->periode, $mapping->sto_date ?? null);
+        } elseif (!$request->filled('date_range')) {
+            return response()->json(['status' => 0, 'message' => 'Rentang tanggal wajib diisi.'], 422);
         }
 
         $family = $this->resolveLocationFamily($locationCode);
-
-        [$dateFrom, $dateTo, $openingDate] = $this->resolveReportDateRange($config->periode, $mapping->sto_date ?? null);
 
         if ($request->filled('date_range')) {
             $parts = explode(' to ', $request->date_range);
@@ -995,15 +1001,22 @@ class StoReportController extends Controller
             return ['status' => 0, 'message' => 'Lokasi ini belum didukung format reportnya.', 'code' => 422];
         }
 
-        $config = DB::table('sto_config')->where('config_id', $configId)->first();
-        if (!$config) {
-            return ['status' => 0, 'message' => 'STO tidak ditemukan.', 'code' => 404];
-        }
+        // $configId null = tanpa referensi STO (dipakai Inventory Valuation): rentang tanggal wajib,
+        // tidak ada mapping/hasil STO, semua dihitung on the fly dari movement.
+        $config = $mapping = null;
+        if ($configId) {
+            $config = DB::table('sto_config')->where('config_id', $configId)->first();
+            if (!$config) {
+                return ['status' => 0, 'message' => 'STO tidak ditemukan.', 'code' => 404];
+            }
 
-        $mapping = $this->findMapping($configId, $locationCode);
+            $mapping = $this->findMapping($configId, $locationCode);
 
-        if (!$mapping) {
-            return ['status' => 0, 'message' => 'Lokasi tidak terdaftar pada STO ini.', 'code' => 404];
+            if (!$mapping) {
+                return ['status' => 0, 'message' => 'Lokasi tidak terdaftar pada STO ini.', 'code' => 404];
+            }
+        } elseif (!$dateRange) {
+            return ['status' => 0, 'message' => 'Tanpa referensi STO, rentang tanggal wajib diisi.', 'code' => 422];
         }
 
         $locationName = DB::table('stock_location_master')
@@ -1014,7 +1027,9 @@ class StoReportController extends Controller
         $family = $this->resolveLocationFamily($locationCode);
         $anchor = $this->resolveLocationAnchor($locationCode);
 
-        [$dateFrom, $dateTo, $openingDate] = $this->resolveReportDateRange($config->periode, $mapping->sto_date ?? null);
+        [$dateFrom, $dateTo, $openingDate] = $config
+            ? $this->resolveReportDateRange($config->periode, $mapping->sto_date ?? null)
+            : [null, null, null];
 
         if ($dateRange) {
             $parts = explode(' to ', $dateRange);
@@ -1030,11 +1045,15 @@ class StoReportController extends Controller
             }
         }
 
+        if (!$dateFrom || !$dateTo) {
+            return ['status' => 0, 'message' => 'Rentang tanggal tidak valid.', 'code' => 422];
+        }
+
         $cols       = $this->getColumnKeys($locationCode);
         $columnDefs = $this->buildColumnDefs($locationCode);
 
         $movements  = $this->aggregateMovements($family, $dateFrom, $dateTo, $locationCode);
-        $stoResults = $this->aggregateStoResults($configId, $family);
+        $stoResults = $configId ? $this->aggregateStoResults($configId, $family) : collect();
 
         // ── BARU: article_type filter, konsisten dengan locationArticleTypeMap di STO ──
         $allowedTypes  = $this->locationArticleTypeMap[$anchor] ?? null;
@@ -1078,9 +1097,9 @@ class StoReportController extends Controller
             ->unique()->values();
 
         $header = [
-            'sto_code'        => $config->sto_code,
-            'sto_type'        => $config->sto_type,
-            'periode'         => $config->periode,
+            'sto_code'        => $config->sto_code ?? '-',
+            'sto_type'        => $config->sto_type ?? null,
+            'periode'         => $config->periode ?? '-',
             'location_code'   => $locationCode,
             'location_name'   => $locationName,
             'date_from'       => $dateFrom,
