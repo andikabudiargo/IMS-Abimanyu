@@ -638,7 +638,13 @@ class DependentController extends Controller
             ->leftJoin('uom','uom.code','=',$table.'.uom')
             ->where($table.'.status', '!=', 0)
             ->when($code, function($q) use ($table,$code){
-                $q->where($table.'.third_party', $code);
+                // supplier default (article.third_party) ATAU supplier tambahan (article_supplier)
+                $q->where(function($w) use ($table,$code){
+                    $w->where($table.'.third_party', $code)
+                      ->orWhereIn($table.'.article_code', function($s) use ($code){
+                          $s->select('article_code')->from('article_supplier')->where('supplier_code', $code);
+                      });
+                });
             })
             ->orderBy($order)
             ->get();
