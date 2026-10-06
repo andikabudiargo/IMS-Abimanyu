@@ -37,16 +37,7 @@
             @endforeach
           </select>
         </div>
-        <div class="form-group col-md-4">
-          <label for="urgency">Urgensi <span class="text-danger">*</span></label>
-          <select class="select2 form-control" id="urgency" name="urgency" required>
-            <option value="">-- Select Urgensi --</option>
-            @foreach($urgencies as $val)
-              <option value="{{ $val }}">{{ $val }}</option>
-            @endforeach
-          </select>
-        </div>
-</div>
+      </div>
 
       <div class="form-row">
         <div class="form-group col-md-8">

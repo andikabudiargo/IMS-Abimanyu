@@ -814,6 +814,18 @@ foreach ($candidateHeaders as $h) {
             ) as Oki
         where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'INV-DN')");
 
+        // Form Change Request: level 1 (pembuat) otomatis, jadi antrean mulai dari level 2 (Accounting) & 3 (Superuser)
+        $data['listCrHome'] = DB::select("SELECT * from (
+            select id, cr_number, modul, type, created_by, created_at, status
+                ,greatest(1, coalesce((select max(approval_order) from approval_history where module_code ='CR' and module_number = a.cr_number),0)) as current_level
+                ,(select approval_number from approval_master where module_code = 'CR') as max_level
+            from form_change_request_hdr a
+            where status in (1,2,3,7)
+            ) as Oki
+        where (current_level+1 in (select approval_order from approval_level where username = ? and module_code = 'CR')
+            or (current_level = 1 and ?::boolean) or (current_level = 2 and ?::boolean))
+        order by created_at", [$username, Auth::user()->hasRole('accounting'), Auth::user()->hasRole('Superuser')]);
+
         // Article Request yang sudah approved & menunggu submit accounting (isi COA & Cashflow Category)
         $data['listArtReqHome'] = \App\Http\Controllers\ArticleController::canSubmitRequest()
             ? DB::table('article_request as ar')
@@ -921,7 +933,7 @@ $data['outstandingTransferInCount'] = $data['outstandingTransferIn']->count();
         $data['actionCenterCount'] = count($data['listPoHome']) + count($data['listBomHome']) + count($data['listPrHome'])
             + count($data['listSoHome']) + count($data['listTsoHome']) + count($data['listDnHome']) + count($data['listRecHome'])
             + count($data['listBkHome']) + count($data['listBmHome']) + count($data['listKmHome']) + count($data['listKkHome'])
-            + count($data['listGjHome']) + count($data['listApHome']) + count($data['listArHome']) + count($data['listDebNoteHome']) + count($data['listArtReqHome']);
+            + count($data['listGjHome']) + count($data['listApHome']) + count($data['listArHome']) + count($data['listDebNoteHome']) + count($data['listArtReqHome']) + count($data['listCrHome']);
 
         return view('home',$data);
     }

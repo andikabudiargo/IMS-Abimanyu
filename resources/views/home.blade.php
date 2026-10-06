@@ -919,6 +919,56 @@
             </div>
             @endif
 
+            @if( count($listCrHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acCr" role="button" aria-expanded="false" aria-controls="acCr">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="edit" class="mr-1"></i>
+                        <strong>Change Request Needs to be Approved</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listCrHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acCr">
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Ticket Number</th>
+                                        <th>Modul</th>
+                                        <th>Type</th>
+                                        <th>Approved</th>
+                                        <th>Created_by</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listCrHome as $key=>$val)
+                                    <tr>
+                                        <td>{{ $key+1 }}</td>
+                                        <td class="font-weight-bolder">{{ $val->cr_number }}</td>
+                                        <td>{{ $val->modul }}</td>
+                                        <td>{{ $val->type }}</td>
+                                        <td class="text-right">#Approved: {{ $val->current_level }} of {{ $val->max_level }}</td>
+                                        <td>{{ $val->created_by }}</td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm" href="{{ route('formChangeRequest.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
+                                                <i data-feather='list'></i>
+                                                Detail
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             @if( count($listBkHome)>0 )
             <div class="card mb-1 border-0 shadow-sm action-center-item">
                 <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acBk" role="button" aria-expanded="false" aria-controls="acBk">

@@ -133,7 +133,7 @@
       tableId: "fcrTable",
       route: "{{ route('formChangeRequest.list') }}",
       kolom: {!! $kolom !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7],
+      arrColPrint: Array.from({ length: {!! $kolom !!}.length - 1 }, (_, i) => i + 1),
       columnDefs: [
         { width: '5%', targets: 0 },
       ],

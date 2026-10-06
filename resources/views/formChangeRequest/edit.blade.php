@@ -67,14 +67,22 @@
             @endforeach
           </select>
         </div>
+        @if($isSuperuser)
         <div class="form-group col-md-3">
           <label for="urgency">Urgensi</label>
-          <select class="select2 form-control" id="urgency" name="urgency" {{ $isFormEditable ? '' : 'disabled' }}>
-            @foreach($urgencies as $val)
-              <option value="{{ $val }}" {{ $header->urgency == $val ? 'selected' : '' }}>{{ $val }}</option>
-            @endforeach
-          </select>
+          <div class="input-group">
+            <select class="form-control" id="urgency" form="frmUrgency" name="urgency">
+              <option value="">-- Pilih --</option>
+              @foreach($urgencies as $val)
+                <option value="{{ $val }}" {{ $header->urgency == $val ? 'selected' : '' }}>{{ $val }}</option>
+              @endforeach
+            </select>
+            <div class="input-group-append">
+              <button type="submit" form="frmUrgency" class="btn btn-outline-primary">Set</button>
+            </div>
+          </div>
         </div>
+        @endif
       </div>
 
       <div class="form-row">
@@ -128,7 +136,7 @@
       @if($canApprove && $nextLevel < 3)
         <button type="button" class="btn btn-success btn-sm" id="btnApprove">Approve</button>
         <button type="button" class="btn btn-danger btn-sm" id="btnReject">Reject</button>
-      @elseif($canApprove && $nextLevel == 3 && $header->status == 3)
+      @elseif($canApprove && $nextLevel == 3 && in_array($header->status, [2, 3]))
         <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalFinish">Finish</button>
         <button type="button" class="btn btn-danger btn-sm" id="btnReject">Reject</button>
       @endif
@@ -140,7 +148,7 @@
         <tr><th>Level</th><th>Approver</th><th>Status</th><th>Date</th></tr>
       </thead>
       <tbody>
-        @php $levelLabels = [1 => 'Level 1 - Atasan Requester', 2 => 'Level 2 - Accounting', 3 => 'Level 3 - Superuser']; @endphp
+        @php $levelLabels = [1 => 'Level 1 - User', 2 => 'Level 2 - Accounting', 3 => 'Level 3 - Superuser']; @endphp
         @forelse($approvalHistory as $ah)
           <tr>
             <td>{{ $levelLabels[$ah->approval_order] ?? 'Level '.$ah->approval_order }}</td>
@@ -154,7 +162,7 @@
                 <span class="badge badge-pill badge-light-danger">Rejected</span>
               @endif
             </td>
-            <td>-</td>
+            <td>{{ $ah->approval_date ?? '-' }}</td>
           </tr>
         @empty
           <tr><td colspan="4" class="text-center text-muted">No approval configuration for this module yet.</td></tr>
@@ -209,6 +217,12 @@
     </div>
   </div>
 </div>
+@if($isSuperuser)
+<form id="frmUrgency" method="POST" action="{{ route('formChangeRequest.setUrgency') }}">
+  @csrf
+  <input type="hidden" name="id" value="{{ $id }}">
+</form>
+@endif
 @endsection
 
 @section('scripts')

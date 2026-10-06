@@ -856,6 +856,7 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('formChangeRequest/approve',['as'=>'formChangeRequest.approve','uses'=>'FormChangeRequestController@approve']);
 	Route::post('formChangeRequest/approveFinal',['as'=>'formChangeRequest.approveFinal','uses'=>'FormChangeRequestController@approveFinal']);
 	Route::post('formChangeRequest/reject',['as'=>'formChangeRequest.reject','uses'=>'FormChangeRequestController@reject']);
+	Route::post('formChangeRequest/setUrgency',['as'=>'formChangeRequest.setUrgency','uses'=>'FormChangeRequestController@setUrgency']);
 	Route::post('formChangeRequest/cancel',['as'=>'formChangeRequest.cancel','uses'=>'FormChangeRequestController@cancel']);
 	Route::post('formChangeRequest/delete',['as'=>'formChangeRequest.destroy','uses'=>'FormChangeRequestController@destroy']);
 

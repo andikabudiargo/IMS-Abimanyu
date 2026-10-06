@@ -157,6 +157,9 @@ class FormChangeRequestController extends Controller
             ['data' => 'created_by', 'name' => 'created_by', 'title' => 'Created By'],
             ['data' => 'created_at', 'name' => 'created_at', 'title' => 'Created At'],
         ];
+        if (!$this->isSuperuser()) {
+            $kolom = array_values(array_filter($kolom, fn($k) => $k['data'] != 'urgency'));
+        }
         return json_encode($kolom, true);
     }
 
@@ -174,6 +177,84 @@ class FormChangeRequestController extends Controller
         $label = $this->statusLabel[$status] ?? $status;
         $class = $badges[$status] ?? 'badge-light-secondary';
         return "<div class='badge badge-pill $class'>$label</div>";
+    }
+
+    private function isSuperuser()
+    {
+        return Auth::user()->hasRole('Superuser');
+    }
+
+    // Level 1 = User (pembuat, otomatis saat save), 2 = Accounting, 3 = Superuser. Level 2 & 3 dari approval_level.
+    private function autoSubmit($crNumber, $username)
+    {
+        DB::table('approval_history')->insert([
+            'module_code' => $this->moduleCode,
+            'module_number' => $crNumber,
+            'username' => $username,
+            'approval_order' => 1,
+            'approval_date' => date('Y-m-d'),
+            'status' => 1,
+            'created_by' => $username,
+            'updated_by' => $username,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    private function levelPosition($header, $username)
+    {
+        $current = max(1, (int) DB::table('approval_history')
+            ->where('module_code', $this->moduleCode)
+            ->where('module_number', $header->cr_number)
+            ->max('approval_order'));
+        $next = $current + 1;
+
+        $user = Auth::user();
+        $allowed = ($next == 2 && $user->hasRole('accounting'))
+            || ($next == 3 && $user->hasRole('Superuser'))
+            || DB::table('approval_level')->where('module_code', $this->moduleCode)
+                ->where('approval_order', $next)->where('username', $username)->exists();
+
+        return (!$allowed || $next > 3) ? [] : [(object) ['max_level' => 3, 'current_level' => $current, 'next_level' => $next]];
+    }
+
+    private function approvalRows($header)
+    {
+        $hist = DB::table('approval_history')->where('module_code', $this->moduleCode)
+            ->where('module_number', $header->cr_number)->get()->keyBy('approval_order');
+        $rows = [];
+        foreach ([1, 2, 3] as $lv) {
+            $petugas = $lv == 1
+                ? DB::table('users')->where('username', $header->created_by)->value('name')
+                : DB::table('approval_level as l')->join('users as u', 'u.username', '=', 'l.username')
+                    ->where('l.module_code', $this->moduleCode)->where('l.approval_order', $lv)
+                    ->pluck('u.name')->implode(', ');
+            $h = $hist[$lv] ?? null;
+            $rows[] = (object) [
+                'approval_order' => $lv,
+                'petugas' => $petugas,
+                'statusapprove' => $h->status ?? null,
+                'approval_date' => $h->approval_date ?? null,
+            ];
+        }
+        return $rows;
+    }
+
+    public function setUrgency(Request $request)
+    {
+        if (!$this->isSuperuser()) {
+            return redirect()->back()->with('error', 'Hanya Superuser yang dapat mengubah urgensi.');
+        }
+        if (!in_array($request->urgency, $this->urgencies)) {
+            return redirect()->back()->with('error', 'Urgensi tidak valid.');
+        }
+        $id = Crypt::decryptString($request->id);
+        DB::table('form_change_request_hdr')->where('id', $id)->update([
+            'urgency' => $request->urgency,
+            'updated_by' => Auth::user()->username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        return redirect()->back()->with('success', 'Urgensi diperbarui.');
     }
 
     public function index()
@@ -229,6 +310,7 @@ class FormChangeRequestController extends Controller
                 $buttons .= '</div></div>';
                 return $buttons;
             })
+            ->editColumn('urgency', fn($d) => e($d->urgency ?: '-'))
             ->addColumn('status', function ($data) {
                 return $this->statusBadge($data->status);
             })
@@ -242,7 +324,6 @@ class FormChangeRequestController extends Controller
         $data['subtitle'] = "Create $this->title";
         $data['modules'] = $this->modules;
         $data['types'] = $this->types;
-        $data['urgencies'] = $this->urgencies;
         return view('formChangeRequest.create', $data);
     }
 
@@ -251,7 +332,6 @@ class FormChangeRequestController extends Controller
         $validator = Validator::make($request->all(), [
             'modul' => 'required',
             'type' => 'required',
-            'urgency' => 'required',
             'description' => 'required',
             'attachment.*' => 'nullable|file|max:10240',
         ]);
@@ -269,7 +349,7 @@ class FormChangeRequestController extends Controller
                 'cr_number' => $crNumber,
                 'modul' => $request->modul,
                 'type' => $request->type,
-                'urgency' => $request->urgency,
+                'urgency' => '', // diisi Superuser
                 'description' => $request->description,
                 'status' => 1,
                 'rev_no' => 0,
@@ -278,6 +358,8 @@ class FormChangeRequestController extends Controller
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
+
+            $this->autoSubmit($crNumber, $username);
 
             if ($request->type == 'Perubahan Data' && $request->has('detail')) {
                 $this->saveDetail($hdrId, $request->detail);
@@ -356,12 +438,13 @@ class FormChangeRequestController extends Controller
         $data['modules'] = $this->modules;
         $data['types'] = $this->types;
         $data['urgencies'] = $this->urgencies;
+        $data['isSuperuser'] = $this->isSuperuser();
         $data['detail'] = DB::table('form_change_request_det')->where('hdr_id', $id)->orderBy('no')->get();
         $data['attachments'] = DB::table('form_change_request_attachment')->where('hdr_id', $id)->orderBy('id')->get();
         $data['revisionLog'] = DB::table('form_change_request_revision_log')->where('hdr_id', $id)->orderByDesc('id')->get();
-        $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode, $header->cr_number, $username);
+        $data['approvalHistory'] = $this->approvalRows($header);
 
-        $levelPosition = Approval::approvalLevelPosition($this->moduleCode, $header->cr_number, $username);
+        $levelPosition = $this->levelPosition($header, $username);
         $data['canApprove'] = count($levelPosition) > 0 && in_array($header->status, [1, 2, 3, 7]);
         $data['nextLevel'] = count($levelPosition) > 0 ? $levelPosition[0]->next_level : null;
 
@@ -392,7 +475,6 @@ class FormChangeRequestController extends Controller
         $rules = [
             'modul' => 'required',
             'type' => 'required',
-            'urgency' => 'required',
             'description' => 'required',
             'attachment.*' => 'nullable|file|max:10240',
         ];
@@ -410,7 +492,6 @@ class FormChangeRequestController extends Controller
             $update = [
                 'modul' => $request->modul,
                 'type' => $request->type,
-                'urgency' => $request->urgency,
                 'description' => $request->description,
                 'updated_by' => $username,
                 'updated_at' => date('Y-m-d H:i:s'),
@@ -437,6 +518,7 @@ class FormChangeRequestController extends Controller
                     ->where('module_code', $this->moduleCode)
                     ->where('module_number', $header->cr_number)
                     ->delete();
+                $this->autoSubmit($header->cr_number, $username);
             }
 
             DB::table('form_change_request_hdr')->where('id', $id)->update($update);
@@ -474,7 +556,7 @@ class FormChangeRequestController extends Controller
             return response()->json(['status' => 0, 'message' => 'This request is not awaiting this approval level.']);
         }
 
-        $levelPosition = Approval::approvalLevelPosition($this->moduleCode, $header->cr_number, $username);
+        $levelPosition = $this->levelPosition($header, $username);
         if (count($levelPosition) == 0) {
             return response()->json(['status' => 0, 'message' => 'You are not authorized to approve this request.']);
         }
@@ -486,7 +568,7 @@ class FormChangeRequestController extends Controller
             return response()->json(['status' => 0, 'message' => 'Final approval requires a completion note and attachment. Use the finish action.']);
         }
 
-        $newStatus = $nextLevel == 1 ? 2 : 3;
+        $newStatus = 2; // Validated oleh Accounting
 
         DB::beginTransaction();
         try {
@@ -527,11 +609,11 @@ class FormChangeRequestController extends Controller
         if (!$header) {
             return redirect()->back()->with('error', 'Data not found.');
         }
-        if ($header->status != 3) {
+        if (!in_array($header->status, [2, 3])) {
             return redirect()->back()->with('error', 'This request is not ready for the final approval.');
         }
 
-        $levelPosition = Approval::approvalLevelPosition($this->moduleCode, $header->cr_number, $username);
+        $levelPosition = $this->levelPosition($header, $username);
         if (count($levelPosition) == 0 || $levelPosition[0]->next_level != $levelPosition[0]->max_level) {
             return redirect()->back()->with('error', 'You are not authorized for the final approval.');
         }
@@ -599,7 +681,7 @@ class FormChangeRequestController extends Controller
             return redirect()->back()->with('error', $validator->getMessageBag()->first());
         }
 
-        $levelPosition = Approval::approvalLevelPosition($this->moduleCode, $header->cr_number, $username);
+        $levelPosition = $this->levelPosition($header, $username);
         if (count($levelPosition) == 0) {
             return redirect()->back()->with('error', 'You are not authorized to reject this request.');
         }
