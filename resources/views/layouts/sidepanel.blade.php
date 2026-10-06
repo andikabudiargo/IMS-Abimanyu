@@ -851,17 +851,18 @@
               </li>
               @endcan
 
-                @can('accType-index')
-              <li class="{{ \Request::segment(1) == 'inventoryValuation'  ? 'active' : '' }}">
+               
+              {{--<li class="{{ \Request::segment(1) == 'inventoryValuation'  ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('inventoryValuation.index') }}">
                   <i data-feather="circle"></i>
                   <span class="menu-item text-truncate" data-i18n="Input">Inventory Valuation</span>
                 </a>
-              </li>
+              </li>--}}
+               @can('accType-index')
               <li class="{{ \Request::segment(1) == 'inventory-valuation-sto'  ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('inventoryValuation.sto') }}">
                   <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Inventory Valuation (STO)</span>
+                  <span class="menu-item text-truncate" data-i18n="Input">Inventory Valuation</span>
                 </a>
               </li>
               @endcan

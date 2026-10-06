@@ -135,7 +135,8 @@
 <script type="text/javascript">
 $(document).ready(function () {
     $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
-    $('#repStoCode, #repLocation').select2({ width: '100%', closeOnSelect: false, placeholder: 'Pilih gudang' });
+    $('#repStoCode').select2({ width: '100%' });
+    $('#repLocation').select2({ width: '100%', closeOnSelect: false, placeholder: 'Pilih gudang' });
     initDatePicker(document.querySelector('#repDate'), {
         minDate: "01/01/2010", maxDate: "31/12/2030", dateFormat: "d-m-Y", mode: "range"
     });
