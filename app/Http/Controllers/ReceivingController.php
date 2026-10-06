@@ -1295,9 +1295,14 @@ $hasOldMovement = $this->snapshotMovementLocations($originRec)->isNotEmpty();
             ]);
         }
 
+        // Revisi: Update hanya menerapkan stok & movement. Status tetap REVISI (10);
+        // POSTED baru lewat approval final -> tombol Posting.
+        DB::table('receiving_hdr')->where('rec_number', $recNumber)
+            ->update(['status' => '10', 'revision_updated_at' => date('Y-m-d H:i:s')]);
+
         DB::commit();
         $title   = "Update $this->title";
-        $message = "$title $recNumber is successfully updated & posted";
+        $message = "$title $recNumber is successfully updated (stok & movement), menunggu approval";
         \LogActivity::addToLog($title, "username: $username Status $message");
         return response()->json([
             'statusRec' => 'Update', 'status' => 1, 'title' => $title,
@@ -1692,6 +1697,16 @@ public function posting2(Request $request)
 
     DB::beginTransaction();
     try {
+        // Revisi sudah di-Update & full-approved (status 3, movement sudah ada): cukup finalkan status.
+        if ($recHdrq->status == '3' && DB::table('warehouse_movement')
+                ->where('movement_transnno', $recNumber)->where('movement_type', 'RECEIVING')->exists()) {
+            DB::table('receiving_hdr')->where('rec_number', $recNumber)
+                ->update(['status' => '4', 'updated_by' => $username, 'updated_at' => date('Y-m-d H:i:s')]);
+            DB::commit();
+            \LogActivity::addToLog($title, "username: $username Status $title $recNumber Successfully Posted (revisi)");
+            return $this->postingResp($request, 1, $title, $recNumber, 'success', "$title $recNumber Successfully Posted", $id, '4');
+        }
+
         $result = $this->doPosting($recNumber, $username);
 
         if (!$result['success']) {
@@ -1815,7 +1830,8 @@ private function doPosting($recNumber, $username)
         'article.article_type',
         'article.group_of_material',
         DB::raw("$qtyBaseSql as movement_plus"),
-        DB::raw("receiving_det.price as movement_price"),
+        // harga receiving per uom_rec (pax) -> per satuan stok (pcs), selaras movement_plus yang sudah dikonversi
+        DB::raw("receiving_det.price / COALESCE(NULLIF(receiving_det.conv_factor,0),1) as movement_price"),
         'receiving_hdr.rec_number as movement_transnno',
         'receiving_hdr.po_number as movement_desc',
         DB::raw("$stockUomSql as movement_uom"),
@@ -2428,6 +2444,7 @@ try {
         ->update([
             'num_revision' => $numRevision,
             'status'       => '10',
+            'revision_updated_at' => null,
             'updated_by'   => $username,
             'updated_at'   => $now,
         ]);
@@ -2961,14 +2978,14 @@ public function unPosting($recNumber)
                              </a>';
             }
 
-            if ($data->status == '10' && $bisaApprove) {
+            if ($data->status == '10' && $bisaApprove && (!$data->has_movement || $data->revision_updated_at)) {
                 $buttons .= '<a href="' . route('receiving.edit', ['id' => Crypt::encryptString($data->id)]) . '" class="dropdown-item">
                                 <i data-feather="file-text"></i>
                                 <span>' . __('Approve') . '</span>
                              </a>';
             }
 
-            if (in_array($data->status, ['1', '3', '10']) && $bisaPosting) {
+            if (in_array($data->status, ['1', '3', '10']) && (!$data->has_movement || $data->status == '3') && $bisaPosting) {
                 $buttons .= "<a href='javascript:;'
                                 class='dropdown-item'
                                 data-size='sm'
@@ -4351,7 +4368,8 @@ public function prDetail(Request $request)
 
     $originRec          = DB::table('receiving_hdr')->where('rec_number', $recNumber)
         ->value('origin_rec_number') ?? $recNumber;
-    $adalahRevisiPosted = $this->snapshotMovementLocations($originRec)->isNotEmpty();
+    $adalahRevisiPosted = $this->snapshotMovementLocations($originRec)->isNotEmpty()
+        || DB::table('warehouse_movement')->where('movement_transnno', $recNumber)->where('movement_type', 'RECEIVING')->exists();
 
     DB::beginTransaction();
     try {
@@ -4365,6 +4383,10 @@ public function prDetail(Request $request)
             DB::rollBack();
             return response()->json(['status' => 0, 'title' => 'Approve', 'message' => 'Dokumen sudah CANCELED', 'alert' => 'warning']);
         }
+        if ($locked->status === '10' && $adalahRevisiPosted && empty($locked->revision_updated_at)) {
+            DB::rollBack();
+            return response()->json(['status' => 0, 'title' => 'Approve', 'message' => 'Revisi belum di-Update. Klik Update dulu sebelum approval.', 'alert' => 'warning']);
+        }
 
         // Status setelah approve:
         //  - sudah POSTED ('4')  → biarkan '4' (revisi yang sudah di-Update): cuma catat
@@ -4377,10 +4399,8 @@ public function prDetail(Request $request)
             $statusRec = '4';
         } elseif (!$isFinalLevel) {
             $statusRec = '10';
-        } elseif ($adalahRevisiPosted) {
-            $statusRec = '10';
         } else {
-            $statusRec = '3';
+            $statusRec = '3'; // final: APPROVED (revisi: menunggu klik Posting)
         }
 
         $row_affected = DB::table('receiving_hdr')
@@ -4415,8 +4435,8 @@ public function prDetail(Request $request)
         // Auto-post HANYA kalau final level & dokumen fresh ($statusRec '3').
         //  - $statusRec '4' → revisi sudah di-Update, movement sudah benar, cukup catat approval.
         //  - $statusRec '10' + final → revisi belum di-Update → user klik Update.
-        if ($isFinalLevel && $statusRec === '10') {
-            $message .= " — revisi sudah full-approved. Klik tombol Update untuk menerapkan ke stok.";
+        if ($isFinalLevel && $adalahRevisiPosted && $statusRec === '3') {
+            $message .= " — revisi sudah full-approved. Klik Posting untuk mengubah status ke POSTED.";
         } elseif ($isFinalLevel && $statusRec === '3') {
             DB::beginTransaction();
             try {
