@@ -16,6 +16,10 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
+        {{-- Wajib ada <form>: app.js memasang $('.select2').on('change', () => $(this).valid()),
+             dan jquery.validate melempar error kalau elemennya tidak berada di dalam form --
+             exception itu juga yang bikin dropdown select2 tidak mau menutup. --}}
+        <form class="needs-validation" novalidate onsubmit="return false;">
         <div class="form-row">
           <div class="form-group col-md-6">
             <label class="form-label" for="account">COA <span class="text-danger">*</span></label>
@@ -83,6 +87,7 @@
             <button type="button" class="btn btn-outline-secondary" id="btnReset">Reset</button>
           </div>
         </div>
+        </form>
       </div>
     </div>
   </div>
@@ -238,12 +243,18 @@
     $("#h-trx").text(h.jumlah_trx + (h.is_header ? '  (gabungan ' + h.coa_count + ' COA)' : ''));
   };
 
-  /** Gabungkan kolom Dept..Period jadi satu cell label pada baris ringkasan. */
-  const mergeSummaryRows = () => {
-    $('#bb2Table tbody > tr').each(function () {
+  /**
+   * Gabungkan kolom Dept..Period jadi satu cell label pada baris ringkasan.
+   * API-nya diterima sebagai argumen, bukan dibaca dari variabel bb2Table --
+   * drawCallback dipanggil DI DALAM konstruktor DataTable, jadi saat draw
+   * pertama bb2Table masih null.
+   */
+  const mergeSummaryRows = (api) => {
+    $(api.table().body()).find('> tr').each(function () {
       const $tr = $(this);
       if ($tr.hasClass('bb2-merged')) return;
-      const d = bb2Table.row(this).data();
+      const row = api.row(this);
+      const d = row.length ? row.data() : null;
       if (!d || !d.is_summary) return;
 
       $tr.addClass('bb2-merged bb2-summary')
@@ -278,8 +289,10 @@
       // Buku besar itu kronologis, dan baris SALDO AWAL/AKHIR harus tetap di
       // ujung atas/bawah -- jadi sorting kolom dimatikan.
       ordering: false,
+      // scrollY sengaja TIDAK dipakai: scrollX + scrollY sama-sama memecah
+      // tabel jadi header/body terpisah, dan baris colspan (SALDO AWAL/AKHIR)
+      // bikin lebar kolom keduanya tidak sinkron.
       scrollX: true,
-      scrollY: 420,
       lengthMenu: [[-1, 25, 50, 100], ['all', '25', '50', '100']],
       pageLength: -1,
       columnDefs: [
@@ -301,7 +314,7 @@
         title: null,
         filename: 'buku_besar_v2_' + h.account + '_' + h.tahun
       }],
-      drawCallback: mergeSummaryRows
+      drawCallback: function () { mergeSummaryRows(this.api()); }
     });
   };
 
