@@ -16,7 +16,7 @@ class DnMonitoringController extends Controller
     // Semua DN bulan berjalan. filter=invoice -> belum di-invoice saja, filter=kembali -> belum kembali saja,
     // filter=all -> semua DN bulan itu tanpa syarat outstanding (sudah/belum invoice & kembali sama-sama tampil).
     // DELIVERY = DN status 1-4/10, DN RECEIVED = DN status 8, TEMPORARY DN = surat jalan sementara OPEN.
-    private function pendingRows($month, $filter = 'invoice')
+    private function pendingRows($month, $filter = 'invoice', $type = 'all', $src = null)
     {
         $rows = DB::select("
             SELECT * FROM (
@@ -42,13 +42,22 @@ class DnMonitoringController extends Controller
             WHERE to_char(to_date(x.delivery_date,'DD-MM-YYYY'),'YYYY-MM') = ?
             ORDER BY to_date(x.delivery_date,'DD-MM-YYYY'), x.dn_number", [$month]);
 
+        if ($type == 'dn') {
+            $rows = array_filter($rows, fn($r) => $r->source != 'TEMPORARY DN');
+        } elseif ($type == 'temp') {
+            $rows = array_filter($rows, fn($r) => $r->source == 'TEMPORARY DN');
+        }
+
         if ($filter == 'invoice') {
             return array_values(array_filter($rows, fn($r) => $r->belum_invoice));
         }
         if ($filter == 'kembali') {
             return array_values(array_filter($rows, fn($r) => $r->belum_kembali));
         }
-        return $rows; // all: semua DN bulan ini, tanpa syarat outstanding
+        if ($src == 'delivery') { // menu Delivery + All: sembunyikan yang belum dibuatkan invoice
+            $rows = array_filter($rows, fn($r) => !$r->belum_invoice);
+        }
+        return array_values($rows); // all: semua DN bulan ini
     }
 
     private function filter(Request $request)
@@ -57,6 +66,11 @@ class DnMonitoringController extends Controller
             return $request->filter == 'kembali' ? 'kembali' : 'all';
         }
         return in_array($request->filter, ['kembali', 'all']) ? $request->filter : 'invoice';
+    }
+
+    private function dnType(Request $request)
+    {
+        return in_array($request->dn_type, ['dn', 'temp']) ? $request->dn_type : 'all';
     }
 
     private function week($deliveryDate)
@@ -102,7 +116,7 @@ class DnMonitoringController extends Controller
 
         $summary = [];
         $selected = array_filter((array) $request->customer);
-        foreach ($this->pendingRows($month, $this->filter($request)) as $r) {
+        foreach ($this->pendingRows($month, $this->filter($request), $this->dnType($request), $request->src) as $r) {
             if ($selected && !in_array($r->customer_id, $selected)) {
                 continue;
             }
@@ -127,6 +141,7 @@ class DnMonitoringController extends Controller
         $data['monthLabel'] = date('F Y', strtotime("$month-01"));
         $data['periode'] = $month;
         $data['filter'] = $this->filter($request);
+        $data['dnType'] = $this->dnType($request);
         $data['customers'] = $customers;
         $data['selected'] = $selected;
         return $data;
@@ -143,7 +158,7 @@ class DnMonitoringController extends Controller
     {
         $month = $this->month($request);
         $rows = [];
-        foreach ($this->pendingRows($month, $this->filter($request)) as $r) {
+        foreach ($this->pendingRows($month, $this->filter($request), $this->dnType($request), $request->src) as $r) {
             if ($r->customer_id != $request->customer || $this->week($r->delivery_date) != (int) $request->week) {
                 continue;
             }

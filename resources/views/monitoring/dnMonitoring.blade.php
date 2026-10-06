@@ -14,6 +14,14 @@
             <input type="month" id="periode" name="periode" value="{{ $periode }}" class="form-control">
           </div>
           <div class="form-group col-md-3">
+            <label for="dn_type">DN Type</label>
+            <select id="dn_type" name="dn_type" class="form-control">
+              <option value="all" @if($dnType == 'all') selected @endif>All</option>
+              <option value="dn" @if($dnType == 'dn') selected @endif>Delivery Note</option>
+              <option value="temp" @if($dnType == 'temp') selected @endif>DN Temporary</option>
+            </select>
+          </div>
+          <div class="form-group col-md-3">
             <label for="filter">Filter</label>
             <select id="filter" name="filter" class="form-control">
               @if(request('src') != 'delivery')
@@ -116,10 +124,10 @@
     e.preventDefault();
     const d = $(this).data();
     $('#dnModalTitle').text(d.name + ' - W' + d.week);
-    $('#dnExport').attr('href', "{{ route('dnMonitoring.export') }}?" + $.param({customer: d.customer, week: d.week, periode: '{{ $periode }}', filter: '{{ $filter }}'}));
+    $('#dnExport').attr('href', "{{ route('dnMonitoring.export') }}?" + $.param({customer: d.customer, week: d.week, periode: '{{ $periode }}', filter: '{{ $filter }}', dn_type: '{{ $dnType }}'}));
     $('#dnModalBody').html('<tr><td colspan="8">Loading...</td></tr>');
     $('#dnModal').modal('show');
-    $.get("{{ route('dnMonitoring.detail') }}", {customer: d.customer, week: d.week, periode: '{{ $periode }}', filter: '{{ $filter }}'}, function (rows) {
+    $.get("{{ route('dnMonitoring.detail') }}", {customer: d.customer, week: d.week, periode: '{{ $periode }}', filter: '{{ $filter }}', dn_type: '{{ $dnType }}'}, function (rows) {
       $('#dnModalBody').html(rows.map((r, i) => '<tr><td>' + (i + 1) + '</td><td><a href="' + esc(r.url) + '" target="_blank">' + esc(r.dn_number) + '</a></td><td>'
         + esc(r.source) + '</td><td>' + esc(r.delivery_date) + '</td><td>' + esc(r.received_date) + '</td><td>' + esc(r.status) + '</td><td>'
         + esc(r.created_by) + '</td><td>' + esc(r.created_at) + '</td></tr>').join(''));
