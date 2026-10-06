@@ -119,6 +119,7 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="d-flex align-items-center my-2"><hr class="flex-grow-1 m-0"><span class="px-1 text-muted font-small-3"><i data-feather="lock" class="font-small-3 mr-25"></i>Diisi oleh Accounting</span><hr class="flex-grow-1 m-0"></div>
                         <div class="form-row">
                             <div class="form-group col-6">
                                 <label class="form-label" for="coa">Chart of Account (CoA)</label>

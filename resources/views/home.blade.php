@@ -4,6 +4,22 @@
 @include('layouts.breadcrumb')
 <section id="home">
 
+    {{-- ===== Pengumuman: alur Article Request baru ===== --}}
+    <div class="card mb-2" style="border-left:4px solid #00cfe8;">
+        <div class="card-body d-flex align-items-start">
+            <div class="avatar bg-light-info p-50 mr-1" style="border-radius:8px;">
+                <i data-feather="info" class="font-medium-3 text-info"></i>
+            </div>
+            <div>
+                <h5 class="mb-25">Pengumuman: Alur Article Request berubah</h5>
+                <p class="mb-0">
+                    Alur sekarang: <strong>User</strong> mengajukan request &rarr; <strong>Atasan terkait</strong> approve &rarr; <strong>Accounting</strong> mengisi <strong>COA</strong> dan <strong>Cashflow Category</strong>, lalu submit.
+                    User tidak perlu lagi mengisi COA dan Cashflow Category saat membuat request.
+                </p>
+            </div>
+        </div>
+    </div>
+
     {{-- ===== Row 1: Greeting (4) + Delivery Performance (8) ===== --}}
     <div class="form-row" style="margin-bottom:2rem;">
         <div class="col-lg-4 col-12">
@@ -1747,6 +1763,63 @@
                                                 data-url='{{ route("debitNote.notif.approve", ["debitNnumber"=>$val->dn_number]) }}'>
                                                 <i data-feather='check-circle'></i>
                                                 Approve
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            @if( count($listArtReqHome)>0 )
+            <div class="card mb-1 border-0 shadow-sm action-center-item">
+                <div class="card-header d-flex justify-content-between align-items-center collapsed" data-toggle="collapse" href="#acArtReq" role="button" aria-expanded="false" aria-controls="acArtReq">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="package" class="mr-1"></i>
+                        <strong>Article Request Needs to be Submitted</strong>
+                        <div class="badge badge-pill badge-light-primary ml-1">{{ count($listArtReqHome) }}</div>
+                    </div>
+                    <i data-feather="chevron-down" class="ac-chevron"></i>
+                </div>
+                <div class="collapse" id="acArtReq">
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height:300px">
+                            <table class="table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Description</th>
+                                        <th>Type</th>
+                                        <th>Customer/Supplier</th>
+                                        <th>UoM</th>
+                                        <th>COA</th>
+                                        <th>Cashflow</th>
+                                        <th>Requested by</th>
+                                        <th>Approved by</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($listArtReqHome as $key=>$val)
+                                    <tr>
+                                        <td>{{ $key+1 }}</td>
+                                        <td class="font-weight-bolder">{{ $val->article_desc }}</td>
+                                        <td>{{ $val->article_type }}</td>
+                                        <td>{{ $val->cust }}</td>
+                                        <td>{{ $val->uom }}</td>
+                                        <td>{{ $val->coa ?: '-' }}</td>
+                                        <td>{{ $val->cashflow_category ?: '-' }}</td>
+                                        <td>{{ $val->created_by }}</td>
+                                        <td>{{ $val->approved_by }}</td>
+                                        <td>
+                                            <a class="btn btn-outline-success btn-sm"
+                                                href="{{ route('article.request.edit', ['id'=>Crypt::encryptString($val->id)]) }}">
+                                                <i data-feather='check-circle'></i>
+                                                Isi COA &amp; Submit
                                             </a>
                                         </td>
                                     </tr>

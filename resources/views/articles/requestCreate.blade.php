@@ -107,10 +107,12 @@
                                 </div>
                             </div>
                         </div>
+                        {{-- COA & Cashflow diisi accounting saat submit --}}
+                        <div class="d-flex align-items-center my-2"><hr class="flex-grow-1 m-0"><span class="px-1 text-muted font-small-3"><i data-feather="lock" class="font-small-3 mr-25"></i>Diisi oleh Accounting</span><hr class="flex-grow-1 m-0"></div>
                         <div class="form-row">
                             <div class="form-group col-6">
                                 <label class="form-label" for="coa" data-toggle="tooltip" data-placement="top" title="Akun yang dipakai untuk article ini">Chart of Account (CoA)</label>
-                                <select class="select2 form-control" id="coa" name="coa">
+                                <select class="select2 form-control" id="coa" name="coa" {{ \App\Http\Controllers\ArticleController::canSubmitRequest() ? '' : 'disabled' }}>
                                     <option value=""></option>
                                     @foreach($accounts as $val)
                                         <option value="{{ $val->account }}" {{ $val->account == old('coa') ? 'selected' : '' }}>{{ $val->account }} - {{ $val->description }}</option>
@@ -119,7 +121,7 @@
                             </div>
                             <div class="form-group col-6">
                                 <label class="form-label" for="cashflowCategory" data-toggle="tooltip" data-placement="top" title="Kategori arus kas: Operation, Investment atau Financing">Cashflow Category</label>
-                                <select class="select2 form-control" id="cashflowCategory" name="cashflowCategory">
+                                <select class="select2 form-control" id="cashflowCategory" name="cashflowCategory" {{ \App\Http\Controllers\ArticleController::canSubmitRequest() ? '' : 'disabled' }}>
                                     <option value=""></option>
                                     @foreach(['Operation','Investment','Financing'] as $cf)
                                         <option value="{{ $cf }}" {{ old('cashflowCategory') == $cf ? 'selected' : '' }}>{{ $cf }}</option>

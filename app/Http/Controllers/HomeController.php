@@ -814,6 +814,15 @@ foreach ($candidateHeaders as $h) {
             ) as Oki
         where current_level+1 in (select approval_order from approval_level where username = '$username' and module_code = 'INV-DN')");
 
+        // Article Request yang sudah approved & menunggu submit accounting (isi COA & Cashflow Category)
+        $data['listArtReqHome'] = \App\Http\Controllers\ArticleController::canSubmitRequest()
+            ? DB::table('article_request as ar')
+                ->leftJoin('third_party as tp', 'tp.kode', '=', 'ar.third_party')
+                ->where('ar.status_approve', '2')
+                ->orderBy('ar.approved_at')
+                ->get(['ar.id', 'ar.article_desc', 'ar.article_type', 'ar.uom', 'ar.coa', 'ar.cashflow_category', 'ar.created_by', 'ar.approved_by', 'ar.approved_at', 'tp.nama as cust'])
+            : collect();
+
         // Cek dept user (pakai tabel user_dept yang sudah dipakai di query PR)
 $userDepts = DB::table('user_dept')
     ->where('username', $username)
@@ -912,7 +921,7 @@ $data['outstandingTransferInCount'] = $data['outstandingTransferIn']->count();
         $data['actionCenterCount'] = count($data['listPoHome']) + count($data['listBomHome']) + count($data['listPrHome'])
             + count($data['listSoHome']) + count($data['listTsoHome']) + count($data['listDnHome']) + count($data['listRecHome'])
             + count($data['listBkHome']) + count($data['listBmHome']) + count($data['listKmHome']) + count($data['listKkHome'])
-            + count($data['listGjHome']) + count($data['listApHome']) + count($data['listArHome']) + count($data['listDebNoteHome']);
+            + count($data['listGjHome']) + count($data['listApHome']) + count($data['listArHome']) + count($data['listDebNoteHome']) + count($data['listArtReqHome']);
 
         return view('home',$data);
     }

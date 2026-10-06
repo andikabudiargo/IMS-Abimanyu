@@ -50,6 +50,12 @@
     $this->moduleCodeRequest = "ARTREQ";
 }
 
+    // Submit Article Request (isi COA & Cashflow Category) hanya untuk role accounting
+    public static function canSubmitRequest()
+    {
+        return Auth::user()->hasAnyRole(['Superuser', 'accounting']);
+    }
+
     private function isModuleLocked()
 {
     return false;
@@ -2077,7 +2083,7 @@ private function buildSummaryRow(array $p)
         public function getStatsRequest(Request $request)
 {
     $username      = Auth::user()->username;
-    $userSubmitter = Auth::user()->can('article-request-submit') ? "yes" : "no";
+    $userSubmitter = self::canSubmitRequest() ? "yes" : "no";
 
     $name  = strtolower($request->name);
     $group = strtolower($request->group);
@@ -2233,8 +2239,8 @@ private function buildSummaryRow(array $p)
                         'third_party' => $cust[0],
                         'note' => $note,
                         'uom' => $uom,
-                        'coa' => $coa,
-                            'cashflow_category' => $cashflowCategory, 
+                        'coa' => self::canSubmitRequest() ? $coa : null,
+                        'cashflow_category' => self::canSubmitRequest() ? $cashflowCategory : null,
                         'safety_stock' => $safetyStock,
                         'min_package' => $minimumPackage,
                         'costprice' => $price,
@@ -2443,8 +2449,6 @@ private function buildSummaryRow(array $p)
                             'third_party' => $cust[0],
                             'note' => $note,
                             'uom' => $uom,
-                            'coa' => $coa,
-                            'cashflow_category' => $cashflowCategory,
                             'safety_stock' => $safetyStock,
                             'min_package' => $minimumPackage,
                             'costprice' => $price,
@@ -2458,7 +2462,7 @@ private function buildSummaryRow(array $p)
                             'orderable' =>$orderable,
                             'marketing' => $marketing,
                             'is_buffing' => $buffing
-                        ]
+                        ] + (self::canSubmitRequest() ? ['coa' => $coa, 'cashflow_category' => $cashflowCategory] : [])
                     );
                     
                     $dataset=[];
@@ -2653,7 +2657,7 @@ private function buildSummaryRow(array $p)
             $userSubmitter = "no";
 
 
-            if (Auth::user()->can('article-request-submit')){
+            if (self::canSubmitRequest()){
                 $userSubmitter = "yes";
             }
 
@@ -2706,7 +2710,7 @@ private function buildSummaryRow(array $p)
                 $user = Auth::user();
                 $inDept = $data->bisa_approve > 0;
                 $canApprove = $inDept && $data->status_approve == '1' && $user->can('article-request-approve');
-                $canSubmit = $data->status_approve == '2' && $user->can('article-request-submit');
+                $canSubmit = $data->status_approve == '2' && self::canSubmitRequest();
                 $canEdit = $inDept && in_array($data->status_approve, ['1','2']) && $user->can('article-request-edit');
                 if (!$canApprove && !$canSubmit && !$canEdit) return '';
                 return '<input type="checkbox" class="chk-req" value="'.Crypt::encryptString($data->idku).'" data-a="'.(int)$canApprove.'" data-s="'.(int)$canSubmit.'" data-e="'.(int)$canEdit.'" data-url="'.route('article.request.edit', ['id'=>Crypt::encryptString($data->idku)]).'">';
@@ -2848,8 +2852,8 @@ private function buildSummaryRow(array $p)
         public function requestBulk(Request $request)
         {
             $act = $request->action;
-            $perm = ['approve' => 'article-request-approve', 'submit' => 'article-request-submit'];
-            if (!isset($perm[$act]) || !Auth::user()->can($perm[$act]) || !is_array($request->ids)) {
+            $allowed = $act == 'approve' ? Auth::user()->can('article-request-approve') : ($act == 'submit' && self::canSubmitRequest());
+            if (!$allowed || !is_array($request->ids)) {
                 return response()->json(['status' => 0, 'message' => 'Invalid request']);
             }
             if ($err = \AppHelpers::lockGuard($this->moduleCodeRequest)) {
@@ -2875,7 +2879,8 @@ private function buildSummaryRow(array $p)
                             'status_approve' => '2', 'approved_by' => $username, 'approved_at' => date('Y-m-d H:i:s')
                         ]);
                     } else {
-                        if ($row->status_approve != '2') { $skipped[] = $row->article_desc; continue; }
+                        // COA & Cashflow wajib terisi (diisi accounting lewat Edit)
+                        if ($row->status_approve != '2' || !$row->coa || !$row->cashflow_category) { $skipped[] = $row->article_desc . ' (COA/Cashflow kosong)'; continue; }
                         $cust = DB::table('article_supplier_request')->where('article_code', $row->article_code)
                             ->orderByRaw("case when supplier_code = ? then 0 else 1 end", [$row->third_party])->orderBy('id')
                             ->pluck('supplier_code')->toArray() ?: [$row->third_party];
@@ -2903,6 +2908,10 @@ private function buildSummaryRow(array $p)
         {
 
             $username =  Auth::user()->username;
+
+            if (!self::canSubmitRequest()) {
+                return redirect()->route('article.request')->with(['alert' => 'warning', 'title' => "Submit $this->title", 'message' => 'Hanya role accounting yang dapat submit Article Request']);
+            }
 
             // === Lock Transaction guard: activity — ini yang menyisipkan ke tabel article ===
             if ($err = \AppHelpers::lockGuard($this->moduleCodeRequest)) {
@@ -2946,13 +2955,15 @@ private function buildSummaryRow(array $p)
             $rule = [
                 'nama'=>'required',
                 'articleType'=>'required',
-                'minimumPackage'=>'required'
+                'minimumPackage'=>'required',
+                'coa'=>'required',
+                'cashflowCategory'=>'required|in:'.implode(',', $this->cashflowCategoryValues)
             ];
 
             $this->validate($request,$rule,$messages);
 
             $articleCode = $this->articleCodeCreate($cust,$type);
-                    
+
             DB::beginTransaction();
             try {
                     $this->createArticleFromRequest([

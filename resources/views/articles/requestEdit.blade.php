@@ -111,10 +111,12 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="d-flex align-items-center my-2"><hr class="flex-grow-1 m-0"><span class="px-1 text-muted font-small-3"><i data-feather="lock" class="font-small-3 mr-25"></i>Diisi oleh Accounting</span><hr class="flex-grow-1 m-0"></div>
                         <div class="form-row">
                             <div class="form-group col-6">
-                                <label class="form-label" for="coa">Chart of Account (CoA)</label>
-                                <select class="select2 form-control" id="coa" name="coa">
+                                @php $isAcc = \App\Http\Controllers\ArticleController::canSubmitRequest(); @endphp
+                                <label class="form-label" for="coa">Chart of Account (CoA){{ $isAcc ? ' *' : '' }}</label>
+                                <select class="select2 form-control" id="coa" name="coa" {{ $isAcc ? 'required' : 'disabled' }}>
                                     <option value=""></option>
                                     @foreach($accounts as $val)
                                         <option value="{{ $val->account }}" {{ $val->account == old('coa', $article->coa) ? 'selected' : '' }}>{{ $val->account }} - {{ $val->description }}</option>
@@ -122,8 +124,8 @@
                                 </select>
                             </div>
                             <div class="form-group col-6">
-                                <label class="form-label" for="cashflowCategory">Cashflow Category</label>
-                                <select class="select2 form-control" id="cashflowCategory" name="cashflowCategory">
+                                <label class="form-label" for="cashflowCategory">Cashflow Category{{ $isAcc ? ' *' : '' }}</label>
+                                <select class="select2 form-control" id="cashflowCategory" name="cashflowCategory" {{ $isAcc ? 'required' : 'disabled' }}>
                                     <option value=""></option>
                                     @foreach(['Operation','Investment','Financing'] as $cf)
                                         <option value="{{ $cf }}" {{ old('cashflowCategory',$article->cashflow_category) == $cf ? 'selected' : '' }}>{{ $cf }}</option>
@@ -156,11 +158,9 @@
                                     @endif
                                 @endcan
 
-                                @can('article-request-submit')
-                                    @if($article->status_approve == '2' )
-                                        <button class="btn btn-success" type="button" id="cmdSubmit" name="cmdSubmit" >Submit</button>
-                                    @endif
-                                @endcan
+                                @if($isAcc && $article->status_approve == '2')
+                                    <button class="btn btn-success" type="button" id="cmdSubmit" name="cmdSubmit" >Submit</button>
+                                @endif
                             </div>
                         </div>                   
                     </form>
