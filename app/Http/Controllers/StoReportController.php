@@ -885,7 +885,7 @@ class StoReportController extends Controller
      * Default jendela 240 bulan (bukan 24) supaya dead stock yang lama tidak ter-receiving tetap punya harga.
      */
     // Batch: 1 query untuk semua artikel; bulan berjalan/terbaru yang ada data menang.
-    private function avgReceivingValues(array $codes, int $maxMonthsBack = 24): array
+    private function avgReceivingValues(array $codes, int $maxMonthsBack = 240): array
     {
         if (!$codes) return [];
 
