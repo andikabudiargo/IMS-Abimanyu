@@ -233,7 +233,8 @@ $(document).ready(function () {
             dr.concat(kr).forEach(function (c) { mv += '<td class="text-right">' + drill(r, c.key, c.label, loc) + '</td>'; });
             body += '<tr><td class="text-center col-no">' + r.no + '</td><td class="col-alt">' + esc(r.alt_code || '-') + '</td>'
                 + '<td class="col-desc">' + esc(r.article_desc || '-') + '</td><td>' + esc(r.supp || '-') + '</td>'
-                + '<td class="text-center">' + esc(r.uom || '-') + '</td>'
+                + '<td class="text-center">' + esc(r.uom || '-')
+                    + (r.uom_conv ? '<br><small class="text-muted">' + esc(r.uom_conv) + '</small>' : '') + '</td>'
                 + '<td class="text-right">' + fmt(r.unit_value) + '</td>'
                 + '<td class="text-right">' + drill(r, 'opening', 'Saldo Awal', loc) + '</td>' + mv
                 + '<td class="text-right font-weight-bold">' + fmt(r.closing) + '</td>'

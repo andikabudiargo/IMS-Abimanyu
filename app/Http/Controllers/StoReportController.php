@@ -1162,10 +1162,11 @@ class StoReportController extends Controller
         $group = $this->getLocationGroup($locationCode);
 
         // Info konversi UoM Con v2 per artikel, mis. "1 PAX = 500 PCS" (beda supplier digabung, duplikat dibuang)
-        $uomConv = DB::table('uom_con_v2')->whereIn('article_code', $realCodes)
-            ->select('article_code', 'unit_from', 'unit_to', 'unit_factor')->distinct()->get()
-            ->groupBy('article_code')
-            ->map(fn($g) => $g->map(fn($c) => '1 ' . $c->unit_from . ' = ' . (float) $c->unit_factor . ' ' . $c->unit_to)->unique()->implode('; '));
+        $uomRows  = DB::table('uom_con_v2')->whereIn('article_code', $realCodes)
+            ->select('article_code', 'unit_from', 'unit_to', 'unit_factor')->distinct()->orderBy('unit_to')->get()
+            ->groupBy('article_code');
+        $uomStock = $uomRows->map(fn($g) => $g->first()->unit_to);
+        $uomConv  = $uomRows->map(fn($g) => $g->map(fn($c) => '1 ' . $c->unit_from . ' = ' . (float) $c->unit_factor . ' ' . $c->unit_to)->unique()->implode('; '));
 
         $rows         = collect();
         $totalPoin    = 0;
@@ -1259,7 +1260,7 @@ class StoReportController extends Controller
                 'alt_code'     => $altCode ?? $rc,
                 'article_desc' => $meta->article_desc ?? $rc,
                 'supp'         => $meta->supp_name ?? '-',
-                'uom'          => $meta->uom ?? '-',
+                'uom'          => $uomStock[$rc] ?? $meta->uom ?? '-', // UoM stok dari UoM Con v2 kalau ada
                 'uom_conv'     => $uomConv[$rc] ?? null,
                 'opening'      => $opening,
             ], $moveVals, [

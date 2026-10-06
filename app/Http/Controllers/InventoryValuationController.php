@@ -101,6 +101,7 @@ class InventoryValuationController extends Controller
                     'artikel_code' => $artCode,
                     'artikel_desc' => $art->artikel_desc,
                     'uom'          => $art->uom,
+                    'uom_conv'     => $art->uom_conv,
                     'saldo_awal'   => [
                         'qty'       => round($saldoAwal['qty'], 4),
                         'avg_price' => round($saldoAwal['avg_price'], 4),
@@ -186,7 +187,9 @@ class InventoryValuationController extends Controller
             SELECT
                 a.article_code      AS artikel_code,
                 a.article_desc      AS artikel_desc,
-                COALESCE(a.uom, '-') AS uom
+                COALESCE((SELECT MIN(unit_to) FROM uom_con_v2 WHERE article_code = a.article_code), a.uom, '-') AS uom,
+                (SELECT string_agg(DISTINCT '1 ' || unit_from || ' = ' || unit_factor::float8 || ' ' || unit_to, '; ')
+                   FROM uom_con_v2 WHERE article_code = a.article_code) AS uom_conv
             FROM article a
             WHERE a.article_code IN (
                 -- Dari warehouse_movement dalam periode

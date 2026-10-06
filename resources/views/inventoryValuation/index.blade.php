@@ -466,7 +466,7 @@ function renderDetailTable() {
                         <span class="toggle-icon mr-50">&#9660;</span>
                         <strong>${artCode}</strong> &mdash; ${escHtml(art.artikel_desc)}
                     </td>
-                    <td>${art.uom}</td>
+                    <td>${art.uom}${art.uom_conv ? `<br><small class="text-muted">${escHtml(art.uom_conv)}</small>` : ''}</td>
                     <td colspan="3"></td>
                     <td colspan="3" class="grp-saldo-awal"></td>
                     <td colspan="3" class="grp-masuk"></td>
