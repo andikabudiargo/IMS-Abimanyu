@@ -75,7 +75,7 @@ class InventoryValuationStoController extends StoReportController
         $cols = $this->getColumnKeys($loc);
         $keys = array_merge(['opening'], $cols['in'], $cols['out'], ['closing']);
 
-        $totals = array_fill_keys(array_merge($keys, ['debit', 'kredit', 'valuation', 'diff']), 0);
+        $totals = array_fill_keys(array_merge($keys, ['debit', 'kredit', 'valuation', 'diff', 'consumption_value']), 0);
 
         $rows = $res['rows']->map(function ($r) use ($keys, $cols, $withSto, &$totals) {
             foreach ($keys as $k) {
@@ -92,6 +92,9 @@ class InventoryValuationStoController extends StoReportController
             if ($r->valuation !== null) {
                 $totals['valuation'] = round($totals['valuation'] + $r->valuation, 2);
                 $totals['diff']      = round($totals['diff'] + $r->diff, 2);
+            }
+            if ($r->consumption_value !== null) {
+                $totals['consumption_value'] = round($totals['consumption_value'] + $r->consumption_value, 2);
             }
             foreach ($cols['in'] as $k)  { $totals['debit']  = round($totals['debit']  + $r->{$k}, 2); }
             foreach ($cols['out'] as $k) { $totals['kredit'] = round($totals['kredit'] + $r->{$k}, 2); }

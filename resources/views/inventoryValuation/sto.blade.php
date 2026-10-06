@@ -80,7 +80,7 @@
                     <thead class="text-center">
                         <tr>
                             <th>Lokasi</th><th>Artikel</th><th>Saldo Awal</th><th class="bg-light-primary">Debit</th>
-                            <th class="bg-light-danger">Kredit</th><th>Saldo Akhir</th><th>Nilai Hasil STO</th><th>Selisih</th>
+                            <th class="bg-light-danger">Kredit</th><th>Saldo Akhir</th><th>Nilai Hasil STO</th><th>Selisih</th><th>Consumption</th>
                         </tr>
                     </thead>
                     <tbody id="summaryBody"></tbody>
@@ -218,7 +218,7 @@ $(document).ready(function () {
             + '<th rowspan="2" title="Harga rata-rata tertimbang qty, bukan harga transaksi per dokumen">Harga Satuan<br>(Rata-rata)</th><th rowspan="2">Saldo Awal</th>'
             + (dr.length ? '<th colspan="' + dr.length + '" class="bg-light-primary">DEBIT</th>' : '')
             + (kr.length ? '<th colspan="' + kr.length + '" class="bg-light-danger">KREDIT</th>' : '')
-            + '<th rowspan="2">Saldo Akhir</th><th rowspan="2">Nilai Hasil STO</th><th rowspan="2">Selisih</th></tr>';
+            + '<th rowspan="2">Saldo Akhir</th><th rowspan="2">Nilai Hasil STO</th><th rowspan="2">Selisih</th><th rowspan="2">Consumption</th></tr>';
         let row2 = '<tr>';
         dr.forEach(function (c) { row2 += '<th class="bg-light-primary">' + esc(c.label) + '</th>'; });
         kr.forEach(function (c) { row2 += '<th class="bg-light-danger">' + esc(c.label) + '</th>'; });
@@ -226,7 +226,7 @@ $(document).ready(function () {
 
         let body = '';
         if (!L.rows.length) {
-            body = '<tr><td colspan="' + (10 + dr.length + kr.length) + '" class="text-center text-muted py-1">Tidak ada data.</td></tr>';
+            body = '<tr><td colspan="' + (11 + dr.length + kr.length) + '" class="text-center text-muted py-1">Tidak ada data.</td></tr>';
         }
         L.rows.forEach(function (r) {
             let mv = '';
@@ -239,12 +239,13 @@ $(document).ready(function () {
                 + '<td class="text-right">' + drill(r, 'opening', 'Saldo Awal', loc) + '</td>' + mv
                 + '<td class="text-right font-weight-bold">' + fmt(r.closing) + '</td>'
                 + '<td class="text-right">' + fmt(r.valuation) + '</td>'
-                + '<td class="text-right ' + diffCls(r.diff) + '">' + fmt(r.diff) + '</td></tr>';
+                + '<td class="text-right ' + diffCls(r.diff) + '">' + fmt(r.diff) + '</td>'
+                + '<td class="text-right">' + fmt(r.consumption_value) + '</td></tr>';
         });
 
         let foot = '<td colspan="6" class="text-center">TOTAL</td><td>' + fmt(t.opening) + '</td>';
         dr.concat(kr).forEach(function (c) { foot += '<td>' + fmt(t[c.key]) + '</td>'; });
-        foot += '<td>' + fmt(t.closing) + '</td><td>' + fmt(t.valuation) + '</td><td class="' + diffCls(t.diff) + '">' + fmt(t.diff) + '</td>';
+        foot += '<td>' + fmt(t.closing) + '</td><td>' + fmt(t.valuation) + '</td><td class="' + diffCls(t.diff) + '">' + fmt(t.diff) + '</td><td>' + fmt(t.consumption_value) + '</td>';
 
         return '<h6 class="mt-1">' + esc(loc + ' — ' + h.location_name) + '</h6>'
             + '<div class="rt-scroll mb-2"><table class="table table-sm rt" style="font-size:.78rem;">'
@@ -259,22 +260,22 @@ $(document).ready(function () {
         $('#detailWrap').html(locs.map(buildLocationBlock).join(''));
 
         // ── Summary: satu baris per lokasi + grand total ──
-        let g = { n: 0, opening: 0, debit: 0, kredit: 0, closing: 0, valuation: 0, diff: 0 };
+        let g = { n: 0, opening: 0, debit: 0, kredit: 0, closing: 0, valuation: 0, diff: 0, consumption_value: 0 };
         let sb = '';
         locs.forEach(function (L) {
             let t = L.totals;
             sb += '<tr><td>' + esc(L.header.location_code + ' — ' + L.header.location_name) + '</td><td class="text-center">' + L.rows.length + '</td>'
                 + '<td class="text-right">' + fmt(t.opening) + '</td><td class="text-right">' + fmt(t.debit) + '</td>'
                 + '<td class="text-right">' + fmt(t.kredit) + '</td><td class="text-right font-weight-bold">' + fmt(t.closing) + '</td>'
-                + '<td class="text-right">' + fmt(t.valuation) + '</td><td class="text-right ' + diffCls(t.diff) + '">' + fmt(t.diff) + '</td></tr>';
+                + '<td class="text-right">' + fmt(t.valuation) + '</td><td class="text-right ' + diffCls(t.diff) + '">' + fmt(t.diff) + '</td><td class="text-right">' + fmt(t.consumption_value) + '</td></tr>';
             g.n += L.rows.length;
-            ['opening', 'debit', 'kredit', 'closing', 'valuation', 'diff'].forEach(function (k) { g[k] += parseFloat(t[k]) || 0; });
+            ['opening', 'debit', 'kredit', 'closing', 'valuation', 'diff', 'consumption_value'].forEach(function (k) { g[k] += parseFloat(t[k]) || 0; });
         });
         $('#summaryBody').html(sb);
         $('#summaryFoot').html('<tr class="font-weight-bold" style="background:#e9edf3;"><td class="text-center">TOTAL</td><td class="text-center">' + g.n + '</td>'
             + '<td class="text-right">' + fmt(g.opening) + '</td><td class="text-right">' + fmt(g.debit) + '</td>'
             + '<td class="text-right">' + fmt(g.kredit) + '</td><td class="text-right">' + fmt(g.closing) + '</td>'
-            + '<td class="text-right">' + fmt(g.valuation) + '</td><td class="text-right ' + diffCls(g.diff) + '">' + fmt(g.diff) + '</td></tr>');
+            + '<td class="text-right">' + fmt(g.valuation) + '</td><td class="text-right ' + diffCls(g.diff) + '">' + fmt(g.diff) + '</td><td class="text-right">' + fmt(g.consumption_value) + '</td></tr>');
 
         $('#hSto').text(h0.sto_code);
         $('#hPeriode').text(h0.periode);
