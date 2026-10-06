@@ -34,12 +34,12 @@
   <div class="col-sm-6 col-xl">
     <div class="card border shadow-none mb-1">
       <div class="card-body d-flex align-items-center p-1">
-        <div class="avatar bg-light-dark p-50 mr-1" style="border-radius:8px;">
-          <i data-feather="target" class="font-medium-3 text-dark"></i>
+        <div class="avatar bg-light-info p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="truck" class="font-medium-3 text-info"></i>
         </div>
         <div>
-          <h4 class="mb-0 font-weight-bolder text-nowrap"><span id="sumTargetQty">{{ number_format($tQty, 2) }}</span> <small class="font-weight-bold {{ $devCls($sQty, $tQty) }}" id="sumDevQty">({{ $dev($sQty, $tQty) }})</small></h4>
-          <small class="text-muted">Target Qty Kirim</small>
+          <h4 class="mb-0 font-weight-bolder text-nowrap"><span id="sumTotalQty">{{ $cQty ?? '0' }}</span> <small class="text-info font-weight-bold" id="sumPctQty">({{ $pQty }})</small></h4>
+          <small class="text-muted text-nowrap">Total Qty Kirim</small>
         </div>
       </div>
     </div>
@@ -48,12 +48,12 @@
   <div class="col-sm-6 col-xl">
     <div class="card border shadow-none mb-1">
       <div class="card-body d-flex align-items-center p-1">
-        <div class="avatar bg-light-info p-50 mr-1" style="border-radius:8px;">
-          <i data-feather="truck" class="font-medium-3 text-info"></i>
+        <div class="avatar bg-light-dark p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="target" class="font-medium-3 text-dark"></i>
         </div>
         <div>
-          <h4 class="mb-0 font-weight-bolder text-nowrap"><span id="sumTotalQty">{{ $cQty ?? '0' }}</span> <small class="text-info font-weight-bold" id="sumPctQty">({{ $pQty }})</small></h4>
-          <small class="text-muted text-nowrap">Total Qty Kirim</small>
+          <h4 class="mb-0 font-weight-bolder text-nowrap"><span id="sumTargetQty">{{ number_format($tQty, 2) }}</span> <small class="font-weight-bold {{ $devCls($sQty, $tQty) }}" id="sumDevQty">({{ $dev($sQty, $tQty) }})</small></h4>
+          <small class="text-muted">Target Qty Kirim</small>
         </div>
       </div>
     </div>
