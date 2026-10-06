@@ -37,6 +37,8 @@ use Approval;
 
 class BankKeluarController extends Controller
 {
+    use \App\Http\Controllers\Concerns\ArPartialPayment;
+
     private $title;
     private $moduleCode;
     private $lockDate;
@@ -1120,8 +1122,7 @@ try {
     return (float) DB::table('kas_det')
         ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
         ->where('kas_det.reference', $reference)
-        ->where('kas_hdr.paid_to', $supplierCode)
-        ->where('kas_hdr.voucher_type', $this->moduleCode)   // 'BK'
+        ->whereIn('kas_hdr.voucher_type', ['BK', 'BM'])      // BM juga bisa melunasi AP (refund)
         ->where('kas_hdr.status', '<>', '5')                 // voucher deleted tidak dihitung
         ->when($excludeVcNumber, function ($q) use ($excludeVcNumber) {
             $q->where('kas_det.voucher_number', '<>', $excludeVcNumber);
@@ -1136,11 +1137,25 @@ private function assertNotExceedRemaining($details, $supplierCode, $excludeVcNum
 
     // gabung nominal per reference (jaga-jaga 1 invoice muncul di 2 baris)
     $perRef = [];
+    $perRefCredit = [];
     foreach ($details as $val) {
         $ref = $val->reference ?? null;
         if ($ref === null || $ref === '') continue;
         $amt = (float) ($val->{$col} ?? 0);
         $perRef[$ref] = ($perRef[$ref] ?? 0) + $amt;
+        $perRefCredit[$ref] = ($perRefCredit[$ref] ?? 0) + (float) ($val->credit ?? 0);
+    }
+
+    // AR (refund piutang / DN): partial-aware lewat trait
+    foreach ($perRefCredit as $ref => $amtCredit) {
+        $grandTotalAr = $this->arGrandTotal($ref);
+        if ($grandTotalAr === null) continue;
+
+        $remainingAr = $grandTotalAr - $this->arPaid($ref, $excludeVcNumber);
+        if ($amtCredit > $remainingAr + 0.01) {
+            $errors[] = "Invoice $ref: nominal " . number_format($amtCredit, 2)
+                      . " melebihi sisa " . number_format(max($remainingAr, 0), 2);
+        }
     }
 
     foreach ($perRef as $ref => $amt) {
@@ -1149,7 +1164,7 @@ private function assertNotExceedRemaining($details, $supplierCode, $excludeVcNum
             ->where('supplier_id', $supplierCode)
             ->first();
 
-        if (!$inv) continue;   // bukan AP (mis. refund AR) → lewati validasi sisa
+        if (!$inv) continue;   // bukan AP → sudah divalidasi di blok AR di atas
 
         $grandTotal = (float) $inv->grand_total;
         $paidOther  = $this->getInvoicePaid($ref, $supplierCode, $excludeVcNumber);
@@ -1205,22 +1220,8 @@ public function paidTransaction($supplierCode, $vcNumber, $extraRefs = [])
             ]);
     }
 
-    // === AR refund & DN: BIARKAN apa adanya (kepakai, jangan diubah) ===
-    DB::table('invoice_hdr')
-        ->whereIn('invoice_number', $refs)
-        ->update([
-            'status'     => '6',
-            'updated_by' => Auth::user()->username,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-
-    DB::table('debit_note_hdr')
-        ->whereIn('dn_number', $refs)
-        ->update([
-            'status'     => '6',
-            'updated_by' => Auth::user()->username,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
+    // === AR refund & DN: partial-aware (6 lunas / 8 partial / 3 terbuka) ===
+    $this->syncArStatus($refs);
 }
 
     public function paidTransactionOld($supplierCode,$vcNumber)

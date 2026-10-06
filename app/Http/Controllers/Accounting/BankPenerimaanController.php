@@ -17,6 +17,8 @@ use Approval;
 
 class BankPenerimaanController extends Controller
 {
+    use \App\Http\Controllers\Concerns\ArPartialPayment;
+
     private $title;
     private $moduleCode;
     private $lockDate;
@@ -379,6 +381,11 @@ class BankPenerimaanController extends Controller
             // $hasilUpdate = AppHelpers::resetCode($leadCode);
             $inputYear = substr($vcDate,-2);
             $vcNumber = $this->getLastCode($leadCode,$periodNomor,$inputYear);
+
+            // === validasi partial: tolak terima > sisa invoice ===
+            if ($paymentErrors = $this->assertNotExceedRemaining($details)) {
+                return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => array_map(fn($e) => [$e], $paymentErrors), 'alert' => 'error']);
+            }
             DB::beginTransaction();
             try {
                     DB::table('kas_hdr')->insert([
@@ -589,9 +596,15 @@ class BankPenerimaanController extends Controller
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-                        
+            // === validasi partial (exclude voucher ini) ===
+            if ($paymentErrors = $this->assertNotExceedRemaining($details, $vcNumber)) {
+                return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => array_map(fn($e) => [$e], $paymentErrors), 'alert' => 'error']);
+            }
+
             DB::beginTransaction();
             try {
+                    $oldRefs = DB::table('kas_det')->where('voucher_number',$vcNumber)
+                        ->whereNotNull('reference')->where('reference','<>','')->pluck('reference')->toArray();
 
                     $row_affected=DB::table('kas_hdr')
                     ->where('voucher_number',$vcNumber)
@@ -647,7 +660,7 @@ class BankPenerimaanController extends Controller
              
                     if($status == '3'){
 
-                        $this->paidTransaction($vcNumber);
+                        $this->paidTransaction($vcNumber, $oldRefs);
 
                         // DB::table('invoice_hdr')
                         // ->whereIn('invoice_number',$listInvoice)
@@ -878,6 +891,10 @@ class BankPenerimaanController extends Controller
             // $rowAffected = DB::table('kas_hdr')->where('id',$id)->delete();
 
             if($rowAffected>0){
+
+                // voucher sudah status 5 -> tidak dihitung lagi; balikin status invoice (partial/open)
+                $this->syncPaymentStatus(DB::table('kas_det')->where('voucher_number',$vcNumber)
+                    ->whereNotNull('reference')->where('reference','<>','')->pluck('reference')->toArray());
 
                 $rowAffected=DB::table('kas_det')
                 ->where('voucher_number',$vcNumber)
@@ -1221,71 +1238,103 @@ class BankPenerimaanController extends Controller
 
     }
 
-    public function getInvoiceAmount(Request $request)
+    // AP (refund supplier): nilai yang sudah dibayar = debit di BK + BM, voucher belum deleted
+    private function getApPaid($reference, $excludeVcNumber = null)
     {
-        $refNumber = $request->vRef;
-        $amount1 = db::table('invoice_hdr')
-        ->where('invoice_number',$refNumber)
-        // ->select(db::raw("dpp+vat as amount"))
-        ->select(db::raw("grand_total as amount"))
-        ->value('amount');
+        if ($reference === null || $reference === '') return 0;
 
-        $amount2 = db::table('debit_note_hdr')
-        ->where('dn_number',$refNumber)
-        ->select(db::raw("grand_total as amount"))
-        ->value('amount');
-
-        $amount = $amount1+$amount2; 
-
-        return response()->json(array('amount' => $amount));
+        return (float) DB::table('kas_det')
+            ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
+            ->where('kas_det.reference', $reference)
+            ->whereIn('kas_hdr.voucher_type', ['BK', 'BM'])
+            ->where('kas_hdr.status', '<>', '5')
+            ->when($excludeVcNumber, fn($q) => $q->where('kas_det.voucher_number', '<>', $excludeVcNumber))
+            ->sum(DB::raw('coalesce(kas_det.debit, 0)'));
     }
 
-    public function paidTransaction($vcNumber)
+    private function getApGrandTotal($reference, $supplierCode = null)
     {
+        $amount = DB::table('ap_invoice')->where('inv_number', $reference)
+            ->when($supplierCode, fn($q) => $q->where('supplier_id', $supplierCode))
+            ->value('grand_total');
+        return $amount === null ? null : (float) $amount;
+    }
 
-        $supplierCode = DB::table('third_party')
-        ->where('account', function($query) use ($vcNumber) {
-            $query->select('receive_from')
-            ->from('kas_hdr') 
-            ->where('voucher_number',$vcNumber)
-            ->value('receive_from');
-        })->value('other_code');
+    private function assertNotExceedRemaining($details, $excludeVcNumber = null)
+    {
+        $perRef = [];
+        foreach ($details as $val) {
+            $ref = $val->reference ?? null;
+            if ($ref === null || $ref === '') continue;
+            $perRef[$ref]['credit'] = ($perRef[$ref]['credit'] ?? 0) + (float) ($val->credit ?? 0);
+            $perRef[$ref]['debit']  = ($perRef[$ref]['debit'] ?? 0) + (float) ($val->debit ?? 0);
+        }
 
-        $listInvoice=DB::table('kas_det')
-        ->where('voucher_number',$vcNumber)
-        ->where('reference','<>',null)
-        ->pluck('reference')->toArray();
-        
-        DB::table('ap_invoice')
-        ->whereIn('inv_number',$listInvoice)
-        ->where('supplier_id',$supplierCode)
-        ->update(
-            [   
-                'status' =>'6',
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]
-        );
+        $errors = [];
+        foreach ($perRef as $ref => $amt) {
+            if (($grandTotal = $this->arGrandTotal($ref)) !== null) {
+                $remaining = $grandTotal - $this->arPaid($ref, $excludeVcNumber);
+                $nominal = $amt['credit'];
+            } elseif (($grandTotal = $this->getApGrandTotal($ref)) !== null) {
+                $remaining = $grandTotal - $this->getApPaid($ref, $excludeVcNumber);
+                $nominal = $amt['debit'];
+            } else {
+                continue;
+            }
 
-        DB::table('invoice_hdr')
-        ->whereIn('invoice_number',$listInvoice)
-        ->update(
-            [   
-                'status' =>'6',
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]
-        );
+            if ($nominal > $remaining + 0.01) {
+                $errors[] = "Invoice $ref: nominal " . number_format($nominal, 2)
+                          . " melebihi sisa " . number_format(max($remaining, 0), 2);
+            }
+        }
+        return $errors;
+    }
 
-        DB::table('debit_note_hdr')
-        ->whereIn('dn_number',$listInvoice)
-        ->update(
-            [   
-                'status' =>'6',
-                'updated_by' => Auth::user()->username,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]
-        );
+    public function getInvoiceAmount(Request $request)
+    {
+        $ref = $request->vRef;
+
+        if (($grandTotal = $this->arGrandTotal($ref)) !== null) {
+            $paid = $this->arPaid($ref);
+        } elseif (($grandTotal = $this->getApGrandTotal($ref, $request->supplierCode)) !== null) {
+            $paid = $this->getApPaid($ref);
+        } else {
+            $grandTotal = 0;
+            $paid = 0;
+        }
+        $remaining = max($grandTotal - $paid, 0);
+
+        return response()->json([
+            'amount'     => $remaining,   // JS lama (mis. Bank Keluar refund) baca 'amount' -> otomatis sisa
+            'grandTotal' => $grandTotal,
+            'paid'       => $paid,
+            'remaining'  => $remaining,
+        ]);
+    }
+
+    // AR (trait): 6 lunas, 8 partial, 3 terbuka. AP: 6 lunas, 7 partial, 4 balik terbuka.
+    private function syncPaymentStatus($refs)
+    {
+        $this->syncArStatus($refs);
+
+        foreach (array_unique($refs) as $ref) {
+            if ($ref === null || $ref === '' || ($grandTotal = $this->getApGrandTotal($ref)) === null) continue;
+
+            $paid = $this->getApPaid($ref);
+            $status = $paid >= $grandTotal - 0.01 ? '6' : ($paid > 0.01 ? '7' : '4');
+            DB::table('ap_invoice')->where('inv_number', $ref)->whereIn('status', ['4', '6', '7'])
+                ->update(['status' => $status, 'updated_by' => Auth::user()->username, 'updated_at' => date('Y-m-d H:i:s')]);
+        }
+    }
+
+    public function paidTransaction($vcNumber, $extraRefs = [])
+    {
+        $listInvoice = DB::table('kas_det')
+            ->where('voucher_number', $vcNumber)
+            ->whereNotNull('reference')->where('reference', '<>', '')
+            ->pluck('reference')->toArray();
+
+        $this->syncPaymentStatus(array_merge($listInvoice, $extraRefs));
     }
 
 }

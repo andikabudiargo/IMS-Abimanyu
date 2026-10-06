@@ -182,7 +182,7 @@
 
         //         if ((accountNumber == coa)){
         //             if(paidTo){
-        //                 invList('reference',objCust,paidTo,ref,objIndex);
+        //                 invList('referenceApPartial',objCust,paidTo,ref,objIndex);
         //             }else{
         //                 Swal.fire('Warning..','Supplier code masih kosong','warning');
         //             }
@@ -213,7 +213,7 @@
             if(accountNumber){
                 if (accountNumber.substring(0,7) =='1100.40'){
                     if(recFrom == accountNumber){
-                        invList('referenceAr',objCust,recFrom,ref,objIndex);
+                        invList('referenceArPartial',objCust,recFrom,ref,objIndex);
                     }else{
                         // Swal.fire('Warning..','Kolom terima dari supplier code masih kosong','warning');
                         Swal.fire('Warning..','Account Receive From dan Account piutang tidak sama','warning');
@@ -231,7 +231,7 @@
 
                 if ((accountNumber == coa)){
                     if(paidTo){
-                        invList('reference',objCust,paidTo,ref,objIndex);
+                        invList('referenceApPartial',objCust,paidTo,ref,objIndex);
                     }else{
                         Swal.fire('Warning..','Supplier code masih kosong','warning');
                     }
@@ -328,9 +328,32 @@
                     if(jenis === 'piutang'){
                         objVcCredit.eq(objIndex).val(humanizeNumber(fixAmount));
                         objVcDebit.eq(objIndex).val('');
+                        // simpan sisa buat validasi sebelum submit (partial payment)
+                        objVcCredit.eq(objIndex).attr('data-remaining', data.remaining ?? '');
+                        if(data.paid && parseFloat(data.paid) > 0){
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Sudah dibayar sebagian',
+                                html: 'Invoice <b>'+vRef+'</b><br>Total: '+humanizeNumber(parseFloat(data.grandTotal).toFixed(2))
+                                     +'<br>Sudah diterima: '+humanizeNumber(parseFloat(data.paid).toFixed(2))
+                                     +'<br>Sisa: <b>'+humanizeNumber(parseFloat(data.remaining).toFixed(2))+'</b>',
+                                timer: 4000
+                            });
+                        }
                     }else{
                         objVcDebit.eq(objIndex).val(humanizeNumber(fixAmount));
                         objVcCredit.eq(objIndex).val('');
+                        objVcDebit.eq(objIndex).attr('data-remaining', data.remaining ?? '');
+                        if(data.paid && parseFloat(data.paid) > 0){
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Sudah dibayar sebagian',
+                                html: 'Invoice <b>'+vRef+'</b><br>Total: '+humanizeNumber(parseFloat(data.grandTotal).toFixed(2))
+                                     +'<br>Sudah dibayar: '+humanizeNumber(parseFloat(data.paid).toFixed(2))
+                                     +'<br>Sisa: <b>'+humanizeNumber(parseFloat(data.remaining).toFixed(2))+'</b>',
+                                timer: 4000
+                            });
+                        }
                     }
                     hitungGrandTotal();
                 }

@@ -212,7 +212,7 @@
                 },
                 success:function(result){
                     if(result){
-                        if ( statusKu != 'PAID') {
+                        if ( (statusKu != 'PAID' && statusKu != 'PARTIALLY PAID')) {
                             $('#cmdSubmit').removeAttr('disabled');
                         }
 

@@ -274,6 +274,18 @@
                             });
                         }
 
+                        // === validasi partial: tolak terima > sisa ===
+                        let remaining = objVcCredit.eq(i).attr('data-remaining');
+                        let nominal = sCredit;
+                        if (remaining === undefined || remaining === ''){
+                            remaining = objVcDebit.eq(i).attr('data-remaining');
+                            nominal = sDebit;
+                        }
+                        if (remaining !== undefined && remaining !== '' && sRef && parseFloat(nominal) > parseFloat(remaining) + 0.01){
+                            pesan += "Invoice " + sRef + ": terima melebihi sisa " + humanizeNumber(parseFloat(remaining).toFixed(2)) + "<br>";
+                            flag = 1;
+                        }
+
                         if ((sDesc =='') || (sCc =='') || ((sDebit + sCredit) == 0)){
                             cekIsi++;
                         }

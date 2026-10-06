@@ -67,6 +67,7 @@ class InventoryValuationController extends Controller
             $sQtyIn          = 0; $sValueIn        = 0;
             $sQtyOut         = 0; $sValueOut       = 0;
             $sAkhirQty       = 0; $sAkhirValue     = 0;
+            $sConsQty        = 0; $sConsValue      = 0;
 
             foreach ($articles as $art) {
                 $artCode = $art->artikel_code;
@@ -84,6 +85,12 @@ class InventoryValuationController extends Controller
 
                 $totalQtyOut   = collect($transOut)->sum('qty');
                 $totalValueOut = collect($transOut)->sum('total_value');
+
+                // Consumption = Supply (SUPPLY/TRANSFER keluar) - Return (TRANSFER masuk), sama dgn STO Report
+                $isSupply  = fn($t) => in_array($t->movement_type, ['SUPPLY', 'TRANSFER']);
+                $isReturn  = fn($t) => $t->movement_type === 'TRANSFER';
+                $consQty   = collect($transOut)->filter($isSupply)->sum('qty')         - collect($transIn)->filter($isReturn)->sum('qty');
+                $consValue = collect($transOut)->filter($isSupply)->sum('total_value') - collect($transIn)->filter($isReturn)->sum('total_value');
 
                 // Saldo akhir qty = Saldo Awal + Masuk − Keluar
                 $saldoAkhirQty = $saldoAwal['qty'] + $totalQtyIn - $totalQtyOut;
@@ -118,6 +125,8 @@ class InventoryValuationController extends Controller
                         'saldo_akhir_qty'   => round($saldoAkhirQty, 4),
                         'avg_price_akhir'   => round($avgPriceAkhir, 4),
                         'saldo_akhir_value' => round($saldoAkhirValue, 2),
+                        'consumption_qty'   => round($consQty, 4),
+                        'consumption_value' => round($consValue, 2),
                     ],
                 ];
 
@@ -129,6 +138,8 @@ class InventoryValuationController extends Controller
                 $sValueOut       += $totalValueOut;
                 $sAkhirQty       += $saldoAkhirQty;
                 $sAkhirValue     += $saldoAkhirValue;
+                $sConsQty        += $consQty;
+                $sConsValue      += $consValue;
             }
 
             $dataPerLokasi[$loc] = $rows;
@@ -145,6 +156,8 @@ class InventoryValuationController extends Controller
                 'total_value_out'   => round($sValueOut, 2),
                 'saldo_akhir_qty'   => round($sAkhirQty, 4),
                 'saldo_akhir_value' => round($sAkhirValue, 2),
+                'consumption_qty'   => round($sConsQty, 4),
+                'consumption_value' => round($sConsValue, 2),
             ];
         }
 

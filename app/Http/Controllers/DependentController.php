@@ -326,7 +326,25 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose invoice';
                 break;
-            case 'referenceArEdit': 
+            case 'referenceApPartial':
+                $table='ap_invoice';
+                $field ='supplier_id';
+                $order ='ap_number';
+                $value = $code;
+                $name  ='ap_number';
+                $default='';
+                $defaulttxt='Choose invoice';
+                break;
+            case 'referenceArPartial':
+                $table='invoice_hdr';
+                $field ='customer_id';
+                $order ='invoice_number';
+                $value = $code;
+                $name  ='invoice_number';
+                $default='';
+                $defaulttxt='Choose invoice';
+                break;
+            case 'referenceArEdit':
                 $table='invoice_hdr';
                 $field ='customer_id';
                 $order ='invoice_number';
@@ -1079,6 +1097,45 @@ class DependentController extends Controller
 
             $data =  $data1->merge($data2);
 
+        }elseif($dependent =='referenceApPartial'){
+
+            // Bank Masuk partial: AP POSTED (4) / PARTIALLY PAID (7) yang masih punya sisa (debit BK + BM)
+            $data = DB::table($table)
+            ->where($field,$code)
+            ->whereIn('status',['4','7'])
+            ->whereRaw("grand_total - coalesce((select sum(kd.debit) from kas_det kd
+                join kas_hdr kh on kh.voucher_number = kd.voucher_number
+                where kd.reference = ap_invoice.inv_number and kh.status <> '5' and kh.voucher_type in ('BK','BM')),0) > 0.01")
+            ->orderBy($order)
+            ->get();
+
+        }elseif($dependent =='referenceArPartial'){
+
+            // Bank Masuk partial payment: tampilkan invoice/DN APPROVED yang masih punya sisa
+            $customerId = DB::table('third_party')->where('account',$code)->value('kode');
+            $customerId =  $customerId ? $customerId : $code;
+
+            $paidSql = "coalesce((select sum(kd.credit) from kas_det kd
+                join kas_hdr kh on kh.voucher_number = kd.voucher_number
+                where kd.reference = %s and kh.status <> '5' and kh.voucher_type in ('BM','KM')),0)";
+
+            $data1 = DB::table($table)
+            ->where($field,$customerId)
+            ->whereIn('status',['3','8'])
+            ->whereRaw('grand_total - '.sprintf($paidSql,'invoice_hdr.invoice_number').' > 0.01')
+            ->orderBy($order)
+            ->get();
+
+            $data2 = DB::table('debit_note_hdr')
+            ->where('customer_id',$customerId)
+            ->whereIn('status',['3','8'])
+            ->whereRaw('grand_total - '.sprintf($paidSql,'debit_note_hdr.dn_number').' > 0.01')
+            ->select('dn_number as invoice_number')
+            ->orderBy('dn_number')
+            ->get();
+
+            $data =  $data1->merge($data2);
+
         }elseif($dependent =='referenceArEdit'){
 
             //sementara tidak ada yang pakai
@@ -1245,6 +1302,10 @@ class DependentController extends Controller
             }elseif($dependent =='referenceApEdit'){
                 $output .="<option value='$row->inv_number'>$row->inv_number</option>";
             }elseif($dependent =='referenceAr'){
+                $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
+            }elseif($dependent =='referenceApPartial'){
+                $output .="<option value='$row->inv_number'>$row->inv_number</option>";
+            }elseif($dependent =='referenceArPartial'){
                 $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";
             }elseif($dependent =='referenceArEdit'){
                 $output .="<option value='$row->invoice_number'>$row->invoice_number</option>";

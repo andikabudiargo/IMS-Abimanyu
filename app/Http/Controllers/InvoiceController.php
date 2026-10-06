@@ -171,7 +171,7 @@ class InvoiceController extends Controller
         $data['totalBalance'] = $statistic[0]->balance;
     
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
-        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED','6'=>'PAID'];
+        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','5'=>'CANCELED','6'=>'PAID','8'=>'PARTIALLY PAID'];
 
         $data['lockDate'] = $this->lockDateIndex;
 
@@ -214,7 +214,7 @@ class InvoiceController extends Controller
             new ways
             Jadi dilihat nomor terakhir bukan dari tabel master_code lagi
             tapi dari nomor terakhir transaksi
-            $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
+            $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID','8'=>'PARTIALLY PAID'];
             "INV-ASN-24-I-0001"
         */
 
@@ -323,7 +323,7 @@ class InvoiceController extends Controller
             new ways
             Jadi dilihat nomor terakhir bukan dari tabel master_code lagi
             tapi dari nomor terakhir transaksi
-            $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
+            $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID','8'=>'PARTIALLY PAID'];
             "INV-ASN-24-I-0001"
         */
         
@@ -383,7 +383,7 @@ class InvoiceController extends Controller
 
         $data['status']='NEW';
 
-        $data['options'] = [['name'=>'DRAFT','id'=>'1'],['name'=>'VALIDATED','id'=>'2'],['name'=>'APPROVED','id'=>'3'],['name'=>'POSTED','id'=>'4'],['name'=>'CANCELED','id'=>'5'],['name'=>'PAID','id'=>'6']];
+        $data['options'] = [['name'=>'DRAFT','id'=>'1'],['name'=>'VALIDATED','id'=>'2'],['name'=>'APPROVED','id'=>'3'],['name'=>'POSTED','id'=>'4'],['name'=>'CANCELED','id'=>'5'],['name'=>'PAID','id'=>'6'],['name'=>'PARTIALLY PAID','id'=>'8']];
 
 
         return view("invoice.createv2",$data);
@@ -596,7 +596,7 @@ class InvoiceController extends Controller
         $invoiceNumber = $data['header']->invoice_number;
         $data['soDateRange'] = $data['header']->start_date.' to '.$data['header']->end_date;
 
-        $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED','PARTIALLY PAID'];
         $data['status'] = $status[$data['header']->status-1];
 
         $soNumbers = DB::table('invoice_det')
@@ -663,7 +663,7 @@ class InvoiceController extends Controller
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
 
-        $statusInv = ['DRAFT','VALIDATED','APPROVED','','CANCELED','PAID'];
+        $statusInv = ['DRAFT','VALIDATED','APPROVED','','CANCELED','PAID','REVISED','PARTIALLY PAID'];
         $data['statusInv'] = $statusInv[$data['header']->status-1];
 
         $ppn = DB::table('sales_order_hdr')
@@ -810,7 +810,7 @@ class InvoiceController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$invoiceNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
-        $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED','PARTIALLY PAID'];
         $data['status'] = $status[$data['header']->status-1];
 
         $ppn = DB::table('sales_order_hdr')
@@ -968,7 +968,7 @@ class InvoiceController extends Controller
                         ] + ($startDate !== "" ? ['start_date' => $startDate, 'end_date' => $endDate] : [])
                     );
 
-                    if ($statusInvoice != '6') {
+                    if (!in_array($statusInvoice, ['6','8'])) {
                         if ($row_affected > 0) {
                             // so_number/po_number WAJIB diambil live dari delivery_hdr, bukan
                             // dari $val->so_number/po_number (payload form) -- kalau SO-nya
@@ -1639,8 +1639,8 @@ DB::raw("
             return '<a href="'.route('invoice.print', ['id'=>Crypt::encryptString($data->id)]).'" target="_blank" class="dropdown-item" style="padding:0px">'.$data->invoice_number.'</a>';
         })
         ->addColumn('status', function ($data) {
-            $badges    = ['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];
-            $statusInv = ['DRAFT','VALIDATE','APPROVED','POSTED','CANCELED','PAID'];
+            $badges    = ['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-warning'];
+            $statusInv = ['DRAFT','VALIDATE','APPROVED','POSTED','CANCELED','PAID','REVISED','PARTIALLY PAID'];
 
             // ✅ Guard index supaya tidak undefined / negatif
             $idx = (int) $data->status - 1;
@@ -1851,7 +1851,7 @@ DB::raw("
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
             // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
-            $statusInv = ['DRAFT','VALIDATE','APPROVED','POSTED','CANCELED','PAID'];
+            $statusInv = ['DRAFT','VALIDATE','APPROVED','POSTED','CANCELED','PAID','REVISED','PARTIALLY PAID'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusInv[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','invoice_number'])
@@ -2573,7 +2573,7 @@ $jumlahData = count($jumlahDataRaw);
             $rowId = str_replace('/', '', $row->so_number);
             $rowKey = $row->so_number.'_'.$key;
             $cutomCheck = 'customCheck'.$rowId.$key;
-            $disabledCheck = $statusInvoice == '6' ? 'disabled' : '';
+            $disabledCheck = in_array($statusInvoice, ['6','8']) ? 'disabled' : '';
             $output .="<tr class='$rowId' id='$rowKey'>
                             <td>
                                 <div class='custom-control custom-checkbox'>

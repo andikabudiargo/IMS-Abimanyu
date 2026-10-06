@@ -99,6 +99,7 @@
                             <th colspan="3" class="text-center grp-masuk">INCOMING (DEBIT)</th>
                             <th colspan="3" class="text-center grp-keluar">OUTGOING (CREDIT)</th>
                             <th colspan="3" class="text-center grp-saldo-akhir">ON HAND (BALANCE)</th>
+                            <th colspan="2" class="text-center grp-consumption">CONSUMPTION</th>
                         </tr>
                         <tr>
                             <th class="col-qty grp-saldo-awal">Qty</th>
@@ -116,11 +117,14 @@
                             <th class="col-qty grp-saldo-akhir">Qty</th>
                             <th class="col-money grp-saldo-akhir">Price</th>
                             <th class="col-money grp-saldo-akhir">Value</th>
+
+                            <th class="col-qty grp-consumption">Qty</th>
+                            <th class="col-money grp-consumption">Value</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyValuation">
                         <tr class="no-data-row">
-                            <td colspan="17">
+                            <td colspan="19">
                                 <i data-feather="info" class="mr-1"></i>
                                 Pilih filter dan klik <strong>Tampilkan</strong> untuk memuat data.
                             </td>
@@ -141,6 +145,8 @@
                             <td class="col-qty"   id="ftSaldoAkhirQty"></td>
                             <td class="col-money"></td>
                             <td class="col-money" id="ftSaldoAkhirValue"></td>
+                            <td class="col-qty"   id="ftConsQty"></td>
+                            <td class="col-money" id="ftConsValue"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -161,6 +167,7 @@
                             <th colspan="2" class="text-center grp-masuk">INCOMING (DEBIT)</th>
                             <th colspan="2" class="text-center grp-keluar">OUTGOING (CREDIT)</th>
                             <th colspan="2" class="text-center grp-saldo-akhir">ON HAND (BALANCE)</th>
+                            <th colspan="2" class="text-center grp-consumption">CONSUMPTION</th>
                         </tr>
                         <tr>
                             <th class="col-qty grp-saldo-awal">Qty</th>
@@ -171,11 +178,13 @@
                             <th class="col-money grp-keluar">Value</th>
                             <th class="col-qty grp-saldo-akhir">Qty</th>
                             <th class="col-money grp-saldo-akhir">Value</th>
+                            <th class="col-qty grp-consumption">Qty</th>
+                            <th class="col-money grp-consumption">Value</th>
                         </tr>
                     </thead>
                     <tbody id="tbodySummary">
                         <tr class="no-data-row">
-                            <td colspan="10">
+                            <td colspan="12">
                                 <i data-feather="info" class="mr-1"></i>
                                 Pilih filter dan klik <strong>Tampilkan</strong> untuk memuat data.
                             </td>
@@ -193,6 +202,8 @@
                             <td class="col-money" id="fsValueOut"></td>
                             <td class="col-qty"   id="fsAkhirQty"></td>
                             <td class="col-money" id="fsAkhirValue"></td>
+                            <td class="col-qty"   id="fsConsQty"></td>
+                            <td class="col-money" id="fsConsValue"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -254,6 +265,7 @@
     .grp-masuk        { border-left: 2px solid #9aa5b1 !important; }
     .grp-keluar        { border-left: 2px solid #9aa5b1 !important; }
     .grp-saldo-akhir  { border-left: 2px solid #9aa5b1 !important; }
+    .grp-consumption  { border-left: 2px solid #9aa5b1 !important; }
 
     /* ── Baris lokasi (grup header per lokasi) ── */
     .row-lokasi-header td {
@@ -428,7 +440,7 @@ function renderDetailTable() {
     const hasAnyArticle = locs.some(loc => (reportData[loc] || []).length > 0);
 
     if (!hasAnyArticle) {
-        tbody.html('<tr class="no-data-row"><td colspan="17"><i data-feather="info" class="mr-1"></i>Tidak ada data untuk filter yang dipilih.</td></tr>');
+        tbody.html('<tr class="no-data-row"><td colspan="19"><i data-feather="info" class="mr-1"></i>Tidak ada data untuk filter yang dipilih.</td></tr>');
         tfoot.addClass('d-none');
         feather.replace();
         updateBtnState(false);
@@ -439,6 +451,7 @@ function renderDetailTable() {
     let gQtyIn = 0, gValueIn = 0;
     let gQtyOut = 0, gValueOut = 0;
     let gAkhirQty = 0, gAkhirValue = 0;
+    let gConsQty = 0, gConsValue = 0;
 
     locs.forEach(function (loc) {
         const articles = reportData[loc] || [];
@@ -447,7 +460,7 @@ function renderDetailTable() {
         const label = (reportMeta.loc_labels && reportMeta.loc_labels[loc]) ? reportMeta.loc_labels[loc] : loc;
         tbody.append(`
             <tr class="row-lokasi-header">
-                <td colspan="17">${loc} — ${escHtml(label)} <span class="font-weight-normal" style="opacity:.75;">(${articles.length} artikel)</span></td>
+                <td colspan="19">${loc} — ${escHtml(label)} <span class="font-weight-normal" style="opacity:.75;">(${articles.length} artikel)</span></td>
             </tr>
         `);
 
@@ -474,6 +487,8 @@ function renderDetailTable() {
                     <td class="col-qty grp-saldo-akhir">${fmt(art.summary.saldo_akhir_qty)}</td>
                     <td class="col-money">${fmtRp(art.summary.avg_price_akhir)}</td>
                     <td class="col-money">${fmtRp(art.summary.saldo_akhir_value)}</td>
+                    <td class="col-qty grp-consumption">${fmt(art.summary.consumption_qty)}</td>
+                    <td class="col-money">${fmtRp(art.summary.consumption_value)}</td>
                 </tr>
             `);
 
@@ -489,6 +504,7 @@ function renderDetailTable() {
                     <td colspan="3" class="grp-masuk"></td>
                     <td colspan="3" class="grp-keluar"></td>
                     <td colspan="3" class="grp-saldo-akhir"></td>
+                    <td colspan="2" class="grp-consumption"></td>
                 </tr>
             `);
 
@@ -507,6 +523,7 @@ function renderDetailTable() {
                         <td class="col-money">${fmtRp(t.total_value)}</td>
                         <td colspan="3" class="grp-keluar"></td>
                         <td colspan="3" class="grp-saldo-akhir"></td>
+                        <td colspan="2" class="grp-consumption"></td>
                     </tr>
                 `);
             });
@@ -526,6 +543,7 @@ function renderDetailTable() {
                         <td class="col-money">${fmtRp(t.price)}</td>
                         <td class="col-money">${fmtRp(t.total_value)}</td>
                         <td colspan="3" class="grp-saldo-akhir"></td>
+                        <td colspan="2" class="grp-consumption"></td>
                     </tr>
                 `);
             });
@@ -548,6 +566,8 @@ function renderDetailTable() {
                     <td class="col-qty grp-saldo-akhir">${fmt(art.summary.saldo_akhir_qty)}</td>
                     <td class="col-money">${fmtRp(art.summary.avg_price_akhir)}</td>
                     <td class="col-money">${fmtRp(art.summary.saldo_akhir_value)}</td>
+                    <td class="col-qty grp-consumption">${fmt(art.summary.consumption_qty)}</td>
+                    <td class="col-money">${fmtRp(art.summary.consumption_value)}</td>
                 </tr>
             `);
 
@@ -559,6 +579,8 @@ function renderDetailTable() {
             gValueOut       += art.summary.total_value_out;
             gAkhirQty       += art.summary.saldo_akhir_qty;
             gAkhirValue     += art.summary.saldo_akhir_value;
+            gConsQty        += art.summary.consumption_qty;
+            gConsValue      += art.summary.consumption_value;
         });
     });
 
@@ -570,6 +592,8 @@ function renderDetailTable() {
     $('#ftTotalValueOut').text(fmtRp(gValueOut));
     $('#ftSaldoAkhirQty').text(fmt(gAkhirQty));
     $('#ftSaldoAkhirValue').text(fmtRp(gAkhirValue));
+    $('#ftConsQty').text(fmt(gConsQty));
+    $('#ftConsValue').text(fmtRp(gConsValue));
 
     tfoot.removeClass('d-none');
     feather.replace();
@@ -601,7 +625,7 @@ function renderSummaryTable() {
     tbody.empty();
 
     if (!summaryData || summaryData.length === 0) {
-        tbody.html('<tr class="no-data-row"><td colspan="10"><i data-feather="info" class="mr-1"></i>Tidak ada data untuk filter yang dipilih.</td></tr>');
+        tbody.html('<tr class="no-data-row"><td colspan="12"><i data-feather="info" class="mr-1"></i>Tidak ada data untuk filter yang dipilih.</td></tr>');
         tfoot.addClass('d-none');
         feather.replace();
         return;
@@ -612,6 +636,7 @@ function renderSummaryTable() {
     let tQtyIn = 0, tValueIn = 0;
     let tQtyOut = 0, tValueOut = 0;
     let tAkhirQty = 0, tAkhirValue = 0;
+    let tConsQty = 0, tConsValue = 0;
 
     summaryData.forEach(function (s) {
         tbody.append(`
@@ -626,6 +651,8 @@ function renderSummaryTable() {
                 <td class="col-money">${fmtRp(s.total_value_out)}</td>
                 <td class="col-qty grp-saldo-akhir">${fmt(s.saldo_akhir_qty)}</td>
                 <td class="col-money">${fmtRp(s.saldo_akhir_value)}</td>
+                <td class="col-qty grp-consumption">${fmt(s.consumption_qty)}</td>
+                <td class="col-money">${fmtRp(s.consumption_value)}</td>
             </tr>
         `);
 
@@ -638,6 +665,8 @@ function renderSummaryTable() {
         tValueOut       += s.total_value_out;
         tAkhirQty       += s.saldo_akhir_qty;
         tAkhirValue     += s.saldo_akhir_value;
+        tConsQty        += s.consumption_qty;
+        tConsValue      += s.consumption_value;
     });
 
     $('#fsJumlahArtikel').text(tJumlah);
@@ -649,6 +678,8 @@ function renderSummaryTable() {
     $('#fsValueOut').text(fmtRp(tValueOut));
     $('#fsAkhirQty').text(fmt(tAkhirQty));
     $('#fsAkhirValue').text(fmtRp(tAkhirValue));
+    $('#fsConsQty').text(fmt(tConsQty));
+    $('#fsConsValue').text(fmtRp(tConsValue));
 
     tfoot.removeClass('d-none');
     feather.replace();
@@ -695,7 +726,8 @@ function exportXlsx() {
              'Saldo Awal Qty', 'Saldo Awal Nilai',
              'Masuk Qty', 'Masuk Nilai',
              'Keluar Qty', 'Keluar Nilai',
-             'Saldo Akhir Qty', 'Saldo Akhir Nilai'],
+             'Saldo Akhir Qty', 'Saldo Akhir Nilai',
+             'Consumption Qty', 'Consumption Nilai'],
         ];
         (summaryData || []).forEach(function (s) {
             summaryRows.push([
@@ -704,6 +736,7 @@ function exportXlsx() {
                 s.total_qty_in, s.total_value_in,
                 s.total_qty_out, s.total_value_out,
                 s.saldo_akhir_qty, s.saldo_akhir_value,
+                s.consumption_qty, s.consumption_value,
             ]);
         });
         const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
@@ -718,7 +751,7 @@ function exportXlsx() {
             ['Lokasi', 'Artikel Code', 'Deskripsi', 'UOM', 'Tanggal', 'No. Dokumen', 'Tipe',
              'Saldo Awal Qty', 'Saldo Awal Nilai',
              'IN Qty', 'IN Nilai', 'OUT Qty', 'OUT Nilai',
-             'Saldo Akhir Qty', 'Saldo Akhir Nilai', 'Keterangan'],
+             'Saldo Akhir Qty', 'Saldo Akhir Nilai', 'Consumption Qty', 'Consumption Nilai', 'Keterangan'],
         ];
 
         (reportMeta.locations || []).forEach(function (loc) {
@@ -728,7 +761,7 @@ function exportXlsx() {
                     '', '', 'SALDO AWAL',
                     art.saldo_awal.qty, art.saldo_awal.value,
                     '', '', '', '',
-                    '', '', ''
+                    '', '', '', '', ''
                 ]);
                 art.transaksi_in.forEach(function (t) {
                     detailRows.push([
@@ -736,7 +769,7 @@ function exportXlsx() {
                         t.tanggal, t.doc_number, t.movement_type,
                         '', '',
                         t.qty, t.total_value, '', '',
-                        '', '', t.keterangan
+                        '', '', '', '', t.keterangan
                     ]);
                 });
                 art.transaksi_out.forEach(function (t) {
@@ -745,7 +778,7 @@ function exportXlsx() {
                         t.tanggal, t.doc_number, t.movement_type,
                         '', '',
                         '', '', t.qty, t.total_value,
-                        '', '', t.keterangan
+                        '', '', '', '', t.keterangan
                     ]);
                 });
                 detailRows.push([
@@ -754,7 +787,8 @@ function exportXlsx() {
                     '', '',
                     art.summary.total_qty_in, art.summary.total_value_in,
                     art.summary.total_qty_out, art.summary.total_value_out,
-                    art.summary.saldo_akhir_qty, art.summary.saldo_akhir_value, ''
+                    art.summary.saldo_akhir_qty, art.summary.saldo_akhir_value,
+                    art.summary.consumption_qty, art.summary.consumption_value, ''
                 ]);
             });
         });
@@ -762,7 +796,7 @@ function exportXlsx() {
         const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
         wsDetail['!cols'] = [
             {wch:8},{wch:15},{wch:35},{wch:8},{wch:12},{wch:18},{wch:15},
-            {wch:12},{wch:14},{wch:10},{wch:14},{wch:10},{wch:14},{wch:12},{wch:14},{wch:30}
+            {wch:12},{wch:14},{wch:10},{wch:14},{wch:10},{wch:14},{wch:12},{wch:14},{wch:14},{wch:16},{wch:30}
         ];
         XLSX.utils.book_append_sheet(wb, wsDetail, 'Detail Transaksi');
 

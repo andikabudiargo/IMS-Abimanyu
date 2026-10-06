@@ -112,7 +112,7 @@ class DebitNoteController extends Controller
         $data['kolom'] = $this->getTableColoumn();
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
-        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID'];
+        $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','8'=>'PARTIALLY PAID'];
 
         $data['lockDate'] = $this->lockDateIndex;
                     
@@ -126,7 +126,7 @@ class DebitNoteController extends Controller
             new ways
             Jadi dilihat nomor terakhir bukan dari tabel master_code lagi
             tapi dari nomor terakhir transaksi
-            $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
+            $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID','8'=>'PARTIALLY PAID'];
             "INV-ASN-24-I-0001"
         */
         
@@ -427,7 +427,7 @@ class DebitNoteController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
         // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
-        $statusDn = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $statusDn = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED','PARTIALLY PAID'];
         $data['statusInv'] = $statusDn[$data['header']->status-1];
 
         $data['nilaiPPN'] = $data['header']->ppn;
@@ -496,7 +496,7 @@ class DebitNoteController extends Controller
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode,$dnNumber,$username);
 
         // $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','6'=>'PAID','7'=>'REVISED'];
-        $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED'];
+        $status = ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED','PARTIALLY PAID'];
         $data['status'] = $status[$data['header']->status-1];
 
         $data['nilaiPPN'] = $data['header']->ppn;
@@ -1132,7 +1132,7 @@ class DebitNoteController extends Controller
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
             // $data['status'] = ['1'=>'DRAFT','2'=>'VALIDATED','3'=>'APPROVED','4'=>'POSTED','5'=>'CANCELED','6'=>'PAID'];
-            $statusDn = ['DRAFT','VALIDATE','APPROVED','POSTED','DELETED','PAID'];
+            $statusDn = ['DRAFT','VALIDATE','APPROVED','POSTED','DELETED','PAID','REVISED','PARTIALLY PAID'];
             return "<div class='badge ".$badges[$data->status - 1]."'>".$statusDn[$data->status - 1]."</div>";
         })
         ->rawColumns(['action','status','dn_number'])

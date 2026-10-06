@@ -327,7 +327,7 @@
                 if (accountNumber.substring(0,7) =='1100.40'){
                     //if(recFrom == coa){
                     if(recFrom){
-                        invList('referenceAr',objSupp,recFrom,'',ref);
+                        invList('referenceArPartial',objSupp,recFrom,'',ref);
                     }else{
                         Swal.fire('Warning..','Data customer sebagai supplier masih kosong / tidak sesuai','warning');
                         objVcDebit.eq(objIndex).val("");
