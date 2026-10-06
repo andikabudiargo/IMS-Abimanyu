@@ -153,6 +153,14 @@
                             <a href="{{ route('article.request') }}" class="btn btn-outline-secondary">
                                 Back
                             </a>
+                            @if(in_array($article->status_approve, ['1','2']))
+                                @can('article-request-delete')
+                                    <form method="POST" action="{{ route('article.request.destroy', ['id'=>Crypt::encryptString($article->id)]) }}" class="d-inline" onsubmit="return confirm('Delete this article request?')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                    </form>
+                                @endcan
+                            @endif
                         </div>
                     </div>
                 </div>

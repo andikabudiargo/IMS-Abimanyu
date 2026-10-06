@@ -200,6 +200,7 @@
             <button type="button" class="btn btn-sm btn-primary bulk-btn" data-act="approve" data-flag="a">Approve</button>
             <button type="button" class="btn btn-sm btn-success bulk-btn" data-act="submit" data-flag="s">Submit</button>
             <button type="button" class="btn btn-sm btn-warning" id="bulkEdit" data-flag="e">Edit</button>
+            <button type="button" class="btn btn-sm btn-danger bulk-btn" data-act="delete" data-flag="d">Delete</button>
           </div>
           <div class="row">
               <div class="col-sm-12">

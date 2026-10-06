@@ -2312,29 +2312,40 @@ private function buildSummaryRow(array $p)
             }
 
             $id=Crypt::decryptString($request->id);
+            $articleDesc = '';
+            $title ="Delete $this->title";
+
+            if (!Auth::user()->can('article-request-delete')) {
+                return redirect()->route('article.request')->with(['alert' => 'warning', 'title' => $title, 'message' => 'Tidak punya akses delete']);
+            }
 
             DB::beginTransaction();
             try {
-
-                $articleDesc=db::table('article_request')->where('id',$id)->value('article_desc');
-
-                $rowAffected=DB::table('article_request')
-                ->where('id',$id)->delete();
-
+                $row = $this->deleteRequest($id);
                 DB::commit();
-                $title ="Delete $this->title";
-                $alert  ="success";
+                if (!$row) {
+                    return redirect()->route('article.request')->with(['alert' => 'warning', 'title' => $title, 'message' => "$this->title tidak bisa dihapus (sudah Submitted/Rejected atau tidak ditemukan)"]);
+                }
+                $articleDesc = $row->article_desc;
                 $message  = "$this->title $articleDesc is successfully deleted";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleDesc]);
+                return redirect()->route('article.request')->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>'success','articleCode'=>$articleDesc]);
             } catch (Exception $e) {
                 DB::rollBack();
-                $title ="Delete $this->title";
-                $alert  ="warning";
                 $message  = "$this->title $articleDesc is failed to delete";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>$alert,'articleCode'=>$articleDesc]);
-            }    
+                return redirect()->route('article.request')->with(['status' => 1,'title' => $title, 'message' => $message,'alert'=>'warning','articleCode'=>$articleDesc]);
+            }
+        }
+
+        // Hapus request yang masih Requested/Approved (status 1/2) beserta supplier-nya. null = tidak boleh dihapus.
+        private function deleteRequest($id)
+        {
+            $row = DB::table('article_request')->where('id', $id)->whereIn('status_approve', ['1', '2'])->lockForUpdate()->first();
+            if (!$row) return null;
+            DB::table('article_supplier_request')->where('article_code', $row->article_code)->delete();
+            DB::table('article_request')->where('id', $id)->delete();
+            return $row;
         }
 
         public function requestEdit(Request $request)
@@ -2606,7 +2617,7 @@ private function buildSummaryRow(array $p)
             
             $data['article'] = DB::table('article_request')
             ->where('id',$id)
-            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing','coa','cashflow_category','brand'])->first();
+            ->get(['article_code','costprice','article_alternative_code as code','article_desc as desc','uom','quality','note','id','group_of_material as group','third_party as cust','quality','status','article_type','imgfile','color_code','variant','safety_stock','min_package','orderable','marketing','coa','cashflow_category','brand','status_approve'])->first();
 
             // $data['images'] = DB::table('images')
             // ->where('key',$data['article']->article_code)
@@ -2712,8 +2723,9 @@ private function buildSummaryRow(array $p)
                 $canApprove = $inDept && $data->status_approve == '1' && $user->can('article-request-approve');
                 $canSubmit = $data->status_approve == '2' && self::canSubmitRequest();
                 $canEdit = $inDept && in_array($data->status_approve, ['1','2']) && $user->can('article-request-edit');
-                if (!$canApprove && !$canSubmit && !$canEdit) return '';
-                return '<input type="checkbox" class="chk-req" value="'.Crypt::encryptString($data->idku).'" data-a="'.(int)$canApprove.'" data-s="'.(int)$canSubmit.'" data-e="'.(int)$canEdit.'" data-url="'.route('article.request.edit', ['id'=>Crypt::encryptString($data->idku)]).'">';
+                $canDelete = in_array($data->status_approve, ['1','2']) && $user->can('article-request-delete');
+                if (!$canApprove && !$canSubmit && !$canEdit && !$canDelete) return '';
+                return '<input type="checkbox" class="chk-req" value="'.Crypt::encryptString($data->idku).'" data-a="'.(int)$canApprove.'" data-s="'.(int)$canSubmit.'" data-e="'.(int)$canEdit.'" data-d="'.(int)$canDelete.'" data-url="'.route('article.request.edit', ['id'=>Crypt::encryptString($data->idku)]).'">';
             })
             ->addColumn('action', function ($data) {
                 $buttons = '<div class="d-inline-flex">
@@ -2729,7 +2741,7 @@ private function buildSummaryRow(array $p)
                                     </a>';
 
                 if (Auth::user()->can('article-request-delete')) {
-                    if ($data->status_approve == '1') {
+                    if (in_array($data->status_approve, ['1','2'])) {
                         $buttons .=         '<a href="javascript:;"
                                                 id="deleteButton"
                                                 class="dropdown-item"
@@ -2852,7 +2864,8 @@ private function buildSummaryRow(array $p)
         public function requestBulk(Request $request)
         {
             $act = $request->action;
-            $allowed = $act == 'approve' ? Auth::user()->can('article-request-approve') : ($act == 'submit' && self::canSubmitRequest());
+            $allowed = $act == 'approve' ? Auth::user()->can('article-request-approve')
+                : ($act == 'delete' ? Auth::user()->can('article-request-delete') : ($act == 'submit' && self::canSubmitRequest()));
             if (!$allowed || !is_array($request->ids)) {
                 return response()->json(['status' => 0, 'message' => 'Invalid request']);
             }
@@ -2871,7 +2884,9 @@ private function buildSummaryRow(array $p)
                     $row = DB::table('article_request')->where('id', $id)->lockForUpdate()->first();
                     if (!$row) { $skipped[] = $id; continue; }
 
-                    if ($act == 'approve') {
+                    if ($act == 'delete') {
+                        if (!$this->deleteRequest($id)) { $skipped[] = $row->article_desc; continue; }
+                    } elseif ($act == 'approve') {
                         $sameDept = DB::table('user_dept')->where('username', $row->created_by)
                             ->whereIn('dept', DB::table('user_dept')->where('username', $username)->select('dept'))->exists();
                         if ($row->status_approve != '1' || !$sameDept) { $skipped[] = $row->article_desc; continue; }

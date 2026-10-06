@@ -164,6 +164,14 @@
                             </div>
                         </div>                   
                     </form>
+                    @if(in_array($article->status_approve, ['1','2']))
+                        @can('article-request-delete')
+                            <form method="POST" action="{{ route('article.request.destroy', ['id'=>Crypt::encryptString($article->id)]) }}" class="mt-1" onsubmit="return confirm('Delete this article request?')">
+                                @csrf
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        @endcan
+                    @endif
                     {{-- <div class="form-row">
                         <div class="col-md-12">
                             <div class="card">
