@@ -22,7 +22,7 @@
         <form class="needs-validation" novalidate onsubmit="return false;">
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label class="form-label" for="account">COA <span class="text-danger">*</span></label>
+            <label class="form-label" for="account">COA</label>
             <select class="select2 form-control" id="account" name="account">
               <option value=""></option>
               @foreach($accounts as $val)
@@ -33,6 +33,18 @@
             </select>
             <small class="text-muted">Pilih COA header untuk menarik transaksi seluruh COA di bawahnya.</small>
           </div>
+          <div class="form-group col-md-6">
+            <label class="form-label" for="type_code">Tipe Akun <small class="text-muted">(alternatif dari COA)</small></label>
+            <select class="select2 form-control" id="type_code" name="type_code">
+              <option value=""></option>
+              @foreach($accTypes as $t)
+                <option value="{{ $t->code }}">{{ $t->code }} - {{ $t->name }}</option>
+              @endforeach
+            </select>
+            <small class="text-muted">Menarik seluruh COA detail bertipe ini, digabung dalam satu blok.</small>
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-group col-md-2">
             <label class="form-label" for="tahun">Tahun</label>
             <select class="select2 form-control" id="tahun" name="tahun">
@@ -68,7 +80,7 @@
             </select>
           </div>
           <div class="form-group col-md-4">
-            <label class="form-label" for="vcDate">Tanggal <small class="text-muted">(opsional, menimpa periode)</small></label>
+            <label class="form-label" for="vcDate">Date <small class="text-muted">(opsional, menimpa periode)</small></label>
             <input type="text" id="vcDate" name="vcDate" class="form-control flatpickr-range" placeholder="dd-mm-yyyy to dd-mm-yyyy" />
           </div>
           <div class="form-group col-md-2">
@@ -80,7 +92,6 @@
               @endforeach
             </select>
           </div>
-          
         </div>
         <div class="form-row">
           <div class="col-12">
@@ -178,10 +189,11 @@
 
   /* Saldo awal: baris biasa, hanya dibedakan garis bawah */
   #bb2Table tbody tr.bb2-opening > td { background:#fff; font-weight:600; border-bottom:1px solid #dee2e6; }
-  /* Saldo akhir: abu-abu netral */
+  /* Saldo akhir: abu-abu netral, menempel di bawah area scroll */
   #bb2Table tbody tr.bb2-closing > td {
+    position:sticky; bottom:0; z-index:2;
     background:#f1f3f5; font-weight:700;
-    border-top:1px solid #9ca3af; border-bottom:2px solid #9ca3af;
+    box-shadow:inset 0 1px 0 #9ca3af, inset 0 -2px 0 #9ca3af;
   }
   .bb2-note { font-weight:400; color:#6b7280; margin-left:.5rem; font-size:.8rem; }
 </style>
@@ -209,21 +221,26 @@
     rangePickr.flatpickr({ dateFormat: "d-m-Y", mode: 'range' });
   }
 
+  // COA dan Tipe Akun saling menggantikan.
+  $("#account").on('change', function () { if ($(this).val()) $("#type_code").val(null).trigger('change'); });
+  $("#type_code").on('change', function () { if ($(this).val()) $("#account").val(null).trigger('change'); });
+
   $("#btnReset").click(function () {
-    $("#account,#searchStatus,#dept").val(null).trigger('change');
+    $("#account,#type_code,#searchStatus,#dept").val(null).trigger('change');
     if (rangePickr.length) rangePickr[0]._flatpickr.clear();
     $("#bb2-result").hide();
   });
 
   $("#btnSearch").click(function () {
-    if (!$("#account").val()) {
-      alert('COA wajib dipilih.');
+    if (!$("#account").val() && !$("#type_code").val()) {
+      alert('Pilih COA atau Tipe Akun.');
       return;
     }
     $(".loading-spinner-container").addClass("-show");
 
     $.get("{{ route('bukuBesarV2.data') }}", {
       account: $("#account").val(),
+      type_code: $("#type_code").val(),
       tahun: $("#tahun").val(),
       period1: $("#period1").val(),
       period2: $("#period2").val(),
@@ -243,7 +260,7 @@
 
   const renderHeader = (h) => {
     $("#bb2-title").text(h.account + ' — ' + h.description + '  |  Periode: ' + h.periode_text);
-    $("#h-account").text(h.account + (h.is_header ? '  [HEADER]' : ''));
+    $("#h-account").text(h.account + (h.tag ? '  [' + h.tag + ']' : ''));
     $("#h-description").text(h.description);
     $("#h-kelompok").text(h.kelompok);
     $("#h-normal").text(h.saldo_normal);
@@ -272,7 +289,7 @@
 
     if (d.row_type === 'banner' || d.row_type === 'group') {
       span = $cells.length;
-      html = (d.g_range ? "<span class='bb2-tag'>HEADER</span>" : '')
+      html = (d.g_range ? "<span class='bb2-tag'>" + esc(d.g_tag || 'HEADER') + "</span>" : '')
            + "<span class='bb2-acc'>" + esc(d.account) + "</span><span class='bb2-name'>" + esc(d.nama_akun) + "</span>"
            + (d.g_range ? "<div class='bb2-meta'>Rincian: " + esc(d.g_range) + "</div>" : '');
     } else {
@@ -294,6 +311,14 @@
     $cells.first().attr('colspan', span).addClass('text-left').html(html);
   };
 
+  // Nilai untuk sorting: tanggal "dd-mm-yyyy [hh:mm]" -> yyyymmddhhmm, kode akun -> dipadding per segmen.
+  const sortDate = (v) => {
+    const m = /^(\d{2})-(\d{2})-(\d{4})(?: (\d{2}):(\d{2}))?$/.exec(v || '');
+    return m ? m[3] + m[2] + m[1] + (m[4] || '00') + (m[5] || '00') : (v || '');
+  };
+  const sortAccount = (v) => v ? String(v).split('.').map(p => p.padStart(6, '0')).join('.') : '';
+  const POS = { banner: 0, group: 0, opening: 1, trx: 2, closing: 3 };
+
   const renderTable = (h, rows) => {
     if (bb2Table) {
       bb2Table.destroy();
@@ -301,20 +326,37 @@
       $('#bb2Table thead > tr').remove();
     }
 
+    // Kolom tersembunyi untuk orderFixed: baris sub header, saldo awal, dan saldo
+    // akhir tetap di tempatnya; hanya baris transaksi yang berpindah saat disort.
+    rows.forEach(r => { r._pos = POS[r.row_type] ?? 2; });
+    const POS_IDX = KOLOM.length;
+    const kolomDt = KOLOM.concat([{ data: '_pos', visible: false, searchable: false, orderable: false }]);
+    const idxOf = (name) => KOLOM.findIndex(c => c.data === name);
+
     const amountIdx = KOLOM.map((c, i) => ['debit', 'credit'].includes(c.data) ? i : -1).filter(i => i >= 0);
 
     bb2Table = $('#bb2Table').DataTable({
       data: rows,
-      columns: KOLOM,
-      // Buku besar kronologis per COA, dan baris saldo harus tetap di tempatnya:
-      // sorting, pencarian, dan paging dimatikan. Lebar tabel ditangani oleh
+      columns: kolomDt,
+      // Semua kolom bisa disort (default: urutan kronologis dari server). Baris
+      // saldo dan sub header dikunci lewat orderFixed. Pencarian dan paging dimatikan. Lebar tabel ditangani oleh
       // wrapper .table-responsive (bukan scrollX, supaya baris colspan tidak
       // merusak sinkronisasi lebar kolom).
-      ordering: false,
+      ordering: true,
+      order: [],
+      orderFixed: { pre: [[POS_IDX, 'asc']] },
       searching: false,
       paging: false,
       info: false,
       columnDefs: [
+        {
+          targets: ['voucher_date', 'created_at', 'approval_at'].map(idxOf),
+          render: function (v, type) { return (type === 'sort' || type === 'type') ? sortDate(v) : v; }
+        },
+        {
+          targets: idxOf('account'),
+          render: function (v, type) { return (type === 'sort' || type === 'type') ? sortAccount(v) : v; }
+        },
         {
           targets: amountIdx,
           className: 'text-right',
