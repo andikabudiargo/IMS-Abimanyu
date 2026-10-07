@@ -186,11 +186,11 @@ class BukuBesarV2Controller extends Controller
         for ($i = count($parts) - 1; $i >= 1; $i--) {
             $prefix = implode('.', array_slice($parts, 0, $i));
             if (isset($headers[$prefix])) {
-                return $headers[$prefix];
+                return $prefix . ' - ' . $headers[$prefix];
             }
         }
 
-        return $headers[$code] ?? '-';
+        return isset($headers[$code]) ? $code . ' - ' . $headers[$code] : '-';
     }
 
     /** Range rincian sebuah HEADER: [pertama, terakhir, jumlah] akun DETAIL di bawahnya, atau null. */
@@ -358,25 +358,21 @@ class BukuBesarV2Controller extends Controller
             ]);
         }
 
-        $closing = $grandOpening + $grandDebit - $grandCredit;
+        // Footer: satu baris Saldo Akhir. Debet/Kredit = jumlah kolomnya (termasuk
+        // saldo awal di atas), hasilnya = Debet - Kredit.
+        $sumDebit = ($grandOpening > 0 ? $grandOpening : 0) + $grandDebit;
+        $sumCredit = ($grandOpening < 0 ? -$grandOpening : 0) + $grandCredit;
+        $closing = $sumDebit - $sumCredit;
 
-        $out[] = $this->blankRow([
-            'row_type'    => 'total',
-            'is_summary'  => true,
-            'description' => 'TOTAL MUTASI',
-            's_label'     => 'Total Mutasi',
-            's_note'      => count($trxRows) . ' transaksi',
-            'debit'       => $grandDebit,
-            'credit'      => $grandCredit,
-        ]);
         $out[] = $this->blankRow([
             'row_type'    => 'closing',
             'is_summary'  => true,
             'description' => 'SALDO AKHIR',
             's_label'     => 'Saldo Akhir',
             's_note'      => 'per ' . date('d-m-Y', strtotime($to)),
-            'debit'       => $closing >= 0 ? $closing : null,
-            'credit'      => $closing < 0 ? -$closing : null,
+            'debit'       => $sumDebit,
+            'credit'      => $sumCredit,
+            'statusku'    => '= ' . number_format(abs($closing), 2, ',', '.') . ($closing >= 0 ? ' (DEBET)' : ' (KREDIT)'),
         ]);
 
         $grandClosing = $grandOpening + $grandDebit - $grandCredit;

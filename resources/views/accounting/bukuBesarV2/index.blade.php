@@ -137,7 +137,7 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
-        <div class="card-datatable table-responsive pt-0">
+        <div class="card-datatable table-responsive pt-0 bb2-scroll">
           <table id="bb2Table" class="table"><thead class="thead-light"></thead></table>
         </div>
       </div>
@@ -151,8 +151,13 @@
   .bb2-info th { background:#f3f4f6; font-weight:600; white-space:nowrap; }
   .bb2-info td, .bb2-info th { padding:.4rem .6rem; font-size:.85rem; }
 
+  /* Tanpa wrap; area scroll sendiri supaya header kolom bisa menempel di atas */
+  .bb2-scroll { max-height:70vh; overflow:auto; }
   #bb2Table th, #bb2Table td { white-space:nowrap; vertical-align:middle; }
-  #bb2Table td.bb2-desc { white-space:normal; min-width:240px; }
+  #bb2Table thead th {
+    position:sticky; top:0; z-index:3; background:#f3f2f7;
+    box-shadow:inset 0 -1px 0 #dee2e6;
+  }
 
   /* Banner: hanya muncul kalau COA yang dipilih adalah HEADER */
   #bb2Table tbody tr.bb2-banner > td {
@@ -172,11 +177,11 @@
 
   /* Saldo awal: baris biasa, hanya dibedakan garis bawah */
   #bb2Table tbody tr.bb2-opening > td { background:#fff; font-weight:600; border-bottom:1px solid #dee2e6; }
-  /* Total mutasi & saldo akhir: abu-abu netral */
-  #bb2Table tbody tr.bb2-total > td,
-  #bb2Table tbody tr.bb2-closing > td { background:#f1f3f5; font-weight:600; }
-  #bb2Table tbody tr.bb2-total > td { border-top:1px solid #9ca3af; }
-  #bb2Table tbody tr.bb2-closing > td { border-bottom:2px solid #9ca3af; font-weight:700; }
+  /* Saldo akhir: abu-abu netral */
+  #bb2Table tbody tr.bb2-closing > td {
+    background:#f1f3f5; font-weight:700;
+    border-top:1px solid #9ca3af; border-bottom:2px solid #9ca3af;
+  }
   .bb2-note { font-weight:400; color:#6b7280; margin-left:.5rem; font-size:.8rem; }
 </style>
 @endsection
@@ -264,21 +269,24 @@
     const $cells = $tr.children('td');
     let span, html;
 
-    if (d.row_type === 'banner') {
+    if (d.row_type === 'banner' || d.row_type === 'group') {
       span = $cells.length;
-      html = "<span class='bb2-tag'>HEADER</span>"
-           + "<span class='bb2-acc'>" + esc(d.account) + "</span><span class='bb2-name'>" + esc(d.nama_akun) + "</span>"
-           + (d.g_range ? "<div class='bb2-meta'>Rincian: " + esc(d.g_range) + "</div>" : '');
-    } else if (d.row_type === 'group') {
-      span = $cells.length;
-      const meta = ['Kelompok: ' + esc(d.g_kelompok), 'Saldo normal: ' + esc(d.g_normal)];
-      if (d.g_range) meta.push('Rincian: ' + esc(d.g_range));
       html = (d.g_range ? "<span class='bb2-tag'>HEADER</span>" : '')
            + "<span class='bb2-acc'>" + esc(d.account) + "</span><span class='bb2-name'>" + esc(d.nama_akun) + "</span>"
-           + "<div class='bb2-meta'>" + meta.join(' &nbsp;·&nbsp; ') + "</div>";
+           + (d.g_range ? "<div class='bb2-meta'>Rincian: " + esc(d.g_range) + "</div>" : '');
     } else {
       span = MERGE_STOP;
       html = esc(d.s_label) + (d.s_note ? "<span class='bb2-note'>" + esc(d.s_note) + "</span>" : '');
+
+      if (d.row_type === 'closing') {
+        // Sisa kolom setelah Kredit digabung untuk hasil (Debet - Kredit).
+        const $rest = $cells.slice(MERGE_STOP + 2);
+        if ($rest.length) {
+          const n = $rest.length;
+          $rest.slice(1).remove();
+          $rest.first().attr('colspan', n).addClass('text-left');
+        }
+      }
     }
 
     $cells.slice(1, span).remove();
@@ -293,7 +301,6 @@
     }
 
     const amountIdx = KOLOM.map((c, i) => ['debit', 'credit'].includes(c.data) ? i : -1).filter(i => i >= 0);
-    const descIdx = KOLOM.findIndex(c => c.data === 'description');
 
     bb2Table = $('#bb2Table').DataTable({
       data: rows,
@@ -314,8 +321,7 @@
             if (type !== 'display') return v === null ? '' : v;
             return row.is_summary ? nfz(v) : nf(v);
           }
-        },
-        { targets: descIdx, className: 'bb2-desc' }
+        }
       ],
       dom: '<"d-flex justify-content-end align-items-center mx-1 mt-75"B>t',
       buttons: [{
