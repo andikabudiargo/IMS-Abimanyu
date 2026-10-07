@@ -299,119 +299,87 @@ class BukuBesarV2Controller extends Controller
                 DB::raw("(select to_char(approval_date::date,'DD-MM-YYYY') from approval_history where module_number = d.voucher_number order by approval_order desc limit 1) as approval_at")
             )
             ->orderBy('voucher_date_2')
+            ->orderBy(DB::raw("string_to_array(d.account,'.')::int[]"))
             ->orderBy('d.id')
             ->get();
 
-        $byAcc = [];
-        foreach ($trxRows as $r) {
-            $byAcc[$r->account][] = $r;
+        $sign = strtoupper($acc->debit_credit) === 'KREDIT' ? -1 : 1;
+
+        // Satu blok saja: untuk HEADER, saldo awal = jumlah seluruh COA di bawahnya
+        // dan transaksinya digabung (kolom Account membedakan asal COA-nya).
+        $grandOpening = 0;
+        foreach ($list as $a) {
+            $sgn = strtoupper($a->debit_credit) === 'KREDIT' ? -1 : 1;
+            $grandOpening += $sgn * (float) $a->opening_balance + (float) ($prior[$a->account] ?? 0);
         }
 
         $out = [];
-        $grandOpening = 0;
+        $out[] = $this->blankRow([
+            'row_type'   => 'group',
+            'is_summary' => true,
+            'account'    => $acc->account,
+            'nama_akun'  => $acc->description,
+            'g_kelompok' => $this->kelompokOf($acc->account, $headers),
+            'g_normal'   => $sign === -1 ? 'KREDIT' : 'DEBET',
+            'g_range'    => $isHeader ? $this->rangeText($this->detailRange($list, $acc->account)) : '',
+        ]);
+        $out[] = $this->blankRow([
+            'row_type'    => 'opening',
+            'is_summary'  => true,
+            'description' => 'SALDO AWAL',
+            's_label'     => 'Saldo Awal',
+            's_note'      => 'per ' . date('d-m-Y', strtotime($from . ' -1 day')),
+            'debit'       => $grandOpening >= 0 ? $grandOpening : null,
+            'credit'      => $grandOpening < 0 ? -$grandOpening : null,
+        ]);
+
         $grandDebit = 0;
         $grandCredit = 0;
-        $openNote = 'per ' . date('d-m-Y', strtotime($from . ' -1 day'));
-        $closeNote = 'per ' . date('d-m-Y', strtotime($to));
+        foreach ($trxRows as $r) {
+            $grandDebit += (float) $r->debit;
+            $grandCredit += (float) $r->credit;
 
-        // Banner: hanya kalau yang dipilih HEADER.
-        if ($isHeader) {
             $out[] = $this->blankRow([
-                'row_type'   => 'banner',
-                'is_summary' => true,
-                'account'    => $acc->account,
-                'nama_akun'  => $acc->description,
-                'g_range'    => $this->rangeText($this->detailRange($list, $acc->account)),
+                'nama_dept'      => $r->nama_dept,
+                'account'        => $r->account,
+                'nama_akun'      => $r->nama_akun,
+                'reference'      => $r->reference,
+                'voucher_number' => $r->voucher_number,
+                'description'    => $r->description,
+                'voucher_date'   => $r->voucher_date,
+                'period'         => $r->period,
+                'debit'          => (float) $r->debit,
+                'credit'         => (float) $r->credit,
+                'statusku'       => self::STATUS_LABEL[$r->status] ?? $r->status,
+                'created_by'     => $r->created_by,
+                'created_at'     => $r->created_at,
+                'approval_by'    => $r->approval_by,
+                'approval_at'    => $r->approval_at,
             ]);
         }
 
-        foreach ($list as $a) {
-            $code = $a->account;
-            $sgn = strtoupper($a->debit_credit) === 'KREDIT' ? -1 : 1;
-            $opening = $sgn * (float) $a->opening_balance + (float) ($prior[$code] ?? 0);
-            $trx = $byAcc[$code] ?? [];
+        $closing = $grandOpening + $grandDebit - $grandCredit;
 
-            // Pada tampilan multi COA, akun tanpa saldo awal & tanpa mutasi tidak ditampilkan.
-            if (count($list) > 1 && !$trx && abs($opening) < 0.005) {
-                continue;
-            }
-
-            $accIsHeader = strtoupper($a->acc_header) === 'HEADER';
-
-            $out[] = $this->blankRow([
-                'row_type'   => 'group',
-                'is_summary' => true,
-                'account'    => $code,
-                'nama_akun'  => $a->description,
-                'g_kelompok' => $this->kelompokOf($code, $headers),
-                'g_normal'   => $sgn === -1 ? 'KREDIT' : 'DEBET',
-                'g_range'    => $accIsHeader ? $this->rangeText($this->detailRange($list, $code)) : '',
-            ]);
-
-            $out[] = $this->blankRow([
-                'row_type'    => 'opening',
-                'is_summary'  => true,
-                'description' => 'SALDO AWAL',
-                's_label'     => 'Saldo Awal',
-                's_note'      => $openNote,
-                'debit'       => $opening >= 0 ? $opening : null,
-                'credit'      => $opening < 0 ? -$opening : null,
-            ]);
-
-            $d = 0;
-            $c = 0;
-            foreach ($trx as $r) {
-                $d += (float) $r->debit;
-                $c += (float) $r->credit;
-
-                $out[] = $this->blankRow([
-                    'nama_dept'      => $r->nama_dept,
-                    'account'        => $r->account,
-                    'nama_akun'      => $r->nama_akun,
-                    'reference'      => $r->reference,
-                    'voucher_number' => $r->voucher_number,
-                    'description'    => $r->description,
-                    'voucher_date'   => $r->voucher_date,
-                    'period'         => $r->period,
-                    'debit'          => (float) $r->debit,
-                    'credit'         => (float) $r->credit,
-                    'statusku'       => self::STATUS_LABEL[$r->status] ?? $r->status,
-                    'created_by'     => $r->created_by,
-                    'created_at'     => $r->created_at,
-                    'approval_by'    => $r->approval_by,
-                    'approval_at'    => $r->approval_at,
-                ]);
-            }
-
-            $closing = $opening + $d - $c;
-
-            $out[] = $this->blankRow([
-                'row_type'    => 'total',
-                'is_summary'  => true,
-                'description' => 'TOTAL MUTASI',
-                's_label'     => 'Total Mutasi',
-                's_note'      => count($trx) . ' transaksi',
-                'debit'       => $d,
-                'credit'      => $c,
-            ]);
-            $out[] = $this->blankRow([
-                'row_type'    => 'closing',
-                'is_summary'  => true,
-                'description' => 'SALDO AKHIR',
-                's_label'     => 'Saldo Akhir',
-                's_note'      => $closeNote,
-                'debit'       => $closing >= 0 ? $closing : null,
-                'credit'      => $closing < 0 ? -$closing : null,
-            ]);
-
-            $grandOpening += $opening;
-            $grandDebit += $d;
-            $grandCredit += $c;
-        }
+        $out[] = $this->blankRow([
+            'row_type'    => 'total',
+            'is_summary'  => true,
+            'description' => 'TOTAL MUTASI',
+            's_label'     => 'Total Mutasi',
+            's_note'      => count($trxRows) . ' transaksi',
+            'debit'       => $grandDebit,
+            'credit'      => $grandCredit,
+        ]);
+        $out[] = $this->blankRow([
+            'row_type'    => 'closing',
+            'is_summary'  => true,
+            'description' => 'SALDO AKHIR',
+            's_label'     => 'Saldo Akhir',
+            's_note'      => 'per ' . date('d-m-Y', strtotime($to)),
+            'debit'       => $closing >= 0 ? $closing : null,
+            'credit'      => $closing < 0 ? -$closing : null,
+        ]);
 
         $grandClosing = $grandOpening + $grandDebit - $grandCredit;
-        $sign = strtoupper($acc->debit_credit) === 'KREDIT' ? -1 : 1;
-
         return response()->json([
             'header' => [
                 'account'      => $acc->account,
