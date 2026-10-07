@@ -82,7 +82,7 @@
               @endforeach
             </select>
           </div>
-          <div class="form-group col-md-4">
+          <div class="form-group col-md-2">
             <label class="form-label" for="vcDate">Date <small class="text-muted">(opsional, menimpa periode)</small></label>
             <input type="text" id="vcDate" name="vcDate" class="form-control flatpickr-range" placeholder="dd-mm-yyyy to dd-mm-yyyy" />
           </div>
