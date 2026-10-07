@@ -59,7 +59,7 @@ class BukuBesarV2Controller extends Controller
     public function getTableColoumn()
     {
         $kolom = [
-            ['data' => 'nama_dept',      'name' => 'nama_dept',      'title' => 'Dept'],
+            ['data' => 'nama_dept',      'name' => 'nama_dept',      'title' => 'Cost Center'],
             ['data' => 'account',        'name' => 'account',        'title' => 'Account'],
             ['data' => 'nama_akun',      'name' => 'nama_akun',      'title' => 'Account Name'],
             ['data' => 'reference',      'name' => 'reference',      'title' => 'Reference'],
