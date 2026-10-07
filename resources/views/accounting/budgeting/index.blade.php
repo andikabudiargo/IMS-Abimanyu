@@ -80,7 +80,7 @@
               <th class="text-right">Debit</th>
               <th class="text-right">Average</th>
               <th class="text-right" style="width:140px">Cost Reduction</th>
-              <th class="text-right">Budget</th>
+              <th class="text-right">Recommended Monthly Budget</th>
               <th class="text-right" style="width:190px">Final Budget</th>
             </tr>
           </thead>
