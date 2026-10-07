@@ -821,6 +821,13 @@
                 </a>
               </li>
               @endcan
+              @can('ap-index')
+              <li class="{{ \Request::segment(1) == 'budgeting'  ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('budgeting.index') }}">
+                  <span class="menu-item text-truncate" data-i18n="Budgeting">Budgeting</span>
+                </a>
+              </li>
+              @endcan
                 </ul>
               </li>
               
