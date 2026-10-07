@@ -98,7 +98,7 @@
         </div>
         <div class="form-row">
           <div class="col-12">
-            <button type="button" class="btn btn-primary" id="btnSearch">Tampilkan</button>
+            <button type="button" class="btn btn-primary" id="btnSearch">Search</button>
             <button type="button" class="btn btn-outline-secondary" id="btnReset">Reset</button>
           </div>
         </div>
