@@ -423,13 +423,15 @@
             for(i=0;i<apDetails.length;i++){
                 add_new_row_edit(apDetails[i].account,apDetails[i].description,apDetails[i].cost_center,apDetails[i].debit);
             }
-            if(apType === 'NONPO'){
-                let apDetailsArticle = @json($apDetailsArticle);
-                for(i=0;i<apDetailsArticle.length;i++){
-                    add_new_row_np_edit(apDetailsArticle[i]);
-                }
-                hitungTotalNp();
-            }
+           if(apType === 'NONPO'){
+    isiArticleNp("{{ $header->supplier_id }}").done(function(){
+        let apDetailsArticle = @json($apDetailsArticle);
+        for(i=0;i<apDetailsArticle.length;i++){
+            add_new_row_np_edit(apDetailsArticle[i]);
+        }
+        hitungTotalNp();
+    });
+}
             $(".loading-spinner-container").removeClass("-show");
         }
     }

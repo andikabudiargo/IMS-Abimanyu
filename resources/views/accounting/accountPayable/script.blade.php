@@ -878,18 +878,15 @@
     }
 
     function isiArticleNp(supplierId) {
-        $.ajax({
-            url:"{{route('dynamic.dependent')}}",
-            method:"POST",
-            data:{
-                dependent:'article_ap_np',
-                value:supplierId
-            },
-            success:function(result){
-                listArticleNp = result;
-            }
-        })
-    }
+    return $.ajax({                       // tambahkan return
+        url:"{{route('dynamic.dependent')}}",
+        method:"POST",
+        data:{ dependent:'article_ap_np', value:supplierId },
+        success:function(result){
+            listArticleNp = result;
+        }
+    });
+}
 
     function changeselect(obj,accountNumber) {
         $('#'+obj).attr('disabled','disabled');
