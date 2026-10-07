@@ -97,7 +97,7 @@
   <div class="card">
     <div class="card-body">
       <h4 class="mb-1" id="bb2-title"></h4>
-      <table class="table table-sm table-bordered bb2-summary mb-0">
+      <table class="table table-sm table-bordered bb2-info mb-0">
         <tbody>
           <tr>
             <th width="12%">Kode COA</th><td width="14%" id="h-account"></td>
@@ -138,7 +138,7 @@
     <div class="card-content collapse show">
       <div class="card-body">
         <div class="card-datatable table-responsive pt-0">
-          <table id="bb2Table" class="table table-sm"><thead class="thead-light"></thead></table>
+          <table id="bb2Table" class="table"><thead class="thead-light"></thead></table>
         </div>
       </div>
     </div>
@@ -148,32 +148,36 @@
 
 @section('styles')
 <style>
-  .bb2-summary th { background:#f3f2f7; font-weight:600; white-space:nowrap; }
-  .bb2-summary td, .bb2-summary th { padding:.4rem .6rem; font-size:.85rem; }
-  #bb2Table td, #bb2Table th { font-size:.8rem; white-space:nowrap; }
+  .bb2-info th { background:#f3f4f6; font-weight:600; white-space:nowrap; }
+  .bb2-info td, .bb2-info th { padding:.4rem .6rem; font-size:.85rem; }
 
-  /* baris SALDO AWAL / AKHIR -- mengikuti gaya movement2 di articlev2 */
-  #bb2Table tbody tr.bb2-summary > td {
-    background:#fafbfc !important;
-    border-top:1px solid rgba(47,51,73,.08);
-    border-bottom:1px solid rgba(47,51,73,.08);
-    padding-top:.75rem; padding-bottom:.75rem;
-    color:#2f3349; font-weight:600;
+  #bb2Table th, #bb2Table td { white-space:nowrap; vertical-align:middle; }
+  #bb2Table td.bb2-desc { white-space:normal; min-width:240px; }
+
+  /* Banner: hanya muncul kalau COA yang dipilih adalah HEADER */
+  #bb2Table tbody tr.bb2-banner > td {
+    background:#dfe3e8; color:#1f2937; white-space:normal;
+    border-top:2px solid #9ca3af; padding:.65rem .75rem;
   }
-  #bb2Table tbody tr.row-saldo-awal  > td { background:#f6f5ff !important; }
-  #bb2Table tbody tr.row-saldo-akhir > td { background:#f2fbf6 !important; }
-  #bb2Table tbody tr.bb2-summary > td:first-child { border-left:3px solid transparent; }
-  #bb2Table tbody tr.row-saldo-awal  > td:first-child { border-left-color:#7367f0; }
-  #bb2Table tbody tr.row-saldo-akhir > td:first-child { border-left-color:#28c76f; }
-  .bb2-summary-badge {
-    display:inline-flex; align-items:center; gap:.4rem;
-    font-size:.72rem; font-weight:700; letter-spacing:.06em;
-    padding:.28rem .6rem; border-radius:6px;
+  /* Sub header per COA */
+  #bb2Table tbody tr.bb2-group > td {
+    background:#f1f3f5; color:#1f2937; white-space:normal;
+    border-top:1px solid #cfd4da; padding:.6rem .75rem;
   }
-  .bb2-summary-badge svg { width:13px; height:13px; }
-  .row-saldo-awal  .bb2-summary-badge { color:#5e50ee; background:rgba(115,103,240,.12); }
-  .row-saldo-akhir .bb2-summary-badge { color:#1f9d57; background:rgba(40,199,111,.12); }
-  #bb2Table tbody tr.bb2-summary .bb2-amount { font-size:.95rem; font-weight:700; }
+  .bb2-acc  { font-weight:700; color:#1f3a5f; margin-right:.75rem; }
+  .bb2-name { font-weight:600; }
+  .bb2-meta { font-size:.75rem; color:#6b7280; margin-top:.15rem; }
+  .bb2-tag  { font-size:.7rem; font-weight:600; letter-spacing:.04em; color:#374151;
+              border:1px solid #9ca3af; border-radius:3px; padding:.05rem .35rem; margin-right:.5rem; }
+
+  /* Saldo awal: baris biasa, hanya dibedakan garis bawah */
+  #bb2Table tbody tr.bb2-opening > td { background:#fff; font-weight:600; border-bottom:1px solid #dee2e6; }
+  /* Total mutasi & saldo akhir: abu-abu netral */
+  #bb2Table tbody tr.bb2-total > td,
+  #bb2Table tbody tr.bb2-closing > td { background:#f1f3f5; font-weight:600; }
+  #bb2Table tbody tr.bb2-total > td { border-top:1px solid #9ca3af; }
+  #bb2Table tbody tr.bb2-closing > td { border-bottom:2px solid #9ca3af; font-weight:700; }
+  .bb2-note { font-weight:400; color:#6b7280; margin-left:.5rem; font-size:.8rem; }
 </style>
 @endsection
 
@@ -183,9 +187,13 @@
   const nf = (v) => (v === null || v === '' || v === undefined || v === 0)
     ? ''
     : new Intl.NumberFormat('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2}).format(v);
+  // Baris ringkasan: nol tetap ditampilkan, null (sisi yang tidak dipakai) dikosongkan.
+  const nfz = (v) => (v === null || v === undefined)
+    ? ''
+    : new Intl.NumberFormat('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2}).format(v);
+  const esc = (s) => $('<div>').text(s === null || s === undefined ? '' : s).html();
 
-  // Baris SALDO AWAL/AKHIR di-merge sampai sebelum kolom Debet, angkanya
-  // tetap sejajar di kolom Debet/Kredit sesuai tanda saldo.
+  // Label baris ringkasan di-merge sampai sebelum kolom Debet.
   const MERGE_STOP = KOLOM.findIndex(c => c.data === 'debit');
 
   let bb2Table = null;
@@ -244,34 +252,37 @@
   };
 
   /**
-   * Gabungkan kolom Dept..Period jadi satu cell label pada baris ringkasan.
-   * API-nya diterima sebagai argumen, bukan dibaca dari variabel bb2Table --
-   * drawCallback dipanggil DI DALAM konstruktor DataTable, jadi saat draw
-   * pertama bb2Table masih null.
+   * Dipanggil sekali per baris saat DataTables membuat <tr>-nya.
+   * - banner/group : satu cell selebar tabel (nomor + nama akun, range bila HEADER)
+   * - opening/total/closing : label di-merge sampai sebelum kolom Debet
+   * Export Excel membaca data (bukan DOM), jadi cell yang di-merge tidak mengganggu.
    */
-  const mergeSummaryRows = (api) => {
-    $(api.table().body()).find('> tr').each(function () {
-      const $tr = $(this);
-      if ($tr.hasClass('bb2-merged')) return;
-      const row = api.row(this);
-      const d = row.length ? row.data() : null;
-      if (!d || !d.is_summary) return;
+  const styleSpecialRow = (tr, d) => {
+    if (!d || d.row_type === 'trx') return;
 
-      $tr.addClass('bb2-merged bb2-summary')
-         .addClass(d.summary_type === 'OPENING' ? 'row-saldo-awal' : 'row-saldo-akhir');
+    const $tr = $(tr).addClass('bb2-' + d.row_type);
+    const $cells = $tr.children('td');
+    let span, html;
 
-      const $cells = $tr.children('td').slice(0, MERGE_STOP);
-      if ($cells.length) {
-        const icon = d.summary_type === 'OPENING' ? 'log-in' : 'flag';
-        $cells.slice(1).remove();
-        $cells.first()
-          .attr('colspan', $cells.length)
-          .addClass('text-left')
-          .html("<span class='bb2-summary-badge'><i data-feather='" + icon + "'></i>"
-                + d.summary_label + "</span> <span class='text-muted'>" + d.summary_note + "</span>");
-      }
-    });
-    if (window.feather) feather.replace();
+    if (d.row_type === 'banner') {
+      span = $cells.length;
+      html = "<span class='bb2-tag'>HEADER</span>"
+           + "<span class='bb2-acc'>" + esc(d.account) + "</span><span class='bb2-name'>" + esc(d.nama_akun) + "</span>"
+           + (d.g_range ? "<div class='bb2-meta'>Rincian: " + esc(d.g_range) + "</div>" : '');
+    } else if (d.row_type === 'group') {
+      span = $cells.length;
+      const meta = ['Kelompok: ' + esc(d.g_kelompok), 'Saldo normal: ' + esc(d.g_normal)];
+      if (d.g_range) meta.push('Rincian: ' + esc(d.g_range));
+      html = (d.g_range ? "<span class='bb2-tag'>HEADER</span>" : '')
+           + "<span class='bb2-acc'>" + esc(d.account) + "</span><span class='bb2-name'>" + esc(d.nama_akun) + "</span>"
+           + "<div class='bb2-meta'>" + meta.join(' &nbsp;·&nbsp; ') + "</div>";
+    } else {
+      span = MERGE_STOP;
+      html = esc(d.s_label) + (d.s_note ? "<span class='bb2-note'>" + esc(d.s_note) + "</span>" : '');
+    }
+
+    $cells.slice(1, span).remove();
+    $cells.first().attr('colspan', span).addClass('text-left').html(html);
   };
 
   const renderTable = (h, rows) => {
@@ -282,31 +293,31 @@
     }
 
     const amountIdx = KOLOM.map((c, i) => ['debit', 'credit'].includes(c.data) ? i : -1).filter(i => i >= 0);
+    const descIdx = KOLOM.findIndex(c => c.data === 'description');
 
     bb2Table = $('#bb2Table').DataTable({
       data: rows,
       columns: KOLOM,
-      // Buku besar itu kronologis, dan baris SALDO AWAL/AKHIR harus tetap di
-      // ujung atas/bawah -- jadi sorting kolom dimatikan.
+      // Buku besar kronologis per COA, dan baris saldo harus tetap di tempatnya:
+      // sorting, pencarian, dan paging dimatikan. Lebar tabel ditangani oleh
+      // wrapper .table-responsive (bukan scrollX, supaya baris colspan tidak
+      // merusak sinkronisasi lebar kolom).
       ordering: false,
-      // scrollY sengaja TIDAK dipakai: scrollX + scrollY sama-sama memecah
-      // tabel jadi header/body terpisah, dan baris colspan (SALDO AWAL/AKHIR)
-      // bikin lebar kolom keduanya tidak sinkron.
-      scrollX: true,
-      lengthMenu: [[-1, 25, 50, 100], ['all', '25', '50', '100']],
-      pageLength: -1,
+      searching: false,
+      paging: false,
+      info: false,
       columnDefs: [
         {
           targets: amountIdx,
           className: 'text-right',
           render: function (v, type, row) {
-            if (type !== 'display') return v === null ? 0 : v;
-            const s = nf(v);
-            return row.is_summary && s ? "<span class='bb2-amount'>" + s + "</span>" : s;
+            if (type !== 'display') return v === null ? '' : v;
+            return row.is_summary ? nfz(v) : nf(v);
           }
-        }
+        },
+        { targets: descIdx, className: 'bb2-desc' }
       ],
-      dom: '<"d-flex justify-content-between align-items-center mx-1 row mt-75"<"col-md-6"l><"col-md-6 text-right"<"d-inline-flex"f>B>>t<"d-flex justify-content-between mx-2 row mb-1"<"col-md-6"i><"col-md-6"p>>',
+      dom: '<"d-flex justify-content-end align-items-center mx-1 mt-75"B>t',
       buttons: [{
         extend: 'excel',
         className: 'btn btn-outline-secondary ml-1',
@@ -314,7 +325,7 @@
         title: null,
         filename: 'buku_besar_v2_' + h.account + '_' + h.tahun
       }],
-      drawCallback: function () { mergeSummaryRows(this.api()); }
+      createdRow: function (tr, d) { styleSpecialRow(tr, d); }
     });
   };
 

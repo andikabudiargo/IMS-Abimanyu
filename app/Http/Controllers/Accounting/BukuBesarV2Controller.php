@@ -12,21 +12,24 @@ set_time_limit(300);
 /**
  * Buku Besar v2.
  *
- * Kolom tabel sama persis dengan Buku Besar v1, bedanya cuma ada baris
- * SALDO AWAL di atas dan SALDO AKHIR di bawah (pola yang sama dengan
- * ArticleController::movement2 -- lihat buildSummaryRow di sana).
+ * Kolom tabel sama dengan Buku Besar v1. Bedanya, laporan disusun per COA:
  *
- * Saldo awal sebuah COA pada tanggal T dihitung dinamis:
+ *   [banner]   hanya kalau COA yang dipilih adalah HEADER (nomor, nama, range rincian)
+ *   [group]    sub header per COA (nomor + nama; kalau COA itu HEADER, plus range rincian)
+ *   [opening]  Saldo Awal
+ *   [trx...]   mutasi
+ *   [total]    Total Mutasi (debet & kredit)
+ *   [closing]  Saldo Akhir
+ *
+ * Saldo awal sebuah COA pada tanggal T:
  *   saldo_awal(T) = saldo_normal * accounts.opening_balance
  *                 + SUM(debit - credit) untuk voucher_date di [GL_EPOCH, T-1]
  *
- * accounts.opening_balance selalu disimpan positif sebagai saldo di sisi
- * normalnya, jadi akun KREDIT dibalik tandanya supaya semua perhitungan
- * memakai satu konvensi internal: positif = debit, negatif = kredit.
- * Nilainya ditampilkan di kolom Debet atau Kredit sesuai tandanya.
+ * Konvensi internal: positif = debit, negatif = kredit. Nilai ditampilkan di
+ * kolom Debet atau Kredit sesuai tandanya.
  *
- * Transaksi sebelum GL_EPOCH tidak ikut dihitung (opening_balance sudah
- * mewakili posisi per tanggal itu).
+ * "Kelompok" = nama COA HEADER terdekat di atas akun tersebut (berdasarkan
+ * prefix kode), bukan lagi mapping digit pertama.
  */
 class BukuBesarV2Controller extends Controller
 {
@@ -42,17 +45,6 @@ class BukuBesarV2Controller extends Controller
         '3' => 'APPROVED',
         '5' => 'DELETED',
         '6' => 'PAID',
-    ];
-
-    const KELOMPOK = [
-        '1' => '1-ASET',
-        '2' => '2-KEWAJIBAN',
-        '3' => '3-MODAL',
-        '4' => '4-PENDAPATAN',
-        '5' => '5-HARGA POKOK PENJUALAN',
-        '6' => '6-BIAYA UMUM & ADMINISTRASI',
-        '7' => '7-PENDAPATAN DI LUAR USAHA',
-        '8' => '8-BEBAN DI LUAR USAHA',
     ];
 
     const BULAN = [
@@ -106,12 +98,8 @@ class BukuBesarV2Controller extends Controller
     }
 
     /**
-     * Rentang tanggal efektif laporan, dalam format Y-m-d.
-     *
-     * Dasarnya Tahun + Periode Awal/Akhir (periode = bulan pembukuan), lalu
-     * rentang tanggal dari flatpickr -- kalau diisi -- menimpanya. Saldo awal
-     * selalu dihitung per sehari sebelum tanggal mulai yang dipakai di sini,
-     * jadi header dan detail tidak pernah beda basis.
+     * Rentang tanggal efektif laporan (Y-m-d). Dasarnya Tahun + Periode
+     * Awal/Akhir; rentang flatpickr -- kalau diisi -- menimpanya.
      */
     private function resolveRange(Request $request)
     {
@@ -150,25 +138,27 @@ class BukuBesarV2Controller extends Controller
     }
 
     /**
-     * COA yang ikut dihitung. Untuk akun DETAIL cuma dirinya sendiri; untuk
-     * HEADER, dirinya sendiri + seluruh turunannya.
+     * COA yang ikut dihitung (lengkap dengan data akunnya). Akun DETAIL cuma
+     * dirinya sendiri; HEADER = dirinya + seluruh turunan.
      *
      * Hubungan induk-anak diambil dari PREFIX kode ("2000.14" -> "2000.14.*"),
-     * bukan dari accounts.parent_id -- kolom itu isinya tidak konsisten
-     * (mis. 2000.14.1 ber-parent_id 2000.10, bukan 2000.14).
+     * bukan dari accounts.parent_id (isinya tidak konsisten).
      */
-    private function resolveAccounts($acc)
+    private function loadAccounts($acc)
     {
+        $q = DB::table('accounts')
+            ->select('account', 'description', 'acc_header', 'debit_credit', 'opening_balance');
+
         if (strtoupper($acc->acc_header) !== 'HEADER') {
-            return [$acc->account];
+            $q->where('account', $acc->account);
+        } else {
+            $like = str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $acc->account) . '.%';
+            $q->where(function ($w) use ($acc, $like) {
+                $w->where('account', $acc->account)->orWhere('account', 'like', $like);
+            });
         }
 
-        return DB::table('accounts')
-            ->where('account', $acc->account)
-            ->orWhere('account', 'like', str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $acc->account) . '.%')
-            ->orderBy(DB::raw("string_to_array(account,'.')::int[]"))
-            ->pluck('account')
-            ->toArray();
+        return $q->orderBy(DB::raw("string_to_array(account,'.')::int[]"))->get();
     }
 
     /** Query mutasi dengan filter yang identik untuk saldo awal maupun baris. */
@@ -189,6 +179,68 @@ class BukuBesarV2Controller extends Controller
         return $q;
     }
 
+    /** Nama COA HEADER terdekat di atas $code (prefix); fallback ke namanya sendiri bila ia HEADER. */
+    private function kelompokOf($code, array $headers)
+    {
+        $parts = explode('.', $code);
+        for ($i = count($parts) - 1; $i >= 1; $i--) {
+            $prefix = implode('.', array_slice($parts, 0, $i));
+            if (isset($headers[$prefix])) {
+                return $headers[$prefix];
+            }
+        }
+
+        return $headers[$code] ?? '-';
+    }
+
+    /** Range rincian sebuah HEADER: [pertama, terakhir, jumlah] akun DETAIL di bawahnya, atau null. */
+    private function detailRange($list, $code)
+    {
+        $details = [];
+        foreach ($list as $a) {
+            if (strtoupper($a->acc_header) !== 'HEADER' && strpos($a->account, $code . '.') === 0) {
+                $details[] = $a->account;
+            }
+        }
+
+        return $details ? [$details[0], end($details), count($details)] : null;
+    }
+
+    private function rangeText($range)
+    {
+        if (!$range) {
+            return '';
+        }
+
+        return $range[2] > 1
+            ? $range[0] . ' s/d ' . $range[1] . ' (' . $range[2] . ' COA)'
+            : $range[0];
+    }
+
+    /** Satu baris tabel dengan semua kolom terisi default. */
+    private function blankRow(array $o = [])
+    {
+        return array_merge([
+            'nama_dept'      => '',
+            'account'        => '',
+            'nama_akun'      => '',
+            'reference'      => '',
+            'voucher_number' => '',
+            'description'    => '',
+            'voucher_date'   => '',
+            'period'         => '',
+            'debit'          => null,
+            'credit'         => null,
+            'statusku'       => '',
+            'created_by'     => '',
+            'created_at'     => '',
+            'approval_by'    => '',
+            'approval_at'    => '',
+            'row_type'       => 'trx',   // banner | group | opening | trx | total | closing
+            'is_summary'     => false,
+        ], $o);
+    }
+
     public function data(Request $request)
     {
         $account = $request->account;
@@ -203,23 +255,27 @@ class BukuBesarV2Controller extends Controller
 
         list($from, $to, $year, $p1, $p2) = $this->resolveRange($request);
 
-        $accounts = $this->resolveAccounts($acc);
-        $sign = strtoupper($acc->debit_credit) === 'KREDIT' ? -1 : 1;
+        $list = $this->loadAccounts($acc);
+        $codes = $list->pluck('account')->all();
+        $isHeader = strtoupper($acc->acc_header) === 'HEADER';
+        $headers = DB::table('accounts')
+            ->whereRaw("upper(acc_header) = 'HEADER'")
+            ->pluck('description', 'account')
+            ->all();
 
-        // Saldo awal = opening balance akun + seluruh mutasi sejak GL_EPOCH s/d sehari sebelum $from.
-        // Untuk HEADER, opening balance tiap COA turunan dijumlahkan dengan tandanya masing-masing.
-        $opening = (float) DB::table('accounts')
-            ->whereIn('account', $accounts)
-            ->sum(DB::raw("case when upper(debit_credit) = 'KREDIT' then -opening_balance else opening_balance end"));
-
+        // Mutasi sejak GL_EPOCH s/d sehari sebelum $from, per COA.
+        $prior = [];
         if ($from > self::GL_EPOCH) {
-            $opening += (float) $this->movementQuery($accounts, $request)
+            $prior = $this->movementQuery($codes, $request)
                 ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') >= ?", [self::GL_EPOCH])
                 ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') < ?", [$from])
-                ->sum(DB::raw('d.debit - d.credit'));
+                ->groupBy('d.account')
+                ->selectRaw('d.account as account, sum(d.debit - d.credit) as net')
+                ->pluck('net', 'account')
+                ->all();
         }
 
-        $rows = $this->movementQuery($accounts, $request)
+        $trxRows = $this->movementQuery($codes, $request)
             ->leftJoin('depts', 'depts.code', 'd.cost_center')
             ->leftJoin('accounts', 'accounts.account', 'd.account')
             ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') between ? and ?", [$from, $to])
@@ -243,100 +299,140 @@ class BukuBesarV2Controller extends Controller
                 DB::raw("(select to_char(approval_date::date,'DD-MM-YYYY') from approval_history where module_number = d.voucher_number order by approval_order desc limit 1) as approval_at")
             )
             ->orderBy('voucher_date_2')
-            ->orderBy('d.account')
             ->orderBy('d.id')
             ->get();
 
-        $totalDebit = 0;
-        $totalCredit = 0;
-        $out = [];
-
-        foreach ($rows as $r) {
-            $totalDebit += (float) $r->debit;
-            $totalCredit += (float) $r->credit;
-
-            $out[] = [
-                'nama_dept'      => $r->nama_dept,
-                'account'        => $r->account,
-                'nama_akun'      => $r->nama_akun,
-                'reference'      => $r->reference,
-                'voucher_number' => $r->voucher_number,
-                'description'    => $r->description,
-                'voucher_date'   => $r->voucher_date,
-                'period'         => $r->period,
-                'debit'          => (float) $r->debit,
-                'credit'         => (float) $r->credit,
-                'statusku'       => self::STATUS_LABEL[$r->status] ?? $r->status,
-                'created_by'     => $r->created_by,
-                'created_at'     => $r->created_at,
-                'approval_by'    => $r->approval_by,
-                'approval_at'    => $r->approval_at,
-                'is_summary'     => false,
-            ];
+        $byAcc = [];
+        foreach ($trxRows as $r) {
+            $byAcc[$r->account][] = $r;
         }
 
-        $closing = $opening + $totalDebit - $totalCredit;
+        $out = [];
+        $grandOpening = 0;
+        $grandDebit = 0;
+        $grandCredit = 0;
+        $openNote = 'per ' . date('d-m-Y', strtotime($from . ' -1 day'));
+        $closeNote = 'per ' . date('d-m-Y', strtotime($to));
 
-        // Saldo awal/akhir masuk sebagai baris tabel (atas & bawah), nilainya
-        // jatuh di kolom Debet kalau positif, Kredit kalau negatif.
-        array_unshift($out, $this->buildSummaryRow(
-            'SALDO AWAL',
-            strtoupper($this->periodeText($from, $from)) . '  (s/d ' . date('d-m-Y', strtotime($from . ' -1 day')) . ')',
-            $opening
-        ));
-        $out[] = $this->buildSummaryRow(
-            'SALDO AKHIR',
-            strtoupper($this->periodeText($to, $to)) . '  (s/d ' . date('d-m-Y', strtotime($to)) . ')',
-            $closing
-        );
+        // Banner: hanya kalau yang dipilih HEADER.
+        if ($isHeader) {
+            $out[] = $this->blankRow([
+                'row_type'   => 'banner',
+                'is_summary' => true,
+                'account'    => $acc->account,
+                'nama_akun'  => $acc->description,
+                'g_range'    => $this->rangeText($this->detailRange($list, $acc->account)),
+            ]);
+        }
+
+        foreach ($list as $a) {
+            $code = $a->account;
+            $sgn = strtoupper($a->debit_credit) === 'KREDIT' ? -1 : 1;
+            $opening = $sgn * (float) $a->opening_balance + (float) ($prior[$code] ?? 0);
+            $trx = $byAcc[$code] ?? [];
+
+            // Pada tampilan multi COA, akun tanpa saldo awal & tanpa mutasi tidak ditampilkan.
+            if (count($list) > 1 && !$trx && abs($opening) < 0.005) {
+                continue;
+            }
+
+            $accIsHeader = strtoupper($a->acc_header) === 'HEADER';
+
+            $out[] = $this->blankRow([
+                'row_type'   => 'group',
+                'is_summary' => true,
+                'account'    => $code,
+                'nama_akun'  => $a->description,
+                'g_kelompok' => $this->kelompokOf($code, $headers),
+                'g_normal'   => $sgn === -1 ? 'KREDIT' : 'DEBET',
+                'g_range'    => $accIsHeader ? $this->rangeText($this->detailRange($list, $code)) : '',
+            ]);
+
+            $out[] = $this->blankRow([
+                'row_type'    => 'opening',
+                'is_summary'  => true,
+                'description' => 'SALDO AWAL',
+                's_label'     => 'Saldo Awal',
+                's_note'      => $openNote,
+                'debit'       => $opening >= 0 ? $opening : null,
+                'credit'      => $opening < 0 ? -$opening : null,
+            ]);
+
+            $d = 0;
+            $c = 0;
+            foreach ($trx as $r) {
+                $d += (float) $r->debit;
+                $c += (float) $r->credit;
+
+                $out[] = $this->blankRow([
+                    'nama_dept'      => $r->nama_dept,
+                    'account'        => $r->account,
+                    'nama_akun'      => $r->nama_akun,
+                    'reference'      => $r->reference,
+                    'voucher_number' => $r->voucher_number,
+                    'description'    => $r->description,
+                    'voucher_date'   => $r->voucher_date,
+                    'period'         => $r->period,
+                    'debit'          => (float) $r->debit,
+                    'credit'         => (float) $r->credit,
+                    'statusku'       => self::STATUS_LABEL[$r->status] ?? $r->status,
+                    'created_by'     => $r->created_by,
+                    'created_at'     => $r->created_at,
+                    'approval_by'    => $r->approval_by,
+                    'approval_at'    => $r->approval_at,
+                ]);
+            }
+
+            $closing = $opening + $d - $c;
+
+            $out[] = $this->blankRow([
+                'row_type'    => 'total',
+                'is_summary'  => true,
+                'description' => 'TOTAL MUTASI',
+                's_label'     => 'Total Mutasi',
+                's_note'      => count($trx) . ' transaksi',
+                'debit'       => $d,
+                'credit'      => $c,
+            ]);
+            $out[] = $this->blankRow([
+                'row_type'    => 'closing',
+                'is_summary'  => true,
+                'description' => 'SALDO AKHIR',
+                's_label'     => 'Saldo Akhir',
+                's_note'      => $closeNote,
+                'debit'       => $closing >= 0 ? $closing : null,
+                'credit'      => $closing < 0 ? -$closing : null,
+            ]);
+
+            $grandOpening += $opening;
+            $grandDebit += $d;
+            $grandCredit += $c;
+        }
+
+        $grandClosing = $grandOpening + $grandDebit - $grandCredit;
+        $sign = strtoupper($acc->debit_credit) === 'KREDIT' ? -1 : 1;
 
         return response()->json([
             'header' => [
                 'account'      => $acc->account,
                 'description'  => $acc->description,
-                'kelompok'     => self::KELOMPOK[substr($acc->account, 0, 1)] ?? '-',
+                'kelompok'     => $this->kelompokOf($acc->account, $headers),
                 'saldo_normal' => $sign === -1 ? 'KREDIT' : 'DEBET',
-                'is_header'    => strtoupper($acc->acc_header) === 'HEADER',
-                'coa_count'    => count($accounts),
+                'is_header'    => $isHeader,
+                'coa_count'    => count($list),
                 'tahun'        => $year,
                 'periode'      => $p1 === $p2 ? (string) $p1 : "$p1 s/d $p2",
                 'periode_text' => $this->periodeText($from, $to),
                 'date_from'    => date('d-m-Y', strtotime($from)),
                 'date_to'      => date('d-m-Y', strtotime($to)),
-                'opening'      => $opening,
-                'total_debit'  => $totalDebit,
-                'total_credit' => $totalCredit,
-                'closing'      => $closing,
-                'jumlah_trx'   => count($rows),
+                'opening'      => $grandOpening,
+                'total_debit'  => $grandDebit,
+                'total_credit' => $grandCredit,
+                'closing'      => $grandClosing,
+                'jumlah_trx'   => count($trxRows),
             ],
             'rows' => $out,
         ]);
-    }
-
-    /** Baris SALDO AWAL / SALDO AKHIR -- kolom lain dikosongkan lalu di-merge di sisi view. */
-    private function buildSummaryRow($label, $note, $saldo)
-    {
-        return [
-            'nama_dept'      => '',
-            'account'        => '',
-            'nama_akun'      => '',
-            'reference'      => '',
-            'voucher_number' => '',
-            'description'    => '',
-            'voucher_date'   => '',
-            'period'         => '',
-            'debit'          => $saldo >= 0 ? $saldo : null,
-            'credit'         => $saldo < 0 ? -$saldo : null,
-            'statusku'       => '',
-            'created_by'     => '',
-            'created_at'     => '',
-            'approval_by'    => '',
-            'approval_at'    => '',
-            'is_summary'     => true,
-            'summary_type'   => $label === 'SALDO AWAL' ? 'OPENING' : 'CLOSING',
-            'summary_label'  => $label,
-            'summary_note'   => $note,
-        ];
     }
 
     private function periodeText($from, $to)
