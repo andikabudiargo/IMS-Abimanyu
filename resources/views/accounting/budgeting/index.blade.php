@@ -35,19 +35,19 @@
         <div class="form-row">
           <div class="form-group col-md-12">
             <label class="form-label" for="coa">COA</label>
-            <select class="select2 form-control" id="coa" name="coa" multiple data-placeholder="Semua COA (1000, 5000, 8000)">
+            <select class="select2 form-control" id="coa" name="coa" multiple data-placeholder="Semua COA (5000 - 8000)">
               @foreach($accounts as $val)
                 <option value="{{ $val->account }}">
                   {{ $val->account }} - {{ $val->description }}@if(strtoupper($val->acc_header) == 'HEADER') [HEADER]@endif
                 </option>
               @endforeach
             </select>
-            <small class="text-muted">Kosong = semua COA range 1000, 5000, dan 8000. Memilih COA header menarik seluruh COA di bawahnya.</small>
+            <small class="text-muted">Kosong = semua COA range 5000 - 8000. Memilih COA header menarik seluruh COA di bawahnya.</small>
           </div>
         </div>
         <div class="form-row">
           <div class="col-12">
-            <button type="button" class="btn btn-primary" id="btnSearch">Tampilkan</button>
+            <button type="button" class="btn btn-primary" id="btnSearch">Search</button>
             <button type="button" class="btn btn-outline-secondary" id="btnReset">Reset</button>
           </div>
         </div>

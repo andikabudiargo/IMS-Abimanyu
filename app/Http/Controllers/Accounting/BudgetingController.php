@@ -27,7 +27,7 @@ set_time_limit(300);
 class BudgetingController extends Controller
 {
     /** Range segmen pertama kode COA yang ikut budgeting [dari, sampai]. */
-    const COA_RANGES = [[1000, 1999], [5000, 5999], [8000, 8999]];
+    const COA_RANGES = [[5000, 5999], [6000, 6999], [7000, 7999], [8000, 8999]];
 
     /** Status voucher yang tidak pernah ikut hitung (5 = deleted). */
     const STATUS_EXCLUDED = ['5'];
