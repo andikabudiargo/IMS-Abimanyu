@@ -75,8 +75,8 @@
           <thead class="thead-light">
             <tr>
               <th>Department</th>
-              <th>Nomor COA</th>
-              <th>Nama COA</th>
+              <th>Account</th>
+              <th>Name</th>
               <th class="text-right">Debit</th>
               <th class="text-right">Average</th>
               <th class="text-right" style="width:140px">Cost Reduction Value</th>
