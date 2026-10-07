@@ -21,7 +21,7 @@
              exception itu juga yang bikin dropdown select2 tidak mau menutup. --}}
         <form class="needs-validation" novalidate onsubmit="return false;">
         <div class="form-row">
-           <div class="form-group col-md-6">
+           <div class="form-group col-md-4">
             <label class="form-label" for="type_code">Account Type <small class="text-muted">(alternatif dari COA)</small></label>
             <select class="select2 form-control" id="type_code" name="type_code"
                     data-placeholder="Pilih Account Type" data-allow-clear="true">
@@ -32,7 +32,7 @@
             </select>
             <small class="text-muted">Menarik seluruh COA detail bertipe ini.</small>
           </div>
-          <div class="form-group col-md-6">
+          <div class="form-group col-md-4">
             <label class="form-label" for="account">COA</label>
             <select class="select2 form-control" id="account" name="account"
                     data-placeholder="Pilih COA" data-allow-clear="true">
@@ -56,7 +56,7 @@
               @endfor
             </select>
           </div>
-          <div class="form-group col-md-4">
+          <div class="form-group col-md-2">
             <label class="form-label" for="period1">Periode Awal</label>
             <select class="select2 form-control" id="period1" name="period1">
               @for ($i = 1; $i <= 12; $i++)
@@ -64,7 +64,7 @@
               @endfor
             </select>
           </div>
-          <div class="form-group col-md-4">
+          <div class="form-group col-md-2">
             <label class="form-label" for="period2">Periode Akhir</label>
             <select class="select2 form-control" id="period2" name="period2">
               @for ($i = 1; $i <= 12; $i++)
@@ -74,7 +74,7 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-6">
+          <div class="form-group col-md-4">
             <label class="form-label" for="dept">Cost Center</label>
             <select class="select2 form-control" id="dept" name="dept" multiple>
               @foreach($depts as $val)
