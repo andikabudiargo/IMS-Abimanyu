@@ -300,10 +300,10 @@ class ActualFinishGoodsController extends Controller
               $uom = $val->uom ?? DB::table('article')->where('article_code', $ac)->value('uom');
 
                 // stok sumber
-                $s047 = (float) DB::table('warehouse_stock')
-                    ->where('article_code', $ac)->where('location_number', $this->whLoading)->sum('article_qty');
-                $s012 = (float) DB::table('warehouse_stock')
-                    ->where('article_code', $ac)->where('location_number', $this->whWip)->sum('article_qty');
+                $s047 = max(0, (float) DB::table('warehouse_stock')
+    ->where('article_code', $ac)->where('location_number', $this->whLoading)->sum('article_qty'));
+$s012 = max(0, (float) DB::table('warehouse_stock')
+    ->where('article_code', $ac)->where('location_number', $this->whWip)->sum('article_qty'));
 
                 //if ($need > $s047 + $s012) {
                     //throw new \Exception(
@@ -838,8 +838,8 @@ class ActualFinishGoodsController extends Controller
 
                 $uom = $val->uom ?? DB::table('article')->where('article_code', $ac)->value('uom');
 
-                $s047 = (float) DB::table('warehouse_stock')->where('article_code',$ac)->where('location_number',$this->whLoading)->sum('article_qty');
-                $s012 = (float) DB::table('warehouse_stock')->where('article_code',$ac)->where('location_number',$this->whWip)->sum('article_qty');
+               $s047 = max(0, (float) DB::table('warehouse_stock')->where('article_code',$ac)->where('location_number',$this->whLoading)->sum('article_qty'));
+$s012 = max(0, (float) DB::table('warehouse_stock')->where('article_code',$ac)->where('location_number',$this->whWip)->sum('article_qty'));
 
                 //if ($need > $s047 + $s012) {
                   //  throw new \Exception("Stok untuk {$acLabel} tidak cukup. Butuh {$need}, tersedia Hasil Loading={$s047} + WIP={$s012}.");
