@@ -101,8 +101,8 @@ class InventoryValuationController extends Controller
                 $avgPricePool   = $totalPoolQty > 0 ? $totalPoolValue / $totalPoolQty : 0;
                 $saldoAkhirValue = $saldoAkhirQty * $avgPricePool;
 
-                // Avg price akhir: referensi dari warehouse_stock
-                $avgPriceAkhir = $this->getAvgPriceStock($artCode, [$loc], $siteCode);
+                // Avg price akhir: dari pembelian (RECEIVING) di periode ini, bukan dari warehouse_stock (tidak bisa dipercaya)
+                $avgPriceAkhir = $this->getAvgPricePembelian($artCode, [$loc], $fromDate, $toDate, $siteCode);
 
                 $rows[] = [
                     'artikel_code' => $artCode,
@@ -414,6 +414,56 @@ class InventoryValuationController extends Controller
         ", array_merge([$siteCode, $artCode], $locations));
 
         return $row ? (float) $row->weighted_avg : 0;
+    }
+
+    /**
+     * Avg price dari pembelian (RECEIVING) di periode yang dipilih, dihitung on the fly.
+     * Kalau tidak ada pembelian di periode, mundur cari pembelian terakhir sebelumnya,
+     * tapi mundurnya tidak boleh lintas tahun (berhenti di 1 Januari tahun fromDate).
+     */
+    private function getAvgPricePembelian(string $artCode, array $locations, string $fromDate, string $toDate, string $siteCode): float
+    {
+        $locPlaceholders = implode(',', array_fill(0, count($locations), '?'));
+
+        $sql = "
+            SELECT
+                COALESCE(SUM(movement_plus), 0) AS qty,
+                COALESCE(SUM(movement_plus * COALESCE(movement_price, 0)), 0) AS value
+            FROM warehouse_movement
+            WHERE site_code = ?
+              AND artikel_code = ?
+              AND movement_type = 'RECEIVING'
+              AND location_number IN ({$locPlaceholders})
+              AND TO_DATE(movement_date, 'DD-MM-YYYY')
+                  BETWEEN TO_DATE(?, 'DD-MM-YYYY') AND TO_DATE(?, 'DD-MM-YYYY')
+        ";
+        $row = DB::selectOne($sql, array_merge([$siteCode, $artCode], $locations, [$fromDate, $toDate]));
+
+        if ($row && (float) $row->qty > 0) {
+            return (float) $row->value / (float) $row->qty;
+        }
+
+        // Tidak ada pembelian di periode → mundur, tapi dibatasi sampai 1 Januari tahun fromDate
+        $dtFrom    = \DateTime::createFromFormat('d-m-Y', $fromDate);
+        $yearStart = $dtFrom->format('01-01-Y');
+
+        $fallbackSql = "
+            SELECT movement_price AS price
+            FROM warehouse_movement
+            WHERE site_code = ?
+              AND artikel_code = ?
+              AND movement_type = 'RECEIVING'
+              AND location_number IN ({$locPlaceholders})
+              AND TO_DATE(movement_date, 'DD-MM-YYYY') < TO_DATE(?, 'DD-MM-YYYY')
+              AND TO_DATE(movement_date, 'DD-MM-YYYY') >= TO_DATE(?, 'DD-MM-YYYY')
+            ORDER BY TO_DATE(movement_date, 'DD-MM-YYYY') DESC, movement_code DESC
+            LIMIT 1
+        ";
+        $fallback = DB::selectOne($fallbackSql, array_merge(
+            [$siteCode, $artCode], $locations, [$fromDate, $yearStart]
+        ));
+
+        return $fallback ? (float) $fallback->price : 0.0;
     }
 
     /**
