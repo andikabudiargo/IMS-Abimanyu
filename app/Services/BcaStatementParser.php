@@ -2,13 +2,19 @@
 
 namespace App\Services;
 
-use Smalot\PdfParser\Config as PdfParserConfig;
-use Smalot\PdfParser\Parser as PdfParser;
+use Symfony\Component\Process\ExecutableFinder;
+use Symfony\Component\Process\Process;
 
 /**
  * Parser rekening koran BCA (scope: 1 bank, format "Laporan Mutasi Rekening").
  * Text extraction mengikuti urutan render PDF (TANGGAL KETERANGAN CBG MUTASI SALDO),
  * jadi CBG (kode cabang) kalau terisi akan ikut ke-capture di description.
+ *
+ * Ekstraksi teks pakai binary `pdftotext` (poppler-utils), bukan smalot/pdfparser --
+ * statement BCA ternyata benar-benar terenkripsi (bukan cuma restricted-permission),
+ * dan smalot/pdfparser murni-PHP tidak punya implementasi decrypt sama sekali (cuma
+ * bisa skip pengecekannya, hasilnya "Missing catalog" karena isinya tetap acak).
+ * pdftotext sudah battle-tested buat PDF ber-password-kosong begini.
  *
  * ponytail: heuristik baris transaksi vs baris noise (header/footer/catatan) adalah
  * "baru mulai nampung baris setelah header kolom TANGGAL/KETERANGAN/... ditemukan,
@@ -26,14 +32,25 @@ class BcaStatementParser
 
     public function parseFile(string $path): array
     {
-        // Statement BCA biasanya di-"secure" (owner password, tanpa password buka) --
-        // tanpa ini, pdfparser nolak dengan "Secured pdf file are currently not supported".
-        $config = new PdfParserConfig();
-        $config->setIgnoreEncryption(true);
+        $binary = (new ExecutableFinder())->find('pdftotext');
+        if (!$binary) {
+            throw new \RuntimeException(
+                "Binary 'pdftotext' tidak ditemukan di server. Install poppler-utils dulu, "
+                . "mis. `sudo apt install poppler-utils` (Debian/Ubuntu) atau `sudo yum install poppler-utils` (CentOS/RHEL)."
+            );
+        }
 
-        $parser = new PdfParser([], $config);
-        $text = $parser->parseFile($path)->getText();
-        return $this->parseText($text);
+        // -layout menjaga urutan kolom per baris tetap sesuai tampilan visual PDF,
+        // penting supaya parseText() bisa baca TANGGAL/KETERANGAN/MUTASI berurutan.
+        $process = new Process([$binary, '-layout', $path, '-']);
+        $process->setTimeout(60);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException('Gagal membaca PDF via pdftotext: ' . trim($process->getErrorOutput()));
+        }
+
+        return $this->parseText($process->getOutput());
     }
 
     /**
