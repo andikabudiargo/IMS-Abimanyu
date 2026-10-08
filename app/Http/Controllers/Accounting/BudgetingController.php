@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use DB;
 use PDF;
+use DataTables;
 
 ini_set('memory_limit', '1024M');
 set_time_limit(300);
@@ -54,6 +55,96 @@ class BudgetingController extends Controller
 
     public function index(Request $request)
     {
+        $list = $this->budgetList();
+
+        return view('accounting.budgeting.index', [
+            'title'       => $this->title,
+            'depts'       => $list->pluck('dept_name')->filter()->unique()->sort()->values(),
+            'fiscalYears' => $list->pluck('fiscal_year')->unique()->sort()->reverse()->values(),
+            'kolom'       => $this->getTableColumn(),
+        ]);
+    }
+
+    public function list(Request $request)
+    {
+        $list = $this->budgetList();
+
+        if ($request->filled('number')) {
+            $kw = mb_strtoupper($request->number);
+            $list = $list->filter(fn($r) => str_contains(mb_strtoupper($r->budgeting_number), $kw));
+        }
+        if ($request->filled('dept')) {
+            $list = $list->filter(fn($r) => $r->dept_name === $request->dept);
+        }
+        if ($request->filled('status')) {
+            $list = $list->filter(fn($r) => $r->status === $request->status);
+        }
+        if ($request->filled('fiscalYear')) {
+            $list = $list->filter(fn($r) => (string) $r->fiscal_year === (string) $request->fiscalYear);
+        }
+
+        return Datatables::of($list->values())
+            ->addColumn('action', function ($r) {
+                $id = $r->id;
+
+                return '<div class="d-inline-flex">
+                            <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <a href="' . route('budgeting.show', $id) . '" class="dropdown-item"><i data-feather="eye"></i> Detail</a>
+                                <a href="' . route('budgeting.edit', $id) . '" class="dropdown-item"><i data-feather="edit-2"></i> Edit</a>
+                                <a href="javascript:;" onclick="deleteBudgeting(\'' . $id . '\',\'' . $r->budgeting_number . '\')" class="dropdown-item"><i data-feather="trash-2" class="feather-14-red"></i> Delete</a>
+                            </div>
+                        </div>';
+            })
+            ->addColumn('status_label', function ($r) {
+                $cls = $r->status === 'Overbudget' ? 'danger' : ($r->status === 'Underbudget' ? 'success' : 'secondary');
+
+                return '<span class="badge badge-pill badge-light-' . $cls . '">' . $r->status . '</span>';
+            })
+            ->addColumn('budget_used', function ($r) {
+                $cls = $r->status === 'Overbudget' ? 'danger' : ($r->status === 'Underbudget' ? 'success' : 'secondary');
+                $w = min($r->used_pct, 100);
+
+                return '<div class="d-flex align-items-center"><div class="progress flex-grow-1" style="height:8px"><div class="progress-bar bg-' . $cls . '" style="width:' . $w . '%"></div></div><small class="text-muted ml-1">' . $r->used_pct . '%</small></div>';
+            })
+            ->editColumn('total_budget', fn($r) => number_format($r->total_budget, 2))
+            ->editColumn('actual', fn($r) => number_format($r->actual, 2))
+            ->addColumn('margin_label', function ($r) {
+                $cls = $r->margin < 0 ? 'text-danger' : 'text-success';
+
+                return '<span class="' . $cls . '">' . number_format($r->margin, 2) . '</span>';
+            })
+            ->editColumn('created_at', fn($r) => $r->created_at ? date('d-m-Y H:i', strtotime($r->created_at)) : '-')
+            ->editColumn('updated_at', fn($r) => $r->updated_at ? date('d-m-Y H:i', strtotime($r->updated_at)) : '-')
+            ->rawColumns(['action', 'status_label', 'budget_used', 'margin_label'])
+            ->make(true);
+    }
+
+    /** Daftar kolom DataTables untuk index (konsisten dgn pola getTableColoumn() modul lain). */
+    private function getTableColumn(): string
+    {
+        return json_encode([
+            ['data' => 'action',           'name' => 'action',           'title' => 'Action', 'orderable' => false, 'searchable' => false],
+            ['data' => 'budgeting_number', 'name' => 'budgeting_number', 'title' => 'Budgeting Number'],
+            ['data' => 'fiscal_year',      'name' => 'fiscal_year',      'title' => 'Fiscal Year'],
+            ['data' => 'dept_name',        'name' => 'dept_name',        'title' => 'Department'],
+            ['data' => 'status_label',     'name' => 'status_label',     'title' => 'Status', 'orderable' => false, 'searchable' => false],
+            ['data' => 'previous_period',  'name' => 'previous_period',  'title' => 'Previous Period', 'orderable' => false, 'searchable' => false],
+            ['data' => 'budget_period',    'name' => 'budget_period',    'title' => 'Budget Period', 'orderable' => false, 'searchable' => false],
+            ['data' => 'budget_used',      'name' => 'budget_used',      'title' => 'Budget Used', 'orderable' => false, 'searchable' => false],
+            ['data' => 'total_budget',     'name' => 'total_budget',     'title' => 'Total Budget', 'orderable' => false, 'searchable' => false],
+            ['data' => 'actual',           'name' => 'actual',           'title' => 'Actual', 'orderable' => false, 'searchable' => false],
+            ['data' => 'margin_label',     'name' => 'margin_label',     'title' => 'Margin', 'orderable' => false, 'searchable' => false],
+            ['data' => 'created_by',       'name' => 'created_by',       'title' => 'Created By'],
+            ['data' => 'created_at',       'name' => 'created_at',       'title' => 'Created At'],
+            ['data' => 'updated_by',       'name' => 'updated_by',       'title' => 'Updated By'],
+            ['data' => 'updated_at',       'name' => 'updated_at',       'title' => 'Updated At'],
+        ], true);
+    }
+
+    /** Daftar budgeting + agregat final_budget/realisasi, status & % terpakai dihitung di PHP. */
+    private function budgetList()
+    {
         $list = DB::table('budgeting_hdr as h')
             ->leftJoin('depts as dp', 'dp.code', 'h.dept_code')
             ->leftJoin(DB::raw('(select budgeting_hdr_id, sum(final_budget) as sum_final, sum(realisasi_total) as sum_real from budgeting_det group by budgeting_hdr_id) as agg'), 'agg.budgeting_hdr_id', 'h.id')
@@ -68,12 +159,11 @@ class BudgetingController extends Controller
             $r->margin = round($r->total_budget - $r->actual, 2);
             $r->used_pct = $r->total_budget > 0 ? round($r->actual / $r->total_budget * 100, 1) : 0;
             $r->status = $r->margin < 0 ? 'Overbudget' : ($r->margin > 0 ? 'Underbudget' : 'Sesuai Budget');
+            $r->previous_period = date('d M Y', strtotime($r->previous_from)) . ' - ' . date('d M Y', strtotime($r->previous_to));
+            $r->budget_period = date('d M Y', strtotime($r->budget_from)) . ' - ' . date('d M Y', strtotime($r->budget_to));
         }
 
-        return view('accounting.budgeting.index', [
-            'title' => $this->title,
-            'list'  => $list,
-        ]);
+        return $list;
     }
 
     /* ====================================================================
