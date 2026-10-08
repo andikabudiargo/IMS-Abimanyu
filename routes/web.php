@@ -1101,6 +1101,17 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::get('cashbook/{group}',['as'=>'cashbook.index','uses'=>'Accounting\CashBankController@index'])->where('group','kas|bank');
 	Route::get('cashbook/{group}/list',['as'=>'cashbook.list','uses'=>'Accounting\CashBankController@list'])->where('group','kas|bank');
 	Route::get('cashbook/{group}/list/detail',['as'=>'cashbook.list.detail','uses'=>'Accounting\CashBankController@listDetail'])->where('group','kas|bank');
+
+	Route::get('bankReconciliation',['as'=>'bankReconciliation.index','uses'=>'Accounting\BankReconciliationController@index']);
+	Route::get('bankReconciliation/list',['as'=>'bankReconciliation.list','uses'=>'Accounting\BankReconciliationController@list']);
+	Route::get('bankReconciliation/create',['as'=>'bankReconciliation.create','uses'=>'Accounting\BankReconciliationController@create']);
+	Route::post('bankReconciliation/store',['as'=>'bankReconciliation.store','uses'=>'Accounting\BankReconciliationController@store']);
+	Route::get('bankReconciliation/show',['as'=>'bankReconciliation.show','uses'=>'Accounting\BankReconciliationController@show']);
+	Route::get('bankReconciliation/list/detail',['as'=>'bankReconciliation.list.detail','uses'=>'Accounting\BankReconciliationController@listDetail']);
+	Route::get('bankReconciliation/search/voucher',['as'=>'bankReconciliation.search.voucher','uses'=>'Accounting\BankReconciliationController@searchVoucher']);
+	Route::post('bankReconciliation/match/manual',['as'=>'bankReconciliation.match.manual','uses'=>'Accounting\BankReconciliationController@matchManual']);
+	Route::post('bankReconciliation/unmatch',['as'=>'bankReconciliation.unmatch','uses'=>'Accounting\BankReconciliationController@unmatch']);
+	Route::post('bankReconciliation/delete',['as'=>'bankReconciliation.destroy','uses'=>'Accounting\BankReconciliationController@destroy']);
 	Route::get('kasPenerimaan',['as'=>'kasPenerimaan.index','uses'=>'Accounting\KasPenerimaanController@index']);
 	Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create']);
 	Route::post('kasPenerimaan/store',['as'=>'kasPenerimaan.store','uses'=>'Accounting\KasPenerimaanController@store']);
