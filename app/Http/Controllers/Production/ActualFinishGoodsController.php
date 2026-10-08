@@ -735,6 +735,25 @@ $s012 = max(0, (float) DB::table('warehouse_stock')
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode, $fgNumber, $username);
         $data['approveValidate'] = Approval::approveValidate($this->moduleCode, $fgNumber, $username);
 
+        $data['listArticleFg'] = DB::table('article')
+            ->where('article_type', 'FG')
+            ->orderBy('article_alternative_code')
+            ->get(['article_code', 'article_alternative_code', 'article_desc', 'uom'])
+            ->map(function($r) {
+                return [
+                    'id'       => $r->article_code,
+                    'text'     => ($r->article_alternative_code ?: $r->article_code) . ' — ' . $r->article_desc,
+                    'alt_code' => $r->article_alternative_code ?: $r->article_code,
+                    'desc'     => $r->article_desc,
+                    'uom'      => $r->uom,
+                ];
+            })->values();
+
+        $data['listLocation'] = DB::table('stock_location_master')
+            ->whereIn('location_code', ['050','051','052'])
+            ->orderBy('location_name')
+            ->get();
+
         $data['oEdit']     = true;
         $data['statusPrd'] = $this->statusMap[$data['header']->status] ?? $data['header']->status;
 

@@ -4,6 +4,7 @@
 @include('layouts.breadcrumb')
 <section id="add-index">
     <div class="row">
+        {{-- CARD 1: INFO --}}
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
@@ -13,95 +14,41 @@
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
                         </ul>
-                    </div>    
+                    </div>
                 </div>
                 <div class="card-content collapse show">
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
+                            <input type="hidden" id="fgNumber" name="fgNumber" value="{{ $header->fg_code }}">
                             <div class="form-row">
-                                <div class="form-group col-md-2">
-                                    <label for="prdNumber">Production Number</label>
-                                    <input type="text" id="prdNumber" name="prdNumber" value="{{ $header->prod_code }}" class="form-control form-control-sm disabled-el" disabled />
+                                <div class="form-group col-md-3">
+                                    <label for="fgNumberShow">AFG Number</label>
+                                    <input type="text" id="fgNumberShow" value="{{ $header->fg_code }}"
+                                           class="form-control disabled-el" disabled />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="fgDate">Date*</label>
+                                    <input type="text" id="fgDate" name="fgDate" value="{{ $header->fg_date_fmt }}"
+                                           class="form-control" placeholder="DD-MM-YYYY" required />
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label for="wosNumber">WOS Number</label>
-                                    <input type="text" id="wosNumber" name="wosNumber" value="{{ $header->wo_code }}" class="form-control form-control-sm disabled-el" disabled />
+                                <div class="form-group col-md-6">
+                                    <label for="location">Location*</label>
+                                    <select class="select2 form-control" id="location" name="location"
+                                            data-placeholder="-- Select Location --" required>
+                                        <option value=""></option>
+                                        @foreach($listLocation as $loc)
+                                        <option value="{{ $loc->location_code }}" {{ $header->spray_booth == $loc->location_code ? 'selected' : '' }}>{{ $loc->location_name }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group col-md-2">
-                                    <label for="wosDate">Date*</label>
-                                    <input type="text" id="wosDate" name="wosDate" value="{{ $header->prod_date }}" class="form-control" placeholder="DD-MM-YYYY" disabled />
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="shift">Shift*</label>
-                                    <input type="text" id="shift" name="shift" value="{{ $header->prod_shift }}" class="form-control" disabled />
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="group">Group*</label>
-                                    <input type="text" id="group" name="group" value="{{ $header->prod_group }}" class="form-control" disabled />
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="wosTime">Start Time*</label>
-                                    <input type="text" id="wosTime" name="wosTime" value="{{ $header->start_time }}" class="form-control" placeholder="HH:MM" disabled/>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="workingHour">Working Hour*</label>
-                                    <input type="text" id="workingHour" name="workingHour" value="{{ $header->working_hour }}" class="form-control numeral-mask-satuan text-right" maxlength="2" disabled/>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label for="efficiency">Efficiency*</label>
-                                    <input type="text" id="efficiency" name="efficiency" value="{{ $header->efficiency ? $header->efficiency : '95' }}" class="form-control numeral-mask-satuan text-right" maxlength="3" disabled />
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="sprayBooth">Spray booth</label>
-                                        <select class="select2 form-control" id="sprayBooth" name="sprayBooth" required disabled>
-                                            <option value=""></option>
-                                            @foreach($arrSprayBooth as $key=>$val)
-                                                <option value="{{ $key }}" {{ $header->spray_booth == $key ? 'selected' : '' }}>{{ $val }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="form-group col-md-8">
+                                <div class="form-group col-md-6">
                                     <label class="form-label" for="note">Notes</label>
-                                    <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled>{{ $header->note }}</textarea>
-                                </div>
-                            </div>
-                        </form>
-                        <form id="frmExcel" name="frmExcel" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <input type="hidden" id="aprdNumber" name="aprdNumber" value="oki"/>
-                            <div class="form-row">
-                                <div class="col-lg-3 col-md-12">
-                                    <div class="form-group">
-                                        <button type="button" class="btn btn-info" id ="cmdDownloadTemplate" name="cmdDownloadTemplate"><i data-feather="download"></i> Downlod Template</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="col-lg-3 col-md-12">
-                                    <div class="form-group">
-                                        <div>
-                                            <input type="file" class="custom-file-input" name="file" id="file" required/>
-                                            <label class="custom-file-label" for="file">Choose file</label>
-                                        </div>
-                                        
-                                    </div>
-                                </div>
-                                <div class="col-lg-6 col-md-12">
-                                    <button type="button" class="btn btn-primary">
-                                        <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
-                                        <span class="align-middle d-sm-inline-block d-none" id="uploadExcel">Upload Excel</span>
-                                    </button>
+                                    <textarea id="note" name="note" class="form-control" rows="3">{{ $header->note }}</textarea>
                                 </div>
                             </div>
                         </form>
@@ -109,44 +56,52 @@
                 </div>
             </div>
         </div>
+
+        {{-- CARD 2: ARTICLE FINISH GOODS --}}
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Article</h4>
+                    <h4 class="card-title">Article Finish Goods</h4>
                 </div>
-                <div class="card-body" >
+                <div class="card-body">
                     <div class="container-list-item">
                         <div class="lebar-list-item">
-                            <br>
                             @include('production.actualFinishGoods.headerColumn')
-                            <div class="" id="article_row" style="max-height: 20rem;overflow-x: hidden;scrollbar-width: thin;margin-top:7px">
-                                <input type="text" id ="last_row_number" class="d-none" value="0">
+                            <div id="article_row" style="max-height:22rem;overflow-x:hidden;scrollbar-width:thin;"></div>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-end mt-75">
+                        <button class="btn btn-primary btn-prev" type="button" id="cmdAddArticle">
+                            <i data-feather="plus" class="align-middle mr-sm-25 mr-0"></i>
+                            <span class="align-middle d-sm-inline-block d-none">Add Article</span>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end mt-75">
+                        <div class="col-md-4">
+                            <div class="form-group row mb-03">
+                                <label for="totalRow" class="col-sm-4 col-form-label titik-dua">Row(s)</label>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control text-right font-weight-bold" id="totalRow" disabled/>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-start align-items-end mt-75">
-                    </div>
-                    {{-- @include('production.actualFinishGoods.summary') --}}
+
                     <hr>
                     <div class="form-row">
                         <div class="col-md-12">
-                            <div class="form-row">
-                                <div class="col-md-12">
-                                    <a href="{{ route('production.actualFinishGoods.index') }}" class="btn btn-light">Back</a>
-                                    @if( $approveValidate ? $approveValidate[0]->validate : '')
-                                        <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
-                                        <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
-                                        <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
-                                        @if( $statusPrd =='POSTED WO' || $statusPrd =='INPUT FG')
-                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                        @endif
-                                    @else
-                                        @if( !$approveValidate && ($statusPrd =='POSTED WO' || $statusPrd =='INPUT FG'))
-                                            <button class="btn btn-primary" type="button" id="cmdSave" name="cmdSave">Save</button>
-                                        @endif
-                                    @endif
-                                </div>
-                            </div>
+                            <a href="{{ route('production.actualFinishGoods.index') }}" class="btn btn-light">Back</a>
+                            @if( $approveValidate ? $approveValidate[0]->validate : '')
+                                <input type="text" id ="approveLevel" name ="approveLevel" class="d-none" value="{{ $approveValidate[0]->next_level }}">
+                                <input type="text" id ="maxLevel" name ="maxLevel" class="d-none" value="{{ $approveValidate[0]->max_level }}">
+                                <button class="btn btn-success" type="button" id="cmdApprove" name="cmdApprove">Approve</button>
+                            @else
+                                @if( !$approveValidate && $header->status == 1 )
+                                    <button class="btn btn-primary" type="button" id="cmdSave">Save</button>
+                                @endif
+                            @endif
                         </div>
                     </div>
                     <hr>
@@ -192,221 +147,244 @@
         </div>
     </div>
 </section>
+
+{{-- ROW TEMPLATE UNTUK DI-CLONE (di luar section) --}}
+<div id="new_row_fg" class="d-none">
+    <div class="tanda-baris">
+        <div class="form-row d-flex align-items-center">
+            <div class="col-md-6 col-12">
+                <div class="form-group margin-nol">
+                    <label class="d-block d-md-none">Article</label>
+                    <select class="select2-article-fg form-control" name="article_code[]"
+                            data-placeholder="-- Cari Article FG --">
+                        <option value=""></option>
+                    </select>
+                    <input type="hidden" name="uom[]" value="">
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group margin-nol">
+                    <label class="d-block d-md-none">Qty FG</label>
+                    <input type="text" class="form-control numeral-mask-digit text-right qty-fg"
+                           name="qty_fg[]" maxlength="12" value="0">
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group margin-nol">
+                    <label class="d-block d-md-none">Qty OT</label>
+                    <input type="text" class="form-control numeral-mask-digit text-right qty-ot"
+                           name="qty_ot[]" maxlength="12" value="0">
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div class="form-group margin-nol">
+                    <label class="d-block d-md-none">Note</label>
+                    <input type="text" class="form-control" name="note[]" maxlength="150">
+                </div>
+            </div>
+            <div class="col-md-1 col-12 text-center">
+                <button type="button" class="btn btn-danger btn-sm btn-del-row" title="Hapus">
+                    <i data-feather="trash-2" style="width:13px;height:13px;"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
+
 @section('styles')
 <style>
-    textarea {
-        resize: none;
-    }
-      
-    td.disabled{
-        background-color:#f8f8f8;
-        color:black;
-    }
+    textarea { resize: none; }
+    .mb-03{ margin-bottom: 0.3rem; }
+    label.titik-dua::after{ content:":"; position:absolute; right:1px; }
+    .margin-nol{ margin-bottom:0.5rem; }
+    .btn-del-row{ padding:2px 7px; line-height:1.4; }
 
+    @media screen and (min-device-width:1200px) and (max-device-width:1600px){
+        .lebar-list-item{ width:100%; }
+        .container-list-item{ max-width:100%; overflow-x:auto; scrollbar-width:thin; margin-top:7px; }
+    }
+    @media only screen and (min-width:600px) and (max-width:1200px){
+        .lebar-list-item{ width:200%; }
+        .container-list-item{ max-width:100%; overflow-x:auto; scrollbar-width:thin; margin-top:7px; }
+    }
 </style>
 @endsection
+
 @section('scripts')
-@include('production.actualFinishGoods.addArticle')
 <script type="text/javascript">
-    const dWosNumber = $('#wosNumber');
-    const dWosDate = $('#wosDate');
-    const dShift = $('#shift');
-    const dGroup = $('#group');
-    const dWosTime = $('#wosTime');
-    const dWorkingHour = $('#workingHour');
-    const dEfficiency = $('#efficiency');
-    const dNote = $('#note');
-    const approveBtn = document.querySelector('#cmdApprove');
-    const dPrdNumber = $('#prdNumber');
-
-    if (approveBtn) {
-        approveBtn.addEventListener('click',() =>{
-            let prdNumber = $('#prdNumber').val();
-            approve(prdNumber,'cmdApprove');
-        },{ once:true});
-    }
-
-    $(document).ready(function(){           
-        validateFormToast("frmAdd");
-        let detail = {!!  $details !!};
-        for(let i=0;i< detail.length;i++){
-            soCode = detail[i].so_code;
-            articleId= detail[i].article_code;
-            articleCode = detail[i].article;
-            articleRm = detail[i].article_rm_code;
-            qtySo = detail[i].so_qty; //belum ada
-            uom = 'PCS';
-            planQtyFresh = detail[i].act_qty_fresh;
-            planQtyRepaint = detail[i].act_qty_repaint;
-            planTime = detail[i].act_time;
-            planTag = detail[i].act_tag;
-            originTag = detail[i].origin_tag;
-            qtyFg=detail[i].act_finish_goods;
-            urutan = detail[i].urutan;
-            tone = detail[i].tone;
-            add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,qtyFg,urutan,tone);
-        }
-    });   
-
-
-    $("#cmdDownloadTemplate").click(function(){
-        let id = dWosNumber.val();
-        let prdNumber = dPrdNumber.val();
-        console.log(prdNumber);
-        if(id){
-            let url = "{{ route('actualFinishGood.export.excel', ['wos_number'=>':id','prd_number'=>':prdNumber']) }}";
-            url = url.replace('%3Aid', id);
-            url = url.replace('%3AprdNumber', prdNumber);
-            url = url.replace('&amp;','&');  
-            window.location.href = url;
-        }else{
-            Swal.fire("Warning","Pilih dulu WOS number","warning");
-        }
-
-    });
-
-    $("#uploadExcel").click(function(){
-        if (!$("#frmExcel")[0].checkValidity()){
-            $("#frmExcel").submit();
-        }else{
-            $(".loading-spinner-container").addClass("-show");
-            $("#uploadExcel").attr('disabled','disabled');
-            $('.disabled-el').removeAttr('disabled');
-            $("#frmExcel").submit();
-        }
-    });
-
-    $('#frmExcel').on('submit', function(event){
-        $('#message').html('');
-        $('#article_row').empty();
-        event.preventDefault();
-        $('#aprdNumber').val($('#prdNumber').val());
-        $.ajax({
-            url:"{{ route('actualFinishGood.import.excel') }}",
-            method:"POST",
-            data: new FormData(this),
-            dataType:"json",
-            contentType:false,
-            cache:false,
-            processData:false,
-            beforeSend:function(){
-                $('#uploadExcel').attr('disabled','disabled');
-            },
-            success:function(data){
-                // console.log(data.dataDetail);
-                // console.log(data.status);
-                if(data.status == 1){
-                    Swal.fire({
-                        title: "Proses validasi...",
-                        icon: "warning",
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        },
-                    })
-
-                    let timerId = setInterval(() => checkVariable(), 1000);
-                    function checkVariable() {
-                        if (data.dataDetail.length > 0) {
-                            clearInterval(timerId);
-                            for(let i=0;i<data.dataDetail.length;i++){
-                                soCode = data.dataDetail[i].so_code;
-                                articleId= data.dataDetail[i].article_code;
-                                articleCode = data.dataDetail[i].article;
-                                articleRm = data.dataDetail[i].article_rm_code;
-                                qtySo = data.dataDetail[i].so_qty; //belum ada
-                                uom = 'PCS';
-                                planQtyFresh = data.dataDetail[i].act_qty_fresh;
-                                planQtyRepaint = data.dataDetail[i].act_qty_repaint;
-                                planTime = data.dataDetail[i].act_time;
-                                planTag = data.dataDetail[i].act_tag;
-                                originTag = data.dataDetail[i].origin_tag;
-                                // qtyFg=data.dataDetail[i].act_finish_goods;
-                                urutan = data.dataDetail[i].urutan;
-                                tone = data.dataDetail[i].tone;
-                                qtyFg = data.dataDetail[i].qty_finish_goods;
-                                
-                                if(soCode == 'other'){
-                                    planQtyRepaint = 0;
-                                    planTag = 0;
-                                }
-
-                                add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,qtyFg,urutan,tone);
-                                if (i==(data.dataDetail.length-1)){
-                                        $("#uploadExcel").removeAttr('disabled');
-                                        show_msg(data.title, data.message, data.alert);
-                                        $(".loading-spinner-container").removeClass("-show");
-                                        swal.close();
-                                        sumData();
-                                }
-                            }
-                        }else{
-                            swal.fire("warning","Data Kosong","warning");
-                            $(".loading-spinner-container").removeClass("-show");        
-                        }
-                    }
-
-                }
-
-                if(data.status == 0){
-                    for(let i = 0; i < data.message.length; i++) {
-                        show_msg(data.title, data.message[i], data.alert);
-                    }
-                    swal.fire("warning",data.pesan,"warning");
-                    $(".loading-spinner-container").removeClass("-show");
-                }
-            },
-            error: function(xhr, status, error) {
-                let err = JSON.parse(xhr.responseText);
-                // Swal.fire('Error..',err.errors.file[0],'error');
-                Swal.fire('Error..',err.message,'error');
-                $(".loading-spinner-container").removeClass("-show");
-            }
-        })
-    });
-
-    isiDariExcel=()=>{
-        let awosNumber= dWosNumber.val();
-        let aprdNumber= dPrdNumber.val();
-        let dariExcel ='true';
-        $.ajax({
-            url:"{{ route('production.actualLoading.wos.detail') }}",
-            method:"GET",
-            data:{
-                wosNumber:awosNumber,
-                dariExcel:dariExcel
-            },
-            success:function(result){                
-                if(result.length > 0 ){
-                    for(let i=0;i< detail.length;i++){
-                        soCode = detail[i].so_code;
-                        articleId= detail[i].article_code;
-                        articleCode = detail[i].article;
-                        articleRm = detail[i].article_rm_code;
-                        qtySo = detail[i].so_qty; //belum ada
-                        uom = 'PCS';
-                        planQtyFresh = detail[i].act_qty_fresh;
-                        planQtyRepaint = detail[i].act_qty_repaint;
-                        planTime = detail[i].act_time;
-                        planTag = detail[i].act_tag;
-                        originTag = detail[i].origin_tag;
-                        tone = detail[i].tone;
-                        add_new_row_edit(soCode,articleCode,articleId,articleRm,qtySo,uom,planQtyFresh,planQtyRepaint,planTime,planTag,originTag,tone);
-                    }
-                }
-            },
-            error: function (response) {
-                Swal.fire("Warning","Get detail PO failed","warning");
-            }
-        })
-    }
+    const fgDate = $('#fgDate');
+    if (fgDate.length) { fgDate.flatpickr({ dateFormat: "d-m-Y" }); }
 
     $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        }
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
     });
 
+    function toNum(v){
+        let n = parseFloat(String(v).replace(/,/g,''));
+        return isNaN(n) ? 0 : n;
+    }
+    function updateTotalRow(){
+        $('#totalRow').val($('#article_row .tanda-baris').length || '');
+    }
+
+    const articleFgData = @json($listArticleFg);
+    const existingDetails = @json($details);
+
+    function initRowSelect2($row){
+        let $sel = $row.find('.select2-article-fg');
+        $sel.select2({
+            placeholder : '-- Cari Article FG --',
+            allowClear  : true,
+            width       : '100%',
+            data        : articleFgData,
+            matcher     : function(params, data){
+                if (!params.term || params.term.trim() === '') return data;
+                let term = params.term.toLowerCase();
+                if (data.id.toLowerCase().includes(term) || data.text.toLowerCase().includes(term)) return data;
+                return null;
+            }
+        });
+
+        $sel.on('select2:select', function(e){
+            let d = e.params.data;
+            $row.find('input[name="uom[]"]').val(d.uom || '');
+        });
+        $sel.on('select2:clear', function(){
+            $row.find('input[name="uom[]"]').val('');
+        });
+    }
+
+    function addNewRow(detail){
+        let $clone = $('#new_row_fg').clone().removeAttr('id').removeClass('d-none');
+        $('#article_row').append($clone);
+
+        let $row = $('#article_row .tanda-baris').last();
+        initRowSelect2($row);
+
+        if (detail){
+            let opt = new Option(detail.article_label || detail.article_code, detail.article_code, true, true);
+            $row.find('.select2-article-fg').append(opt).trigger('change');
+            $row.find('input[name="uom[]"]').val(detail.uom || '');
+            $row.find('.qty-fg').val(detail.qty_fg || 0);
+            $row.find('.qty-ot').val(detail.qty_ot || 0);
+            $row.find('input[name="note[]"]').val(detail.note || '');
+        }
+
+        if (typeof feather !== 'undefined') feather.replace();
+        updateTotalRow();
+    }
+
+    $('#cmdAddArticle').on('click', function(){ addNewRow(); });
+
+    $('#article_row').on('click', '.btn-del-row', function(){
+        $(this).closest('.tanda-baris').remove();
+        updateTotalRow();
+    });
+
+    $('#cmdSave').on('click', function(){
+        let fgDateVal  = $('#fgDate').val();
+        let locationVal= $('#location').val();
+        let headerNote = $('#note').val();
+        let fgNumber   = $('#fgNumber').val();
+
+        if (!fgDateVal){ Swal.fire("Info","Tanggal wajib diisi.","info"); return; }
+        if (!locationVal){ Swal.fire("Info","Location wajib dipilih.","info"); return; }
+
+        let $rows = $('#article_row .tanda-baris');
+        if ($rows.length === 0){
+            Swal.fire("Info","Belum ada artikel. Klik Add Article terlebih dahulu.","info"); return;
+        }
+
+        let articles = [], adaIsi = false, adaKosong = false;
+
+        $rows.each(function(){
+            let $r          = $(this);
+            let articleCode = $r.find('select[name="article_code[]"]').val();
+            let uom         = $r.find('input[name="uom[]"]').val();
+            let qtyFg       = toNum($r.find('.qty-fg').val());
+            let qtyOt       = toNum($r.find('.qty-ot').val());
+            let noteVal     = $r.find('input[name="note[]"]').val();
+
+            if (!articleCode){
+                adaKosong = true;
+                $r.find('.select2-article-fg').next('.select2-container')
+                  .find('.select2-selection').addClass('border-danger');
+                return;
+            }
+            if (qtyFg > 0 || qtyOt > 0) adaIsi = true;
+
+            articles.push({ article_code: articleCode, uom: uom, qty_fg: qtyFg, qty_ot: qtyOt, note: noteVal });
+        });
+
+        if (adaKosong){ Swal.fire("Info","Ada baris yang belum dipilih article-nya.","info"); return; }
+        if (!adaIsi){ Swal.fire("Info","Minimal satu artikel harus punya Qty FG atau OT > 0.","info"); return; }
+
+        let codes = articles.map(a => a.article_code);
+        if (new Set(codes).size !== codes.length){
+            Swal.fire("Info","Ada article yang duplikat. Setiap article hanya boleh muncul sekali.","info"); return;
+        }
+
+        let $btn = $(this), origHtml = $btn.html();
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span>Saving...');
+
+        $.ajax({
+            url    : "{{ route('production.actualFinishGoods.update') }}",
+            method : "POST",
+            data   : { articles: JSON.stringify(articles), fgNumber: fgNumber, fgDate: fgDateVal, location: locationVal, note: headerNote },
+            success: function(res){
+                if (res.status == 1){
+                    Swal.fire({ icon:'success', title:res.title, text:res.message }).then(() => window.location.href = "{{ route('production.actualFinishGoods.index') }}");
+                } else {
+                    let msg = Array.isArray(res.message) ? res.message.flat().join('<br>') : res.message;
+                    Swal.fire({ icon:'error', title:res.title || 'Error', html:msg });
+                }
+            },
+            error: function(xhr){
+                Swal.fire("Error","Gagal menyimpan. "+(xhr.responseJSON?.message||xhr.statusText||''),"error");
+            },
+            complete: function(){ $btn.prop('disabled', false).html(origHtml); }
+        });
+    });
+
+    function approve(fgNumber, objButton){
+        $('#'+objButton).attr('disabled','disabled');
+        $.ajax({
+            type: "POST",
+            url: "{{ route('production.actualFinishGoods.approve') }}",
+            data: { fgNumber: fgNumber },
+            dataType: "json",
+            success: function(data) {
+                show_msg(data.title, data.message, data.alert);
+                if (data.status == 1) window.location.reload();
+                else $('#'+objButton).removeAttr('disabled');
+            },
+            error: function(error) { console.log(error); }
+        });
+    }
+
+    const approveBtn = document.querySelector('#cmdApprove');
+    if (approveBtn) {
+        approveBtn.addEventListener('click', () => {
+            approve($('#fgNumber').val(), 'cmdApprove');
+        }, { once:true });
+    }
+
+    $(document).ready(function(){
+        if (typeof validateFormToast === 'function'){
+            validateFormToast("frmAdd");
+        }
+        existingDetails.forEach(function(d){
+            addNewRow({
+                article_code : d.article_code,
+                article_label: (d.article_alternative_code || d.article_code) + ' — ' + (d.article_desc || ''),
+                uom          : d.uom,
+                qty_fg       : d.qty_fg,
+                qty_ot       : d.qty_ot,
+                note         : d.note
+            });
+        });
+        if (typeof feather !== 'undefined') feather.replace();
+    });
 </script>
 @endsection
