@@ -87,6 +87,35 @@
   const ymToDate = (ym, end) => end ? ym + '-' + new Date(ym.split('-')[0], ym.split('-')[1], 0).getDate() : ym + '-01';
   const toast = (icon, title) => Swal.fire({ toast: true, position: 'top-end', icon: icon, title: title, showConfirmButton: false, timer: 2500 });
 
+  // Bandingkan rows sebelum & sesudah Recalculate, kembalikan baris yang Debit/Average/Realisasi-nya berubah.
+  function diffRecalc(oldRows, newRows) {
+    const oldMap = {};
+    oldRows.forEach((r) => { oldMap[r.account] = r; });
+    const changed = [];
+    newRows.forEach((r) => {
+      const o = oldMap[r.account];
+      const oldDebit = o ? o.debit : 0, oldAvg = o ? o.average : 0, oldReal = o ? o.realisasi_total : 0;
+      if (Math.abs(oldDebit - r.debit) > 0.01 || Math.abs(oldAvg - r.average) > 0.01 || Math.abs(oldReal - r.realisasi_total) > 0.01) {
+        changed.push({ account: r.account, nama: r.nama_akun, oldDebit, newDebit: r.debit, oldAvg, newAvg: r.average, oldReal, newReal: r.realisasi_total });
+      }
+    });
+    return changed;
+  }
+
+  function showRecalcDiff(changed) {
+    if (!changed.length) { toast('info', 'Data sudah up to date, tidak ada perubahan.'); return; }
+    let html = '<div class="table-responsive text-left" style="max-height:50vh;overflow:auto;">'
+      + '<table class="table table-sm"><thead><tr><th>Account</th><th class="text-right">Debit</th><th class="text-right">Average</th><th class="text-right">Realisasi</th></tr></thead><tbody>';
+    changed.forEach((c) => {
+      html += '<tr><td>' + esc(c.account) + '<br><small class="text-muted">' + esc(c.nama) + '</small></td>'
+        + '<td class="text-right">' + nf(c.oldDebit) + ' &rarr; <b>' + nf(c.newDebit) + '</b></td>'
+        + '<td class="text-right">' + nf(c.oldAvg) + ' &rarr; <b>' + nf(c.newAvg) + '</b></td>'
+        + '<td class="text-right">' + nf(c.oldReal) + ' &rarr; <b>' + nf(c.newReal) + '</b></td></tr>';
+    });
+    html += '</tbody></table></div>';
+    Swal.fire({ title: changed.length + ' akun berubah', html: html, icon: 'info', confirmButtonText: 'OK', width: 700 });
+  }
+
   function buildHead() {
     let r1 = '<tr>'
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
@@ -209,11 +238,12 @@
     }).then((result) => {
       if (!result.isConfirmed) return;
       $('.loading-spinner-container').addClass('-show');
+      const oldRows = rows;
       $.post("{{ route('budgeting.recalculate', $hdr->id) }}").done(function (res) {
         months = res.months;
         rows = res.rows;
         renderAll();
-        toast('success', res.message);
+        showRecalcDiff(diffRecalc(oldRows, rows));
       }).fail(function (xhr) {
         toast('error', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menarik ulang data.');
       }).always(function () {
