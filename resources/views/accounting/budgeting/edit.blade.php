@@ -123,7 +123,7 @@
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
-      + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period, ikut berubah tiap Final Budget diedit">Monthly Budget<br><small class="text-muted">(dinamis)</small></th>'
+      + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period, ikut berubah tiap Final Budget diedit">Monthly Budget</th>'
       + '<th rowspan="2" class="col-add" title="Tambahan budget yang disetujui kalau dept ini over-budget">Additional Budget</th>'
       + '<th rowspan="2" class="col-final" title="Total untuk seluruh Budget Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';

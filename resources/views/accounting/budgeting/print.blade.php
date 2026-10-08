@@ -4,10 +4,11 @@
 <meta charset="UTF-8">
 <title>{{ $hdr->budgeting_number }}</title>
 <style type="text/css">
-  body { font-family: sans-serif; font-size: 10px; }
-  h3 { margin: 0 0 2px 0; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  th, td { border: 1px solid #999; padding: 3px 5px; }
+  @page { margin: 12px; }
+  body { font-family: sans-serif; font-size: 7px; }
+  h3 { margin: 0 0 2px 0; font-size: 12px; }
+  table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 8px; }
+  th, td { border: 1px solid #999; padding: 2px 3px; word-wrap: break-word; overflow-wrap: break-word; }
   th { background: #eee; text-align: center; }
   td.num, th.num { text-align: right; }
   tfoot td { font-weight: bold; background: #f3f3f3; }
@@ -28,7 +29,29 @@
     &nbsp;|&nbsp; Margin: {{ number_format($cards['margin'], 2) }} ({{ $cards['margin_pct'] }}%)
   </div>
 
+  @php
+    // Lebar kolom tetap (Account s/d Realisasi %) dalam %, sisanya dibagi rata ke kolom bulan
+    // supaya tabel tetap muat 1 halaman landscape walau budget period-nya panjang.
+    $fixedColsPct = ['account' => 6, 'name' => 11, 'debit' => 6, 'average' => 6, 'cr' => 3, 'monthly' => 6, 'additional' => 6, 'final' => 7, 'total_real' => 6, 'selisih' => 6, 'pct' => 4];
+    $monthPct = count($months) > 0 ? round((100 - array_sum($fixedColsPct)) / count($months), 2) : 0;
+  @endphp
   <table>
+    <colgroup>
+      <col style="width:{{ $fixedColsPct['account'] }}%">
+      <col style="width:{{ $fixedColsPct['name'] }}%">
+      <col style="width:{{ $fixedColsPct['debit'] }}%">
+      <col style="width:{{ $fixedColsPct['average'] }}%">
+      <col style="width:{{ $fixedColsPct['cr'] }}%">
+      <col style="width:{{ $fixedColsPct['monthly'] }}%">
+      <col style="width:{{ $fixedColsPct['additional'] }}%">
+      <col style="width:{{ $fixedColsPct['final'] }}%">
+      @foreach($months as $m)
+        <col style="width:{{ $monthPct }}%">
+      @endforeach
+      <col style="width:{{ $fixedColsPct['total_real'] }}%">
+      <col style="width:{{ $fixedColsPct['selisih'] }}%">
+      <col style="width:{{ $fixedColsPct['pct'] }}%">
+    </colgroup>
     <thead>
       <tr>
         <th>Account</th><th>Name</th><th>Debit</th><th>Average</th><th>CR %</th>
