@@ -48,7 +48,6 @@ class BankReconciliationController extends Controller
             ['data' => 'recon_number', 'name' => 'recon_number', 'title' => 'Recon Number'],
             ['data' => 'periode', 'name' => 'periode', 'title' => 'Periode'],
             ['data' => 'type', 'name' => 'type', 'title' => 'Type'],
-            ['data' => 'bank_account', 'name' => 'bank_account', 'title' => 'Account'],
             ['data' => 'description', 'name' => 'description', 'title' => 'Description'],
             ['data' => 'match_summary', 'name' => 'match_summary', 'title' => 'Match'],
             ['data' => 'created_by', 'name' => 'created_by', 'title' => 'Created By'],
@@ -68,7 +67,6 @@ class BankReconciliationController extends Controller
             5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
             9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
         ];
-        $data['accounts'] = DB::table('accounts')->orderBy('account')->select('account', 'description')->get();
         return view('accounting.bankReconciliation.create', $data);
     }
 
@@ -80,7 +78,6 @@ class BankReconciliationController extends Controller
             'periode' => 'required',
             'year' => 'required|integer',
             'type' => 'required|in:KAS,BANK',
-            'bankAccount' => 'required',
             'statement' => 'required|file|mimes:pdf',
         ]);
 
@@ -95,7 +92,6 @@ class BankReconciliationController extends Controller
         $periode = (int) $request->periode;
         $year = (int) $request->year;
         $type = $request->type;
-        $bankAccount = $request->bankAccount;
         $description = $request->description;
 
         $file = $request->file('statement');
@@ -122,7 +118,6 @@ class BankReconciliationController extends Controller
                 'year' => $year,
                 'description' => $description,
                 'type' => $type,
-                'bank_account' => $bankAccount,
                 'status' => 'NEW',
                 'created_by' => $username,
                 'updated_by' => $username,
@@ -144,7 +139,7 @@ class BankReconciliationController extends Controller
                 ]);
             }
 
-            $matched = $this->autoMatch($reconNumber, $type, $bankAccount, $periode, $year);
+            $matched = $this->autoMatch($reconNumber, $type, $periode, $year);
 
             DB::table('bank_reconciliation_hdr')->where('recon_number', $reconNumber)->update(['status' => 'DONE', 'updated_at' => date('Y-m-d H:i:s')]);
 
@@ -196,9 +191,10 @@ class BankReconciliationController extends Controller
         return $issues ? ('Hasil parse tidak cocok dengan ringkasan PDF (' . implode('; ', $issues) . '). Kemungkinan ada baris yang ke-skip, cek manual.') : null;
     }
 
-    // Cocokkan tiap baris UNMATCHED ke kas_det (akun + tanggal + nominal sisi yang sesuai),
-    // kas_det yang sudah kepakai di-skip biar tidak dobel-match dalam 1 proses ini.
-    private function autoMatch(string $reconNumber, string $type, string $bankAccount, int $periode, int $year): int
+    // Cocokkan tiap baris UNMATCHED ke kas_det (type + period/year + tanggal + nominal
+    // sisi yang sesuai), kas_det yang sudah kepakai di-skip biar tidak dobel-match.
+    // Tidak difilter per akun COA -- scope saat ini cuma 1 rekening per Type (Kas/Bank).
+    private function autoMatch(string $reconNumber, string $type, int $periode, int $year): int
     {
         $voucherTypes = $this->voucherTypes[$type];
         $usedKasDetIds = [];
@@ -215,7 +211,6 @@ class BankReconciliationController extends Controller
                 ->where('kas_hdr.status', '<>', '5')
                 ->whereRaw('kas_hdr.period::integer = ?', [$periode])
                 ->where('kas_hdr.year', $year)
-                ->where('kas_det.account', $bankAccount)
                 ->where('kas_det.' . $amountColumn, $row->amount)
                 ->whereRaw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY') = ?", [$row->stmt_date])
                 ->when(!empty($usedKasDetIds), function ($q) use ($usedKasDetIds) {
@@ -360,7 +355,6 @@ class BankReconciliationController extends Controller
             ->where('kas_hdr.status', '<>', '5')
             ->whereRaw('kas_hdr.period::integer = ?', [(int) $header->periode])
             ->where('kas_hdr.year', $header->year)
-            ->where('kas_det.account', $header->bank_account)
             ->whereNotIn('kas_det.id', function ($q) {
                 $q->select('matched_kas_det_id')->from('bank_reconciliation_det')->whereNotNull('matched_kas_det_id');
             })

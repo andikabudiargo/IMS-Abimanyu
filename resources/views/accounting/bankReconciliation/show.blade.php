@@ -12,8 +12,7 @@
       <div class="row">
         <div class="col-md-2"><strong>Type</strong><div>{{ $header->type }}</div></div>
         <div class="col-md-2"><strong>Periode</strong><div>{{ $header->periode }} / {{ $header->year }}</div></div>
-        <div class="col-md-3"><strong>Akun</strong><div>{{ $header->bank_account }}</div></div>
-        <div class="col-md-5"><strong>Description</strong><div>{{ $header->description ?: '-' }}</div></div>
+        <div class="col-md-8"><strong>Description</strong><div>{{ $header->description ?: '-' }}</div></div>
       </div>
     </div>
   </div>
@@ -77,9 +76,9 @@
       tableId: "bankReconciliationDetailTable",
       route: "{{ route('bankReconciliation.list.detail', ['id' => $id]) }}",
       kolom: {!! $kolomDetail !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8],
+      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9],
       columnDefs: [
-        { className: 'text-right', targets: [4, 5, 8] },
+        { className: 'text-right', targets: [4, 5, 9] },
       ],
       initComplete: function () {
         $(".loading-spinner-container").removeClass("-show");

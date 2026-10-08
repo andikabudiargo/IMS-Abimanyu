@@ -21,17 +21,6 @@
                 <option value="BANK">Bank</option>
               </select>
             </div>
-            <div class="form-group col-md-5">
-              <label class="form-label" for="bankAccount">Akun COA (Kas/Bank)*</label>
-              <select class="select2 form-control" id="bankAccount" name="bankAccount" required>
-                <option value=""></option>
-                @foreach ($accounts as $val)
-                  <option value="{{ $val->account }}">{{ $val->account }} | {{ $val->description }}</option>
-                @endforeach
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
             <div class="form-group col-md-3">
               <label class="form-label" for="periode">Periode*</label>
               <select class="select2 form-control" id="periode" name="periode" required>
