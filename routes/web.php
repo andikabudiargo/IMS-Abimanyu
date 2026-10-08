@@ -1178,6 +1178,16 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 
 	Route::get('budgeting',['as'=>'budgeting.index','uses'=>'Accounting\BudgetingController@index']);
 	Route::get('budgeting/data',['as'=>'budgeting.data','uses'=>'Accounting\BudgetingController@data']);
+	Route::get('budgeting/transactions',['as'=>'budgeting.transactions','uses'=>'Accounting\BudgetingController@transactions']);
+	Route::get('budgeting/create',['as'=>'budgeting.create','uses'=>'Accounting\BudgetingController@create']);
+	Route::post('budgeting',['as'=>'budgeting.store','uses'=>'Accounting\BudgetingController@store']);
+	Route::get('budgeting/{id}/edit',['as'=>'budgeting.edit','uses'=>'Accounting\BudgetingController@edit']);
+	Route::put('budgeting/{id}',['as'=>'budgeting.update','uses'=>'Accounting\BudgetingController@update']);
+	Route::get('budgeting/{id}',['as'=>'budgeting.show','uses'=>'Accounting\BudgetingController@show']);
+	Route::delete('budgeting/{id}',['as'=>'budgeting.destroy','uses'=>'Accounting\BudgetingController@destroy']);
+	Route::post('budgeting/{id}/recalculate',['as'=>'budgeting.recalculate','uses'=>'Accounting\BudgetingController@recalculate']);
+	Route::get('budgeting/{id}/export-excel',['as'=>'budgeting.export.excel','uses'=>'Accounting\BudgetingController@exportExcel']);
+	Route::get('budgeting/{id}/export-pdf',['as'=>'budgeting.export.pdf','uses'=>'Accounting\BudgetingController@exportPdf']);
 
 	Route::get('forecastSales',['as'=>'forecastSales.index','uses'=>'Forecasting\ForcastingSalesController@index']);
 	Route::get('forecastSales/create',['as'=>'forecastSales.create','uses'=>'Forecasting\ForcastingSalesController@create']);
