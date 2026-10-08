@@ -74,6 +74,7 @@
   const esc = (s) => $('<div>').text(s === null || s === undefined ? '' : s).html();
   const monthLabel = (ym) => { const [y, m] = ym.split('-'); return ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][parseInt(m,10)-1] + ' ' + y; };
   const ymToDate = (ym, end) => end ? ym + '-' + new Date(ym.split('-')[0], ym.split('-')[1], 0).getDate() : ym + '-01';
+  const toast = (icon, title) => Swal.fire({ toast: true, position: 'top-end', icon: icon, title: title, showConfirmButton: false, timer: 2500 });
 
   function buildHead() {
     let r1 = '<tr>'
@@ -127,21 +128,32 @@
   });
 
   $('#btnRecalc').click(function () {
-    if (!confirm('Tarik ulang data Debit, Average dan Realisasi dari transaksi terbaru?')) return;
-    $('.loading-spinner-container').addClass('-show');
-    $.ajax({
-      url: "{{ route('budgeting.recalculate', $hdr->id) }}", type: 'POST',
-      headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
-    }).done(function (res) {
-      months = res.months;
-      rows = res.rows;
-      cards = res.cards;
-      renderAll();
-      alert(res.message);
-    }).fail(function (xhr) {
-      alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menarik ulang data.');
-    }).always(function () {
-      $('.loading-spinner-container').removeClass('-show');
+    Swal.fire({
+      title: 'Yakin?',
+      text: 'Tarik ulang data Debit, Average dan Realisasi dari transaksi terbaru?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, tarik ulang',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#7367F0',
+      reverseButtons: true,
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      $('.loading-spinner-container').addClass('-show');
+      $.ajax({
+        url: "{{ route('budgeting.recalculate', $hdr->id) }}", type: 'POST',
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+      }).done(function (res) {
+        months = res.months;
+        rows = res.rows;
+        cards = res.cards;
+        renderAll();
+        toast('success', res.message);
+      }).fail(function (xhr) {
+        toast('error', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menarik ulang data.');
+      }).always(function () {
+        $('.loading-spinner-container').removeClass('-show');
+      });
     });
   });
 </script>

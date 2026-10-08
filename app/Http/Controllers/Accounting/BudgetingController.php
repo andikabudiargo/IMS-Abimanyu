@@ -264,7 +264,9 @@ class BudgetingController extends Controller
                 $cr = $edit ? min(100, max(0, (float) $edit['cost_reduction'])) : self::DEFAULT_COST_REDUCTION;
                 $budget = round($r['average'] * (1 - $cr / 100), 2);
                 // final_budget = TOTAL untuk seluruh budget period (bukan bulanan).
-                $final = ($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : round($budget * count($budgMonths), 2);
+                // Default diskalakan ke active_months (bukan seluruh bulan budget period), supaya pengeluaran
+                // yang historisnya jarang muncul (mis. sekali dalam setahun) tidak diproyeksikan jadi bulanan.
+                $final = ($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : round($budget * $r['active_months'], 2);
 
                 DB::table('budgeting_det')->insert([
                     'budgeting_hdr_id' => $hdrId,
@@ -420,7 +422,7 @@ class BudgetingController extends Controller
                         'budgeting_hdr_id' => $id,
                         'account'          => $r['account'],
                         'cost_reduction'   => $cr,
-                        'final_budget'     => round($budget * count($months), 2),
+                        'final_budget'     => round($budget * $r['active_months'], 2),
                         'created_at'       => now(),
                     ]);
                 }
@@ -579,6 +581,16 @@ class BudgetingController extends Controller
             ->first();
         if (!$hdr) {
             return null;
+        }
+
+        if ($hdr->coa_filter) {
+            $codes = array_map('trim', explode(',', $hdr->coa_filter));
+            $names = DB::table('accounts')->whereIn('account', $codes)->pluck('description', 'account');
+            $hdr->coa_label = collect($codes)
+                ->map(fn($c) => $names->has($c) ? "$c - {$names[$c]}" : $c)
+                ->implode(', ');
+        } else {
+            $hdr->coa_label = 'Semua COA (' . implode(', ', array_map(fn($r) => "{$r[0]}-{$r[1]}", self::COA_RANGES)) . ')';
         }
 
         $months = $this->monthsBetween($hdr->budget_from, $hdr->budget_to);

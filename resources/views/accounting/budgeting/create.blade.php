@@ -90,7 +90,7 @@
     <div class="card-body pt-0">
       <small class="text-muted d-block mb-1">
         Average = total debit &divide; jumlah bulan yang debitnya tidak nol. Proposed Budget (bulanan) = Average &minus; Cost Reduction.
-        <strong>Final Budget adalah TOTAL untuk seluruh Budget Period</strong> (default = Proposed Budget &times; jumlah bulan), bisa diedit manual &mdash; nilai per bulannya otomatis mengikuti.
+        <strong>Final Budget adalah TOTAL untuk seluruh Budget Period</strong> (default = Proposed Budget &times; jumlah bulan aktif di Previous Period), bisa diedit manual &mdash; nilai per bulannya otomatis mengikuti.
         Final Budget inilah yang dibandingkan dengan Total Realisasi untuk Selisih &amp; Realisasi %.
         Klik nilai Debit / Realisasi untuk melihat rincian transaksi.
       </small>
@@ -214,7 +214,7 @@
       rows = res.rows.map(function (r) {
         r.cost_reduction = CR_DEFAULT;
         r.budget = round2(r.average * (1 - r.cost_reduction / 100));
-        r.final_budget = round2(r.budget * months.length);
+        r.final_budget = round2(r.budget * r.active_months);
         return r;
       });
       $('#bg-title').text('Department: ' + res.dept_name + '  |  Previous: ' + res.previous_text + '  |  Budget Period: ' + res.budget_text);
@@ -224,7 +224,7 @@
       $('#bg-result').show();
       if (window.feather) feather.replace({ width: 14, height: 14 });
     }).fail(function (xhr) {
-      alert((xhr.responseJSON && xhr.responseJSON.error) || 'Gagal memuat data.');
+      toast('error', (xhr.responseJSON && xhr.responseJSON.error) || 'Gagal memuat data.');
     }).always(function () {
       $('.loading-spinner-container').removeClass('-show');
     });
@@ -236,7 +236,7 @@
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
       + '<th rowspan="2" class="text-right">Proposed Budget<br><small class="text-muted">(Monthly)</small></th>'
-      + '<th rowspan="2" class="col-final" title="Total untuk seluruh Budget Period, default = Proposed Budget x jumlah bulan">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
+      + '<th rowspan="2" class="col-final" title="Total untuk seluruh Budget Period, default = Proposed Budget x jumlah bulan aktif di Previous Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
@@ -337,7 +337,7 @@
     let v = parseFloat(this.value);
     r.cost_reduction = isNaN(v) ? 0 : Math.min(100, Math.max(0, v));
     r.budget = round2(r.average * (1 - r.cost_reduction / 100));
-    r.final_budget = round2(r.budget * months.length);
+    r.final_budget = round2(r.budget * r.active_months);
     $(this).closest('tr').find('.bg-final').val(nf(r.final_budget));
     paintRow(ri);
     paintCards(computeCards());
@@ -375,8 +375,8 @@
   }
 
   $('#btnSave').click(function () {
-    if (!rows.length) { alert('Tidak ada data untuk disimpan.'); return; }
-    if (!$('#description').val().trim()) { alert('Description wajib diisi.'); return; }
+    if (!rows.length) { toast('warning', 'Tidak ada data untuk disimpan.'); return; }
+    if (!$('#description').val().trim()) { toast('warning', 'Description wajib diisi.'); return; }
 
     const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, final_budget: r.final_budget }));
     $('.loading-spinner-container').addClass('-show');
@@ -390,10 +390,10 @@
       },
       headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
     }).done(function (res) {
-      alert(res.message);
-      if (res.redirect) window.location.href = res.redirect;
+      toast('success', res.message);
+      if (res.redirect) setTimeout(() => window.location.href = res.redirect, 800);
     }).fail(function (xhr) {
-      alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menyimpan.');
+      toast('error', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menyimpan.');
     }).always(function () {
       $('.loading-spinner-container').removeClass('-show');
     });

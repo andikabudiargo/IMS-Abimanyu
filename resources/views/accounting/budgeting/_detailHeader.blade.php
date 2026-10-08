@@ -40,6 +40,10 @@
         <label class="form-label">Department</label>
         <input type="text" class="form-control" value="{{ $hdr->dept_name ?: $hdr->dept_code }}" disabled>
       </div>
+      <div class="form-group col-md-5">
+        <label class="form-label">COA</label>
+        <input type="text" class="form-control" value="{{ $hdr->coa_label }}" disabled>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group col-md-4">

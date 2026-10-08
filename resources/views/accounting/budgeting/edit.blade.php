@@ -86,6 +86,7 @@
   };
   const monthLabel = (ym) => { const [y, m] = ym.split('-'); return ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][parseInt(m,10)-1] + ' ' + y; };
   const ymToDate = (ym, end) => end ? ym + '-' + new Date(ym.split('-')[0], ym.split('-')[1], 0).getDate() : ym + '-01';
+  const toast = (icon, title) => Swal.fire({ toast: true, position: 'top-end', icon: icon, title: title, showConfirmButton: false, timer: 2500 });
 
   function buildHead() {
     let r1 = '<tr>'
@@ -174,7 +175,7 @@
     let v = parseFloat(this.value);
     r.cost_reduction = isNaN(v) ? 0 : Math.min(100, Math.max(0, v));
     r.budget = round2(r.average * (1 - r.cost_reduction / 100));
-    r.final_budget = round2(r.budget * months.length);
+    r.final_budget = round2(r.budget * r.active_months);
     $(this).closest('tr').find('.bg-final').val(nf(r.final_budget));
     paintRow(ri);
     paintCards(computeCards());
@@ -198,17 +199,28 @@
   });
 
   $('#btnRecalc').click(function () {
-    if (!confirm('Tarik ulang data Debit, Average dan Realisasi dari transaksi terbaru?')) return;
-    $('.loading-spinner-container').addClass('-show');
-    $.post("{{ route('budgeting.recalculate', $hdr->id) }}").done(function (res) {
-      months = res.months;
-      rows = res.rows;
-      renderAll();
-      alert(res.message);
-    }).fail(function (xhr) {
-      alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menarik ulang data.');
-    }).always(function () {
-      $('.loading-spinner-container').removeClass('-show');
+    Swal.fire({
+      title: 'Yakin?',
+      text: 'Tarik ulang data Debit, Average dan Realisasi dari transaksi terbaru?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, tarik ulang',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#7367F0',
+      reverseButtons: true,
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      $('.loading-spinner-container').addClass('-show');
+      $.post("{{ route('budgeting.recalculate', $hdr->id) }}").done(function (res) {
+        months = res.months;
+        rows = res.rows;
+        renderAll();
+        toast('success', res.message);
+      }).fail(function (xhr) {
+        toast('error', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menarik ulang data.');
+      }).always(function () {
+        $('.loading-spinner-container').removeClass('-show');
+      });
     });
   });
 
@@ -220,9 +232,9 @@
       data: { rows: JSON.stringify(payload), fiscal_year: $('#fiscalYear').val(), description: $('#description').val(), note: $('#note').val() },
       headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
     }).done(function (res) {
-      alert(res.message);
+      toast('success', res.message);
     }).fail(function (xhr) {
-      alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menyimpan.');
+      toast('error', (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menyimpan.');
     }).always(function () {
       $('.loading-spinner-container').removeClass('-show');
     });
