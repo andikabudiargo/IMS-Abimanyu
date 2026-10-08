@@ -11,7 +11,7 @@
       <div class="form-row">
         <div class="form-group col-md-5">
           <label class="form-label" for="budgetingNumber">Budgeting Number</label>
-          <input type="text" id="budgetingNumber" class="form-control" disabled placeholder="Auto-generate (BGT-ASN-{{ $fiscalYearDefault }}-...)" />
+          <input type="text" id="budgetingNumber" class="form-control" disabled placeholder="Auto-generate" />
         </div>
         <div class="form-group col-md-3">
           <label class="form-label" for="fiscalYear">Fiscal Year</label>
@@ -29,7 +29,7 @@
         </div>
       </div>
       <div class="form-row">
- <div class="form-group col-md-"3>
+ <div class="form-group col-md-3">
           <label class="form-label" for="dept">Department</label>
           <select class="select2 form-control" id="dept" data-placeholder="Pilih department">
             <option value=""></option>
@@ -60,7 +60,7 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group col-md-6">
+        <div class="form-group col-md-8">
           <label class="form-label" for="note">Note</label>
           <textarea id="note" rows="4" class="form-control"></textarea>
         </div>
