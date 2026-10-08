@@ -109,6 +109,7 @@ class FormChangeRequestController extends Controller
         'Penghapusan Data',
         'Perbaikan Fitur',
         'Penambahan Fitur',
+        'Penambahan Modul Baru',
     ];
 
     private $urgencies = [
@@ -330,7 +331,7 @@ class FormChangeRequestController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'modul' => 'required',
+            'modul' => $request->type == 'Penambahan Modul Baru' ? 'nullable' : 'required',
             'type' => 'required',
             'description' => 'required',
             'attachment.*' => 'nullable|file|max:10240',
@@ -473,7 +474,7 @@ class FormChangeRequestController extends Controller
         }
 
         $rules = [
-            'modul' => 'required',
+            'modul' => $request->type == 'Penambahan Modul Baru' ? 'nullable' : 'required',
             'type' => 'required',
             'description' => 'required',
             'attachment.*' => 'nullable|file|max:10240',

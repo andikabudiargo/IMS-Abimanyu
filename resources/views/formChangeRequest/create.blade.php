@@ -17,22 +17,19 @@
           <input type="text" class="form-control" value="Auto-generated" disabled>
         </div>
         <div class="form-group col-md-4">
-          <label for="modul">Modul <span class="text-danger">*</span></label>
-          <select class="select2 form-control" id="modul" name="modul" required>
-            <option value="">-- Select Modul --</option>
-            @foreach($modules as $val)
-              <option value="{{ $val }}">{{ $val }}</option>
-            @endforeach
-          </select>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group col-md-4">
           <label for="type">Type <span class="text-danger">*</span></label>
           <select class="select2 form-control" id="type" name="type" required>
             <option value="">-- Select Type --</option>
             @foreach($types as $val)
+              <option value="{{ $val }}">{{ $val }}</option>
+            @endforeach
+          </select>
+        </div>
+        <div class="form-group col-md-4" id="modulGroup" style="display:none">
+          <label for="modul">Modul <span class="text-danger">*</span></label>
+          <select class="select2 form-control" id="modul" name="modul">
+            <option value="">-- Select Modul --</option>
+            @foreach($modules as $val)
               <option value="{{ $val }}">{{ $val }}</option>
             @endforeach
           </select>
@@ -85,6 +82,20 @@
     }
   }
 
+  function toggleModulField() {
+    const type = $('#type').val();
+    if (!type) {
+      $('#modulGroup').hide();
+      $('#modul').prop('required', false).val('').trigger('change.select2');
+    } else if (type === 'Penambahan Modul Baru') {
+      $('#modulGroup').hide();
+      $('#modul').prop('required', false).val('').trigger('change.select2');
+    } else {
+      $('#modulGroup').show();
+      $('#modul').prop('required', true);
+    }
+  }
+
   function addDetailRow(row = {}) {
     detailRowSeq++;
     const idx = detailRowSeq;
@@ -116,7 +127,7 @@
   }
 
   $('#btnAddDetailRow').on('click', function () { addDetailRow(); });
-  $('#type').on('change', toggleDetailSection);
+  $('#type').on('change', function () { toggleDetailSection(); toggleModulField(); });
 
   $('#frmCreate').on('submit', function () {
     if ($('#type').val() === 'Perubahan Data' && $('#detailRowContainer tr').length === 0) {
@@ -124,6 +135,6 @@
     }
   });
 
-  $(function () { toggleDetailSection(); });
+  $(function () { toggleDetailSection(); toggleModulField(); });
 </script>
 @endsection
