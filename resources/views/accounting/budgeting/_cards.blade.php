@@ -8,7 +8,7 @@
         </div>
         <div>
           <h4 class="mb-0 font-weight-bolder text-nowrap" id="bg-c-previous">0</h4>
-          <small class="text-muted text-nowrap">Previous Expenses <span id="bg-c-previous-pct" class="font-weight-bold"></span></small>
+          <small class="text-muted text-nowrap">Previous Expenses</small>
         </div>
       </div>
     </div>
@@ -22,7 +22,7 @@
         </div>
         <div>
           <h4 class="mb-0 font-weight-bolder text-nowrap" id="bg-c-budget">0</h4>
-          <small class="text-muted text-nowrap">Total Budget <span id="bg-c-budget-pct" class="font-weight-bold"></span></small>
+          <small class="text-muted text-nowrap">Total Budget</small>
         </div>
       </div>
     </div>
@@ -61,10 +61,7 @@
   // cards: {previous_expenses, previous_pct, total_budget, budget_growth_pct, actual_expenses, actual_pct, margin, margin_pct}
   function paintCards(c) {
     $('#bg-c-previous').text(nf(c.previous_expenses));
-    $('#bg-c-previous-pct').text('(' + c.previous_pct + '% dari budget)');
-
     $('#bg-c-budget').text(nf(c.total_budget));
-    $('#bg-c-budget-pct').text('(' + (c.budget_growth_pct >= 0 ? '+' : '') + c.budget_growth_pct + '% vs previous)');
 
     $('#bg-c-actual').text(nf(c.actual_expenses));
     $('#bg-c-actual-pct').text('(' + c.actual_pct + '% terpakai)')

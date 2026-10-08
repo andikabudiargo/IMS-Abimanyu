@@ -360,7 +360,7 @@ class BudgetingController extends Controller
             ->get();
 
         $rows->each(function ($r) {
-            $r->detail_url = $this->voucherShowUrl($r->voucher_type, $r->hdr_id);
+            $r->detail_url = $this->voucherShowUrl($r->voucher_type, $r->hdr_id, $r->voucher_number);
             unset($r->hdr_id, $r->voucher_type);
         });
 
@@ -370,9 +370,16 @@ class BudgetingController extends Controller
         ]);
     }
 
-    /** URL detail voucher (KK/BK/KM/BM/GJ) sesuai controller masing-masing, null kalau tipe tidak dikenal. */
-    private function voucherShowUrl($voucherType, $hdrId)
+    /** URL detail voucher sesuai controller masing-masing, null kalau tipe tidak dikenal. */
+    private function voucherShowUrl($voucherType, $hdrId, $voucherNumber)
     {
+        // AP (accrual invoice) disimpan di ap_invoice, bukan kas_hdr -> cari id via ap_number.
+        if ($voucherType === 'AP') {
+            $apId = DB::table('ap_invoice')->where('ap_number', $voucherNumber)->value('id');
+
+            return $apId ? route('accountPayable.show', ['id' => \Crypt::encryptString($apId)]) : null;
+        }
+
         $routes = [
             'KK' => 'kasKeluar.show',
             'BK' => 'bankKeluar.show',
@@ -404,7 +411,7 @@ class BudgetingController extends Controller
         $sheet->fromArray(['Previous: ' . $this->periodeText($d['hdr']->previous_from, $d['hdr']->previous_to) . '  |  Budget Period: ' . $this->periodeText($d['hdr']->budget_from, $d['hdr']->budget_to)], null, 'A2');
 
         $headers = array_merge(
-            ['Account', 'Name', 'Debit', 'Average', 'CR %', 'Proposed Budget', 'Final Budget'],
+            ['Account', 'Name', 'Debit', 'Average', 'CR %', 'Proposed Budget', 'Final Budget', 'Budget Total'],
             $d['months'],
             ['Total Realisasi', 'Selisih', 'Realisasi %']
         );
@@ -413,7 +420,7 @@ class BudgetingController extends Controller
         $rowNum = 5;
         foreach ($d['rows'] as $r) {
             $line = array_merge(
-                [$r['account'], $r['nama_akun'], $r['debit'], $r['average'], $r['cost_reduction'], $r['budget'], $r['final_budget']],
+                [$r['account'], $r['nama_akun'], $r['debit'], $r['average'], $r['cost_reduction'], $r['budget'], $r['final_budget'], $r['budget_total']],
                 array_map(function ($m) use ($r) {
                     return $r['realisasi'][$m] ?? 0;
                 }, $d['months']),

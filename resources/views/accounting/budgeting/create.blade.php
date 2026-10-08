@@ -84,13 +84,19 @@
         <small class="text-muted" id="bg-title"></small>
       </div>
       <div class="heading-elements">
-        <button type="button" class="btn btn-success btn-sm" id="btnSave">Save Budgeting</button>
+        <button type="button" class="btn btn-outline-success" disabled title="Simpan dulu untuk export">
+          <i data-feather="file-text"></i> Export Excel
+        </button>
+        <button type="button" class="btn btn-outline-danger" disabled title="Simpan dulu untuk export">
+          <i data-feather="file"></i> Export PDF
+        </button>
       </div>
     </div>
     <div class="card-body pt-0">
       <small class="text-muted d-block mb-1">
         Average = total debit &divide; jumlah bulan yang debitnya tidak nol. Budget = Average &minus; Cost Reduction.
-        Final Budget mengikuti Budget sampai diedit manual. Klik nilai Debit / Realisasi untuk melihat rincian transaksi.
+        Final Budget mengikuti Budget sampai diedit manual (nilai per bulan). Budget Total = Final Budget &times; jumlah bulan Budget Period, dibandingkan dengan Total Realisasi untuk Selisih &amp; Realisasi %.
+        Klik nilai Debit / Realisasi untuk melihat rincian transaksi.
       </small>
       <div class="table-responsive bg-scroll">
         <table id="bgTable" class="table table-sm">
@@ -101,6 +107,11 @@
     </div>
   </div>
 </section>
+
+<button type="button" class="btn btn-success btn-lg" id="btnSave" style="position:fixed; left:24px; bottom:24px; z-index:1000; box-shadow:0 4px 12px rgba(0,0,0,.25); display:none;">
+  <i data-feather="save"></i> Save Budgeting
+</button>
+
 @include('accounting.budgeting._txmodal')
 @endsection
 
@@ -116,9 +127,23 @@
   #bgTable th.col-final, #bgTable td.col-final { min-width:170px; }
   #bgTable tbody tr.bg-row .bg-cr { min-width:60px; }
   #bgTable tbody tr.bg-row .bg-final { min-width:140px; font-weight:600; }
-  .bg-link { cursor:pointer; text-decoration:underline; }
+  .bg-link { cursor:pointer; color:#7367f0; text-decoration:underline; }
+  .bg-link:hover { color:#5e50ee; }
   .bg-pos { color:#28c76f; font-weight:600; }
   .bg-neg { color:#ea5455; font-weight:600; }
+
+  /* Account + Name sticky di kiri */
+  #bgTable td:nth-child(1), #bgTable th:nth-child(1) { position:sticky; left:0; z-index:2; min-width:110px; }
+  #bgTable td:nth-child(2), #bgTable th:nth-child(2) { position:sticky; left:110px; z-index:2; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
+  #bgTable thead th:nth-child(1), #bgTable thead th:nth-child(2) { z-index:4; background:#f3f2f7; }
+
+  /* Zebra + hover (ikut mewarnai kolom sticky) */
+  #bgTable tbody tr.bg-row:nth-child(odd) { background:#fff; }
+  #bgTable tbody tr.bg-row:nth-child(even) { background:#f8f9fc; }
+  #bgTable tbody tr.bg-row:nth-child(odd) td:nth-child(1), #bgTable tbody tr.bg-row:nth-child(odd) td:nth-child(2) { background:#fff; }
+  #bgTable tbody tr.bg-row:nth-child(even) td:nth-child(1), #bgTable tbody tr.bg-row:nth-child(even) td:nth-child(2) { background:#f8f9fc; }
+  #bgTable tbody tr.bg-row:hover { background:#eef1fd; }
+  #bgTable tbody tr.bg-row:hover td:nth-child(1), #bgTable tbody tr.bg-row:hover td:nth-child(2) { background:#eef1fd; }
 </style>
 @endsection
 
@@ -176,6 +201,7 @@
       render();
       paintCards(computeCards());
       $('#bg-result').show();
+      $('#btnSave').show();
       if (window.feather) feather.replace({ width: 14, height: 14 });
     }).fail(function (xhr) {
       alert((xhr.responseJSON && xhr.responseJSON.error) || 'Gagal memuat data.');
@@ -191,10 +217,11 @@
       + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
       + '<th rowspan="2" class="text-right">Proposed Budget</th>'
       + '<th rowspan="2" class="col-final">Final Budget</th>'
+      + '<th rowspan="2" class="text-right" title="Final Budget x jumlah bulan budget period">Budget Total (' + months.length + ' bln)</th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
-    r2 += '<th class="text-right">Total</th><th class="text-right">Selisih</th><th class="text-right">Realisasi %</th></tr>';
+    r2 += '<th class="text-right">Total Realisasi</th><th class="text-right">Selisih</th><th class="text-right">Realisasi %</th></tr>';
     $('#bg-thead').html(r1 + r2);
   }
 
@@ -205,7 +232,7 @@
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (7 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data pada filter ini.</td></tr>';
+      html = '<tr><td colspan="' + (8 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data pada filter ini.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       html += '<tr class="bg-row" data-r="' + ri + '">'
@@ -214,7 +241,8 @@
             + '<td class="text-right">' + nf(r.average) + '</td>'
             + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="text-right bg-budget">' + nf(r.budget) + '</td>'
-            + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"></td>';
+            + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"></td>'
+            + '<td class="text-right font-weight-bold bg-budget-total"></td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a class="bg-link bg-real" data-m="' + m + '"></a></td>';
       });
@@ -229,6 +257,7 @@
     const $tr = $('#bg-body tr.bg-row[data-r="' + ri + '"]');
     $tr.find('.bg-debit').text(nf(r.debit));
     $tr.find('.bg-budget').text(nf(r.budget));
+    $tr.find('.bg-budget-total').text(nf(rowBudgetTotal(r)));
     $tr.find('.bg-total').text(nf(r.realisasi_total));
     const selisih = rowSelisih(r), pct = rowPct(r);
     $tr.find('.bg-selisih').text(nf(selisih)).removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');

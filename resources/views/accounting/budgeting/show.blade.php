@@ -51,9 +51,23 @@
   #bgTable th, #bgTable td { white-space:nowrap; vertical-align:middle; padding:.6rem .9rem; }
   #bgTable thead th { position:sticky; top:0; z-index:3; background:#f3f2f7; box-shadow:inset 0 -1px 0 #dee2e6; }
   .bg-acc { font-weight:600; color:#1f3a5f; }
-  .bg-link { cursor:pointer; text-decoration:underline; }
+  .bg-link { cursor:pointer; color:#7367f0; text-decoration:underline; }
+  .bg-link:hover { color:#5e50ee; }
   .bg-pos { color:#28c76f; font-weight:600; }
   .bg-neg { color:#ea5455; font-weight:600; }
+
+  /* Account + Name sticky di kiri */
+  #bgTable td:nth-child(1), #bgTable th:nth-child(1) { position:sticky; left:0; z-index:2; min-width:110px; }
+  #bgTable td:nth-child(2), #bgTable th:nth-child(2) { position:sticky; left:110px; z-index:2; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
+  #bgTable thead th:nth-child(1), #bgTable thead th:nth-child(2) { z-index:4; background:#f3f2f7; }
+
+  /* Zebra + hover (ikut mewarnai kolom sticky) */
+  #bgTable tbody tr.bg-row:nth-child(odd) { background:#fff; }
+  #bgTable tbody tr.bg-row:nth-child(even) { background:#f8f9fc; }
+  #bgTable tbody tr.bg-row:nth-child(odd) td:nth-child(1), #bgTable tbody tr.bg-row:nth-child(odd) td:nth-child(2) { background:#fff; }
+  #bgTable tbody tr.bg-row:nth-child(even) td:nth-child(1), #bgTable tbody tr.bg-row:nth-child(even) td:nth-child(2) { background:#f8f9fc; }
+  #bgTable tbody tr.bg-row:hover { background:#eef1fd; }
+  #bgTable tbody tr.bg-row:hover td:nth-child(1), #bgTable tbody tr.bg-row:hover td:nth-child(2) { background:#eef1fd; }
 </style>
 @endsection
 
@@ -77,17 +91,18 @@
       + '<th rowspan="2" class="text-right">Cost Reduction</th>'
       + '<th rowspan="2" class="text-right">Proposed Budget</th>'
       + '<th rowspan="2" class="text-right">Final Budget</th>'
+      + '<th rowspan="2" class="text-right" title="Final Budget x jumlah bulan budget period">Budget Total (' + months.length + ' bln)</th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
-    r2 += '<th class="text-right">Total</th><th class="text-right">Selisih</th><th class="text-right">Realisasi %</th></tr>';
+    r2 += '<th class="text-right">Total Realisasi</th><th class="text-right">Selisih</th><th class="text-right">Realisasi %</th></tr>';
     $('#bg-thead').html(r1 + r2);
   }
 
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (7 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
+      html = '<tr><td colspan="' + (8 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       html += '<tr class="bg-row" data-r="' + ri + '">'
@@ -96,7 +111,8 @@
             + '<td class="text-right">' + nf(r.average) + '</td>'
             + '<td class="text-right">' + r.cost_reduction + '%</td>'
             + '<td class="text-right">' + nf(r.budget) + '</td>'
-            + '<td class="text-right">' + nf(r.final_budget) + '</td>';
+            + '<td class="text-right">' + nf(r.final_budget) + '</td>'
+            + '<td class="text-right font-weight-bold">' + nf(r.budget_total) + '</td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a class="bg-link bg-real" data-m="' + m + '">' + nf((r.realisasi || {})[m] || 0) + '</a></td>';
       });

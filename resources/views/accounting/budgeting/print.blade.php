@@ -32,7 +32,7 @@
     <thead>
       <tr>
         <th>Account</th><th>Name</th><th>Debit</th><th>Average</th><th>CR %</th>
-        <th>Proposed Budget</th><th>Final Budget</th>
+        <th>Proposed Budget</th><th>Final Budget</th><th>Budget Total</th>
         @foreach($months as $m)
           <th>{{ $m }}</th>
         @endforeach
@@ -49,6 +49,7 @@
         <td class="num">{{ $r['cost_reduction'] }}</td>
         <td class="num">{{ number_format($r['budget'], 2) }}</td>
         <td class="num">{{ number_format($r['final_budget'], 2) }}</td>
+        <td class="num">{{ number_format($r['budget_total'], 2) }}</td>
         @foreach($months as $m)
           <td class="num">{{ number_format($r['realisasi'][$m] ?? 0, 2) }}</td>
         @endforeach
