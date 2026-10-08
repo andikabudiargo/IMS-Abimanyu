@@ -55,12 +55,10 @@ class BudgetingController extends Controller
 
     public function index(Request $request)
     {
-        $list = $this->budgetList();
-
         return view('accounting.budgeting.index', [
             'title'       => $this->title,
-            'depts'       => $list->pluck('dept_name')->filter()->unique()->sort()->values(),
-            'fiscalYears' => $list->pluck('fiscal_year')->unique()->sort()->reverse()->values(),
+            'depts'       => DB::table('depts')->orderBy('name')->get(),
+            'fiscalYears' => $this->fiscalYearOptions(),
             'kolom'       => $this->getTableColumn(),
         ]);
     }
@@ -74,7 +72,7 @@ class BudgetingController extends Controller
             $list = $list->filter(fn($r) => str_contains(mb_strtoupper($r->budgeting_number), $kw));
         }
         if ($request->filled('dept')) {
-            $list = $list->filter(fn($r) => $r->dept_name === $request->dept);
+            $list = $list->filter(fn($r) => $r->dept_code === $request->dept);
         }
         if ($request->filled('status')) {
             $list = $list->filter(fn($r) => $r->status === $request->status);
@@ -309,7 +307,7 @@ class BudgetingController extends Controller
             return redirect()->route('budgeting.index')->with(['alert' => 'warning', 'message' => 'Data tidak ditemukan.']);
         }
 
-        return view('accounting.budgeting.edit', $d + ['title' => "Edit {$this->title}"]);
+        return view('accounting.budgeting.edit', $d + ['title' => "Edit {$this->title}", 'fiscalYears' => $this->fiscalYearOptions()]);
     }
 
     public function show($id)
@@ -327,6 +325,11 @@ class BudgetingController extends Controller
         $hdr = DB::table('budgeting_hdr')->where('id', $id)->first();
         if (!$hdr) {
             return response()->json(['status' => 0, 'message' => 'Data tidak ditemukan.'], 404);
+        }
+
+        $fiscalYear = (int) $request->fiscal_year;
+        if (!in_array($fiscalYear, $this->fiscalYearOptions())) {
+            return response()->json(['status' => 0, 'message' => 'Fiscal Year tidak valid.'], 422);
         }
 
         $edits = collect(json_decode($request->rows, true) ?: []);
@@ -353,6 +356,7 @@ class BudgetingController extends Controller
             }
 
             DB::table('budgeting_hdr')->where('id', $id)->update([
+                'fiscal_year' => $fiscalYear,
                 'description' => $request->description,
                 'note'        => $request->note,
                 'updated_by'  => optional(Auth::user())->username,

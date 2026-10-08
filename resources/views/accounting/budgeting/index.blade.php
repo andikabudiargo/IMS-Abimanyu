@@ -24,17 +24,17 @@
             </div>
             <div class="form-group col-md-3">
               <label for="searchDept">Department</label>
-              <select class="form-control" id="searchDept" name="searchDept">
-                <option value="">Semua</option>
-                @foreach($depts as $dn)
-                  <option value="{{ $dn }}">{{ $dn }}</option>
+              <select class="select2 form-control" id="searchDept" name="searchDept" data-placeholder="Semua department">
+                <option value=""></option>
+                @foreach($depts as $val)
+                  <option value="{{ $val->code }}">{{ $val->name }}</option>
                 @endforeach
               </select>
             </div>
             <div class="form-group col-md-3">
               <label for="searchStatus">Status</label>
-              <select class="form-control" id="searchStatus" name="searchStatus">
-                <option value="">Semua</option>
+              <select class="select2 form-control" id="searchStatus" name="searchStatus" data-placeholder="Semua status">
+                <option value=""></option>
                 <option value="Overbudget">Overbudget</option>
                 <option value="Underbudget">Underbudget</option>
                 <option value="Sesuai Budget">Sesuai Budget</option>
@@ -42,8 +42,8 @@
             </div>
             <div class="form-group col-md-3">
               <label for="searchFiscalYear">Fiscal Year</label>
-              <select class="form-control" id="searchFiscalYear" name="searchFiscalYear">
-                <option value="">Semua</option>
+              <select class="select2 form-control" id="searchFiscalYear" name="searchFiscalYear" data-placeholder="Semua fiscal year">
+                <option value=""></option>
                 @foreach($fiscalYears as $fy)
                   <option value="{{ $fy }}">{{ $fy }}</option>
                 @endforeach

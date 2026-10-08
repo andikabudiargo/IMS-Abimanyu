@@ -4,35 +4,18 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 
-<div class="card">
-  <div class="card-header d-flex align-items-center justify-content-between flex-wrap">
-    <div>
-      <h4 class="card-title">{{ $hdr->budgeting_number }} <span class="badge badge-pill badge-light-primary">FY {{ $hdr->fiscal_year }}</span></h4>
-      <small class="text-muted">
-        Department: {{ $hdr->dept_name ?: $hdr->dept_code }} |
-        Previous: {{ date('d M Y', strtotime($hdr->previous_from)) }} - {{ date('d M Y', strtotime($hdr->previous_to)) }} |
-        Budget Period: {{ date('d M Y', strtotime($hdr->budget_from)) }} - {{ date('d M Y', strtotime($hdr->budget_to)) }}
-      </small>
-    </div>
-    <div class="d-flex flex-wrap" style="gap:.5rem">
-      <a href="{{ route('budgeting.index') }}" class="btn btn-light btn-sm">Back</a>
-      <a href="{{ route('budgeting.edit', $hdr->id) }}" class="btn btn-warning btn-sm"><i data-feather="edit-2"></i> Edit</a>
-      <button type="button" class="btn btn-primary btn-sm" id="btnRecalc"><i data-feather="refresh-cw"></i> Recalculate</button>
-      <a href="{{ route('budgeting.export.excel', $hdr->id) }}" class="btn btn-success btn-sm"><i data-feather="file-text"></i> Export Excel</a>
-      <a href="{{ route('budgeting.export.pdf', $hdr->id) }}" class="btn btn-danger btn-sm" target="_blank"><i data-feather="file"></i> Export PDF</a>
-    </div>
-  </div>
-  @if($hdr->description || $hdr->note)
-  <div class="card-body py-2">
-    @if($hdr->description)<div><strong>Description:</strong> {{ $hdr->description }}</div>@endif
-    @if($hdr->note)<div><strong>Note:</strong> {{ $hdr->note }}</div>@endif
-  </div>
-  @endif
-</div>
+@include('accounting.budgeting._detailHeader', ['hdr' => $hdr, 'locked' => true])
 
 @include('accounting.budgeting._cards')
 
 <div class="card">
+  <div class="card-header">
+    <h4 class="card-title">Detail</h4>
+    <div class="heading-elements">
+      <a href="{{ route('budgeting.export.excel', $hdr->id) }}" class="btn btn-success btn-sm"><i data-feather="file-text"></i> Export Excel</a>
+      <a href="{{ route('budgeting.export.pdf', $hdr->id) }}" class="btn btn-danger btn-sm" target="_blank"><i data-feather="file"></i> Export PDF</a>
+    </div>
+  </div>
   <div class="card-body pt-0">
     <small class="text-muted d-block mb-1">Klik nilai Debit / Realisasi untuk melihat rincian transaksi.</small>
     <div class="table-responsive bg-scroll">
@@ -40,6 +23,11 @@
         <thead class="thead-light" id="bg-thead"></thead>
         <tbody id="bg-body"></tbody>
       </table>
+    </div>
+    <div class="d-flex flex-wrap mt-2" style="gap:.5rem">
+      <a href="{{ route('budgeting.index') }}" class="btn btn-light">Back</a>
+      <a href="{{ route('budgeting.edit', $hdr->id) }}" class="btn btn-warning"><i data-feather="edit-2"></i> Edit</a>
+      <button type="button" class="btn btn-primary" id="btnRecalc"><i data-feather="refresh-cw"></i> Recalculate</button>
     </div>
   </div>
 </div>

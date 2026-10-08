@@ -4,39 +4,14 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 
-<div class="card">
-  <div class="card-header d-flex align-items-center justify-content-between flex-wrap">
-    <div>
-      <h4 class="card-title">{{ $hdr->budgeting_number }} <span class="badge badge-pill badge-light-primary">FY {{ $hdr->fiscal_year }}</span></h4>
-      <small class="text-muted">
-        Department: {{ $hdr->dept_name ?: $hdr->dept_code }} |
-        Previous: {{ date('d M Y', strtotime($hdr->previous_from)) }} - {{ date('d M Y', strtotime($hdr->previous_to)) }} |
-        Budget Period: {{ date('d M Y', strtotime($hdr->budget_from)) }} - {{ date('d M Y', strtotime($hdr->budget_to)) }}
-      </small>
-    </div>
-    <div class="d-flex flex-wrap" style="gap:.5rem">
-      <a href="{{ route('budgeting.index') }}" class="btn btn-light btn-sm">Back</a>
-      <button type="button" class="btn btn-primary btn-sm" id="btnRecalc"><i data-feather="refresh-cw"></i> Recalculate</button>
-      <button type="button" class="btn btn-success btn-sm" id="btnSave"><i data-feather="save"></i> Save</button>
-    </div>
-  </div>
-  <div class="card-body">
-    <div class="form-row">
-      <div class="form-group col-md-6">
-        <label class="form-label" for="description">Description</label>
-        <input type="text" id="description" class="form-control" value="{{ $hdr->description }}" />
-      </div>
-      <div class="form-group col-md-6">
-        <label class="form-label" for="note">Note</label>
-        <input type="text" id="note" class="form-control" value="{{ $hdr->note }}" />
-      </div>
-    </div>
-  </div>
-</div>
+@include('accounting.budgeting._detailHeader', ['hdr' => $hdr, 'locked' => false, 'fiscalYears' => $fiscalYears])
 
 @include('accounting.budgeting._cards')
 
 <div class="card">
+  <div class="card-header">
+    <h4 class="card-title">Detail</h4>
+  </div>
   <div class="card-body pt-0">
     <small class="text-muted d-block mb-1">
       Ubah Cost Reduction / Final Budget lalu klik Save. <strong>Final Budget adalah TOTAL untuk seluruh Budget Period</strong> (nilai per bulan mengikuti otomatis).
@@ -47,6 +22,11 @@
         <thead class="thead-light" id="bg-thead"></thead>
         <tbody id="bg-body"></tbody>
       </table>
+    </div>
+    <div class="d-flex flex-wrap mt-2" style="gap:.5rem">
+      <a href="{{ route('budgeting.index') }}" class="btn btn-light">Back</a>
+      <button type="button" class="btn btn-primary" id="btnRecalc"><i data-feather="refresh-cw"></i> Recalculate</button>
+      <button type="button" class="btn btn-success" id="btnSave"><i data-feather="save"></i> Save</button>
     </div>
   </div>
 </div>
@@ -237,7 +217,7 @@
     $('.loading-spinner-container').addClass('-show');
     $.ajax({
       url: "{{ route('budgeting.update', $hdr->id) }}", type: 'PUT',
-      data: { rows: JSON.stringify(payload), description: $('#description').val(), note: $('#note').val() },
+      data: { rows: JSON.stringify(payload), fiscal_year: $('#fiscalYear').val(), description: $('#description').val(), note: $('#note').val() },
       headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
     }).done(function (res) {
       alert(res.message);
