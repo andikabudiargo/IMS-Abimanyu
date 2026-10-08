@@ -66,6 +66,8 @@ class BudgetingController extends Controller
             $r->total_budget = round((float) $r->sum_final, 2);
             $r->actual = round((float) $r->sum_real, 2);
             $r->margin = round($r->total_budget - $r->actual, 2);
+            $r->used_pct = $r->total_budget > 0 ? round($r->actual / $r->total_budget * 100, 1) : 0;
+            $r->status = $r->margin < 0 ? 'Overbudget' : ($r->margin > 0 ? 'Underbudget' : 'Sesuai Budget');
         }
 
         return view('accounting.budgeting.index', [

@@ -5,20 +5,21 @@
 @include('partials.alert')
 
 <div class="card">
-  <div class="card-header">
+  <div class="card-header d-flex align-items-center justify-content-between flex-wrap">
     <div>
-      <h4 class="card-title">{{ $hdr->budgeting_number }} <small class="text-muted">FY {{ $hdr->fiscal_year }}</small></h4>
+      <h4 class="card-title">{{ $hdr->budgeting_number }} <span class="badge badge-pill badge-light-primary">FY {{ $hdr->fiscal_year }}</span></h4>
       <small class="text-muted">
         Department: {{ $hdr->dept_name ?: $hdr->dept_code }} |
         Previous: {{ date('d M Y', strtotime($hdr->previous_from)) }} - {{ date('d M Y', strtotime($hdr->previous_to)) }} |
         Budget Period: {{ date('d M Y', strtotime($hdr->budget_from)) }} - {{ date('d M Y', strtotime($hdr->budget_to)) }}
       </small>
     </div>
-    <div class="heading-elements">
-      <a href="{{ route('budgeting.edit', $hdr->id) }}" class="btn btn-outline-secondary btn-sm">Edit</a>
-      <button type="button" class="btn btn-outline-secondary btn-sm" id="btnRecalc">Recalculate</button>
-      <a href="{{ route('budgeting.export.excel', $hdr->id) }}" class="btn btn-outline-success btn-sm">Export Excel</a>
-      <a href="{{ route('budgeting.export.pdf', $hdr->id) }}" class="btn btn-outline-danger btn-sm" target="_blank">Export PDF</a>
+    <div class="d-flex flex-wrap" style="gap:.5rem">
+      <a href="{{ route('budgeting.index') }}" class="btn btn-light btn-sm">Back</a>
+      <a href="{{ route('budgeting.edit', $hdr->id) }}" class="btn btn-warning btn-sm"><i data-feather="edit-2"></i> Edit</a>
+      <button type="button" class="btn btn-primary btn-sm" id="btnRecalc"><i data-feather="refresh-cw"></i> Recalculate</button>
+      <a href="{{ route('budgeting.export.excel', $hdr->id) }}" class="btn btn-success btn-sm"><i data-feather="file-text"></i> Export Excel</a>
+      <a href="{{ route('budgeting.export.pdf', $hdr->id) }}" class="btn btn-danger btn-sm" target="_blank"><i data-feather="file"></i> Export PDF</a>
     </div>
   </div>
   @if($hdr->description || $hdr->note)

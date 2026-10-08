@@ -5,7 +5,10 @@
 @include('partials.alert')
 
 <div class="card">
-  <div class="card-header"><h4 class="card-title">{{ $title }}</h4></div>
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h4 class="card-title">{{ $title }}</h4>
+    <a href="{{ route('budgeting.index') }}" class="btn btn-light btn-sm">Back</a>
+  </div>
   <div class="card-body">
     <form class="needs-validation" novalidate onsubmit="return false;">
       <div class="form-row">
