@@ -141,6 +141,9 @@ class BudgetingController extends Controller
         if (!in_array($fiscalYear, $this->fiscalYearOptions())) {
             return response()->json(['status' => 0, 'message' => 'Fiscal Year tidak valid.'], 422);
         }
+        if (trim((string) $request->description) === '') {
+            return response()->json(['status' => 0, 'message' => 'Description wajib diisi.'], 422);
+        }
         $coas = array_values(array_filter((array) $request->coa, 'strlen'));
         $rows = $this->computeDet($dept, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo);
         $edits = collect(json_decode($request->rows, true) ?: [])->keyBy('account');

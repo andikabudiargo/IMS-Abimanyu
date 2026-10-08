@@ -24,7 +24,7 @@
       </div>
         <div class="form-row">
             <div class="form-group col-md-8">
-          <label class="form-label" for="description">Description</label>
+          <label class="form-label" for="description">Description <span class="text-danger">*</span></label>
           <input type="text" id="description" class="form-control" />
         </div>
       </div>
@@ -98,13 +98,14 @@
           <tfoot id="bg-tfoot"></tfoot>
         </table>
       </div>
+      <div class="mt-2">
+        <button type="button" class="btn btn-success btn-lg" id="btnSave">
+          <i data-feather="save"></i> Save Budgeting
+        </button>
+      </div>
     </div>
   </div>
 </section>
-
-<button type="button" class="btn btn-success btn-lg" id="btnSave" style="position:fixed; left:24px; bottom:24px; z-index:99999; box-shadow:0 4px 12px rgba(0,0,0,.35); display:none;">
-  <i data-feather="save"></i> Save Budgeting
-</button>
 
 @include('accounting.budgeting._txmodal')
 @endsection
@@ -198,6 +199,7 @@
   $('#btnPull').click(function () {
     const dept = $('#dept').val();
     if (!dept) { alert('Department wajib dipilih.'); return; }
+    if (!$('#description').val().trim()) { alert('Description wajib diisi.'); return; }
 
     $('.loading-spinner-container').addClass('-show');
     $.get("{{ route('budgeting.data') }}", {
@@ -216,7 +218,6 @@
       render();
       paintCards(computeCards());
       $('#bg-result').show();
-      $('#btnSave').show();
       if (window.feather) feather.replace({ width: 14, height: 14 });
     }).fail(function (xhr) {
       alert((xhr.responseJSON && xhr.responseJSON.error) || 'Gagal memuat data.');
@@ -250,13 +251,13 @@
     rows.forEach(function (r, ri) {
       html += '<tr class="bg-row" data-r="' + ri + '">'
             + '<td class="bg-acc col-sticky1">' + esc(r.account) + '</td><td class="col-sticky2">' + esc(r.nama_akun) + '</td>'
-            + '<td class="text-right"><a class="bg-link bg-debit"></a></td>'
+            + '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-debit"></a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
             + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="text-right bg-budget">' + nf(r.budget) + '</td>'
             + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"><small class="text-muted bg-final-monthly"></small></td>';
       months.forEach(function (m) {
-        html += '<td class="text-right"><a class="bg-link bg-real" data-m="' + m + '"></a></td>';
+        html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '"></a></td>';
       });
       html += '<td class="text-right bg-total"></td><td class="text-right bg-selisih"></td><td class="text-right bg-pct"></td></tr>';
     });
@@ -371,6 +372,7 @@
 
   $('#btnSave').click(function () {
     if (!rows.length) { alert('Tidak ada data untuk disimpan.'); return; }
+    if (!$('#description').val().trim()) { alert('Description wajib diisi.'); return; }
 
     const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, final_budget: r.final_budget }));
     $('.loading-spinner-container').addClass('-show');

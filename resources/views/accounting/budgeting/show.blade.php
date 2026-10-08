@@ -108,13 +108,13 @@
     rows.forEach(function (r, ri) {
       html += '<tr class="bg-row" data-r="' + ri + '">'
             + '<td class="bg-acc col-sticky1">' + esc(r.account) + '</td><td class="col-sticky2">' + esc(r.nama_akun) + '</td>'
-            + '<td class="text-right"><a class="bg-link bg-debit">' + nf(r.debit) + '</a></td>'
+            + '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-debit">' + nf(r.debit) + '</a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
             + '<td class="text-right">' + r.cost_reduction + '%</td>'
             + '<td class="text-right">' + nf(r.budget) + '</td>'
             + '<td class="text-right">' + nf(r.final_budget) + '<small class="text-muted bg-final-monthly">≈ ' + nf(r.final_budget_monthly) + ' /bln</small></td>';
       months.forEach(function (m) {
-        html += '<td class="text-right"><a class="bg-link bg-real" data-m="' + m + '">' + nf((r.realisasi || {})[m] || 0) + '</a></td>';
+        html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '">' + nf((r.realisasi || {})[m] || 0) + '</a></td>';
       });
       html += '<td class="text-right">' + nf(r.realisasi_total) + '</td>'
             + '<td class="text-right ' + (r.selisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + nf(r.selisih) + '</td>'

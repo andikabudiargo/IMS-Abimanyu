@@ -266,10 +266,11 @@
 {{-- <script src="{{asset('app-assets/vendors/js/extensions/dropzone.min.js')}}"></script> --}}
 <script type="text/javascript">
     let hapusCount=1;
-    $(document).ready(function(){           
+    $(document).ready(function(){
         validateFormToast("frmAdd");
         mask_thousand();
         mask_thousand_digit(2);
+        $("#group").select2({ placeholder: "Pilih group", allowClear: true });
     });
 
     $("#cmdSave").click(function (e) {
