@@ -176,9 +176,16 @@
 
   const nf = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v || 0);
 
+  const currentFilters = () => ({
+    number: document.querySelector('#searchNumber').value,
+    dept: document.querySelector('#searchDept').value,
+    status: document.querySelector('#searchStatus').value,
+    fiscalYear: document.querySelector('#searchFiscalYear').value,
+  });
+
   let chartBudgetDept = null, chartStatus = null;
   const loadDashboard = () => {
-    $.get("{{ route('budgeting.chart') }}", function (res) {
+    $.get("{{ route('budgeting.chart') }}", currentFilters(), function (res) {
       $('#dashTotal').text(res.summary.total);
       $('#dashBudget').text(nf(res.summary.totalBudget));
       $('#dashActual').text(nf(res.summary.totalActual));
@@ -227,10 +234,6 @@
     if (!dashboardInitialized) { dashboardInitialized = true; loadDashboard(); }
   });
 
-  let searchNumber = document.querySelector('#searchNumber');
-  let searchDept = document.querySelector('#searchDept');
-  let searchStatus = document.querySelector('#searchStatus');
-  let searchFiscalYear = document.querySelector('#searchFiscalYear');
   let refresh = document.querySelector('a[data-action="reload"]');
 
   const loadTable = () => {
@@ -246,17 +249,18 @@
       kolom: {!! $kolom !!},
       arrColPrint: [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14],
       columnDefs: [{ width: '5%', targets: 0 }],
-      dataSearch: {
-        number: searchNumber.value,
-        dept: searchDept.value,
-        status: searchStatus.value,
-        fiscalYear: searchFiscalYear.value,
-      }
+      dataSearch: currentFilters()
     });
   }
 
-  $("#btnSearch").click(function () { loadTable(); });
-  refresh.addEventListener("click", function () { loadTable(); });
+  $("#btnSearch").click(function () {
+    loadTable();
+    if (dashboardInitialized) loadDashboard();
+  });
+  refresh.addEventListener("click", function () {
+    loadTable();
+    if (dashboardInitialized) loadDashboard();
+  });
 
   function deleteBudgeting(id, number) {
     Swal.fire({

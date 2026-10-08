@@ -63,10 +63,10 @@ class BudgetingController extends Controller
         ]);
     }
 
-    /** AJAX: ringkasan untuk dashboard chart di index (budget vs actual per dept, sebaran status). */
+    /** AJAX: ringkasan untuk dashboard chart di index (budget vs actual per dept, sebaran status). Ikut filter yang sama dengan list(). */
     public function chart(Request $request)
     {
-        $list = $this->budgetList();
+        $list = $this->filterList($this->budgetList(), $request);
 
         $byDept = $list->groupBy(fn($r) => $r->dept_name ?: $r->dept_code)
             ->map(fn($rows, $dept) => [
@@ -98,21 +98,7 @@ class BudgetingController extends Controller
 
     public function list(Request $request)
     {
-        $list = $this->budgetList();
-
-        if ($request->filled('number')) {
-            $kw = mb_strtoupper($request->number);
-            $list = $list->filter(fn($r) => str_contains(mb_strtoupper($r->budgeting_number), $kw));
-        }
-        if ($request->filled('dept')) {
-            $list = $list->filter(fn($r) => $r->dept_code === $request->dept);
-        }
-        if ($request->filled('status')) {
-            $list = $list->filter(fn($r) => $r->status === $request->status);
-        }
-        if ($request->filled('fiscalYear')) {
-            $list = $list->filter(fn($r) => (string) $r->fiscal_year === (string) $request->fiscalYear);
-        }
+        $list = $this->filterList($this->budgetList(), $request);
 
         return Datatables::of($list->values())
             ->addColumn('action', function ($r) {
@@ -121,6 +107,7 @@ class BudgetingController extends Controller
                 return '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a>
                             <div class="dropdown-menu dropdown-menu-right">
+                                <a href="' . route('budgeting.show', $id) . '" class="dropdown-item"><i data-feather="eye"></i> Detail</a>
                                 <a href="' . route('budgeting.edit', $id) . '" class="dropdown-item"><i data-feather="edit-2"></i> Edit</a>
                                 <a href="javascript:;" onclick="deleteBudgeting(\'' . $id . '\',\'' . $r->budgeting_number . '\')" class="dropdown-item"><i data-feather="trash-2" class="feather-14-red"></i> Delete</a>
                             </div>
@@ -170,6 +157,26 @@ class BudgetingController extends Controller
             ['data' => 'updated_by',       'name' => 'updated_by',       'title' => 'Updated By'],
             ['data' => 'updated_at',       'name' => 'updated_at',       'title' => 'Updated At'],
         ], true);
+    }
+
+    /** Filter Collection budgetList() berdasarkan query param number/dept/status/fiscalYear (dipakai list() & chart()). */
+    private function filterList($list, Request $request)
+    {
+        if ($request->filled('number')) {
+            $kw = mb_strtoupper($request->number);
+            $list = $list->filter(fn($r) => str_contains(mb_strtoupper($r->budgeting_number), $kw));
+        }
+        if ($request->filled('dept')) {
+            $list = $list->filter(fn($r) => $r->dept_code === $request->dept);
+        }
+        if ($request->filled('status')) {
+            $list = $list->filter(fn($r) => $r->status === $request->status);
+        }
+        if ($request->filled('fiscalYear')) {
+            $list = $list->filter(fn($r) => (string) $r->fiscal_year === (string) $request->fiscalYear);
+        }
+
+        return $list->values();
     }
 
     /** Daftar budgeting + agregat final_budget/realisasi, status & % terpakai dihitung di PHP. */
@@ -322,7 +329,7 @@ class BudgetingController extends Controller
             return response()->json([
                 'status'   => 1,
                 'message'  => "Budgeting {$number} berhasil disimpan.",
-                'redirect' => route('budgeting.edit', $hdrId),
+                'redirect' => route('budgeting.show', $hdrId),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -507,22 +514,22 @@ class BudgetingController extends Controller
         ]);
     }
 
-    /** URL detail voucher sesuai controller masing-masing, null kalau tipe tidak dikenal. */
+    /** URL edit voucher sesuai controller masing-masing, null kalau tipe tidak dikenal. */
     private function voucherShowUrl($voucherType, $hdrId, $voucherNumber)
     {
         // AP (accrual invoice) disimpan di ap_invoice, bukan kas_hdr -> cari id via ap_number.
         if ($voucherType === 'AP') {
             $apId = DB::table('ap_invoice')->where('ap_number', $voucherNumber)->value('id');
 
-            return $apId ? route('accountPayable.show', ['id' => \Crypt::encryptString($apId)]) : null;
+            return $apId ? route('accountPayable.edit', ['id' => \Crypt::encryptString($apId)]) : null;
         }
 
         $routes = [
-            'KK' => 'kasKeluar.show',
-            'BK' => 'bankKeluar.show',
-            'KM' => 'kasPenerimaan.show',
-            'BM' => 'bankPenerimaan.show',
-            'GJ' => 'jurnalUmum.show',
+            'KK' => 'kasKeluar.edit',
+            'BK' => 'bankKeluar.edit',
+            'KM' => 'kasPenerimaan.edit',
+            'BM' => 'bankPenerimaan.edit',
+            'GJ' => 'jurnalUmum.edit',
         ];
         $routeName = $routes[$voucherType] ?? null;
 
