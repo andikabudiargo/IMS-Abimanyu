@@ -55,19 +55,21 @@
   .bg-link:hover { color:#5e50ee; }
   .bg-pos { color:#28c76f; font-weight:600; }
   .bg-neg { color:#ea5455; font-weight:600; }
+  .bg-final-monthly { display:block; font-weight:400; }
 
-  /* Account + Name sticky di kiri */
-  #bgTable td:nth-child(1), #bgTable th:nth-child(1) { position:sticky; left:0; z-index:2; min-width:110px; }
-  #bgTable td:nth-child(2), #bgTable th:nth-child(2) { position:sticky; left:110px; z-index:2; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
-  #bgTable thead th:nth-child(1), #bgTable thead th:nth-child(2) { z-index:4; background:#f3f2f7; }
+  /* Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
+  .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
+  .col-sticky1 { left:0; min-width:110px; }
+  .col-sticky2 { left:110px; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
+  #bgTable thead .col-sticky1, #bgTable thead .col-sticky2 { z-index:4; background:#f3f2f7; }
 
   /* Zebra + hover (ikut mewarnai kolom sticky) */
   #bgTable tbody tr.bg-row:nth-child(odd) { background:#fff; }
   #bgTable tbody tr.bg-row:nth-child(even) { background:#f8f9fc; }
-  #bgTable tbody tr.bg-row:nth-child(odd) td:nth-child(1), #bgTable tbody tr.bg-row:nth-child(odd) td:nth-child(2) { background:#fff; }
-  #bgTable tbody tr.bg-row:nth-child(even) td:nth-child(1), #bgTable tbody tr.bg-row:nth-child(even) td:nth-child(2) { background:#f8f9fc; }
+  #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky2 { background:#fff; }
+  #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky2 { background:#f8f9fc; }
   #bgTable tbody tr.bg-row:hover { background:#eef1fd; }
-  #bgTable tbody tr.bg-row:hover td:nth-child(1), #bgTable tbody tr.bg-row:hover td:nth-child(2) { background:#eef1fd; }
+  #bgTable tbody tr.bg-row:hover td.col-sticky1, #bgTable tbody tr.bg-row:hover td.col-sticky2 { background:#eef1fd; }
 </style>
 @endsection
 
@@ -86,12 +88,11 @@
 
   function buildHead() {
     let r1 = '<tr>'
-      + '<th rowspan="2">Account</th><th rowspan="2">Name</th>'
+      + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="text-right">Cost Reduction</th>'
-      + '<th rowspan="2" class="text-right">Proposed Budget</th>'
-      + '<th rowspan="2" class="text-right">Final Budget</th>'
-      + '<th rowspan="2" class="text-right" title="Final Budget x jumlah bulan budget period">Budget Total (' + months.length + ' bln)</th>'
+      + '<th rowspan="2" class="text-right">Proposed Budget<br><small class="text-muted">(Monthly)</small></th>'
+      + '<th rowspan="2" class="text-right" title="Total untuk seluruh Budget Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
@@ -102,17 +103,16 @@
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (8 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
+      html = '<tr><td colspan="' + (7 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       html += '<tr class="bg-row" data-r="' + ri + '">'
-            + '<td class="bg-acc">' + esc(r.account) + '</td><td>' + esc(r.nama_akun) + '</td>'
+            + '<td class="bg-acc col-sticky1">' + esc(r.account) + '</td><td class="col-sticky2">' + esc(r.nama_akun) + '</td>'
             + '<td class="text-right"><a class="bg-link bg-debit">' + nf(r.debit) + '</a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
             + '<td class="text-right">' + r.cost_reduction + '%</td>'
             + '<td class="text-right">' + nf(r.budget) + '</td>'
-            + '<td class="text-right">' + nf(r.final_budget) + '</td>'
-            + '<td class="text-right font-weight-bold">' + nf(r.budget_total) + '</td>';
+            + '<td class="text-right">' + nf(r.final_budget) + '<small class="text-muted bg-final-monthly">≈ ' + nf(r.final_budget_monthly) + ' /bln</small></td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a class="bg-link bg-real" data-m="' + m + '">' + nf((r.realisasi || {})[m] || 0) + '</a></td>';
       });

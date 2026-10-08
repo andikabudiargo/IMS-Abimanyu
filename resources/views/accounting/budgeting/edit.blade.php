@@ -38,8 +38,8 @@
 <div class="card">
   <div class="card-body pt-0">
     <small class="text-muted d-block mb-1">
-      Ubah Cost Reduction / Final Budget lalu klik Save. Recalculate menarik ulang Debit, Average dan Realisasi dari transaksi terbaru.
-      Klik nilai Debit / Realisasi untuk melihat rincian transaksi.
+      Ubah Cost Reduction / Final Budget lalu klik Save. <strong>Final Budget adalah TOTAL untuk seluruh Budget Period</strong> (nilai per bulan mengikuti otomatis).
+      Recalculate menarik ulang Debit, Average dan Realisasi dari transaksi terbaru. Klik nilai Debit / Realisasi untuk melihat rincian transaksi.
     </small>
     <div class="table-responsive bg-scroll">
       <table id="bgTable" class="table table-sm">
@@ -67,19 +67,21 @@
   .bg-link:hover { color:#5e50ee; }
   .bg-pos { color:#28c76f; font-weight:600; }
   .bg-neg { color:#ea5455; font-weight:600; }
+  .bg-final-monthly { display:block; font-weight:400; }
 
-  /* Account + Name sticky di kiri */
-  #bgTable td:nth-child(1), #bgTable th:nth-child(1) { position:sticky; left:0; z-index:2; min-width:110px; }
-  #bgTable td:nth-child(2), #bgTable th:nth-child(2) { position:sticky; left:110px; z-index:2; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
-  #bgTable thead th:nth-child(1), #bgTable thead th:nth-child(2) { z-index:4; background:#f3f2f7; }
+  /* Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
+  .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
+  .col-sticky1 { left:0; min-width:110px; }
+  .col-sticky2 { left:110px; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
+  #bgTable thead .col-sticky1, #bgTable thead .col-sticky2 { z-index:4; background:#f3f2f7; }
 
   /* Zebra + hover (ikut mewarnai kolom sticky) */
   #bgTable tbody tr.bg-row:nth-child(odd) { background:#fff; }
   #bgTable tbody tr.bg-row:nth-child(even) { background:#f8f9fc; }
-  #bgTable tbody tr.bg-row:nth-child(odd) td:nth-child(1), #bgTable tbody tr.bg-row:nth-child(odd) td:nth-child(2) { background:#fff; }
-  #bgTable tbody tr.bg-row:nth-child(even) td:nth-child(1), #bgTable tbody tr.bg-row:nth-child(even) td:nth-child(2) { background:#f8f9fc; }
+  #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky2 { background:#fff; }
+  #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky2 { background:#f8f9fc; }
   #bgTable tbody tr.bg-row:hover { background:#eef1fd; }
-  #bgTable tbody tr.bg-row:hover td:nth-child(1), #bgTable tbody tr.bg-row:hover td:nth-child(2) { background:#eef1fd; }
+  #bgTable tbody tr.bg-row:hover td.col-sticky1, #bgTable tbody tr.bg-row:hover td.col-sticky2 { background:#eef1fd; }
 </style>
 @endsection
 
@@ -106,12 +108,11 @@
 
   function buildHead() {
     let r1 = '<tr>'
-      + '<th rowspan="2">Account</th><th rowspan="2">Name</th>'
+      + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
-      + '<th rowspan="2" class="text-right">Proposed Budget</th>'
-      + '<th rowspan="2" class="col-final">Final Budget</th>'
-      + '<th rowspan="2" class="text-right" title="Final Budget x jumlah bulan budget period">Budget Total (' + months.length + ' bln)</th>'
+      + '<th rowspan="2" class="text-right">Proposed Budget<br><small class="text-muted">(Monthly)</small></th>'
+      + '<th rowspan="2" class="col-final" title="Total untuk seluruh Budget Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
@@ -119,24 +120,22 @@
     $('#bg-thead').html(r1 + r2);
   }
 
-  function rowBudgetTotal(r) { return round2(r.final_budget * months.length); }
-  function rowSelisih(r) { return round2(rowBudgetTotal(r) - r.realisasi_total); }
-  function rowPct(r) { const bt = rowBudgetTotal(r); return bt > 0 ? round2(r.realisasi_total / bt * 100) : 0; }
+  function rowSelisih(r) { return round2(r.final_budget - r.realisasi_total); }
+  function rowPct(r) { return r.final_budget > 0 ? round2(r.realisasi_total / r.final_budget * 100) : 0; }
 
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (8 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
+      html = '<tr><td colspan="' + (7 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       html += '<tr class="bg-row" data-r="' + ri + '">'
-            + '<td class="bg-acc">' + esc(r.account) + '</td><td>' + esc(r.nama_akun) + '</td>'
+            + '<td class="bg-acc col-sticky1">' + esc(r.account) + '</td><td class="col-sticky2">' + esc(r.nama_akun) + '</td>'
             + '<td class="text-right"><a class="bg-link bg-debit"></a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
             + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="text-right bg-budget">' + nf(r.budget) + '</td>'
-            + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"></td>'
-            + '<td class="text-right font-weight-bold bg-budget-total"></td>';
+            + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"><small class="text-muted bg-final-monthly"></small></td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a class="bg-link bg-real" data-m="' + m + '"></a></td>';
       });
@@ -151,7 +150,7 @@
     const $tr = $('#bg-body tr.bg-row[data-r="' + ri + '"]');
     $tr.find('.bg-debit').text(nf(r.debit));
     $tr.find('.bg-budget').text(nf(r.budget));
-    $tr.find('.bg-budget-total').text(nf(rowBudgetTotal(r)));
+    $tr.find('.bg-final-monthly').text('≈ ' + nf(months.length > 0 ? r.final_budget / months.length : 0) + ' /bln');
     $tr.find('.bg-total').text(nf(r.realisasi_total));
     const selisih = rowSelisih(r), pct = rowPct(r);
     $tr.find('.bg-selisih').text(nf(selisih)).removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
@@ -164,7 +163,7 @@
 
   function computeCards() {
     const previous = rows.reduce((s, r) => s + r.debit, 0);
-    const totalBudget = rows.reduce((s, r) => s + rowBudgetTotal(r), 0);
+    const totalBudget = rows.reduce((s, r) => s + r.final_budget, 0);
     const actual = rows.reduce((s, r) => s + r.realisasi_total, 0);
     const margin = totalBudget - actual;
     return {
@@ -194,8 +193,8 @@
     let v = parseFloat(this.value);
     r.cost_reduction = isNaN(v) ? 0 : Math.min(100, Math.max(0, v));
     r.budget = round2(r.average * (1 - r.cost_reduction / 100));
-    $(this).closest('tr').find('.bg-final').val(nf(r.budget));
-    r.final_budget = r.budget;
+    r.final_budget = round2(r.budget * months.length);
+    $(this).closest('tr').find('.bg-final').val(nf(r.final_budget));
     paintRow(ri);
     paintCards(computeCards());
   });

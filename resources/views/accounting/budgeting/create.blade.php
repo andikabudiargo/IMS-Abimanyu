@@ -14,7 +14,7 @@
           <input type="text" id="budgetingNumber" class="form-control" disabled placeholder="Auto-generate" />
         </div>
         <div class="form-group col-md-3">
-          <label class="form-label" for="fiscalYear">Fiscal Year</label>
+          <label class="form-label" for="fiscalYear">Fiscal Year <span class="text-danger">*</span></label>
           <select class="form-control" id="fiscalYear">
             @foreach($fiscalYears as $fy)
               <option value="{{ $fy }}" {{ $fy == $fiscalYearDefault ? 'selected' : '' }}>{{ $fy }}</option>
@@ -30,7 +30,7 @@
       </div>
       <div class="form-row">
  <div class="form-group col-md-3">
-          <label class="form-label" for="dept">Department</label>
+          <label class="form-label" for="dept">Department <span class="text-danger">*</span></label>
           <select class="select2 form-control" id="dept" data-placeholder="Pilih department">
             <option value=""></option>
             @foreach($depts as $val)
@@ -51,11 +51,11 @@
 </div>
 <div class="form-row">
         <div class="form-group col-md-4">
-          <label class="form-label" for="previous">Previous Period</label>
+          <label class="form-label" for="previous">Previous Period <span class="text-danger">*</span></label>
           <input type="text" id="previous" class="form-control" placeholder="MM-YYYY to MM-YYYY" autocomplete="off" />
         </div>
         <div class="form-group col-md-4">
-          <label class="form-label" for="budget">Budget Period</label>
+          <label class="form-label" for="budget">Budget Period <span class="text-danger">*</span></label>
           <input type="text" id="budget" class="form-control" placeholder="MM-YYYY to MM-YYYY" autocomplete="off" />
         </div>
       </div>
@@ -83,32 +83,26 @@
         <h4 class="card-title">Detail Budgeting</h4>
         <small class="text-muted" id="bg-title"></small>
       </div>
-      <div class="heading-elements">
-        <button type="button" class="btn btn-outline-success" disabled title="Simpan dulu untuk export">
-          <i data-feather="file-text"></i> Export Excel
-        </button>
-        <button type="button" class="btn btn-outline-danger" disabled title="Simpan dulu untuk export">
-          <i data-feather="file"></i> Export PDF
-        </button>
-      </div>
     </div>
     <div class="card-body pt-0">
       <small class="text-muted d-block mb-1">
-        Average = total debit &divide; jumlah bulan yang debitnya tidak nol. Budget = Average &minus; Cost Reduction.
-        Final Budget mengikuti Budget sampai diedit manual (nilai per bulan). Budget Total = Final Budget &times; jumlah bulan Budget Period, dibandingkan dengan Total Realisasi untuk Selisih &amp; Realisasi %.
+        Average = total debit &divide; jumlah bulan yang debitnya tidak nol. Proposed Budget (bulanan) = Average &minus; Cost Reduction.
+        <strong>Final Budget adalah TOTAL untuk seluruh Budget Period</strong> (default = Proposed Budget &times; jumlah bulan), bisa diedit manual &mdash; nilai per bulannya otomatis mengikuti.
+        Final Budget inilah yang dibandingkan dengan Total Realisasi untuk Selisih &amp; Realisasi %.
         Klik nilai Debit / Realisasi untuk melihat rincian transaksi.
       </small>
       <div class="table-responsive bg-scroll">
         <table id="bgTable" class="table table-sm">
           <thead class="thead-light" id="bg-thead"></thead>
           <tbody id="bg-body"></tbody>
+          <tfoot id="bg-tfoot"></tfoot>
         </table>
       </div>
     </div>
   </div>
 </section>
 
-<button type="button" class="btn btn-success btn-lg" id="btnSave" style="position:fixed; left:24px; bottom:24px; z-index:1000; box-shadow:0 4px 12px rgba(0,0,0,.25); display:none;">
+<button type="button" class="btn btn-success btn-lg" id="btnSave" style="position:fixed; left:24px; bottom:24px; z-index:99999; box-shadow:0 4px 12px rgba(0,0,0,.35); display:none;">
   <i data-feather="save"></i> Save Budgeting
 </button>
 
@@ -131,19 +125,25 @@
   .bg-link:hover { color:#5e50ee; }
   .bg-pos { color:#28c76f; font-weight:600; }
   .bg-neg { color:#ea5455; font-weight:600; }
+  .bg-final-monthly { display:block; font-weight:400; }
 
-  /* Account + Name sticky di kiri */
-  #bgTable td:nth-child(1), #bgTable th:nth-child(1) { position:sticky; left:0; z-index:2; min-width:110px; }
-  #bgTable td:nth-child(2), #bgTable th:nth-child(2) { position:sticky; left:110px; z-index:2; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
-  #bgTable thead th:nth-child(1), #bgTable thead th:nth-child(2) { z-index:4; background:#f3f2f7; }
+  /* Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
+  .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
+  .col-sticky1 { left:0; min-width:110px; }
+  .col-sticky2 { left:110px; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
+  #bgTable thead .col-sticky1, #bgTable thead .col-sticky2 { z-index:4; background:#f3f2f7; }
 
   /* Zebra + hover (ikut mewarnai kolom sticky) */
   #bgTable tbody tr.bg-row:nth-child(odd) { background:#fff; }
   #bgTable tbody tr.bg-row:nth-child(even) { background:#f8f9fc; }
-  #bgTable tbody tr.bg-row:nth-child(odd) td:nth-child(1), #bgTable tbody tr.bg-row:nth-child(odd) td:nth-child(2) { background:#fff; }
-  #bgTable tbody tr.bg-row:nth-child(even) td:nth-child(1), #bgTable tbody tr.bg-row:nth-child(even) td:nth-child(2) { background:#f8f9fc; }
+  #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky2 { background:#fff; }
+  #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky2 { background:#f8f9fc; }
   #bgTable tbody tr.bg-row:hover { background:#eef1fd; }
-  #bgTable tbody tr.bg-row:hover td:nth-child(1), #bgTable tbody tr.bg-row:hover td:nth-child(2) { background:#eef1fd; }
+  #bgTable tbody tr.bg-row:hover td.col-sticky1, #bgTable tbody tr.bg-row:hover td.col-sticky2 { background:#eef1fd; }
+
+  /* Footer total */
+  #bgTable tfoot tr.bg-foot > td { position:sticky; bottom:0; z-index:3; background:#f1f3f5; font-weight:700; box-shadow:inset 0 1px 0 #9ca3af, inset 0 -2px 0 #9ca3af; }
+  #bgTable tfoot tr.bg-foot td.col-sticky1, #bgTable tfoot tr.bg-foot td.col-sticky2 { z-index:5; background:#f1f3f5; }
 </style>
 @endsection
 
@@ -169,8 +169,23 @@
   let deptCode = '';
   let previousRange = null, budgetRange = null;
 
-  $('#previous').flatpickr({ mode: 'range', dateFormat: 'm-Y', defaultDate: PREVIOUS_DEFAULT.split(' to '), locale: { rangeSeparator: ' to ' } });
   $('#budget').flatpickr({ mode: 'range', dateFormat: 'm-Y', defaultDate: BUDGET_DEFAULT.split(' to '), locale: { rangeSeparator: ' to ' } });
+
+  // Budget Period disarankan otomatis: mulai sebulan setelah Previous Period berakhir, dengan panjang yang sama.
+  const addMonths = (d, n) => new Date(d.getFullYear(), d.getMonth() + n, 1);
+  const monthsSpan = (a, b) => (b.getFullYear() * 12 + b.getMonth()) - (a.getFullYear() * 12 + a.getMonth()) + 1;
+
+  $('#previous').flatpickr({
+    mode: 'range', dateFormat: 'm-Y', defaultDate: PREVIOUS_DEFAULT.split(' to '), locale: { rangeSeparator: ' to ' },
+    onChange: function (selectedDates) {
+      if (selectedDates.length !== 2) return;
+      const [start, end] = selectedDates;
+      const span = monthsSpan(start, end);
+      const budgetStart = addMonths(end, 1);
+      const budgetEnd = addMonths(budgetStart, span - 1);
+      $('#budget')[0]._flatpickr.setDate([budgetStart, budgetEnd], true);
+    }
+  });
 
   const updateNumberPlaceholder = () => {
     const fy = $('#fiscalYear').val();
@@ -193,7 +208,7 @@
       rows = res.rows.map(function (r) {
         r.cost_reduction = CR_DEFAULT;
         r.budget = round2(r.average * (1 - r.cost_reduction / 100));
-        r.final_budget = r.budget;
+        r.final_budget = round2(r.budget * months.length);
         return r;
       });
       $('#bg-title').text('Department: ' + res.dept_name + '  |  Previous: ' + res.previous_text + '  |  Budget Period: ' + res.budget_text);
@@ -212,12 +227,11 @@
 
   function buildHead() {
     let r1 = '<tr>'
-      + '<th rowspan="2">Account</th><th rowspan="2">Name</th>'
+      + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
-      + '<th rowspan="2" class="text-right">Proposed Budget</th>'
-      + '<th rowspan="2" class="col-final">Final Budget</th>'
-      + '<th rowspan="2" class="text-right" title="Final Budget x jumlah bulan budget period">Budget Total (' + months.length + ' bln)</th>'
+      + '<th rowspan="2" class="text-right">Proposed Budget<br><small class="text-muted">(Monthly)</small></th>'
+      + '<th rowspan="2" class="col-final" title="Total untuk seluruh Budget Period, default = Proposed Budget x jumlah bulan">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
@@ -225,24 +239,22 @@
     $('#bg-thead').html(r1 + r2);
   }
 
-  function rowBudgetTotal(r) { return round2(r.final_budget * months.length); }
-  function rowSelisih(r) { return round2(rowBudgetTotal(r) - r.realisasi_total); }
-  function rowPct(r) { const bt = rowBudgetTotal(r); return bt > 0 ? round2(r.realisasi_total / bt * 100) : 0; }
+  function rowSelisih(r) { return round2(r.final_budget - r.realisasi_total); }
+  function rowPct(r) { return r.final_budget > 0 ? round2(r.realisasi_total / r.final_budget * 100) : 0; }
 
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (8 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data pada filter ini.</td></tr>';
+      html = '<tr><td colspan="' + (7 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data pada filter ini.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       html += '<tr class="bg-row" data-r="' + ri + '">'
-            + '<td class="bg-acc">' + esc(r.account) + '</td><td>' + esc(r.nama_akun) + '</td>'
+            + '<td class="bg-acc col-sticky1">' + esc(r.account) + '</td><td class="col-sticky2">' + esc(r.nama_akun) + '</td>'
             + '<td class="text-right"><a class="bg-link bg-debit"></a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
             + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="text-right bg-budget">' + nf(r.budget) + '</td>'
-            + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"></td>'
-            + '<td class="text-right font-weight-bold bg-budget-total"></td>';
+            + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"><small class="text-muted bg-final-monthly"></small></td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a class="bg-link bg-real" data-m="' + m + '"></a></td>';
       });
@@ -250,6 +262,34 @@
     });
     $('#bg-body').html(html);
     rows.forEach((r, ri) => paintRow(ri));
+    renderFooter();
+  }
+
+  function renderFooter() {
+    const tDebit = rows.reduce((s, r) => s + r.debit, 0);
+    const tAvg = rows.reduce((s, r) => s + r.average, 0);
+    const tProposed = rows.reduce((s, r) => s + r.budget, 0);
+    const tFinal = rows.reduce((s, r) => s + r.final_budget, 0);
+    const tMonthly = months.length > 0 ? tFinal / months.length : 0;
+    const tReal = rows.reduce((s, r) => s + r.realisasi_total, 0);
+    const tSelisih = round2(tFinal - tReal);
+    const tPct = tFinal > 0 ? round2(tReal / tFinal * 100) : 0;
+
+    let html = '<tr class="bg-foot">'
+      + '<td class="col-sticky1">TOTAL</td><td class="col-sticky2">' + rows.length + ' COA</td>'
+      + '<td class="text-right">' + nf(tDebit) + '</td>'
+      + '<td class="text-right">' + nf(tAvg) + '</td>'
+      + '<td></td>'
+      + '<td class="text-right">' + nf(tProposed) + '</td>'
+      + '<td class="text-right">' + nf(tFinal) + '<small class="text-muted d-block font-weight-normal">≈ ' + nf(tMonthly) + ' /bln</small></td>';
+    months.forEach(function (m) {
+      const s = rows.reduce((sum, r) => sum + (r.realisasi[m] || 0), 0);
+      html += '<td class="text-right">' + nf(s) + '</td>';
+    });
+    html += '<td class="text-right">' + nf(tReal) + '</td>'
+          + '<td class="text-right ' + (tSelisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + nf(tSelisih) + '</td>'
+          + '<td class="text-right ' + (tPct <= 100 ? 'bg-pos' : 'bg-neg') + '">' + tPct + '%</td></tr>';
+    $('#bg-tfoot').html(html);
   }
 
   function paintRow(ri) {
@@ -257,7 +297,7 @@
     const $tr = $('#bg-body tr.bg-row[data-r="' + ri + '"]');
     $tr.find('.bg-debit').text(nf(r.debit));
     $tr.find('.bg-budget').text(nf(r.budget));
-    $tr.find('.bg-budget-total').text(nf(rowBudgetTotal(r)));
+    $tr.find('.bg-final-monthly').text('≈ ' + nf(months.length > 0 ? r.final_budget / months.length : 0) + ' /bln');
     $tr.find('.bg-total').text(nf(r.realisasi_total));
     const selisih = rowSelisih(r), pct = rowPct(r);
     $tr.find('.bg-selisih').text(nf(selisih)).removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
@@ -292,7 +332,7 @@
     let v = parseFloat(this.value);
     r.cost_reduction = isNaN(v) ? 0 : Math.min(100, Math.max(0, v));
     r.budget = round2(r.average * (1 - r.cost_reduction / 100));
-    r.final_budget = r.budget;
+    r.final_budget = round2(r.budget * months.length);
     $(this).closest('tr').find('.bg-final').val(nf(r.final_budget));
     paintRow(ri);
     paintCards(computeCards());
@@ -318,7 +358,7 @@
 
   function computeCards() {
     const previous = rows.reduce((s, r) => s + r.debit, 0);
-    const totalBudget = rows.reduce((s, r) => s + rowBudgetTotal(r), 0);
+    const totalBudget = rows.reduce((s, r) => s + r.final_budget, 0);
     const actual = rows.reduce((s, r) => s + r.realisasi_total, 0);
     const margin = totalBudget - actual;
     return {
