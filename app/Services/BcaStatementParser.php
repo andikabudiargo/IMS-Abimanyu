@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Smalot\PdfParser\Config as PdfParserConfig;
 use Smalot\PdfParser\Parser as PdfParser;
 
 /**
@@ -25,7 +26,12 @@ class BcaStatementParser
 
     public function parseFile(string $path): array
     {
-        $parser = new PdfParser();
+        // Statement BCA biasanya di-"secure" (owner password, tanpa password buka) --
+        // tanpa ini, pdfparser nolak dengan "Secured pdf file are currently not supported".
+        $config = new PdfParserConfig();
+        $config->setIgnoreEncryption(true);
+
+        $parser = new PdfParser([], $config);
         $text = $parser->parseFile($path)->getText();
         return $this->parseText($text);
     }
