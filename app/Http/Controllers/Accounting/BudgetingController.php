@@ -306,17 +306,19 @@ class BudgetingController extends Controller
                 // Default diskalakan ke active_months (bukan seluruh bulan budget period), supaya pengeluaran
                 // yang historisnya jarang muncul (mis. sekali dalam setahun) tidak diproyeksikan jadi bulanan.
                 $final = ($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : round($budget * $r['active_months'], 2);
+                $additional = $edit ? (float) ($edit['additional_budget'] ?? 0) : 0;
 
                 DB::table('budgeting_det')->insert([
-                    'budgeting_hdr_id' => $hdrId,
-                    'account'          => $r['account'],
-                    'nama_akun'        => $r['nama_akun'],
-                    'debit'            => $r['debit'],
-                    'average'          => $r['average'],
-                    'active_months'    => $r['active_months'],
-                    'cost_reduction'   => $cr,
-                    'budget'           => $budget,
-                    'final_budget'     => $final,
+                    'budgeting_hdr_id'  => $hdrId,
+                    'account'           => $r['account'],
+                    'nama_akun'         => $r['nama_akun'],
+                    'debit'             => $r['debit'],
+                    'average'           => $r['average'],
+                    'active_months'     => $r['active_months'],
+                    'cost_reduction'    => $cr,
+                    'budget'            => $budget,
+                    'final_budget'      => $final,
+                    'additional_budget' => $additional,
                     'realisasi_json'   => json_encode($r['realisasi']),
                     'realisasi_total'  => $r['realisasi_total'],
                     'created_at'       => now(),
@@ -387,12 +389,14 @@ class BudgetingController extends Controller
                 $budget = round(((float) $det->average) * (1 - $cr / 100), 2);
                 // final_budget = TOTAL untuk seluruh budget period (bukan bulanan).
                 $final = isset($e['final_budget']) ? (float) $e['final_budget'] : round($budget * $monthsCount, 2);
+                $additional = (float) ($e['additional_budget'] ?? 0);
 
                 DB::table('budgeting_det')->where('id', $det->id)->update([
-                    'cost_reduction' => $cr,
-                    'budget'         => $budget,
-                    'final_budget'   => $final,
-                    'updated_at'     => now(),
+                    'cost_reduction'    => $cr,
+                    'budget'            => $budget,
+                    'final_budget'      => $final,
+                    'additional_budget' => $additional,
+                    'updated_at'        => now(),
                 ]);
             }
 
@@ -451,6 +455,7 @@ class BudgetingController extends Controller
             $ui = $uiCr->get($r['account']);
             $cr = $ui ? (float) $ui['cost_reduction'] : ($ex ? (float) $ex->cost_reduction : self::DEFAULT_COST_REDUCTION);
             $cr = min(100, max(0, $cr));
+            $additional = $ui ? (float) ($ui['additional_budget'] ?? 0) : ($ex ? (float) $ex->additional_budget : 0);
             $budget = round($r['average'] * (1 - $cr / 100), 2);
             $finalBudget = round($budget * $r['active_months'], 2);
 
@@ -460,6 +465,7 @@ class BudgetingController extends Controller
                 'budget'         => $budget,
                 'final_budget'   => $finalBudget,
                 'final_budget_monthly' => count($months) > 0 ? round($finalBudget / count($months), 2) : 0,
+                'additional_budget' => $additional,
                 'selisih'        => round($finalBudget - $r['realisasi_total'], 2),
                 'realisasi_pct'  => $finalBudget > 0 ? round($r['realisasi_total'] / $finalBudget * 100, 2) : ($r['realisasi_total'] > 0 ? -100 : 0),
             ];
@@ -561,7 +567,7 @@ class BudgetingController extends Controller
         $sheet->fromArray(['Previous: ' . $this->periodeText($d['hdr']->previous_from, $d['hdr']->previous_to) . '  |  Budget Period: ' . $this->periodeText($d['hdr']->budget_from, $d['hdr']->budget_to)], null, 'A2');
 
         $headers = array_merge(
-            ['Account', 'Name', 'Debit', 'Average', 'CR %', 'Monthly Budget', 'Final Budget (Total)'],
+            ['Account', 'Name', 'Debit', 'Average', 'CR %', 'Monthly Budget', 'Additional Budget', 'Final Budget (Total)'],
             $d['months'],
             ['Total Realisasi', 'Selisih', 'Realisasi %']
         );
@@ -570,7 +576,7 @@ class BudgetingController extends Controller
         $rowNum = 5;
         foreach ($d['rows'] as $r) {
             $line = array_merge(
-                [$r['account'], $r['nama_akun'], $r['debit'], $r['average'], $r['cost_reduction'], $r['final_budget_monthly'], $r['final_budget']],
+                [$r['account'], $r['nama_akun'], $r['debit'], $r['average'], $r['cost_reduction'], $r['final_budget_monthly'], $r['additional_budget'], $r['final_budget']],
                 array_map(function ($m) use ($r) {
                     return $r['realisasi'][$m] ?? 0;
                 }, $d['months']),
@@ -663,6 +669,7 @@ class BudgetingController extends Controller
                 'budget'         => (float) $r->budget,
                 'final_budget'   => $budgetTotal,
                 'final_budget_monthly' => count($months) > 0 ? round($budgetTotal / count($months), 2) : 0,
+                'additional_budget' => (float) $r->additional_budget,
                 'realisasi'      => $realisasi,
                 'realisasi_total' => $realTotal,
                 'selisih'        => round($budgetTotal - $realTotal, 2),

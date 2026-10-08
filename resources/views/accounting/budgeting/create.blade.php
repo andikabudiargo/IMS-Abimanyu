@@ -121,6 +121,7 @@
   #bgTable tbody tr.bg-group > td { background:#e9ecef; color:#1f2937; font-weight:700; border-top:2px solid #9ca3af; }
   .bg-acc { font-weight:600; color:#1f3a5f; }
   #bgTable th.col-cr, #bgTable td.col-cr { min-width:120px; }
+  #bgTable th.col-add, #bgTable td.col-add { min-width:140px; }
   #bgTable th.col-final, #bgTable td.col-final { min-width:170px; }
   #bgTable tbody tr.bg-row .bg-cr { min-width:60px; }
   #bgTable tbody tr.bg-row .bg-final { min-width:140px; font-weight:600; }
@@ -213,6 +214,7 @@
         r.cost_reduction = CR_DEFAULT;
         r.budget = round2(r.average * (1 - r.cost_reduction / 100));
         r.final_budget = round2(r.budget * r.active_months);
+        r.additional_budget = 0;
         return r;
       });
       $('#bg-title').text('Department: ' + res.dept_name + '  |  Previous: ' + res.previous_text + '  |  Budget Period: ' + res.budget_text);
@@ -234,6 +236,7 @@
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
       + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period, ikut berubah tiap Final Budget diedit">Monthly Budget<br><small class="text-muted">(dinamis)</small></th>'
+      + '<th rowspan="2" class="col-add" title="Tambahan budget yang disetujui kalau dept ini over-budget">Additional Budget</th>'
       + '<th rowspan="2" class="col-final" title="Total untuk seluruh Budget Period, default = Average x (1 - Cost Reduction%) x jumlah bulan aktif di Previous Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
@@ -248,7 +251,7 @@
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (7 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data pada filter ini.</td></tr>';
+      html = '<tr><td colspan="' + (8 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data pada filter ini.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       html += '<tr class="bg-row" data-r="' + ri + '">'
@@ -257,6 +260,7 @@
             + '<td class="text-right">' + nf(r.average) + '</td>'
             + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="text-right bg-budget"></td>'
+            + '<td class="col-add"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-additional" value="' + nf(r.additional_budget) + '"></td>'
             + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"></td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '"></a></td>';
@@ -283,6 +287,7 @@
       + '<td class="text-right">' + nf(tAvg) + '</td>'
       + '<td></td>'
       + '<td class="text-right">' + nf(tMonthly) + '</td>'
+      + '<td></td>'
       + '<td class="text-right">' + nf(tFinal) + '</td>';
     months.forEach(function (m) {
       const s = rows.reduce((sum, r) => sum + (r.realisasi[m] || 0), 0);
@@ -353,7 +358,19 @@
     paintRow(ri);
     paintCards(computeCards());
   });
-  $('#bg-body').on('keydown', '.bg-final, .bg-cr', function (e) {
+  $('#bg-body').on('focus', '.bg-additional', function () {
+    const r = rows[$(this).closest('tr').data('r')];
+    this.value = String(round2(r.additional_budget)).replace('.', ',');
+    this.select();
+  });
+  $('#bg-body').on('blur', '.bg-additional', function () {
+    const ri = $(this).closest('tr').data('r');
+    const r = rows[ri];
+    const v = parseId(this.value);
+    r.additional_budget = v !== null ? v : 0;
+    this.value = nf(r.additional_budget);
+  });
+  $('#bg-body').on('keydown', '.bg-final, .bg-cr, .bg-additional', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); this.blur(); }
   });
 
@@ -374,7 +391,7 @@
     if (!rows.length) { toast('warning', 'Tidak ada data untuk disimpan.'); return; }
     if (!$('#description').val().trim()) { toast('warning', 'Description wajib diisi.'); return; }
 
-    const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, final_budget: r.final_budget }));
+    const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, final_budget: r.final_budget, additional_budget: r.additional_budget }));
     $('.loading-spinner-container').addClass('-show');
 
     $.ajax({
