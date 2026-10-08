@@ -44,7 +44,6 @@
   .bg-link:hover { color:#5e50ee; }
   .bg-pos { color:#28c76f; font-weight:600; }
   .bg-neg { color:#ea5455; font-weight:600; }
-  .bg-final-monthly { display:block; font-weight:400; }
 
   /* Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
   .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
@@ -81,7 +80,7 @@
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="text-right">Cost Reduction</th>'
-      + '<th rowspan="2" class="text-right">Proposed Budget<br><small class="text-muted">(Monthly)</small></th>'
+      + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period">Monthly Budget<br><small class="text-muted">(dinamis)</small></th>'
       + '<th rowspan="2" class="text-right" title="Total untuk seluruh Budget Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
@@ -101,8 +100,8 @@
             + '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-debit">' + nf(r.debit) + '</a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
             + '<td class="text-right">' + r.cost_reduction + '%</td>'
-            + '<td class="text-right">' + nf(r.budget) + '</td>'
-            + '<td class="text-right">' + nf(r.final_budget) + '<small class="text-muted bg-final-monthly">≈ ' + nf(r.final_budget_monthly) + ' /bln</small></td>';
+            + '<td class="text-right">' + nf(r.final_budget_monthly) + '</td>'
+            + '<td class="text-right">' + nf(r.final_budget) + '</td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '">' + nf((r.realisasi || {})[m] || 0) + '</a></td>';
       });

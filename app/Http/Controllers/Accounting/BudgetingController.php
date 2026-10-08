@@ -516,7 +516,7 @@ class BudgetingController extends Controller
         $sheet->fromArray(['Previous: ' . $this->periodeText($d['hdr']->previous_from, $d['hdr']->previous_to) . '  |  Budget Period: ' . $this->periodeText($d['hdr']->budget_from, $d['hdr']->budget_to)], null, 'A2');
 
         $headers = array_merge(
-            ['Account', 'Name', 'Debit', 'Average', 'CR %', 'Proposed Budget (Monthly)', 'Final Budget (Total)'],
+            ['Account', 'Name', 'Debit', 'Average', 'CR %', 'Monthly Budget', 'Final Budget (Total)'],
             $d['months'],
             ['Total Realisasi', 'Selisih', 'Realisasi %']
         );
@@ -525,7 +525,7 @@ class BudgetingController extends Controller
         $rowNum = 5;
         foreach ($d['rows'] as $r) {
             $line = array_merge(
-                [$r['account'], $r['nama_akun'], $r['debit'], $r['average'], $r['cost_reduction'], $r['budget'], $r['final_budget']],
+                [$r['account'], $r['nama_akun'], $r['debit'], $r['average'], $r['cost_reduction'], $r['final_budget_monthly'], $r['final_budget']],
                 array_map(function ($m) use ($r) {
                     return $r['realisasi'][$m] ?? 0;
                 }, $d['months']),

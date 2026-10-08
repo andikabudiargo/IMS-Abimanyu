@@ -89,8 +89,9 @@
     </div>
     <div class="card-body pt-0">
       <small class="text-muted d-block mb-1">
-        Average = total debit &divide; jumlah bulan yang debitnya tidak nol. Proposed Budget (bulanan) = Average &minus; Cost Reduction.
-        <strong>Final Budget adalah TOTAL untuk seluruh Budget Period</strong> (default = Proposed Budget &times; jumlah bulan aktif di Previous Period), bisa diedit manual &mdash; nilai per bulannya otomatis mengikuti.
+        Average = total debit &divide; jumlah bulan yang debitnya tidak nol.
+        <strong>Final Budget adalah TOTAL untuk seluruh Budget Period</strong> (default = Average &minus; Cost Reduction, &times; jumlah bulan aktif di Previous Period), bisa diedit manual.
+        Monthly Budget = Final Budget &divide; jumlah bulan Budget Period, otomatis mengikuti tiap Final Budget diedit.
         Final Budget inilah yang dibandingkan dengan Total Realisasi untuk Selisih &amp; Realisasi %.
         Klik nilai Debit / Realisasi untuk melihat rincian transaksi.
       </small>
@@ -129,7 +130,6 @@
   .bg-link:hover { color:#5e50ee; }
   .bg-pos { color:#28c76f; font-weight:600; }
   .bg-neg { color:#ea5455; font-weight:600; }
-  .bg-final-monthly { display:block; font-weight:400; }
 
   /* Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
   .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
@@ -235,8 +235,8 @@
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
-      + '<th rowspan="2" class="text-right">Proposed Budget<br><small class="text-muted">(Monthly)</small></th>'
-      + '<th rowspan="2" class="col-final" title="Total untuk seluruh Budget Period, default = Proposed Budget x jumlah bulan aktif di Previous Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
+      + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period, ikut berubah tiap Final Budget diedit">Monthly Budget<br><small class="text-muted">(dinamis)</small></th>'
+      + '<th rowspan="2" class="col-final" title="Total untuk seluruh Budget Period, default = Average x (1 - Cost Reduction%) x jumlah bulan aktif di Previous Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
@@ -258,8 +258,8 @@
             + '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-debit"></a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
             + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
-            + '<td class="text-right bg-budget">' + nf(r.budget) + '</td>'
-            + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"><small class="text-muted bg-final-monthly"></small></td>';
+            + '<td class="text-right bg-budget"></td>'
+            + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"></td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '"></a></td>';
       });
@@ -273,7 +273,6 @@
   function renderFooter() {
     const tDebit = rows.reduce((s, r) => s + r.debit, 0);
     const tAvg = rows.reduce((s, r) => s + r.average, 0);
-    const tProposed = rows.reduce((s, r) => s + r.budget, 0);
     const tFinal = rows.reduce((s, r) => s + r.final_budget, 0);
     const tMonthly = months.length > 0 ? tFinal / months.length : 0;
     const tReal = rows.reduce((s, r) => s + r.realisasi_total, 0);
@@ -285,8 +284,8 @@
       + '<td class="text-right">' + nf(tDebit) + '</td>'
       + '<td class="text-right">' + nf(tAvg) + '</td>'
       + '<td></td>'
-      + '<td class="text-right">' + nf(tProposed) + '</td>'
-      + '<td class="text-right">' + nf(tFinal) + '<small class="text-muted d-block font-weight-normal">≈ ' + nf(tMonthly) + ' /bln</small></td>';
+      + '<td class="text-right">' + nf(tMonthly) + '</td>'
+      + '<td class="text-right">' + nf(tFinal) + '</td>';
     months.forEach(function (m) {
       const s = rows.reduce((sum, r) => sum + (r.realisasi[m] || 0), 0);
       html += '<td class="text-right">' + nf(s) + '</td>';
@@ -301,8 +300,7 @@
     const r = rows[ri];
     const $tr = $('#bg-body tr.bg-row[data-r="' + ri + '"]');
     $tr.find('.bg-debit').text(nf(r.debit));
-    $tr.find('.bg-budget').text(nf(r.budget));
-    $tr.find('.bg-final-monthly').text('≈ ' + nf(months.length > 0 ? r.final_budget / months.length : 0) + ' /bln');
+    $tr.find('.bg-budget').text(nf(months.length > 0 ? r.final_budget / months.length : 0));
     $tr.find('.bg-total').text(nf(r.realisasi_total));
     const selisih = rowSelisih(r), pct = rowPct(r);
     $tr.find('.bg-selisih').text(nf(selisih)).removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
