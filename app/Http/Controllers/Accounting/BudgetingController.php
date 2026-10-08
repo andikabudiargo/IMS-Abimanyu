@@ -609,7 +609,7 @@ class BudgetingController extends Controller
                 'realisasi'      => $realisasi,
                 'realisasi_total' => $realTotal,
                 'selisih'        => round($budgetTotal - $realTotal, 2),
-                'realisasi_pct'  => $budgetTotal > 0 ? round($realTotal / $budgetTotal * 100, 2) : 0,
+                'realisasi_pct'  => $budgetTotal > 0 ? round($realTotal / $budgetTotal * 100, 2) : ($realTotal > 0 ? -100 : 0),
             ];
         }
 
@@ -624,9 +624,9 @@ class BudgetingController extends Controller
             'total_budget'      => $totalBudget,
             'budget_growth_pct' => $previous > 0 ? round(($totalBudget - $previous) / $previous * 100, 2) : 0,
             'actual_expenses'   => $actual,
-            'actual_pct'        => $totalBudget > 0 ? round($actual / $totalBudget * 100, 2) : 0,
+            'actual_pct'        => $totalBudget > 0 ? round($actual / $totalBudget * 100, 2) : ($actual > 0 ? -100 : 0),
             'margin'            => $margin,
-            'margin_pct'        => $totalBudget > 0 ? round($margin / $totalBudget * 100, 2) : 0,
+            'margin_pct'        => $totalBudget > 0 ? round($margin / $totalBudget * 100, 2) : ($margin < 0 ? -100 : 0),
         ];
 
         return ['hdr' => $hdr, 'months' => $months, 'rows' => $rows, 'cards' => $cards];

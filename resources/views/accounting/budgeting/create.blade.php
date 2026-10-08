@@ -167,6 +167,7 @@
   };
   const monthLabel = (ym) => { const [y, m] = ym.split('-'); return ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][parseInt(m,10)-1] + ' ' + y; };
   const ymToDate = (ym, end) => end ? ym + '-' + new Date(ym.split('-')[0], ym.split('-')[1], 0).getDate() : ym + '-01';
+  const toast = (icon, title) => Swal.fire({ toast: true, position: 'top-end', icon: icon, title: title, showConfirmButton: false, timer: 2500 });
 
   let rows = [];
   let months = [];
@@ -201,8 +202,8 @@
 
   $('#btnPull').click(function () {
     const dept = $('#dept').val();
-    if (!dept) { alert('Department wajib dipilih.'); return; }
-    if (!$('#description').val().trim()) { alert('Description wajib diisi.'); return; }
+    if (!dept) { toast('warning', 'Department wajib dipilih.'); return; }
+    if (!$('#description').val().trim()) { toast('warning', 'Description wajib diisi.'); return; }
 
     $('.loading-spinner-container').addClass('-show');
     $.get("{{ route('budgeting.data') }}", {
@@ -244,7 +245,7 @@
   }
 
   function rowSelisih(r) { return round2(r.final_budget - r.realisasi_total); }
-  function rowPct(r) { return r.final_budget > 0 ? round2(r.realisasi_total / r.final_budget * 100) : 0; }
+  function rowPct(r) { if (r.final_budget > 0) return round2(r.realisasi_total / r.final_budget * 100); return r.realisasi_total > 0 ? -100 : 0; }
 
   function render() {
     let html = '';
@@ -277,7 +278,7 @@
     const tMonthly = months.length > 0 ? tFinal / months.length : 0;
     const tReal = rows.reduce((s, r) => s + r.realisasi_total, 0);
     const tSelisih = round2(tFinal - tReal);
-    const tPct = tFinal > 0 ? round2(tReal / tFinal * 100) : 0;
+    const tPct = tFinal > 0 ? round2(tReal / tFinal * 100) : (tReal > 0 ? -100 : 0);
 
     let html = '<tr class="bg-foot">'
       + '<td class="col-sticky1">TOTAL</td><td class="col-sticky2">' + rows.length + ' COA</td>'
@@ -292,7 +293,7 @@
     });
     html += '<td class="text-right">' + nf(tReal) + '</td>'
           + '<td class="text-right ' + (tSelisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + nf(tSelisih) + '</td>'
-          + '<td class="text-right ' + (tPct <= 100 ? 'bg-pos' : 'bg-neg') + '">' + tPct + '%</td></tr>';
+          + '<td class="text-right ' + (tSelisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + tPct + '%</td></tr>';
     $('#bg-tfoot').html(html);
   }
 
@@ -305,7 +306,7 @@
     $tr.find('.bg-total').text(nf(r.realisasi_total));
     const selisih = rowSelisih(r), pct = rowPct(r);
     $tr.find('.bg-selisih').text(nf(selisih)).removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
-    $tr.find('.bg-pct').text(pct + '%').removeClass('bg-pos bg-neg').addClass(pct <= 100 ? 'bg-pos' : 'bg-neg');
+    $tr.find('.bg-pct').text(pct + '%').removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
     $tr.find('.bg-real').each(function () {
       const m = $(this).data('m');
       $(this).text(nf(r.realisasi[m] || 0));

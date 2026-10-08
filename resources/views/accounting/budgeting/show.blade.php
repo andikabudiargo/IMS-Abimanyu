@@ -107,7 +107,7 @@
       });
       html += '<td class="text-right">' + nf(r.realisasi_total) + '</td>'
             + '<td class="text-right ' + (r.selisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + nf(r.selisih) + '</td>'
-            + '<td class="text-right ' + (r.realisasi_pct <= 100 ? 'bg-pos' : 'bg-neg') + '">' + r.realisasi_pct + '%</td></tr>';
+            + '<td class="text-right ' + (r.selisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + r.realisasi_pct + '%</td></tr>';
     });
     $('#bg-body').html(html);
   }

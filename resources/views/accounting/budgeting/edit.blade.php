@@ -102,7 +102,7 @@
   }
 
   function rowSelisih(r) { return round2(r.final_budget - r.realisasi_total); }
-  function rowPct(r) { return r.final_budget > 0 ? round2(r.realisasi_total / r.final_budget * 100) : 0; }
+  function rowPct(r) { if (r.final_budget > 0) return round2(r.realisasi_total / r.final_budget * 100); return r.realisasi_total > 0 ? -100 : 0; }
 
   function render() {
     let html = '';
@@ -135,7 +135,7 @@
     $tr.find('.bg-total').text(nf(r.realisasi_total));
     const selisih = rowSelisih(r), pct = rowPct(r);
     $tr.find('.bg-selisih').text(nf(selisih)).removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
-    $tr.find('.bg-pct').text(pct + '%').removeClass('bg-pos bg-neg').addClass(pct <= 100 ? 'bg-pos' : 'bg-neg');
+    $tr.find('.bg-pct').text(pct + '%').removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
     $tr.find('.bg-real').each(function () {
       const m = $(this).data('m');
       $(this).text(nf((r.realisasi || {})[m] || 0));
