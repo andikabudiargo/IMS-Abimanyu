@@ -424,7 +424,12 @@ class BudgetingController extends Controller
     }
 
     /** AJAX: tarik ulang debit/average (previous) & realisasi (budget period) dari kas_det, lalu simpan. */
-    public function recalculate($id)
+    /**
+     * AJAX: tarik ulang Debit/Average/Realisasi dari transaksi terbaru dan hitung ulang
+     * Budget/Final Budget/Monthly Budget mengikuti. Read-only -- tidak menulis ke DB,
+     * supaya hasilnya hanya tampil di UI sampai user klik Save.
+     */
+    public function recalculate(Request $request, $id)
     {
         $hdr = DB::table('budgeting_hdr')->where('id', $id)->first();
         if (!$hdr) {
@@ -436,45 +441,46 @@ class BudgetingController extends Controller
         $fresh = $this->computeDet($hdr->dept_code, $coas, $hdr->previous_from, $hdr->previous_to, $months, $hdr->budget_from, $hdr->budget_to);
         $existing = DB::table('budgeting_det')->where('budgeting_hdr_id', $id)->get()->keyBy('account');
 
-        DB::beginTransaction();
-        try {
-            foreach ($fresh as $r) {
-                $ex = $existing->get($r['account']);
-                $cr = $ex ? (float) $ex->cost_reduction : self::DEFAULT_COST_REDUCTION;
-                $budget = round($r['average'] * (1 - $cr / 100), 2);
+        // Cost reduction % dari rows yang sedang diedit di UI (belum disimpan) kalau dikirim,
+        // supaya edit yang belum di-Save tidak hilang kena timpa Recalculate.
+        $uiCr = collect($request->input('rows', []))->keyBy('account');
 
-                $payload = [
-                    'nama_akun'       => $r['nama_akun'],
-                    'debit'           => $r['debit'],
-                    'average'         => $r['average'],
-                    'active_months'   => $r['active_months'],
-                    'budget'          => $budget,
-                    'realisasi_json'  => json_encode($r['realisasi']),
-                    'realisasi_total' => $r['realisasi_total'],
-                    'updated_at'      => now(),
-                ];
+        $rows = [];
+        foreach ($fresh as $r) {
+            $ex = $existing->get($r['account']);
+            $ui = $uiCr->get($r['account']);
+            $cr = $ui ? (float) $ui['cost_reduction'] : ($ex ? (float) $ex->cost_reduction : self::DEFAULT_COST_REDUCTION);
+            $cr = min(100, max(0, $cr));
+            $budget = round($r['average'] * (1 - $cr / 100), 2);
+            $finalBudget = round($budget * $r['active_months'], 2);
 
-                if ($ex) {
-                    DB::table('budgeting_det')->where('id', $ex->id)->update($payload);
-                } else {
-                    DB::table('budgeting_det')->insert($payload + [
-                        'budgeting_hdr_id' => $id,
-                        'account'          => $r['account'],
-                        'cost_reduction'   => $cr,
-                        'final_budget'     => round($budget * $r['active_months'], 2),
-                        'created_at'       => now(),
-                    ]);
-                }
-            }
-
-            DB::table('budgeting_hdr')->where('id', $id)->update(['updated_at' => now()]);
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['status' => 0, 'message' => 'Gagal menarik ulang data: ' . $e->getMessage()], 500);
+            $rows[] = $r + [
+                'id'             => $ex->id ?? null,
+                'cost_reduction' => $cr,
+                'budget'         => $budget,
+                'final_budget'   => $finalBudget,
+                'final_budget_monthly' => count($months) > 0 ? round($finalBudget / count($months), 2) : 0,
+                'selisih'        => round($finalBudget - $r['realisasi_total'], 2),
+                'realisasi_pct'  => $finalBudget > 0 ? round($r['realisasi_total'] / $finalBudget * 100, 2) : ($r['realisasi_total'] > 0 ? -100 : 0),
+            ];
         }
 
-        return response()->json(['status' => 1, 'message' => 'Data berhasil ditarik ulang.'] + $this->loadDetail($id));
+        $previous = round(array_sum(array_column($rows, 'debit')), 2);
+        $totalBudget = round(array_sum(array_column($rows, 'final_budget')), 2);
+        $actual = round(array_sum(array_column($rows, 'realisasi_total')), 2);
+        $margin = round($totalBudget - $actual, 2);
+        $cards = [
+            'previous_expenses' => $previous,
+            'previous_pct'      => $totalBudget > 0 ? round($previous / $totalBudget * 100, 2) : 0,
+            'total_budget'      => $totalBudget,
+            'budget_growth_pct' => $previous > 0 ? round(($totalBudget - $previous) / $previous * 100, 2) : 0,
+            'actual_expenses'   => $actual,
+            'actual_pct'        => $totalBudget > 0 ? round($actual / $totalBudget * 100, 2) : ($actual > 0 ? -100 : 0),
+            'margin'            => $margin,
+            'margin_pct'        => $totalBudget > 0 ? round($margin / $totalBudget * 100, 2) : ($margin < 0 ? -100 : 0),
+        ];
+
+        return response()->json(['status' => 1, 'message' => 'Data berhasil ditarik ulang.', 'months' => $months, 'rows' => $rows, 'cards' => $cards]);
     }
 
     /** AJAX: list transaksi untuk modal hyperlink Debit / Realisasi. */

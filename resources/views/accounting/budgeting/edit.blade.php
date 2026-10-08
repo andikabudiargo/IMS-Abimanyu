@@ -94,9 +94,9 @@
     const changed = [];
     newRows.forEach((r) => {
       const o = oldMap[r.account];
-      const oldDebit = o ? o.debit : 0, oldAvg = o ? o.average : 0, oldReal = o ? o.realisasi_total : 0;
-      if (Math.abs(oldDebit - r.debit) > 0.01 || Math.abs(oldAvg - r.average) > 0.01 || Math.abs(oldReal - r.realisasi_total) > 0.01) {
-        changed.push({ account: r.account, nama: r.nama_akun, oldDebit, newDebit: r.debit, oldAvg, newAvg: r.average, oldReal, newReal: r.realisasi_total });
+      const oldDebit = o ? o.debit : 0, oldAvg = o ? o.average : 0, oldReal = o ? o.realisasi_total : 0, oldFinal = o ? o.final_budget : 0;
+      if (Math.abs(oldDebit - r.debit) > 0.01 || Math.abs(oldAvg - r.average) > 0.01 || Math.abs(oldReal - r.realisasi_total) > 0.01 || Math.abs(oldFinal - r.final_budget) > 0.01) {
+        changed.push({ account: r.account, nama: r.nama_akun, oldDebit, newDebit: r.debit, oldAvg, newAvg: r.average, oldReal, newReal: r.realisasi_total, oldFinal, newFinal: r.final_budget });
       }
     });
     return changed;
@@ -105,12 +105,13 @@
   function showRecalcDiff(changed) {
     if (!changed.length) { toast('info', 'Data sudah up to date, tidak ada perubahan.'); return; }
     let html = '<div class="table-responsive text-left" style="max-height:50vh;overflow:auto;">'
-      + '<table class="table table-sm"><thead><tr><th>Account</th><th class="text-right">Debit</th><th class="text-right">Average</th><th class="text-right">Realisasi</th></tr></thead><tbody>';
+      + '<table class="table table-sm"><thead><tr><th>Account</th><th class="text-right">Debit</th><th class="text-right">Average</th><th class="text-right">Realisasi</th><th class="text-right">Final Budget</th></tr></thead><tbody>';
     changed.forEach((c) => {
       html += '<tr><td>' + esc(c.account) + '<br><small class="text-muted">' + esc(c.nama) + '</small></td>'
         + '<td class="text-right">' + nf(c.oldDebit) + ' &rarr; <b>' + nf(c.newDebit) + '</b></td>'
         + '<td class="text-right">' + nf(c.oldAvg) + ' &rarr; <b>' + nf(c.newAvg) + '</b></td>'
-        + '<td class="text-right">' + nf(c.oldReal) + ' &rarr; <b>' + nf(c.newReal) + '</b></td></tr>';
+        + '<td class="text-right">' + nf(c.oldReal) + ' &rarr; <b>' + nf(c.newReal) + '</b></td>'
+        + '<td class="text-right">' + nf(c.oldFinal) + ' &rarr; <b>' + nf(c.newFinal) + '</b></td></tr>';
     });
     html += '</tbody></table></div>';
     Swal.fire({ title: changed.length + ' akun berubah', html: html, icon: 'info', confirmButtonText: 'OK', width: 700 });
@@ -239,7 +240,8 @@
       if (!result.isConfirmed) return;
       $('.loading-spinner-container').addClass('-show');
       const oldRows = rows;
-      $.post("{{ route('budgeting.recalculate', $hdr->id) }}").done(function (res) {
+      const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction }));
+      $.post("{{ route('budgeting.recalculate', $hdr->id) }}", { rows: payload }).done(function (res) {
         months = res.months;
         rows = res.rows;
         renderAll();
