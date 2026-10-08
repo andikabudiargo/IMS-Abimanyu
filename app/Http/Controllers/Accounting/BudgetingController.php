@@ -63,6 +63,39 @@ class BudgetingController extends Controller
         ]);
     }
 
+    /** AJAX: ringkasan untuk dashboard chart di index (budget vs actual per dept, sebaran status). */
+    public function chart(Request $request)
+    {
+        $list = $this->budgetList();
+
+        $byDept = $list->groupBy(fn($r) => $r->dept_name ?: $r->dept_code)
+            ->map(fn($rows, $dept) => [
+                'dept'   => $dept,
+                'budget' => round($rows->sum('total_budget'), 2),
+                'actual' => round($rows->sum('actual'), 2),
+            ])
+            ->sortByDesc('budget')
+            ->values();
+
+        $statusLabels = ['Overbudget', 'Underbudget', 'Sesuai Budget'];
+        $statusCounts = collect($statusLabels)->map(fn($s) => $list->where('status', $s)->count());
+
+        return response()->json([
+            'depts'        => $byDept->pluck('dept'),
+            'budget'       => $byDept->pluck('budget'),
+            'actual'       => $byDept->pluck('actual'),
+            'statusLabels' => $statusLabels,
+            'statusCounts' => $statusCounts,
+            'summary'      => [
+                'total'       => $list->count(),
+                'totalBudget' => round($list->sum('total_budget'), 2),
+                'totalActual' => round($list->sum('actual'), 2),
+                'totalMargin' => round($list->sum('margin'), 2),
+                'overCount'   => $list->where('status', 'Overbudget')->count(),
+            ],
+        ]);
+    }
+
     public function list(Request $request)
     {
         $list = $this->budgetList();
@@ -88,7 +121,6 @@ class BudgetingController extends Controller
                 return '<div class="d-inline-flex">
                             <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a>
                             <div class="dropdown-menu dropdown-menu-right">
-                                <a href="' . route('budgeting.show', $id) . '" class="dropdown-item"><i data-feather="eye"></i> Detail</a>
                                 <a href="' . route('budgeting.edit', $id) . '" class="dropdown-item"><i data-feather="edit-2"></i> Edit</a>
                                 <a href="javascript:;" onclick="deleteBudgeting(\'' . $id . '\',\'' . $r->budgeting_number . '\')" class="dropdown-item"><i data-feather="trash-2" class="feather-14-red"></i> Delete</a>
                             </div>
@@ -290,7 +322,7 @@ class BudgetingController extends Controller
             return response()->json([
                 'status'   => 1,
                 'message'  => "Budgeting {$number} berhasil disimpan.",
-                'redirect' => route('budgeting.show', $hdrId),
+                'redirect' => route('budgeting.edit', $hdrId),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

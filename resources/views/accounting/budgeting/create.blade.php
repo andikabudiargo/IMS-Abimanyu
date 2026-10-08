@@ -102,10 +102,8 @@
           <tfoot id="bg-tfoot"></tfoot>
         </table>
       </div>
-      <div class="mt-2">
-        <button type="button" class="btn btn-success btn-lg" id="btnSave">
-          <i data-feather="save"></i> Save Budgeting
-        </button>
+      <div class="d-flex flex-wrap mt-2" style="gap:.5rem">
+        <button type="button" class="btn btn-success" id="btnSave"><i data-feather="save"></i> Save Budgeting</button>
       </div>
     </div>
   </div>

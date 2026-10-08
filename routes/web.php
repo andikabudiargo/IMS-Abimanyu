@@ -1178,6 +1178,7 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 
 	Route::get('budgeting',['as'=>'budgeting.index','uses'=>'Accounting\BudgetingController@index']);
 	Route::get('budgeting/list',['as'=>'budgeting.list','uses'=>'Accounting\BudgetingController@list']);
+	Route::get('budgeting/chart',['as'=>'budgeting.chart','uses'=>'Accounting\BudgetingController@chart']);
 	Route::get('budgeting/data',['as'=>'budgeting.data','uses'=>'Accounting\BudgetingController@data']);
 	Route::get('budgeting/transactions',['as'=>'budgeting.transactions','uses'=>'Accounting\BudgetingController@transactions']);
 	Route::get('budgeting/create',['as'=>'budgeting.create','uses'=>'Accounting\BudgetingController@create']);
