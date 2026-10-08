@@ -575,16 +575,26 @@ class BudgetingController extends Controller
 
         $rowNum = 5;
         foreach ($d['rows'] as $r) {
+            // Kode akun dipaksa jadi TEXT: kalau dibiarkan auto-detect, Excel baca "5000.41"
+            // sebagai angka (titik jadi koma sesuai locale id-ID) sementara "6000.10.6.02"
+            // tetap text (banyak titik) -- hasilnya kolom Account tidak konsisten.
+            $sheet->setCellValueExplicit('A' . $rowNum, (string) $r['account'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+
             $line = array_merge(
-                [$r['account'], $r['nama_akun'], $r['debit'], $r['average'], $r['cost_reduction'], $r['final_budget_monthly'], $r['additional_budget'], $r['final_budget']],
+                [$r['nama_akun'], $r['debit'], $r['average'], $r['cost_reduction'] / 100, $r['final_budget_monthly'], $r['additional_budget'], $r['final_budget']],
                 array_map(function ($m) use ($r) {
                     return $r['realisasi'][$m] ?? 0;
                 }, $d['months']),
-                [$r['realisasi_total'], $r['selisih'], $r['realisasi_pct']]
+                [$r['realisasi_total'], $r['selisih'], $r['realisasi_pct'] / 100]
             );
-            $sheet->fromArray($line, null, 'A' . $rowNum);
+            $sheet->fromArray($line, null, 'B' . $rowNum);
             $rowNum++;
         }
+
+        $lastRow = $rowNum - 1;
+        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->getStyle("E5:E{$lastRow}")->getNumberFormat()->setFormatCode('0.00%');
+        $sheet->getStyle("{$lastCol}5:{$lastCol}{$lastRow}")->getNumberFormat()->setFormatCode('0.00%');
 
         foreach (range('A', $sheet->getHighestColumn()) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
