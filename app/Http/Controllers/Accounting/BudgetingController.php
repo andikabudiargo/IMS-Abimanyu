@@ -353,16 +353,36 @@ class BudgetingController extends Controller
             ->select(
                 DB::raw("to_char(to_date(h.voucher_date,'DD-MM-YYYY'),'DD-MM-YYYY') as voucher_date"),
                 DB::raw("to_date(h.voucher_date,'DD-MM-YYYY') as voucher_date_2"),
-                'd.voucher_number', 'd.description', 'd.debit'
+                'd.voucher_number', 'd.description', 'd.debit', 'h.id as hdr_id', 'h.voucher_type'
             )
             ->orderBy('voucher_date_2')
             ->orderBy('d.id')
             ->get();
 
+        $rows->each(function ($r) {
+            $r->detail_url = $this->voucherShowUrl($r->voucher_type, $r->hdr_id);
+            unset($r->hdr_id, $r->voucher_type);
+        });
+
         return response()->json([
             'rows'  => $rows,
             'total' => round($rows->sum('debit'), 2),
         ]);
+    }
+
+    /** URL detail voucher (KK/BK/KM/BM/GJ) sesuai controller masing-masing, null kalau tipe tidak dikenal. */
+    private function voucherShowUrl($voucherType, $hdrId)
+    {
+        $routes = [
+            'KK' => 'kasKeluar.show',
+            'BK' => 'bankKeluar.show',
+            'KM' => 'kasPenerimaan.show',
+            'BM' => 'bankPenerimaan.show',
+            'GJ' => 'jurnalUmum.show',
+        ];
+        $routeName = $routes[$voucherType] ?? null;
+
+        return $routeName ? route($routeName, ['id' => \Crypt::encryptString($hdrId)]) : null;
     }
 
     /* ====================================================================

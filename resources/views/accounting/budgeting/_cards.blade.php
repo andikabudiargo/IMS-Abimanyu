@@ -1,38 +1,57 @@
-{{-- Summary cards. JS mengisi #bg-c-* . --}}
-<div class="row mb-2">
-  <div class="col-6 col-md-3">
-    <div class="card">
-      <div class="card-body py-2 px-3">
-        <small class="text-muted d-block">Previous Expenses</small>
-        <h5 class="mb-0" id="bg-c-previous">0</h5>
-        <small class="text-muted" id="bg-c-previous-pct"></small>
+{{-- Summary cards (gaya conversion report). JS mengisi lewat paintCards(cards). --}}
+<div class="row mb-1">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border shadow-none mb-1">
+      <div class="card-body d-flex align-items-center p-1">
+        <div class="avatar bg-light-secondary p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="archive" class="font-medium-3 text-secondary"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 font-weight-bolder text-nowrap" id="bg-c-previous">0</h4>
+          <small class="text-muted text-nowrap">Previous Expenses <span id="bg-c-previous-pct" class="font-weight-bold"></span></small>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card">
-      <div class="card-body py-2 px-3">
-        <small class="text-muted d-block">Total Budget</small>
-        <h5 class="mb-0" id="bg-c-budget">0</h5>
-        <small class="text-muted" id="bg-c-budget-pct"></small>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border shadow-none mb-1">
+      <div class="card-body d-flex align-items-center p-1">
+        <div class="avatar bg-light-dark p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="target" class="font-medium-3 text-dark"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 font-weight-bolder text-nowrap" id="bg-c-budget">0</h4>
+          <small class="text-muted text-nowrap">Total Budget <span id="bg-c-budget-pct" class="font-weight-bold"></span></small>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card">
-      <div class="card-body py-2 px-3">
-        <small class="text-muted d-block">Actual Expenses</small>
-        <h5 class="mb-0" id="bg-c-actual">0</h5>
-        <small class="text-muted" id="bg-c-actual-pct"></small>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border shadow-none mb-1">
+      <div class="card-body d-flex align-items-center p-1">
+        <div class="avatar bg-light-info p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="credit-card" class="font-medium-3 text-info"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 font-weight-bolder text-nowrap" id="bg-c-actual">0</h4>
+          <small class="text-muted text-nowrap">Actual Expenses <span id="bg-c-actual-pct" class="font-weight-bold"></span></small>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card">
-      <div class="card-body py-2 px-3">
-        <small class="text-muted d-block">Margin</small>
-        <h5 class="mb-0" id="bg-c-margin">0</h5>
-        <small class="text-muted" id="bg-c-margin-pct"></small>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border shadow-none mb-1" style="border-color:#28c76f33 !important;background:#28c76f0d;">
+      <div class="card-body d-flex align-items-center p-1">
+        <div class="avatar bg-light-success p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="trending-up" class="font-medium-3 text-success"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 font-weight-bolder text-nowrap" id="bg-c-margin">0</h4>
+          <small class="text-muted text-nowrap">Margin <span id="bg-c-margin-pct" class="font-weight-bold"></span></small>
+        </div>
       </div>
     </div>
   </div>
@@ -42,13 +61,17 @@
   // cards: {previous_expenses, previous_pct, total_budget, budget_growth_pct, actual_expenses, actual_pct, margin, margin_pct}
   function paintCards(c) {
     $('#bg-c-previous').text(nf(c.previous_expenses));
-    $('#bg-c-previous-pct').text(c.previous_pct + '% dari total budget');
+    $('#bg-c-previous-pct').text('(' + c.previous_pct + '% dari budget)');
+
     $('#bg-c-budget').text(nf(c.total_budget));
-    $('#bg-c-budget-pct').text((c.budget_growth_pct >= 0 ? '+' : '') + c.budget_growth_pct + '% vs previous');
+    $('#bg-c-budget-pct').text('(' + (c.budget_growth_pct >= 0 ? '+' : '') + c.budget_growth_pct + '% vs previous)');
+
     $('#bg-c-actual').text(nf(c.actual_expenses));
-    $('#bg-c-actual-pct').text(c.actual_pct + '% dari budget terpakai');
-    $('#bg-c-margin').text(nf(c.margin));
-    $('#bg-c-margin').toggleClass('text-danger', c.margin < 0);
-    $('#bg-c-margin-pct').text(c.margin_pct + '% sisa budget');
+    $('#bg-c-actual-pct').text('(' + c.actual_pct + '% terpakai)')
+      .toggleClass('text-danger', c.actual_pct > 100).toggleClass('text-success', c.actual_pct <= 100);
+
+    $('#bg-c-margin').text(nf(c.margin)).toggleClass('text-danger', c.margin < 0).toggleClass('text-success', c.margin >= 0);
+    $('#bg-c-margin-pct').text('(' + c.margin_pct + '% sisa)')
+      .toggleClass('text-danger', c.margin_pct < 0).toggleClass('text-success', c.margin_pct >= 0);
   }
 </script>

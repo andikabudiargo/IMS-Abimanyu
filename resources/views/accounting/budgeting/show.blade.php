@@ -48,10 +48,12 @@
 @section('styles')
 <style>
   .bg-scroll { max-height:65vh; overflow:auto; }
-  #bgTable th, #bgTable td { white-space:nowrap; vertical-align:middle; }
+  #bgTable th, #bgTable td { white-space:nowrap; vertical-align:middle; padding:.6rem .9rem; }
   #bgTable thead th { position:sticky; top:0; z-index:3; background:#f3f2f7; box-shadow:inset 0 -1px 0 #dee2e6; }
   .bg-acc { font-weight:600; color:#1f3a5f; }
   .bg-link { cursor:pointer; text-decoration:underline; }
+  .bg-pos { color:#28c76f; font-weight:600; }
+  .bg-neg { color:#ea5455; font-weight:600; }
 </style>
 @endsection
 
@@ -99,8 +101,8 @@
         html += '<td class="text-right"><a class="bg-link bg-real" data-m="' + m + '">' + nf((r.realisasi || {})[m] || 0) + '</a></td>';
       });
       html += '<td class="text-right">' + nf(r.realisasi_total) + '</td>'
-            + '<td class="text-right">' + nf(r.selisih) + '</td>'
-            + '<td class="text-right">' + r.realisasi_pct + '%</td></tr>';
+            + '<td class="text-right ' + (r.selisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + nf(r.selisih) + '</td>'
+            + '<td class="text-right ' + (r.realisasi_pct <= 100 ? 'bg-pos' : 'bg-neg') + '">' + r.realisasi_pct + '%</td></tr>';
     });
     $('#bg-body').html(html);
   }
@@ -128,8 +130,8 @@
     }).done(function (res) {
       months = res.months;
       rows = res.rows;
+      cards = res.cards;
       renderAll();
-      paintCards(res.cards);
       alert(res.message);
     }).fail(function (xhr) {
       alert((xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menarik ulang data.');

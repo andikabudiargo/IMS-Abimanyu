@@ -55,11 +55,17 @@
 @section('styles')
 <style>
   .bg-scroll { max-height:65vh; overflow:auto; }
-  #bgTable th, #bgTable td { white-space:nowrap; vertical-align:middle; }
+  #bgTable { table-layout:auto; }
+  #bgTable th, #bgTable td { white-space:nowrap; vertical-align:middle; padding:.6rem .9rem; }
   #bgTable thead th { position:sticky; top:0; z-index:3; background:#f3f2f7; box-shadow:inset 0 -1px 0 #dee2e6; }
   .bg-acc { font-weight:600; color:#1f3a5f; }
-  #bgTable tbody tr.bg-row input { min-width:85px; }
+  #bgTable th.col-cr, #bgTable td.col-cr { min-width:120px; }
+  #bgTable th.col-final, #bgTable td.col-final { min-width:170px; }
+  #bgTable tbody tr.bg-row .bg-cr { min-width:60px; }
+  #bgTable tbody tr.bg-row .bg-final { min-width:140px; font-weight:600; }
   .bg-link { cursor:pointer; text-decoration:underline; }
+  .bg-pos { color:#28c76f; font-weight:600; }
+  .bg-neg { color:#ea5455; font-weight:600; }
 </style>
 @endsection
 
@@ -88,9 +94,9 @@
     let r1 = '<tr>'
       + '<th rowspan="2">Account</th><th rowspan="2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
-      + '<th rowspan="2" style="width:110px">Cost Reduction</th>'
+      + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
       + '<th rowspan="2" class="text-right">Proposed Budget</th>'
-      + '<th rowspan="2" style="width:150px">Final Budget</th>'
+      + '<th rowspan="2" class="col-final">Final Budget</th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
@@ -112,9 +118,9 @@
             + '<td class="bg-acc">' + esc(r.account) + '</td><td>' + esc(r.nama_akun) + '</td>'
             + '<td class="text-right"><a class="bg-link bg-debit"></a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
-            + '<td><div class="input-group input-group-sm"><input type="number" class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
+            + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="text-right bg-budget">' + nf(r.budget) + '</td>'
-            + '<td><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"></td>';
+            + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"></td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a class="bg-link bg-real" data-m="' + m + '"></a></td>';
       });
@@ -130,8 +136,9 @@
     $tr.find('.bg-debit').text(nf(r.debit));
     $tr.find('.bg-budget').text(nf(r.budget));
     $tr.find('.bg-total').text(nf(r.realisasi_total));
-    $tr.find('.bg-selisih').text(nf(rowSelisih(r)));
-    $tr.find('.bg-pct').text(rowPct(r) + '%');
+    const selisih = rowSelisih(r), pct = rowPct(r);
+    $tr.find('.bg-selisih').text(nf(selisih)).removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
+    $tr.find('.bg-pct').text(pct + '%').removeClass('bg-pos bg-neg').addClass(pct <= 100 ? 'bg-pos' : 'bg-neg');
     $tr.find('.bg-real').each(function () {
       const m = $(this).data('m');
       $(this).text(nf((r.realisasi || {})[m] || 0));

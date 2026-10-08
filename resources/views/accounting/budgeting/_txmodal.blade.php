@@ -40,7 +40,10 @@
         }
         let html = '';
         res.rows.forEach(function (r) {
-          html += '<tr><td>' + esc(r.voucher_date) + '</td><td>' + esc(r.voucher_number) + '</td>'
+          const voucher = r.detail_url
+            ? '<a href="' + r.detail_url + '" target="_blank">' + esc(r.voucher_number) + '</a>'
+            : esc(r.voucher_number);
+          html += '<tr><td>' + esc(r.voucher_date) + '</td><td>' + voucher + '</td>'
                 + '<td>' + esc(r.description) + '</td><td class="text-right">' + nf(r.debit) + '</td></tr>';
         });
         $('#bgTxBody').html(html);
