@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Accounting;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use DB;
+use PDF;
 
 ini_set('memory_limit', '1024M');
 set_time_limit(300);
@@ -14,15 +16,16 @@ set_time_limit(300);
  *
  * Sumber data : kas_det + kas_hdr (sama seperti Buku Besar v2), status DELETED diabaikan.
  * COA         : hanya akun DETAIL yang segmen pertama kodenya ada di COA_RANGES
- *               (1000-1999, 5000-5999, 8000-8999).
+ *               (5000-5999, 6000-6999, 7000-7999, 8000-8999).
  * Pengelompokan: per department (cost center kosong dianggap dept 007, seperti Buku Besar).
  *
- * Per department + COA:
- *   debit    = jumlah kolom debit di seluruh periode terpilih
+ * Satu budgeting (budgeting_hdr) = satu department + satu previous period + satu budget period.
+ * Per COA (budgeting_det):
+ *   debit    = jumlah kolom debit di previous period
  *   average  = debit / jumlah bulan yang debitnya TIDAK nol
- *              (bulan dengan debit 0 tidak ikut dibagi)
- *   budget   = average - cost reduction %  (cost reduction default 5%, diubah di layar)
- *   final    = default sama dengan budget, bisa diedit di layar
+ *   budget   = average - cost reduction %  (diedit di layar)
+ *   final    = default sama dengan budget, bisa diedit manual
+ *   realisasi_json = realisasi debit per bulan di budget period (untuk kolom bulanan + modal transaksi)
  */
 class BudgetingController extends Controller
 {
@@ -45,48 +48,471 @@ class BudgetingController extends Controller
 
     private $title = "Budgeting";
 
+    /* ====================================================================
+     |  LIST
+     * ================================================================== */
+
     public function index(Request $request)
     {
-        $data['title'] = $this->title;
-        $data['depts'] = DB::table('depts')->orderBy('name')->get();
+        $list = DB::table('budgeting_hdr as h')
+            ->leftJoin('depts as dp', 'dp.code', 'h.dept_code')
+            ->leftJoin(DB::raw('(select budgeting_hdr_id, sum(final_budget) as sum_final, sum(realisasi_total) as sum_real from budgeting_det group by budgeting_hdr_id) as agg'), 'agg.budgeting_hdr_id', 'h.id')
+            ->select('h.*', 'dp.name as dept_name', 'agg.sum_final', 'agg.sum_real')
+            ->orderByDesc('h.id')
+            ->get();
 
-        // HEADER ikut tampil: memilihnya = menarik seluruh COA di bawahnya.
-        $coa = DB::table('accounts')->select('account', 'description', 'acc_header');
-        $this->applyCoaRange($coa, 'account');
-        $data['accounts'] = $coa->orderBy(DB::raw("string_to_array(account,'.')::int[]"))->get();
+        foreach ($list as $r) {
+            $n = count($this->monthsBetween($r->budget_from, $r->budget_to));
+            $r->total_budget = round((float) $r->sum_final * $n, 2);
+            $r->actual = round((float) $r->sum_real, 2);
+            $r->margin = round($r->total_budget - $r->actual, 2);
+        }
 
-        $data['crDefault'] = self::DEFAULT_COST_REDUCTION;
-        // Default: Januari tahun ini s/d bulan ini.
-        $data['periodeDefault'] = sprintf('01-%04d to %02d-%04d', date('Y'), date('n'), date('Y'));
-
-        return view("accounting.budgeting.index", $data);
+        return view('accounting.budgeting.index', [
+            'title' => $this->title,
+            'list'  => $list,
+        ]);
     }
 
+    /* ====================================================================
+     |  CREATE / STORE
+     * ================================================================== */
+
+    public function create(Request $request)
+    {
+        $now = date('Y-m-d');
+
+        return view('accounting.budgeting.create', [
+            'title'           => "Create {$this->title}",
+            'depts'           => DB::table('depts')->orderBy('name')->get(),
+            'accounts'        => $this->coaOptions(),
+            'crDefault'       => self::DEFAULT_COST_REDUCTION,
+            'fiscalYears'     => $this->fiscalYearOptions(),
+            'fiscalYearDefault' => (int) date('Y'),
+            'previousDefault' => sprintf('01-%04d to %02d-%04d', date('Y', strtotime($now)), date('n', strtotime($now)), date('Y', strtotime($now))),
+            'budgetDefault'   => sprintf('%02d-%04d to %02d-%04d', date('n'), date('Y'), date('n'), date('Y') + 1),
+        ]);
+    }
+
+    /** AJAX: preview previous + realisasi sebelum disimpan (dipakai juga oleh create.blade). */
     public function data(Request $request)
     {
-        $periode = $this->resolvePeriode($request->periode);
-        if (!$periode) {
+        $prevP = $this->resolvePeriode($request->previous);
+        $budgP = $this->resolvePeriode($request->budget);
+        if (!$prevP || !$budgP) {
             return response()->json(['error' => 'Format periode harus MM-YYYY to MM-YYYY.'], 422);
         }
-        list($from, $to, $months) = $periode;
+        list($prevFrom, $prevTo) = $prevP;
+        list($budgFrom, $budgTo, $budgMonths) = $budgP;
 
+        $dept = trim((string) $request->dept);
+        if ($dept === '') {
+            return response()->json(['error' => 'Department wajib dipilih.'], 422);
+        }
+        $coas = array_values(array_filter((array) $request->coa, 'strlen'));
+
+        return response()->json([
+            'dept_name'      => DB::table('depts')->where('code', $dept)->value('name') ?: $dept,
+            'previous_text'  => $this->periodeText($prevFrom, $prevTo),
+            'budget_text'    => $this->periodeText($budgFrom, $budgTo),
+            'months'         => $budgMonths,
+            'cost_reduction' => self::DEFAULT_COST_REDUCTION,
+            'rows'           => $this->computeDet($dept, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $username = optional(Auth::user())->username;
+
+        $prevP = $this->resolvePeriode($request->previous);
+        $budgP = $this->resolvePeriode($request->budget);
+        if (!$prevP || !$budgP) {
+            return response()->json(['status' => 0, 'message' => 'Format periode harus MM-YYYY to MM-YYYY.'], 422);
+        }
+        list($prevFrom, $prevTo) = $prevP;
+        list($budgFrom, $budgTo, $budgMonths) = $budgP;
+
+        $dept = trim((string) $request->dept);
+        if ($dept === '') {
+            return response()->json(['status' => 0, 'message' => 'Department wajib dipilih.'], 422);
+        }
+        $fiscalYear = (int) $request->fiscal_year;
+        if (!in_array($fiscalYear, $this->fiscalYearOptions())) {
+            return response()->json(['status' => 0, 'message' => 'Fiscal Year tidak valid.'], 422);
+        }
+        $coas = array_values(array_filter((array) $request->coa, 'strlen'));
+        $rows = $this->computeDet($dept, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo);
+        $edits = collect(json_decode($request->rows, true) ?: [])->keyBy('account');
+
+        DB::beginTransaction();
+        try {
+            $number = $this->generateNumber($fiscalYear, $dept);
+
+            $hdrId = DB::table('budgeting_hdr')->insertGetId([
+                'budgeting_number' => $number,
+                'fiscal_year'      => $fiscalYear,
+                'dept_code'        => $dept,
+                'description'      => $request->description,
+                'note'             => $request->note,
+                'coa_filter'       => $coas ? implode(',', $coas) : null,
+                'previous_from'    => $prevFrom,
+                'previous_to'      => $prevTo,
+                'budget_from'      => $budgFrom,
+                'budget_to'        => $budgTo,
+                'created_by'       => $username,
+                'updated_by'       => $username,
+                'created_at'       => now(),
+                'updated_at'       => now(),
+            ]);
+
+            foreach ($rows as $r) {
+                $edit = $edits->get($r['account']);
+                $cr = $edit ? min(100, max(0, (float) $edit['cost_reduction'])) : self::DEFAULT_COST_REDUCTION;
+                $budget = round($r['average'] * (1 - $cr / 100), 2);
+                $final = ($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : $budget;
+
+                DB::table('budgeting_det')->insert([
+                    'budgeting_hdr_id' => $hdrId,
+                    'account'          => $r['account'],
+                    'nama_akun'        => $r['nama_akun'],
+                    'debit'            => $r['debit'],
+                    'average'          => $r['average'],
+                    'active_months'    => $r['active_months'],
+                    'cost_reduction'   => $cr,
+                    'budget'           => $budget,
+                    'final_budget'     => $final,
+                    'realisasi_json'   => json_encode($r['realisasi']),
+                    'realisasi_total'  => $r['realisasi_total'],
+                    'created_at'       => now(),
+                    'updated_at'       => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status'   => 1,
+                'message'  => "Budgeting {$number} berhasil disimpan.",
+                'redirect' => route('budgeting.show', $hdrId),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 0, 'message' => 'Gagal disimpan: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /* ====================================================================
+     |  EDIT / UPDATE / SHOW / DESTROY
+     * ================================================================== */
+
+    public function edit($id)
+    {
+        $d = $this->loadDetail($id);
+        if (!$d) {
+            return redirect()->route('budgeting.index')->with(['alert' => 'warning', 'message' => 'Data tidak ditemukan.']);
+        }
+
+        return view('accounting.budgeting.edit', $d + ['title' => "Edit {$this->title}"]);
+    }
+
+    public function show($id)
+    {
+        $d = $this->loadDetail($id);
+        if (!$d) {
+            return redirect()->route('budgeting.index')->with(['alert' => 'warning', 'message' => 'Data tidak ditemukan.']);
+        }
+
+        return view('accounting.budgeting.show', $d + ['title' => "Detail {$this->title}"]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $hdr = DB::table('budgeting_hdr')->where('id', $id)->first();
+        if (!$hdr) {
+            return response()->json(['status' => 0, 'message' => 'Data tidak ditemukan.'], 404);
+        }
+
+        $edits = collect(json_decode($request->rows, true) ?: []);
+
+        DB::beginTransaction();
+        try {
+            foreach ($edits as $e) {
+                $det = DB::table('budgeting_det')->where('budgeting_hdr_id', $id)->where('account', $e['account'])->first();
+                if (!$det) {
+                    continue;
+                }
+                $cr = min(100, max(0, (float) ($e['cost_reduction'] ?? 0)));
+                $budget = round(((float) $det->average) * (1 - $cr / 100), 2);
+
+                DB::table('budgeting_det')->where('id', $det->id)->update([
+                    'cost_reduction' => $cr,
+                    'budget'         => $budget,
+                    'final_budget'   => (float) ($e['final_budget'] ?? $budget),
+                    'updated_at'     => now(),
+                ]);
+            }
+
+            DB::table('budgeting_hdr')->where('id', $id)->update([
+                'description' => $request->description,
+                'note'        => $request->note,
+                'updated_by'  => optional(Auth::user())->username,
+                'updated_at'  => now(),
+            ]);
+
+            DB::commit();
+
+            return response()->json(['status' => 1, 'message' => 'Budgeting berhasil diperbarui.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 0, 'message' => 'Gagal menyimpan: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        $deleted = DB::table('budgeting_hdr')->where('id', $id)->delete();
+        if (!$deleted) {
+            return response()->json(['status' => 0, 'message' => 'Data tidak ditemukan.'], 404);
+        }
+
+        return response()->json(['status' => 1, 'message' => 'Budgeting berhasil dihapus.']);
+    }
+
+    /** AJAX: tarik ulang debit/average (previous) & realisasi (budget period) dari kas_det, lalu simpan. */
+    public function recalculate($id)
+    {
+        $hdr = DB::table('budgeting_hdr')->where('id', $id)->first();
+        if (!$hdr) {
+            return response()->json(['status' => 0, 'message' => 'Data tidak ditemukan.'], 404);
+        }
+
+        $coas = $hdr->coa_filter ? explode(',', $hdr->coa_filter) : [];
+        $months = $this->monthsBetween($hdr->budget_from, $hdr->budget_to);
+        $fresh = $this->computeDet($hdr->dept_code, $coas, $hdr->previous_from, $hdr->previous_to, $months, $hdr->budget_from, $hdr->budget_to);
+        $existing = DB::table('budgeting_det')->where('budgeting_hdr_id', $id)->get()->keyBy('account');
+
+        DB::beginTransaction();
+        try {
+            foreach ($fresh as $r) {
+                $ex = $existing->get($r['account']);
+                $cr = $ex ? (float) $ex->cost_reduction : self::DEFAULT_COST_REDUCTION;
+                $budget = round($r['average'] * (1 - $cr / 100), 2);
+
+                $payload = [
+                    'nama_akun'       => $r['nama_akun'],
+                    'debit'           => $r['debit'],
+                    'average'         => $r['average'],
+                    'active_months'   => $r['active_months'],
+                    'budget'          => $budget,
+                    'realisasi_json'  => json_encode($r['realisasi']),
+                    'realisasi_total' => $r['realisasi_total'],
+                    'updated_at'      => now(),
+                ];
+
+                if ($ex) {
+                    DB::table('budgeting_det')->where('id', $ex->id)->update($payload);
+                } else {
+                    DB::table('budgeting_det')->insert($payload + [
+                        'budgeting_hdr_id' => $id,
+                        'account'          => $r['account'],
+                        'cost_reduction'   => $cr,
+                        'final_budget'     => $budget,
+                        'created_at'       => now(),
+                    ]);
+                }
+            }
+
+            DB::table('budgeting_hdr')->where('id', $id)->update(['updated_at' => now()]);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 0, 'message' => 'Gagal menarik ulang data: ' . $e->getMessage()], 500);
+        }
+
+        return response()->json(['status' => 1, 'message' => 'Data berhasil ditarik ulang.'] + $this->loadDetail($id));
+    }
+
+    /** AJAX: list transaksi untuk modal hyperlink Debit / Realisasi. */
+    public function transactions(Request $request)
+    {
+        $dept = trim((string) $request->dept);
+        $account = trim((string) $request->account);
+        $from = $request->from;
+        $to = $request->to;
+        if ($dept === '' || $account === '' || !$from || !$to) {
+            return response()->json(['error' => 'Parameter tidak lengkap.'], 422);
+        }
+
+        $rows = DB::table('kas_det as d')
+            ->join('kas_hdr as h', 'h.voucher_number', 'd.voucher_number')
+            ->whereNotIn('h.status', self::STATUS_EXCLUDED)
+            ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') between ? and ?", [$from, $to])
+            ->whereRaw("coalesce(nullif(d.cost_center,''),?) = ?", [self::DEFAULT_DEPT, $dept])
+            ->where('d.account', $account)
+            ->select(
+                DB::raw("to_char(to_date(h.voucher_date,'DD-MM-YYYY'),'DD-MM-YYYY') as voucher_date"),
+                DB::raw("to_date(h.voucher_date,'DD-MM-YYYY') as voucher_date_2"),
+                'd.voucher_number', 'd.description', 'd.debit'
+            )
+            ->orderBy('voucher_date_2')
+            ->orderBy('d.id')
+            ->get();
+
+        return response()->json([
+            'rows'  => $rows,
+            'total' => round($rows->sum('debit'), 2),
+        ]);
+    }
+
+    /* ====================================================================
+     |  EXPORT
+     * ================================================================== */
+
+    public function exportExcel($id)
+    {
+        $d = $this->loadDetail($id);
+        if (!$d) {
+            abort(404);
+        }
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Budgeting');
+
+        $sheet->fromArray([$d['hdr']->budgeting_number . ' - ' . $d['hdr']->dept_name], null, 'A1');
+        $sheet->fromArray(['Previous: ' . $this->periodeText($d['hdr']->previous_from, $d['hdr']->previous_to) . '  |  Budget Period: ' . $this->periodeText($d['hdr']->budget_from, $d['hdr']->budget_to)], null, 'A2');
+
+        $headers = array_merge(
+            ['Account', 'Name', 'Debit', 'Average', 'CR %', 'Proposed Budget', 'Final Budget'],
+            $d['months'],
+            ['Total Realisasi', 'Selisih', 'Realisasi %']
+        );
+        $sheet->fromArray($headers, null, 'A4');
+
+        $rowNum = 5;
+        foreach ($d['rows'] as $r) {
+            $line = array_merge(
+                [$r['account'], $r['nama_akun'], $r['debit'], $r['average'], $r['cost_reduction'], $r['budget'], $r['final_budget']],
+                array_map(function ($m) use ($r) {
+                    return $r['realisasi'][$m] ?? 0;
+                }, $d['months']),
+                [$r['realisasi_total'], $r['selisih'], $r['realisasi_pct']]
+            );
+            $sheet->fromArray($line, null, 'A' . $rowNum);
+            $rowNum++;
+        }
+
+        foreach (range('A', $sheet->getHighestColumn()) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = $d['hdr']->budgeting_number . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    public function exportPdf($id)
+    {
+        $d = $this->loadDetail($id);
+        if (!$d) {
+            abort(404);
+        }
+
+        $pdf = PDF::loadView('accounting.budgeting.print', $d)->setPaper('a4', 'landscape');
+
+        return $pdf->download($d['hdr']->budgeting_number . '.pdf');
+    }
+
+    /* ====================================================================
+     |  Helper
+     * ================================================================== */
+
+    private function coaOptions()
+    {
+        $coa = DB::table('accounts')->select('account', 'description', 'acc_header');
+        $this->applyCoaRange($coa, 'account');
+
+        return $coa->orderBy(DB::raw("string_to_array(account,'.')::int[]"))->get();
+    }
+
+    /** Load hdr + det + months + summary cards untuk halaman edit/show/export. */
+    private function loadDetail($id)
+    {
+        $hdr = DB::table('budgeting_hdr as h')
+            ->leftJoin('depts as dp', 'dp.code', 'h.dept_code')
+            ->where('h.id', $id)
+            ->select('h.*', 'dp.name as dept_name')
+            ->first();
+        if (!$hdr) {
+            return null;
+        }
+
+        $months = $this->monthsBetween($hdr->budget_from, $hdr->budget_to);
+
+        $det = DB::table('budgeting_det')
+            ->where('budgeting_hdr_id', $id)
+            ->orderBy(DB::raw("string_to_array(account,'.')::int[]"))
+            ->get();
+
+        $rows = [];
+        foreach ($det as $r) {
+            $realisasi = json_decode($r->realisasi_json, true) ?: [];
+            $realTotal = (float) $r->realisasi_total;
+            $budgetTotal = round((float) $r->final_budget * count($months), 2);
+
+            $rows[] = [
+                'id'             => $r->id,
+                'account'        => $r->account,
+                'nama_akun'      => $r->nama_akun,
+                'debit'          => (float) $r->debit,
+                'average'        => (float) $r->average,
+                'active_months'  => (int) $r->active_months,
+                'cost_reduction' => (float) $r->cost_reduction,
+                'budget'         => (float) $r->budget,
+                'final_budget'   => (float) $r->final_budget,
+                'realisasi'      => $realisasi,
+                'realisasi_total' => $realTotal,
+                'budget_total'   => $budgetTotal,
+                'selisih'        => round($budgetTotal - $realTotal, 2),
+                'realisasi_pct'  => $budgetTotal > 0 ? round($realTotal / $budgetTotal * 100, 2) : 0,
+            ];
+        }
+
+        $previous = round(array_sum(array_column($rows, 'debit')), 2);
+        $totalBudget = round(array_sum(array_column($rows, 'budget_total')), 2);
+        $actual = round(array_sum(array_column($rows, 'realisasi_total')), 2);
+        $margin = round($totalBudget - $actual, 2);
+
+        $cards = [
+            'previous_expenses' => $previous,
+            'previous_pct'      => $totalBudget > 0 ? round($previous / $totalBudget * 100, 2) : 0,
+            'total_budget'      => $totalBudget,
+            'budget_growth_pct' => $previous > 0 ? round(($totalBudget - $previous) / $previous * 100, 2) : 0,
+            'actual_expenses'   => $actual,
+            'actual_pct'        => $totalBudget > 0 ? round($actual / $totalBudget * 100, 2) : 0,
+            'margin'            => $margin,
+            'margin_pct'        => $totalBudget > 0 ? round($margin / $totalBudget * 100, 2) : 0,
+        ];
+
+        return ['hdr' => $hdr, 'months' => $months, 'rows' => $rows, 'cards' => $cards];
+    }
+
+    /** Pull debit kas_det per account + per bulan untuk 1 department dalam rentang tanggal. */
+    private function pullMonthly($dept, array $coas, $from, $to)
+    {
         $q = DB::table('kas_det as d')
             ->join('kas_hdr as h', 'h.voucher_number', 'd.voucher_number')
             ->leftJoin('accounts as a', 'a.account', 'd.account')
             ->whereNotIn('h.status', self::STATUS_EXCLUDED)
             ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') between ? and ?", [$from, $to])
-            ->whereRaw("coalesce(upper(a.acc_header),'') <> 'HEADER'");
+            ->whereRaw("coalesce(upper(a.acc_header),'') <> 'HEADER'")
+            ->whereRaw("coalesce(nullif(d.cost_center,''),?) = ?", [self::DEFAULT_DEPT, $dept]);
         $this->applyCoaRange($q, 'd.account');
 
-        // Filter department (multi). Cost center kosong = dept default.
-        $depts = array_values(array_filter((array) $request->dept, 'strlen'));
-        if ($depts) {
-            $in = implode(',', array_fill(0, count($depts), '?'));
-            $q->whereRaw("coalesce(nullif(d.cost_center,''),?) in ($in)", array_merge([self::DEFAULT_DEPT], $depts));
-        }
-
-        // Filter COA (multi). COA HEADER = dirinya + seluruh turunan (prefix kode).
-        $coas = array_values(array_filter((array) $request->coa, 'strlen'));
         if ($coas) {
             $q->where(function ($w) use ($coas) {
                 foreach ($coas as $c) {
@@ -96,76 +522,101 @@ class BudgetingController extends Controller
             });
         }
 
-        // Debit per department + COA + bulan. Bulan tanpa debit tidak muncul sama sekali.
         $rows = $q->select(
-                DB::raw("coalesce(nullif(d.cost_center,''),'" . self::DEFAULT_DEPT . "') as dept_code"),
                 'd.account',
                 'a.description as nama_akun',
                 DB::raw("to_char(to_date(h.voucher_date,'DD-MM-YYYY'),'YYYY-MM') as ym"),
                 DB::raw('sum(d.debit) as debit')
             )
-            ->groupBy(DB::raw('1, 2, 3, 4'))
+            ->groupBy(DB::raw('1, 2, 3'))
             ->havingRaw('sum(d.debit) <> 0')
             ->get();
 
-        $deptNames = DB::table('depts')->pluck('name', 'code')->all();
-
-        $agg = [];
+        $out = [];
         foreach ($rows as $r) {
-            $dc = trim((string) $r->dept_code);
             $acc = (string) $r->account;
-            if (!isset($agg[$dc][$acc])) {
-                $agg[$dc][$acc] = ['nama' => $r->nama_akun, 'months' => []];
+            if (!isset($out[$acc])) {
+                $out[$acc] = ['nama' => $r->nama_akun, 'months' => []];
             }
-            $agg[$dc][$acc]['months'][$r->ym] = ($agg[$dc][$acc]['months'][$r->ym] ?? 0) + (float) $r->debit;
+            $out[$acc]['months'][$r->ym] = ($out[$acc]['months'][$r->ym] ?? 0) + (float) $r->debit;
         }
 
-        $groups = [];
-        foreach ($agg as $dc => $accounts) {
-            uksort($accounts, 'strnatcmp');
-
-            $list = [];
-            foreach ($accounts as $acc => $info) {
-                $total = array_sum($info['months']);
-                // Hanya bulan yang debitnya tidak nol yang jadi pembagi.
-                $active = count(array_filter($info['months'], function ($v) {
-                    return abs($v) > 0.004;
-                }));
-
-                $list[] = [
-                    'account'       => (string) $acc,
-                    'nama_akun'     => $info['nama'],
-                    'debit'         => round($total, 2),
-                    'average'       => $active > 0 ? round($total / $active, 2) : 0,
-                    'active_months' => $active,
-                ];
-            }
-
-            $groups[] = [
-                'dept_code' => (string) $dc,
-                'dept_name' => $deptNames[$dc] ?? (string) $dc,
-                'rows'      => $list,
-            ];
-        }
-        usort($groups, function ($a, $b) {
-            return strcasecmp($a['dept_name'], $b['dept_name']);
-        });
-
-        return response()->json([
-            'header' => [
-                'periode_text'   => $this->periodeText($from, $to),
-                'jumlah_periode' => count($months),
-                'cost_reduction' => self::DEFAULT_COST_REDUCTION,
-            ],
-            'groups' => $groups,
-        ]);
+        return $out;
     }
 
-    /* ====================================================================
-     |  Helper
-     * ================================================================== */
+    /** Gabungkan previous period (debit/average) + budget period (realisasi per bulan) per COA. */
+    private function computeDet($dept, array $coas, $prevFrom, $prevTo, array $budgetMonths, $budgFrom, $budgTo)
+    {
+        $prev = $this->pullMonthly($dept, $coas, $prevFrom, $prevTo);
+        $real = $this->pullMonthly($dept, $coas, $budgFrom, $budgTo);
 
-    /** Batasi kolom kode akun ke segmen pertama dalam COA_RANGES (1000-1999, 5000-5999, 8000-8999). */
+        $rows = [];
+        foreach (array_unique(array_merge(array_keys($prev), array_keys($real))) as $acc) {
+            $p = $prev[$acc] ?? ['nama' => null, 'months' => []];
+            $r = $real[$acc] ?? ['nama' => null, 'months' => []];
+
+            $total = array_sum($p['months']);
+            $active = count(array_filter($p['months'], function ($v) {
+                return abs($v) > 0.004;
+            }));
+
+            $realMonths = [];
+            foreach ($budgetMonths as $ym) {
+                $realMonths[$ym] = round((float) ($r['months'][$ym] ?? 0), 2);
+            }
+
+            $rows[$acc] = [
+                'account'         => $acc,
+                'nama_akun'       => $p['nama'] ?: ($r['nama'] ?: $acc),
+                'debit'           => round($total, 2),
+                'average'         => $active > 0 ? round($total / $active, 2) : 0,
+                'active_months'   => $active,
+                'realisasi'       => $realMonths,
+                'realisasi_total' => round(array_sum($realMonths), 2),
+            ];
+        }
+        ksort($rows, SORT_NATURAL);
+
+        return array_values($rows);
+    }
+
+    /** Nomor budgeting: BGT-ASN-{fiscalYear}-{deptCode}, tambah suffix -2/-3/... kalau dept + fiscal year sudah dipakai. */
+    private function generateNumber($fiscalYear, $deptCode)
+    {
+        $base = "BGT-ASN-{$fiscalYear}-{$deptCode}";
+        if (!DB::table('budgeting_hdr')->where('budgeting_number', $base)->exists()) {
+            return $base;
+        }
+        for ($i = 2; $i < 100; $i++) {
+            $number = "{$base}-{$i}";
+            if (!DB::table('budgeting_hdr')->where('budgeting_number', $number)->exists()) {
+                return $number;
+            }
+        }
+        throw new \Exception('Gagal generate nomor budgeting.');
+    }
+
+    /** Daftar fiscal year pilihan: 2024 s/d tahun depan, bertambah otomatis tiap tahun. */
+    private function fiscalYearOptions()
+    {
+        return range(2024, (int) date('Y') + 1);
+    }
+
+    /** Daftar 'YYYY-MM' dari tanggal $from s/d $to (inklusif, per bulan). */
+    private function monthsBetween($from, $to)
+    {
+        $months = [];
+        $d = strtotime(date('Y-m-01', strtotime($from)));
+        $end = strtotime(date('Y-m-01', strtotime($to)));
+        while ($d <= $end) {
+            $months[] = date('Y-m', $d);
+            $d = strtotime('+1 month', $d);
+        }
+
+        return $months;
+    }
+
+    /** Batasi kolom kode akun ke segmen pertama dalam COA_RANGES. */
     private function applyCoaRange($query, $col)
     {
         $query->where(function ($w) use ($col) {
@@ -180,22 +631,20 @@ class BudgetingController extends Controller
 
     /**
      * "MM-YYYY to MM-YYYY" (atau satu bulan saja) -> [tanggal awal, tanggal akhir, daftar 'YYYY-MM'].
-     * Kosong = Januari s/d bulan ini tahun berjalan. Null kalau formatnya salah.
+     * Null kalau formatnya salah.
      */
     private function resolvePeriode($raw)
     {
         $raw = trim((string) $raw);
-
         if ($raw === '') {
-            $a = [1, (int) date('Y')];
-            $b = [(int) date('n'), (int) date('Y')];
-        } else {
-            $parts = array_map('trim', explode('to', $raw));
-            $a = $this->parseMonth($parts[0]);
-            $b = (isset($parts[1]) && $parts[1] !== '') ? $this->parseMonth($parts[1]) : $a;
-            if (!$a || !$b) {
-                return null;
-            }
+            return null;
+        }
+
+        $parts = array_map('trim', explode('to', $raw));
+        $a = $this->parseMonth($parts[0]);
+        $b = (isset($parts[1]) && $parts[1] !== '') ? $this->parseMonth($parts[1]) : $a;
+        if (!$a || !$b) {
+            return null;
         }
 
         if ($a[1] * 12 + $a[0] > $b[1] * 12 + $b[0]) {
