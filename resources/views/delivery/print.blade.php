@@ -350,6 +350,9 @@
             </tr>
         </tfoot>
     </table>
+    <div style="position:fixed;left:5mm;bottom:2mm;font-size:7pt;color:#666;">
+        Created by {{ $dnHdr->created_by }} at {{ $dnHdr->created_at }}
+    </div>
 </div>
 <script src="{{ asset('app-assets/vendors/js/vendors.min.js') }}"></script>
 <script>
