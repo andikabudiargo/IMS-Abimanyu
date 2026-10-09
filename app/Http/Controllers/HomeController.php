@@ -324,12 +324,19 @@ foreach ($candidateHeaders as $h) {
             ? route('targetSo.show', ['id' => Crypt::encryptString($firstMatchedId)])
             : route('targetSo.index');
 
+       // customer_names: digabung dari semua TSO yang nargetin artikel itu di
+       // bulan ini (bisa lebih dari satu customer per artikel), sumbernya
+       // target_order_hdr.customer_id -> third_party (article sendiri tidak
+       // punya relasi ke customer).
        $targetLines = empty($matchedTsoCodes) ? collect() : DB::table('target_order_det as t')
     ->join('article as a', 'a.article_code', '=', 't.article_code')
+    ->join('target_order_hdr as h', 'h.tso_code', '=', 't.tso_code')
+    ->leftJoin('third_party as tp', 'tp.kode', '=', 'h.customer_id')
     ->whereIn('t.tso_code', $matchedTsoCodes)
     ->whereRaw("UPPER(TRIM(a.uom)) IN ('PCS','SET')")
     ->whereRaw("COALESCE(UPPER(TRIM(a.group_of_material)), '') NOT IN ('MAKLON','MKL')")
-    ->select('t.article_code', DB::raw('SUM(t.qty_target) as qty_target'))
+    ->select('t.article_code', DB::raw('SUM(t.qty_target) as qty_target'),
+        DB::raw('STRING_AGG(DISTINCT tp.nama, \', \') as customer_names'))
     ->groupBy('t.article_code')
     ->get();
 
@@ -348,6 +355,7 @@ foreach ($candidateHeaders as $h) {
             $targetArticleLines[$line->article_code] = [
                 'qty_target'        => $qty,
                 'target_conversion' => $lineConversion,
+                'customer_names'    => $line->customer_names ?? '',
             ];
         }
 

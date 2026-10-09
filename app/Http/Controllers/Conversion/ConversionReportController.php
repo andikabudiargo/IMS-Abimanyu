@@ -215,7 +215,7 @@ private function isMaklon(string $articleCode): bool
             'article_alternative_code' => $article->article_alternative_code ?? $articleCode,
             'article_desc'             => $article->article_desc ?? '',
             'uom'                      => $article->uom ?? '',
-            'customer_names'           => '',
+            'customer_names'           => $target['customer_names'] ?? '',
             'total_qty'                => 0,
             'avg_selling_price'        => 0,
             'avg_purchase_price'       => 0,
