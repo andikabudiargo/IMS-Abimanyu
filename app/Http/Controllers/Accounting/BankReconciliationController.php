@@ -302,7 +302,9 @@ class BankReconciliationController extends Controller
 
     public function listDetail(Request $request)
     {
-        $id = Crypt::decryptString($request->id);
+        // $id di sini sudah plain (bukan terenkripsi) -- show() mengirim id hasil
+        // decrypt ke view (lihat $data['id']), lalu dipakai lagi buat endpoint AJAX ini.
+        $id = $request->id;
         $header = DB::table('bank_reconciliation_hdr')->where('id', $id)->first();
         abort_unless($header, 404);
 
