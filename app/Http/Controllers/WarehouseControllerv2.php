@@ -551,6 +551,24 @@ class WarehouseControllerv2 extends Controller
         return Excel::download(new StockAnomalyExport, 'stock_abnormality_' . date('YmdHis') . '.xlsx');
     }
 
+    public function articlesByLocation(Request $request)
+    {
+        $location = $request->input('location');
+        if (!$location) {
+            return response()->json([]);
+        }
+
+        $articles = DB::table('warehouse_stock as s')
+            ->join('article as a', 'a.article_code', '=', 's.article_code')
+            ->where('s.location_number', $location)
+            ->select('s.article_code', 'a.article_alternative_code', 'a.article_desc')
+            ->distinct()
+            ->orderBy('a.article_alternative_code')
+            ->get();
+
+        return response()->json($articles);
+    }
+
     public function runRecalculate(Request $request)
     {
         if (!Auth::user()->hasAnyRole(['Superuser', 'accounting'])) {

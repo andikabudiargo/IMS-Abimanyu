@@ -768,19 +768,36 @@ $('#btnCheckAnomaly').on('click', function () {
 });
 
 $('#btnRecalculateLedger').on('click', function () {
+    const locOptions = $('#searchLoc').html(); // reuse daftar lokasi yang sudah ada di filter
+
     Swal.fire({
         title: 'Recalculate Ledger',
         html:
-            '<input id="swalRecalcArticle" class="swal2-input text-uppercase" placeholder="Article Code (kosongkan = semua)">' +
-            '<input id="swalRecalcLocation" class="swal2-input text-uppercase" placeholder="Location Code (kosongkan = semua)">',
+            '<select id="swalRecalcLocation" class="swal2-select form-control mb-2">' + locOptions + '</select>' +
+            '<select id="swalRecalcArticle" class="swal2-select form-control" disabled><option value="">All</option></select>',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Jalankan',
         cancelButtonText: 'Batal',
+        didOpen: function () {
+            $('#swalRecalcLocation').on('change', function () {
+                const loc = $(this).val();
+                const $art = $('#swalRecalcArticle');
+                $art.prop('disabled', true).html('<option value="">All</option>');
+                if (!loc) return;
+
+                $.get("{{ route('stock.ledger.articlesByLocation') }}", { location: loc }, function (rows) {
+                    rows.forEach(function (r) {
+                        $art.append('<option value="' + r.article_code + '">' + (r.article_alternative_code || r.article_code) + ' - ' + (r.article_desc || '') + '</option>');
+                    });
+                    $art.prop('disabled', false);
+                });
+            });
+        },
         preConfirm: function () {
             return {
-                article: $('#swalRecalcArticle').val().trim(),
-                location: $('#swalRecalcLocation').val().trim()
+                article: $('#swalRecalcArticle').val(),
+                location: $('#swalRecalcLocation').val()
             };
         }
     }).then(function (result) {
