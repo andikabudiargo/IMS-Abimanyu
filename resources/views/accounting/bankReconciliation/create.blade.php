@@ -71,8 +71,8 @@
       <span id="previewSummary" class="badge badge-light-info"></span>
     </div>
     <div class="card-body">
-      <div class="table-responsive" style="max-height: 28rem; overflow-y: auto;">
-        <table class="table table-sm table-striped">
+      <div class="table-responsive bankrecon-scroll">
+        <table class="table table-striped bankrecon-table">
           <thead class="thead-light">
             <tr>
               <th>No</th>
@@ -99,6 +99,19 @@
     </div>
   </div>
 </section>
+@endsection
+
+@section('styles')
+<style>
+  .bankrecon-scroll { max-height: 32rem; overflow-y: auto; }
+  .bankrecon-table th, .bankrecon-table td { padding: 0.9rem 0.75rem; vertical-align: middle; }
+  .bankrecon-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: #f8f8f8;
+  }
+</style>
 @endsection
 
 @section('scripts')

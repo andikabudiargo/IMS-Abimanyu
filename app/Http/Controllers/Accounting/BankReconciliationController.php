@@ -294,15 +294,18 @@ class BankReconciliationController extends Controller
             ->all();
 
         foreach ($rows as &$row) {
-            $amountColumn = $row['mutation_type'] === 'CR' ? 'debit' : 'credit';
-
             $candidate = DB::table('kas_det')
                 ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
                 ->whereIn('kas_hdr.voucher_type', $voucherTypes)
                 ->where('kas_hdr.status', '<>', '5')
                 ->whereRaw('kas_hdr.period::integer = ?', [$periode])
                 ->where('kas_hdr.year', $year)
-                ->where('kas_det.' . $amountColumn, $row['amount'])
+                // Nominal dicocokkan ke debit ATAU kredit -- sisi DB/CR di jurnal bisa
+                // berkebalikan dari asumsi "statement DB = kas_det credit", jadi tidak
+                // dipaksa harus sisi tertentu, cukup nominalnya ketemu di salah satu sisi.
+                ->where(function ($q) use ($row) {
+                    $q->where('kas_det.debit', $row['amount'])->orWhere('kas_det.credit', $row['amount']);
+                })
                 ->whereRaw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY') = ?", [$row['stmt_date']])
                 ->when(!empty($usedKasDetIds), function ($q) use ($usedKasDetIds) {
                     $q->whereNotIn('kas_det.id', $usedKasDetIds);

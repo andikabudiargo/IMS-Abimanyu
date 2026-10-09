@@ -24,8 +24,8 @@
       <h4 class="card-title">Detail Mutasi — PDF vs Buku Besar</h4>
     </div>
     <div class="card-body">
-      <div class="card-datatable table-responsive pt-0">
-        <table id="bankReconciliationDetailTable" class="table">
+      <div class="card-datatable table-responsive pt-0 bankrecon-scroll">
+        <table id="bankReconciliationDetailTable" class="table bankrecon-table">
           <thead class="thead-light"></thead>
         </table>
       </div>
@@ -54,6 +54,19 @@
   </div>
 </div>
 
+@endsection
+
+@section('styles')
+<style>
+  .bankrecon-scroll { max-height: 32rem; overflow-y: auto; }
+  .bankrecon-table th, .bankrecon-table td { padding: 0.9rem 0.75rem; vertical-align: middle; }
+  .bankrecon-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: #f8f8f8;
+  }
+</style>
 @endsection
 
 @section('scripts')
