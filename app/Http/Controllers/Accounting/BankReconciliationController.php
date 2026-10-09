@@ -294,24 +294,41 @@ class BankReconciliationController extends Controller
             ->all();
 
         foreach ($rows as &$row) {
-            $candidate = DB::table('kas_det')
-                ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
-                ->whereIn('kas_hdr.voucher_type', $voucherTypes)
-                ->where('kas_hdr.status', '<>', '5')
-                ->whereRaw('kas_hdr.period::integer = ?', [$periode])
-                ->where('kas_hdr.year', $year)
-                // Nominal dicocokkan ke debit ATAU kredit -- sisi DB/CR di jurnal bisa
-                // berkebalikan dari asumsi "statement DB = kas_det credit", jadi tidak
-                // dipaksa harus sisi tertentu, cukup nominalnya ketemu di salah satu sisi.
-                ->where(function ($q) use ($row) {
-                    $q->where('kas_det.debit', $row['amount'])->orWhere('kas_det.credit', $row['amount']);
-                })
-                ->whereRaw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY') = ?", [$row['stmt_date']])
-                ->when(!empty($usedKasDetIds), function ($q) use ($usedKasDetIds) {
-                    $q->whereNotIn('kas_det.id', $usedKasDetIds);
-                })
-                ->select('kas_det.id', 'kas_hdr.id as voucher_id', 'kas_hdr.voucher_type', 'kas_det.voucher_number', 'kas_hdr.voucher_date', 'kas_det.debit as gl_debit', 'kas_det.credit as gl_kredit')
-                ->first();
+            $baseQuery = function () use ($voucherTypes, $periode, $year, $row, $usedKasDetIds) {
+                return DB::table('kas_det')
+                    ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
+                    ->whereIn('kas_hdr.voucher_type', $voucherTypes)
+                    ->where('kas_hdr.status', '<>', '5')
+                    ->whereRaw('kas_hdr.period::integer = ?', [$periode])
+                    ->where('kas_hdr.year', $year)
+                    // Nominal dicocokkan ke debit ATAU kredit -- sisi DB/CR di jurnal bisa
+                    // berkebalikan dari asumsi "statement DB = kas_det credit", jadi tidak
+                    // dipaksa harus sisi tertentu, cukup nominalnya ketemu di salah satu sisi.
+                    ->where(function ($q) use ($row) {
+                        $q->where('kas_det.debit', $row['amount'])->orWhere('kas_det.credit', $row['amount']);
+                    })
+                    ->when(!empty($usedKasDetIds), function ($q) use ($usedKasDetIds) {
+                        $q->whereNotIn('kas_det.id', $usedKasDetIds);
+                    })
+                    ->select('kas_det.id', 'kas_hdr.id as voucher_id', 'kas_hdr.voucher_type', 'kas_det.voucher_number', 'kas_hdr.voucher_date', 'kas_det.debit as gl_debit', 'kas_det.credit as gl_kredit');
+            };
+
+            // Strategi 1: banyak keterangan CSV literally menyebut nomor voucher kita sendiri
+            // (mis. "...BK-ASN-26-I-0080 LIE LING") -- kalau ketemu, match langsung by
+            // voucher_number + nominal, tanpa syarat tanggal persis sama (voucher kadang
+            // diposting beda hari dari tanggal transaksi bank).
+            $candidate = null;
+            if (preg_match('/\b(KM|KK|BM|BK)-[A-Za-z0-9-]+/', $row['description'], $m)) {
+                $candidate = $baseQuery()->where('kas_det.voucher_number', rtrim($m[0], '-'))->first();
+            }
+
+            // Strategi 2 (fallback): tidak ada referensi voucher di description -- cocokkan
+            // lewat tanggal + nominal seperti biasa.
+            if (!$candidate) {
+                $candidate = $baseQuery()
+                    ->whereRaw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY') = ?", [$row['stmt_date']])
+                    ->first();
+            }
 
             if ($candidate) {
                 $usedKasDetIds[] = $candidate->id;
