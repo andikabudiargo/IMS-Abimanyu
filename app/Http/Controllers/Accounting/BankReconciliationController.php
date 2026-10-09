@@ -301,18 +301,23 @@ class BankReconciliationController extends Controller
             ->all();
 
         foreach ($rows as &$row) {
-            $baseQuery = function () use ($voucherTypes, $periode, $year, $row, $usedKasDetIds) {
+            // $amountMode: 'strict' = nominal cuma dicocokkan ke 1 sisi sesuai arah normal
+            // (statement CR -> kas_det debit, statement DB -> kas_det credit), 'loose' = boleh
+            // sisi manapun. Query dibungkus closure supaya gampang dipanggil ulang per strategi
+            // dengan kombinasi syarat berbeda, tanpa duplikasi select/exclude/order.
+            $baseQuery = function (string $amountMode) use ($voucherTypes, $periode, $year, $row, $usedKasDetIds) {
                 return DB::table('kas_det')
                     ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
                     ->whereIn('kas_hdr.voucher_type', $voucherTypes)
                     ->where('kas_hdr.status', '<>', '5')
                     ->whereRaw('kas_hdr.period::integer = ?', [$periode])
                     ->where('kas_hdr.year', $year)
-                    // Nominal dicocokkan ke debit ATAU kredit -- sisi DB/CR di jurnal bisa
-                    // berkebalikan dari asumsi "statement DB = kas_det credit", jadi tidak
-                    // dipaksa harus sisi tertentu, cukup nominalnya ketemu di salah satu sisi.
-                    ->where(function ($q) use ($row) {
-                        $q->where('kas_det.debit', $row['amount'])->orWhere('kas_det.credit', $row['amount']);
+                    ->where(function ($q) use ($row, $amountMode) {
+                        if ($amountMode === 'strict') {
+                            $q->where($row['mutation_type'] === 'CR' ? 'kas_det.debit' : 'kas_det.credit', $row['amount']);
+                        } else {
+                            $q->where('kas_det.debit', $row['amount'])->orWhere('kas_det.credit', $row['amount']);
+                        }
                     })
                     ->when(!empty($usedKasDetIds), function ($q) use ($usedKasDetIds) {
                         $q->whereNotIn('kas_det.id', $usedKasDetIds);
@@ -324,17 +329,27 @@ class BankReconciliationController extends Controller
 
             // Strategi 1: banyak keterangan CSV literally menyebut nomor voucher kita sendiri
             // (mis. "...BK-ASN-26-I-0080 LIE LING") -- kalau ketemu, match langsung by
-            // voucher_number + nominal, tanpa syarat tanggal persis sama (voucher kadang
-            // diposting beda hari dari tanggal transaksi bank).
+            // voucher_number + nominal (sisi manapun, voucher_number-nya sendiri sudah cukup
+            // spesifik jadi risiko salah ambil kecil), tanpa syarat tanggal persis sama.
             $candidate = null;
             if (preg_match('/\b(KM|KK|BM|BK)-[A-Za-z0-9-]+/', $row['description'], $m)) {
-                $candidate = $baseQuery()->where('kas_det.voucher_number', rtrim($m[0], '-'))->first();
+                $candidate = $baseQuery('loose')->where('kas_det.voucher_number', rtrim($m[0], '-'))->first();
             }
 
-            // Strategi 2 (fallback): tidak ada referensi voucher di description -- cocokkan
-            // lewat tanggal + nominal seperti biasa.
+            // Strategi 2: tanggal + nominal, SISI KETAT dulu (CR->debit, DB->credit) -- ini
+            // yang paling reliable karena kecil kemungkinan nabrak baris lain yang nominalnya
+            // kebetulan sama tapi di sisi berlawanan (banyak terjadi buat biaya admin kecil
+            // yang nilainya berulang, mis. Rp 2.900 puluhan kali).
             if (!$candidate) {
-                $candidate = $baseQuery()
+                $candidate = $baseQuery('strict')
+                    ->whereRaw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY') = ?", [$row['stmt_date']])
+                    ->first();
+            }
+
+            // Strategi 3 (fallback terakhir): tanggal + nominal, sisi manapun -- cuma dicoba
+            // kalau sisi ketat beneran nggak ketemu, jaga-jaga jurnal yang arahnya kebalik.
+            if (!$candidate) {
+                $candidate = $baseQuery('loose')
                     ->whereRaw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY') = ?", [$row['stmt_date']])
                     ->first();
             }
