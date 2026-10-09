@@ -191,6 +191,13 @@ private function isMaklon(string $articleCode): bool
             ->buildSalesAchievement($periode, $tahun)['targetConversion'];
     }
 
+    /** Total qty target (semua artikel) periode/tahun -- snapshot ke conversion_report_hdr.target_qty. */
+    public function targetQtyFor(int $periode, int $tahun): float
+    {
+        return (float) app(\App\Http\Controllers\HomeController::class)
+            ->buildSalesAchievement($periode, $tahun)['targetQty'];
+    }
+
     /** Target qty + target konversi per artikel periode/tahun, pecahan dari widget Sales Achievement (lihat targetConversionFor()). */
     private function targetLinesFor(int $periode, int $tahun): array
     {
@@ -661,6 +668,8 @@ $rows[] = [
             ['data' => 'periode_label','name' => 'periode_label','title' => 'Periode', 'orderable' => false, 'searchable' => false],
             ['data' => 'status_label','name' => 'status_label','title' => 'Status', 'orderable' => false, 'searchable' => false],
             ['data' => 'total_article',       'name' => 'total_article',       'title' => 'Total Article', 'orderable' => false, 'searchable' => false],
+            ['data' => 'total_qty_delivery',  'name' => 'total_qty_delivery',  'title' => 'Total Qty Delivery', 'orderable' => false, 'searchable' => false],
+            ['data' => 'total_qty_target',    'name' => 'total_qty_target',    'title' => 'Total Qty Target', 'orderable' => false, 'searchable' => false],
             ['data' => 'total_non_painting',  'name' => 'total_non_painting',  'title' => 'Non Painting', 'orderable' => false, 'searchable' => false],
             ['data' => 'total_painting',      'name' => 'total_painting',      'title' => 'Painting', 'orderable' => false, 'searchable' => false],
             ['data' => 'total_conversion',    'name' => 'total_conversion',    'title' => 'Total Konversi', 'orderable' => false, 'searchable' => false],
@@ -698,6 +707,7 @@ $rows[] = [
     ->leftJoin('article as a', 'a.article_code', '=', 'crd.article_code')
     ->select('crd.report_id',
         DB::raw('COUNT(*) as total_article'),
+        DB::raw('COALESCE(SUM(crd.total_qty),0) as total_qty_delivery'),
         DB::raw("COALESCE(SUM(CASE WHEN UPPER(TRIM(crd.uom)) IN ('PCS','SET')
                     AND COALESCE(UPPER(TRIM(a.group_of_material)),'') NOT IN ('MAKLON','MKL')
                   THEN crd.conversion ELSE 0 END),0) as total_painting"),
@@ -711,6 +721,8 @@ $rows[] = [
             ->leftJoinSub($agg, 'agg', 'agg.report_id', '=', 'h.id')
             ->select('h.*',
                 DB::raw('COALESCE(agg.total_article,0) as total_article'),
+                DB::raw('COALESCE(agg.total_qty_delivery,0) as total_qty_delivery'),
+                DB::raw('COALESCE(h.target_qty,0) as total_qty_target'),
                 DB::raw('COALESCE(agg.total_painting,0) as total_painting'),
                 DB::raw('COALESCE(agg.total_non_painting,0) as total_non_painting'),
                 DB::raw('COALESCE(agg.total_conversion,0) as total_conversion'),
@@ -723,6 +735,8 @@ $rows[] = [
             ->get();
 
         return Datatables::of($data)
+            ->editColumn('total_qty_delivery', fn($d) => number_format((float) $d->total_qty_delivery, 2))
+            ->editColumn('total_qty_target', fn($d) => number_format((float) $d->total_qty_target, 2))
             ->editColumn('total_painting', fn($d) => number_format((float) $d->total_painting, 2))
             ->editColumn('total_non_painting', fn($d) => number_format((float) $d->total_non_painting, 2))
             ->editColumn('total_conversion', fn($d) => number_format((float) $d->total_conversion, 2))
@@ -800,7 +814,8 @@ $rows[] = [
             ->whereNotIn('h.status', [5, 8])
             ->select('h.periode',
                 DB::raw('COUNT(d.id) as total_article'),
-                DB::raw('COALESCE(SUM(d.conversion),0) as total_conversion'))
+                DB::raw('COALESCE(SUM(d.conversion),0) as total_conversion'),
+                DB::raw('COALESCE(SUM(d.total_qty),0) as total_qty_delivery'))
             ->groupBy('h.periode')
             ->get()
             ->keyBy('periode');
@@ -821,18 +836,22 @@ $rows[] = [
         // Target per bulan: query terpisah dari hdr supaya tidak ikut fan-out join det.
         $perTarget = DB::table('conversion_report_hdr')
             ->where('tahun', $tahun)->whereNotIn('status', [5, 8])
-            ->select('periode', DB::raw('COALESCE(SUM(target_conversion),0) as target'))
+            ->select('periode',
+                DB::raw('COALESCE(SUM(target_conversion),0) as target'),
+                DB::raw('COALESCE(SUM(target_qty),0) as target_qty'))
             ->groupBy('periode')->get()->keyBy('periode');
 
         $monthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 
-        $labels = $totalArticle = $totalDelivery = $totalConversion = $targetConversion = [];
+        $labels = $totalArticle = $totalDelivery = $totalConversion = $targetConversion = $totalQtyDelivery = $totalQtyTarget = [];
         for ($m = 1; $m <= 12; $m++) {
             $labels[]         = $monthLabels[$m - 1];
             $totalArticle[]   = (int) ($perArticle[$m]->total_article ?? 0);
             $totalConversion[]= round((float) ($perArticle[$m]->total_conversion ?? 0), 2);
             $totalDelivery[]  = (int) ($perDelivery[$m]->total_delivery ?? 0);
             $targetConversion[] = round((float) ($perTarget[$m]->target ?? 0), 2);
+            $totalQtyDelivery[] = round((float) ($perArticle[$m]->total_qty_delivery ?? 0), 2);
+            $totalQtyTarget[]   = round((float) ($perTarget[$m]->target_qty ?? 0), 2);
         }
 
         return response()->json([
@@ -842,6 +861,8 @@ $rows[] = [
             'totalDelivery'   => $totalDelivery,
             'totalConversion' => $totalConversion,
             'targetConversion' => $targetConversion,
+            'totalQtyDelivery' => $totalQtyDelivery,
+            'totalQtyTarget'   => $totalQtyTarget,
             'sumArticle'      => array_sum($totalArticle),
             'sumDelivery'     => array_sum($totalDelivery),
             'sumConversion'   => round(array_sum($totalConversion), 2),
@@ -971,6 +992,7 @@ $rows[] = [
                 'note'                  => $request->note,
                 'conversion_value_used' => $summary['conversionValue'],
                 'target_conversion'     => $this->targetConversionFor($periode, $tahun),
+                'target_qty'            => $this->targetQtyFor($periode, $tahun),
                 'status'                => 1,
                 'num_revision'          => 0,
                 'created_by'            => $username,
@@ -1187,6 +1209,7 @@ $rows[] = [
                 'note'                  => $request->note,
                 'conversion_value_used' => $summary['conversionValue'],
                 'target_conversion'     => $this->targetConversionFor($periode, $tahun),
+                'target_qty'            => $this->targetQtyFor($periode, $tahun),
                 'updated_by'            => $username,
                 'updated_at'            => date('Y-m-d H:i:s'),
             ]);
@@ -1245,6 +1268,7 @@ $rows[] = [
                 'note'                  => $header->note,
                 'conversion_value_used' => $header->conversion_value_used,
                 'target_conversion'     => $header->target_conversion,
+                'target_qty'            => $header->target_qty,
                 'status'                => 8,
                 'num_revision'          => $numRevision,
                 'reason'                => $reason,

@@ -310,6 +310,8 @@ class BankReconciliationController extends Controller
                     ->when(!empty($usedKasDetIds), function ($q) use ($usedKasDetIds) {
                         $q->whereNotIn('kas_det.id', $usedKasDetIds);
                     })
+                    ->orderBy('kas_hdr.voucher_date')
+                    ->orderBy('kas_det.id')
                     ->select('kas_det.id', 'kas_hdr.id as voucher_id', 'kas_hdr.voucher_type', 'kas_det.voucher_number', 'kas_hdr.voucher_date', 'kas_det.debit as gl_debit', 'kas_det.credit as gl_kredit');
             };
 

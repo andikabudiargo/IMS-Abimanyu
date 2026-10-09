@@ -152,7 +152,24 @@
         },
         colors: ['#7367F0', '#FF9F43'],
         tooltip: {
-          y: { formatter: (val) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(val) }
+          y: { formatter: (val) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(val) },
+          custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+            const fmt = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(v);
+            const qtyDelivery = res.totalQtyDelivery[dataPointIndex];
+            const qtyTarget = res.totalQtyTarget[dataPointIndex];
+            let rows = w.config.series.map((s, i) =>
+              `<div class="apexcharts-tooltip-series-group apexcharts-active" style="display:flex">
+                 <span class="apexcharts-tooltip-marker" style="background-color:${w.config.colors[i]}"></span>
+                 <span>${s.name}: <b>${fmt(series[i][dataPointIndex])}</b></span>
+               </div>`
+            ).join('');
+            return `<div class="apexcharts-tooltip-title">${w.globals.labels[dataPointIndex]}</div>
+                    <div class="apexcharts-tooltip-body" style="padding:6px 10px">
+                      ${rows}
+                      <div>Total Qty Delivery: <b>${fmt(qtyDelivery)}</b></div>
+                      <div>Total Qty Target: <b>${fmt(qtyTarget)}</b></div>
+                    </div>`;
+          }
         }
       };
 
@@ -196,7 +213,7 @@
       tableId: "cvrTable",
       route: "{{ route('conversionReport.list') }}",
       kolom: {!! $kolom !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
       columnDefs: [{ width: '5%', targets: 0 }],
       dataSearch: {
         reportCode: searchCode.value,
