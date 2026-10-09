@@ -78,10 +78,10 @@
       tableId: "bankReconciliationDetailTable",
       route: "{{ route('bankReconciliation.list.detail', ['id' => $id]) }}",
       kolom: {!! $kolomDetail !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8],
       columnDefs: [
         { width: '4%', targets: 0 },
-        { className: 'text-right', targets: [3, 4, 5, 9, 10] },
+        { className: 'text-right', targets: [3, 4, 8] },
       ],
       // dataSearch wajib diisi (walau kosong) -- tanpa ini draw/start/length dari
       // DataTables tidak terkirim dengan benar dan tabel macet di "Processing...".

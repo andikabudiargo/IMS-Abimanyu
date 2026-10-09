@@ -78,13 +78,11 @@
               <th>No</th>
               <th>Tanggal</th>
               <th>Keterangan</th>
-              <th class="text-right">Debit</th>
-              <th class="text-right">Kredit</th>
+              <th class="text-right">Mutasi</th>
               <th class="text-right">Saldo</th>
               <th>Status</th>
               <th>Voucher GL</th>
-              <th class="text-right">Debit GL</th>
-              <th class="text-right">Kredit GL</th>
+              <th class="text-right">Nilai GL</th>
             </tr>
           </thead>
           <tbody id="previewRows"></tbody>
@@ -107,6 +105,7 @@
 <script type="text/javascript">
 
   let previewFilePath = null;
+  let manualMatches = {}; // rowIndex -> kas_det.id yang dipilih manual di dropdown preview
 
   $(document).ready(function () {
     validateFormToast("frmAdd");
@@ -116,6 +115,7 @@
       $('#statementLabel').text(name);
       // Ganti file -> preview lama (kalau ada) jadi tidak valid lagi.
       previewFilePath = null;
+      manualMatches = {};
       $('#preview-bankReconciliation').addClass('d-none');
     });
   });
@@ -129,24 +129,25 @@
       let statusBadge = r.status === 'MATCHED'
         ? '<span class="badge badge-success">MATCH</span>'
         : '<span class="badge badge-danger">NOT MATCH</span>';
-      let debit = r.mutation_type === 'DB' ? fmtNumber(r.amount) : '-';
-      let kredit = r.mutation_type === 'CR' ? fmtNumber(r.amount) : '-';
-      let glDebit = r.gl_debit !== null && r.gl_debit > 0 ? fmtNumber(r.gl_debit) : '-';
-      let glKredit = r.gl_kredit !== null && r.gl_kredit > 0 ? fmtNumber(r.gl_kredit) : '-';
-      let voucherCell = r.voucher_number
-        ? (r.voucher_url ? `<a href="${r.voucher_url}" target="_blank">${r.voucher_number}</a>` : r.voucher_number)
-        : '-';
+      let mutasi = fmtNumber(r.amount) + ' ' + r.mutation_type;
+      let glAmount = '-';
+      if (r.gl_debit !== null && r.gl_debit > 0) {
+        glAmount = fmtNumber(r.gl_debit) + ' DB';
+      } else if (r.gl_kredit !== null && r.gl_kredit > 0) {
+        glAmount = fmtNumber(r.gl_kredit) + ' CR';
+      }
+      let voucherCell = r.status === 'MATCHED'
+        ? (r.voucher_url ? `<a href="${r.voucher_url}" target="_blank">${r.voucher_number}</a>` : (r.voucher_number ?? '-'))
+        : `<select class="form-control form-control-sm manual-voucher-select" data-row-index="${i}" style="min-width:260px"></select>`;
       return `<tr>
         <td>${i + 1}</td>
         <td>${r.stmt_date}</td>
         <td>${r.description}</td>
-        <td class="text-right">${debit}</td>
-        <td class="text-right">${kredit}</td>
+        <td class="text-right">${mutasi}</td>
         <td class="text-right">${r.saldo !== null ? fmtNumber(r.saldo) : '-'}</td>
         <td>${statusBadge}</td>
         <td>${voucherCell}</td>
-        <td class="text-right">${glDebit}</td>
-        <td class="text-right">${glKredit}</td>
+        <td class="text-right">${glAmount}</td>
       </tr>`;
     }).join('');
 
@@ -156,6 +157,48 @@
     $('#previewSummary').text(`${data.totalRows} baris, ${data.matchedCount} otomatis match${saldoInfo}`);
     $('#preview-bankReconciliation').removeClass('d-none');
     document.getElementById('preview-bankReconciliation').scrollIntoView({ behavior: 'smooth' });
+    initManualVoucherSelects();
+  }
+
+  // Dropdown pilih voucher manual buat baris NOT MATCH -- search langsung pakai
+  // type/periode/year dari form (belum ada recon_number karena belum di-Save).
+  function initManualVoucherSelects() {
+    $('.manual-voucher-select').select2({
+      placeholder: 'Ketik voucher number / keterangan...',
+      ajax: {
+        url: "{{ route('bankReconciliation.search.voucher') }}",
+        dataType: 'json',
+        delay: 300,
+        data: function (params) {
+          return {
+            type: $('#type').val(),
+            periode: $('#periode').val(),
+            year: $('#year').val(),
+            search: params.term,
+          };
+        },
+        processResults: function (rows) {
+          return {
+            results: rows.map(function (r) {
+              return {
+                id: r.id,
+                text: r.voucher_number + ' | ' + r.voucher_date + ' | ' + (r.description ?? '')
+                  + ' | Dr ' + Number(r.debit).toLocaleString('id-ID', { minimumFractionDigits: 2 })
+                  + ' Cr ' + Number(r.credit).toLocaleString('id-ID', { minimumFractionDigits: 2 }),
+              };
+            })
+          };
+        }
+      }
+    }).on('change', function () {
+      let idx = $(this).data('row-index');
+      let val = $(this).val();
+      if (val) {
+        manualMatches[idx] = val;
+      } else {
+        delete manualMatches[idx];
+      }
+    });
   }
 
   $('#cmdPreview').on('click', function () {
@@ -212,6 +255,7 @@
         type: $('#type').val(),
         description: $('#description').val(),
         filePath: previewFilePath,
+        manualMatches: manualMatches,
       },
       dataType: "json",
       success: function (data) {

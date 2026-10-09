@@ -180,6 +180,16 @@ class BankReconciliationController extends Controller
 
         $rows = $this->matchRows($parsed['rows'], $type, $periode, $year);
 
+        // Pilihan manual dari dropdown per-baris di preview (index baris => kas_det.id),
+        // menimpa hasil auto-match -- urutan $rows sama persis dengan preview karena
+        // parse+match dijalankan ulang dari file yang identik (lihat komentar di atas store()).
+        foreach ((array) $request->input('manualMatches', []) as $index => $kasDetId) {
+            if ($kasDetId !== null && $kasDetId !== '' && isset($rows[$index])) {
+                $rows[$index]['status'] = 'MATCHED';
+                $rows[$index]['matched_kas_det_id'] = (int) $kasDetId;
+            }
+        }
+
         AppHelpers::resetCode($this->moduleCode);
         $reconNumber = $this->getLastCode($this->moduleCode);
 
@@ -271,7 +281,17 @@ class BankReconciliationController extends Controller
     private function matchRows(array $rows, string $type, int $periode, int $year): array
     {
         $voucherTypes = $this->voucherTypes[$type];
-        $usedKasDetIds = [];
+        // Voucher yang sudah dipakai batch Reconciliation lain (type+periode+tahun yang sama)
+        // ikut di-exclude dari awal, bukan cuma yang kepakai dalam batch berjalan ini --
+        // supaya upload ulang CSV periode yang sama tidak rebutan/dobel-match voucher.
+        $usedKasDetIds = DB::table('bank_reconciliation_det')
+            ->join('bank_reconciliation_hdr', 'bank_reconciliation_hdr.recon_number', '=', 'bank_reconciliation_det.recon_number')
+            ->whereNotNull('bank_reconciliation_det.matched_kas_det_id')
+            ->where('bank_reconciliation_hdr.type', $type)
+            ->where('bank_reconciliation_hdr.periode', $periode)
+            ->where('bank_reconciliation_hdr.year', $year)
+            ->pluck('bank_reconciliation_det.matched_kas_det_id')
+            ->all();
 
         foreach ($rows as &$row) {
             $amountColumn = $row['mutation_type'] === 'CR' ? 'debit' : 'credit';
@@ -371,14 +391,12 @@ class BankReconciliationController extends Controller
             ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'title' => 'No', 'orderable' => false, 'searchable' => false],
             ['data' => 'stmt_date', 'name' => 'stmt_date', 'title' => 'Tanggal'],
             ['data' => 'description', 'name' => 'description', 'title' => 'Keterangan'],
-            ['data' => 'debit', 'name' => 'debit', 'title' => 'Debit'],
-            ['data' => 'kredit', 'name' => 'kredit', 'title' => 'Kredit'],
+            ['data' => 'amount', 'name' => 'amount', 'title' => 'Mutasi'],
             ['data' => 'saldo', 'name' => 'saldo', 'title' => 'Saldo'],
             ['data' => 'status', 'name' => 'status', 'title' => 'Status'],
             ['data' => 'voucher_number', 'name' => 'voucher_number', 'title' => 'Voucher GL'],
             ['data' => 'voucher_date', 'name' => 'voucher_date', 'title' => 'Tanggal GL'],
-            ['data' => 'gl_debit', 'name' => 'gl_debit', 'title' => 'Debit GL'],
-            ['data' => 'gl_kredit', 'name' => 'gl_kredit', 'title' => 'Kredit GL'],
+            ['data' => 'gl_amount', 'name' => 'gl_amount', 'title' => 'Nilai GL'],
             ['data' => 'action', 'name' => 'action', 'title' => 'action', 'orderable' => false, 'searchable' => false],
         ]);
 
@@ -419,8 +437,7 @@ class BankReconciliationController extends Controller
                 return "<a href='javascript:;' class='btn btn-sm btn-outline-primary' onclick='openManualMatch({$d->id}, \"{$d->stmt_date}\", {$d->amount}, \"{$d->mutation_type}\")'>Match Manual</a>";
             })
             ->addColumn('stmt_date', function ($d) { return date('d-m-Y', strtotime($d->stmt_date)); })
-            ->addColumn('debit', function ($d) { return $d->mutation_type === 'DB' ? number_format($d->amount, 2) : '-'; })
-            ->addColumn('kredit', function ($d) { return $d->mutation_type === 'CR' ? number_format($d->amount, 2) : '-'; })
+            ->addColumn('amount', function ($d) { return number_format($d->amount, 2) . ' ' . $d->mutation_type; })
             ->addColumn('saldo', function ($d) { return $d->saldo !== null ? number_format($d->saldo, 2) : '-'; })
             ->addColumn('status', function ($d) {
                 $color = $d->status === 'MATCHED' ? 'success' : 'danger';
@@ -439,27 +456,54 @@ class BankReconciliationController extends Controller
                 return "<a href='$url' target='_blank'>{$d->voucher_number}</a>";
             })
             ->addColumn('voucher_date', function ($d) { return $d->voucher_date ?: '-'; })
-            ->addColumn('gl_debit', function ($d) { return $d->gl_debit !== null && (float) $d->gl_debit > 0 ? number_format($d->gl_debit, 2) : '-'; })
-            ->addColumn('gl_kredit', function ($d) { return $d->gl_kredit !== null && (float) $d->gl_kredit > 0 ? number_format($d->gl_kredit, 2) : '-'; })
+            ->addColumn('gl_amount', function ($d) {
+                if ((float) $d->gl_debit > 0) {
+                    return number_format($d->gl_debit, 2) . ' DB';
+                }
+                if ((float) $d->gl_kredit > 0) {
+                    return number_format($d->gl_kredit, 2) . ' CR';
+                }
+                return '-';
+            })
             ->rawColumns(['action', 'status', 'voucher_number'])
             ->make(true);
     }
 
-    // Pencarian voucher kandidat untuk match manual (dipakai modal di halaman show).
+    // Pencarian voucher kandidat untuk match manual. Dipakai di 2 tempat: modal di halaman
+    // show (recon_number sudah ada, kirim reconNumber) dan dropdown per-baris di preview
+    // sebelum Save (belum ada recon_number, kirim type+periode+year langsung dari form).
     public function searchVoucher(Request $request)
     {
-        $header = DB::table('bank_reconciliation_hdr')->where('recon_number', $request->reconNumber)->first();
-        abort_unless($header, 404);
-        $voucherTypes = $this->voucherTypes[$header->type];
+        if ($request->reconNumber) {
+            $header = DB::table('bank_reconciliation_hdr')->where('recon_number', $request->reconNumber)->first();
+            abort_unless($header, 404);
+            $type = $header->type;
+            $periode = (int) $header->periode;
+            $year = (int) $header->year;
+        } else {
+            abort_unless(in_array($request->type, ['KAS', 'BANK']) && $request->periode && $request->year, 422);
+            $type = $request->type;
+            $periode = (int) $request->periode;
+            $year = (int) $request->year;
+        }
+        $voucherTypes = $this->voucherTypes[$type];
 
         $candidates = DB::table('kas_det')
             ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
             ->whereIn('kas_hdr.voucher_type', $voucherTypes)
             ->where('kas_hdr.status', '<>', '5')
-            ->whereRaw('kas_hdr.period::integer = ?', [(int) $header->periode])
-            ->where('kas_hdr.year', $header->year)
-            ->whereNotIn('kas_det.id', function ($q) {
-                $q->select('matched_kas_det_id')->from('bank_reconciliation_det')->whereNotNull('matched_kas_det_id');
+            ->whereRaw('kas_hdr.period::integer = ?', [$periode])
+            ->where('kas_hdr.year', $year)
+            // Voucher yang di-exclude cuma yang kepakai di batch Type+Periode+Tahun yang sama
+            // (bukan global) -- batch reconciliation lain yang beda periode tidak saling kunci.
+            ->whereNotIn('kas_det.id', function ($q) use ($type, $periode, $year) {
+                $q->select('bank_reconciliation_det.matched_kas_det_id')
+                    ->from('bank_reconciliation_det')
+                    ->join('bank_reconciliation_hdr', 'bank_reconciliation_hdr.recon_number', '=', 'bank_reconciliation_det.recon_number')
+                    ->whereNotNull('bank_reconciliation_det.matched_kas_det_id')
+                    ->where('bank_reconciliation_hdr.type', $type)
+                    ->where('bank_reconciliation_hdr.periode', $periode)
+                    ->where('bank_reconciliation_hdr.year', $year);
             })
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function ($s) use ($request) {
