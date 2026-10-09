@@ -773,24 +773,33 @@ $('#btnRecalculateLedger').on('click', function () {
     Swal.fire({
         title: 'Recalculate Ledger',
         html:
-            '<select id="swalRecalcLocation" class="swal2-select form-control mb-2">' + locOptions + '</select>' +
-            '<select id="swalRecalcArticle" class="swal2-select form-control" disabled><option value="">All</option></select>',
+            '<label class="d-block text-left mb-1">Location</label>' +
+            '<select id="swalRecalcLocation" class="form-control mb-2" style="width:100%">' + locOptions + '</select>' +
+            '<label class="d-block text-left mb-1">Article</label>' +
+            '<select id="swalRecalcArticle" class="form-control" style="width:100%"><option value="">All</option></select>',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Jalankan',
         cancelButtonText: 'Batal',
         didOpen: function () {
-            $('#swalRecalcLocation').on('change', function () {
+            const $popup = $(Swal.getPopup());
+            const $loc = $popup.find('#swalRecalcLocation');
+            const $art = $popup.find('#swalRecalcArticle');
+
+            $loc.select2({ dropdownParent: $popup, width: '100%' });
+            $art.select2({ dropdownParent: $popup, width: '100%' }).select2('enable', false);
+
+            $loc.on('change', function () {
                 const loc = $(this).val();
-                const $art = $('#swalRecalcArticle');
-                $art.prop('disabled', true).html('<option value="">All</option>');
+                $art.html('<option value="">All</option>').trigger('change');
+                $art.select2('enable', false);
                 if (!loc) return;
 
                 $.get("{{ route('stock.ledger.articlesByLocation') }}", { location: loc }, function (rows) {
                     rows.forEach(function (r) {
                         $art.append('<option value="' + r.article_code + '">' + (r.article_alternative_code || r.article_code) + ' - ' + (r.article_desc || '') + '</option>');
                     });
-                    $art.prop('disabled', false);
+                    $art.select2('enable', true);
                 });
             });
         },
@@ -803,7 +812,12 @@ $('#btnRecalculateLedger').on('click', function () {
     }).then(function (result) {
         if (!result.isConfirmed) return;
 
-        Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        Swal.fire({
+            title: 'Memproses...',
+            html: '<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" style="width:100%"></div></div>',
+            allowOutsideClick: false,
+            showConfirmButton: false
+        });
 
         $.ajax({
             url: "{{ route('stock.ledger.recalculate') }}",
