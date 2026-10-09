@@ -49,6 +49,29 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-4">
+            <label class="form-label" for="perkiraan1">Perkiraan Awal <small class="text-muted">(alternatif dari COA)</small></label>
+            <select class="select2 form-control" id="perkiraan1" name="perkiraan1"
+                    data-placeholder="Pilih Perkiraan Awal" data-allow-clear="true">
+              <option value=""></option>
+              @foreach($accounts as $val)
+                <option value="{{ $val->account }}">{{ $val->account }} - {{ $val->description }}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="form-group col-md-4">
+            <label class="form-label" for="perkiraan2">Perkiraan Akhir</label>
+            <select class="select2 form-control" id="perkiraan2" name="perkiraan2"
+                    data-placeholder="Pilih Perkiraan Akhir" data-allow-clear="true">
+              <option value=""></option>
+              @foreach($accounts as $val)
+                <option value="{{ $val->account }}">{{ $val->account }} - {{ $val->description }}</option>
+              @endforeach
+            </select>
+            <small class="text-muted">Menarik seluruh COA detail dalam range ini.</small>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-4">
             <label class="form-label" for="tahun">Tahun</label>
             <select class="select2 form-control" id="tahun" name="tahun">
               @for ($i = $tahunIni + 1; $i >= $tahunAwal; $i--)
@@ -255,12 +278,13 @@
     rangePickr.flatpickr({ dateFormat: "d-m-Y", mode: 'range' });
   }
 
-  // COA dan Tipe Akun saling menggantikan.
-  $("#account").on('change', function () { if ($(this).val()) $("#type_code").val(null).trigger('change'); });
-  $("#type_code").on('change', function () { if ($(this).val()) $("#account").val(null).trigger('change'); });
+  // COA, Tipe Akun, dan Range Perkiraan saling menggantikan.
+  $("#account").on('change', function () { if ($(this).val()) $("#type_code,#perkiraan1,#perkiraan2").val(null).trigger('change'); });
+  $("#type_code").on('change', function () { if ($(this).val()) $("#account,#perkiraan1,#perkiraan2").val(null).trigger('change'); });
+  $("#perkiraan1,#perkiraan2").on('change', function () { if ($(this).val()) $("#account,#type_code").val(null).trigger('change'); });
 
   $("#btnReset").click(function () {
-    $("#account,#type_code,#searchStatus,#dept").val(null).trigger('change');
+    $("#account,#type_code,#perkiraan1,#perkiraan2,#searchStatus,#dept").val(null).trigger('change');
     if (rangePickr.length) rangePickr[0]._flatpickr.clear();
     lastParams = null;
     $("#bb2-result").hide();
@@ -286,13 +310,15 @@
   };
 
   $("#btnSearch").click(function () {
-    if (!$("#account").val() && !$("#type_code").val()) {
-      alert('Pilih COA atau Tipe Akun.');
+    if (!$("#account").val() && !$("#type_code").val() && !$("#perkiraan1").val() && !$("#perkiraan2").val()) {
+      alert('Pilih COA, Tipe Akun, atau Range Perkiraan.');
       return;
     }
     lastParams = {
       account: $("#account").val(),
       type_code: $("#type_code").val(),
+      perkiraan1: $("#perkiraan1").val(),
+      perkiraan2: $("#perkiraan2").val(),
       tahun: $("#tahun").val(),
       period1: $("#period1").val(),
       period2: $("#period2").val(),

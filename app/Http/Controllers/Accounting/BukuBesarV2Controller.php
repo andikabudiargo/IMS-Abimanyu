@@ -121,8 +121,8 @@ class BukuBesarV2Controller extends Controller
 
     public function data(Request $request)
     {
-        if (!$request->account && !$request->type_code) {
-            return response()->json(['error' => 'COA atau Tipe Akun belum dipilih.'], 422);
+        if (!$request->account && !$request->type_code && !$request->perkiraan1 && !$request->perkiraan2) {
+            return response()->json(['error' => 'COA, Tipe Akun, atau Range COA belum dipilih.'], 422);
         }
 
         list($from, $to, $year, $p1, $p2) = $this->resolveRange($request);
@@ -135,14 +135,15 @@ class BukuBesarV2Controller extends Controller
         $list = $scope['list'];
         $isHeader = $scope['isHeader'];
         $typeMode = $scope['typeMode'];
+        $rangeMode = $scope['rangeMode'] ?? false;
 
         $codes = $list->pluck('account')->all();
         $lookups = $this->loadLookups();
 
-        $kelompok = $typeMode
+        $kelompok = ($typeMode || $rangeMode)
             ? $acc->account . ' - ' . $acc->description
             : $this->kelompokOf($acc->account, $lookups['headers'], $lookups['types'], $lookups['subs']);
-        $range = $typeMode
+        $range = ($typeMode || $rangeMode)
             ? $this->rangeText([$list[0]->account, $list[count($list) - 1]->account, count($list)])
             : ($isHeader ? $this->rangeText($this->detailRange($list, $acc->account)) : '');
 
@@ -167,7 +168,7 @@ class BukuBesarV2Controller extends Controller
         }
 
         // Sub header COA/Tipe Akun yang dipilih (dipakai sebagai banner atau group gabungan).
-        $selectedRow = function ($rowType) use ($acc, $kelompok, $sign, $range, $typeMode) {
+        $selectedRow = function ($rowType) use ($acc, $kelompok, $sign, $range, $typeMode, $rangeMode) {
             return $this->groupRow(
                 $rowType,
                 $acc->account,
@@ -175,7 +176,7 @@ class BukuBesarV2Controller extends Controller
                 $kelompok,
                 $sign === -1 ? 'KREDIT' : 'DEBET',
                 $range,
-                $typeMode ? 'TIPE AKUN' : 'HEADER'
+                $typeMode ? 'TIPE AKUN' : ($rangeMode ? 'RANGE COA' : 'HEADER')
             );
         };
 
@@ -222,7 +223,7 @@ class BukuBesarV2Controller extends Controller
                 'kelompok'     => $kelompok,
                 'saldo_normal' => $sign === -1 ? 'KREDIT' : 'DEBET',
                 'is_header'    => $isHeader,
-                'tag'          => $typeMode ? 'TIPE AKUN' : ($isHeader ? 'HEADER' : ''),
+                'tag'          => $typeMode ? 'TIPE AKUN' : ($rangeMode ? 'RANGE COA' : ($isHeader ? 'HEADER' : '')),
                 'coa_count'    => count($list),
                 'tahun'        => $year,
                 'periode'      => $p1 === $p2 ? (string) $p1 : "$p1 s/d $p2",
@@ -303,6 +304,34 @@ class BukuBesarV2Controller extends Controller
                 'list'     => $this->loadAccounts($acc),
                 'isHeader' => strtoupper($acc->acc_header) === 'HEADER',
                 'typeMode' => false,
+            ];
+        }
+
+        if ($request->perkiraan1 || $request->perkiraan2) {
+            $p1 = $request->perkiraan1 ?: $request->perkiraan2;
+            $p2 = $request->perkiraan2 ?: $request->perkiraan1;
+
+            $list = DB::table('accounts')
+                ->select('account', 'description', 'acc_header', 'debit_credit', 'opening_balance')
+                ->whereRaw("coalesce(upper(acc_header),'') <> 'HEADER'")
+                ->whereRaw("string_to_array(account,'.')::int[] between string_to_array(?,'.')::int[] and string_to_array(?,'.')::int[]", [$p1, $p2])
+                ->orderBy(DB::raw("string_to_array(account,'.')::int[]"))
+                ->get();
+            if ($list->isEmpty()) {
+                return ['error' => "Tidak ada COA pada range $p1 - $p2.", 'status' => 404];
+            }
+
+            return [
+                'acc' => (object) [
+                    'account'      => $p1,
+                    'description'  => "Range COA $p1 s/d $p2",
+                    'acc_header'   => 'HEADER',
+                    'debit_credit' => $list[0]->debit_credit,
+                ],
+                'list'      => $list,
+                'isHeader'  => true,
+                'typeMode'  => false,
+                'rangeMode' => true,
             ];
         }
 
