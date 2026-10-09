@@ -24,7 +24,7 @@ class BankReconciliationController extends Controller
     public function __construct()
     {
         $this->title = 'Reconciliation Kas & Bank';
-        $this->moduleCode = 'BANKREC';
+        $this->moduleCode = 'RECON';
     }
 
     public function getLastCode($key)
@@ -38,7 +38,8 @@ class BankReconciliationController extends Controller
         $months = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
         $month = $months[date('n') - 1];
         $year = date('Y');
-        return "$key-$year-$month-$newCode";
+        $padded = str_pad($newCode, 4, '0', STR_PAD_LEFT);
+        return "RECON-ASN-$year-$month-$padded";
     }
 
     public function index()
@@ -125,8 +126,12 @@ class BankReconciliationController extends Controller
             'rows' => array_values($rows),
             'totalRows' => count($rows),
             'matchedCount' => $matchedCount,
+            'accountNumber' => $parsed['accountNumber'],
+            'accountName' => $parsed['accountName'],
             'saldoAwal' => $parsed['summary']['saldo_awal'],
             'saldoAkhir' => $parsed['summary']['saldo_akhir'],
+            'mutasiDebet' => $parsed['summary']['mutasi_db'],
+            'mutasiKredit' => $parsed['summary']['mutasi_cr'],
         ]);
     }
 
@@ -202,6 +207,8 @@ class BankReconciliationController extends Controller
                 'description' => $description,
                 'type' => $type,
                 'status' => 'DONE',
+                'account_number' => $parsed['accountNumber'],
+                'account_name' => $parsed['accountName'],
                 'saldo_awal' => $parsed['summary']['saldo_awal'],
                 'saldo_akhir' => $parsed['summary']['saldo_akhir'],
                 'created_by' => $username,

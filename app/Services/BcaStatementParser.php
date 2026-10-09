@@ -29,13 +29,15 @@ class BcaStatementParser
     }
 
     /**
-     * @return array{year:int|null, month:int|null, rows: array<int, array{stmt_date:string, description:string, amount:float, mutation_type:string, saldo:?float}>, summary: array{saldo_awal:?float, mutasi_cr:?float, count_cr:?int, mutasi_db:?float, count_db:?int, saldo_akhir:?float}}
+     * @return array{year:int|null, month:int|null, accountNumber:?string, accountName:?string, rows: array<int, array{stmt_date:string, description:string, amount:float, mutation_type:string, saldo:?float}>, summary: array{saldo_awal:?float, mutasi_cr:?float, count_cr:?int, mutasi_db:?float, count_db:?int, saldo_akhir:?float}}
      */
     private function parseHandle($handle): array
     {
         $year = null;
         $endYear = null;
         $endMonth = null;
+        $accountNumber = null;
+        $accountName = null;
         $rows = [];
         $summary = ['saldo_awal' => null, 'mutasi_cr' => null, 'count_cr' => null, 'mutasi_db' => null, 'count_db' => null, 'saldo_akhir' => null];
 
@@ -45,6 +47,15 @@ class BcaStatementParser
             }
 
             $first = trim((string) $cols[0]);
+
+            if ($accountNumber === null && preg_match('/No\.?\s*rekening\s*:\s*(.+)/i', $first, $m)) {
+                $accountNumber = trim($m[1]);
+                continue;
+            }
+            if ($accountName === null && preg_match('/^Nama\s*:\s*(.+)/i', $first, $m)) {
+                $accountName = trim($m[1]);
+                continue;
+            }
 
             // "Periode : 01/01/2026 - 31/01/2026" -- ambil tahun awal & akhir periode
             // (jarang, tapi kalau periode custom melewati pergantian tahun, tahun akhir
@@ -88,7 +99,7 @@ class BcaStatementParser
             }
         }
 
-        return ['year' => $year, 'month' => null, 'rows' => $rows, 'summary' => $summary];
+        return ['year' => $year, 'month' => null, 'accountNumber' => $accountNumber, 'accountName' => $accountName, 'rows' => $rows, 'summary' => $summary];
     }
 
     private function toNumber(string $raw): float

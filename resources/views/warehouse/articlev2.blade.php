@@ -120,6 +120,11 @@
     <button type="button" class="btn btn-outline-danger" id="btnCheckAnomaly">
       <i data-feather="alert-triangle"></i> Abnormality
     </button>
+    @if(Auth::user()->hasAnyRole(['Superuser', 'accounting']))
+    <button type="button" class="btn btn-outline-warning" id="btnRecalculateLedger">
+      <i data-feather="refresh-cw"></i> Recalculate
+    </button>
+    @endif
   </div>
 </div>
             </form>
@@ -759,6 +764,45 @@ $('#btnCheckAnomaly').on('click', function () {
             btn.prop('disabled', false).html('<i data-feather="alert-triangle"></i> Abnormality');
             if (window.feather) feather.replace();
         }
+    });
+});
+
+$('#btnRecalculateLedger').on('click', function () {
+    Swal.fire({
+        title: 'Recalculate Ledger',
+        html:
+            '<input id="swalRecalcArticle" class="swal2-input text-uppercase" placeholder="Article Code (kosongkan = semua)">' +
+            '<input id="swalRecalcLocation" class="swal2-input text-uppercase" placeholder="Location Code (kosongkan = semua)">',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Jalankan',
+        cancelButtonText: 'Batal',
+        preConfirm: function () {
+            return {
+                article: $('#swalRecalcArticle').val().trim(),
+                location: $('#swalRecalcLocation').val().trim()
+            };
+        }
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        $.ajax({
+            url: "{{ route('stock.ledger.recalculate') }}",
+            method: "POST",
+            data: {
+                article: result.value.article,
+                location: result.value.location,
+                _token: "{{ csrf_token() }}"
+            },
+            success: function (res) {
+                Swal.fire('Selesai', '<pre style="text-align:left;max-height:300px;overflow:auto">' + (res.output || '') + '</pre>', res.success ? 'success' : 'error');
+            },
+            error: function () {
+                Swal.fire('Error', 'Gagal menjalankan recalculate.', 'error');
+            }
+        });
     });
 });
 

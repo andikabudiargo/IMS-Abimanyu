@@ -770,7 +770,7 @@
               @can('ap-index')
                 <li class="{{ in_array(\Request::segment(1), ['kasPenerimaan','kasKeluar']) || \Request::is('cashbook/kas') ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('cashbook.index', 'kas') }}"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Kas">Kas</span></a></li>
                 <li class="{{ in_array(\Request::segment(1), ['bankPenerimaan','bankKeluar']) || \Request::is('cashbook/bank') ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('cashbook.index', 'bank') }}"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Bank">Bank</span></a></li>
-                <li class="{{ \Request::segment(1) == 'bankReconciliation' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('bankReconciliation.index') }}"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Reconciliation Kas Bank">Reconciliation Kas &amp; Bank</span></a></li>
+                <li class="{{ \Request::segment(1) == 'bankReconciliation' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('bankReconciliation.index') }}"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Reconciliation Kas Bank">Reconcile Kas &amp; Bank</span></a></li>
               @endcan
                @can('bank-index')
                 <li class="{{ \Request::segment(1) == 'jurnalUmum'  ? 'active' : '' }}">

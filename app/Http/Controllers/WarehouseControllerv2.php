@@ -551,6 +551,36 @@ class WarehouseControllerv2 extends Controller
         return Excel::download(new StockAnomalyExport, 'stock_abnormality_' . date('YmdHis') . '.xlsx');
     }
 
+    public function runRecalculate(Request $request)
+    {
+        if (!Auth::user()->hasAnyRole(['Superuser', 'accounting'])) {
+            abort(403);
+        }
+
+        $article  = $request->input('article');
+        $location = $request->input('location');
+
+        try {
+            $params = ['--fix' => true];
+            if ($article)  $params['--article']  = $article;
+            if ($location) $params['--location'] = $location;
+
+            Artisan::call('movement:recalculate-ledger', $params);
+            $output = Artisan::output();
+
+            \LogActivity::addToLog('Recalculate article/location ledger: ' . ($article ?: 'ALL') . '@' . ($location ?: 'ALL'));
+
+            return response()->json(['success' => true, 'output' => $output]);
+        } catch (\Exception $e) {
+            \LogActivity::addToLog('Gagal recalculate ledger: ' . substr($e->getMessage(), 0, 200));
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan.',
+            ], 500);
+        }
+    }
+
     // ===== API MOBILE — Stock =====
 
 /**

@@ -886,6 +886,7 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::get('stock-movement/export-grouped', ['as' => 'stockMovement.export', 'uses' => 'StockMovementController@export']);
 	Route::post('warehouse/article/check-anomaly', ['as' => 'stock.anomaly.check', 'uses' => 'WarehouseControllerv2@runCheck']);
 	Route::get('warehouse/article/check-anomaly/export', ['as' => 'stock.anomaly.export', 'uses' => 'WarehouseControllerv2@exportAnomaly']);
+	Route::post('warehouse/article/recalculate-ledger', ['as' => 'stock.ledger.recalculate', 'uses' => 'WarehouseControllerv2@runRecalculate']);
 
 Route::get('location',               'LocationController@index')->name('location.index');
 Route::get('location/list',          'LocationController@list')->name('location.list');

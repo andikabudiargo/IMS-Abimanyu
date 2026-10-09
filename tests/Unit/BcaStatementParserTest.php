@@ -20,6 +20,8 @@ class BcaStatementParserTest extends TestCase
 
         $this->assertSame(2026, $result['year']);
         $this->assertCount(142, $result['rows']);
+        $this->assertSame('6785577888', $result['accountNumber']);
+        $this->assertSame('ABIMANYU SEKAR NUSANTARA', $result['accountName']);
     }
 
     public function testFirstRowCreditTransaction()

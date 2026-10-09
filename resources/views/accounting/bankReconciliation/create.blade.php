@@ -34,13 +34,13 @@
               <label class="form-label" for="year">Tahun*</label>
               <input type="number" id="year" name="year" class="form-control" value="{{ date('Y') }}" required />
             </div>
-            <div class="form-group col-md-5">
+            <div class="form-group col-md-8">
               <label class="form-label" for="description">Description</label>
               <input type="text" id="description" name="description" class="form-control" />
             </div>
           </div>
           <div class="form-row">
-            <div class="form-group col-md-6">
+            <div class="form-group col-md-8">
               <label class="form-label" for="statement">Rekening Koran (CSV)*</label>
               <div class="custom-file">
                 <input type="file" class="custom-file-input" name="statement" id="statement" accept=".csv" required />
@@ -59,6 +59,30 @@
           </div>
         </form>
       </div>
+    </div>
+  </div>
+</section>
+
+{{-- Info rekening & ringkasan dari CSV -- muncul begitu preview berhasil, sebelum tabel --}}
+<section id="info-bankReconciliation" class="d-none">
+  <div class="card">
+    <div class="card-body">
+      <table class="table table-sm table-bordered bb2-info mb-0">
+        <tbody>
+          <tr>
+            <th width="14%">No. Rekening</th><td width="20%" id="i-account-number"></td>
+            <th width="14%">Nama Rekening</th><td id="i-account-name"></td>
+          </tr>
+          <tr>
+            <th>Saldo Awal</th><td class="text-right" id="i-saldo-awal"></td>
+            <th>Saldo Akhir</th><td class="text-right font-weight-bold" id="i-saldo-akhir"></td>
+          </tr>
+          <tr>
+            <th>Mutasi Debet</th><td class="text-right" id="i-mutasi-debet"></td>
+            <th>Mutasi Kredit</th><td class="text-right" id="i-mutasi-kredit"></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>
@@ -130,6 +154,7 @@
       previewFilePath = null;
       manualMatches = {};
       $('#preview-bankReconciliation').addClass('d-none');
+      $('#info-bankReconciliation').addClass('d-none');
     });
   });
 
@@ -165,11 +190,18 @@
     }).join('');
 
     $('#previewRows').html(rows);
-    let saldoInfo = (data.saldoAwal !== null ? ` | Saldo Awal: ${fmtNumber(data.saldoAwal)}` : '')
-      + (data.saldoAkhir !== null ? ` | Saldo Akhir: ${fmtNumber(data.saldoAkhir)}` : '');
-    $('#previewSummary').text(`${data.totalRows} baris, ${data.matchedCount} otomatis match${saldoInfo}`);
+    $('#previewSummary').text(`${data.totalRows} baris, ${data.matchedCount} otomatis match`);
+
+    $('#i-account-number').text(data.accountNumber ?? '-');
+    $('#i-account-name').text(data.accountName ?? '-');
+    $('#i-saldo-awal').text(data.saldoAwal !== null ? fmtNumber(data.saldoAwal) : '-');
+    $('#i-saldo-akhir').text(data.saldoAkhir !== null ? fmtNumber(data.saldoAkhir) : '-');
+    $('#i-mutasi-debet').text(data.mutasiDebet !== null ? fmtNumber(data.mutasiDebet) : '-');
+    $('#i-mutasi-kredit').text(data.mutasiKredit !== null ? fmtNumber(data.mutasiKredit) : '-');
+    $('#info-bankReconciliation').removeClass('d-none');
+
     $('#preview-bankReconciliation').removeClass('d-none');
-    document.getElementById('preview-bankReconciliation').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('info-bankReconciliation').scrollIntoView({ behavior: 'smooth' });
     initManualVoucherSelects();
   }
 

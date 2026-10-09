@@ -24,7 +24,7 @@
       <h4 class="card-title">Detail Mutasi — PDF vs Buku Besar</h4>
     </div>
     <div class="card-body">
-      <div class="card-datatable table-responsive pt-0 bankrecon-scroll">
+      <div class="card-datatable table-responsive pt-0">
         <table id="bankReconciliationDetailTable" class="table bankrecon-table">
           <thead class="thead-light"></thead>
         </table>
