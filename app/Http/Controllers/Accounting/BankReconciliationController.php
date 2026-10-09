@@ -516,23 +516,26 @@ class BankReconciliationController extends Controller
             $year = (int) $request->year;
         }
         $voucherTypes = $this->voucherTypes[$type];
+        // Range dilonggarkan ke ±3 bulan dari periode (voucher kadang diposting di bulan
+        // sebelum/sesudah transaksi bank-nya) -- dibandingkan sebagai "bulan absolut"
+        // (year*12+month) supaya gampang di-range tanpa ribet soal pergantian tahun.
+        $targetAbsMonth = $year * 12 + $periode;
+        $amount = $request->amount !== null && $request->amount !== '' ? (float) $request->amount : null;
 
         $candidates = DB::table('kas_det')
             ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
             ->whereIn('kas_hdr.voucher_type', $voucherTypes)
             ->where('kas_hdr.status', '<>', '5')
-            ->whereRaw('kas_hdr.period::integer = ?', [$periode])
-            ->where('kas_hdr.year', $year)
-            // Voucher yang di-exclude cuma yang kepakai di batch Type+Periode+Tahun yang sama
-            // (bukan global) -- batch reconciliation lain yang beda periode tidak saling kunci.
-            ->whereNotIn('kas_det.id', function ($q) use ($type, $periode, $year) {
+            ->whereRaw('(kas_hdr.year::integer * 12 + kas_hdr.period::integer) BETWEEN ? AND ?', [$targetAbsMonth - 3, $targetAbsMonth + 3])
+            // Voucher yang di-exclude cuma yang kepakai di batch Type yang sama dalam
+            // range ±3 bulan yang sama -- batch reconciliation periode jauh tidak saling kunci.
+            ->whereNotIn('kas_det.id', function ($q) use ($type, $targetAbsMonth) {
                 $q->select('bank_reconciliation_det.matched_kas_det_id')
                     ->from('bank_reconciliation_det')
                     ->join('bank_reconciliation_hdr', 'bank_reconciliation_hdr.recon_number', '=', 'bank_reconciliation_det.recon_number')
                     ->whereNotNull('bank_reconciliation_det.matched_kas_det_id')
                     ->where('bank_reconciliation_hdr.type', $type)
-                    ->where('bank_reconciliation_hdr.periode', $periode)
-                    ->where('bank_reconciliation_hdr.year', $year);
+                    ->whereRaw('(bank_reconciliation_hdr.year::integer * 12 + bank_reconciliation_hdr.periode::integer) BETWEEN ? AND ?', [$targetAbsMonth - 3, $targetAbsMonth + 3]);
             })
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function ($s) use ($request) {
@@ -540,8 +543,22 @@ class BankReconciliationController extends Controller
                       ->orWhere('kas_det.description', 'ilike', '%' . $request->search . '%');
                 });
             })
+            // Cuma tampilkan voucher yang nominalnya dekat (toleransi 5%, minimal Rp1.000)
+            // ke nilai baris statement -- bukan sekadar diurutkan, yang jauh difilter total.
+            ->when($amount !== null, function ($q) use ($amount) {
+                $tolerance = max($amount * 0.05, 1000);
+                $q->where(function ($s) use ($amount, $tolerance) {
+                    $s->whereBetween('kas_det.debit', [$amount - $tolerance, $amount + $tolerance])
+                      ->orWhereBetween('kas_det.credit', [$amount - $tolerance, $amount + $tolerance]);
+                });
+            })
             ->select('kas_det.id', 'kas_det.voucher_number', 'kas_hdr.voucher_date', 'kas_det.description', 'kas_det.debit', 'kas_det.credit')
-            ->orderBy('kas_hdr.voucher_date', 'desc')
+            ->when($amount !== null, function ($q) use ($amount) {
+                // Di antara yang lolos filter toleransi, yang paling dekat tetap muncul duluan.
+                $q->orderByRaw('least(abs(coalesce(kas_det.debit,0) - ?), abs(coalesce(kas_det.credit,0) - ?)) asc', [$amount, $amount]);
+            }, function ($q) {
+                $q->orderBy('kas_hdr.voucher_date', 'desc');
+            })
             ->limit(20)
             ->get();
 

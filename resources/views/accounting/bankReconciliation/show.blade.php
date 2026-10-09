@@ -73,6 +73,7 @@
 <script type="text/javascript">
 
   let currentDetId = null;
+  let currentAmount = null;
   let reconNumber = "{{ $header->recon_number }}";
 
   function destroyTable() {
@@ -117,7 +118,7 @@
       dataType: 'json',
       delay: 300,
       data: function (params) {
-        return { reconNumber: reconNumber, search: params.term };
+        return { reconNumber: reconNumber, amount: currentAmount, search: params.term };
       },
       processResults: function (rows) {
         return {
@@ -136,6 +137,7 @@
 
   function openManualMatch(detId, stmtDate, amount, type) {
     currentDetId = detId;
+    currentAmount = amount;
     $('#mmDate').text(stmtDate);
     $('#mmAmount').text(Number(amount).toLocaleString('id-ID', { minimumFractionDigits: 2 }));
     $('#mmType').text(type);

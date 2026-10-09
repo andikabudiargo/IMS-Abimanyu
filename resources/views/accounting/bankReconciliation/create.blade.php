@@ -176,7 +176,7 @@
       }
       let voucherCell = r.status === 'MATCHED'
         ? (r.voucher_url ? `<a href="${r.voucher_url}" target="_blank">${r.voucher_number}</a>` : (r.voucher_number ?? '-'))
-        : `<select class="form-control form-control-sm manual-voucher-select" data-row-index="${i}" style="min-width:260px"></select>`;
+        : `<select class="form-control form-control-sm manual-voucher-select" data-row-index="${i}" data-amount="${r.amount}" style="min-width:260px"></select>`;
       return `<tr>
         <td>${i + 1}</td>
         <td>${r.stmt_date}</td>
@@ -219,6 +219,7 @@
             type: $('#type').val(),
             periode: $('#periode').val(),
             year: $('#year').val(),
+            amount: $(this).data('amount'),
             search: params.term,
           };
         },
