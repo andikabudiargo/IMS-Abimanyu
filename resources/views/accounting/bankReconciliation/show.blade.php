@@ -33,27 +33,6 @@
   </div>
 </section>
 
-{{-- Modal Match Manual: baris PDF yang NOT MATCH dipasangkan manual lewat dropdown voucher --}}
-<div class="modal fade" id="modalMatchManual" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Match Manual</h5>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p>Baris PDF: <strong id="mmDate"></strong> — <strong id="mmAmount"></strong> (<strong id="mmType"></strong>)</p>
-        <label class="form-label" for="mmVoucher">Pilih Voucher Number</label>
-        <select id="mmVoucher" class="form-control" style="width:100%"></select>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-        <button type="button" class="btn btn-primary" id="mmConfirm">Match</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 @endsection
 
 @section('styles')
@@ -73,7 +52,6 @@
 <script type="text/javascript">
 
   let currentDetId = null;
-  let currentAmount = null;
   let reconNumber = "{{ $header->recon_number }}";
 
   function destroyTable() {
@@ -108,59 +86,73 @@
     });
   };
 
-  // Select2 voucher dropdown: AJAX search ke bankReconciliation.search.voucher,
-  // hanya menampilkan kas_det akun yg sama & belum terpakai match lain (lihat controller).
-  $('#mmVoucher').select2({
-    placeholder: 'Ketik voucher number / keterangan...',
-    ajax: {
-      url: "{{ route('bankReconciliation.search.voucher') }}",
-      dataType: 'json',
-      delay: 300,
-      data: function (params) {
-        return { reconNumber: reconNumber, amount: currentAmount, search: params.term };
-      },
-      processResults: function (rows) {
-        return {
-          results: rows.map(function (r) {
-            return {
-              id: r.id,
-              text: r.voucher_number + ' | ' + r.voucher_date + ' | ' + (r.description ?? '')
-                + ' | Dr ' + Number(r.debit).toLocaleString('id-ID', { minimumFractionDigits: 2 })
-                + ' Cr ' + Number(r.credit).toLocaleString('id-ID', { minimumFractionDigits: 2 }),
-            };
-          })
-        };
-      }
-    }
-  });
-
+  // Match Manual dipindah dari modal Bootstrap ke SweetAlert -- modal Bootstrap punya
+  // fitur "enforce focus" yang terus menarik fokus balik ke dirinya, bentrok sama
+  // search box select2 (ketikan ke-interupsi, ajax pencarian voucher nggak pernah
+  // jalan). SweetAlert tidak punya masalah itu.
   function openManualMatch(detId, stmtDate, amount, type) {
     currentDetId = detId;
-    currentAmount = amount;
-    $('#mmDate').text(stmtDate);
-    $('#mmAmount').text(Number(amount).toLocaleString('id-ID', { minimumFractionDigits: 2 }));
-    $('#mmType').text(type);
-    $('#mmVoucher').val(null).trigger('change');
-    $('#modalMatchManual').modal('show');
-  }
 
-  $('#mmConfirm').on('click', function () {
-    let kasDetId = $('#mmVoucher').val();
-    if (!kasDetId) {
-      Swal.fire('Warning', 'Pilih voucher dulu.', 'warning');
-      return;
-    }
-    $.ajax({
-      url: "{{ route('bankReconciliation.match.manual') }}",
-      method: "POST",
-      data: { detId: currentDetId, kasDetId: kasDetId },
-      success: function (data) {
-        show_msg(data.title, data.message, data.alert);
-        $('#modalMatchManual').modal('hide');
-        showListDetail();
+    Swal.fire({
+      title: 'Match Manual',
+      html: `
+        <p class="text-left">Baris PDF: <strong>${stmtDate}</strong> — <strong>${Number(amount).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</strong> (<strong>${type}</strong>)</p>
+        <label class="text-left d-block" for="mmVoucher">Pilih Voucher Number</label>
+        <select id="mmVoucher" class="form-control" style="width:100%"></select>
+      `,
+      width: 650,
+      showCancelButton: true,
+      confirmButtonText: 'Match',
+      cancelButtonText: 'Batal',
+      focusConfirm: false,
+      didOpen: () => {
+        $('#mmVoucher').select2({
+          dropdownParent: $(Swal.getPopup()),
+          placeholder: 'Ketik voucher number / keterangan...',
+          ajax: {
+            url: "{{ route('bankReconciliation.search.voucher') }}",
+            dataType: 'json',
+            delay: 300,
+            data: function (params) {
+              return { reconNumber: reconNumber, amount: amount, search: params.term };
+            },
+            processResults: function (rows) {
+              return {
+                results: rows.map(function (r) {
+                  return {
+                    id: r.id,
+                    text: r.voucher_number + ' | ' + r.voucher_date + ' | ' + (r.description ?? '')
+                      + ' | Dr ' + Number(r.debit).toLocaleString('id-ID', { minimumFractionDigits: 2 })
+                      + ' Cr ' + Number(r.credit).toLocaleString('id-ID', { minimumFractionDigits: 2 }),
+                  };
+                })
+              };
+            }
+          }
+        });
+      },
+      preConfirm: () => {
+        let kasDetId = $('#mmVoucher').val();
+        if (!kasDetId) {
+          Swal.showValidationMessage('Pilih voucher dulu.');
+          return false;
+        }
+        return kasDetId;
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: "{{ route('bankReconciliation.match.manual') }}",
+          method: "POST",
+          data: { detId: currentDetId, kasDetId: result.value },
+          success: function (data) {
+            show_msg(data.title, data.message, data.alert);
+            showListDetail();
+          }
+        });
       }
     });
-  });
+  }
 
   function unmatchRow(detId) {
     $.ajax({
