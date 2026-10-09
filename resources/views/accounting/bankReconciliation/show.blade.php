@@ -80,6 +80,9 @@
       columnDefs: [
         { className: 'text-right', targets: [4, 5, 9] },
       ],
+      // dataSearch wajib diisi (walau kosong) -- tanpa ini draw/start/length dari
+      // DataTables tidak terkirim dengan benar dan tabel macet di "Processing...".
+      dataSearch: {},
       initComplete: function () {
         $(".loading-spinner-container").removeClass("-show");
       },

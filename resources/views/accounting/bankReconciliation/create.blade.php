@@ -50,7 +50,7 @@
           </div>
           <div class="form-row mt-1">
             <div class="col-12">
-              <button class="btn btn-primary" type="button" id="cmdSave">
+              <button class="btn btn-primary" type="button" id="cmdPreview">
                 <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
                 <span class="align-middle d-sm-inline-block d-none">Upload &amp; Reconcile</span>
               </button>
@@ -62,10 +62,48 @@
     </div>
   </div>
 </section>
+
+{{-- Hasil preview (parse + match) -- belum tersimpan sampai user klik Save manual --}}
+<section id="preview-bankReconciliation" class="d-none">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">Preview Hasil Parse &amp; Match</h4>
+      <span id="previewSummary" class="badge badge-light-info"></span>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive" style="max-height: 28rem; overflow-y: auto;">
+        <table class="table table-sm table-striped">
+          <thead class="thead-light">
+            <tr>
+              <th>Tanggal</th>
+              <th>Keterangan</th>
+              <th>DB/CR</th>
+              <th class="text-right">Mutasi</th>
+              <th class="text-right">Saldo</th>
+              <th>Status</th>
+              <th>Voucher GL</th>
+            </tr>
+          </thead>
+          <tbody id="previewRows"></tbody>
+        </table>
+      </div>
+      <div class="form-row mt-1">
+        <div class="col-12">
+          <button class="btn btn-success" type="button" id="cmdSave">
+            <i data-feather="save" class="align-middle mr-sm-25 mr-0"></i>
+            <span class="align-middle d-sm-inline-block d-none">Save</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 @endsection
 
 @section('scripts')
 <script type="text/javascript">
+
+  let previewFilePath = null;
 
   $(document).ready(function () {
     validateFormToast("frmAdd");
@@ -73,12 +111,77 @@
     $('#statement').on('change', function () {
       let name = $(this).val().split('\\').pop() || 'Choose file';
       $('#statementLabel').text(name);
+      // Ganti file -> preview lama (kalau ada) jadi tidak valid lagi.
+      previewFilePath = null;
+      $('#preview-bankReconciliation').addClass('d-none');
+    });
+  });
+
+  function fmtNumber(n) {
+    return Number(n).toLocaleString('id-ID', { minimumFractionDigits: 2 });
+  }
+
+  function renderPreview(data) {
+    let rows = data.rows.map(function (r) {
+      let statusBadge = r.status === 'MATCHED'
+        ? '<span class="badge badge-success">MATCH</span>'
+        : '<span class="badge badge-danger">NOT MATCH</span>';
+      return `<tr>
+        <td>${r.stmt_date}</td>
+        <td>${r.description}</td>
+        <td>${r.mutation_type}</td>
+        <td class="text-right">${fmtNumber(r.amount)}</td>
+        <td class="text-right">${r.saldo !== null ? fmtNumber(r.saldo) : '-'}</td>
+        <td>${statusBadge}</td>
+        <td>${r.voucher_number ?? '-'}</td>
+      </tr>`;
+    }).join('');
+
+    $('#previewRows').html(rows);
+    $('#previewSummary').text(`${data.totalRows} baris, ${data.matchedCount} otomatis match`);
+    $('#preview-bankReconciliation').removeClass('d-none');
+    document.getElementById('preview-bankReconciliation').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  $('#cmdPreview').on('click', function () {
+    if (!$('#frmAdd')[0].checkValidity()) {
+      $('#frmAdd')[0].reportValidity();
+      return;
+    }
+
+    $(".loading-spinner-container").addClass("-show");
+    $('#cmdPreview').attr('disabled', 'disabled');
+    $('#preview-bankReconciliation').addClass('d-none');
+
+    $.ajax({
+      url: "{{ route('bankReconciliation.preview') }}",
+      method: "POST",
+      data: new FormData(document.getElementById('frmAdd')),
+      dataType: "json",
+      contentType: false,
+      cache: false,
+      processData: false,
+      success: function (data) {
+        $('#cmdPreview').removeAttr('disabled');
+        $(".loading-spinner-container").removeClass("-show");
+        show_msg(data.title, data.message, data.alert);
+        if (data.status == 1) {
+          previewFilePath = data.filePath;
+          renderPreview(data);
+        }
+      },
+      error: function (xhr) {
+        $('#cmdPreview').removeAttr('disabled');
+        $(".loading-spinner-container").removeClass("-show");
+        let err = JSON.parse(xhr.responseText);
+        Swal.fire('Error..', err.message ? JSON.stringify(err.message) : 'Failed to preview', 'error');
+      }
     });
   });
 
   $('#cmdSave').on('click', function () {
-    if (!$('#frmAdd')[0].checkValidity()) {
-      $('#frmAdd')[0].reportValidity();
+    if (!previewFilePath) {
+      Swal.fire('Warning', 'Preview dulu sebelum Save.', 'warning');
       return;
     }
 
@@ -88,11 +191,14 @@
     $.ajax({
       url: "{{ route('bankReconciliation.store') }}",
       method: "POST",
-      data: new FormData(document.getElementById('frmAdd')),
+      data: {
+        periode: $('#periode').val(),
+        year: $('#year').val(),
+        type: $('#type').val(),
+        description: $('#description').val(),
+        filePath: previewFilePath,
+      },
       dataType: "json",
-      contentType: false,
-      cache: false,
-      processData: false,
       success: function (data) {
         $('#cmdSave').removeAttr('disabled');
         $(".loading-spinner-container").removeClass("-show");

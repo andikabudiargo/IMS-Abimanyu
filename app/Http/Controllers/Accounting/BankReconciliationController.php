@@ -70,6 +70,65 @@ class BankReconciliationController extends Controller
         return view('accounting.bankReconciliation.create', $data);
     }
 
+    // Tahap 1: upload CSV, parse + cocokkan (read-only, belum ada yang disimpan ke DB)
+    // supaya user bisa lihat dulu hasilnya sebelum memutuskan simpan.
+    public function preview(Request $request)
+    {
+        $validation = Validator::make($request->all(), [
+            'periode' => 'required',
+            'year' => 'required|integer',
+            'type' => 'required|in:KAS,BANK',
+            'statement' => 'required|file|mimes:csv,txt',
+        ]);
+
+        if ($validation->fails()) {
+            $error_array = [];
+            foreach ($validation->messages()->getMessages() as $messages) {
+                $error_array[] = $messages;
+            }
+            return response()->json(['status' => 0, 'title' => "Preview $this->title", 'message' => $error_array, 'alert' => 'error']);
+        }
+
+        $periode = (int) $request->periode;
+        $year = (int) $request->year;
+        $type = $request->type;
+
+        $file = $request->file('statement');
+        $path = $file->store('bank-reconciliation', 'local');
+
+        try {
+            $parsed = (new BcaStatementParser())->parseFile(storage_path('app/' . $path));
+        } catch (\Exception $e) {
+            return response()->json(['status' => -1, 'title' => "Preview $this->title", 'message' => 'Gagal membaca CSV: ' . $e->getMessage(), 'alert' => 'error']);
+        }
+
+        if (empty($parsed['rows'])) {
+            return response()->json(['status' => 2, 'title' => "Preview $this->title", 'message' => 'Tidak ada baris transaksi yang terbaca dari CSV ini.', 'alert' => 'warning']);
+        }
+
+        $rows = $this->matchRows($parsed['rows'], $type, $periode, $year);
+        $matchedCount = count(array_filter($rows, fn ($r) => $r['status'] === 'MATCHED'));
+        $checksumWarning = $this->checksumWarning($parsed['rows'], $parsed['summary']);
+        $message = count($rows) . " baris terbaca, $matchedCount otomatis match.";
+        if ($checksumWarning) {
+            $message .= ' PERINGATAN: ' . $checksumWarning;
+        }
+
+        return response()->json([
+            'status' => 1,
+            'title' => "Preview $this->title",
+            'message' => $message,
+            'alert' => $checksumWarning ? 'warning' : 'success',
+            'filePath' => $path,
+            'rows' => array_values($rows),
+            'totalRows' => count($rows),
+            'matchedCount' => $matchedCount,
+        ]);
+    }
+
+    // Tahap 2: user sudah lihat hasil preview dan klik Save sendiri -- baru di sini
+    // ditulis ke DB. Parse+match diulang dari file yang sama (bukan diambil dari
+    // state preview di client) supaya hasil final tetap konsisten dengan data server.
     public function store(Request $request)
     {
         $username = Auth::user()->username;
@@ -78,7 +137,7 @@ class BankReconciliationController extends Controller
             'periode' => 'required',
             'year' => 'required|integer',
             'type' => 'required|in:KAS,BANK',
-            'statement' => 'required|file|mimes:csv,txt',
+            'filePath' => 'required|string',
         ]);
 
         if ($validation->fails()) {
@@ -93,12 +152,20 @@ class BankReconciliationController extends Controller
         $year = (int) $request->year;
         $type = $request->type;
         $description = $request->description;
+        $filePath = $request->filePath;
 
-        $file = $request->file('statement');
-        $path = $file->store('bank-reconciliation', 'local');
+        // filePath datang dari response preview(), bukan input bebas dari client --
+        // dibatasi ke folder sendiri biar tidak bisa dipakai buat baca file sembarangan.
+        if (strpos($filePath, 'bank-reconciliation/') !== 0) {
+            return response()->json(['status' => -1, 'title' => "Save $this->title", 'message' => 'File tidak valid.', 'alert' => 'error']);
+        }
+        $fullPath = storage_path('app/' . $filePath);
+        if (!is_file($fullPath)) {
+            return response()->json(['status' => -1, 'title' => "Save $this->title", 'message' => 'File upload sudah tidak ada, silakan upload ulang dari awal.', 'alert' => 'error']);
+        }
 
         try {
-            $parsed = (new BcaStatementParser())->parseFile(storage_path('app/' . $path));
+            $parsed = (new BcaStatementParser())->parseFile($fullPath);
         } catch (\Exception $e) {
             return response()->json(['status' => -1, 'title' => "Save $this->title", 'message' => 'Gagal membaca CSV: ' . $e->getMessage(), 'alert' => 'error']);
         }
@@ -106,6 +173,8 @@ class BankReconciliationController extends Controller
         if (empty($parsed['rows'])) {
             return response()->json(['status' => 2, 'title' => "Save $this->title", 'message' => 'Tidak ada baris transaksi yang terbaca dari CSV ini.', 'alert' => 'warning']);
         }
+
+        $rows = $this->matchRows($parsed['rows'], $type, $periode, $year);
 
         AppHelpers::resetCode($this->moduleCode);
         $reconNumber = $this->getLastCode($this->moduleCode);
@@ -118,14 +187,15 @@ class BankReconciliationController extends Controller
                 'year' => $year,
                 'description' => $description,
                 'type' => $type,
-                'status' => 'NEW',
+                'status' => 'DONE',
                 'created_by' => $username,
                 'updated_by' => $username,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-            foreach ($parsed['rows'] as $row) {
+            $matchedCount = 0;
+            foreach ($rows as $row) {
                 DB::table('bank_reconciliation_det')->insertOrIgnore([
                     'recon_number' => $reconNumber,
                     'stmt_date' => $row['stmt_date'],
@@ -133,25 +203,21 @@ class BankReconciliationController extends Controller
                     'amount' => $row['amount'],
                     'mutation_type' => $row['mutation_type'],
                     'saldo' => $row['saldo'],
-                    'status' => 'UNMATCHED',
+                    'status' => $row['status'],
+                    'matched_kas_det_id' => $row['matched_kas_det_id'],
                     'created_by' => $username,
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
+                if ($row['status'] === 'MATCHED') {
+                    $matchedCount++;
+                }
             }
-
-            $matched = $this->autoMatch($reconNumber, $type, $periode, $year);
-
-            DB::table('bank_reconciliation_hdr')->where('recon_number', $reconNumber)->update(['status' => 'DONE', 'updated_at' => date('Y-m-d H:i:s')]);
 
             DB::commit();
             $title = "Save $this->title";
-            $message = "$reconNumber tersimpan. " . count($parsed['rows']) . " baris terbaca, $matched baris otomatis match.";
-            $checksumWarning = $this->checksumWarning($parsed['rows'], $parsed['summary']);
-            if ($checksumWarning) {
-                $message .= ' PERINGATAN: ' . $checksumWarning;
-            }
+            $message = "$reconNumber tersimpan. " . count($rows) . " baris, $matchedCount otomatis match.";
             \LogActivity::addToLog($title, "username: $username Status $message");
-            return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => $checksumWarning ? 'warning' : 'success', 'reconNumber' => $reconNumber]);
+            return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success', 'reconNumber' => $reconNumber]);
         } catch (\Exception $e) {
             DB::rollBack();
             $title = "Save $this->title";
@@ -191,19 +257,18 @@ class BankReconciliationController extends Controller
         return $issues ? ('Hasil parse tidak cocok dengan ringkasan CSV (' . implode('; ', $issues) . '). Kemungkinan ada baris yang ke-skip, cek manual.') : null;
     }
 
-    // Cocokkan tiap baris UNMATCHED ke kas_det (type + period/year + tanggal + nominal
-    // sisi yang sesuai), kas_det yang sudah kepakai di-skip biar tidak dobel-match.
+    // Cocokkan tiap baris hasil parse ke kas_det (type + period/year + tanggal + nominal
+    // sisi yang sesuai), kas_det yang sudah kepakai di-skip biar tidak dobel-match dalam
+    // 1 batch. Read-only (cuma SELECT) -- dipakai baik di preview() maupun store(), supaya
+    // hasil yang ditampilkan ke user sama persis dengan yang akhirnya disimpan.
     // Tidak difilter per akun COA -- scope saat ini cuma 1 rekening per Type (Kas/Bank).
-    private function autoMatch(string $reconNumber, string $type, int $periode, int $year): int
+    private function matchRows(array $rows, string $type, int $periode, int $year): array
     {
         $voucherTypes = $this->voucherTypes[$type];
         $usedKasDetIds = [];
-        $matchedCount = 0;
 
-        $rows = DB::table('bank_reconciliation_det')->where('recon_number', $reconNumber)->where('status', 'UNMATCHED')->get();
-
-        foreach ($rows as $row) {
-            $amountColumn = $row->mutation_type === 'CR' ? 'debit' : 'credit';
+        foreach ($rows as &$row) {
+            $amountColumn = $row['mutation_type'] === 'CR' ? 'debit' : 'credit';
 
             $candidate = DB::table('kas_det')
                 ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
@@ -211,25 +276,32 @@ class BankReconciliationController extends Controller
                 ->where('kas_hdr.status', '<>', '5')
                 ->whereRaw('kas_hdr.period::integer = ?', [$periode])
                 ->where('kas_hdr.year', $year)
-                ->where('kas_det.' . $amountColumn, $row->amount)
-                ->whereRaw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY') = ?", [$row->stmt_date])
+                ->where('kas_det.' . $amountColumn, $row['amount'])
+                ->whereRaw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY') = ?", [$row['stmt_date']])
                 ->when(!empty($usedKasDetIds), function ($q) use ($usedKasDetIds) {
                     $q->whereNotIn('kas_det.id', $usedKasDetIds);
                 })
-                ->select('kas_det.id')
+                ->select('kas_det.id', 'kas_det.voucher_number', 'kas_hdr.voucher_date', DB::raw('coalesce(kas_det.debit, kas_det.credit) as gl_amount'))
                 ->first();
 
             if ($candidate) {
                 $usedKasDetIds[] = $candidate->id;
-                DB::table('bank_reconciliation_det')->where('id', $row->id)->update([
-                    'status' => 'MATCHED',
-                    'matched_kas_det_id' => $candidate->id,
-                ]);
-                $matchedCount++;
+                $row['status'] = 'MATCHED';
+                $row['matched_kas_det_id'] = $candidate->id;
+                $row['voucher_number'] = $candidate->voucher_number;
+                $row['voucher_date'] = $candidate->voucher_date;
+                $row['gl_amount'] = $candidate->gl_amount;
+            } else {
+                $row['status'] = 'UNMATCHED';
+                $row['matched_kas_det_id'] = null;
+                $row['voucher_number'] = null;
+                $row['voucher_date'] = null;
+                $row['gl_amount'] = null;
             }
         }
+        unset($row);
 
-        return $matchedCount;
+        return $rows;
     }
 
     public function list(Request $request)

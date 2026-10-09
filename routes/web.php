@@ -1105,6 +1105,7 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::get('bankReconciliation',['as'=>'bankReconciliation.index','uses'=>'Accounting\BankReconciliationController@index']);
 	Route::get('bankReconciliation/list',['as'=>'bankReconciliation.list','uses'=>'Accounting\BankReconciliationController@list']);
 	Route::get('bankReconciliation/create',['as'=>'bankReconciliation.create','uses'=>'Accounting\BankReconciliationController@create']);
+	Route::post('bankReconciliation/preview',['as'=>'bankReconciliation.preview','uses'=>'Accounting\BankReconciliationController@preview']);
 	Route::post('bankReconciliation/store',['as'=>'bankReconciliation.store','uses'=>'Accounting\BankReconciliationController@store']);
 	Route::get('bankReconciliation/show',['as'=>'bankReconciliation.show','uses'=>'Accounting\BankReconciliationController@show']);
 	Route::get('bankReconciliation/list/detail',['as'=>'bankReconciliation.list.detail','uses'=>'Accounting\BankReconciliationController@listDetail']);
