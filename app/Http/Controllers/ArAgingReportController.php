@@ -131,8 +131,9 @@ class ArAgingReportController extends Controller
      *   tapi pelunasannya baru terjadi setelah itu (mis. dibayar 25 Sept),
      *   invoice tsb TIDAK boleh kebaca lunas pada cut-off 22 Sept.
      */
-    private function buildPiutangSubquery($whereExtra)
+    private function buildPiutangSubquery($whereExtra, $includeDraft = false)
 {
+    $statusFilter = $includeDraft ? "invoice_hdr.status <> '5'" : "invoice_hdr.status NOT IN ('1','5')";
     return "
         SELECT
             invoice_hdr.id as invoice_id,
@@ -177,7 +178,7 @@ class ArAgingReportController extends Controller
               AND kas_hdr.status = '3'
               AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
         ) bayar ON true
-        WHERE invoice_hdr.status NOT IN ('1','5')
+        WHERE $statusFilter
           AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') >= to_date(:floorDate,'DD-MM-YYYY')
           AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
           AND (
@@ -228,14 +229,15 @@ class ArAgingReportController extends Controller
     public function data(Request $request)
     {
         // ── Tanggal cut-off (wajib, single date, format DD-MM-YYYY) ──
-        $cutoffDate = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
+        $cutoffDate   = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
+        $includeDraft = $request->boolean('includeDraft');
 
         list($whereExtra, $bindings) = $this->buildFilters($request);
         $bindings['cutoff']    = $cutoffDate;
         $bindings['floorDate'] = $this->floorDate;
         $bindings['pairRequiredBefore'] = $this->pairRequiredBefore;
 
-        $subquery = $this->buildPiutangSubquery($whereExtra);
+        $subquery = $this->buildPiutangSubquery($whereExtra, $includeDraft);
 
         // ── Query utama ──
         $sql = "
@@ -293,7 +295,8 @@ class ArAgingReportController extends Controller
             ? round(($grand['total_overdue'] / $grand['total_piutang']) * 100, 1)
             : 0;
 
-        // Info rekonsiliasi: total balance invoice DRAFT (tidak masuk aging)
+        // Info rekonsiliasi: total balance invoice DRAFT (tidak masuk aging,
+        // kecuali includeDraft di-centang -- lihat buildPiutangSubquery)
         $draftBalance = DB::selectOne("
             SELECT COALESCE(SUM(grand_total),0) as total
             FROM invoice_hdr
@@ -306,6 +309,7 @@ class ArAgingReportController extends Controller
             'rows'         => $result,
             'grand'        => $grand,
             'draftBalance' => (float) $draftBalance,
+            'includeDraft' => $includeDraft,
             'bucketLabels' => $this->bucketLabels(),
         ]);
     }
@@ -321,6 +325,7 @@ class ArAgingReportController extends Controller
     $cutoffDate   = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
     $customerCode = $request->customerCode ? trim($request->customerCode) : null;
     $bucket       = $request->bucket ? trim($request->bucket) : 'total_piutang';
+    $includeDraft = $request->boolean('includeDraft');
 
     list($whereExtra, $bindings) = $this->buildFilters($request);
     $bindings['cutoff']    = $cutoffDate;
@@ -332,7 +337,7 @@ class ArAgingReportController extends Controller
         $bindings['detailCustomer'] = $customerCode;
     }
 
-    $subquery    = $this->buildPiutangSubquery($whereExtra);
+    $subquery    = $this->buildPiutangSubquery($whereExtra, $includeDraft);
     $bucketWhere = $this->bucketWhere($bucket);
 
     $sql = "

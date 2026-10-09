@@ -96,6 +96,16 @@
                 </div>
                 <div class="form-row">
                     <div class="col-12">
+                        <div class="custom-control custom-checkbox mb-1">
+                            <input type="checkbox" class="custom-control-input" id="chkIncludeDraft">
+                            <label class="custom-control-label" for="chkIncludeDraft">
+                                Sertakan invoice DRAFT (uji nilai -- status CANCELED tetap tidak dihitung)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="col-12">
                         <button type="button" class="btn btn-primary" id="btnGenerate">
                             <i data-feather="bar-chart-2" class="align-middle mr-sm-25 mr-0"></i>
                             <span class="align-middle d-sm-inline-block d-none">Generate Report</span>
@@ -167,7 +177,7 @@
                     </div>
                     <div>
                         <h5 class="mb-0 font-weight-bold" id="sumDraftBalance">0</h5>
-                        <small class="text-muted">Info: Balance Invoice DRAFT (tidak masuk aging)</small>
+                        <small class="text-muted" id="sumDraftBalanceLabel">Info: Balance Invoice DRAFT (tidak masuk aging)</small>
                     </div>
                 </div>
             </div>
@@ -313,8 +323,9 @@ $(document).ready(function () {
         }
 
         lastFilters = {
-            cutoffDate : cutoff,
-            customer   : $('#repCustomer').val()
+            cutoffDate   : cutoff,
+            customer     : $('#repCustomer').val(),
+            includeDraft : $('#chkIncludeDraft').is(':checked') ? 1 : 0
         };
 
         $(".loading-spinner-container").addClass("-show");
@@ -382,6 +393,9 @@ $(document).ready(function () {
         $('#sumOverduePct').text(g.pct_overdue.toFixed(1) + '%');
         $('#sumOverdueValue').text(fmt(g.total_overdue));
         $('#sumDraftBalance').text(fmt(res.draftBalance));
+        $('#sumDraftBalanceLabel').text(res.includeDraft
+            ? 'Info: Balance Invoice DRAFT (sudah termasuk di total atas)'
+            : 'Info: Balance Invoice DRAFT (tidak masuk aging)');
         $('#aging-summary').removeClass('d-none');
 
         $('#agingEmpty').addClass('d-none');
@@ -419,7 +433,8 @@ $(document).ready(function () {
             cutoffDate   : lastFilters.cutoffDate,
             customer     : lastFilters.customer,
             customerCode : customer,
-            bucket       : bucket
+            bucket       : bucket,
+            includeDraft : lastFilters.includeDraft
         })
         .done(function (res) {
             $('#agingDetailLoading').addClass('d-none');

@@ -156,8 +156,9 @@ class ApAgingReportController extends Controller
         return (float) $row->total;
     }
 
-    private function buildHutangSubquery($whereExtra)
+    private function buildHutangSubquery($whereExtra, $includeDraft = false)
 {
+    $statusFilter = $includeDraft ? "ap_invoice.status <> '5'" : "ap_invoice.status NOT IN ('1','5')";
     $anchor = "COALESCE(
                 to_date(NULLIF(ap_invoice.ap_date,''),'DD-MM-YYYY'),
                 to_date(NULLIF(ap_invoice.inv_date,''),'DD-MM-YYYY')
@@ -213,7 +214,7 @@ class ApAgingReportController extends Controller
               AND $partyMatch
               AND kas_hdr.status <> '5'
         ) bayar ON true
-        WHERE ap_invoice.status NOT IN ('1','5')
+        WHERE $statusFilter
           AND $anchor >= to_date(:floorDate,'DD-MM-YYYY')
           AND $anchor <= to_date(:cutoff,'DD-MM-YYYY')
           AND (
@@ -277,14 +278,15 @@ class ApAgingReportController extends Controller
 
     public function data(Request $request)
     {
-        $cutoffDate = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
+        $cutoffDate   = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
+        $includeDraft = $request->boolean('includeDraft');
 
         list($whereExtra, $bindings) = $this->buildFilters($request);
         $bindings['cutoff']    = $cutoffDate;
         $bindings['floorDate'] = $this->floorDate;
         $bindings['pairRequiredBefore'] = $this->pairRequiredBefore;
 
-        $subquery = $this->buildHutangSubquery($whereExtra);
+        $subquery = $this->buildHutangSubquery($whereExtra, $includeDraft);
 
         $sql = "
             SELECT
@@ -354,6 +356,7 @@ class ApAgingReportController extends Controller
             'rows'         => $result,
             'grand'        => $grand,
             'draftBalance' => (float) $draftBalance,
+            'includeDraft' => $includeDraft,
             'bucketLabels' => $this->bucketLabels(),
         ]);
     }
@@ -363,6 +366,7 @@ class ApAgingReportController extends Controller
         $cutoffDate   = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
         $supplierCode = $request->supplierCode ? trim($request->supplierCode) : null;
         $bucket       = $request->bucket ? trim($request->bucket) : 'total_hutang';
+        $includeDraft = $request->boolean('includeDraft');
 
         list($whereExtra, $bindings) = $this->buildFilters($request);
         $bindings['cutoff']    = $cutoffDate;
@@ -374,7 +378,7 @@ class ApAgingReportController extends Controller
             $bindings['detailSupplier'] = $supplierCode;
         }
 
-        $subquery    = $this->buildHutangSubquery($whereExtra);
+        $subquery    = $this->buildHutangSubquery($whereExtra, $includeDraft);
         $bucketWhere = $this->bucketWhere($bucket);
 
         $sql = "
