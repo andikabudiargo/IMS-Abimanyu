@@ -336,7 +336,7 @@ private function recalculateAvgPrice(string $articleCode, string $location): voi
             foreach ($dataSetMovement as $mv) {
                 $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
                 if (abs($signed) < 0.000001) continue;
-                if (!$adj->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $trDateYmd)) continue;
+                if (!$adj->obBoundaryFor($mv['artikel_code'], $mv['location_number'], $trDateYmd, $hdrQ->opname_position)) continue;
 
                 $adj->absorbIntoLatestOpeningBalance(
                     $mv['artikel_code'], $mv['location_number'], $signed, $username,
@@ -434,6 +434,8 @@ $data['locationsTo'] = DB::table('stock_location_master')
         $penerima     = $payload['penerima']     ?? null;
         $refNumber    = $payload['refNumber']    ?? '';
         $articles     = $payload['articles']     ?? [];
+        $opnamePosition = in_array($payload['opnamePosition'] ?? null, ['before', 'after'], true)
+            ? $payload['opnamePosition'] : null;
         $poLeadCode   = $this->moduleCode;   // 'TRF'
         $status       = '1';
 
@@ -450,7 +452,7 @@ $data['locationsTo'] = DB::table('stock_location_master')
 
         $runner = function () use (
             $poLeadCode, $trDate, $locationCode, $locationTo, $status, $refNumber,
-            $penerima, $note, $trType, $approveDept, $articles, $username
+            $penerima, $note, $trType, $approveDept, $articles, $username, $opnamePosition
         ) {
             DB::select("SELECT pg_advisory_xact_lock(hashtext(?))", [$poLeadCode]);
 
@@ -489,6 +491,7 @@ $data['locationsTo'] = DB::table('stock_location_master')
                 'tr_number'    => $trNumber,
                 'ref_number'   => $refNumber,
                 'tr_date'      => $trDate,
+                'opname_position' => $opnamePosition,
                 'status'       => $status,
                 'penerima'     => $penerima,
                 'note'         => $note,
@@ -556,13 +559,20 @@ $data['locationsTo'] = DB::table('stock_location_master')
         $username = Auth::user()->username;
         $title    = "Save $this->title";
 
+        // before/after opname (STO 08:00-17:00), diisi lewat modal di form kalau
+        // trDate bertepatan dengan tanggal OB/SYSTEM CORRECTION aktif. Lihat
+        // StockAdjustmentController::obBoundaryFor() dan checkStoDate().
+        $opnamePosition = in_array($request->opnamePosition, ['before', 'after'], true)
+            ? $request->opnamePosition : null;
+
         $payload = [
-            'trDate'       => $request->trDate,
-            'locationFrom' => $request->locationFrom,
-            'locationTo'   => $request->locationTo,
-            'note'         => $request->note,
-            'penerima'     => $request->penerima,
-            'articles'     => json_decode($request->articles, true) ?? [],
+            'trDate'         => $request->trDate,
+            'locationFrom'   => $request->locationFrom,
+            'locationTo'     => $request->locationTo,
+            'note'           => $request->note,
+            'penerima'       => $request->penerima,
+            'articles'       => json_decode($request->articles, true) ?? [],
+            'opnamePosition' => $opnamePosition,
         ];
 
         // === Lock Transaction guard (activity + periode + overstock) ===
@@ -810,6 +820,36 @@ $data['locationsTo'] = DB::table('stock_location_master')
         // Resolusi lokasi AKUNTANSI — WAJIB sama persis dengan processPosting
         $stockFrom = $this->getStockLocation($locationFrom);
         $stockTo   = $this->getStockLocation($locationTo);
+
+        // Kalau transfer ini SEBELUMNYA terserap ke OB/SYSTEM CORRECTION aktif
+        // (backdate, lihat processPosting()), un-absorb dulu pakai tanggal &
+        // opname_position LAMA SEBELUM movement-nya dihapus — supaya OB tidak
+        // dobel-hitung saat reverseStock() dipanggil ulang oleh update()/
+        // cancel()/destroy() yang lalu posting lagi (update() repost via
+        // processPosting() dengan tanggal baru).
+        $trDateYmdOld = null;
+        $trDtOld = \Carbon\Carbon::createFromFormat('d-m-Y', $hdrQ->tr_date);
+        if ($trDtOld) $trDateYmdOld = $trDtOld->format('Y-m-d');
+
+        if ($trDateYmdOld) {
+            $oldMovs = DB::table('warehouse_movement')
+                ->where('movement_transnno', $trNumber)
+                ->where('movement_type', $baseType)
+                ->select('artikel_code', 'location_number', 'movement_plus', 'movement_min')
+                ->get();
+
+            $adj = app(\App\Http\Controllers\StockAdjustmentController::class);
+            foreach ($oldMovs as $mv) {
+                $signed = (float) $mv->movement_plus - (float) $mv->movement_min;
+                if (abs($signed) < 0.000001) continue;
+                if (!$adj->obBoundaryFor($mv->artikel_code, $mv->location_number, $trDateYmdOld, $hdrQ->opname_position)) continue;
+
+                $adj->absorbIntoLatestOpeningBalance(
+                    $mv->artikel_code, $mv->location_number, -$signed, $username,
+                    "Un-posting Transfer/Supply {$trNumber} bertanggal {$hdrQ->tr_date} ({$reasonLabel}, un-absorb OB)"
+                );
+            }
+        }
 
         // Hapus movement asli
         DB::table('warehouse_movement')
@@ -1376,6 +1416,8 @@ public function update(Request $request)
     $locationCode = $request->locationFrom;
     $locationTo   = $request->locationTo;
     $editReason   = $request->editReason;
+    $opnamePosition = in_array($request->opnamePosition, ['before', 'after'], true)
+        ? $request->opnamePosition : null;
 
     $title = "Save $this->title";
 
@@ -1483,6 +1525,7 @@ public function update(Request $request)
             ->where('tr_number', $trNumber)
             ->update([
                 'tr_date'       => $trDate,
+                'opname_position' => $opnamePosition,
                 'tr_type'       => $trType,
                 'status'        => '1',           // ← tetap NEW
                 'num_revision'  => $rev,

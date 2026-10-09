@@ -10,6 +10,7 @@
                     <h4 class="card-title">Status: {{ $statusTr }}</h4>
                     <input type="hidden" id='oEdit' value="{{ $oEdit }}">
                     <input type="hidden" id="editReason" name="editReason" value="{{ $editReason ?? '' }}">
+                    <input type="hidden" id="opnamePosition" name="opnamePosition" value="{{ $header->opname_position ?? '' }}">
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>

@@ -9,6 +9,7 @@
                 <div class="card-header">
                     <h4 class="card-title">Status: New</h4>
                     <input type="hidden" id='oEdit' value="{{ $oEdit }}">
+                    <input type="hidden" id="opnamePosition" name="opnamePosition" value="">
                     <div class="heading-elements">
                         <ul class="list-inline mb-0">
                             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>

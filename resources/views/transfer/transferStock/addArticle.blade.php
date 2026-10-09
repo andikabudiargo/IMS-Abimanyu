@@ -500,6 +500,61 @@ if (!isNaN(stock) && parseFloat(qty) > stock) {
                 let penerima     = $('#penerima').val();
                 let locationFrom = $('#locationFrom').val();
                 let locationTo   = $('#locationTo').val();
+
+                checkOpnamePositionThenSave(trDate, function(){
+                doActualSave(url, trNumber, trDate, note, penerima, locationFrom, locationTo, articles, $btn, oEdit);
+                });
+            } else {
+                 window._trxSubmitting = false;
+                 btnReset($btn);
+                Swal.fire('Warning..', pesan, 'warning');
+            }
+        }
+    }
+
+// Cek apakah trDate bertepatan dengan tanggal OB/SYSTEM CORRECTION aktif --
+// kalau ya, tanya user via modal apakah transfer ini terjadi sebelum/sesudah
+// jam opname (STO 08:00-17:00), lihat StockAdjustmentController::obBoundaryFor().
+// Kalau bukan tanggal itu, langsung lanjut simpan tanpa modal.
+function checkOpnamePositionThenSave(trDate, onReady){
+    $.ajax({
+        type: 'get',
+        url: "{{ route('sto.check-date') }}",
+        data: { date: trDate },
+        dataType: 'json',
+        success: function(res){
+            if (res && res.hasSto) {
+                Swal.fire({
+                    title: 'Tanggal Opname (STO)',
+                    html: 'Tanggal transfer ini bertepatan dengan jadwal stock opname (STO). Transaksi ini terjadi kapan?',
+                    input: 'select',
+                    inputOptions: {
+                        before: 'Sebelum/selama opname (08:00-17:00)',
+                        after: 'Sesudah opname (malam hari)'
+                    },
+                    inputPlaceholder: '-- Pilih --',
+                    showCancelButton: true,
+                    confirmButtonText: 'Lanjut Simpan',
+                    cancelButtonText: 'Batal',
+                    inputValidator: function(value){ return !value ? 'Wajib dipilih' : undefined; }
+                }).then(function(result){
+                    if (result.isConfirmed) {
+                        $('#opnamePosition').val(result.value);
+                        onReady();
+                    } else {
+                        window._trxSubmitting = false;
+                        btnReset($('#cmdSave'));
+                    }
+                });
+            } else {
+                onReady();
+            }
+        },
+        error: function(){ onReady(); }
+    });
+}
+
+doActualSave = (url, trNumber, trDate, note, penerima, locationFrom, locationTo, articles, $btn, oEdit) => {
 $.ajax({
     type: "post",
     url: url,
@@ -512,6 +567,7 @@ $.ajax({
         locationFrom : locationFrom,
         locationTo   : locationTo,
         editReason   : $('#editReason').val(),
+        opnamePosition : $('#opnamePosition').val(),
     },
     dataType: "json",
     success: function(data) {
@@ -545,14 +601,7 @@ $.ajax({
         show_msg('Error', 'Terjadi kesalahan saat menyimpan, cek console.', 'error');
     }
 });
-
-            } else {
-                 window._trxSubmitting = false;
-                 btnReset($btn);
-                Swal.fire('Warning..', pesan, 'warning');
-            }
-        }
-    }
+}
 
     approve = (trNumber, objButton) => {
         $('#' + objButton).attr('disabled','disabled');
