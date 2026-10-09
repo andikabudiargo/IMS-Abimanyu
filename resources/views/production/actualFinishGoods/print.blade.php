@@ -5,7 +5,7 @@
     <title>{{ $title }}</title>
     <style type="text/css">
 
-        html { 
+        html {
             margin: 10px;
         }
 
@@ -15,15 +15,6 @@
 
         table{
             font-size: x-small;
-        }
-        
-        tfoot tr td{
-            /*font-weight: bold;*/
-            /* font-size: medium; */
-        }
-        .gray {
-            background-color: lightgray;
-            font-weight: bold;
         }
 
         table {
@@ -39,18 +30,6 @@
         th, td {
             padding-left: 5px;
             padding-right: 5px;
-            /*border-bottom: 1px solid #ddd;*/
-        }
-
-        /* .border-bottom{
-            border-bottom: 1px solid #ddd;
-        } */
-
-        #watermark {
-            background: url('{{ asset('assets/img/lunas-stamp.png') }}') center;
-            background-size: 10px 10px;
-            background-repeat: no-repeat;
-            opacity: 0.1;
         }
 
         .font-10 {
@@ -84,159 +63,72 @@
         .kotak-td{
             border: 1px solid rgb(9, 9, 9);
         }
-
-
-        /* td {
-            white-space: nowrap;
-        } */
     </style>
 </head>
 <body>
-    {{-- @if($status == "B")
-        <div id ="watermark">
-    @endif --}}
     <table width="100%" border="1" class="border-garis header-padding">
         <tr>
-            <td width="30%" rowspan="5" class="no-wrap h-tengah" >
-                <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;"> 
+            <td width="30%" rowspan="4" class="no-wrap h-tengah">
+                <img src="{{ public_path('app-assets/images/logo/logo_po.png') }}" alt="logo" style="width: 60%;">
             </td>
-            <td width="40%" rowspan="5" class="no-wrap h-tengah" style="text-align:center"><h2>WORK ORDER SHEET</h2>{{ $prdNumber }}</td>
-            <td valign="" class="font-10 header-padding" >No Doc</td>
-            <td valign="" class="font-10 header-padding" >: PPC-01.01-FM</td>
-        </tr>
-        <tr>            
-            <td valign="" class="font-10 header-padding" >Date Used</td>
-            <td valign="" class="font-10 header-padding" >: Monday,April 15, 2019</td>
-        </tr>
-        <tr>            
-            <td valign="" class="font-10 header-padding" >Date Of Rev</td>
-            <td valign="" class="font-10 header-padding" >: 15 Juni 2021</td>
-        </tr>
-        <tr>            
-            <td valign="" class="font-10 header-padding" >Rev</td>
-            <td valign="" class="font-10 header-padding" >: 2</td>
-        </tr>
-        <tr>            
-            <td valign="" class="font-10 header-padding" >Page</td>
-            <td valign="" class="font-10 header-padding" >: 1/1</td>
+            <td width="40%" rowspan="4" class="no-wrap h-tengah" style="text-align:center"><h2>ACTUAL FINISH GOODS</h2>{{ $fgNumber }}</td>
+            <td valign="" class="font-10 header-padding">Tanggal</td>
+            <td valign="" class="font-10 header-padding">: {{ $header->fg_date_fmt }}</td>
         </tr>
         <tr>
-            <td colspan="4" valign="top">
-                <table>
-                    <tr>
-                        <td width="5%" valign="top">Tanggal</td>
-                        <td width="20%">: {{ $header->prod_date }}</td>
-                        <td width="5%">Shift</td>
-                        <td >: {{ ucfirst($header->prod_shift) }} </td>
-                    </tr>
-                    <tr>
-                        <td width="5%" valign="top">Rev</td>
-                        <td >: {{ $header->num_revision }}</td>
-                        <td width="5%">Group</td>
-                        <td >: {{ $header->prod_group }}</td>
-                    </tr>   
-                </table>
-            </td>
+            <td valign="" class="font-10 header-padding">Spray Booth</td>
+            <td valign="" class="font-10 header-padding">: {{ $header->spray_booth_name }}</td>
+        </tr>
+        <tr>
+            <td valign="" class="font-10 header-padding">Revisi</td>
+            <td valign="" class="font-10 header-padding">: {{ $header->num_revision }}</td>
+        </tr>
+        <tr>
+            <td valign="" class="font-10 header-padding">Note</td>
+            <td valign="" class="font-10 header-padding">: {{ $header->note }}</td>
         </tr>
     </table>
     <table width="100%" border="1" class="font-8 border-garis header-padding" style="margin-top:3px">
-        <thead >
+        <thead>
             <tr>
-                <th rowspan="2" width="4%">No</th>
-                <th rowspan="2" width="8%">Part FG</th>
-                <th rowspan="2" width="20%">Part Name</th>
-                <th rowspan="2" width="8%">Part RM</th>
-                <th rowspan="2" width="6%">Plan Jam Loading</th>
-                <th rowspan="2" width="6%">Act Jam Loading</th>
-                <th rowspan="2" width="4%">Stock RM</th>
-                <th colspan="2" width="4%">Qty</th>
-                <th rowspan="2" width="4%">Qty Tag</th>
-                <th rowspan="2" width="4%">Act Tag</th>
-                <th colspan="2" width="4%">Qty</th>
-                <th rowspan="2" width="4%">Ok</th>
-                <th rowspan="2" width="5%">Repair</th>
-                <th rowspan="2" width="5%">Repaint</th>
-                <th rowspan="2" >Remarks </th>
-            </tr>
-            <tr>
-                <th width="4%">Frs</th>
-                <th width="4%">Rpn</th>
-                <th width="4%">Frs</th>
-                <th width="4%">Rpn</th>
+                <th width="4%">No</th>
+                <th width="16%">Article Code</th>
+                <th>Article Desc</th>
+                <th width="10%">Qty FG</th>
+                <th width="10%">Qty OT</th>
+                <th width="20%">Note</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($details as $val )
-                <tr class="border-bottom">
-                    <td scope="row" class="border-bottom" align="right">{{ ++$no }}</td>
-                    <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
-                    <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
-                    <td class="border-bottom" align="left">{{ $val->article_alternative_code }}</td>
-                    <td class="border-bottom" align="left">{{ $val->plan_time_loading }}</td>
-                    <td class="border-bottom" align="left">{{ $val->act_time_loading }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->qty_rm) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->plan_qty_fresh) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->plan_qty_repaint) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->act_tag) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->plan_tag) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->act_qty_fresh) }}</td>
-                    <td class="border-bottom" align="right">{{ number_format($val->act_qty_repaint) }}</td>
-                    <td class="border-bottom" align="right"></td>
-                    <td class="border-bottom" align="right"></td>
-                    <td class="border-bottom" align="right"></td>
-                    <td class="border-bottom" align="right"></td>
+            @foreach ($details as $val)
+                <tr>
+                    <td align="right">{{ ++$no }}</td>
+                    <td align="left">{{ $val->article_alternative_code ?? $val->article_code }}</td>
+                    <td align="left">{{ $val->article_desc }}</td>
+                    <td align="right">{{ number_format($val->qty_fg) }}</td>
+                    <td align="right">{{ number_format($val->qty_ot) }}</td>
+                    <td align="left">{{ $val->note }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
-    <table width="100%" border="1" class="font-8 border-garis header-padding" style="margin-top:3px">
-        <tr>
-            <td rowspan="2" colspan="3">Total tag</td>
-            <td >{{ $header->working_hour }}</td>
-            <td >x 3600" x {{ $header->efficiency }}% = </td>
-            <td colspan="2"></td>
-            <td >Waktu tersedia</td>
-            <td colspan="6">{{ ($header->working_hour*3600*($header->efficiency/100))/30 }}</td>
-            <td rowspan="2">Note: OT loading semua setingan WOS</td>
-        </tr>
-        <tr>
-            <td colspan="2" >Waktu Dibutuhkan</td>
-            <td colspan="2" >{{ $header->total_tag }}</td>
-            <td >Sisa waktu</td>
-            <td colspan="6">{{ (($header->working_hour*3600*0.95)/30)-$header->total_tag-10 }}</td>
-        </tr>
-    </table>
-   
-    <table border="0" class="font-8 border-garis header-padding" style="margin-top:3px">
-        <tr>
-            <td rowspan="3" width="25%" class="font-10"  style="border: 1px solid rgb(9, 9, 9);">
-                Plan={{ ($header->working_hour*3600*0.95)/30 }}<br><br>
-                Actual=<br><br>
-                Hasil Performance ( % ) =
-            </td>
-            <td rowspan="3" width="25%">
 
-            </td>
+    <table border="0" class="font-8 border-garis header-padding" style="margin-top:20px">
+        <tr>
             <td align="center" class="kotak-td">Dibuat</td>
-            <td align="center" class="kotak-td">Disetujui</td>
-            <td align="center" class="kotak-td">Dilaporkan</td>
+            <td align="center" class="kotak-td">Diperiksa</td>
             <td align="center" class="kotak-td">Disetujui</td>
         </tr>
-        <tr >
-            <td align="center" class="kotak-td" style="padding:20px"></td>
-            <td align="center" class="kotak-td"></td>
+        <tr>
+            <td align="center" class="kotak-td" style="padding:30px"></td>
             <td align="center" class="kotak-td"></td>
             <td align="center" class="kotak-td"></td>
         </tr>
         <tr>
-            <td align="center" class="kotak-td">PPIC</td>
-            <td align="center" class="kotak-td">Spv.PPIC</td>
-            <td align="center" class="kotak-td">Prod.Foreman</td>
-            <td align="center" class="kotak-td">Prod.SPV</td>
+            <td align="center" class="kotak-td">{{ $header->created_by }}</td>
+            <td align="center" class="kotak-td">Spv. Produksi</td>
+            <td align="center" class="kotak-td">Manager Produksi</td>
         </tr>
     </table>
-{{-- @if($poNumber == "oki")
-</div>
-@endif --}}
 </body>
 </html>

@@ -803,6 +803,11 @@ $s012 = max(0, (float) DB::table('warehouse_stock')
         $fgDateDb = $fgDate ? implode('-', array_reverse(explode('-', $fgDate))) : null;
         $trDate   = $fgDate;
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $fgDateDb)) {
+            return response()->json(['status'=>0,'title'=>"Update $this->title",'message'=>[[$err]],'alert'=>'error']);
+        }
+
         DB::beginTransaction();
         try {
             $hdr = DB::table('actual_finish_goods_hdr')->where('fg_code', $fgNumber)->lockForUpdate()->first();
@@ -951,6 +956,11 @@ $s012 = max(0, (float) DB::table('warehouse_stock')->where('article_code',$ac)->
             if (!$hdr) throw new \Exception("Dokumen tidak ditemukan.");
             if ((int)$hdr->status === 5) throw new \Exception("Dokumen {$hdr->fg_code} sudah berstatus CANCELED.");
 
+            // === Lock Transaction guard: activity + periode ===
+            if ($err = AppHelpers::lockGuard($this->moduleCode, substr((string) $hdr->fg_date, 0, 10))) {
+                throw new \Exception($err);
+            }
+
             $fgNumber = $hdr->fg_code;
 
             $trList = DB::table('afg_transfer')->where('fg_code', $fgNumber)->pluck('tr_number');
@@ -1052,6 +1062,11 @@ $s012 = max(0, (float) DB::table('warehouse_stock')->where('article_code',$ac)->
             $hdr = DB::table('actual_finish_goods_hdr')->where('id', $id)->lockForUpdate()->first();
             if (!$hdr) throw new \Exception("Dokumen tidak ditemukan.");
             if ((int)$hdr->status !== 1) throw new \Exception("Hanya dokumen berstatus NEW yang bisa dihapus. Gunakan Cancel untuk dokumen lain.");
+
+            // === Lock Transaction guard: activity + periode ===
+            if ($err = AppHelpers::lockGuard($this->moduleCode, substr((string) $hdr->fg_date, 0, 10))) {
+                throw new \Exception($err);
+            }
 
             $fgNumber = $hdr->fg_code;
 
@@ -1308,7 +1323,7 @@ $s012 = max(0, (float) DB::table('warehouse_stock')->where('article_code',$ac)->
             'afg.created_by',
             DB::raw("to_char(afg.created_at, 'DD-MM-YYYY HH24:MI') as created_at")
         )
-        ->orderBy('afd.fg_code')
+        ->orderBy('afg.id', 'desc')
         ->orderBy('afd.urutan')
         ->get();
 
