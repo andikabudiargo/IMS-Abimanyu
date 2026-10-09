@@ -12,7 +12,9 @@
       <div class="row">
         <div class="col-md-2"><strong>Type</strong><div>{{ $header->type }}</div></div>
         <div class="col-md-2"><strong>Periode</strong><div>{{ $header->periode }} / {{ $header->year }}</div></div>
-        <div class="col-md-8"><strong>Description</strong><div>{{ $header->description ?: '-' }}</div></div>
+        <div class="col-md-2"><strong>Saldo Awal</strong><div>{{ $header->saldo_awal !== null ? number_format($header->saldo_awal, 2) : '-' }}</div></div>
+        <div class="col-md-2"><strong>Saldo Akhir</strong><div>{{ $header->saldo_akhir !== null ? number_format($header->saldo_akhir, 2) : '-' }}</div></div>
+        <div class="col-md-4"><strong>Description</strong><div>{{ $header->description ?: '-' }}</div></div>
       </div>
     </div>
   </div>
@@ -76,9 +78,10 @@
       tableId: "bankReconciliationDetailTable",
       route: "{{ route('bankReconciliation.list.detail', ['id' => $id]) }}",
       kolom: {!! $kolomDetail !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       columnDefs: [
-        { className: 'text-right', targets: [4, 5, 9] },
+        { width: '4%', targets: 0 },
+        { className: 'text-right', targets: [3, 4, 5, 9, 10] },
       ],
       // dataSearch wajib diisi (walau kosong) -- tanpa ini draw/start/length dari
       // DataTables tidak terkirim dengan benar dan tabel macet di "Processing...".

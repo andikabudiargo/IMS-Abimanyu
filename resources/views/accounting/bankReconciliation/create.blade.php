@@ -75,13 +75,16 @@
         <table class="table table-sm table-striped">
           <thead class="thead-light">
             <tr>
+              <th>No</th>
               <th>Tanggal</th>
               <th>Keterangan</th>
-              <th>DB/CR</th>
-              <th class="text-right">Mutasi</th>
+              <th class="text-right">Debit</th>
+              <th class="text-right">Kredit</th>
               <th class="text-right">Saldo</th>
               <th>Status</th>
               <th>Voucher GL</th>
+              <th class="text-right">Debit GL</th>
+              <th class="text-right">Kredit GL</th>
             </tr>
           </thead>
           <tbody id="previewRows"></tbody>
@@ -122,23 +125,35 @@
   }
 
   function renderPreview(data) {
-    let rows = data.rows.map(function (r) {
+    let rows = data.rows.map(function (r, i) {
       let statusBadge = r.status === 'MATCHED'
         ? '<span class="badge badge-success">MATCH</span>'
         : '<span class="badge badge-danger">NOT MATCH</span>';
+      let debit = r.mutation_type === 'DB' ? fmtNumber(r.amount) : '-';
+      let kredit = r.mutation_type === 'CR' ? fmtNumber(r.amount) : '-';
+      let glDebit = r.gl_debit !== null && r.gl_debit > 0 ? fmtNumber(r.gl_debit) : '-';
+      let glKredit = r.gl_kredit !== null && r.gl_kredit > 0 ? fmtNumber(r.gl_kredit) : '-';
+      let voucherCell = r.voucher_number
+        ? (r.voucher_url ? `<a href="${r.voucher_url}" target="_blank">${r.voucher_number}</a>` : r.voucher_number)
+        : '-';
       return `<tr>
+        <td>${i + 1}</td>
         <td>${r.stmt_date}</td>
         <td>${r.description}</td>
-        <td>${r.mutation_type}</td>
-        <td class="text-right">${fmtNumber(r.amount)}</td>
+        <td class="text-right">${debit}</td>
+        <td class="text-right">${kredit}</td>
         <td class="text-right">${r.saldo !== null ? fmtNumber(r.saldo) : '-'}</td>
         <td>${statusBadge}</td>
-        <td>${r.voucher_number ?? '-'}</td>
+        <td>${voucherCell}</td>
+        <td class="text-right">${glDebit}</td>
+        <td class="text-right">${glKredit}</td>
       </tr>`;
     }).join('');
 
     $('#previewRows').html(rows);
-    $('#previewSummary').text(`${data.totalRows} baris, ${data.matchedCount} otomatis match`);
+    let saldoInfo = (data.saldoAwal !== null ? ` | Saldo Awal: ${fmtNumber(data.saldoAwal)}` : '')
+      + (data.saldoAkhir !== null ? ` | Saldo Akhir: ${fmtNumber(data.saldoAkhir)}` : '');
+    $('#previewSummary').text(`${data.totalRows} baris, ${data.matchedCount} otomatis match${saldoInfo}`);
     $('#preview-bankReconciliation').removeClass('d-none');
     document.getElementById('preview-bankReconciliation').scrollIntoView({ behavior: 'smooth' });
   }

@@ -18,6 +18,8 @@ class BankReconciliationController extends Controller
     private $moduleCode;
     // type (Kas/Bank) -> voucher_type kas_hdr yang relevan, sama seperti grouping di CashBankController.
     private $voucherTypes = ['KAS' => ['KM', 'KK'], 'BANK' => ['BM', 'BK']];
+    // voucher_type -> route prefix buat link ke halaman detail voucher (sama seperti CashBankController).
+    private $voucherRoutePrefix = ['KM' => 'kasPenerimaan', 'KK' => 'kasKeluar', 'BM' => 'bankPenerimaan', 'BK' => 'bankKeluar'];
 
     public function __construct()
     {
@@ -123,6 +125,8 @@ class BankReconciliationController extends Controller
             'rows' => array_values($rows),
             'totalRows' => count($rows),
             'matchedCount' => $matchedCount,
+            'saldoAwal' => $parsed['summary']['saldo_awal'],
+            'saldoAkhir' => $parsed['summary']['saldo_akhir'],
         ]);
     }
 
@@ -188,6 +192,8 @@ class BankReconciliationController extends Controller
                 'description' => $description,
                 'type' => $type,
                 'status' => 'DONE',
+                'saldo_awal' => $parsed['summary']['saldo_awal'],
+                'saldo_akhir' => $parsed['summary']['saldo_akhir'],
                 'created_by' => $username,
                 'updated_by' => $username,
                 'created_at' => date('Y-m-d H:i:s'),
@@ -281,7 +287,7 @@ class BankReconciliationController extends Controller
                 ->when(!empty($usedKasDetIds), function ($q) use ($usedKasDetIds) {
                     $q->whereNotIn('kas_det.id', $usedKasDetIds);
                 })
-                ->select('kas_det.id', 'kas_det.voucher_number', 'kas_hdr.voucher_date', DB::raw('coalesce(kas_det.debit, kas_det.credit) as gl_amount'))
+                ->select('kas_det.id', 'kas_hdr.id as voucher_id', 'kas_hdr.voucher_type', 'kas_det.voucher_number', 'kas_hdr.voucher_date', 'kas_det.debit as gl_debit', 'kas_det.credit as gl_kredit')
                 ->first();
 
             if ($candidate) {
@@ -290,13 +296,18 @@ class BankReconciliationController extends Controller
                 $row['matched_kas_det_id'] = $candidate->id;
                 $row['voucher_number'] = $candidate->voucher_number;
                 $row['voucher_date'] = $candidate->voucher_date;
-                $row['gl_amount'] = $candidate->gl_amount;
+                $row['gl_debit'] = $candidate->gl_debit;
+                $row['gl_kredit'] = $candidate->gl_kredit;
+                $prefix = $this->voucherRoutePrefix[$candidate->voucher_type] ?? null;
+                $row['voucher_url'] = $prefix ? route("$prefix.show", ['id' => Crypt::encryptString($candidate->voucher_id)]) : null;
             } else {
                 $row['status'] = 'UNMATCHED';
                 $row['matched_kas_det_id'] = null;
                 $row['voucher_number'] = null;
                 $row['voucher_date'] = null;
-                $row['gl_amount'] = null;
+                $row['voucher_url'] = null;
+                $row['gl_debit'] = null;
+                $row['gl_kredit'] = null;
             }
         }
         unset($row);
@@ -357,16 +368,18 @@ class BankReconciliationController extends Controller
         $data['id'] = $id;
 
         $data['kolomDetail'] = json_encode([
-            ['data' => 'action', 'name' => 'action', 'title' => 'action', 'orderable' => false, 'searchable' => false],
+            ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'title' => 'No', 'orderable' => false, 'searchable' => false],
             ['data' => 'stmt_date', 'name' => 'stmt_date', 'title' => 'Tanggal'],
             ['data' => 'description', 'name' => 'description', 'title' => 'Keterangan'],
-            ['data' => 'mutation_type', 'name' => 'mutation_type', 'title' => 'DB/CR'],
-            ['data' => 'amount', 'name' => 'amount', 'title' => 'Mutasi'],
+            ['data' => 'debit', 'name' => 'debit', 'title' => 'Debit'],
+            ['data' => 'kredit', 'name' => 'kredit', 'title' => 'Kredit'],
             ['data' => 'saldo', 'name' => 'saldo', 'title' => 'Saldo'],
             ['data' => 'status', 'name' => 'status', 'title' => 'Status'],
             ['data' => 'voucher_number', 'name' => 'voucher_number', 'title' => 'Voucher GL'],
             ['data' => 'voucher_date', 'name' => 'voucher_date', 'title' => 'Tanggal GL'],
-            ['data' => 'gl_amount', 'name' => 'gl_amount', 'title' => 'Nilai GL'],
+            ['data' => 'gl_debit', 'name' => 'gl_debit', 'title' => 'Debit GL'],
+            ['data' => 'gl_kredit', 'name' => 'gl_kredit', 'title' => 'Kredit GL'],
+            ['data' => 'action', 'name' => 'action', 'title' => 'action', 'orderable' => false, 'searchable' => false],
         ]);
 
         return view('accounting.bankReconciliation.show', $data);
@@ -386,15 +399,19 @@ class BankReconciliationController extends Controller
             ->where('bank_reconciliation_det.recon_number', $header->recon_number)
             ->select(
                 'bank_reconciliation_det.*',
+                'kas_hdr.id as voucher_id',
                 'kas_hdr.voucher_number',
+                'kas_hdr.voucher_type',
                 'kas_hdr.voucher_date',
-                DB::raw('coalesce(kas_det.debit, kas_det.credit) as gl_amount')
+                'kas_det.debit as gl_debit',
+                'kas_det.credit as gl_kredit'
             )
             ->orderBy('bank_reconciliation_det.stmt_date')
             ->orderBy('bank_reconciliation_det.id')
             ->get();
 
         return Datatables::of($data)
+            ->addIndexColumn()
             ->addColumn('action', function ($d) {
                 if ($d->status === 'MATCHED') {
                     return "<a href='javascript:;' class='btn btn-sm btn-outline-warning' onclick='unmatchRow({$d->id})'>Unmatch</a>";
@@ -402,17 +419,29 @@ class BankReconciliationController extends Controller
                 return "<a href='javascript:;' class='btn btn-sm btn-outline-primary' onclick='openManualMatch({$d->id}, \"{$d->stmt_date}\", {$d->amount}, \"{$d->mutation_type}\")'>Match Manual</a>";
             })
             ->addColumn('stmt_date', function ($d) { return date('d-m-Y', strtotime($d->stmt_date)); })
-            ->addColumn('amount', function ($d) { return number_format($d->amount, 2); })
+            ->addColumn('debit', function ($d) { return $d->mutation_type === 'DB' ? number_format($d->amount, 2) : '-'; })
+            ->addColumn('kredit', function ($d) { return $d->mutation_type === 'CR' ? number_format($d->amount, 2) : '-'; })
             ->addColumn('saldo', function ($d) { return $d->saldo !== null ? number_format($d->saldo, 2) : '-'; })
             ->addColumn('status', function ($d) {
                 $color = $d->status === 'MATCHED' ? 'success' : 'danger';
                 $label = $d->status === 'MATCHED' ? 'MATCH' : 'NOT MATCH';
                 return "<div class='badge badge-{$color}'>{$label}</div>";
             })
-            ->addColumn('voucher_number', function ($d) { return $d->voucher_number ?: '-'; })
+            ->addColumn('voucher_number', function ($d) {
+                if (!$d->voucher_number) {
+                    return '-';
+                }
+                $prefix = $this->voucherRoutePrefix[$d->voucher_type] ?? null;
+                if (!$prefix) {
+                    return $d->voucher_number;
+                }
+                $url = route("$prefix.show", ['id' => Crypt::encryptString($d->voucher_id)]);
+                return "<a href='$url' target='_blank'>{$d->voucher_number}</a>";
+            })
             ->addColumn('voucher_date', function ($d) { return $d->voucher_date ?: '-'; })
-            ->addColumn('gl_amount', function ($d) { return $d->gl_amount !== null ? number_format($d->gl_amount, 2) : '-'; })
-            ->rawColumns(['action', 'status'])
+            ->addColumn('gl_debit', function ($d) { return $d->gl_debit !== null && (float) $d->gl_debit > 0 ? number_format($d->gl_debit, 2) : '-'; })
+            ->addColumn('gl_kredit', function ($d) { return $d->gl_kredit !== null && (float) $d->gl_kredit > 0 ? number_format($d->gl_kredit, 2) : '-'; })
+            ->rawColumns(['action', 'status', 'voucher_number'])
             ->make(true);
     }
 
