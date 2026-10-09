@@ -107,7 +107,7 @@
 
   function buildHead() {
     let r1 = '<tr>'
-      + '<th rowspan="2" class="text-center">Unbudget</th>'
+      + '<th rowspan="2" class="col-sticky0">Unbudget</th>'
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="text-right">Inflasi</th>'

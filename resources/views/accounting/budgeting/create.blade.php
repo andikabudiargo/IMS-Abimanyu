@@ -121,6 +121,7 @@
         </table>
       </div>
       <div class="d-flex flex-wrap mt-2" style="gap:.5rem">
+        <a href="{{ route('budgeting.index') }}" class="btn btn-light">Back</a>
         <button type="button" class="btn btn-success" id="btnSave"><i data-feather="save"></i> Save Budgeting</button>
       </div>
     </div>
@@ -253,7 +254,7 @@
 
   function buildHead() {
     let r1 = '<tr>'
-      + '<th rowspan="2" class="text-center" title="Keluarkan COA ini dari budget">Unbudget</th>'
+      + '<th rowspan="2" class="col-sticky0" title="Keluarkan COA ini dari budget">Unbudget</th>'
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="col-cr" title="Persen penambah ke Average (kebalikan Cost Reduction)">Inflasi</th>'

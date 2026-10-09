@@ -139,7 +139,7 @@
 
   function buildHead() {
     let r1 = '<tr>'
-      + '<th rowspan="2" class="text-center" title="Keluarkan COA ini dari budget">Unbudget</th>'
+      + '<th rowspan="2" class="col-sticky0" title="Keluarkan COA ini dari budget">Unbudget</th>'
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="col-cr" title="Persen penambah ke Average (kebalikan Cost Reduction)">Inflasi</th>'
