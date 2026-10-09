@@ -140,7 +140,8 @@
             </div>
           </div>
         </div>
-        <small class="text-muted" id="apRecon"></small>
+        <small class="text-muted" id="apRecon"></small><br>
+        <small class="text-muted" id="apDraftInfo"></small>
       </div>
     </div>
   </div>
@@ -247,6 +248,7 @@ function getExportDateTimeString(){
       $('#cardApOutstanding').text(fmtRp(res.outstanding));
       $('#apRecon').text('Selisih rekonsiliasi (Opening + Pembelian - Pembayaran - Balance): ' + fmtRp(res.selisih)
         + ' | Saldo <=0 / lebih bayar yang dibuang: opening ' + fmtRp(res.excludedOpening) + ', cut-off ' + fmtRp(res.excludedCutoff));
+      $('#apDraftInfo').text(res.draftCount > 0 ? res.draftCount + ' AP masih berstatus DRAFT (belum dihitung di angka di atas)' : '');
     });
   };
 

@@ -2294,6 +2294,14 @@ class AccountPayableController extends Controller
         // Pembayaran: KK/BK/BM/KM + General Journal, populasi & rumus SAMA dgn AP Aging
         $totalPaid = $apAging->totalPaidBetween($startDate, $cutoff);
 
+        // AP yang masih DRAFT (status '1'), belum ikut dihitung di angka2 di atas
+        $draftCount = DB::selectOne("
+            SELECT COUNT(*) as total
+            FROM ap_invoice
+            WHERE status = '1'
+              AND $anchor BETWEEN to_date(?,'DD-MM-YYYY') AND to_date(?,'DD-MM-YYYY')
+        ", [$startDate, $cutoff])->total;
+
         return response()->json([
             'openingBalance' => (float) $opening,
             'totalAp'        => (float) $totalAp,
@@ -2304,6 +2312,7 @@ class AccountPayableController extends Controller
             'selisih'        => (float) ($opening + $totalAp - $totalPaid - $outstanding),
             'excludedOpening' => $apAging->excludedBalance($dayBeforeStart),
             'excludedCutoff'  => $apAging->excludedBalance($cutoff),
+            'draftCount'      => (int) $draftCount,
         ]);
     }
 

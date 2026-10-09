@@ -1981,6 +1981,12 @@ DB::raw("
               )
     ", [$startDate, $cutoff])->total;
 
+    // Invoice yang masih DRAFT (status '1'), belum ikut dihitung di angka2 di atas
+    $draftCount = DB::table('invoice_hdr')
+        ->where('status', '1')
+        ->whereRaw("to_date(invoice_date,'DD-MM-YYYY') between to_date(?, 'DD-MM-YYYY') and to_date(?, 'DD-MM-YYYY')", [$startDate, $cutoff])
+        ->count();
+
     return response()->json([
         'openingBalance'       => (float) $opening,
         'totalAr'              => (float) $totalAr,
@@ -1988,6 +1994,7 @@ DB::raw("
         'totalInvoiceTerkirim' => (float) $totalInvoiceTerkirim,
         'pembayaranDiterima'   => (float) $totalPaid, // sama dgn totalPaid, ditampilkan lagi di row 2
         'outstanding'    => (float) $outstanding,
+        'draftCount'     => (int) $draftCount,
     ]);
 }
 

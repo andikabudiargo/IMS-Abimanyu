@@ -210,7 +210,7 @@
           </div>
         </div>
 
-       
+        <small class="text-muted" id="arDraftInfo"></small>
         </div>
       </div>
     </div>
@@ -324,6 +324,7 @@ const loadArDashboard = (cutoffDate) => {
     $('#cardOutstanding').text(fmtRp(res.outstanding));
     $('#cardInvoiceTerkirim').text(fmtRp(res.totalInvoiceTerkirim));
     $('#cardPembayaranDiterima').text(fmtRp(res.pembayaranDiterima));
+    $('#arDraftInfo').text(res.draftCount > 0 ? res.draftCount + ' invoice masih berstatus DRAFT (belum dihitung di angka di atas)' : '');
   });
 };
 
