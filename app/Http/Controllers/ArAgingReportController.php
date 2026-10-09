@@ -249,6 +249,8 @@ class ArAgingReportController extends Controller
                 SUM(CASE WHEN piutang.diff_hari BETWEEN 1  AND 30  THEN piutang.balance ELSE 0 END) as d1_30,
                 SUM(CASE WHEN piutang.diff_hari BETWEEN 31 AND 60  THEN piutang.balance ELSE 0 END) as d31_60,
                 SUM(CASE WHEN piutang.diff_hari BETWEEN 61 AND 90  THEN piutang.balance ELSE 0 END) as d61_90,
+                SUM(CASE WHEN piutang.diff_hari BETWEEN 91 AND 120 THEN piutang.balance ELSE 0 END) as d91_120,
+                SUM(CASE WHEN piutang.diff_hari > 120              THEN piutang.balance ELSE 0 END) as d120plus,
                 SUM(CASE WHEN piutang.diff_hari > 90               THEN piutang.balance ELSE 0 END) as d90plus
             FROM ($subquery) piutang
             LEFT JOIN third_party ON third_party.kode = piutang.customer_id
@@ -261,7 +263,8 @@ class ArAgingReportController extends Controller
 
         $grand = [
             'belum_jatuh_tempo' => 0, 'd1_30' => 0, 'd31_60' => 0,
-            'd61_90' => 0, 'd90plus' => 0, 'total_overdue' => 0, 'total_piutang' => 0,
+            'd61_90' => 0, 'd91_120' => 0, 'd120plus' => 0, 'd90plus' => 0,
+            'total_overdue' => 0, 'total_piutang' => 0,
         ];
 
         $result = [];
@@ -286,6 +289,8 @@ class ArAgingReportController extends Controller
             $grand['d1_30']             += $r->d1_30;
             $grand['d31_60']            += $r->d31_60;
             $grand['d61_90']            += $r->d61_90;
+            $grand['d91_120']           += $r->d91_120;
+            $grand['d120plus']          += $r->d120plus;
             $grand['d90plus']           += $r->d90plus;
             $grand['total_overdue']     += $overdue;
             $grand['total_piutang']     += $r->total_piutang;
