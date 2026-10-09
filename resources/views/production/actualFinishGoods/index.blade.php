@@ -148,7 +148,7 @@ const showList = (searchPrd, prdDate, spraybooth) => {
       prdDate: prdDate,
       spraybooth: spraybooth
     },
-    orderColumn: [[ 1, 'asc' ]],
+    orderColumn: [[ 7, 'desc' ]],
     excelFileName: 'actual_finish_goods_data'
   });
 }
@@ -173,7 +173,7 @@ const showListDetail = (searchPrd, prdDate, spraybooth) => {
     columnDefs: [
       { width: '5%', targets: 0 },
     ],
-    orderColumn: [[ 1, 'desc' ],[ 0, 'asc' ]],
+    orderColumn: [[ 11, 'desc' ]],
     excelFileName: 'actual_finish_goods_data'
   });
 }
