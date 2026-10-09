@@ -253,8 +253,16 @@ class ActualFinishGoodsController extends Controller
         $trDate   = $fgDate ?: date('d-m-Y');
         $now      = date('Y-m-d H:i:s');
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $fgDateDb)) {
+            return response()->json(['status'=>0,'title'=>"Save $this->title",'message'=>[[$err]],'alert'=>'error']);
+        }
+
         DB::beginTransaction();
         try {
+            // ── Serialkan store() supaya double-submit (multi-tab/retry) tidak bikin 2 dokumen ──
+            DB::select("SELECT pg_advisory_xact_lock(hashtext(?))", [$this->moduleCode . '-store']);
+
             AppHelpers::resetCode($this->codeKey);
             $fgNumber = $this->getLastCode($this->codeKey);
 
