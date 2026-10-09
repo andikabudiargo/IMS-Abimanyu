@@ -111,7 +111,6 @@
   // Select2 voucher dropdown: AJAX search ke bankReconciliation.search.voucher,
   // hanya menampilkan kas_det akun yg sama & belum terpakai match lain (lihat controller).
   $('#mmVoucher').select2({
-    dropdownParent: $('#modalMatchManual'),
     placeholder: 'Ketik voucher number / keterangan...',
     ajax: {
       url: "{{ route('bankReconciliation.search.voucher') }}",
