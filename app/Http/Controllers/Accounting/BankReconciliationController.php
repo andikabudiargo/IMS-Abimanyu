@@ -78,7 +78,7 @@ class BankReconciliationController extends Controller
             'periode' => 'required',
             'year' => 'required|integer',
             'type' => 'required|in:KAS,BANK',
-            'statement' => 'required|file|mimes:pdf',
+            'statement' => 'required|file|mimes:csv,txt',
         ]);
 
         if ($validation->fails()) {
@@ -100,11 +100,11 @@ class BankReconciliationController extends Controller
         try {
             $parsed = (new BcaStatementParser())->parseFile(storage_path('app/' . $path));
         } catch (\Exception $e) {
-            return response()->json(['status' => -1, 'title' => "Save $this->title", 'message' => 'Gagal membaca PDF: ' . $e->getMessage(), 'alert' => 'error']);
+            return response()->json(['status' => -1, 'title' => "Save $this->title", 'message' => 'Gagal membaca CSV: ' . $e->getMessage(), 'alert' => 'error']);
         }
 
         if (empty($parsed['rows'])) {
-            return response()->json(['status' => 2, 'title' => "Save $this->title", 'message' => 'Tidak ada baris transaksi yang terbaca dari PDF ini.', 'alert' => 'warning']);
+            return response()->json(['status' => 2, 'title' => "Save $this->title", 'message' => 'Tidak ada baris transaksi yang terbaca dari CSV ini.', 'alert' => 'warning']);
         }
 
         AppHelpers::resetCode($this->moduleCode);
@@ -161,12 +161,12 @@ class BankReconciliationController extends Controller
         }
     }
 
-    // Bandingkan hasil parse baris transaksi terhadap ringkasan di akhir PDF
-    // (SALDO AWAL/MUTASI CR/MUTASI DB/SALDO AKHIR) sebagai checksum kewarasan parser.
+    // Bandingkan hasil parse baris transaksi terhadap ringkasan di akhir CSV
+    // (Saldo Awal/Mutasi Debet/Mutasi Kredit/Saldo Akhir) sebagai checksum kewarasan parser.
     private function checksumWarning(array $rows, array $summary): ?string
     {
         if ($summary['count_cr'] === null && $summary['count_db'] === null) {
-            return null; // ringkasan tidak ketemu di PDF, skip checksum
+            return null; // ringkasan tidak ketemu di file, skip checksum
         }
 
         $cr = array_filter($rows, fn ($r) => $r['mutation_type'] === 'CR');
@@ -176,19 +176,19 @@ class BankReconciliationController extends Controller
 
         $issues = [];
         if ($summary['count_cr'] !== null && count($cr) !== $summary['count_cr']) {
-            $issues[] = "jumlah baris CR terbaca " . count($cr) . ", PDF bilang {$summary['count_cr']}";
+            $issues[] = "jumlah baris CR terbaca " . count($cr) . ", file bilang {$summary['count_cr']}";
         }
         if ($summary['count_db'] !== null && count($db) !== $summary['count_db']) {
-            $issues[] = "jumlah baris DB terbaca " . count($db) . ", PDF bilang {$summary['count_db']}";
+            $issues[] = "jumlah baris DB terbaca " . count($db) . ", file bilang {$summary['count_db']}";
         }
         if ($summary['mutasi_cr'] !== null && abs($sumCr - $summary['mutasi_cr']) > 0.01) {
-            $issues[] = "total CR terbaca " . number_format($sumCr, 2) . ", PDF bilang " . number_format($summary['mutasi_cr'], 2);
+            $issues[] = "total CR terbaca " . number_format($sumCr, 2) . ", file bilang " . number_format($summary['mutasi_cr'], 2);
         }
         if ($summary['mutasi_db'] !== null && abs($sumDb - $summary['mutasi_db']) > 0.01) {
-            $issues[] = "total DB terbaca " . number_format($sumDb, 2) . ", PDF bilang " . number_format($summary['mutasi_db'], 2);
+            $issues[] = "total DB terbaca " . number_format($sumDb, 2) . ", file bilang " . number_format($summary['mutasi_db'], 2);
         }
 
-        return $issues ? ('Hasil parse tidak cocok dengan ringkasan PDF (' . implode('; ', $issues) . '). Kemungkinan ada baris yang ke-skip, cek manual.') : null;
+        return $issues ? ('Hasil parse tidak cocok dengan ringkasan CSV (' . implode('; ', $issues) . '). Kemungkinan ada baris yang ke-skip, cek manual.') : null;
     }
 
     // Cocokkan tiap baris UNMATCHED ke kas_det (type + period/year + tanggal + nominal

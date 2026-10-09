@@ -41,9 +41,9 @@
           </div>
           <div class="form-row">
             <div class="form-group col-md-6">
-              <label class="form-label" for="statement">Rekening Koran (PDF)*</label>
+              <label class="form-label" for="statement">Rekening Koran (CSV)*</label>
               <div class="custom-file">
-                <input type="file" class="custom-file-input" name="statement" id="statement" accept=".pdf" required />
+                <input type="file" class="custom-file-input" name="statement" id="statement" accept=".csv" required />
                 <label class="custom-file-label" for="statement" id="statementLabel">Choose file</label>
               </div>
             </div>
