@@ -185,6 +185,45 @@
     </div>
 </section>
 
+<section id="dpo-section" class="d-none">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="card-title mb-0">DPO (Days Payable Outstanding)</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm table-bordered text-right" style="font-size:.85rem;">
+                <thead class="text-center">
+                    <tr>
+                        <th class="text-left">Aging</th>
+                        <th>Saldo</th>
+                        <th>Hari</th>
+                        <th>Kontrol (Saldo x Hari)</th>
+                    </tr>
+                </thead>
+                <tbody id="dpoBody"></tbody>
+                <tfoot>
+                    <tr class="font-weight-bold">
+                        <td class="text-left">Total</td>
+                        <td id="dpoTotalSaldo">0</td>
+                        <td></td>
+                        <td id="dpoTotalKontrol">0</td>
+                    </tr>
+                </tfoot>
+            </table>
+            <div class="row mt-1">
+                <div class="col-sm-6">
+                    <strong>DPO</strong> (Total Kontrol / Total Saldo) =
+                    <span id="dpoValue" class="font-weight-bold">0</span> hari
+                </div>
+                <div class="col-sm-6">
+                    <strong>Overdue Ratio</strong> (Total Saldo / Total Hutang) =
+                    <span id="dpoOverdueRatio" class="font-weight-bold">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section id="aging-result">
     <div class="card">
         <div class="card-header">
@@ -310,6 +349,7 @@ $(document).ready(function () {
         $('#agingHeaderInfo').addClass('d-none');
         $('#agingScroll').addClass('d-none');
         $('#aging-summary').addClass('d-none');
+        $('#dpo-section').addClass('d-none');
         $('#btnPrint').addClass('d-none');
         $('#btnExport').addClass('d-none');
         $('#agingEmpty').removeClass('d-none');
@@ -398,12 +438,47 @@ $(document).ready(function () {
             : 'Info: Balance Invoice DRAFT (tidak masuk aging)');
         $('#aging-summary').removeClass('d-none');
 
+        renderDpo(g);
+
         $('#agingEmpty').addClass('d-none');
         $('#agingScroll').removeClass('d-none');
         $('#btnPrint').removeClass('d-none');
         $('#btnExport').removeClass('d-none');
 
         if (typeof feather !== 'undefined') feather.replace();
+    }
+
+    function renderDpo(g) {
+        let buckets = [
+            { label: '0 - 30 Hari',   saldo: g.d1_30,    hari: 15 },
+            { label: '31 - 60 Hari',  saldo: g.d31_60,   hari: 45 },
+            { label: '61 - 90 Hari',  saldo: g.d61_90,   hari: 75 },
+            { label: '91 - 120 Hari', saldo: g.d91_120,  hari: 105 },
+            { label: '> 120 Hari',    saldo: g.d120plus, hari: 120 },
+        ];
+
+        let body = '', totalSaldo = 0, totalKontrol = 0;
+        buckets.forEach(function (b) {
+            let kontrol = b.saldo * b.hari;
+            totalSaldo   += b.saldo;
+            totalKontrol += kontrol;
+            body += '<tr>'
+                + '<td class="text-left">' + b.label + '</td>'
+                + '<td>' + fmt(b.saldo) + '</td>'
+                + '<td>' + b.hari + '</td>'
+                + '<td>' + fmt(kontrol) + '</td>'
+                + '</tr>';
+        });
+        $('#dpoBody').html(body);
+        $('#dpoTotalSaldo').text(fmt(totalSaldo));
+        $('#dpoTotalKontrol').text(fmt(totalKontrol));
+
+        let dpo = totalSaldo > 0 ? (totalKontrol / totalSaldo) : 0;
+        let overdueRatio = g.total_hutang > 0 ? (totalSaldo / g.total_hutang) * 100 : 0;
+        $('#dpoValue').text(dpo.toFixed(1));
+        $('#dpoOverdueRatio').text(overdueRatio.toFixed(1) + '%');
+
+        $('#dpo-section').removeClass('d-none');
     }
 
     let bucketTitles = {
