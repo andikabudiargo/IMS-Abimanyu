@@ -1942,11 +1942,11 @@ DB::raw("
     // KasPenerimaanController::approve), jadi tidak reliable buat dashboard.
     $arAging = new ArAgingReportController();
 
-    // Opening balance = total outstanding riil per akhir tahun sebelumnya
-    $opening = $arAging->totalOutstanding($dayBeforeStart);
+    // Opening balance = total outstanding riil per akhir tahun sebelumnya (termasuk DRAFT)
+    $opening = $arAging->totalOutstanding($dayBeforeStart, true);
 
-    // Outstanding = total outstanding riil per tanggal cutoff
-    $outstanding = $arAging->totalOutstanding($cutoff);
+    // Outstanding = total outstanding riil per tanggal cutoff (termasuk DRAFT)
+    $outstanding = $arAging->totalOutstanding($cutoff, true);
 
     // Sales: invoice terbit dalam tahun berjalan s.d. cutoff
     $totalAr = DB::table('invoice_hdr')
@@ -1981,7 +1981,8 @@ DB::raw("
               )
     ", [$startDate, $cutoff])->total;
 
-    // Invoice yang masih DRAFT (status '1'), belum ikut dihitung di angka2 di atas
+    // Invoice yang masih DRAFT (status '1') -- sudah ikut dihitung di angka2 di atas,
+    // ini cuma info jumlah dokumennya.
     $draftCount = DB::table('invoice_hdr')
         ->where('status', '1')
         ->whereRaw("to_date(invoice_date,'DD-MM-YYYY') between to_date(?, 'DD-MM-YYYY') and to_date(?, 'DD-MM-YYYY')", [$startDate, $cutoff])

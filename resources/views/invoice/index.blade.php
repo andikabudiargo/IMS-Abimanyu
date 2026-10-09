@@ -324,7 +324,7 @@ const loadArDashboard = (cutoffDate) => {
     $('#cardOutstanding').text(fmtRp(res.outstanding));
     $('#cardInvoiceTerkirim').text(fmtRp(res.totalInvoiceTerkirim));
     $('#cardPembayaranDiterima').text(fmtRp(res.pembayaranDiterima));
-    $('#arDraftInfo').text(res.draftCount > 0 ? res.draftCount + ' invoice masih berstatus DRAFT (belum dihitung di angka di atas)' : '');
+    $('#arDraftInfo').text(res.draftCount > 0 ? res.draftCount + ' invoice masih berstatus DRAFT (sudah termasuk dalam angka di atas)' : '');
   });
 };
 

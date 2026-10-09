@@ -117,7 +117,7 @@ class ApAgingReportController extends Controller
      * populasi aging (aturan floor/pair sama persis dgn buildHutangSubquery).
      * Dipakai AP Dashboard supaya Opening + Pembelian - Pembayaran = Balance.
      */
-    public function totalPaidBetween($startDate, $cutoffDate)
+    public function totalPaidBetween($startDate, $cutoffDate, $includeDraft = false)
     {
         $anchor = "COALESCE(
                 to_date(NULLIF(ap_invoice.ap_date,''),'DD-MM-YYYY'),
@@ -125,13 +125,14 @@ class ApAgingReportController extends Controller
               )";
         $partyMatch = $this->paymentMatchSql('kas_hdr', 'kas_det');
         $pairMatch  = $this->paymentMatchSql('h', 'd');
+        $statusFilter = $includeDraft ? "ap_invoice.status <> '5'" : "ap_invoice.status NOT IN ('1','5')";
 
         $row = DB::selectOne("
             SELECT COALESCE(SUM(kas_det.debit),0) as total
             FROM ap_invoice
             JOIN kas_det ON kas_det.reference = ap_invoice.inv_number
             JOIN kas_hdr ON kas_hdr.voucher_number = kas_det.voucher_number
-            WHERE ap_invoice.status NOT IN ('1','5')
+            WHERE $statusFilter
               AND $partyMatch
               AND kas_hdr.status <> '5'
               AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN to_date(:startDate,'DD-MM-YYYY') AND to_date(:cutoff,'DD-MM-YYYY')
@@ -248,14 +249,14 @@ class ApAgingReportController extends Controller
     /**
      * Total hutang outstanding per cutoff (tanpa filter supplier).
      */
-    public function totalOutstanding($cutoffDate)
+    public function totalOutstanding($cutoffDate, $includeDraft = false)
     {
         $bindings = [
             'cutoff'             => $cutoffDate,
             'floorDate'          => $this->floorDate,
             'pairRequiredBefore' => $this->pairRequiredBefore,
         ];
-        $subquery = $this->buildHutangSubquery('');
+        $subquery = $this->buildHutangSubquery('', $includeDraft);
         $row = DB::selectOne("SELECT COALESCE(SUM(balance),0) as total FROM ($subquery) hutang WHERE balance > {$this->minOutstanding}", $bindings);
         return (float) $row->total;
     }

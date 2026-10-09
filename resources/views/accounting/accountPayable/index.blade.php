@@ -248,7 +248,7 @@ function getExportDateTimeString(){
       $('#cardApOutstanding').text(fmtRp(res.outstanding));
       $('#apRecon').text('Selisih rekonsiliasi (Opening + Pembelian - Pembayaran - Balance): ' + fmtRp(res.selisih)
         + ' | Saldo <=0 / lebih bayar yang dibuang: opening ' + fmtRp(res.excludedOpening) + ', cut-off ' + fmtRp(res.excludedCutoff));
-      $('#apDraftInfo').text(res.draftCount > 0 ? res.draftCount + ' AP masih berstatus DRAFT (belum dihitung di angka di atas)' : '');
+      $('#apDraftInfo').text(res.draftCount > 0 ? res.draftCount + ' AP masih berstatus DRAFT (sudah termasuk dalam angka di atas)' : '');
     });
   };
 

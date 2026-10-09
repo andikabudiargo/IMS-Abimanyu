@@ -210,14 +210,14 @@ class ArAgingReportController extends Controller
      * pakai rumus balance yang identik, bukan status invoice_hdr.status='6'
      * yang terbukti tidak reliable (lihat komentar di buildPiutangSubquery).
      */
-    public function totalOutstanding($cutoffDate)
+    public function totalOutstanding($cutoffDate, $includeDraft = false)
     {
         $bindings = [
             'cutoff'             => $cutoffDate,
             'floorDate'          => $this->floorDate,
             'pairRequiredBefore' => $this->pairRequiredBefore,
         ];
-        $subquery = $this->buildPiutangSubquery('');
+        $subquery = $this->buildPiutangSubquery('', $includeDraft);
         $row = DB::selectOne("SELECT COALESCE(SUM(balance),0) as total FROM ($subquery) piutang WHERE balance > 0.01", $bindings);
         return (float) $row->total;
     }

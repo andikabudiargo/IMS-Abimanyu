@@ -2278,23 +2278,25 @@ class AccountPayableController extends Controller
         $dayBeforeStart = date('d-m-Y', strtotime("$year-01-01 -1 day"));
 
         // Opening & Balance pakai rumus yang SAMA dengan AP Aging (mirror AR dashboard).
+        // includeDraft=true supaya AP berstatus DRAFT ikut dihitung di card.
         $apAging     = new \App\Http\Controllers\ApAgingReportController();
-        $opening     = $apAging->totalOutstanding($dayBeforeStart);
-        $outstanding = $apAging->totalOutstanding($cutoff);
+        $opening     = $apAging->totalOutstanding($dayBeforeStart, true);
+        $outstanding = $apAging->totalOutstanding($cutoff, true);
 
-        // Pembelian: AP non-draft/non-cancel dalam tahun berjalan s.d. cutoff
+        // Pembelian: AP non-cancel (termasuk DRAFT) dalam tahun berjalan s.d. cutoff
         $anchor = "COALESCE(to_date(NULLIF(ap_date,''),'DD-MM-YYYY'), to_date(NULLIF(inv_date,''),'DD-MM-YYYY'))";
         $totalAp = DB::selectOne("
             SELECT COALESCE(SUM(grand_total),0) as total
             FROM ap_invoice
-            WHERE status NOT IN ('1','5')
+            WHERE status <> '5'
               AND $anchor BETWEEN to_date(?,'DD-MM-YYYY') AND to_date(?,'DD-MM-YYYY')
         ", [$startDate, $cutoff])->total;
 
         // Pembayaran: KK/BK/BM/KM + General Journal, populasi & rumus SAMA dgn AP Aging
-        $totalPaid = $apAging->totalPaidBetween($startDate, $cutoff);
+        $totalPaid = $apAging->totalPaidBetween($startDate, $cutoff, true);
 
-        // AP yang masih DRAFT (status '1'), belum ikut dihitung di angka2 di atas
+        // AP yang masih DRAFT (status '1') -- sudah ikut dihitung di angka2 di atas,
+        // ini cuma info jumlah dokumennya.
         $draftCount = DB::selectOne("
             SELECT COUNT(*) as total
             FROM ap_invoice
