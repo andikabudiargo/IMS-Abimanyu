@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6f62846150359e02786c4a3db89e1edd",
+    "content-hash": "e1c5357fa6b82c3fed5c4ec04c57beb6",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -284,6 +284,68 @@
                 "source": "https://github.com/DASPRiD/Enum/tree/1.0.3"
             },
             "time": "2020-10-02T16:03:48+00:00"
+        },
+        {
+            "name": "denysmedvid/pdfparser",
+            "version": "v2.13.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DenysMedvid/pdfparser.git",
+                "reference": "021a1f4aad57a815f221a88f01e1d3d5aa89fc6e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DenysMedvid/pdfparser/zipball/021a1f4aad57a815f221a88f01e1d3d5aa89fc6e",
+                "reference": "021a1f4aad57a815f221a88f01e1d3d5aa89fc6e",
+                "shasum": ""
+            },
+            "require": {
+                "ext-iconv": "*",
+                "ext-openssl": "*",
+                "ext-zlib": "*",
+                "php": ">=7.1",
+                "symfony/polyfill-mbstring": "^1.18"
+            },
+            "replace": {
+                "smalot/pdfparser": "self.version"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Smalot\\PdfParser\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL-3.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Sebastien MALOT",
+                    "email": "sebastien@malot.fr"
+                },
+                {
+                    "name": "Denys Medvid",
+                    "email": "denys@medvid.cc"
+                }
+            ],
+            "description": "Pdf parser library with secured/encrypted PDF support. A fork of smalot/pdfparser that can read and extract information from pdf files, including encrypted ones (RC4 40/128-bit, AES-128 and AES-256).",
+            "homepage": "https://www.pdfparser.org",
+            "keywords": [
+                "decrypt",
+                "encrypted",
+                "extract",
+                "parse",
+                "parser",
+                "pdf",
+                "secured",
+                "text"
+            ],
+            "support": {
+                "issues": "https://github.com/DenysMedvid/pdfparser/issues",
+                "source": "https://github.com/DenysMedvid/pdfparser/tree/v2.13.2"
+            },
+            "time": "2026-08-06T12:27:00+00:00"
         },
         {
             "name": "doctrine/inflector",
