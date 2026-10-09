@@ -45,19 +45,20 @@
   .bg-pos { color:#28c76f; font-weight:600; }
   .bg-neg { color:#ea5455; font-weight:600; }
 
-  /* Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
-  .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
-  .col-sticky1 { left:0; min-width:110px; }
-  .col-sticky2 { left:110px; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
-  #bgTable thead .col-sticky1, #bgTable thead .col-sticky2 { z-index:4; background:#f3f2f7; }
+  /* Unbudget + Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
+  .col-sticky0, .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
+  .col-sticky0 { left:0; min-width:60px; text-align:center; }
+  .col-sticky1 { left:60px; min-width:110px; }
+  .col-sticky2 { left:170px; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
+  #bgTable thead .col-sticky0, #bgTable thead .col-sticky1, #bgTable thead .col-sticky2 { z-index:4; background:#f3f2f7; }
 
   /* Zebra + hover (ikut mewarnai kolom sticky) */
   #bgTable tbody tr.bg-row:nth-child(odd) { background:#fff; }
   #bgTable tbody tr.bg-row:nth-child(even) { background:#f8f9fc; }
-  #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky2 { background:#fff; }
-  #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky2 { background:#f8f9fc; }
+  #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky0, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky2 { background:#fff; }
+  #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky0, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky2 { background:#f8f9fc; }
   #bgTable tbody tr.bg-row:hover { background:#eef1fd; }
-  #bgTable tbody tr.bg-row:hover td.col-sticky1, #bgTable tbody tr.bg-row:hover td.col-sticky2 { background:#eef1fd; }
+  #bgTable tbody tr.bg-row:hover td.col-sticky0, #bgTable tbody tr.bg-row:hover td.col-sticky1, #bgTable tbody tr.bg-row:hover td.col-sticky2 { background:#eef1fd; }
 </style>
 @endsection
 
@@ -106,8 +107,10 @@
 
   function buildHead() {
     let r1 = '<tr>'
+      + '<th rowspan="2" class="text-center">Unbudget</th>'
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
+      + '<th rowspan="2" class="text-right">Inflasi</th>'
       + '<th rowspan="2" class="text-right">Cost Reduction</th>'
       + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period">Monthly Budget</th>'
       + '<th rowspan="2" class="text-right" title="Tambahan budget yang disetujui kalau dept ini over-budget">Additional Budget</th>'
@@ -122,23 +125,25 @@
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (8 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
+      html = '<tr><td colspan="' + (10 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       html += '<tr class="bg-row" data-r="' + ri + '">'
+            + '<td class="col-sticky0">' + (r.is_unbudget ? '<i data-feather="check-square" style="width:14px;height:14px"></i>' : '') + '</td>'
             + '<td class="bg-acc col-sticky1">' + esc(r.account) + '</td><td class="col-sticky2">' + esc(r.nama_akun) + '</td>'
             + '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-debit">' + nf(r.debit) + '</a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
+            + '<td class="text-right">' + r.inflation + '%</td>'
             + '<td class="text-right">' + r.cost_reduction + '%</td>'
-            + '<td class="text-right">' + nf(r.final_budget_monthly) + '</td>'
+            + '<td class="text-right">' + (r.is_unbudget ? '-' : nf(r.final_budget_monthly)) + '</td>'
             + '<td class="text-right">' + nf(r.additional_budget) + '</td>'
-            + '<td class="text-right">' + nf(r.final_budget) + '</td>';
+            + '<td class="text-right">' + (r.is_unbudget ? '-' : nf(r.final_budget)) + '</td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '">' + nf((r.realisasi || {})[m] || 0) + '</a></td>';
       });
-      html += '<td class="text-right">' + nf(r.realisasi_total) + '</td>'
-            + '<td class="text-right ' + (r.selisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + nf(r.selisih) + '</td>'
-            + '<td class="text-right ' + (r.selisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + r.realisasi_pct + '%</td></tr>';
+      html += '<td class="text-right">' + (r.is_unbudget ? '-' : nf(r.realisasi_total)) + '</td>'
+            + '<td class="text-right ' + (r.selisih !== null && r.selisih >= 0 ? 'bg-pos' : (r.selisih !== null ? 'bg-neg' : '')) + '">' + (r.selisih === null ? '-' : nf(r.selisih)) + '</td>'
+            + '<td class="text-right ' + (r.selisih !== null && r.selisih >= 0 ? 'bg-pos' : (r.selisih !== null ? 'bg-neg' : '')) + '">' + (r.realisasi_pct === null ? '-' : r.realisasi_pct + '%') + '</td></tr>';
     });
     $('#bg-body').html(html);
   }

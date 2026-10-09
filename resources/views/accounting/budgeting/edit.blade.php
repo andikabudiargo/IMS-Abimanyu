@@ -16,7 +16,25 @@
     <small class="text-muted d-block mb-1">
       Ubah Cost Reduction / Final Budget lalu klik Save. <strong>Final Budget adalah TOTAL untuk seluruh Budget Period</strong>; Monthly Budget mengikuti otomatis (Final Budget &divide; jumlah bulan).
       Recalculate menarik ulang Debit, Average dan Realisasi dari transaksi terbaru. Klik nilai Debit / Realisasi untuk melihat rincian transaksi.
+      Centang <strong>Unbudget</strong> untuk keluarkan COA itu dari budget (realisasi bulanannya tetap tampil sebagai referensi, tapi tidak dihitung ke Total Realisasi).
     </small>
+    <div class="d-flex flex-wrap align-items-end mb-2" style="gap:1rem">
+      <div>
+        <label class="mb-0 small" for="defaultCr">Default Cost Reduction</label>
+        <div class="input-group input-group-sm" style="width:130px">
+          <input type="number" id="defaultCr" class="form-control text-right" min="0" max="100" step="0.01" placeholder="%">
+          <div class="input-group-append"><span class="input-group-text">%</span></div>
+        </div>
+      </div>
+      <div>
+        <label class="mb-0 small" for="defaultInflasi">Default Inflasi</label>
+        <div class="input-group input-group-sm" style="width:130px">
+          <input type="number" id="defaultInflasi" class="form-control text-right" min="0" step="0.01" placeholder="%">
+          <div class="input-group-append"><span class="input-group-text">%</span></div>
+        </div>
+      </div>
+      <small class="text-muted">Mengubah seluruh baris di tabel secara langsung; tetap bisa dioverride per baris.</small>
+    </div>
     <div class="table-responsive bg-scroll">
       <table id="bgTable" class="table table-sm">
         <thead class="thead-light" id="bg-thead"></thead>
@@ -50,19 +68,20 @@
   .bg-pos { color:#28c76f; font-weight:600; }
   .bg-neg { color:#ea5455; font-weight:600; }
 
-  /* Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
-  .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
-  .col-sticky1 { left:0; min-width:110px; }
-  .col-sticky2 { left:110px; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
-  #bgTable thead .col-sticky1, #bgTable thead .col-sticky2 { z-index:4; background:#f3f2f7; }
+  /* Unbudget + Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
+  .col-sticky0, .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
+  .col-sticky0 { left:0; min-width:60px; text-align:center; }
+  .col-sticky1 { left:60px; min-width:110px; }
+  .col-sticky2 { left:170px; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
+  #bgTable thead .col-sticky0, #bgTable thead .col-sticky1, #bgTable thead .col-sticky2 { z-index:4; background:#f3f2f7; }
 
   /* Zebra + hover (ikut mewarnai kolom sticky) */
   #bgTable tbody tr.bg-row:nth-child(odd) { background:#fff; }
   #bgTable tbody tr.bg-row:nth-child(even) { background:#f8f9fc; }
-  #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky2 { background:#fff; }
-  #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky2 { background:#f8f9fc; }
+  #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky0, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky2 { background:#fff; }
+  #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky0, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky2 { background:#f8f9fc; }
   #bgTable tbody tr.bg-row:hover { background:#eef1fd; }
-  #bgTable tbody tr.bg-row:hover td.col-sticky1, #bgTable tbody tr.bg-row:hover td.col-sticky2 { background:#eef1fd; }
+  #bgTable tbody tr.bg-row:hover td.col-sticky0, #bgTable tbody tr.bg-row:hover td.col-sticky1, #bgTable tbody tr.bg-row:hover td.col-sticky2 { background:#eef1fd; }
 </style>
 @endsection
 
@@ -120,8 +139,10 @@
 
   function buildHead() {
     let r1 = '<tr>'
+      + '<th rowspan="2" class="text-center" title="Keluarkan COA ini dari budget">Unbudget</th>'
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
+      + '<th rowspan="2" class="col-cr" title="Persen penambah ke Average (kebalikan Cost Reduction)">Inflasi</th>'
       + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
       + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period, ikut berubah tiap Final Budget diedit">Monthly Budget</th>'
       + '<th rowspan="2" class="col-add" title="Tambahan budget yang disetujui kalau dept ini over-budget">Additional Budget</th>'
@@ -136,20 +157,30 @@
   function rowSelisih(r) { return round2(r.final_budget - r.realisasi_total); }
   function rowPct(r) { if (r.final_budget > 0) return round2(r.realisasi_total / r.final_budget * 100); return r.realisasi_total > 0 ? -100 : 0; }
 
+  // budget = Average x (1 - Cost Reduction% + Inflasi%); Inflasi menambah, Cost Reduction mengurangi.
+  function recomputeBudget(r) {
+    if (r.is_unbudget) { r.budget = 0; r.final_budget = 0; return; }
+    r.budget = round2(r.average * (1 - r.cost_reduction / 100 + r.inflation / 100));
+    r.final_budget = round2(r.budget * r.active_months);
+  }
+
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (8 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
+      html = '<tr><td colspan="' + (10 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
     }
     rows.forEach(function (r, ri) {
-      html += '<tr class="bg-row" data-r="' + ri + '">'
+      const dis = r.is_unbudget ? 'disabled' : '';
+      html += '<tr class="bg-row' + (r.is_unbudget ? ' bg-row-unbudget' : '') + '" data-r="' + ri + '">'
+            + '<td class="col-sticky0"><input type="checkbox" class="bg-unbudget" ' + (r.is_unbudget ? 'checked' : '') + '></td>'
             + '<td class="bg-acc col-sticky1">' + esc(r.account) + '</td><td class="col-sticky2">' + esc(r.nama_akun) + '</td>'
             + '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-debit"></a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
-            + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
+            + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" ' + dis + ' class="form-control text-right bg-inflasi" min="0" step="0.01" value="' + r.inflation + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
+            + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" ' + dis + ' class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="text-right bg-budget"></td>'
             + '<td class="col-add"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-additional" value="' + nf(r.additional_budget) + '"></td>'
-            + '<td class="col-final"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + nf(r.final_budget) + '"></td>';
+            + '<td class="col-final"><input type="text" ' + dis + ' inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + (r.is_unbudget ? '-' : nf(r.final_budget)) + '"></td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '"></a></td>';
       });
@@ -163,21 +194,25 @@
     const r = rows[ri];
     const $tr = $('#bg-body tr.bg-row[data-r="' + ri + '"]');
     $tr.find('.bg-debit').text(nf(r.debit));
+    $tr.find('.bg-real').each(function () {
+      const m = $(this).data('m');
+      $(this).text(nf((r.realisasi || {})[m] || 0));
+    });
+    if (r.is_unbudget) {
+      $tr.find('.bg-budget, .bg-total, .bg-selisih, .bg-pct').text('-').removeClass('bg-pos bg-neg');
+      return;
+    }
     $tr.find('.bg-budget').text(nf(months.length > 0 ? r.final_budget / months.length : 0));
     $tr.find('.bg-total').text(nf(r.realisasi_total));
     const selisih = rowSelisih(r), pct = rowPct(r);
     $tr.find('.bg-selisih').text(nf(selisih)).removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
     $tr.find('.bg-pct').text(pct + '%').removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
-    $tr.find('.bg-real').each(function () {
-      const m = $(this).data('m');
-      $(this).text(nf((r.realisasi || {})[m] || 0));
-    });
   }
 
   function computeCards() {
     const previous = rows.reduce((s, r) => s + r.debit, 0);
-    const totalBudget = rows.reduce((s, r) => s + r.final_budget, 0);
-    const actual = rows.reduce((s, r) => s + r.realisasi_total, 0);
+    const totalBudget = rows.reduce((s, r) => s + (r.is_unbudget ? 0 : r.final_budget), 0);
+    const actual = rows.reduce((s, r) => s + (r.is_unbudget ? 0 : r.realisasi_total), 0);
     const margin = totalBudget - actual;
     return {
       previous_expenses: round2(previous), previous_pct: totalBudget > 0 ? round2(previous / totalBudget * 100) : 0,
@@ -205,10 +240,42 @@
     const r = rows[ri];
     let v = parseFloat(this.value);
     r.cost_reduction = isNaN(v) ? 0 : Math.min(100, Math.max(0, v));
-    r.budget = round2(r.average * (1 - r.cost_reduction / 100));
-    r.final_budget = round2(r.budget * r.active_months);
+    recomputeBudget(r);
     $(this).closest('tr').find('.bg-final').val(nf(r.final_budget));
     paintRow(ri);
+    paintCards(computeCards());
+  });
+  $('#bg-body').on('input', '.bg-inflasi', function () {
+    const ri = $(this).closest('tr').data('r');
+    const r = rows[ri];
+    let v = parseFloat(this.value);
+    r.inflation = isNaN(v) ? 0 : Math.max(0, v);
+    recomputeBudget(r);
+    $(this).closest('tr').find('.bg-final').val(nf(r.final_budget));
+    paintRow(ri);
+    paintCards(computeCards());
+  });
+  $('#bg-body').on('change', '.bg-unbudget', function () {
+    const ri = $(this).closest('tr').data('r');
+    const r = rows[ri];
+    r.is_unbudget = this.checked;
+    recomputeBudget(r);
+    render();
+    paintCards(computeCards());
+  });
+
+  $('#defaultCr').on('input', function () {
+    let v = parseFloat(this.value);
+    const cr = isNaN(v) ? 0 : Math.min(100, Math.max(0, v));
+    rows.forEach((r) => { r.cost_reduction = cr; recomputeBudget(r); });
+    render();
+    paintCards(computeCards());
+  });
+  $('#defaultInflasi').on('input', function () {
+    let v = parseFloat(this.value);
+    const inflasi = isNaN(v) ? 0 : Math.max(0, v);
+    rows.forEach((r) => { r.inflation = inflasi; recomputeBudget(r); });
+    render();
     paintCards(computeCards());
   });
   $('#bg-body').on('focus', '.bg-final', function () {
@@ -237,7 +304,7 @@
     r.additional_budget = v !== null ? v : 0;
     this.value = nf(r.additional_budget);
   });
-  $('#bg-body').on('keydown', '.bg-final, .bg-cr, .bg-additional', function (e) {
+  $('#bg-body').on('keydown', '.bg-final, .bg-cr, .bg-additional, .bg-inflasi', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); this.blur(); }
   });
 
@@ -255,7 +322,7 @@
       if (!result.isConfirmed) return;
       $('.loading-spinner-container').addClass('-show');
       const oldRows = rows;
-      const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, additional_budget: r.additional_budget }));
+      const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget }));
       $.post("{{ route('budgeting.recalculate', $hdr->id) }}", { rows: payload }).done(function (res) {
         months = res.months;
         rows = res.rows;
@@ -270,7 +337,7 @@
   });
 
   $('#btnSave').click(function () {
-    const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, final_budget: r.final_budget, additional_budget: r.additional_budget }));
+    const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget }));
     $('.loading-spinner-container').addClass('-show');
     $.ajax({
       url: "{{ route('budgeting.update', $hdr->id) }}", type: 'PUT',

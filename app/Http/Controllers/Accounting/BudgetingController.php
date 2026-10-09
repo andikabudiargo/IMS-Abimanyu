@@ -39,6 +39,9 @@ class BudgetingController extends Controller
     /** Cost center kosong dianggap dept ini (sama dengan Buku Besar). */
     const DEFAULT_DEPT = '007';
 
+    /** Dept LOGISTIC: special case, ikut narik COA 1100.31 s/d 1100.35. */
+    const LOGISTIC_DEPT = '005';
+
     const DEFAULT_COST_REDUCTION = 5;
 
     const BULAN = [
@@ -184,7 +187,7 @@ class BudgetingController extends Controller
     {
         $list = DB::table('budgeting_hdr as h')
             ->leftJoin('depts as dp', 'dp.code', 'h.dept_code')
-            ->leftJoin(DB::raw('(select budgeting_hdr_id, sum(final_budget) as sum_final, sum(realisasi_total) as sum_real from budgeting_det group by budgeting_hdr_id) as agg'), 'agg.budgeting_hdr_id', 'h.id')
+            ->leftJoin(DB::raw("(select budgeting_hdr_id, sum(final_budget) as sum_final, sum(case when is_unbudget then 0 else realisasi_total end) as sum_real from budgeting_det group by budgeting_hdr_id) as agg"), 'agg.budgeting_hdr_id', 'h.id')
             ->select('h.*', 'dp.name as dept_name', 'agg.sum_final', 'agg.sum_real')
             ->orderByDesc('h.id')
             ->get();
@@ -300,12 +303,14 @@ class BudgetingController extends Controller
 
             foreach ($rows as $r) {
                 $edit = $edits->get($r['account']);
+                $unbudget = $edit ? (bool) ($edit['is_unbudget'] ?? false) : false;
                 $cr = $edit ? min(100, max(0, (float) $edit['cost_reduction'])) : self::DEFAULT_COST_REDUCTION;
-                $budget = round($r['average'] * (1 - $cr / 100), 2);
+                $inflation = $edit ? max(0, (float) ($edit['inflation'] ?? 0)) : 0;
+                $budget = $unbudget ? 0 : round($r['average'] * (1 - $cr / 100 + $inflation / 100), 2);
                 // final_budget = TOTAL untuk seluruh budget period (bukan bulanan).
                 // Default diskalakan ke active_months (bukan seluruh bulan budget period), supaya pengeluaran
                 // yang historisnya jarang muncul (mis. sekali dalam setahun) tidak diproyeksikan jadi bulanan.
-                $final = ($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : round($budget * $r['active_months'], 2);
+                $final = $unbudget ? 0 : (($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : round($budget * $r['active_months'], 2));
                 $additional = $edit ? (float) ($edit['additional_budget'] ?? 0) : 0;
 
                 DB::table('budgeting_det')->insert([
@@ -316,9 +321,11 @@ class BudgetingController extends Controller
                     'average'           => $r['average'],
                     'active_months'     => $r['active_months'],
                     'cost_reduction'    => $cr,
+                    'inflation'         => $inflation,
                     'budget'            => $budget,
                     'final_budget'      => $final,
                     'additional_budget' => $additional,
+                    'is_unbudget'       => $unbudget,
                     'realisasi_json'   => json_encode($r['realisasi']),
                     'realisasi_total'  => $r['realisasi_total'],
                     'created_at'       => now(),
@@ -385,17 +392,21 @@ class BudgetingController extends Controller
                 if (!$det) {
                     continue;
                 }
+                $unbudget = (bool) ($e['is_unbudget'] ?? false);
                 $cr = min(100, max(0, (float) ($e['cost_reduction'] ?? 0)));
-                $budget = round(((float) $det->average) * (1 - $cr / 100), 2);
+                $inflation = max(0, (float) ($e['inflation'] ?? 0));
+                $budget = $unbudget ? 0 : round(((float) $det->average) * (1 - $cr / 100 + $inflation / 100), 2);
                 // final_budget = TOTAL untuk seluruh budget period (bukan bulanan).
-                $final = isset($e['final_budget']) ? (float) $e['final_budget'] : round($budget * $monthsCount, 2);
+                $final = $unbudget ? 0 : (isset($e['final_budget']) ? (float) $e['final_budget'] : round($budget * $monthsCount, 2));
                 $additional = (float) ($e['additional_budget'] ?? 0);
 
                 DB::table('budgeting_det')->where('id', $det->id)->update([
                     'cost_reduction'    => $cr,
+                    'inflation'         => $inflation,
                     'budget'            => $budget,
                     'final_budget'      => $final,
                     'additional_budget' => $additional,
+                    'is_unbudget'       => $unbudget,
                     'updated_at'        => now(),
                 ]);
             }
@@ -453,27 +464,31 @@ class BudgetingController extends Controller
         foreach ($fresh as $r) {
             $ex = $existing->get($r['account']);
             $ui = $uiCr->get($r['account']);
+            $unbudget = $ui ? (bool) ($ui['is_unbudget'] ?? false) : ($ex ? (bool) $ex->is_unbudget : false);
             $cr = $ui ? (float) $ui['cost_reduction'] : ($ex ? (float) $ex->cost_reduction : self::DEFAULT_COST_REDUCTION);
             $cr = min(100, max(0, $cr));
+            $inflation = $ui ? (float) ($ui['inflation'] ?? 0) : ($ex ? (float) $ex->inflation : 0);
             $additional = $ui ? (float) ($ui['additional_budget'] ?? 0) : ($ex ? (float) $ex->additional_budget : 0);
-            $budget = round($r['average'] * (1 - $cr / 100), 2);
-            $finalBudget = round($budget * $r['active_months'], 2);
+            $budget = $unbudget ? 0 : round($r['average'] * (1 - $cr / 100 + $inflation / 100), 2);
+            $finalBudget = $unbudget ? 0 : round($budget * $r['active_months'], 2);
 
             $rows[] = $r + [
                 'id'             => $ex->id ?? null,
                 'cost_reduction' => $cr,
+                'inflation'      => $inflation,
                 'budget'         => $budget,
                 'final_budget'   => $finalBudget,
                 'final_budget_monthly' => count($months) > 0 ? round($finalBudget / count($months), 2) : 0,
                 'additional_budget' => $additional,
-                'selisih'        => round($finalBudget - $r['realisasi_total'], 2),
-                'realisasi_pct'  => $finalBudget > 0 ? round($r['realisasi_total'] / $finalBudget * 100, 2) : ($r['realisasi_total'] > 0 ? -100 : 0),
+                'is_unbudget'    => $unbudget,
+                'selisih'        => $unbudget ? null : round($finalBudget - $r['realisasi_total'], 2),
+                'realisasi_pct'  => $unbudget ? null : ($finalBudget > 0 ? round($r['realisasi_total'] / $finalBudget * 100, 2) : ($r['realisasi_total'] > 0 ? -100 : 0)),
             ];
         }
 
         $previous = round(array_sum(array_column($rows, 'debit')), 2);
         $totalBudget = round(array_sum(array_column($rows, 'final_budget')), 2);
-        $actual = round(array_sum(array_column($rows, 'realisasi_total')), 2);
+        $actual = round(array_sum(array_map(fn($r) => $r['is_unbudget'] ? 0 : $r['realisasi_total'], $rows)), 2);
         $margin = round($totalBudget - $actual, 2);
         $cards = [
             'previous_expenses' => $previous,
@@ -567,7 +582,7 @@ class BudgetingController extends Controller
         $sheet->fromArray(['Previous: ' . $this->periodeText($d['hdr']->previous_from, $d['hdr']->previous_to) . '  |  Budget Period: ' . $this->periodeText($d['hdr']->budget_from, $d['hdr']->budget_to)], null, 'A2');
 
         $headers = array_merge(
-            ['Account', 'Name', 'Debit', 'Average', 'CR %', 'Monthly Budget', 'Additional Budget', 'Final Budget (Total)'],
+            ['Unbudget', 'Account', 'Name', 'Debit', 'Average', 'Inflasi %', 'CR %', 'Monthly Budget', 'Additional Budget', 'Final Budget (Total)'],
             $d['months'],
             ['Total Realisasi', 'Selisih', 'Realisasi %']
         );
@@ -578,22 +593,24 @@ class BudgetingController extends Controller
             // Kode akun dipaksa jadi TEXT: kalau dibiarkan auto-detect, Excel baca "5000.41"
             // sebagai angka (titik jadi koma sesuai locale id-ID) sementara "6000.10.6.02"
             // tetap text (banyak titik) -- hasilnya kolom Account tidak konsisten.
-            $sheet->setCellValueExplicit('A' . $rowNum, (string) $r['account'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('B' . $rowNum, (string) $r['account'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
 
             $line = array_merge(
-                [$r['nama_akun'], $r['debit'], $r['average'], $r['cost_reduction'] / 100, $r['final_budget_monthly'], $r['additional_budget'], $r['final_budget']],
+                [$r['is_unbudget'] ? 'YA' : '', $r['nama_akun'], $r['debit'], $r['average'], $r['inflation'] / 100, $r['cost_reduction'] / 100, $r['final_budget_monthly'], $r['additional_budget'], $r['final_budget']],
                 array_map(function ($m) use ($r) {
                     return $r['realisasi'][$m] ?? 0;
                 }, $d['months']),
-                [$r['realisasi_total'], $r['selisih'], $r['realisasi_pct'] / 100]
+                [$r['is_unbudget'] ? null : $r['realisasi_total'], $r['selisih'], $r['realisasi_pct'] !== null ? $r['realisasi_pct'] / 100 : null]
             );
-            $sheet->fromArray($line, null, 'B' . $rowNum);
+            $sheet->setCellValue('A' . $rowNum, $line[0]);
+            $sheet->fromArray(array_slice($line, 1), null, 'C' . $rowNum);
             $rowNum++;
         }
 
         $lastRow = $rowNum - 1;
         $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
-        $sheet->getStyle("E5:E{$lastRow}")->getNumberFormat()->setFormatCode('0.00%');
+        $sheet->getStyle("F5:F{$lastRow}")->getNumberFormat()->setFormatCode('0.00%');
+        $sheet->getStyle("G5:G{$lastRow}")->getNumberFormat()->setFormatCode('0.00%');
         $sheet->getStyle("{$lastCol}5:{$lastCol}{$lastRow}")->getNumberFormat()->setFormatCode('0.00%');
 
         foreach (range('A', $sheet->getHighestColumn()) as $col) {
@@ -627,7 +644,8 @@ class BudgetingController extends Controller
     private function coaOptions()
     {
         $coa = DB::table('accounts')->select('account', 'description', 'acc_header');
-        $this->applyCoaRange($coa, 'account');
+        // dept belum dipilih di titik ini -- selalu sertakan range khusus LOGISTIC supaya ada di pilihan filter.
+        $this->applyCoaRange($coa, 'account', self::LOGISTIC_DEPT);
 
         return $coa->orderBy(DB::raw("string_to_array(account,'.')::int[]"))->get();
     }
@@ -665,6 +683,7 @@ class BudgetingController extends Controller
         foreach ($det as $r) {
             $realisasi = json_decode($r->realisasi_json, true) ?: [];
             $realTotal = (float) $r->realisasi_total;
+            $unbudget = (bool) $r->is_unbudget;
             // final_budget = TOTAL untuk seluruh budget period (bukan nilai bulanan).
             $budgetTotal = (float) $r->final_budget;
 
@@ -676,20 +695,22 @@ class BudgetingController extends Controller
                 'average'        => (float) $r->average,
                 'active_months'  => (int) $r->active_months,
                 'cost_reduction' => (float) $r->cost_reduction,
+                'inflation'      => (float) $r->inflation,
                 'budget'         => (float) $r->budget,
                 'final_budget'   => $budgetTotal,
                 'final_budget_monthly' => count($months) > 0 ? round($budgetTotal / count($months), 2) : 0,
                 'additional_budget' => (float) $r->additional_budget,
+                'is_unbudget'    => $unbudget,
                 'realisasi'      => $realisasi,
                 'realisasi_total' => $realTotal,
-                'selisih'        => round($budgetTotal - $realTotal, 2),
-                'realisasi_pct'  => $budgetTotal > 0 ? round($realTotal / $budgetTotal * 100, 2) : ($realTotal > 0 ? -100 : 0),
+                'selisih'        => $unbudget ? null : round($budgetTotal - $realTotal, 2),
+                'realisasi_pct'  => $unbudget ? null : ($budgetTotal > 0 ? round($realTotal / $budgetTotal * 100, 2) : ($realTotal > 0 ? -100 : 0)),
             ];
         }
 
         $previous = round(array_sum(array_column($rows, 'debit')), 2);
         $totalBudget = round(array_sum(array_column($rows, 'final_budget')), 2);
-        $actual = round(array_sum(array_column($rows, 'realisasi_total')), 2);
+        $actual = round(array_sum(array_map(fn($r) => $r['is_unbudget'] ? 0 : $r['realisasi_total'], $rows)), 2);
         $margin = round($totalBudget - $actual, 2);
 
         $cards = [
@@ -716,7 +737,7 @@ class BudgetingController extends Controller
             ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') between ? and ?", [$from, $to])
             ->whereRaw("coalesce(upper(a.acc_header),'') <> 'HEADER'")
             ->whereRaw("coalesce(nullif(d.cost_center,''),?) = ?", [self::DEFAULT_DEPT, $dept]);
-        $this->applyCoaRange($q, 'd.account');
+        $this->applyCoaRange($q, 'd.account', $dept);
 
         if ($coas) {
             $q->where(function ($w) use ($coas) {
@@ -821,14 +842,22 @@ class BudgetingController extends Controller
         return $months;
     }
 
-    /** Batasi kolom kode akun ke segmen pertama dalam COA_RANGES. */
-    private function applyCoaRange($query, $col)
+    /**
+     * Batasi kolom kode akun ke segmen pertama dalam COA_RANGES.
+     * Special case dept LOGISTIC (005): COA 1100.31 s/d 1100.35 (dan turunannya) ikut juga.
+     */
+    private function applyCoaRange($query, $col, $dept = null)
     {
-        $query->where(function ($w) use ($col) {
+        $query->where(function ($w) use ($col, $dept) {
             foreach (self::COA_RANGES as $r) {
                 $w->orWhereRaw(
                     "(case when split_part($col,'.',1) ~ '^[0-9]+\$' then split_part($col,'.',1)::int end) between ? and ?",
                     [$r[0], $r[1]]
+                );
+            }
+            if ($dept === self::LOGISTIC_DEPT) {
+                $w->orWhereRaw(
+                    "split_part($col,'.',1) = '1100' and (case when split_part($col,'.',2) ~ '^[0-9]+\$' then split_part($col,'.',2)::int end) between 31 and 35"
                 );
             }
         });
