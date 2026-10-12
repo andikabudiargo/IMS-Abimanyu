@@ -42,7 +42,13 @@ use DB;
         sending_date + third_party.top_batas_1 hari.
       - balance = grand_total - SUM(kas_det.credit) yang sudah
         APPROVED (kas_hdr.status='3'), tanpa filter voucher_type.
-      - invoice DRAFT('1') & CANCELED('5') di-exclude.
+      - CANCELED('5') di-exclude, DRAFT('1') ikut dihitung -- sama
+        dengan AR Dashboard (InvoiceController::analyticsAr yang pakai
+        includeDraft=true), supaya Opening/Balance di sini tidak beda
+        sama angka di card dashboard.
+      - Debit Note (debit langsung ke account_piutang, tidak masuk
+        invoice_hdr) ikut di-UNION, due date = dn_date (payment_term
+        Debit Note selalu 0).
     ================================================================
 */
 
@@ -163,7 +169,7 @@ class ArPaymentScheduleController extends Controller
                   AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') >= to_date(:periodStart,'DD-MM-YYYY')
                   AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:asOf,'DD-MM-YYYY')
             ) pp ON true
-            WHERE invoice_hdr.status NOT IN ('1','5')
+            WHERE invoice_hdr.status <> '5'
               AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') >= to_date(:floorDate,'DD-MM-YYYY')
               AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') <= to_date(:asOf,'DD-MM-YYYY')
               AND (
@@ -207,7 +213,7 @@ class ArPaymentScheduleController extends Controller
                   AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') >= to_date(:periodStart,'DD-MM-YYYY')
                   AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:asOf,'DD-MM-YYYY')
             ) pp ON true
-            WHERE debit_note_hdr.status NOT IN ('1','5')
+            WHERE debit_note_hdr.status <> '5'
               AND to_date(debit_note_hdr.dn_date,'DD-MM-YYYY') >= to_date(:floorDate,'DD-MM-YYYY')
               AND to_date(debit_note_hdr.dn_date,'DD-MM-YYYY') <= to_date(:asOf,'DD-MM-YYYY')
               $whereExtra
