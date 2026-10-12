@@ -1411,6 +1411,7 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 	Route::get('conversionPlanning/show',['as'=>'conversionPlanning.show','uses'=>'Conversion\ConversionReportController@planningShow']);
 	Route::get('conversionPlanning/showRangeFilter',['as'=>'conversionPlanning.showRangeFilter','uses'=>'Conversion\ConversionReportController@planningRangeFilter']);
 	Route::get('conversionPlanning/list/detail/dn',['as'=>'conversionPlanning.list.detail.dn','uses'=>'Conversion\ConversionReportController@planningListDetailDn']);
+	Route::get('conversionPlanning/chart',['as'=>'conversionPlanning.chart','uses'=>'Conversion\ConversionReportController@chart']);
 
 	Route::get('balanceSheet',['as'=>'balanceSheet.index','uses'=>'Accounting\BalanceSheetController@index']);
 	Route::get('balanceSheet/print',['as'=>'balanceSheet.print','uses'=>'Accounting\BalanceSheetController@print']);
