@@ -464,7 +464,7 @@ class BudgetingController extends Controller
         foreach ($fresh as $r) {
             $ex = $existing->get($r['account']);
             $ui = $uiCr->get($r['account']);
-            $unbudget = $ui ? (bool) ($ui['is_unbudget'] ?? false) : ($ex ? (bool) $ex->is_unbudget : false);
+            $unbudget = $ui ? filter_var($ui['is_unbudget'] ?? false, FILTER_VALIDATE_BOOLEAN) : ($ex ? (bool) $ex->is_unbudget : false);
             $cr = $ui ? (float) $ui['cost_reduction'] : ($ex ? (float) $ex->cost_reduction : self::DEFAULT_COST_REDUCTION);
             $cr = min(100, max(0, $cr));
             $inflation = $ui ? (float) ($ui['inflation'] ?? 0) : ($ex ? (float) $ex->inflation : 0);
