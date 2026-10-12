@@ -1954,6 +1954,15 @@ DB::raw("
         ->where('status', '<>', '5')
         ->sum('grand_total');
 
+    // Debit Note juga nambah piutang (debit account_piutang, lihat
+    // DebitNoteController::prosesPosting) -- ikut dihitung di Sales & Pembayaran
+    // supaya Opening + Sales - Pembayaran tetap = Outstanding (lihat
+    // ArAgingReportController::totalOutstandingDebitNote).
+    $totalAr += DB::table('debit_note_hdr')
+        ->whereRaw("to_date(dn_date,'DD-MM-YYYY') between to_date(?, 'DD-MM-YYYY') and to_date(?, 'DD-MM-YYYY')", [$startDate, $cutoff])
+        ->where('status', '<>', '5')
+        ->sum('grand_total');
+
     // Pembayaran: uang yang benar-benar diterima (voucher approved) dalam periode
     $totalPaid = DB::selectOne("
         SELECT COALESCE(SUM(kas_det.credit),0) as total
@@ -1962,6 +1971,16 @@ DB::raw("
         JOIN invoice_hdr ON invoice_hdr.invoice_number = kas_det.reference
         WHERE kas_hdr.status = '3'
           AND invoice_hdr.status <> '5'
+          AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN to_date(?,'DD-MM-YYYY') AND to_date(?,'DD-MM-YYYY')
+    ", [$startDate, $cutoff])->total;
+
+    $totalPaid += DB::selectOne("
+        SELECT COALESCE(SUM(kas_det.credit),0) as total
+        FROM kas_det
+        JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
+        JOIN debit_note_hdr ON debit_note_hdr.dn_number = kas_det.reference
+        WHERE kas_hdr.status = '3'
+          AND debit_note_hdr.status <> '5'
           AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN to_date(?,'DD-MM-YYYY') AND to_date(?,'DD-MM-YYYY')
     ", [$startDate, $cutoff])->total;
 
