@@ -46,7 +46,7 @@ class ArReconciliationController extends Controller
                        SUM(invoice_det.qty * invoice_det.price) as amount
                 FROM invoice_det
                 JOIN invoice_hdr ON invoice_hdr.invoice_number = invoice_det.invoice_number
-                JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.delivery_number
+                JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.dn_number
                 WHERE invoice_hdr.status NOT IN ('1','5')
                   AND to_date(delivery_hdr.delivery_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
                 GROUP BY 1
