@@ -54,7 +54,7 @@
                 <label for="searchSupplier">Supplier</label>
                 <select class="select2 form-control" id="searchSupplier" name="searchSupplier[]" multiple>
                   @foreach($suppliers as $supplier)
-                      <option value="{{ $supplier->supp_code }}">{{ $supplier->supp_name }}</option>
+                      <option value="{{ $supplier->kode }}">{{ $supplier->kode }} - {{ $supplier->nama }}</option>
                   @endforeach
                 </select>
                 <small class="text-muted">Kosongkan = All</small>
