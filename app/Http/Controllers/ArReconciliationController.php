@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Exports\ArReconciliationExport;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 use DB;
+use PDF;
 
 /*
     ================================================================
@@ -108,11 +111,8 @@ class ArReconciliationController extends Controller
         return $total;
     }
 
-    public function data(Request $request)
+    private function buildReport($year, $basis)
     {
-        $year  = (int) ($request->year ?: date('Y'));
-        $basis = $request->basis === 'delivery' ? 'delivery' : 'invoice';
-
         $yearStart = "01-01-$year";
         $yearEnd   = "31-12-$year";
 
@@ -149,6 +149,7 @@ class ArReconciliationController extends Controller
 
             $rows[] = [
                 'ym'        => $ym,
+                'month'     => $m,
                 'label'     => date('F Y', mktime(0, 0, 0, $m, 1, $year)),
                 'dpp'       => $add + $dnv,
                 'addition'  => $add,
@@ -163,13 +164,132 @@ class ArReconciliationController extends Controller
             $totals['payment']   += $pay;
         }
 
-        return response()->json([
-            'status'         => 1,
+        return [
+            'year'           => $year,
             'basis'          => $basis,
             'openingBalance' => $openingBalance,
             'rows'           => $rows,
             'totals'         => $totals,
             'closingBalance' => $balance,
-        ]);
+        ];
+    }
+
+    public function data(Request $request)
+    {
+        $year  = (int) ($request->year ?: date('Y'));
+        $basis = $request->basis === 'delivery' ? 'delivery' : 'invoice';
+
+        return response()->json(['status' => 1] + $this->buildReport($year, $basis));
+    }
+
+    /**
+     * Detail dokumen di balik satu angka (cell) hasil klik -- month null berarti
+     * Saldo Awal (semua dokumen sebelum 1 Jan tahun terpilih).
+     */
+    public function detail(Request $request)
+    {
+        $year   = (int) ($request->year ?: date('Y'));
+        $basis  = $request->basis === 'delivery' ? 'delivery' : 'invoice';
+        $month  = $request->month !== null && $request->month !== '' ? (int) $request->month : null;
+        $column = $request->column; // 'addition' | 'debitNote' | 'payment'
+
+        if ($month) {
+            $from = sprintf('01-%02d-%04d', $month, $year);
+            $to   = date('t-m-Y', mktime(0, 0, 0, $month, 1, $year));
+            $bindings = ['from' => $from, 'to' => $to];
+            $dateCond = "BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')";
+        } else {
+            $bindings = ['to' => "01-01-$year"];
+            $dateCond = "< to_date(:to,'DD-MM-YYYY')";
+        }
+
+        if ($column === 'debitNote') {
+            $sql = "
+                SELECT dn_number as doc, dn_date as doc_date, dpp as amount, 'Debit Note' as doc_type
+                FROM debit_note_hdr
+                WHERE status NOT IN ('1','5') AND to_date(dn_date,'DD-MM-YYYY') $dateCond
+                ORDER BY to_date(dn_date,'DD-MM-YYYY')
+            ";
+        } elseif ($column === 'payment') {
+            $sql = "
+                SELECT kas_hdr.voucher_number as doc, kas_hdr.voucher_date as doc_date, kas_det.credit as amount,
+                       kas_hdr.voucher_type as doc_type, kas_det.reference as reference
+                FROM kas_det
+                JOIN kas_hdr ON kas_hdr.voucher_number = kas_det.voucher_number
+                WHERE kas_hdr.status = '3'
+                  AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') $dateCond
+                  AND (
+                        EXISTS (SELECT 1 FROM invoice_hdr WHERE invoice_hdr.invoice_number = kas_det.reference)
+                     OR EXISTS (SELECT 1 FROM debit_note_hdr WHERE debit_note_hdr.dn_number = kas_det.reference)
+                  )
+                ORDER BY to_date(kas_hdr.voucher_date,'DD-MM-YYYY')
+            ";
+        } elseif ($basis === 'delivery') {
+            $sql = "
+                SELECT delivery_hdr.delivery_number as doc, delivery_hdr.delivery_date as doc_date,
+                       SUM(invoice_det.qty * invoice_det.price) as amount, 'Delivery Note' as doc_type
+                FROM invoice_det
+                JOIN invoice_hdr ON invoice_hdr.invoice_number = invoice_det.invoice_number
+                JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.dn_number
+                WHERE invoice_hdr.status NOT IN ('1','5')
+                  AND to_date(delivery_hdr.delivery_date,'DD-MM-YYYY') $dateCond
+                GROUP BY delivery_hdr.delivery_number, delivery_hdr.delivery_date
+                ORDER BY to_date(delivery_hdr.delivery_date,'DD-MM-YYYY')
+            ";
+        } else {
+            $sql = "
+                SELECT invoice_number as doc, invoice_date as doc_date, dpp as amount, 'AR Invoice' as doc_type
+                FROM invoice_hdr
+                WHERE status NOT IN ('1','5') AND to_date(invoice_date,'DD-MM-YYYY') $dateCond
+                ORDER BY to_date(invoice_date,'DD-MM-YYYY')
+            ";
+        }
+
+        $rows = DB::select($sql, $bindings);
+
+        $result = [];
+        $total = 0;
+        foreach ($rows as $r) {
+            $result[] = [
+                'doc'      => $r->doc,
+                'doc_date' => $r->doc_date,
+                'doc_type' => $r->doc_type,
+                'reference'=> $r->reference ?? null,
+                'amount'   => (float) $r->amount,
+            ];
+            $total += (float) $r->amount;
+        }
+
+        return response()->json(['status' => 1, 'rows' => $result, 'total' => $total]);
+    }
+
+    public function export(Request $request)
+    {
+        $year  = (int) ($request->year ?: date('Y'));
+        $basis = $request->basis === 'delivery' ? 'delivery' : 'invoice';
+        $s = $this->buildReport($year, $basis);
+
+        return Excel::download(
+            new ArReconciliationExport($s['rows'], $s['totals'], $s['openingBalance'], $s['closingBalance'], $year, $basis),
+            'AR_Reconciliation_' . $year . '.xlsx'
+        );
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $year  = (int) ($request->year ?: date('Y'));
+        $basis = $request->basis === 'delivery' ? 'delivery' : 'invoice';
+        $s = $this->buildReport($year, $basis);
+
+        $pdf = PDF::loadView('arReconciliation.print', [
+            'rows'           => $s['rows'],
+            'totals'         => $s['totals'],
+            'openingBalance' => $s['openingBalance'],
+            'closingBalance' => $s['closingBalance'],
+            'year'           => $year,
+            'basis'          => $basis,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream('AR_Reconciliation_' . $year . '.pdf');
     }
 }

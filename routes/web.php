@@ -543,9 +543,15 @@ Route::prefix('supplier-replace')->group(function () {
 
 	Route::get('arReconciliation', ['uses' => 'ArReconciliationController@index','as'   => 'arReconciliation.index',]);
 	Route::post('arReconciliation/data', ['uses' => 'ArReconciliationController@data','as'   => 'arReconciliation.data',]);
+	Route::post('arReconciliation/detail', ['uses' => 'ArReconciliationController@detail','as'   => 'arReconciliation.detail',]);
+	Route::post('arReconciliation/export', ['uses' => 'ArReconciliationController@export','as'   => 'arReconciliation.export',]);
+	Route::post('arReconciliation/exportPdf', ['uses' => 'ArReconciliationController@exportPdf','as'   => 'arReconciliation.exportPdf',]);
 
 	Route::get('apReconciliation', ['uses' => 'ApReconciliationController@index','as'   => 'apReconciliation.index',]);
 	Route::post('apReconciliation/data', ['uses' => 'ApReconciliationController@data','as'   => 'apReconciliation.data',]);
+	Route::post('apReconciliation/detail', ['uses' => 'ApReconciliationController@detail','as'   => 'apReconciliation.detail',]);
+	Route::post('apReconciliation/export', ['uses' => 'ApReconciliationController@export','as'   => 'apReconciliation.export',]);
+	Route::post('apReconciliation/exportPdf', ['uses' => 'ApReconciliationController@exportPdf','as'   => 'apReconciliation.exportPdf',]);
 
 	Route::get('apPaymentSchedule', ['uses' => 'ApPaymentScheduleController@index','as'   => 'apPaymentSchedule.index',]);
 	Route::post('apPaymentSchedule/data', ['uses' => 'ApPaymentScheduleController@data','as'   => 'apPaymentSchedule.data',]);
