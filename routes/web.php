@@ -1422,6 +1422,9 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 	Route::get('dnMonitoring/exportSummary',['as'=>'dnMonitoring.exportSummary','uses'=>'DnMonitoringController@exportSummary']);
 
 	Route::get('deliveryMonitoring',['as'=>'deliveryMonitoring.index','uses'=>'DeliveryMonitoringController@index']);
+	Route::get('deliveryMonitoring/detail',['as'=>'deliveryMonitoring.detail','uses'=>'DeliveryMonitoringController@detail']);
+	Route::get('deliveryMonitoring/export/excel',['as'=>'deliveryMonitoring.export.excel','uses'=>'DeliveryMonitoringController@exportExcel']);
+	Route::get('deliveryMonitoring/export/pdf',['as'=>'deliveryMonitoring.export.pdf','uses'=>'DeliveryMonitoringController@exportPdf']);
 	Route::get('monitoring/qtyNotBalance',['as'=>'monitoring.qtyNotBalance','uses'=>'MonitoringController@qtyNotBalance']);
 	Route::post('monitoring/qtyNotBalance/list',['as'=>'monitoring.qtyNotBalance.list','uses'=>'MonitoringController@qtyNotBalanceList']);
 
