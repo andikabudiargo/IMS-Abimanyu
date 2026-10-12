@@ -20,7 +20,16 @@
                 <label for="searchRec">Rec Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchRec" name="searchRec" />
               </div>
-              <div class="form-group col-md-3">
+              <div class="form-group col-md-1">
+                <label class="form-label" for="searchStatus">Rec Status</label>
+                <select class="select2 form-control" id="searchStatus" name="searchStatus">
+                  <option value="">All</option>
+                  @foreach($status as $index=>$val)
+                      <option value="{{ $index }}">{{ $val }}</option>
+                  @endforeach
+                </select>
+              </div>
+              <div class="form-group col-md-2">
                 <label class="form-label" for="recType">Receive Type</label>
                 <select class="select2 form-control" id="recType" name="recType">
                   <option value="">All</option>
@@ -39,63 +48,54 @@
                 <label for="doDate">DO Date</label>
                 <input type="text" id="doDate" name="doDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-3">
-                <label for="searchDo">DO Number</label>
-                <input type="text" class="form-control text-uppercase" id="searchDo" name="searchDo" />
-              </div>
             </div>
-            <div class="form-row">
+             <div class="form-row">
               <div class="form-group col-md-3">
-                <label class="form-label" for="searchSupplier">Supplier</label>
+                <label for="searchSupplier">Supplier</label>
                 <select class="select2 form-control" id="searchSupplier" name="searchSupplier[]" multiple>
-                    @foreach($suppliers as $val)
-                        <option value="{{$val->kode}}">{{$val->kode}} - {{$val->nama}}</option>
-                    @endforeach
+                  @foreach($suppliers as $supplier)
+                      <option value="{{ $supplier->supp_code }}">{{ $supplier->supp_name }}</option>
+                  @endforeach
                 </select>
                 <small class="text-muted">Kosongkan = All</small>
               </div>
               <div class="form-group col-md-3">
+                <label for="searchArticleCode">Article Code</label>
+                <input type="text" class="form-control" id="searchArticleCode" name="searchArticleCode" />
+              </div>
+              <div class="form-group col-md-6">
+                <label for="searchArticleDesc">Article Desc</label>
+                <input type="text" class="form-control" id="searchArticleDesc" name="searchArticleDesc" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label for="searchDo">DO Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchDo" name="searchDo" />
+              </div>
+              <div class="form-group col-md-2">
                 <label for="searchPo">PO Number</label>
                 <select class="select2 form-control" id="searchPo" name="searchPo[]" multiple>
                   @foreach($poNumbers as $po)
                       <option value="{{ $po }}">{{ $po }}</option>
                   @endforeach
                 </select>
-                <small class="text-muted">Kosongkan = All</small>
+                <small class="text-muted">Ketik lalu Enter, boleh banyak. Kosong = All</small>
               </div>
-              <div class="form-group col-md-3">
-                <label for="searchInv">Invoice Number</label>
+              <div class="form-group col-md-2">
+                <label for="searchInv">AP Number</label>
                 <select class="select2 form-control" id="searchInv" name="searchInv[]" multiple data-tags="true" data-token-separators='[",", " "]'></select>
                 <small class="text-muted">Ketik lalu Enter, boleh banyak. Kosong = All</small>
               </div>
-              <div class="form-group col-md-3">
+              <div class="form-group col-md-2">
                 <label for="searchVoucher">Voucher Number</label>
                 <select class="select2 form-control" id="searchVoucher" name="searchVoucher[]" multiple data-tags="true" data-token-separators='[",", " "]'></select>
                 <small class="text-muted">Ketik lalu Enter, boleh banyak. Kosong = All</small>
               </div>
-              <div class="form-group col-md-3">
+              <div class="form-group col-md-2">
                 <label for="searchPr">PR Number</label>
                 <select class="select2 form-control" id="searchPr" name="searchPr[]" multiple data-tags="true" data-token-separators='[",", " "]'></select>
-                <small class="text-muted">Ketik lalu Enter, boleh banyak. Kosong = All. Satu PO bisa berasal dari beberapa PR.</small>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group col-md-3">
-                <label class="form-label" for="searchStatus">Rec Status</label>
-                <select class="select2 form-control" id="searchStatus" name="searchStatus">
-                  <option value="">All</option>
-                  @foreach($status as $index=>$val)
-                      <option value="{{ $index }}">{{ $val }}</option>
-                  @endforeach
-                </select>
-              </div>
-              <div class="form-group col-md-3">
-                <label for="searchArticleCode">Article Code</label>
-                <input type="text" class="form-control" id="searchArticleCode" name="searchArticleCode" />
-              </div>
-              <div class="form-group col-md-3">
-                <label for="searchArticleDesc">Article Desc</label>
-                <input type="text" class="form-control" id="searchArticleDesc" name="searchArticleDesc" />
+                <small class="text-muted">Ketik lalu Enter, boleh banyak. Kosong = All</small>
               </div>
             </div>
             <div class="form-row">
