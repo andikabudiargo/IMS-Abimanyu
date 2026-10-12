@@ -423,13 +423,13 @@
             <li class="{{ \Request::segment(1) == 'dnMonitoring'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('dnMonitoring.index', ['src' => 'delivery']) }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="DN Monitoring">DN Monitoring</span></a>
+                <span class="menu-item text-truncate" data-i18n="DN Monitoring">DN Outstanding</span></a>
                     </li>
 
             <li class="{{ \Request::segment(1) == 'deliveryMonitoring'  ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('deliveryMonitoring.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Delivery Monitoring">Delivery Monitoring</span></a>
+                <span class="menu-item text-truncate" data-i18n="Delivery Monitoring">DN Monitoring</span></a>
                     </li>
 
           </ul>
@@ -771,7 +771,7 @@
                     </li>
                       <li class="{{ \Request::segment(1) == 'deliveryReportAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}"><span class="menu-item text-truncate" data-i18n="Dn Report Acc">DN Report</span></a>
                     </li>
-                      <li class="{{ \Request::segment(1) == 'dnMonitoringAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnMonitoring.index') }}"><span class="menu-item text-truncate" data-i18n="DN Monitoring Acc">DN Monitoring</span></a>
+                      <li class="{{ \Request::segment(1) == 'dnMonitoringAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnMonitoring.index') }}"><span class="menu-item text-truncate" data-i18n="DN Monitoring Acc">DN Outstanding</span></a>
                     </li>
                   </ul>
                 </li>
