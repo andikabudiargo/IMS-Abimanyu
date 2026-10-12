@@ -47,7 +47,7 @@ class ApReconciliationController extends Controller
                 FROM receiving_det
                 JOIN receiving_hdr ON receiving_hdr.rec_number = receiving_det.rec_number
                 WHERE receiving_hdr.status <> '5'
-                  AND to_date(receiving_hdr.rec_date,'DD-MM-YYYY') BETWEEN :from AND :to
+                  AND to_date(receiving_hdr.rec_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
                 GROUP BY 1
             ";
         }
@@ -60,7 +60,7 @@ class ApReconciliationController extends Controller
                    SUM(ap_invoice.basis_amount) as amount
             FROM ap_invoice
             WHERE ap_invoice.status NOT IN ('1','5')
-              AND $anchor BETWEEN :from AND :to
+              AND $anchor BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
             GROUP BY 1
         ";
     }
@@ -87,7 +87,7 @@ class ApReconciliationController extends Controller
             JOIN ap_invoice ON ap_invoice.inv_number = kas_det.reference
             WHERE kas_hdr.status <> '5'
               AND ap_invoice.status NOT IN ('1','5')
-              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN :from AND :to
+              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
               AND $partyMatch
             GROUP BY 1
         ";
@@ -95,7 +95,11 @@ class ApReconciliationController extends Controller
 
     private function sumBefore($sql, $yearStart)
     {
-        $rows = DB::select(str_replace('BETWEEN :from AND :to', '< :to', $sql), [
+        $rows = DB::select(str_replace(
+            "BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')",
+            "< to_date(:to,'DD-MM-YYYY')",
+            $sql
+        ), [
             'to' => $yearStart,
         ]);
         $total = 0;

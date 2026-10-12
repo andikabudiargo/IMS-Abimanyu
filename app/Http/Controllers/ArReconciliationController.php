@@ -48,7 +48,7 @@ class ArReconciliationController extends Controller
                 JOIN invoice_hdr ON invoice_hdr.invoice_number = invoice_det.invoice_number
                 JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.delivery_number
                 WHERE invoice_hdr.status NOT IN ('1','5')
-                  AND to_date(delivery_hdr.delivery_date,'DD-MM-YYYY') BETWEEN :from AND :to
+                  AND to_date(delivery_hdr.delivery_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
                 GROUP BY 1
             ";
         }
@@ -57,7 +57,7 @@ class ArReconciliationController extends Controller
                    SUM(invoice_hdr.dpp) as amount
             FROM invoice_hdr
             WHERE invoice_hdr.status NOT IN ('1','5')
-              AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') BETWEEN :from AND :to
+              AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
             GROUP BY 1
         ";
     }
@@ -69,7 +69,7 @@ class ArReconciliationController extends Controller
                    SUM(dpp) as amount
             FROM debit_note_hdr
             WHERE status NOT IN ('1','5')
-              AND to_date(dn_date,'DD-MM-YYYY') BETWEEN :from AND :to
+              AND to_date(dn_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
             GROUP BY 1
         ";
     }
@@ -82,7 +82,7 @@ class ArReconciliationController extends Controller
             FROM kas_det
             JOIN kas_hdr ON kas_hdr.voucher_number = kas_det.voucher_number
             WHERE kas_hdr.status = '3'
-              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN :from AND :to
+              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
               AND (
                     EXISTS (SELECT 1 FROM invoice_hdr WHERE invoice_hdr.invoice_number = kas_det.reference)
                  OR EXISTS (SELECT 1 FROM debit_note_hdr WHERE debit_note_hdr.dn_number = kas_det.reference)
@@ -94,7 +94,11 @@ class ArReconciliationController extends Controller
     /** Total satu sisi (addition/debitnote/payment) sebelum tanggal :to (exclusive), untuk Saldo Awal. */
     private function sumBefore($sql, $yearStart)
     {
-        $rows = DB::select(str_replace('BETWEEN :from AND :to', '< :to', $sql), [
+        $rows = DB::select(str_replace(
+            "BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')",
+            "< to_date(:to,'DD-MM-YYYY')",
+            $sql
+        ), [
             'to' => $yearStart,
         ]);
         $total = 0;
