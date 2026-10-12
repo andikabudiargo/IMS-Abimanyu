@@ -39,6 +39,10 @@
                 <label for="doDate">DO Date</label>
                 <input type="text" id="doDate" name="doDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
+              <div class="form-group col-md-3">
+                <label for="searchDo">DO Number</label>
+                <input type="text" class="form-control text-uppercase" id="searchDo" name="searchDo" />
+              </div>
             </div>
             <div class="form-row">
               <div class="form-group col-md-3">
@@ -68,6 +72,11 @@
                 <label for="searchVoucher">Voucher Number</label>
                 <select class="select2 form-control" id="searchVoucher" name="searchVoucher[]" multiple data-tags="true" data-token-separators='[",", " "]'></select>
                 <small class="text-muted">Ketik lalu Enter, boleh banyak. Kosong = All</small>
+              </div>
+              <div class="form-group col-md-3">
+                <label for="searchPr">PR Number</label>
+                <select class="select2 form-control" id="searchPr" name="searchPr[]" multiple data-tags="true" data-token-separators='[",", " "]'></select>
+                <small class="text-muted">Ketik lalu Enter, boleh banyak. Kosong = All. Satu PO bisa berasal dari beberapa PR.</small>
               </div>
             </div>
             <div class="form-row">
@@ -139,11 +148,13 @@
 
   const filters = () => ({
     searchRec: $("#searchRec").val(),
+    searchDo: $("#searchDo").val(),
     recType: $("#recType").val(),
     recDate: $("#recDate").val(),
     doDate: $("#doDate").val(),
     searchSupplier: $("#searchSupplier").val(),
     searchPo: $("#searchPo").val(),
+    searchPr: $("#searchPr").val(),
     searchInv: $("#searchInv").val(),
     searchVoucher: $("#searchVoucher").val(),
     searchStatus: $("#searchStatus").val(),
@@ -195,12 +206,12 @@
       tableId:"detailedTable",
       route:"{{ route('receiving.list.report.acc.summary') }}",
       kolom:{!! $kolomSummary !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],
       columnDefs :[
-        { targets: [ 4,5,6,7 ], render: dateRender },
-        // ap_number/ap_date/supp_name/approval_by = correlated subquery; kecualikan
+        { targets: [ 5,6,7,9 ], render: dateRender },
+        // pr_number/ap_number/ap_date/supp_name/approval_by = correlated subquery; kecualikan
         // dari search/sort generik DataTable, sama alasannya dengan list Detail.
-        { targets: [ 3,7,10,13 ], orderable: false, searchable: false },
+        { targets: [ 3,4,9,12,15 ], orderable: false, searchable: false },
       ],
       excelDates:true,
       dataSearch: filters(),
@@ -216,21 +227,21 @@
       tableId:"detailedTable",
       route:"{{ route('receiving.list.report.acc') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31],
+      arrColPrint:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 13,14,15,16,17,18,19,24 ],
+          targets: [ 16,17,18,19,20,21,22,27 ],
           render: $.fn.dataTable.render.number(',','.',2,''),
           className: "text-right"
         },
-        { targets: [ 5,6,21,23 ], render: dateRender },
-        // Kolom hasil correlated subquery berat (dept, supplier, invoice, voucher,
-        // paid date, balance, approval chain) — jangan ikut di-scan oleh kotak
-        // search/sort bawaan DataTable, karena itu memaksa evaluasi subquery di
-        // SEMUA baris sebelum LIMIT dan bikin timeout/exhaust untuk dataset besar.
-        // Pencarian untuk field ini sudah ada lewat form filter (searchInv, searchVoucher, dst).
-        { targets: [ 0,8,20,21,22,23,24,27 ], orderable: false, searchable: false },
+        { targets: [ 7,8,24,26 ], render: dateRender },
+        // Kolom hasil correlated subquery berat (dept, pr, ap, supplier, invoice,
+        // voucher, paid date, balance, approval chain) — jangan ikut di-scan oleh
+        // kotak search/sort bawaan DataTable, karena itu memaksa evaluasi subquery
+        // di SEMUA baris sebelum LIMIT dan bikin timeout/exhaust untuk dataset besar.
+        // Pencarian untuk field ini sudah ada lewat form filter (searchPr, searchInv, searchVoucher, dst).
+        { targets: [ 0,4,5,11,23,24,25,26,27,30 ], orderable: false, searchable: false },
       ],
       excelDates:true,
       dataSearch: filters(),

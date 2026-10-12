@@ -3347,9 +3347,12 @@ public function unPosting($recNumber)
             ['data'=>'ppn','name'=>'ppn','title'=>'Tipe PPN'],
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
+            ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number'],
             ['data'=>'rec_type','name'=>'rec_type','title'=>'Receive Type'],
             ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
             ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
+            ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'],
             ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier Code'],
             ['data'=>'supp_name','name'=>'supp_name','title'=>'Supplier'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
@@ -3397,12 +3400,23 @@ public function unPosting($recNumber)
         $po       = $multi('searchPo');
         $inv      = array_map('strtoupper', $multi('searchInv'));
         $voucher  = array_map('strtoupper', $multi('searchVoucher'));
+        $pr       = array_map('strtoupper', $multi('searchPr'));
 
         $supplier ? $q->whereIn('receiving_hdr.supplier_id', $supplier) : '';
         $po       ? $q->whereIn('receiving_hdr.po_number', $po) : '';
         $r->searchRec  ? $q->where('receiving_hdr.rec_number', 'ilike', '%'.$r->searchRec.'%') : '';
+        $r->searchDo   ? $q->where('receiving_hdr.do_number', 'ilike', '%'.$r->searchDo.'%') : '';
         $r->searchStatus ? $q->where('receiving_hdr.status', $r->searchStatus) : '';
         $r->recType    ? $q->where('receiving_hdr.rec_type', $r->recType) : '';
+
+        // PR Number: satu PO bisa berasal dari beberapa PR, jadi dicocokkan lewat purchase_order_det.
+        if ($pr) {
+            $q->whereExists(function ($sub) use ($pr) {
+                $sub->select(DB::raw(1))->from('purchase_order_det')
+                    ->whereColumn('purchase_order_det.po_number', 'receiving_hdr.po_number')
+                    ->whereIn(DB::raw('upper(purchase_order_det.pr_number)'), $pr);
+            });
+        }
 
         if ($d = $range($r->recDate)) $q->whereBetween(DB::raw("to_date(receiving_hdr.rec_date,'DD-MM-YYYY')"), $d);
         if ($d = $range($r->doDate))  $q->whereBetween(DB::raw("to_date(receiving_hdr.do_date,'DD-MM-YYYY')"), $d);
@@ -3442,10 +3456,12 @@ public function unPosting($recNumber)
             ['data'=>'rec_type','name'=>'rec_type','title'=>'Receive Type'],
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
+            ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
             ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number'],
             ['data'=>'po_date','name'=>'po_date','title'=>'PO Date'],
             ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
             ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
+            ['data'=>'do_number','name'=>'do_number','title'=>'DO Number'],
             ['data'=>'ap_date','name'=>'ap_date','title'=>'AP Date'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'supplier_id','name'=>'supplier_id','title'=>'Supplier Code'],
@@ -3488,9 +3504,11 @@ public function unPosting($recNumber)
             ,'receiving_hdr.rec_number'
             ,'receiving_hdr.po_number'
             ,DB::raw("(select id from purchase_order_hdr where po_number = receiving_hdr.po_number order by id limit 1) as po_id")
+            ,DB::raw("(select STRING_AGG(x.pr_number || '::' || x.id::text, ',') from (select pr_number, min(id) as id from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) group by pr_number) x) as pr_number")
             ,DB::raw("to_char(to_date(nullif(purchase_order_hdr.po_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') as po_date")
             ,DB::raw("to_char(to_date(nullif(receiving_hdr.rec_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') as rec_date")
             ,DB::raw("to_char(to_date(nullif(receiving_hdr.do_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') as do_date")
+            ,'receiving_hdr.do_number'
             ,'receiving_hdr.status'
             ,'receiving_hdr.supplier_id'
             ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
@@ -3519,11 +3537,18 @@ public function unPosting($recNumber)
             if (!$row->po_id || !$row->po_number) return $row->po_number;
             return '<a href="'.route('purchaseOrder.show', ['id' => Crypt::encryptString($row->po_id)]).'" target="_blank">'.$row->po_number.'</a>';
         })
+        ->addColumn('pr_number', function ($row) {
+            if (!$row->pr_number) return '';
+            return implode(', ', array_map(function ($pair) {
+                [$prNumber, $prId] = explode('::', $pair);
+                return '<a href="'.route('purchaseRequest.show', ['id' => Crypt::encryptString($prId)]).'" target="_blank">'.$prNumber.'</a>';
+            }, explode(',', $row->pr_number)));
+        })
         ->editColumn('ap_number', function ($row) {
             if (!$row->ap_id || !$row->ap_number) return $row->ap_number;
-            return '<a href="'.route('accountPayable.show', ['id' => Crypt::encryptString($row->ap_id)]).'" target="_blank">'.$row->ap_number.'</a>';
+            return '<a href="'.route('accountPayable.edit', ['id' => Crypt::encryptString($row->ap_id)]).'" target="_blank">'.$row->ap_number.'</a>';
         })
-        ->rawColumns(['rec_number', 'po_number', 'ap_number'])
+        ->rawColumns(['rec_number', 'po_number', 'pr_number', 'ap_number'])
         ->make(true);
     }
 
@@ -3604,8 +3629,10 @@ public function unPosting($recNumber)
         ,'article.article_alternative_code'
         ,DB::raw("to_char(to_date(nullif(receiving_hdr.rec_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') as rec_date")
         ,DB::raw("to_char(to_date(nullif(receiving_hdr.do_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') as do_date")
+        ,'receiving_hdr.do_number'
         ,'receiving_hdr.po_number'
         ,DB::raw("(select id from purchase_order_hdr where po_number = receiving_hdr.po_number order by id limit 1) as po_id")
+        ,DB::raw("(select STRING_AGG(x.pr_number || '::' || x.id::text, ',') from (select pr_number, min(id) as id from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) group by pr_number) x) as pr_number")
         ,'receiving_det.rec_number'
         ,'receiving_hdr.id as rec_id'
         ,'receiving_det.uom_rec'
@@ -3655,6 +3682,19 @@ public function unPosting($recNumber)
             if (!$row->po_id || !$row->po_number) return $row->po_number;
             return '<a href="'.route('purchaseOrder.show', ['id' => Crypt::encryptString($row->po_id)]).'" target="_blank">'.$row->po_number.'</a>';
         })
+        ->addColumn('pr_number', function ($row) {
+            // Satu PO bisa berasal dari beberapa PR; pr_number berisi pasangan "pr_number::id" dipisah koma.
+            if (!$row->pr_number) return '';
+            return implode(', ', array_map(function ($pair) {
+                [$prNumber, $prId] = explode('::', $pair);
+                return '<a href="'.route('purchaseRequest.show', ['id' => Crypt::encryptString($prId)]).'" target="_blank">'.$prNumber.'</a>';
+            }, explode(',', $row->pr_number)));
+        })
+        ->addColumn('ap_number', function ($row) {
+            // Sama dengan data Invoice Number, ditampilkan lagi di sini dengan link Edit AP.
+            if (!$row->invoice_id || !$row->invoice_number) return $row->invoice_number;
+            return '<a href="'.route('accountPayable.edit', ['id' => Crypt::encryptString($row->invoice_id)]).'" target="_blank">'.$row->invoice_number.'</a>';
+        })
         ->addColumn('invoice_number', function ($row) {
             // Invoice Number = nomor AP (ap_number) dari Account Payable, link ke dokumen AP.
             if (!$row->invoice_id || !$row->invoice_number) return $row->invoice_number;
@@ -3670,7 +3710,7 @@ public function unPosting($recNumber)
             $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED','','','','','REVISI'];
             return $statusRec[$row->status - 1] ?? $row->status;
         })
-        ->rawColumns(['rec_number', 'po_number', 'invoice_number', 'voucher_number'])
+        ->rawColumns(['rec_number', 'po_number', 'pr_number', 'ap_number', 'invoice_number', 'voucher_number'])
         ->make(true);
     }
 
