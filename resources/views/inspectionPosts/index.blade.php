@@ -81,6 +81,8 @@
             { data: 'action', name: 'action', title:'Action', orderable: false, searchable: false },
             { data: 'sequence', name: 'sequence', title:'Sequence' },
             { data: 'name', name: 'name', title:'Name' },
+            { data: 'target_pass_rate', name: 'target_pass_rate', title:'Target Pass Rate' },
+            { data: 'target_pass_through_rate', name: 'target_pass_through_rate', title:'Target Pass Through' },
             { data: 'status', name: 'status', title:'Status' }
         ],
       });

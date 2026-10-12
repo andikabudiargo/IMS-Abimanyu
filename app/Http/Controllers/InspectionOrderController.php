@@ -11,8 +11,9 @@ use DB;
  * Inspection Order — transactional QC record (Incoming/Unloading/Buffing/
  * Touch Up/Final/Outgoing), mirrors "Daily Inspection" di modul QC abimanyu.
  * Pass Rate & Pass Through Rate dihitung dari total check/ok/ng, lalu
- * dibandingkan dengan target di Inspection Rule (article_code match, atau
- * default rule kalau tidak ada yang spesifik) untuk flag PASS/FAIL.
+ * dibandingkan dengan target_pass_rate/target_pass_through_rate yang
+ * disetting di Inspection Post (master) untuk flag PASS/FAIL. Target 0/0
+ * dianggap "belum disetting" -> result dibiarkan null.
  * Tidak ada posting ke stock — ini murni dokumen QC.
  */
 class InspectionOrderController extends Controller
@@ -51,27 +52,20 @@ class InspectionOrderController extends Controller
         return view("inspectionOrder.create", $data);
     }
 
-    /**
-     * Rule yang berlaku untuk article+post: article-spesifik kalau ada,
-     * jatuh ke default (article_code NULL) kalau tidak.
-     */
-    private function findRule(string $articleCode, int $postId)
+    /** Target di post ini, atau null kalau belum disetting (0/0). */
+    private function findTarget(int $postId): ?object
     {
-        return DB::table('inspection_rules')
-            ->where('inspection_post_id', $postId)
-            ->where('status', '1')
-            ->where(function ($q) use ($articleCode) {
-                $q->where('article_code', $articleCode)->orWhereNull('article_code');
-            })
-            ->orderByRaw('article_code IS NULL') // article-spesifik duluan
-            ->first();
+        $post = DB::table('inspection_posts')->where('id', $postId)->first();
+        if (!$post || ($post->target_pass_rate <= 0 && $post->target_pass_through_rate <= 0)) {
+            return null;
+        }
+        return $post;
     }
 
-    /** AJAX: dipanggil dari form create/edit saat article/post dipilih, untuk menampilkan target. */
+    /** AJAX: dipanggil dari form create/edit saat post dipilih, untuk menampilkan target. */
     public function getRule(Request $request)
     {
-        $rule = $this->findRule(strtoupper((string) $request->articleCode), (int) $request->postId);
-        return response()->json($rule ?: null);
+        return response()->json($this->findTarget((int) $request->postId));
     }
 
     private function computeRates(float $totalCheck, float $totalOk, float $totalOkRepair, float $totalNg): array
@@ -150,9 +144,9 @@ class InspectionOrderController extends Controller
             (float) $request->total_check, (float) $request->total_ok,
             (float) $request->total_ok_repair, (float) $request->total_ng
         );
-        $matchedRule = $this->findRule($articleCode, $postId);
-        $result = $matchedRule
-            ? (($passRate >= $matchedRule->target_pass_rate && $passThroughRate >= $matchedRule->target_pass_through_rate) ? 'PASS' : 'FAIL')
+        $target = $this->findTarget($postId);
+        $result = $target
+            ? (($passRate >= $target->target_pass_rate && $passThroughRate >= $target->target_pass_through_rate) ? 'PASS' : 'FAIL')
             : null;
 
         DB::beginTransaction();
@@ -173,8 +167,8 @@ class InspectionOrderController extends Controller
                 'total_ng' => $request->total_ng,
                 'pass_rate' => $passRate,
                 'pass_through_rate' => $passThroughRate,
-                'target_pass_rate' => $matchedRule->target_pass_rate ?? null,
-                'target_pass_through_rate' => $matchedRule->target_pass_through_rate ?? null,
+                'target_pass_rate' => $target ? $target->target_pass_rate : null,
+                'target_pass_through_rate' => $target ? $target->target_pass_through_rate : null,
                 'result' => $result,
                 'note' => $request->input('note'),
                 'status' => self::ST_DRAFT,
@@ -237,9 +231,9 @@ class InspectionOrderController extends Controller
             (float) $request->total_check, (float) $request->total_ok,
             (float) $request->total_ok_repair, (float) $request->total_ng
         );
-        $matchedRule = $this->findRule($articleCode, $postId);
-        $result = $matchedRule
-            ? (($passRate >= $matchedRule->target_pass_rate && $passThroughRate >= $matchedRule->target_pass_through_rate) ? 'PASS' : 'FAIL')
+        $target = $this->findTarget($postId);
+        $result = $target
+            ? (($passRate >= $target->target_pass_rate && $passThroughRate >= $target->target_pass_through_rate) ? 'PASS' : 'FAIL')
             : null;
 
         DB::beginTransaction();
@@ -258,8 +252,8 @@ class InspectionOrderController extends Controller
                 'total_ng' => $request->total_ng,
                 'pass_rate' => $passRate,
                 'pass_through_rate' => $passThroughRate,
-                'target_pass_rate' => $matchedRule->target_pass_rate ?? null,
-                'target_pass_through_rate' => $matchedRule->target_pass_through_rate ?? null,
+                'target_pass_rate' => $target ? $target->target_pass_rate : null,
+                'target_pass_through_rate' => $target ? $target->target_pass_through_rate : null,
                 'result' => $result,
                 'note' => $request->input('note'),
                 'updated_by' => $username,

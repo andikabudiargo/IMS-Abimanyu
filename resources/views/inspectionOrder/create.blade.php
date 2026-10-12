@@ -28,7 +28,11 @@
                     </div>
                     <div class="form-group col-md-3" id="checkMethodWrapper">
                         <label for="check_method">Check Method</label>
-                        <input type="text" id="check_method" name="check_method" class="form-control" value="{{ old('check_method') }}" maxlength="50" placeholder="100% / Sampling" />
+                        <select class="select2 form-control" id="check_method" name="check_method">
+                            <option value="">-- Select Method --</option>
+                            <option value="100%" {{ old('check_method') == '100%' ? 'selected' : '' }}>100% (A)</option>
+                            <option value="Sampling" {{ old('check_method') == 'Sampling' ? 'selected' : '' }}>Sampling (S)</option>
+                        </select>
                     </div>
                 </div>
                 <div class="row">
@@ -57,43 +61,54 @@
                 </div>
 
                 <div class="alert alert-info" id="ruleInfo" style="display:none;">
-                    Target for this Article/Post &mdash; Pass Rate: <b id="ruleTargetPassRate">-</b>% |
+                    Target for this Inspection Post &mdash; Pass Rate: <b id="ruleTargetPassRate">-</b>% |
                     Pass Through: <b id="ruleTargetPassThrough">-</b>%
                 </div>
                 <div class="alert alert-warning" id="ruleInfoNone" style="display:none;">
-                    No Inspection Rule found for this Article/Post. Result will not be flagged PASS/FAIL.
+                    No target set on this Inspection Post. Result will not be flagged PASS/FAIL.
                 </div>
 
                 <div class="row">
                     <div class="form-group col-md-3">
                         <label for="total_check">Total Check</label>
-                        <input type="number" step="0.01" min="0" id="total_check" name="total_check" class="form-control rate-input" value="{{ old('total_check', 0) }}" required />
-                    </div>
-                    <div class="form-group col-md-3">
-                        <label for="total_ok">Total OK</label>
-                        <input type="number" step="0.01" min="0" id="total_ok" name="total_ok" class="form-control rate-input" value="{{ old('total_ok', 0) }}" required />
-                    </div>
-                    <div class="form-group col-md-3">
-                        <label for="total_ok_repair">Total OK Repair</label>
-                        <input type="number" step="0.01" min="0" id="total_ok_repair" name="total_ok_repair" class="form-control rate-input" value="{{ old('total_ok_repair', 0) }}" required />
-                    </div>
-                    <div class="form-group col-md-3">
-                        <label for="total_ng">Total NG</label>
-                        <input type="number" step="0.01" min="0" id="total_ng" name="total_ng" class="form-control rate-input" value="{{ old('total_ng', 0) }}" required />
+                        <input type="number" step="0.01" min="0" id="total_check" name="total_check" class="form-control" value="{{ old('total_check', 0) }}" required />
+                        <small class="text-muted">Auto-filled from Qty Received + Check Method when post is Incoming</small>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        Pass Rate: <b id="calcPassRate">0</b>% &nbsp;|&nbsp;
-                        Pass Through Rate: <b id="calcPassThrough">0</b>%
-                    </div>
-                </div>
+
                 <div class="row">
                     <div class="form-group col-md-12">
                         <label for="note">Note</label>
                         <textarea id="note" name="note" class="form-control" rows="2">{{ old('note') }}</textarea>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <input type="hidden" id="total_ok" name="total_ok" value="{{ old('total_ok', 0) }}" />
+        <input type="hidden" id="total_ok_repair" name="total_ok_repair" value="{{ old('total_ok_repair', 0) }}" />
+        <input type="hidden" id="total_ng" name="total_ng" value="{{ old('total_ng', 0) }}" />
+
+        <div class="card">
+            <div class="card-header"><h4 class="card-title">Inspection Summary</h4></div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Total OK</span><b id="totalOkDisplay">0</b>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted" id="okRepairLabel">Total OK Repair</span><b id="totalOkRepairDisplay">0</b>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Total NG</span><b id="totalNgDisplay">0</b>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Pass Rate</span><b id="calcPassRate">0%</b>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Pass Through Rate</span><b id="calcPassThrough">0%</b>
+                    </li>
+                </ul>
             </div>
         </div>
 
@@ -139,13 +154,13 @@
         const row = `<tr>
             <td><select class="select2 form-control defect-select" name="defect_id[]">${defectOptions}</select></td>
             <td>
-                <select class="form-control" name="category[]">
+                <select class="form-control category-select" name="category[]">
                     <option value="NG" ${line.category === 'NG' ? 'selected' : ''}>NG</option>
                     <option value="NC" ${line.category === 'NC' ? 'selected' : ''}>NC</option>
                 </select>
             </td>
-            <td><input type="number" step="0.01" min="0" class="form-control" name="defect_qty[]" value="${line.qty || 0}" /></td>
-            <td class="okRepairCol"><input type="number" step="0.01" min="0" class="form-control" name="defect_ok_repair[]" value="${line.ok_repair || 0}" /></td>
+            <td><input type="number" step="0.01" min="0" class="form-control qty-input" name="defect_qty[]" value="${line.qty || 0}" /></td>
+            <td class="okRepairCol"><input type="number" step="0.01" min="0" class="form-control ok-repair-input" name="defect_ok_repair[]" value="${line.ok_repair || 0}" /></td>
             <td><input type="text" class="form-control" name="defect_note[]" value="${line.note || ''}" /></td>
             <td><button type="button" class="btn btn-sm btn-danger btnRemoveLine"><i class="fa fa-trash"></i></button></td>
         </tr>`;
@@ -154,14 +169,34 @@
         applyPostRules();
     }
 
+    /** Sampling table -- sama persis dengan getSamplingCheck() di create-daily-inspection.blade.php (abimanyu). */
+    function getSamplingCheck(qty) {
+        if (qty >= 2  && qty <= 8)    return 2;
+        if (qty <= 15)   return 3;
+        if (qty <= 25)   return 5;
+        if (qty <= 50)   return 8;
+        if (qty <= 90)   return 13;
+        if (qty <= 150)  return 20;
+        if (qty <= 280)  return 32;
+        if (qty <= 500)  return 50;
+        if (qty <= 1200) return 80;
+        if (qty <= 3200) return 125;
+        if (qty <= 10000) return 200;
+        if (qty <= 35000) return 315;
+        return 0;
+    }
+
+    function isIncomingPost() {
+        return (postNames[$('#inspection_post_id').val()] || '').trim() === 'Incoming';
+    }
+
     /**
      * Supplier/Qty Received/Check Method dan kolom OK Repair cuma relevan
      * untuk post "Incoming" -- sama seperti aturan di modul QC abimanyu
      * (create-daily-inspection.blade.php: toggleOkRepair() + listener post).
      */
     function applyPostRules() {
-        const postName = (postNames[$('#inspection_post_id').val()] || '').trim();
-        const isIncoming = postName === 'Incoming';
+        const isIncoming = isIncomingPost();
 
         $('#supplierWrapper, #qtyReceivedWrapper, #checkMethodWrapper').toggle(isIncoming);
         $('#qty_received, #check_method').prop('required', isIncoming);
@@ -169,30 +204,63 @@
         $('.okRepairCol').toggle(isIncoming);
         $('.okRepairCol input').prop('disabled', !isIncoming).prop('required', isIncoming);
         if (!isIncoming) { $('.okRepairCol input').val(0); }
+
+        $('#okRepairLabel').text(isIncoming ? 'Total OK Repair' : 'Total NC');
+        recalcSummary();
     }
 
-    function recalcRates() {
+    /** Total Check diisi otomatis dari Qty Received + Check Method, cuma untuk post Incoming. */
+    function autoFillTotalCheck() {
+        if (!isIncomingPost()) return;
+        const method = $('#check_method').val();
+        const qty = parseFloat($('#qty_received').val()) || 0;
+        let val = null;
+        if (method === '100%') val = qty;
+        else if (method === 'Sampling') val = getSamplingCheck(qty) || 0;
+        if (val !== null) { $('#total_check').val(val); }
+        recalcSummary();
+    }
+
+    /**
+     * Total OK/OK Repair(NC)/NG, Pass Rate & Pass Through dihitung dari baris
+     * defect, bukan diketik manual -- sama seperti updateAllSummary() di
+     * create-daily-inspection.blade.php (abimanyu).
+     */
+    function recalcSummary() {
         const totalCheck = parseFloat($('#total_check').val()) || 0;
-        const totalOk = parseFloat($('#total_ok').val()) || 0;
-        const totalOkRepair = parseFloat($('#total_ok_repair').val()) || 0;
-        const totalNg = parseFloat($('#total_ng').val()) || 0;
-        let passRate = 0, passThrough = 0;
-        if (totalCheck > 0) {
-            passRate = (totalOk / totalCheck * 100).toFixed(2);
-            passThrough = ((totalCheck - totalNg - totalOkRepair) / totalCheck * 100).toFixed(2);
-        }
-        $('#calcPassRate').text(passRate);
-        $('#calcPassThrough').text(passThrough);
+        const isIncoming = isIncomingPost();
+        let totalNg = 0, totalOkRepair = 0;
+
+        $('#defectTable tbody tr').each(function () {
+            const category = $(this).find('.category-select').val();
+            const qty = parseFloat($(this).find('.qty-input').val()) || 0;
+            const okRepair = parseFloat($(this).find('.ok-repair-input').val()) || 0;
+            if (category === 'NG') { totalNg += qty; }
+            if (isIncoming) { totalOkRepair += okRepair; }
+            else if (category === 'NC') { totalOkRepair += qty; }
+        });
+
+        const totalOk = Math.max(totalCheck - totalNg, 0);
+        const passRate = totalCheck > 0 ? (totalOk / totalCheck * 100).toFixed(2) : '0.00';
+        const passThrough = totalCheck > 0 ? (Math.max(totalCheck - totalNg - totalOkRepair, 0) / totalCheck * 100).toFixed(2) : '0.00';
+
+        $('#total_ok').val(totalOk);
+        $('#total_ok_repair').val(totalOkRepair);
+        $('#total_ng').val(totalNg);
+        $('#totalOkDisplay').text(totalOk);
+        $('#totalOkRepairDisplay').text(totalOkRepair);
+        $('#totalNgDisplay').text(totalNg);
+        $('#calcPassRate').text(passRate + '%');
+        $('#calcPassThrough').text(passThrough + '%');
     }
 
     function loadRule() {
-        const articleCode = $('#article_code').val();
         const postId = $('#inspection_post_id').val();
-        if (!articleCode || !postId) {
+        if (!postId) {
             $('#ruleInfo, #ruleInfoNone').hide();
             return;
         }
-        $.get('{{ route("inspectionOrder.getRule") }}', { articleCode: articleCode, postId: postId }, function (rule) {
+        $.get('{{ route("inspectionOrder.getRule") }}', { postId: postId }, function (rule) {
             if (rule) {
                 $('#ruleTargetPassRate').text(rule.target_pass_rate);
                 $('#ruleTargetPassThrough').text(rule.target_pass_through_rate);
@@ -208,13 +276,15 @@
     $(document).ready(function(){
         $("#frmAdd").validate({}).settings.ignore = "";
         addLine();
-        recalcRates();
         applyPostRules();
 
         $('#btnAddLine').click(function(){ addLine(); });
-        $(document).on('click', '.btnRemoveLine', function(){ $(this).closest('tr').remove(); });
-        $(document).on('input', '.rate-input', recalcRates);
-        $('#article_code, #inspection_post_id').on('change', loadRule);
+        $(document).on('click', '.btnRemoveLine', function(){ $(this).closest('tr').remove(); recalcSummary(); });
+        $(document).on('input change', '.qty-input, .ok-repair-input, .category-select', recalcSummary);
+        $(document).on('input', '#total_check', recalcSummary);
+        $('#check_method').on('change', autoFillTotalCheck);
+        $('#qty_received').on('input', autoFillTotalCheck);
+        $('#inspection_post_id').on('change', loadRule);
         $('#inspection_post_id').on('change', applyPostRules);
     });
 

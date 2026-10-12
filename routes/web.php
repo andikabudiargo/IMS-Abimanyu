@@ -791,14 +791,6 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('defects/update',['as'=>'defect.update','uses'=>'DefectController@update']);
 	Route::post('defects/delete',['as'=>'defect.destroy','uses'=>'DefectController@destroy']);
 
-	Route::get('inspectionRules',['as'=>'inspectionRule.index','uses'=>'InspectionRuleController@index']);
-	Route::get('inspectionRules/create',['as'=>'inspectionRule.create','uses'=>'InspectionRuleController@create']);
-	Route::post('inspectionRules/store',['as'=>'inspectionRule.store','uses'=>'InspectionRuleController@store']);
-	Route::get('inspectionRules/list',['as'=>'inspectionRule.list','uses'=>'InspectionRuleController@list']);
-	Route::get('inspectionRules/edit',['as'=>'inspectionRule.edit','uses'=>'InspectionRuleController@edit']);
-	Route::post('inspectionRules/update',['as'=>'inspectionRule.update','uses'=>'InspectionRuleController@update']);
-	Route::post('inspectionRules/delete',['as'=>'inspectionRule.destroy','uses'=>'InspectionRuleController@destroy']);
-
 	Route::get('inspectionOrder',['as'=>'inspectionOrder.index','uses'=>'InspectionOrderController@index']);
 	Route::get('inspectionOrder/list',['as'=>'inspectionOrder.list','uses'=>'InspectionOrderController@list']);
 	Route::get('inspectionOrder/create',['as'=>'inspectionOrder.create','uses'=>'InspectionOrderController@create']);

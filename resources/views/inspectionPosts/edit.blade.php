@@ -26,6 +26,20 @@
                             </div>
                         </div>
                         <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="target_pass_rate">Target Pass Rate (%)</label>
+                                    <input type="number" step="0.01" min="0" max="100" id="target_pass_rate" name="target_pass_rate" class="form-control" value="{{ old('target_pass_rate', $post->target_pass_rate) }}" required />
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="target_pass_through_rate">Target Pass Through Rate (%)</label>
+                                    <input type="number" step="0.01" min="0" max="100" id="target_pass_through_rate" name="target_pass_through_rate" class="form-control" value="{{ old('target_pass_through_rate', $post->target_pass_through_rate) }}" required />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
                             <div class="form-group col-md-4">
                                 <label class="form-label" for="status">Status</label>
                                 <select class="select2 form-control" id="status" name="status">

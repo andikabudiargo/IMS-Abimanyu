@@ -46,7 +46,7 @@
                 @elseif ($hdr->result == 'FAIL')
                     <span class="badge badge-danger">FAIL</span>
                 @else
-                    <span class="text-muted">No rule matched</span>
+                    <span class="text-muted">No target set</span>
                 @endif
             </div>
         </div>

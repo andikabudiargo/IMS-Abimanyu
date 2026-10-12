@@ -658,7 +658,7 @@
           </ul>
         </li>
 
-         <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods','inspectionPosts','defects','inspectionRules','inspectionOrder']) ? 'active' : '' }} nav-item">
+         <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods','inspectionPosts','defects','inspectionOrder']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='zoom-in'></i>
             <span class="menu-title text-truncate" data-i18n="Production">Quality Control
@@ -680,13 +680,6 @@
               <a class="d-flex align-items-center" href="{{ route('inspectionPost.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Master Inspection Post">Inspection Post</span>
-              </a>
-            </li>
-
-            <li class="{{ \Request::segment(1) == 'inspectionRules' ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('inspectionRule.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Master Inspection Rule">Inspection Rules</span>
               </a>
             </li>
 

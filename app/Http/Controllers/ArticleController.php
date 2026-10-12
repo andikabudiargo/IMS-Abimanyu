@@ -3236,6 +3236,19 @@ private function buildSummaryRow(array $p)
                 ->where('article_bulk_update_tmp.batch_id', $batchId)
                 ->get();
 
+            if ($dataValidasi->isEmpty()) {
+                DB::table('article_bulk_update_tmp')->where('batch_id', $batchId)->delete();
+
+                return response()->json(array(
+                    'status' => 0,
+                    'title' => $title,
+                    'message' => ['File kosong atau format tidak sesuai template (tidak ada baris data yang terbaca).'],
+                    'alert' => 'error',
+                    'pesan' => '',
+                    'dataDetail' => '',
+                ));
+            }
+
             $dataNotes = [];
             foreach ($dataValidasi as $val) {
                 if ($val->notes) {

@@ -28,6 +28,8 @@ class InspectionPostController extends Controller
         $rule = [
             'name' => 'required',
             'sequence' => 'required|integer',
+            'target_pass_rate' => 'required|numeric|min:0|max:100',
+            'target_pass_through_rate' => 'required|numeric|min:0|max:100',
         ];
         $this->validate($request, $rule);
 
@@ -36,6 +38,8 @@ class InspectionPostController extends Controller
             DB::table('inspection_posts')->insert([
                 'name' => $request->input('name'),
                 'sequence' => $request->input('sequence'),
+                'target_pass_rate' => $request->input('target_pass_rate'),
+                'target_pass_through_rate' => $request->input('target_pass_through_rate'),
                 'status' => '1',
                 'created_by' => $username,
                 'updated_by' => $username,
@@ -72,6 +76,8 @@ class InspectionPostController extends Controller
         $rule = [
             'name' => 'required',
             'sequence' => 'required|integer',
+            'target_pass_rate' => 'required|numeric|min:0|max:100',
+            'target_pass_through_rate' => 'required|numeric|min:0|max:100',
         ];
         $this->validate($request, $rule);
 
@@ -80,6 +86,8 @@ class InspectionPostController extends Controller
             $rowAffected = DB::table('inspection_posts')->where('id', $id)->update([
                 'name' => $request->input('name'),
                 'sequence' => $request->input('sequence'),
+                'target_pass_rate' => $request->input('target_pass_rate'),
+                'target_pass_through_rate' => $request->input('target_pass_through_rate'),
                 'status' => $request->input('status', '1'),
                 'updated_by' => $username,
                 'updated_at' => date('Y-m-d H:i:s'),
@@ -145,6 +153,12 @@ class InspectionPostController extends Controller
             })
             ->editColumn('status', function ($row) {
                 return $row->status == '1' ? 'Active' : 'Inactive';
+            })
+            ->editColumn('target_pass_rate', function ($row) {
+                return $row->target_pass_rate . '%';
+            })
+            ->editColumn('target_pass_through_rate', function ($row) {
+                return $row->target_pass_through_rate . '%';
             })
             ->rawColumns(['action'])
             ->make(true);
