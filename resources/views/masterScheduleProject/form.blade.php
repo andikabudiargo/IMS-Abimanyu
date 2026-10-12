@@ -21,44 +21,58 @@
     @csrf
     @if ($hdr) @method('PUT') @endif
 
-    <div class="card">
+    <div class="card msp-card">
       <div class="card-header">
-        <h4 class="card-title">{{ $hdr ? 'Edit' : 'New' }} Master Schedule Project</h4>
-        @if ($hdr)
-          <a href="{{ route('msp.history', $hdr->id) }}" class="btn btn-sm btn-outline-secondary">View History</a>
-        @endif
+        <h4 class="card-title">
+          <i data-feather="file-text" class="font-medium-2 mr-1 text-primary"></i>
+          {{ $hdr ? 'Edit' : 'New' }} Master Schedule Project
+        </h4>
+        <div class="heading-elements">
+          @if ($hdr)
+            <span class="badge msp-status-badge badge-pill mr-2" data-status="{{ $hdr->status }}">{{ ucfirst($hdr->status) }}</span>
+            <a href="{{ route('msp.history', $hdr->id) }}" class="btn btn-sm btn-outline-secondary"><i data-feather="clock" class="mr-50"></i>History</a>
+          @endif
+        </div>
       </div>
       <div class="card-body">
         <div class="form-row">
           @if ($hdr)
           <div class="form-group col-md-3">
-            <label>MSP No</label>
+            <label class="msp-label">MSP No</label>
             <input type="text" class="form-control" value="{{ $hdr->msp_no }}" readonly>
           </div>
           @endif
           <div class="form-group col-md-3">
-            <label>Customer</label>
+            <label class="msp-label">Customer</label>
             <input type="text" name="customer" class="form-control" value="{{ old('customer', $hdr->customer ?? '') }}">
           </div>
           <div class="form-group col-md-3">
-            <label>Part Name <span class="text-danger">*</span></label>
+            <label class="msp-label">Part Name <span class="text-danger">*</span></label>
             <input type="text" name="part_name" class="form-control" required value="{{ old('part_name', $hdr->part_name ?? '') }}">
           </div>
           <div class="form-group col-md-3">
-            <label>Model</label>
+            <label class="msp-label">Model</label>
             <input type="text" name="model" class="form-control" value="{{ old('model', $hdr->model ?? '') }}">
           </div>
           <div class="form-group col-md-3">
-            <label>Part Number</label>
+            <label class="msp-label">Part Number</label>
             <input type="text" name="part_number" class="form-control" value="{{ old('part_number', $hdr->part_number ?? '') }}">
           </div>
           <div class="form-group col-md-3">
-            <label>Issue Date</label>
+            <label class="msp-label">Project Type <span class="text-danger">*</span></label>
+            <select name="project_type" id="mspProjectType" class="form-control" required>
+              @foreach ($projectTypes as $value => $label)
+                <option value="{{ $value }}" {{ old('project_type', $hdr->project_type ?? 'regular') == $value ? 'selected' : '' }}>{{ $label }}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="form-group col-md-3">
+            <label class="msp-label">Issue Date</label>
             <input type="date" name="issue_date" class="form-control" value="{{ old('issue_date', $hdr->issue_date ?? now()->toDateString()) }}">
           </div>
           @if ($hdr)
           <div class="form-group col-md-3">
-            <label>Status</label>
+            <label class="msp-label">Status</label>
             <select name="status" class="form-control">
               <option value="ongoing" {{ $hdr->status == 'ongoing' ? 'selected' : '' }}>Ongoing</option>
               <option value="done" {{ $hdr->status == 'done' ? 'selected' : '' }}>Done</option>
@@ -66,35 +80,83 @@
             </select>
           </div>
           <div class="form-group col-md-3">
-            <label>Revision No</label>
+            <label class="msp-label">Revision No</label>
             <input type="text" class="form-control" value="{{ $hdr->revision_no }}" readonly>
           </div>
           @endif
         </div>
         @if ($hdr)
         <div class="form-group mb-0">
-          <label>Catatan Revisi <small class="text-muted">(diisi bila ada perubahan schedule pada penyimpanan ini, akan tercatat di history)</small></label>
+          <label class="msp-label">Catatan Revisi <small class="text-muted font-weight-normal">(diisi bila ada perubahan schedule pada penyimpanan ini, akan tercatat di history)</small></label>
           <input type="text" name="revision_reason" class="form-control" placeholder="mis. Reschedule T1 mundur karena material telat">
         </div>
         @endif
       </div>
     </div>
 
-    <div class="card">
+    {{-- Progress overview, derived live from the items below --}}
+    <div class="row match-height mb-1">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card msp-stat-card mb-0">
+          <div class="card-body d-flex align-items-center justify-content-between py-2">
+            <div>
+              <h6 class="text-muted mb-25">Items Berlaku</h6>
+              <h2 class="font-weight-bolder mb-0" id="mspStatVisible">-</h2>
+            </div>
+            <div class="avatar bg-light-primary p-50"><span class="avatar-content"><i data-feather="list" class="font-medium-5"></i></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card msp-stat-card mb-0">
+          <div class="card-body d-flex align-items-center justify-content-between py-2">
+            <div>
+              <h6 class="text-muted mb-25">Done</h6>
+              <h2 class="font-weight-bolder mb-0" id="mspStatDone">-</h2>
+            </div>
+            <div class="avatar bg-light-success p-50"><span class="avatar-content"><i data-feather="check-circle" class="font-medium-5"></i></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card msp-stat-card mb-0">
+          <div class="card-body d-flex align-items-center justify-content-between py-2">
+            <div>
+              <h6 class="text-muted mb-25">On Progress</h6>
+              <h2 class="font-weight-bolder mb-0" id="mspStatProgress">-</h2>
+            </div>
+            <div class="avatar bg-light-warning p-50"><span class="avatar-content"><i data-feather="loader" class="font-medium-5"></i></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card msp-stat-card mb-0">
+          <div class="card-body d-flex align-items-center justify-content-between py-2">
+            <div>
+              <h6 class="text-muted mb-25">Telat</h6>
+              <h2 class="font-weight-bolder mb-0" id="mspStatLate">-</h2>
+            </div>
+            <div class="avatar bg-light-danger p-50"><span class="avatar-content"><i data-feather="alert-triangle" class="font-medium-5"></i></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card msp-card">
       <div class="card-header">
-        <h4 class="card-title">Timeline Chart</h4>
+        <h4 class="card-title"><i data-feather="bar-chart-2" class="font-medium-2 mr-1 text-primary"></i>Timeline Chart</h4>
         <div class="heading-elements">
-          <button type="button" class="btn btn-sm btn-outline-primary" onclick="mspRenderGantt()">Refresh Chart</button>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="mspRenderGantt()"><i data-feather="refresh-cw" class="mr-50"></i>Refresh Chart</button>
         </div>
       </div>
       <div class="card-body" style="overflow-x:auto;">
         <div id="mspGanttChart"></div>
-        <div class="mt-2" style="font-size:12px;line-height:2;">
-          <span style="display:inline-block;width:14px;height:8px;border:1.5px solid #5a4fcf;border-radius:2px;margin-right:4px;"></span> Plan (bar)
-          <span style="display:inline-block;width:14px;height:8px;background:#5a4fcf;border-radius:2px;margin-left:14px;margin-right:4px;"></span> Actual (bar)
-          <span style="display:inline-block;width:14px;height:8px;border:1.5px solid #dc3545;border-radius:2px;margin-left:14px;margin-right:4px;"></span> Telat, belum di-reschedule
-          <span style="display:inline-block;width:2px;height:12px;background:#dc3545;margin-left:14px;margin-right:4px;vertical-align:middle;"></span> Hari ini
-          <span style="display:inline-block;width:14px;height:8px;background:#fffbe6;border:1px solid #e6d47a;border-radius:2px;margin-left:14px;margin-right:4px;"></span> Notes
+        <div class="mt-2 msp-legend">
+          <span class="msp-legend-swatch" style="border:1.5px solid #5a4fcf;border-radius:2px;"></span> Plan (bar)
+          <span class="msp-legend-swatch" style="background:#5a4fcf;border-radius:2px;"></span> Actual (bar)
+          <span class="msp-legend-swatch" style="border:1.5px solid #dc3545;border-radius:2px;"></span> Telat, belum di-reschedule
+          <span class="msp-legend-swatch" style="width:2px;height:12px;background:#dc3545;"></span> Hari ini
+          <span class="msp-legend-swatch" style="background:#fffbe6;border:1px solid #e6d47a;border-radius:2px;"></span> Notes
           <br>
           <span class="msp-marker msp-marker-plan" style="position:static;display:inline-block;margin-right:2px;">D</span>
           <span class="msp-marker msp-marker-plan" style="position:static;display:inline-block;margin-right:2px;">AI</span>
@@ -116,22 +178,29 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card msp-card">
       <div class="card-header">
-        <h4 class="card-title">Schedule (13 Item Baku)</h4>
+        <h4 class="card-title"><i data-feather="layers" class="font-medium-2 mr-1 text-primary"></i>Schedule Items</h4>
+        <div class="heading-elements">
+          <span class="badge badge-light-primary" id="mspTypeBadge">Regular Order</span>
+        </div>
       </div>
       <div class="card-body">
-        <small class="text-muted d-block mb-2">Klik judul item untuk buka/tutup. Tombol <i data-feather="plus"></i> menambah document/report line pada item yang sama, <i data-feather="flag"></i> untuk isi tanggal Draft/Approval (D/AI/AE).</small>
+        <small class="text-muted d-block mb-2">Klik judul item untuk buka/tutup. Tombol <i data-feather="plus"></i> menambah document/report line pada item yang sama, <i data-feather="flag"></i> untuk isi tanggal Draft/Approval (D/AI/AE). Item yang tidak berlaku untuk Project Type yang dipilih otomatis disembunyikan.</small>
 
         <div id="mspScheduleWrapper">
           @foreach ($items as $itemNo => $item)
-            @php $lines = $dtlByItem[$itemNo] ?? collect(); @endphp
-            <div class="card msp-item-card mb-2">
-              <div class="card-header py-2 msp-item-toggle" style="cursor:pointer;background:#f8f8fb;">
+            @php
+              $lines = $dtlByItem[$itemNo] ?? collect();
+              $hiddenFor = collect($hiddenItemsByType)->filter(fn ($list) => in_array($itemNo, $list))->keys()->implode(',');
+            @endphp
+            <div class="card msp-item-card mb-2" data-item-no="{{ $itemNo }}" data-hidden-for="{{ $hiddenFor }}">
+              <div class="card-header py-2 msp-item-toggle">
                 <div class="d-flex justify-content-between align-items-center">
                   <div>
                     <span class="badge msp-stage-badge mr-2">{{ $item['stage'] }}</span>
                     <strong>{{ $itemNo }}. {{ $item['name'] }}</strong>
+                    <span class="badge badge-pill msp-item-status ml-2" data-status="not_started">Belum Mulai</span>
                   </div>
                   <i data-feather="chevron-down"></i>
                 </div>
@@ -153,8 +222,8 @@
       </div>
     </div>
 
-    <button type="submit" class="btn btn-primary">Save</button>
-    <a href="{{ route('msp.index') }}" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary"><i data-feather="save" class="mr-50"></i>Save</button>
+    <a href="{{ route('msp.index') }}" class="btn btn-outline-secondary">Cancel</a>
   </form>
 </section>
 
@@ -162,11 +231,42 @@
 
 @section('styles')
 <style>
+/* ── Enterprise card language (shared with other modules) ───────── */
+.msp-card { border: 1px solid #e4e7ec; box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06); border-radius: 8px; }
+.msp-card > .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid #f1f1f4; }
+.msp-card > .card-header .card-title { font-size: 1rem; font-weight: 600; color: #1d2939; margin-bottom: 0; display: flex; align-items: center; }
+
+.msp-stat-card { border: 1px solid #e4e7ec; box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06); border-radius: 8px; }
+.msp-stat-card .avatar { border-radius: 8px; }
+.msp-stat-card h2 { font-size: 1.6rem; font-weight: 700; color: #101828; }
+.msp-stat-card h6 { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: #667085; }
+
+.msp-label { font-size: 12px; font-weight: 600; color: #475467; margin-bottom: 4px; display: block; }
 .msp-field-label { font-size: 11px; color: #6e6b7b; margin-bottom: 2px; display: block; }
-.msp-line-panel { background: #fff; }
-.msp-stage-badge { background: #e0def7; color: #5a4fcf; }
-.msp-item-toggle svg { transition: transform .15s ease; }
+.msp-line-panel { background: #fff; border-color: #ebe9f1 !important; }
+
+.msp-stage-badge { background: #e0def7; color: #5a4fcf; font-weight: 600; }
+
+/* status badge on header (ongoing/done/cancelled) */
+.msp-status-badge[data-status="ongoing"] { background: #fff3cd; color: #946200; }
+.msp-status-badge[data-status="done"] { background: #d1f7df; color: #0a7a3c; }
+.msp-status-badge[data-status="cancelled"] { background: #eceff1; color: #52606d; }
+
+/* per-item live status badge, driven by JS from progress/date inputs */
+.msp-item-status[data-status="not_started"] { background: #eceff1; color: #52606d; }
+.msp-item-status[data-status="in_progress"] { background: #fff3cd; color: #946200; }
+.msp-item-status[data-status="done"] { background: #d1f7df; color: #0a7a3c; }
+.msp-item-status[data-status="late"] { background: #fde0e0; color: #c62828; }
+
+.msp-item-card { border: 1px solid #e4e7ec; border-radius: 8px; overflow: hidden; }
+.msp-item-card.d-none { display: none !important; }
+.msp-item-toggle { cursor: pointer; background: #fbfafe; }
+.msp-item-toggle:hover { background: #f5f3fb; }
+.msp-item-toggle svg { transition: transform .15s ease; color: #667085; }
 .msp-item-toggle.msp-collapsed svg { transform: rotate(-90deg); }
+
+.msp-legend { font-size: 12px; line-height: 2; color: #475467; }
+.msp-legend-swatch { display: inline-block; width: 14px; height: 8px; margin-right: 4px; vertical-align: middle; }
 
 .msp-gantt-table { border-collapse: collapse; font-size: 11px; table-layout: fixed; }
 .msp-gantt-table th, .msp-gantt-table td { border: 1px solid #dcdcdc; text-align: center; padding: 0; height: 28px; }
@@ -205,7 +305,24 @@
 
 @section('scripts')
 <script>
-// ---- accordion open/close for each of the 13 item cards ----
+const mspHiddenItemsByType = @json($hiddenItemsByType);
+const mspProjectTypeLabels = @json($projectTypes);
+
+// ---- Project Type -> show/hide item cards (client-side, no reload) ----
+function mspApplyProjectType() {
+  const type = document.getElementById('mspProjectType').value;
+  const hidden = mspHiddenItemsByType[type] || [];
+  document.querySelectorAll('#mspScheduleWrapper .msp-item-card').forEach(function (card) {
+    const itemNo = parseInt(card.dataset.itemNo, 10);
+    card.classList.toggle('d-none', hidden.includes(itemNo));
+  });
+  const badge = document.getElementById('mspTypeBadge');
+  if (badge) badge.textContent = mspProjectTypeLabels[type] || type;
+  mspUpdateStats();
+}
+document.getElementById('mspProjectType').addEventListener('change', mspApplyProjectType);
+
+// ---- accordion open/close for each item card ----
 document.addEventListener('click', function (e) {
   const toggle = e.target.closest('.msp-item-toggle');
   if (!toggle) return;
@@ -242,10 +359,48 @@ function mspUpdateLateBadge(panel) {
 function mspUpdateAllLateBadges() {
   document.querySelectorAll('#mspScheduleWrapper .msp-line-panel').forEach(mspUpdateLateBadge);
 }
+
+// ---- per-item status badge + top stat tiles, derived from progress/dates already on screen ----
+function mspItemStatus(card) {
+  const panels = card.querySelectorAll('.msp-line-panel');
+  let anyLate = false, anyStarted = false, allDone = true, hasAny = false;
+  panels.forEach(function (panel) {
+    const progress = parseInt(panel.querySelector('input[name="progress[]"]').value, 10) || 0;
+    const hasDoc = !!panel.querySelector('.document-report').value;
+    if (hasDoc) hasAny = true;
+    if (progress > 0) anyStarted = true;
+    if (progress < 100) allDone = false;
+    if (mspIsLate(panel)) anyLate = true;
+  });
+  if (!hasAny) return 'not_started';
+  if (anyLate) return 'late';
+  if (allDone) return 'done';
+  if (anyStarted) return 'in_progress';
+  return 'not_started';
+}
+const mspStatusLabels = { not_started: 'Belum Mulai', in_progress: 'On Progress', done: 'Done', late: 'Telat' };
+function mspUpdateStats() {
+  let visible = 0, done = 0, progress = 0, late = 0;
+  document.querySelectorAll('#mspScheduleWrapper .msp-item-card').forEach(function (card) {
+    if (card.classList.contains('d-none')) return;
+    visible++;
+    const status = mspItemStatus(card);
+    const badge = card.querySelector('.msp-item-status');
+    if (badge) { badge.dataset.status = status; badge.textContent = mspStatusLabels[status]; }
+    if (status === 'done') done++;
+    else if (status === 'late') late++;
+    else if (status === 'in_progress') progress++;
+  });
+  document.getElementById('mspStatVisible').textContent = visible;
+  document.getElementById('mspStatDone').textContent = done;
+  document.getElementById('mspStatProgress').textContent = progress;
+  document.getElementById('mspStatLate').textContent = late;
+}
 document.addEventListener('change', function (e) {
-  if (e.target.matches('.plan-end, .actual-end, .resch-input')) {
+  if (e.target.matches('.plan-end, .actual-end, .resch-input, input[name="progress[]"], .document-report')) {
     const panel = e.target.closest('.msp-line-panel');
     if (panel) mspUpdateLateBadge(panel);
+    mspUpdateStats();
   }
 });
 
@@ -269,17 +424,20 @@ document.addEventListener('click', function (e) {
     panel.parentNode.insertBefore(clone, panel.nextSibling);
     if (window.feather) feather.replace();
     mspRenumberLines();
+    mspUpdateStats();
   } else if (e.target.closest('.msp-remove-line')) {
     const panel = e.target.closest('.msp-line-panel');
     const sameItemPanels = document.querySelectorAll('.msp-line-panel[data-item-no="' + panel.dataset.itemNo + '"]');
     if (sameItemPanels.length > 1) panel.remove();
     mspRenumberLines();
+    mspUpdateStats();
   }
 });
 
 document.addEventListener('DOMContentLoaded', function () {
   mspRenumberLines();
   mspUpdateAllLateBadges();
+  mspApplyProjectType();
 });
 
 // ---- Timeline chart ----
@@ -293,15 +451,15 @@ function mspRenderGantt() {
   if (!container) return;
 
   const milestoneFields = ['plan_draft','plan_ai','plan_ae','actual_draft','actual_ai','actual_ae','resch_draft','resch_ai','resch_ae'];
-  const panels = document.querySelectorAll('#mspScheduleWrapper .msp-line-panel');
+  const panels = document.querySelectorAll('#mspScheduleWrapper .msp-item-card:not(.d-none) .msp-line-panel');
   const lines = [];
   const today = new Date(); today.setHours(0, 0, 0, 0);
   let minDate = today, maxDate = today;
   const lineNoCounters = {};
 
-  // every panel (all 13 fixed items + any extra lines) always shows up as a
-  // row, even with no dates yet — only the date range used for the header is
-  // driven by whichever rows actually have dates (plus "today", always).
+  // every visible panel (items hidden by Project Type are excluded) always
+  // shows up as a row, even with no dates yet — only the date range used for
+  // the header is driven by whichever rows actually have dates (plus "today").
   panels.forEach(function (panel) {
     const ps = panel.querySelector('.plan-start').value;
     const pe = panel.querySelector('.plan-end').value;

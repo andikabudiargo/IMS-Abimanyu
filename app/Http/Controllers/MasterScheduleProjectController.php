@@ -29,6 +29,25 @@ class MasterScheduleProjectController extends Controller
     ];
 
     /**
+     * Project types from the "matrix new project" requirement sheet, and which
+     * of the 13 stage items that sheet marks Not Applicable per type (so those
+     * stages don't apply at all for that project — the granular document-level
+     * checklist, e.g. PFMEA/QCPC, stays as free-text lines the user fills in
+     * under whichever stage remains visible).
+     */
+    const PROJECT_TYPES = [
+        'regular' => 'Regular Order',
+        'spot' => 'Spot Order',
+        'one_shot' => '1 Shot Order',
+    ];
+
+    const HIDDEN_ITEMS_BY_TYPE = [
+        'regular' => [],
+        'spot' => [6, 7, 11, 13],
+        'one_shot' => [6, 7, 11, 12, 13],
+    ];
+
+    /**
      * Approval-workflow milestone markers (D/AI/AE/RD/RAI/RAE legend from the
      * Excel template). Form field name => DB column name.
      */
@@ -67,6 +86,7 @@ class MasterScheduleProjectController extends Controller
             'title' => $this->title,
             'projects' => $projects,
             'q' => $q,
+            'projectTypes' => self::PROJECT_TYPES,
         ]);
     }
 
@@ -76,6 +96,8 @@ class MasterScheduleProjectController extends Controller
             'title' => $this->title,
             'hdr' => null,
             'items' => self::ITEMS,
+            'projectTypes' => self::PROJECT_TYPES,
+            'hiddenItemsByType' => self::HIDDEN_ITEMS_BY_TYPE,
             'dtlByItem' => [],
         ]);
     }
@@ -84,6 +106,7 @@ class MasterScheduleProjectController extends Controller
     {
         $request->validate([
             'part_name' => 'required|string|max:255',
+            'project_type' => 'required|in:' . implode(',', array_keys(self::PROJECT_TYPES)),
         ]);
 
         $username = Auth::user()->username ?? Auth::user()->name;
@@ -96,6 +119,7 @@ class MasterScheduleProjectController extends Controller
                 'part_name' => $request->part_name,
                 'model' => $request->model,
                 'part_number' => $request->part_number,
+                'project_type' => $request->project_type,
                 'issue_date' => $request->issue_date ?: now()->toDateString(),
                 'revision_no' => 0,
                 'status' => 'ongoing',
@@ -127,6 +151,8 @@ class MasterScheduleProjectController extends Controller
             'title' => $this->title,
             'hdr' => $hdr,
             'items' => self::ITEMS,
+            'projectTypes' => self::PROJECT_TYPES,
+            'hiddenItemsByType' => self::HIDDEN_ITEMS_BY_TYPE,
             'dtlByItem' => $dtlByItem,
         ]);
     }
@@ -138,6 +164,7 @@ class MasterScheduleProjectController extends Controller
 
         $request->validate([
             'part_name' => 'required|string|max:255',
+            'project_type' => 'required|in:' . implode(',', array_keys(self::PROJECT_TYPES)),
         ]);
 
         $username = Auth::user()->username ?? Auth::user()->name;
@@ -150,6 +177,7 @@ class MasterScheduleProjectController extends Controller
                 'part_name' => $request->part_name,
                 'model' => $request->model,
                 'part_number' => $request->part_number,
+                'project_type' => $request->project_type,
                 'issue_date' => $request->issue_date,
                 'status' => $request->status ?: $hdr->status,
                 'updated_by' => $username,
