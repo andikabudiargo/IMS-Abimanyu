@@ -388,6 +388,13 @@
             </li>
             @endcan
 
+            <li class="{{ \Request::segment(1) == 'deliveryMonitoring' ? 'active' : '' }} " >
+              <a class="d-flex align-items-center" href="{{ route('deliveryMonitoring.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Delivery Monitoring">Delivery Monitoring</span>
+              </a>
+            </li>
+
           </ul>
         </li>
 
