@@ -3702,11 +3702,8 @@ public function unPosting($recNumber)
         })
         ->addColumn('voucher_number', function ($row) {
             if (!$row->voucher_id || !$row->voucher_number) return $row->voucher_number;
-            $routeName = match ($row->voucher_type) {
-                'KK' => 'kasKeluar.show',
-                'BM' => 'bankPenerimaan.show',
-                default => 'bankKeluar.show',
-            };
+            $voucherRoutes = ['KK' => 'kasKeluar.show', 'BM' => 'bankPenerimaan.show'];
+            $routeName = $voucherRoutes[$row->voucher_type] ?? 'bankKeluar.show';
             return '<a href="'.route($routeName, ['id' => Crypt::encryptString($row->voucher_id)]).'" target="_blank">'.$row->voucher_number.'</a>';
         })
         ->editColumn('qty_conv', fn ($row) => $row->qty_conv ?? '')
