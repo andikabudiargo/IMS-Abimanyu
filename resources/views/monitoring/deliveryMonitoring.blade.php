@@ -17,7 +17,7 @@
             <label for="to">Sampai Tanggal</label>
             <input type="date" id="to" name="to" value="{{ $to }}" class="form-control">
           </div>
-          <div class="form-group col-md-2">
+          <div class="form-group col-md-3">
             <label for="dn_type">Tipe DN</label>
             <select id="dn_type" name="dn_type[]" class="select2 form-control" multiple>
               <option value="dn" @if(in_array('dn', $dnType)) selected @endif>Delivery Note</option>
@@ -25,11 +25,21 @@
               <option value="replace" @if(in_array('replace', $dnType)) selected @endif>DN Replace</option>
             </select>
           </div>
-          <div class="form-group col-md-4">
+          <div class="form-group col-md-5">
             <label for="customer">Customer</label>
             <select id="customer" name="customer[]" class="select2 form-control" multiple>
               @foreach($customers as $c)
                 <option value="{{ $c->kode }}" @if(in_array($c->kode, $selected)) selected @endif>{{ $c->kode }} - {{ $c->nama }}</option>
+              @endforeach
+            </select>
+          </div>
+        </div>
+        <div class="form-row align-items-end">
+          <div class="form-group col-md-10">
+            <label for="article">Article</label>
+            <select id="article" name="article[]" class="select2 form-control" multiple>
+              @foreach($articleOptions as $code => $name)
+                <option value="{{ $code }}" @if(in_array($code, $selectedArticles)) selected @endif>{{ $name }}</option>
               @endforeach
             </select>
           </div>
@@ -139,7 +149,7 @@
         <button type="button" class="close" data-dismiss="modal">&times;</button></div>
       <div class="modal-body table-responsive">
         <table class="table table-sm table-bordered">
-          <thead><tr><th>No</th><th>Nomor</th><th>Tipe</th><th>No SO</th><th class="text-center">Qty</th></tr></thead>
+          <thead><tr><th>No</th><th>Nomor</th><th>Tipe</th><th>Status</th><th>No SO</th><th class="text-center">Qty</th></tr></thead>
           <tbody id="qtyModalBody"></tbody>
         </table>
       </div>
@@ -191,6 +201,7 @@
 
   $('#customer').select2({placeholder: 'Semua Customer', allowClear: true});
   $('#dn_type').select2({placeholder: 'Semua Tipe DN', allowClear: true});
+  $('#article').select2({placeholder: 'Semua Article', allowClear: true});
   $('input[name=viewToggle]').on('change', function () {
     $('#viewInput').val(this.value);
     $('#filterForm').submit();
@@ -201,7 +212,7 @@
     e.preventDefault();
     const d = $(this).data();
     $('#qtyModalTitle').text(d.label);
-    $('#qtyModalBody').html('<tr><td colspan="5">Loading...</td></tr>');
+    $('#qtyModalBody').html('<tr><td colspan="6">Loading...</td></tr>');
     $('#qtyModal').modal('show');
     $.get("{{ route('deliveryMonitoring.detail') }}", {
       customer: [d.customer],
@@ -209,8 +220,8 @@
       from: '{{ $from }}', to: '{{ $to }}'
     }, function (rows) {
       $('#qtyModalBody').html(rows.length ? rows.map((r, i) => '<tr><td>' + (i + 1) + '</td><td><a href="' + esc(r.url) + '" target="_blank">' + esc(r.number) + '</a></td><td>'
-        + esc(r.type) + '</td><td>' + esc(r.so_number) + '</td><td class="text-center">' + esc(r.qty) + '</td></tr>').join('')
-        : '<tr><td colspan="5" class="text-center text-muted">Tidak ada data</td></tr>');
+        + esc(r.type) + '</td><td>' + esc(r.status) + '</td><td>' + esc(r.so_number) + '</td><td class="text-center">' + esc(r.qty) + '</td></tr>').join('')
+        : '<tr><td colspan="6" class="text-center text-muted">Tidak ada data</td></tr>');
     });
   });
 </script>

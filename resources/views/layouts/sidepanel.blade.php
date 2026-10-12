@@ -658,7 +658,7 @@
           </ul>
         </li>
 
-         <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods','inspectionPosts','defects']) ? 'active' : '' }} nav-item">
+         <li class=" {{ in_array(\Request::segment(1), ['actualLoading','actualFinishGoods','inspectionPosts','defects','inspectionRules','inspectionOrder']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='zoom-in'></i>
             <span class="menu-title text-truncate" data-i18n="Production">Quality Control
@@ -666,29 +666,37 @@
           </a>
           <ul class="menu-content">
 
-           
+
             <li class="{{ \Request::segment(1) == 'defects' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('defect.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Master Defect">Defect</span>
               </a>
             </li>
-           
 
-    
+
+
             <li class="{{ \Request::segment(1) == 'inspectionPosts' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('inspectionPost.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Master Inspection Post">Inspection Post</span>
               </a>
             </li>
-            
 
-            @can('actualLoading-index')
-            <li class="{{ \Request::is(['actualLoading','actualLoading/create','actualLoading/edit','actualLoading/show']) ? 'active' : '' }}" >
-              <a class="d-flex align-items-center" href="{{ route('production.actualLoading.index') }}">
+            @can('inspection-rule-index')
+            <li class="{{ \Request::segment(1) == 'inspectionRules' ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('inspectionRule.index') }}">
                 <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Actual Loading">Inspection Order</span>
+                <span class="menu-item text-truncate" data-i18n="Master Inspection Rule">Inspection Rules</span>
+              </a>
+            </li>
+            @endcan
+
+            @can('inspectionOrder-index')
+            <li class="{{ \Request::segment(1) == 'inspectionOrder' ? 'active' : '' }}" >
+              <a class="d-flex align-items-center" href="{{ route('inspectionOrder.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Inspection Order">Inspection Order</span>
               </a>
             </li>
             @endcan

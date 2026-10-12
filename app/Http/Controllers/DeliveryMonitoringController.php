@@ -37,11 +37,14 @@ class DeliveryMonitoringController extends Controller
     // SJ Sementara (temporary_dn_hdr/det), dan DN Replace (dn_replace_hdr/det).
     // status NOT IN('5','7')/<>'4'/<>'3' = exclude cancelled & DN lama yang sudah direvisi,
     // supaya konsisten dengan qty_delivery yang dipakai modul lain.
-    private function rows(Request $request)
+    // $ignoreArticle = true saat memanggil hanya untuk mengisi pilihan dropdown article
+    // (supaya pilihan yang sudah dicentang tidak ikut menyempitkan daftarnya sendiri).
+    private function rows(Request $request, $ignoreArticle = false)
     {
         [$from, $to] = $this->period($request);
         $selected = array_filter((array) $request->customer);
         $dnType = $this->dnType($request);
+        $articles = $ignoreArticle ? [] : array_filter((array) $request->article);
 
         $where = ["to_date(x.delivery_date,'DD-MM-YYYY') BETWEEN ? AND ?"];
         $bindings = [$from, $to];
@@ -54,9 +57,9 @@ class DeliveryMonitoringController extends Controller
             $where[] = 'x.type IN (' . implode(',', array_fill(0, count($labels), '?')) . ')';
             $bindings = array_merge($bindings, $labels);
         }
-        if ($request->article) {
-            $where[] = 'x.article_code = ?';
-            $bindings[] = $request->article;
+        if ($articles) {
+            $where[] = 'x.article_code IN (' . implode(',', array_fill(0, count($articles), '?')) . ')';
+            $bindings = array_merge($bindings, $articles);
         }
         if ($request->date) {
             $where[] = 'x.delivery_date = ?';
@@ -64,17 +67,21 @@ class DeliveryMonitoringController extends Controller
         }
 
         $sql = "SELECT x.customer_id, tp.nama AS customer_name, x.article_code,
-                a.article_alternative_code, a.article_desc, x.delivery_date, x.type, x.number, x.hdr_id, x.so_number, x.qty
+                a.article_alternative_code, a.article_desc, x.delivery_date, x.type, x.number, x.hdr_id, x.so_number, x.qty, x.status
             FROM (
-                SELECT dh.customer_id, dd.article_code, dh.delivery_date, 'DN' AS type, dh.delivery_number AS number, dh.id AS hdr_id, dd.so_number, dd.qty
+                SELECT dh.customer_id, dd.article_code, dh.delivery_date, 'DN' AS type, dh.delivery_number AS number, dh.id AS hdr_id, dd.so_number, dd.qty,
+                    CASE dh.status WHEN '1' THEN 'NEW' WHEN '2' THEN 'VALIDATE' WHEN '3' THEN 'APPROVED' WHEN '4' THEN 'POSTED'
+                        WHEN '8' THEN 'RECEIVED' WHEN '10' THEN 'REVISED' ELSE dh.status END AS status
                 FROM delivery_det dd JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
                 WHERE dh.status NOT IN ('5','7')
                 UNION ALL
-                SELECT th.customer_id, td.article_code, th.delivery_date, 'SJ SEMENTARA' AS type, th.tdn_number AS number, th.id AS hdr_id, th.so_number, td.qty
+                SELECT th.customer_id, td.article_code, th.delivery_date, 'SJ SEMENTARA' AS type, th.tdn_number AS number, th.id AS hdr_id, th.so_number, td.qty,
+                    CASE th.status WHEN '1' THEN 'OPEN' WHEN '2' THEN 'SO' WHEN '3' THEN 'CLOSED' ELSE th.status END AS status
                 FROM temporary_dn_det td JOIN temporary_dn_hdr th ON th.tdn_number = td.tdn_number
                 WHERE th.status <> '4'
                 UNION ALL
-                SELECT rh.customer_id, rd.article_code, rh.replace_date AS delivery_date, 'DN REPLACE' AS type, rh.replace_number AS number, rh.id AS hdr_id, NULL::varchar AS so_number, rd.qty
+                SELECT rh.customer_id, rd.article_code, rh.replace_date AS delivery_date, 'DN REPLACE' AS type, rh.replace_number AS number, rh.id AS hdr_id, NULL::varchar AS so_number, rd.qty,
+                    CASE rh.status WHEN '1' THEN 'OPEN' WHEN '2' THEN 'CLOSED' ELSE rh.status END AS status
                 FROM dn_replace_det rd JOIN dn_replace_hdr rh ON rh.replace_number = rd.replace_number
                 WHERE rh.status <> '3'
             ) x
@@ -154,9 +161,21 @@ class DeliveryMonitoringController extends Controller
         $data['from'] = $request->from ?: date('Y-m-01');
         $data['to'] = $request->to ?: date('Y-m-t');
         $data['selected'] = array_filter((array) $request->customer);
+        $data['selectedArticles'] = array_filter((array) $request->article);
         $data['dnType'] = $this->dnType($request);
         $data['summary'] = $request->view == 'summary';
-        $rows = $this->rows($request);
+
+        $allRows = $this->rows($request, true);
+        $articleOptions = [];
+        foreach ($allRows as $r) {
+            $articleOptions[$r->article_code] = trim(($r->article_alternative_code ?? $r->article_code) . ' - ' . $r->article_desc, ' -');
+        }
+        ksort($articleOptions);
+        $data['articleOptions'] = $articleOptions;
+
+        $rows = $data['selectedArticles']
+            ? array_values(array_filter($allRows, fn($r) => in_array($r->article_code, $data['selectedArticles'])))
+            : $allRows;
         $data['groups'] = $this->groups($rows, $data['summary']);
         $data['heatmap'] = $this->heatmapSeries($rows, $data['from']);
         return $data;

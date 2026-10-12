@@ -791,6 +791,26 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('defects/update',['as'=>'defect.update','uses'=>'DefectController@update']);
 	Route::post('defects/delete',['as'=>'defect.destroy','uses'=>'DefectController@destroy']);
 
+	Route::get('inspectionRules',['as'=>'inspectionRule.index','uses'=>'InspectionRuleController@index','middleware' => ['permission:inspection-rule-index']]);
+	Route::get('inspectionRules/create',['as'=>'inspectionRule.create','uses'=>'InspectionRuleController@create','middleware' => ['permission:inspection-rule-create']]);
+	Route::post('inspectionRules/store',['as'=>'inspectionRule.store','uses'=>'InspectionRuleController@store']);
+	Route::get('inspectionRules/list',['as'=>'inspectionRule.list','uses'=>'InspectionRuleController@list']);
+	Route::get('inspectionRules/edit',['as'=>'inspectionRule.edit','uses'=>'InspectionRuleController@edit','middleware' => ['permission:inspection-rule-edit']]);
+	Route::post('inspectionRules/update',['as'=>'inspectionRule.update','uses'=>'InspectionRuleController@update']);
+	Route::post('inspectionRules/delete',['as'=>'inspectionRule.destroy','uses'=>'InspectionRuleController@destroy']);
+
+	Route::get('inspectionOrder',['as'=>'inspectionOrder.index','uses'=>'InspectionOrderController@index','middleware' => ['permission:inspectionOrder-index']]);
+	Route::get('inspectionOrder/list',['as'=>'inspectionOrder.list','uses'=>'InspectionOrderController@list']);
+	Route::get('inspectionOrder/create',['as'=>'inspectionOrder.create','uses'=>'InspectionOrderController@create','middleware' => ['permission:inspectionOrder-create']]);
+	Route::post('inspectionOrder/store',['as'=>'inspectionOrder.store','uses'=>'InspectionOrderController@store']);
+	Route::get('inspectionOrder/edit',['as'=>'inspectionOrder.edit','uses'=>'InspectionOrderController@edit','middleware' => ['permission:inspectionOrder-edit']]);
+	Route::post('inspectionOrder/update',['as'=>'inspectionOrder.update','uses'=>'InspectionOrderController@update']);
+	Route::get('inspectionOrder/show',['as'=>'inspectionOrder.show','uses'=>'InspectionOrderController@show']);
+	Route::post('inspectionOrder/delete',['as'=>'inspectionOrder.destroy','uses'=>'InspectionOrderController@destroy']);
+	Route::post('inspectionOrder/posting',['as'=>'inspectionOrder.posting','uses'=>'InspectionOrderController@posting']);
+	Route::post('inspectionOrder/cancel',['as'=>'inspectionOrder.cancel','uses'=>'InspectionOrderController@cancel']);
+	Route::get('inspectionOrder/get-rule',['as'=>'inspectionOrder.getRule','uses'=>'InspectionOrderController@getRule']);
+
 	Route::get('actualLoading',['as'=>'production.actualLoading.index','uses'=>'Production\ActualLoadingController@index','middleware' => ['permission:actualLoading-index']]);
 	Route::get('actualLoading/create',['as'=>'production.actualLoading.create','uses'=>'Production\ActualLoadingController@create','middleware' => ['permission:actualLoading-create']]);
 	Route::post('actualLoading/store',['as'=>'production.actualLoading.store','uses'=>'Production\ActualLoadingController@store']);
