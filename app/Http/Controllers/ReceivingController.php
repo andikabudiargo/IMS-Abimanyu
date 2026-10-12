@@ -3443,7 +3443,7 @@ public function unPosting($recNumber)
         }
         if ($voucher) {
             $apInv = "(select inv_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)";
-            $q->whereRaw("upper((select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1)) in (".implode(',', array_fill(0, count($voucher), '?')).")", $voucher);
+            $q->whereRaw("upper((select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1)) in (".implode(',', array_fill(0, count($voucher), '?')).")", $voucher);
         }
 
         return $q;
@@ -3659,10 +3659,10 @@ public function unPosting($recNumber)
         ,DB::raw("$lineGt as total_plus_ppn")
         ,DB::raw("$apNo as invoice_number")
         ,DB::raw("$apId as invoice_id")
-        ,DB::raw("(select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_number")
-        ,DB::raw("(select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_id")
-        ,DB::raw("(select kas_hdr.voucher_type from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as voucher_type")
-        ,DB::raw("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'YYYY-MM-DD') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK') and kas_det.reference = $apInv limit 1) as paid_date")
+        ,DB::raw("(select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as voucher_number")
+        ,DB::raw("(select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as voucher_id")
+        ,DB::raw("(select kas_hdr.voucher_type from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as voucher_type")
+        ,DB::raw("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'YYYY-MM-DD') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as paid_date")
         // Balance per baris receiving: kalau AP-nya sudah LUNAS (status 6) → 0,
         // selain itu → Total Plus PPN baris ini. Tidak memakai grand total AP
         // (1 AP bisa mencakup beberapa receiving) maupun nominal kas.
@@ -3702,7 +3702,11 @@ public function unPosting($recNumber)
         })
         ->addColumn('voucher_number', function ($row) {
             if (!$row->voucher_id || !$row->voucher_number) return $row->voucher_number;
-            $routeName = $row->voucher_type == 'KK' ? 'kasKeluar.show' : 'bankKeluar.show';
+            $routeName = match ($row->voucher_type) {
+                'KK' => 'kasKeluar.show',
+                'BM' => 'bankPenerimaan.show',
+                default => 'bankKeluar.show',
+            };
             return '<a href="'.route($routeName, ['id' => Crypt::encryptString($row->voucher_id)]).'" target="_blank">'.$row->voucher_number.'</a>';
         })
         ->editColumn('qty_conv', fn ($row) => $row->qty_conv ?? '')
