@@ -54,6 +54,13 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-header"><h4 class="card-title">Heatmap Delivery - {{ $from }} s/d {{ $to }}</h4></div>
+    <div class="card-body">
+      <div id="deliveryHeatmap"></div>
+    </div>
+  </div>
+
   @forelse($groups as $kode => $g)
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
@@ -77,7 +84,7 @@
               <tr>
                 <th class="dm-sticky dm-col-no">No</th>
                 @if($summary)<th class="dm-sticky dm-col-customer">Customer</th>@endif
-                <th class="dm-sticky dm-col-article" @if($summary) style="left:205px" @endif>Article</th>
+                <th class="dm-sticky dm-col-article" @if($summary) style="left:265px" @endif>Article</th>
                 @foreach($g['dates'] as $d)<th class="text-center">{{ $d }}</th>@endforeach
                 <th class="text-center font-weight-bold">Total</th>
               </tr>
@@ -87,8 +94,8 @@
                 @php([$rowCustomerId, $rowArticleCode] = $summary ? explode('|', $rowKey, 2) : [$kode, $rowKey])
                 <tr>
                   <td class="dm-sticky dm-col-no text-center">{{ $loop->iteration }}</td>
-                  @if($summary)<td class="dm-sticky dm-col-customer">{{ $g['rowCustomer'][$rowKey] ?? $rowCustomerId }}</td>@endif
-                  <td class="dm-sticky dm-col-article" @if($summary) style="left:205px" @endif>{{ $articleName }}</td>
+                  @if($summary)<td class="dm-sticky dm-col-customer" title="{{ $g['rowCustomer'][$rowKey] ?? $rowCustomerId }}">{{ $g['rowCustomer'][$rowKey] ?? $rowCustomerId }}</td>@endif
+                  <td class="dm-sticky dm-col-article" @if($summary) style="left:265px" @endif>{{ $articleName }}</td>
                   @php($rowTotal = 0)
                   @foreach($g['dates'] as $d)
                     @php($qty = $g['matrix'][$rowKey][$d] ?? 0)
@@ -107,7 +114,7 @@
               <tr class="font-weight-bold">
                 <td class="dm-sticky dm-col-no"></td>
                 @if($summary)<td class="dm-sticky dm-col-customer"></td>@endif
-                <td class="dm-sticky dm-col-article text-right" @if($summary) style="left:205px" @endif>Total</td>
+                <td class="dm-sticky dm-col-article text-right" @if($summary) style="left:265px" @endif>Total</td>
                 @php($grandTotal = 0)
                 @foreach($g['dates'] as $d)
                   @php($colTotal = array_sum(array_column($g['matrix'], $d)))
@@ -149,7 +156,7 @@
   .dm-sticky { position: sticky; background: #fff; z-index: 1; }
   .dm-table thead th.dm-sticky { z-index: 4; }
   .dm-col-no { left: 0; min-width: 45px; }
-  .dm-col-customer { left: 45px; min-width: 160px; max-width: 160px; text-align: left; }
+  .dm-col-customer { left: 45px; min-width: 220px; max-width: 220px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dm-col-article { left: 45px; min-width: 240px; text-align: left; }
   .dm-table tbody tr:nth-child(odd) td { background-color: #fafafa; }
   .dm-table tbody tr:nth-child(even) td { background-color: #fff; }
@@ -158,7 +165,28 @@
 </style>
 @endsection
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
 <script type="text/javascript">
+  new ApexCharts(document.querySelector('#deliveryHeatmap'), {
+    chart: { type: 'heatmap', height: 320, toolbar: { show: false } },
+    series: @json($heatmap),
+    dataLabels: { enabled: false },
+    plotOptions: {
+      heatmap: {
+        colorScale: {
+          ranges: [
+            { from: 0, to: 0, name: 'Tidak Ada', color: '#f1f1f1' },
+            { from: 0.01, to: 50, name: '1-50', color: '#c7e3fb' },
+            { from: 50.01, to: 150, name: '51-150', color: '#7cb8f0' },
+            { from: 150.01, to: 999999, name: '> 150', color: '#2f6fb0' },
+          ],
+        },
+      },
+    },
+    xaxis: { labels: { rotate: -45 } },
+    tooltip: { y: { formatter: (v) => v + ' qty' } },
+  }).render();
+
   $('.select2').select2({placeholder: 'Semua Customer', allowClear: true});
   $('input[name=viewToggle]').on('change', function () {
     $('#viewInput').val(this.value);

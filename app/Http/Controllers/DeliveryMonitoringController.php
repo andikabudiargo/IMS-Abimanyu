@@ -112,6 +112,39 @@ class DeliveryMonitoringController extends Controller
         return $data;
     }
 
+    // Heatmap hari-dalam-minggu x minggu-ke-N (relatif ke tanggal awal periode),
+    // persis pola kalender kontribusi: baris Minggu di atas, Senin di bawah.
+    private function heatmapSeries(array $rows, $from)
+    {
+        $dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', "Jum'at", 'Sabtu', 'Minggu'];
+        $daily = [];
+        foreach ($rows as $r) {
+            $iso = implode('-', array_reverse(explode('-', $r->delivery_date)));
+            $daily[$iso] = ($daily[$iso] ?? 0) + (float) $r->qty;
+        }
+
+        $fromTs = strtotime($from);
+        $grid = [];
+        $maxWeek = 1;
+        foreach ($daily as $iso => $qty) {
+            $ts = strtotime($iso);
+            $week = (int) floor(($ts - $fromTs) / 86400 / 7) + 1;
+            $dayIndex = ((int) date('N', $ts)) - 1; // 0=Senin..6=Minggu
+            $grid[$dayIndex][$week] = ($grid[$dayIndex][$week] ?? 0) + $qty;
+            $maxWeek = max($maxWeek, $week);
+        }
+
+        $series = [];
+        foreach ([6, 5, 4, 3, 2, 1, 0] as $dayIndex) {
+            $points = [];
+            for ($w = 1; $w <= $maxWeek; $w++) {
+                $points[] = ['x' => "Minggu ke-$w", 'y' => round($grid[$dayIndex][$w] ?? 0, 2)];
+            }
+            $series[] = ['name' => $dayNames[$dayIndex], 'data' => $points];
+        }
+        return $series;
+    }
+
     private function viewData(Request $request)
     {
         $data['from'] = $request->from ?: date('Y-m-01');
@@ -119,7 +152,9 @@ class DeliveryMonitoringController extends Controller
         $data['selected'] = array_filter((array) $request->customer);
         $data['dnType'] = $this->dnType($request);
         $data['summary'] = $request->view == 'summary';
-        $data['groups'] = $this->groups($this->rows($request), $data['summary']);
+        $rows = $this->rows($request);
+        $data['groups'] = $this->groups($rows, $data['summary']);
+        $data['heatmap'] = $this->heatmapSeries($rows, $data['from']);
         return $data;
     }
 
