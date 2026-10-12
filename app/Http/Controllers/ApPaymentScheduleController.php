@@ -32,7 +32,10 @@ use DB;
       - pembayaran   = kas_det.DEBIT lewat voucher KK/BK (paid_to = supplier),
                        BM/KM, dan General Journal; aturan diambil dari
                        ApAgingReportController::paymentMatchSql(). status <> '5'.
-      - ap_invoice DRAFT('1') & CANCELED('5') di-exclude.
+      - CANCELED('5') di-exclude, DRAFT('1') ikut dihitung -- sama dengan
+        AP Dashboard (AccountPayableController::analyticsAp yang pakai
+        includeDraft=true), supaya Opening/Balance di sini tidak beda
+        sama angka di card dashboard.
     ================================================================
 */
 
@@ -156,7 +159,7 @@ class ApPaymentScheduleController extends Controller
               AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') >= to_date(:periodStart,'DD-MM-YYYY')
               AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:asOf,'DD-MM-YYYY')
         ) pp ON true
-        WHERE ap_invoice.status NOT IN ('1','5')
+        WHERE ap_invoice.status <> '5'
           AND $anchor >= to_date(:floorDate,'DD-MM-YYYY')
           AND $anchor <= to_date(:asOf,'DD-MM-YYYY')
           AND (
