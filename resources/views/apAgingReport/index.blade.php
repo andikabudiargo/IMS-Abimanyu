@@ -210,12 +210,12 @@
                     </tr>
                 </tfoot>
             </table>
-            <div class="row mt-1">
-                <div class="col-sm-6">
+            <div class="mt-1 d-flex flex-wrap" style="gap:2rem;">
+                <div>
                     <strong>DPO</strong> (Total Kontrol / Total Saldo) =
                     <span id="dpoValue" class="font-weight-bold">0</span> hari
                 </div>
-                <div class="col-sm-6">
+                <div>
                     <strong>Overdue Ratio</strong> (Total Saldo / Total Hutang) =
                     <span id="dpoOverdueRatio" class="font-weight-bold">0%</span>
                 </div>
@@ -454,7 +454,6 @@ $(document).ready(function () {
             { label: '31 - 60 Hari',  saldo: g.d31_60,   hari: 45 },
             { label: '61 - 90 Hari',  saldo: g.d61_90,   hari: 75 },
             { label: '91 - 120 Hari', saldo: g.d91_120,  hari: 105 },
-            { label: '> 120 Hari',    saldo: g.d120plus, hari: 120 },
         ];
 
         let body = '', totalSaldo = 0, totalKontrol = 0;
