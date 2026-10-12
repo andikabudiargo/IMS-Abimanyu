@@ -9,15 +9,11 @@
             <h4>{{ $hdr->order_no }} <span class="badge {{ $statusBadge }}">{{ $statusLabel }}</span></h4>
             <div>
                 @if ($hdr->status == '1')
-                    @can('inspectionOrder-edit')
                     <a href="{{ route('inspectionOrder.edit', ['id' => $hdr->id]) }}" class="btn btn-sm btn-primary">Edit</a>
                     <button type="button" class="btn btn-sm btn-success" id="btnPosting">Post</button>
-                    @endcan
                 @endif
                 @if ($hdr->status != '5')
-                    @can('inspectionOrder-edit')
                     <button type="button" class="btn btn-sm btn-danger" id="btnCancel" data-toggle="modal" data-target="#cancelModal">Cancel</button>
-                    @endcan
                 @endif
             </div>
         </div>

@@ -683,23 +683,19 @@
               </a>
             </li>
 
-            @can('inspection-rule-index')
             <li class="{{ \Request::segment(1) == 'inspectionRules' ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('inspectionRule.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Master Inspection Rule">Inspection Rules</span>
               </a>
             </li>
-            @endcan
 
-            @can('inspectionOrder-index')
             <li class="{{ \Request::segment(1) == 'inspectionOrder' ? 'active' : '' }}" >
               <a class="d-flex align-items-center" href="{{ route('inspectionOrder.index') }}">
                 <i data-feather="circle"></i>
                 <span class="menu-item text-truncate" data-i18n="Inspection Order">Inspection Order</span>
               </a>
             </li>
-            @endcan
 
           </ul>
         </li>

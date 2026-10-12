@@ -164,23 +164,19 @@ class InspectionRuleController extends Controller
                                     <i data-feather="menu"></i>
                                 </a>';
                 $buttons .= '<div class="dropdown-menu dropdown-menu-right">';
-                if (Auth::user()->can('inspection-rule-edit')) {
-                    $buttons .= '<a href="' . route('inspectionRule.edit', ['id' => $row->id]) . '" class="dropdown-item">
-                                    <i data-feather="file-text"></i>
-                                    Edit
-                                </a>';
-                }
-                if (Auth::user()->can('inspection-rule-delete')) {
-                    $buttons .= "<a href='javascript:;'
-                                    id='deleteButton'
-                                    class='dropdown-item'
-                                    data-toggle='modal'
-                                    data-target='#smallModal'
-                                    data-href='" . route("inspectionRule.destroy", ["id" => $row->id]) . "'>
-                                    <i data-feather='trash-2' class='feather-14-red'></i>
-                                    Delete
-                                </a>";
-                }
+                $buttons .= '<a href="' . route('inspectionRule.edit', ['id' => $row->id]) . '" class="dropdown-item">
+                                <i data-feather="file-text"></i>
+                                Edit
+                            </a>';
+                $buttons .= "<a href='javascript:;'
+                                id='deleteButton'
+                                class='dropdown-item'
+                                data-toggle='modal'
+                                data-target='#smallModal'
+                                data-href='" . route("inspectionRule.destroy", ["id" => $row->id]) . "'>
+                                <i data-feather='trash-2' class='feather-14-red'></i>
+                                Delete
+                            </a>";
                 $buttons .= '</div></div>';
                 return $buttons;
             })

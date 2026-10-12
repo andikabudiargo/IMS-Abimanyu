@@ -381,23 +381,19 @@ class InspectionOrderController extends Controller
                                 Detail
                             </a>';
                 if ($row->status == '1') {
-                    if (Auth::user()->can('inspectionOrder-edit')) {
-                        $buttons .= '<a href="' . route('inspectionOrder.edit', ['id' => $row->id]) . '" class="dropdown-item">
-                                        <i data-feather="file-text"></i>
-                                        Edit
-                                    </a>';
-                    }
-                    if (Auth::user()->can('inspectionOrder-delete')) {
-                        $buttons .= "<a href='javascript:;'
-                                        id='deleteButton'
-                                        class='dropdown-item'
-                                        data-toggle='modal'
-                                        data-target='#smallModal'
-                                        data-href='" . route("inspectionOrder.destroy", ["id" => $row->id]) . "'>
-                                        <i data-feather='trash-2' class='feather-14-red'></i>
-                                        Delete
-                                    </a>";
-                    }
+                    $buttons .= '<a href="' . route('inspectionOrder.edit', ['id' => $row->id]) . '" class="dropdown-item">
+                                    <i data-feather="file-text"></i>
+                                    Edit
+                                </a>';
+                    $buttons .= "<a href='javascript:;'
+                                    id='deleteButton'
+                                    class='dropdown-item'
+                                    data-toggle='modal'
+                                    data-target='#smallModal'
+                                    data-href='" . route("inspectionOrder.destroy", ["id" => $row->id]) . "'>
+                                    <i data-feather='trash-2' class='feather-14-red'></i>
+                                    Delete
+                                </a>";
                 }
                 $buttons .= '</div></div>';
                 return $buttons;
