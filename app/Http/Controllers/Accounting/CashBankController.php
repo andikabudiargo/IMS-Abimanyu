@@ -183,6 +183,10 @@ private function applyPartyFilter($q, Request $request, $group)
             ->make(true);
     }
 
+    // acc_sub.sub_code (dicek lewat accounts.parent_id) yang menandai akun COA
+    // sebagai Kas / Bank -- lihat tabel acc_sub: 1100.10 = KAS, 1100.20 = BANK.
+    private $coaSubCode = ['kas' => '1100.10', 'bank' => '1100.20'];
+
     // Dashboard card (Opening/Sales/Pembayaran/Balance), pola sama dengan
     // AR/AP dashboard (InvoiceController::analyticsAr, AccountPayableController::analyticsAp).
     // Hanya hitung voucher APPROVED (status 3) karena uang baru benar2 bergerak setelah approve.
@@ -211,7 +215,10 @@ private function applyPartyFilter($q, Request $request, $group)
                 ->sum('amount');
         };
 
-        $opening = $sumAmount($inCodes, '01-01-1900', $dayBeforeStart) - $sumAmount($outCodes, '01-01-1900', $dayBeforeStart);
+        // Saldo awal riil akun Kas/Bank di COA (diisi sekali saat setup/go-live),
+        // ditambah mutasi voucher sejak sistem dipakai s.d. hari sebelum tahun berjalan.
+        $coaOpening = (float) DB::table('accounts')->where('parent_id', $this->coaSubCode[$group])->sum('opening_balance');
+        $opening = $coaOpening + $sumAmount($inCodes, '01-01-1900', $dayBeforeStart) - $sumAmount($outCodes, '01-01-1900', $dayBeforeStart);
         $sales = $sumAmount($inCodes, $startDate, $cutoff);
         $pembayaran = $sumAmount($outCodes, $startDate, $cutoff);
 
