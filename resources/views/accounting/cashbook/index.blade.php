@@ -95,6 +95,67 @@
   </div>
 </section>
 
+<section id="cb-dashboard">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">{{ $title }} Dashboard</h4>
+      <div class="heading-elements">
+        <ul class="list-inline mb-0">
+          <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-content collapse">
+      <div class="card-body">
+        <div class="form-row mb-2">
+          <div class="form-group col-md-2">
+            <label for="cbCutoff">Periode (Cut-off)</label>
+            <input type="month" class="form-control" id="cbCutoff">
+          </div>
+        </div>
+        <div class="row ar-stat-row">
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ar-stat-card">
+              <div>
+                <h3 class="ar-stat-value text-dark" id="cbOpeningBalance">0</h3>
+                <span class="ar-stat-label">Opening Balance</span>
+              </div>
+              <div class="ar-stat-icon ar-icon-neutral"><i data-feather="database"></i></div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ar-stat-card">
+              <div>
+                <h3 class="ar-stat-value ar-text-blue" id="cbTotalIn">0</h3>
+                <span class="ar-stat-label">Penerimaan</span>
+              </div>
+              <div class="ar-stat-icon ar-icon-blue"><i data-feather="arrow-down-circle"></i></div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ar-stat-card">
+              <div>
+                <h3 class="ar-stat-value ar-text-green" id="cbTotalPaid">0</h3>
+                <span class="ar-stat-label">Pembayaran</span>
+              </div>
+              <div class="ar-stat-icon ar-icon-green"><i data-feather="arrow-up-circle"></i></div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6 mb-1">
+            <div class="ar-stat-card">
+              <div>
+                <h3 class="ar-stat-value ar-text-red" id="cbBalance">0</h3>
+                <span class="ar-stat-label">Balance</span>
+              </div>
+              <div class="ar-stat-icon ar-icon-red"><i data-feather="dollar-sign"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="cashbook-table">
   <div class="card">
     <div class="card-header">
@@ -143,9 +204,70 @@
 
 @include('partials.delete-modal')
 @endsection
+@section('styles')
+<style>
+.ar-stat-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.25rem 1.25rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  height: 100%;
+}
+.ar-stat-value { font-weight: 700; margin-bottom: 0.25rem; }
+.ar-stat-label { color: #6e6b7b; font-size: 0.9rem; }
+.ar-stat-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ar-stat-icon i { width: 18px; height: 18px; }
+.ar-icon-neutral { background: #ececec; color: #5e5873; }
+.ar-icon-blue    { background: rgba(115,103,240,0.12); color: #7367f0; }
+.ar-icon-green   { background: rgba(40,199,111,0.12); color: #28c76f; }
+.ar-icon-red     { background: rgba(234,84,85,0.12); color: #ea5455; }
+.ar-text-blue  { color: #7367f0; }
+.ar-text-green { color: #28c76f; }
+.ar-text-red   { color: #ea5455; }
+</style>
+@endsection
 @section('scripts')
 <script type="text/javascript">
   const currentDate = todayDate('dd-mm-yyyy');
+
+  const fmtRp = (v) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(v);
+  const monthToCutoff = (monthStr) => {
+    if (!monthStr) return '';
+    const [y, m] = monthStr.split('-');
+    const lastDay = new Date(y, m, 0).getDate();
+    return `${String(lastDay).padStart(2,'0')}-${m}-${y}`;
+  };
+
+  const loadCbDashboard = (cutoffDate) => {
+    $.get("{{ route('cashbook.analytics', ['group' => $group]) }}", { cutoffDate: cutoffDate }, function (res) {
+      $('#cbOpeningBalance').text(fmtRp(res.openingBalance));
+      $('#cbTotalIn').text(fmtRp(res.totalIn));
+      $('#cbTotalPaid').text(fmtRp(res.totalPaid));
+      $('#cbBalance').text(fmtRp(res.balance));
+    });
+  };
+
+  $('#cbCutoff').val(new Date().toISOString().slice(0,7));
+
+  let cbDashboardInitialized = false;
+  $('#cb-dashboard a[data-action="collapse"]').closest('.card').find('.card-content').on('shown.bs.collapse', function () {
+    if (!cbDashboardInitialized) {
+      cbDashboardInitialized = true;
+      loadCbDashboard(monthToCutoff($('#cbCutoff').val()));
+    }
+  });
+
+  $('#cbCutoff').on('change', function () {
+    loadCbDashboard(monthToCutoff($(this).val()));
+  });
 
   $(document).on('click', '#deleteButton', function (event) {
     event.preventDefault();

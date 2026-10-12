@@ -183,6 +183,46 @@ private function applyPartyFilter($q, Request $request, $group)
             ->make(true);
     }
 
+    // Dashboard card (Opening/Sales/Pembayaran/Balance), pola sama dengan
+    // AR/AP dashboard (InvoiceController::analyticsAr, AccountPayableController::analyticsAp).
+    // Hanya hitung voucher APPROVED (status 3) karena uang baru benar2 bergerak setelah approve.
+    public function analytics(Request $request, $group)
+    {
+        list(, $types) = $this->group($group);
+        $inCodes = $outCodes = [];
+        foreach ($types as $code => $t) {
+            if ($t[0] === 'Penerimaan') {
+                $inCodes[] = $code;
+            } else {
+                $outCodes[] = $code;
+            }
+        }
+
+        $cutoff = $request->cutoffDate ? trim($request->cutoffDate) : date('d-m-Y');
+        $year = substr($cutoff, -4);
+        $startDate = "01-01-$year";
+        $dayBeforeStart = date('d-m-Y', strtotime("$year-01-01 -1 day"));
+
+        $sumAmount = function ($codes, $from, $to) {
+            return (float) DB::table('kas_hdr')
+                ->whereIn('voucher_type', $codes)
+                ->where('status', '3')
+                ->whereRaw("to_date(voucher_date,'DD-MM-YYYY') between to_date(?, 'DD-MM-YYYY') and to_date(?, 'DD-MM-YYYY')", [$from, $to])
+                ->sum('amount');
+        };
+
+        $opening = $sumAmount($inCodes, '01-01-1900', $dayBeforeStart) - $sumAmount($outCodes, '01-01-1900', $dayBeforeStart);
+        $sales = $sumAmount($inCodes, $startDate, $cutoff);
+        $pembayaran = $sumAmount($outCodes, $startDate, $cutoff);
+
+        return response()->json([
+            'openingBalance' => $opening,
+            'totalIn' => $sales,
+            'totalPaid' => $pembayaran,
+            'balance' => $opening + $sales - $pembayaran,
+        ]);
+    }
+
     // Baris per akun (kas_det/bank_det disatukan di kas_det), sama seperti tombol
     // Detail di Invoice Supplier/Customer — menu toggle summary <-> detail.
     public function listDetail(Request $request, $group)

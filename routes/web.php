@@ -1103,6 +1103,7 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::get('cashbook/{group}',['as'=>'cashbook.index','uses'=>'Accounting\CashBankController@index'])->where('group','kas|bank');
 	Route::get('cashbook/{group}/list',['as'=>'cashbook.list','uses'=>'Accounting\CashBankController@list'])->where('group','kas|bank');
 	Route::get('cashbook/{group}/list/detail',['as'=>'cashbook.list.detail','uses'=>'Accounting\CashBankController@listDetail'])->where('group','kas|bank');
+	Route::get('cashbook/{group}/analytics',['as'=>'cashbook.analytics','uses'=>'Accounting\CashBankController@analytics'])->where('group','kas|bank');
 
 	Route::get('bankReconciliation',['as'=>'bankReconciliation.index','uses'=>'Accounting\BankReconciliationController@index']);
 	Route::get('bankReconciliation/list',['as'=>'bankReconciliation.list','uses'=>'Accounting\BankReconciliationController@list']);
