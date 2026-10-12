@@ -21,16 +21,16 @@
               <option value="temp" @if($dnType == 'temp') selected @endif>DN Temporary</option>
             </select>
           </div>
+          @if(request('src') != 'delivery')
           <div class="form-group col-md-3">
             <label for="filter">Filter</label>
             <select id="filter" name="filter" class="form-control">
-              @if(request('src') != 'delivery')
               <option value="invoice" @if($filter == 'invoice') selected @endif>Belum Dibuatkan Invoice</option>
-              @endif
               <option value="kembali" @if($filter == 'kembali') selected @endif>Belum Kembali</option>
               <option value="all" @if($filter == 'all') selected @endif>All</option>
             </select>
           </div>
+          @endif
           <div class="form-group col-md-6">
             <label for="customer">Customer</label>
             <select id="customer" name="customer[]" class="select2 form-control" multiple>

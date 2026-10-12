@@ -62,8 +62,8 @@ class DnMonitoringController extends Controller
 
     private function filter(Request $request)
     {
-        if ($request->src == 'delivery') { // menu Delivery: tanpa opsi "belum invoice"
-            return $request->filter == 'kembali' ? 'kembali' : 'all';
+        if ($request->src == 'delivery') { // menu Delivery: filter dihilangkan, selalu "belum kembali"
+            return 'kembali';
         }
         return in_array($request->filter, ['kembali', 'all']) ? $request->filter : 'invoice';
     }
