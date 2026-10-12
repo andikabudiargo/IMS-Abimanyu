@@ -108,7 +108,10 @@ class ArAgingReportController extends Controller
         $escaped = array_map(function ($c) {
             return "'" . str_replace("'", "''", $c) . "'";
         }, $customerCodes);
-        $whereExtra .= " AND invoice_hdr.customer_id IN (" . implode(',', $escaped) . ") ";
+        // Unqualified (bukan invoice_hdr.customer_id) -- whereExtra ini dipakai di
+        // DUA select (invoice_hdr & debit_note_hdr) di dalam buildPiutangSubquery,
+        // masing-masing cuma baca 1 tabel jadi tidak ambigu.
+        $whereExtra .= " AND customer_id IN (" . implode(',', $escaped) . ") ";
     }
 
     return [$whereExtra, $bindings];
@@ -134,8 +137,10 @@ class ArAgingReportController extends Controller
     private function buildPiutangSubquery($whereExtra, $includeDraft = false)
 {
     $statusFilter = $includeDraft ? "invoice_hdr.status <> '5'" : "invoice_hdr.status NOT IN ('1','5')";
+    $dnStatusFilter = $includeDraft ? "debit_note_hdr.status <> '5'" : "debit_note_hdr.status NOT IN ('1','5')";
     return "
         SELECT
+            'invoice' as source,
             invoice_hdr.id as invoice_id,
             invoice_hdr.invoice_number,
             invoice_hdr.customer_id,
@@ -186,6 +191,36 @@ class ArAgingReportController extends Controller
                 OR EXISTS (SELECT 1 FROM kas_det WHERE kas_det.reference = invoice_hdr.invoice_number)
               )
           $whereExtra
+
+        UNION ALL
+
+        -- Debit Note: debit langsung ke account_piutang (DebitNoteController::prosesPosting),
+        -- tidak pernah masuk invoice_hdr. payment_term di debit_note_hdr selalu 0 (hardcoded),
+        -- jadi jatuh tempo = dn_date itu sendiri (dianggap jatuh tempo segera).
+        SELECT
+            'debit_note' as source,
+            debit_note_hdr.id as invoice_id,
+            debit_note_hdr.dn_number as invoice_number,
+            debit_note_hdr.customer_id,
+            debit_note_hdr.dn_date as invoice_date,
+            debit_note_hdr.dn_date as sending_date,
+            0 as term,
+            to_date(debit_note_hdr.dn_date,'DD-MM-YYYY') as jatuh_tempo_actual,
+            (debit_note_hdr.grand_total - COALESCE(bayar_dn.total_dibayar,0)) as balance,
+            (to_date(:cutoff,'DD-MM-YYYY') - to_date(debit_note_hdr.dn_date,'DD-MM-YYYY')) as diff_hari
+        FROM debit_note_hdr
+        LEFT JOIN LATERAL (
+            SELECT SUM(kas_det.credit) as total_dibayar
+            FROM kas_det
+            LEFT JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
+            WHERE kas_det.reference = debit_note_hdr.dn_number
+              AND kas_hdr.status = '3'
+              AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
+        ) bayar_dn ON true
+        WHERE $dnStatusFilter
+          AND to_date(debit_note_hdr.dn_date,'DD-MM-YYYY') >= to_date(:floorDate,'DD-MM-YYYY')
+          AND to_date(debit_note_hdr.dn_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
+          $whereExtra
     ";
 }
 
@@ -219,35 +254,6 @@ class ArAgingReportController extends Controller
         ];
         $subquery = $this->buildPiutangSubquery('', $includeDraft);
         $row = DB::selectOne("SELECT COALESCE(SUM(balance),0) as total FROM ($subquery) piutang WHERE balance > 0.01", $bindings);
-        return (float) $row->total + $this->totalOutstandingDebitNote($cutoffDate, $includeDraft);
-    }
-
-    /**
-     * Debit Note nambah piutang customer langsung ke account_piutang (lihat
-     * DebitNoteController::prosesPosting -- debit akun piutang, kayak mini-invoice),
-     * tapi tidak pernah masuk invoice_hdr, jadi tidak pernah ikut di
-     * buildPiutangSubquery(). Dihitung terpisah di sini dengan pola exclude
-     * status & pencocokan pembayaran (kas_det.reference) yang sama dengan invoice.
-     */
-    private function totalOutstandingDebitNote($cutoffDate, $includeDraft = false)
-    {
-        $statusFilter = $includeDraft ? "status <> '5'" : "status NOT IN ('1','5')";
-        $row = DB::selectOne("
-            SELECT COALESCE(SUM(balance),0) as total FROM (
-                SELECT (debit_note_hdr.grand_total - COALESCE(bayar.total_dibayar,0)) as balance
-                FROM debit_note_hdr
-                LEFT JOIN LATERAL (
-                    SELECT SUM(kas_det.credit) as total_dibayar
-                    FROM kas_det
-                    LEFT JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
-                    WHERE kas_det.reference = debit_note_hdr.dn_number
-                      AND kas_hdr.status = '3'
-                      AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
-                ) bayar ON true
-                WHERE $statusFilter
-                  AND to_date(debit_note_hdr.dn_date,'DD-MM-YYYY') <= to_date(:cutoff,'DD-MM-YYYY')
-            ) dn WHERE balance > 0.01
-        ", ['cutoff' => $cutoffDate]);
         return (float) $row->total;
     }
 
@@ -367,7 +373,7 @@ class ArAgingReportController extends Controller
     $bindings['pairRequiredBefore'] = $this->pairRequiredBefore;
 
     if ($customerCode) {
-        $whereExtra .= " AND invoice_hdr.customer_id = :detailCustomer ";
+        $whereExtra .= " AND customer_id = :detailCustomer ";
         $bindings['detailCustomer'] = $customerCode;
     }
 
@@ -376,6 +382,7 @@ class ArAgingReportController extends Controller
 
     $sql = "
         SELECT
+            piutang.source,
             piutang.invoice_id,
             piutang.invoice_number,
             third_party.nama as customer_name,
@@ -403,7 +410,9 @@ class ArAgingReportController extends Controller
             'term'           => $r->term !== null ? ((int) $r->term . ' hari') : '-',
             'jatuh_tempo'    => $r->jatuh_tempo_actual ? date('d-m-Y', strtotime($r->jatuh_tempo_actual)) : '-',
             'balance'        => (float) $r->balance,
-            'invoice_link'   => route('invoice.show', ['id' => Crypt::encryptString($r->invoice_id)]),
+            'invoice_link'   => $r->source === 'debit_note'
+                ? route('debitNote.show', ['id' => Crypt::encryptString($r->invoice_id)])
+                : route('invoice.show', ['id' => Crypt::encryptString($r->invoice_id)]),
         ];
     }
 

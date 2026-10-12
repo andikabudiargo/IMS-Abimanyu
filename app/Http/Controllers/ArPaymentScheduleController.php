@@ -101,7 +101,9 @@ class ArPaymentScheduleController extends Controller
             $escaped = array_map(function ($c) {
                 return "'" . str_replace("'", "''", $c) . "'";
             }, $customerCodes);
-            $whereExtra .= " AND invoice_hdr.customer_id IN (" . implode(',', $escaped) . ") ";
+            // Unqualified -- dipakai di 2 SELECT (invoice_hdr & debit_note_hdr) di
+            // buildScheduleSubquery, masing-masing cuma baca 1 tabel, tidak ambigu.
+            $whereExtra .= " AND customer_id IN (" . implode(',', $escaped) . ") ";
         }
 
         return [$whereExtra, []];
@@ -120,6 +122,7 @@ class ArPaymentScheduleController extends Controller
     {
         return "
             SELECT
+                'invoice' as source,
                 invoice_hdr.id as invoice_id,
                 invoice_hdr.invoice_number,
                 invoice_hdr.customer_id,
@@ -167,6 +170,46 @@ class ArPaymentScheduleController extends Controller
                     to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') >= to_date(:pairRequiredBefore,'DD-MM-YYYY')
                     OR EXISTS (SELECT 1 FROM kas_det WHERE kas_det.reference = invoice_hdr.invoice_number)
                   )
+              $whereExtra
+
+            UNION ALL
+
+            -- Debit Note: debit langsung ke account_piutang (DebitNoteController::
+            -- prosesPosting), tidak masuk invoice_hdr. payment_term selalu 0
+            -- (hardcoded), jadi jatuh tempo = dn_date itu sendiri.
+            SELECT
+                'debit_note' as source,
+                debit_note_hdr.id as invoice_id,
+                debit_note_hdr.dn_number as invoice_number,
+                debit_note_hdr.customer_id,
+                debit_note_hdr.dn_date as invoice_date,
+                debit_note_hdr.dn_date as sending_date,
+                0 as term,
+                to_date(debit_note_hdr.dn_date,'DD-MM-YYYY') as jatuh_tempo_actual,
+                (debit_note_hdr.grand_total - COALESCE(pb.paid,0)) as balance_open,
+                COALESCE(pp.paid,0) as paid_in_period,
+                (debit_note_hdr.grand_total - COALESCE(pb.paid,0) - COALESCE(pp.paid,0)) as balance_asof
+            FROM debit_note_hdr
+            LEFT JOIN LATERAL (
+                SELECT SUM(kas_det.credit) as paid
+                FROM kas_det
+                LEFT JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
+                WHERE kas_det.reference = debit_note_hdr.dn_number
+                  AND kas_hdr.status = '3'
+                  AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') < to_date(:periodStart,'DD-MM-YYYY')
+            ) pb ON true
+            LEFT JOIN LATERAL (
+                SELECT SUM(kas_det.credit) as paid
+                FROM kas_det
+                LEFT JOIN kas_hdr ON kas_det.voucher_number = kas_hdr.voucher_number
+                WHERE kas_det.reference = debit_note_hdr.dn_number
+                  AND kas_hdr.status = '3'
+                  AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') >= to_date(:periodStart,'DD-MM-YYYY')
+                  AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') <= to_date(:asOf,'DD-MM-YYYY')
+            ) pp ON true
+            WHERE debit_note_hdr.status NOT IN ('1','5')
+              AND to_date(debit_note_hdr.dn_date,'DD-MM-YYYY') >= to_date(:floorDate,'DD-MM-YYYY')
+              AND to_date(debit_note_hdr.dn_date,'DD-MM-YYYY') <= to_date(:asOf,'DD-MM-YYYY')
               $whereExtra
         ";
     }
@@ -385,7 +428,7 @@ class ArPaymentScheduleController extends Controller
         $bindings['pairRequiredBefore'] = $this->pairRequiredBefore;
 
         if ($customerCode) {
-            $whereExtra .= " AND invoice_hdr.customer_id = :detailCustomer ";
+            $whereExtra .= " AND customer_id = :detailCustomer ";
             $bindings['detailCustomer'] = $customerCode;
         }
 
@@ -401,6 +444,7 @@ class ArPaymentScheduleController extends Controller
 
         $sql = "
             SELECT
+                piutang.source,
                 piutang.invoice_id,
                 piutang.invoice_number,
                 third_party.nama as customer_name,
@@ -444,7 +488,9 @@ class ArPaymentScheduleController extends Controller
                 'term'           => $r->term !== null ? ((int) $r->term . ' hari') : '-',
                 'jatuh_tempo'    => $r->jatuh_tempo_actual ? date('d-m-Y', strtotime($r->jatuh_tempo_actual)) : '-',
                 'balance'        => $balance,
-                'invoice_link'   => route('invoice.show', ['id' => Crypt::encryptString($r->invoice_id)]),
+                'invoice_link'   => $r->source === 'debit_note'
+                    ? route('debitNote.show', ['id' => Crypt::encryptString($r->invoice_id)])
+                    : route('invoice.show', ['id' => Crypt::encryptString($r->invoice_id)]),
                 'plan_status'    => $r->plan_status,
                 'hold_reason'    => $r->hold_reason,
             ];
