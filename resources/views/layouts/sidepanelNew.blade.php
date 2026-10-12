@@ -501,7 +501,7 @@
               @endcan
 
               @can('ap-index')
-                <li class="{{ in_array(\Request::segment(1), ['kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','bankReconciliation']) || \Request::is('cashbook/kas') || \Request::is('cashbook/bank') ? 'active' : '' }}"><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Kas Bank">Kas &amp; Bank</span></a>
+                <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Kas Bank">Kas &amp; Bank</span></a>
                   <ul class="menu-content">
                       <li class="{{ in_array(\Request::segment(1), ['kasPenerimaan','kasKeluar']) || \Request::is('cashbook/kas') ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('cashbook.index', 'kas') }}"><span class="menu-item text-truncate" data-i18n="Kas">Kas</span></a></li>
                       <li class="{{ in_array(\Request::segment(1), ['bankPenerimaan','bankKeluar']) || \Request::is('cashbook/bank') ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('cashbook.index', 'bank') }}"><span class="menu-item text-truncate" data-i18n="Bank">Bank</span></a></li>
