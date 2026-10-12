@@ -205,14 +205,14 @@ class ArReconciliationController extends Controller
 
         if ($column === 'debitNote') {
             $sql = "
-                SELECT dn_number as doc, dn_date as doc_date, dpp as amount, 'Debit Note' as doc_type
+                SELECT id, dn_number as doc, dn_date as doc_date, dpp as amount, 'Debit Note' as doc_type
                 FROM debit_note_hdr
                 WHERE status NOT IN ('1','5') AND to_date(dn_date,'DD-MM-YYYY') $dateCond
                 ORDER BY to_date(dn_date,'DD-MM-YYYY')
             ";
         } elseif ($column === 'payment') {
             $sql = "
-                SELECT kas_hdr.voucher_number as doc, kas_hdr.voucher_date as doc_date, kas_det.credit as amount,
+                SELECT kas_hdr.id, kas_hdr.voucher_number as doc, kas_hdr.voucher_date as doc_date, kas_det.credit as amount,
                        kas_hdr.voucher_type as doc_type, kas_det.reference as reference
                 FROM kas_det
                 JOIN kas_hdr ON kas_hdr.voucher_number = kas_det.voucher_number
@@ -226,19 +226,19 @@ class ArReconciliationController extends Controller
             ";
         } elseif ($basis === 'delivery') {
             $sql = "
-                SELECT delivery_hdr.delivery_number as doc, delivery_hdr.delivery_date as doc_date,
+                SELECT delivery_hdr.id, delivery_hdr.delivery_number as doc, delivery_hdr.delivery_date as doc_date,
                        SUM(invoice_det.qty * invoice_det.price) as amount, 'Delivery Note' as doc_type
                 FROM invoice_det
                 JOIN invoice_hdr ON invoice_hdr.invoice_number = invoice_det.invoice_number
                 JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.dn_number
                 WHERE invoice_hdr.status NOT IN ('1','5')
                   AND to_date(delivery_hdr.delivery_date,'DD-MM-YYYY') $dateCond
-                GROUP BY delivery_hdr.delivery_number, delivery_hdr.delivery_date
+                GROUP BY delivery_hdr.id, delivery_hdr.delivery_number, delivery_hdr.delivery_date
                 ORDER BY to_date(delivery_hdr.delivery_date,'DD-MM-YYYY')
             ";
         } else {
             $sql = "
-                SELECT invoice_number as doc, invoice_date as doc_date, dpp as amount, 'AR Invoice' as doc_type
+                SELECT id, invoice_number as doc, invoice_date as doc_date, dpp as amount, 'AR Invoice' as doc_type
                 FROM invoice_hdr
                 WHERE status NOT IN ('1','5') AND to_date(invoice_date,'DD-MM-YYYY') $dateCond
                 ORDER BY to_date(invoice_date,'DD-MM-YYYY')
@@ -247,15 +247,36 @@ class ArReconciliationController extends Controller
 
         $rows = DB::select($sql, $bindings);
 
+        $kasEditRoute = [
+            'BM' => 'bankPenerimaan.edit',
+            'BK' => 'bankKeluar.edit',
+            'KM' => 'kasPenerimaan.edit',
+            'KK' => 'kasKeluar.edit',
+        ];
+
         $result = [];
         $total = 0;
         foreach ($rows as $r) {
+            $encId = \Crypt::encryptString($r->id);
+            if ($r->doc_type === 'Delivery Note') {
+                $link = route('delivery.show', ['id' => $encId]);
+            } elseif ($r->doc_type === 'Debit Note') {
+                $link = route('debitNote.edit', ['id' => $encId]);
+            } elseif ($r->doc_type === 'AR Invoice') {
+                $link = route('invoice.edit', ['id' => $encId]);
+            } elseif (isset($kasEditRoute[$r->doc_type])) {
+                $link = route($kasEditRoute[$r->doc_type], ['id' => $encId]);
+            } else {
+                $link = null;
+            }
+
             $result[] = [
                 'doc'      => $r->doc,
                 'doc_date' => $r->doc_date,
                 'doc_type' => $r->doc_type,
                 'reference'=> $r->reference ?? null,
                 'amount'   => (float) $r->amount,
+                'link'     => $link,
             ];
             $total += (float) $r->amount;
         }

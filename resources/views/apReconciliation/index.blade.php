@@ -241,9 +241,12 @@ $(document).ready(function () {
             }
             let body = '';
             res.rows.forEach(function (row, idx) {
+                let docCell = row.link
+                    ? '<a href="' + row.link + '" target="_blank">' + row.doc + '</a>'
+                    : row.doc;
                 body += '<tr>'
                     + '<td>' + (idx + 1) + '</td>'
-                    + '<td>' + row.doc + (row.reference ? ' (' + row.reference + ')' : '') + '</td>'
+                    + '<td>' + docCell + (row.reference ? ' (' + row.reference + ')' : '') + '</td>'
                     + '<td>' + row.doc_type + '</td>'
                     + '<td>' + row.doc_date + '</td>'
                     + '<td class="text-right">' + fmt(row.amount) + '</td>'

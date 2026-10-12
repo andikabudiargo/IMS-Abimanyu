@@ -201,7 +201,7 @@ class ApReconciliationController extends Controller
         if ($column === 'payment') {
             $partyMatch = $this->paymentMatchSql('kas_hdr', 'kas_det');
             $sql = "
-                SELECT kas_hdr.voucher_number as doc, kas_hdr.voucher_date as doc_date, kas_det.debit as amount,
+                SELECT kas_hdr.id, kas_hdr.voucher_number as doc, kas_hdr.voucher_date as doc_date, kas_det.debit as amount,
                        kas_hdr.voucher_type as doc_type, kas_det.reference as reference
                 FROM kas_det
                 JOIN kas_hdr ON kas_hdr.voucher_number = kas_det.voucher_number
@@ -214,13 +214,13 @@ class ApReconciliationController extends Controller
             ";
         } elseif ($basis === 'receiving') {
             $sql = "
-                SELECT receiving_hdr.rec_number as doc, receiving_hdr.rec_date as doc_date,
+                SELECT receiving_hdr.id, receiving_hdr.rec_number as doc, receiving_hdr.rec_date as doc_date,
                        SUM(receiving_det.qty * receiving_det.price) as amount, 'Receiving' as doc_type
                 FROM receiving_det
                 JOIN receiving_hdr ON receiving_hdr.rec_number = receiving_det.rec_number
                 WHERE receiving_hdr.status <> '5'
                   AND to_date(receiving_hdr.rec_date,'DD-MM-YYYY') $dateCond
-                GROUP BY receiving_hdr.rec_number, receiving_hdr.rec_date
+                GROUP BY receiving_hdr.id, receiving_hdr.rec_number, receiving_hdr.rec_date
                 ORDER BY to_date(receiving_hdr.rec_date,'DD-MM-YYYY')
             ";
         } else {
@@ -229,7 +229,7 @@ class ApReconciliationController extends Controller
                     to_date(NULLIF(ap_invoice.inv_date,''),'DD-MM-YYYY')
                   )";
             $sql = "
-                SELECT ap_invoice.inv_number as doc, to_char($anchor,'DD-MM-YYYY') as doc_date,
+                SELECT ap_invoice.id, ap_invoice.inv_number as doc, to_char($anchor,'DD-MM-YYYY') as doc_date,
                        ap_invoice.basis_amount as amount, 'AP Invoice' as doc_type
                 FROM ap_invoice
                 WHERE ap_invoice.status NOT IN ('1','5') AND $anchor $dateCond
@@ -239,15 +239,34 @@ class ApReconciliationController extends Controller
 
         $rows = DB::select($sql, $bindings);
 
+        $kasEditRoute = [
+            'BM' => 'bankPenerimaan.edit',
+            'BK' => 'bankKeluar.edit',
+            'KM' => 'kasPenerimaan.edit',
+            'KK' => 'kasKeluar.edit',
+        ];
+
         $result = [];
         $total = 0;
         foreach ($rows as $r) {
+            $encId = \Crypt::encryptString($r->id);
+            if ($r->doc_type === 'Receiving') {
+                $link = route('receiving.show', ['id' => $encId]);
+            } elseif ($r->doc_type === 'AP Invoice') {
+                $link = route('accountPayable.edit', ['id' => $encId]);
+            } elseif (isset($kasEditRoute[$r->doc_type])) {
+                $link = route($kasEditRoute[$r->doc_type], ['id' => $encId]);
+            } else {
+                $link = null;
+            }
+
             $result[] = [
                 'doc'       => $r->doc,
                 'doc_date'  => $r->doc_date,
                 'doc_type'  => $r->doc_type,
                 'reference' => $r->reference ?? null,
                 'amount'    => (float) $r->amount,
+                'link'      => $link,
             ];
             $total += (float) $r->amount;
         }
