@@ -738,6 +738,8 @@
                     </li>
                      <li class="{{ \Request::segment(1) == 'apAging'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apAging.index') }}"><span class="menu-item text-truncate" data-i18n="AP Aging Report">Supplier Aging</span></a>
                     </li>
+                     <li class="{{ \Request::segment(1) == 'apReconciliation'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('apReconciliation.index') }}"><span class="menu-item text-truncate" data-i18n="AP Reconciliation">AP Reconciliation</span></a>
+                    </li>
                     <li class="{{ \Request::segment(1) == 'receivingReportAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('receiving.report.acc') }}"><span class="menu-item text-truncate" data-i18n="Receiving Report">Receiving Report</span></a>
                     </li>
                   </ul>
@@ -752,6 +754,8 @@
                       <li class="{{ \Request::segment(1) == 'debitnote' ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('debitNote.index') }}"><span class="menu-item text-truncate" data-i18n="Debit Note">Debit Note</span></a>
                       </li>
                     <li class="{{ \Request::segment(1) == 'arAgingReport'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('arAging.index') }}"><span class="menu-item text-truncate" data-i18n="AR Aging Report">Customer Aging</span></a>
+                    </li>
+                    <li class="{{ \Request::segment(1) == 'arReconciliation'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('arReconciliation.index') }}"><span class="menu-item text-truncate" data-i18n="AR Reconciliation">AR Reconciliation</span></a>
                     </li>
                     <li class="{{ \Request::segment(1) == 'arPaymentSchedule'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('arPaymentSchedule.index') }}"><span class="menu-item text-truncate" data-i18n="AR Payment Schedule">Payment Schedule</span></a>
                     </li>

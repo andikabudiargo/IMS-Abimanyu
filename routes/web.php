@@ -541,6 +541,12 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('apAging/detail', ['uses' => 'ApAgingReportController@detail','as'   => 'apAging.detail',]);
 	Route::post('apAging/export', ['uses' => 'ApAgingReportController@export','as'   => 'apAging.export',]);
 
+	Route::get('arReconciliation', ['uses' => 'ArReconciliationController@index','as'   => 'arReconciliation.index',]);
+	Route::post('arReconciliation/data', ['uses' => 'ArReconciliationController@data','as'   => 'arReconciliation.data',]);
+
+	Route::get('apReconciliation', ['uses' => 'ApReconciliationController@index','as'   => 'apReconciliation.index',]);
+	Route::post('apReconciliation/data', ['uses' => 'ApReconciliationController@data','as'   => 'apReconciliation.data',]);
+
 	Route::get('apPaymentSchedule', ['uses' => 'ApPaymentScheduleController@index','as'   => 'apPaymentSchedule.index',]);
 	Route::post('apPaymentSchedule/data', ['uses' => 'ApPaymentScheduleController@data','as'   => 'apPaymentSchedule.data',]);
 	Route::post('apPaymentSchedule/detail', ['uses' => 'ApPaymentScheduleController@detail','as'   => 'apPaymentSchedule.detail',]);
