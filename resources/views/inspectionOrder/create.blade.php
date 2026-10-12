@@ -26,13 +26,13 @@
                         <label for="shift">Shift</label>
                         <input type="text" id="shift" name="shift" class="form-control" value="{{ old('shift') }}" maxlength="20" />
                     </div>
-                    <div class="form-group col-md-3">
+                    <div class="form-group col-md-3" id="checkMethodWrapper">
                         <label for="check_method">Check Method</label>
                         <input type="text" id="check_method" name="check_method" class="form-control" value="{{ old('check_method') }}" maxlength="50" placeholder="100% / Sampling" />
                     </div>
                 </div>
                 <div class="row">
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-4" id="supplierWrapper">
                         <label for="supplier_code">Supplier</label>
                         <select class="select2 form-control" id="supplier_code" name="supplier_code">
                             <option value="">-- Select Supplier --</option>
@@ -50,7 +50,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-4" id="qtyReceivedWrapper">
                         <label for="qty_received">Qty Received</label>
                         <input type="number" step="0.01" min="0" id="qty_received" name="qty_received" class="form-control" value="{{ old('qty_received', 0) }}" />
                     </div>
@@ -109,7 +109,7 @@
                             <th style="min-width:220px;">Defect</th>
                             <th style="min-width:110px;">Category</th>
                             <th style="min-width:100px;">Qty</th>
-                            <th style="min-width:100px;">OK Repair</th>
+                            <th style="min-width:100px;" class="okRepairCol">OK Repair</th>
                             <th>Note</th>
                             <th style="width:40px;"></th>
                         </tr>
@@ -132,6 +132,7 @@
 <script type="text/javascript">
     let lineIndex = 0;
     const defectOptions = `<option value="">-- Select Defect --</option>@foreach ($defects as $d)<option value="{{ $d->id }}">{{ $d->code }} - {{ $d->name }}</option>@endforeach`;
+    const postNames = { @foreach ($posts as $post) {{ $post->id }}: "{{ $post->name }}", @endforeach };
 
     function addLine(line) {
         line = line || {};
@@ -144,12 +145,30 @@
                 </select>
             </td>
             <td><input type="number" step="0.01" min="0" class="form-control" name="defect_qty[]" value="${line.qty || 0}" /></td>
-            <td><input type="number" step="0.01" min="0" class="form-control" name="defect_ok_repair[]" value="${line.ok_repair || 0}" /></td>
+            <td class="okRepairCol"><input type="number" step="0.01" min="0" class="form-control" name="defect_ok_repair[]" value="${line.ok_repair || 0}" /></td>
             <td><input type="text" class="form-control" name="defect_note[]" value="${line.note || ''}" /></td>
             <td><button type="button" class="btn btn-sm btn-danger btnRemoveLine"><i class="fa fa-trash"></i></button></td>
         </tr>`;
         $('#defectTable tbody').append(row);
         $('#defectTable tbody tr:last .defect-select').val(line.defect_id || '').trigger('change').select2();
+        applyPostRules();
+    }
+
+    /**
+     * Supplier/Qty Received/Check Method dan kolom OK Repair cuma relevan
+     * untuk post "Incoming" -- sama seperti aturan di modul QC abimanyu
+     * (create-daily-inspection.blade.php: toggleOkRepair() + listener post).
+     */
+    function applyPostRules() {
+        const postName = (postNames[$('#inspection_post_id').val()] || '').trim();
+        const isIncoming = postName === 'Incoming';
+
+        $('#supplierWrapper, #qtyReceivedWrapper, #checkMethodWrapper').toggle(isIncoming);
+        $('#qty_received, #check_method').prop('required', isIncoming);
+
+        $('.okRepairCol').toggle(isIncoming);
+        $('.okRepairCol input').prop('disabled', !isIncoming).prop('required', isIncoming);
+        if (!isIncoming) { $('.okRepairCol input').val(0); }
     }
 
     function recalcRates() {
@@ -190,11 +209,13 @@
         $("#frmAdd").validate({}).settings.ignore = "";
         addLine();
         recalcRates();
+        applyPostRules();
 
         $('#btnAddLine').click(function(){ addLine(); });
         $(document).on('click', '.btnRemoveLine', function(){ $(this).closest('tr').remove(); });
         $(document).on('input', '.rate-input', recalcRates);
         $('#article_code, #inspection_post_id').on('change', loadRule);
+        $('#inspection_post_id').on('change', applyPostRules);
     });
 
     $("#cmdSave").click(function(){
