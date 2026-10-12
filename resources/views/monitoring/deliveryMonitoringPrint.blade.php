@@ -20,18 +20,20 @@
     <table>
       <thead>
         <tr>
+          @if(!empty($g['rowCustomer']))<th>Customer</th>@endif
           <th>Article</th>
           @foreach($g['dates'] as $d)<th>{{ $d }}</th>@endforeach
           <th>Total</th>
         </tr>
       </thead>
       <tbody>
-        @foreach($g['articles'] as $articleCode => $articleName)
+        @foreach($g['articles'] as $rowKey => $articleName)
           <tr>
+            @if(!empty($g['rowCustomer']))<td>{{ $g['rowCustomer'][$rowKey] ?? '' }}</td>@endif
             <td>{{ $articleName }}</td>
             @php($rowTotal = 0)
             @foreach($g['dates'] as $d)
-              @php($qty = $g['matrix'][$articleCode][$d] ?? 0)
+              @php($qty = $g['matrix'][$rowKey][$d] ?? 0)
               @php($rowTotal += $qty)
               <td>{{ $qty ? rtrim(rtrim(number_format($qty, 2, '.', ''), '0'), '.') : '-' }}</td>
             @endforeach
@@ -41,6 +43,7 @@
       </tbody>
       <tfoot>
         <tr>
+          @if(!empty($g['rowCustomer']))<td></td>@endif
           <td>Total</td>
           @php($grandTotal = 0)
           @foreach($g['dates'] as $d)

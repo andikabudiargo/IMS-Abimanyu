@@ -38,11 +38,16 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
         $this->title = substr(preg_replace('/[^A-Za-z0-9 _-]/', '', $title) ?: 'Sheet', 0, 31);
     }
 
+    private function hasCustomerCol(): bool
+    {
+        return !empty($this->g['rowCustomer']);
+    }
+
     public function array(): array
     {
         $rows = [];
         foreach ($this->g['articles'] as $code => $name) {
-            $row = [$name];
+            $row = $this->hasCustomerCol() ? [$this->g['rowCustomer'][$code] ?? '', $name] : [$name];
             $total = 0;
             foreach ($this->g['dates'] as $d) {
                 $qty = $this->g['matrix'][$code][$d] ?? 0;
@@ -53,7 +58,7 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
             $rows[] = $row;
         }
         if ($rows) {
-            $totalRow = ['TOTAL'];
+            $totalRow = $this->hasCustomerCol() ? ['', 'TOTAL'] : ['TOTAL'];
             $grand = 0;
             foreach ($this->g['dates'] as $d) {
                 $colTotal = array_sum(array_column($this->g['matrix'], $d));
@@ -68,7 +73,8 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
 
     public function headings(): array
     {
-        return array_merge(['Article'], $this->g['dates'], ['Total']);
+        $head = $this->hasCustomerCol() ? ['Customer', 'Article'] : ['Article'];
+        return array_merge($head, $this->g['dates'], ['Total']);
     }
 
     public function title(): string

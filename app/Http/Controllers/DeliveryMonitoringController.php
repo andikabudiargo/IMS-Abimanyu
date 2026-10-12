@@ -88,19 +88,24 @@ class DeliveryMonitoringController extends Controller
         return $dates;
     }
 
-    // $summary true = satu tabel gabungan per article (tanpa pecah per customer).
+    // $summary true = satu tabel gabungan, baris = customer+article (bukan dipecah per card customer).
     private function groups(array $rows, $summary = false)
     {
         $data = [];
         foreach ($rows as $r) {
             $key = $summary ? 'ALL' : $r->customer_id;
             $data[$key]['name'] = $summary ? 'Summary - Semua Customer' : ($r->customer_name ?? $r->customer_id);
-            $data[$key]['articles'][$r->article_code] = trim(($r->article_alternative_code ?? $r->article_code) . ' - ' . $r->article_desc, ' -');
+            $rowKey = $summary ? $r->customer_id . '|' . $r->article_code : $r->article_code;
+            $data[$key]['articles'][$rowKey] = trim(($r->article_alternative_code ?? $r->article_code) . ' - ' . $r->article_desc, ' -');
+            $data[$key]['rowCustomer'][$rowKey] = $r->customer_name ?? $r->customer_id;
             $data[$key]['dates'][$r->delivery_date] = true;
-            $data[$key]['matrix'][$r->article_code][$r->delivery_date] = ($data[$key]['matrix'][$r->article_code][$r->delivery_date] ?? 0) + (float) $r->qty;
+            $data[$key]['matrix'][$rowKey][$r->delivery_date] = ($data[$key]['matrix'][$rowKey][$r->delivery_date] ?? 0) + (float) $r->qty;
         }
         foreach ($data as &$g) {
-            ksort($g['articles']);
+            $customers = $g['rowCustomer'] ?? [];
+            $articles = $g['articles'];
+            uksort($articles, fn($a, $b) => strcmp(($customers[$a] ?? '') . $articles[$a], ($customers[$b] ?? '') . $articles[$b]));
+            $g['articles'] = $articles;
             $g['dates'] = $this->sortDates(array_keys($g['dates']));
         }
         uasort($data, fn($a, $b) => strcmp($a['name'], $b['name']));
