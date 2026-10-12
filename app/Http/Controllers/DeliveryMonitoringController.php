@@ -19,14 +19,18 @@ class DeliveryMonitoringController extends Controller
         ];
     }
 
+    // dn_type[] boleh pilih beberapa sekaligus (mis. DN + SJ Sementara tanpa DN Replace).
+    // Kosong atau semua tercentang = tidak difilter (semua tipe).
     private function dnType(Request $request)
     {
-        return in_array($request->dn_type, ['dn', 'temp', 'replace']) ? $request->dn_type : 'all';
+        $selected = array_intersect((array) $request->dn_type, ['dn', 'temp', 'replace']);
+        return count($selected) == 3 ? [] : array_values($selected);
     }
 
-    private function dnTypeLabel($dnType)
+    private function dnTypeLabels(array $dnType)
     {
-        return ['dn' => 'DN', 'temp' => 'SJ SEMENTARA', 'replace' => 'DN REPLACE'][$dnType] ?? null;
+        $map = ['dn' => 'DN', 'temp' => 'SJ SEMENTARA', 'replace' => 'DN REPLACE'];
+        return array_values(array_intersect_key($map, array_flip($dnType)));
     }
 
     // Satu sumber transaksi untuk pivot & modal detail: gabungan DN (delivery_hdr/det),
@@ -46,9 +50,9 @@ class DeliveryMonitoringController extends Controller
             $where[] = 'x.customer_id IN (' . implode(',', array_fill(0, count($selected), '?')) . ')';
             $bindings = array_merge($bindings, $selected);
         }
-        if ($label = $this->dnTypeLabel($dnType)) {
-            $where[] = 'x.type = ?';
-            $bindings[] = $label;
+        if ($labels = $this->dnTypeLabels($dnType)) {
+            $where[] = 'x.type IN (' . implode(',', array_fill(0, count($labels), '?')) . ')';
+            $bindings = array_merge($bindings, $labels);
         }
         if ($request->article) {
             $where[] = 'x.article_code = ?';

@@ -19,11 +19,10 @@
           </div>
           <div class="form-group col-md-2">
             <label for="dn_type">Tipe DN</label>
-            <select id="dn_type" name="dn_type" class="form-control">
-              <option value="all" @if($dnType == 'all') selected @endif>Semua</option>
-              <option value="dn" @if($dnType == 'dn') selected @endif>Delivery Note</option>
-              <option value="temp" @if($dnType == 'temp') selected @endif>SJ Sementara</option>
-              <option value="replace" @if($dnType == 'replace') selected @endif>DN Replace</option>
+            <select id="dn_type" name="dn_type[]" class="select2 form-control" multiple>
+              <option value="dn" @if(in_array('dn', $dnType)) selected @endif>Delivery Note</option>
+              <option value="temp" @if(in_array('temp', $dnType)) selected @endif>SJ Sementara</option>
+              <option value="replace" @if(in_array('replace', $dnType)) selected @endif>DN Replace</option>
             </select>
           </div>
           <div class="form-group col-md-4">
@@ -167,27 +166,31 @@
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
 <script type="text/javascript">
-  new ApexCharts(document.querySelector('#deliveryHeatmap'), {
-    chart: { type: 'heatmap', height: 320, toolbar: { show: false } },
-    series: @json($heatmap),
-    dataLabels: { enabled: false },
-    plotOptions: {
-      heatmap: {
-        colorScale: {
-          ranges: [
-            { from: 0, to: 0, name: 'Tidak Ada', color: '#f1f1f1' },
-            { from: 0.01, to: 50, name: '1-50', color: '#c7e3fb' },
-            { from: 50.01, to: 150, name: '51-150', color: '#7cb8f0' },
-            { from: 150.01, to: 999999, name: '> 150', color: '#2f6fb0' },
-          ],
+  (function () {
+    new ApexCharts(document.querySelector('#deliveryHeatmap'), {
+      chart: { type: 'heatmap', height: 320, toolbar: { show: false } },
+      series: @json($heatmap),
+      dataLabels: { enabled: false },
+      plotOptions: {
+        heatmap: {
+          colorScale: {
+            ranges: [
+              { from: 0, to: 0, name: 'Tidak Ada', color: '#f1f1f1' },
+              { from: 0.01, to: 1000, name: '< 1.000', color: '#e05252' },
+              { from: 1000.01, to: 5000, name: '1.000 - 5.000', color: '#eac54f' },
+              { from: 5000.01, to: 10000, name: '5.000 - 10.000', color: '#8bc98b' },
+              { from: 10000.01, to: 99999999, name: '> 10.000', color: '#2e8b45' },
+            ],
+          },
         },
       },
-    },
-    xaxis: { labels: { rotate: -45 } },
-    tooltip: { y: { formatter: (v) => v + ' qty' } },
-  }).render();
+      xaxis: { labels: { rotate: -45 } },
+      tooltip: { y: { formatter: (v) => v + ' qty' } },
+    }).render();
+  })();
 
-  $('.select2').select2({placeholder: 'Semua Customer', allowClear: true});
+  $('#customer').select2({placeholder: 'Semua Customer', allowClear: true});
+  $('#dn_type').select2({placeholder: 'Semua Tipe DN', allowClear: true});
   $('input[name=viewToggle]').on('change', function () {
     $('#viewInput').val(this.value);
     $('#filterForm').submit();
@@ -202,7 +205,7 @@
     $('#qtyModal').modal('show');
     $.get("{{ route('deliveryMonitoring.detail') }}", {
       customer: [d.customer],
-      article: d.article, date: d.date, dn_type: '{{ $dnType }}',
+      article: d.article, date: d.date, dn_type: {{ json_encode($dnType) }},
       from: '{{ $from }}', to: '{{ $to }}'
     }, function (rows) {
       $('#qtyModalBody').html(rows.length ? rows.map((r, i) => '<tr><td>' + (i + 1) + '</td><td><a href="' + esc(r.url) + '" target="_blank">' + esc(r.number) + '</a></td><td>'
