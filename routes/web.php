@@ -1393,6 +1393,13 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 	Route::post('conversionReport/revision',['as'=>'conversionReport.revision','uses'=>'Conversion\ConversionReportController@revision']);
 	Route::post('conversionReport/cancel',['as'=>'conversionReport.cancel','uses'=>'Conversion\ConversionReportController@cancel']);
 
+	// Conversion (Planning) -- read-only, tanpa harga asli, tanpa create/edit.
+	Route::get('conversionPlanning',['as'=>'conversionPlanning.index','uses'=>'Conversion\ConversionReportController@planningIndex']);
+	Route::get('conversionPlanning/list',['as'=>'conversionPlanning.list','uses'=>'Conversion\ConversionReportController@planningList']);
+	Route::get('conversionPlanning/show',['as'=>'conversionPlanning.show','uses'=>'Conversion\ConversionReportController@planningShow']);
+	Route::get('conversionPlanning/showRangeFilter',['as'=>'conversionPlanning.showRangeFilter','uses'=>'Conversion\ConversionReportController@planningRangeFilter']);
+	Route::get('conversionPlanning/list/detail/dn',['as'=>'conversionPlanning.list.detail.dn','uses'=>'Conversion\ConversionReportController@planningListDetailDn']);
+
 	Route::get('balanceSheet',['as'=>'balanceSheet.index','uses'=>'Accounting\BalanceSheetController@index']);
 	Route::get('balanceSheet/print',['as'=>'balanceSheet.print','uses'=>'Accounting\BalanceSheetController@print']);
 

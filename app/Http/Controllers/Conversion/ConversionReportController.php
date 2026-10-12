@@ -692,10 +692,13 @@ $rows[] = [
         ]);
     }
 
-    public function list(Request $request)
+    /**
+     * Query dasar list report (dipakai bareng oleh list() biasa & planningList()
+     * read-only -- keduanya menampilkan ringkasan header yang sama, cuma beda
+     * tombol action).
+     */
+    private function reportListQuery(Request $request)
     {
-        $months = ['', 'January','February','March','April','May','June','July','August','September','October','November','December'];
-
         // status 8 (REVISED) adalah snapshot arsip revisi, bukan dokumen aktif --
         // disembunyikan dari list utama, tetap bisa dilihat lewat riwayat revisi di halaman Edit.
         // Total Article & Total Konversi per report -- agregat dari conversion_report_det,
@@ -717,7 +720,7 @@ $rows[] = [
         DB::raw('COALESCE(SUM(crd.conversion),0) as total_conversion'))
     ->groupBy('crd.report_id');
 
-        $data = DB::table('conversion_report_hdr as h')
+        return DB::table('conversion_report_hdr as h')
             ->leftJoinSub($agg, 'agg', 'agg.report_id', '=', 'h.id')
             ->select('h.*',
                 DB::raw('COALESCE(agg.total_article,0) as total_article'),
@@ -733,6 +736,12 @@ $rows[] = [
             ->when($request->tahun, fn($q) => $q->where('h.tahun', $request->tahun))
             ->orderByDesc('h.id')
             ->get();
+    }
+
+    public function list(Request $request)
+    {
+        $months = ['', 'January','February','March','April','May','June','July','August','September','October','November','December'];
+        $data = $this->reportListQuery($request);
 
         return Datatables::of($data)
             ->editColumn('total_qty_delivery', fn($d) => number_format((float) $d->total_qty_delivery, 2))
@@ -796,6 +805,208 @@ $rows[] = [
             })
             ->rawColumns(['action', 'status_label', 'selisih_conversion', 'pct_selisih'])
             ->make(true);
+    }
+
+    // =========================================================================
+    //  PLANNING (read-only, tanpa harga asli, tanpa create/edit) -- menu
+    //  "Conversion" di sidebar Planning. Reuse data yang sama dengan
+    //  Conversion Report, cuma strip kolom harga & action dibatasi Detail saja.
+    // =========================================================================
+
+    /** Buang kolom harga asli dari baris summary sebelum dikirim ke client. */
+    private function stripPriceKeys(array $rows): array
+    {
+        foreach ($rows as &$r) {
+            unset($r['avg_selling_price'], $r['avg_purchase_price'], $r['total_selling_value'], $r['total_purchase_value']);
+        }
+        return $rows;
+    }
+
+    public function planningIndex()
+    {
+        return view('conversion.conversionReport.planningIndex', [
+            'title'    => $this->title,
+            'subtitle' => $this->title,
+            'kolom'    => $this->getTableColoumn(),
+        ]);
+    }
+
+    public function planningList(Request $request)
+    {
+        $months = ['', 'January','February','March','April','May','June','July','August','September','October','November','December'];
+        $data = $this->reportListQuery($request);
+
+        return Datatables::of($data)
+            ->editColumn('total_qty_delivery', fn($d) => number_format((float) $d->total_qty_delivery, 2))
+            ->editColumn('total_qty_target', fn($d) => number_format((float) $d->total_qty_target, 2))
+            ->editColumn('total_painting', fn($d) => number_format((float) $d->total_painting, 2))
+            ->editColumn('total_non_painting', fn($d) => number_format((float) $d->total_non_painting, 2))
+            ->editColumn('total_conversion', fn($d) => number_format((float) $d->total_conversion, 2))
+            ->editColumn('target_conversion', fn($d) => number_format((float) $d->target_conversion, 2))
+            ->addColumn('selisih_conversion', function ($d) {
+                $s = (float) $d->total_painting - (float) $d->target_conversion;
+                $cls = $s < 0 ? 'text-danger' : 'text-success';
+                return "<span class='$cls'>".number_format($s, 2).'</span>';
+            })
+            ->addColumn('action', function ($d) {
+                $id = Crypt::encryptString($d->id);
+                return "<a href='".route('conversionPlanning.show', ['id' => $id])."' class='btn btn-sm btn-flat-primary'>
+                            <i data-feather='eye'></i> Detail</a>";
+            })
+            ->addColumn('periode_label', function ($d) use ($months) {
+                return ($months[$d->periode] ?? $d->periode).' '.$d->tahun;
+            })
+            ->addColumn('status_label', function ($d) {
+                $label = $this->statusLabel[$d->status] ?? $d->status;
+                $class = $this->statusBadge[$d->status] ?? 'badge-secondary';
+                return "<div class='badge badge-pill $class'>$label</div>";
+            })
+            ->addColumn('pct_tercapai', function ($d) {
+                $t = (float) $d->target_conversion;
+                return $t > 0 ? number_format((float) $d->total_painting / $t * 100, 1).'%' : '-';
+            })
+            ->addColumn('pct_selisih', function ($d) {
+                $t = (float) $d->target_conversion;
+                if ($t <= 0) return '-';
+                $p = ((float) $d->total_painting - $t) / $t * 100;
+                $cls = $p < 0 ? 'text-danger' : 'text-success';
+                return "<span class='$cls'>".number_format($p, 1).'%</span>';
+            })
+            ->rawColumns(['action', 'status_label', 'selisih_conversion', 'pct_selisih'])
+            ->make(true);
+    }
+
+    public function planningShow(Request $request)
+    {
+        $id = Crypt::decryptString($request->id);
+
+        $header = DB::table('conversion_report_hdr')->where('id', $id)->first();
+        if (!$header) {
+            return redirect()->route('conversionPlanning.index')->with('error', 'Data tidak ditemukan.');
+        }
+
+        $months = ['', 'January','February','March','April','May','June','July','August','September','October','November','December'];
+
+        $details = DB::table('conversion_report_det as d')
+            ->leftJoin('article as a', 'a.article_code', '=', 'd.article_code')
+            ->where('d.report_id', $id)
+            ->select('d.*', 'a.article_alternative_code', 'a.article_desc')
+            ->orderBy('d.article_code')
+            ->get()
+            ->map(function ($d) {
+                $d->is_painting = !$this->isMaklon($d->article_code)
+                    && in_array(strtoupper(trim($d->uom)), ['PCS', 'SET']);
+                return $d;
+            });
+        $details = $this->attachTargetLines($details, (int) $header->periode, (int) $header->tahun, (float) $header->conversion_value_used);
+
+        [$periodeStart, $periodeEnd] = $this->periodeBounds((int) $header->periode, (int) $header->tahun);
+
+        return view('conversion.conversionReport.planningShow', [
+            'title'        => "Detail {$this->title}",
+            'subtitle'     => "Detail {$this->title}",
+            'header'       => $header,
+            'periodeLabel' => ($months[$header->periode] ?? $header->periode).' '.$header->tahun,
+            'statusLabel'  => $this->statusLabel[$header->status] ?? $header->status,
+            'details'      => $details,
+            'id'           => $request->id,
+            'periodeStart' => $periodeStart,
+            'periodeEnd'   => $periodeEnd,
+        ]);
+    }
+
+    /** AJAX -- filter range tanggal di halaman Detail Planning, tanpa harga asli. */
+    public function planningRangeFilter(Request $request)
+    {
+        $id = Crypt::decryptString($request->id);
+        $header = DB::table('conversion_report_hdr')->where('id', $id)->first();
+        if (!$header) {
+            return response()->json(['status' => 0, 'message' => 'Data tidak ditemukan.']);
+        }
+
+        [$start, $end, $minDate, $maxDate] = $this->clampRangeToPeriode($request, $header);
+
+        $summary = $this->rangeSummaryForReport((int) $id, $start, $end);
+        $rows = $this->stripPriceKeys($summary['rows']);
+
+        return response()->json([
+            'status'  => 1,
+            'rows'    => $rows,
+            'start'   => $start,
+            'end'     => $end,
+            'minDate' => $minDate,
+            'maxDate' => $maxDate,
+            'totals'  => [
+                'article'     => count($rows),
+                'qty'         => round(array_sum(array_column($rows, 'total_qty')), 2),
+                'conversion'  => round(array_sum(array_column($rows, 'conversion')), 2),
+                'painting'    => round(array_sum(array_column($rows, 'conversion_painting')), 2),
+                'nonPainting' => round(array_sum(array_column($rows, 'conversion_non_painting')), 2),
+            ],
+        ]);
+    }
+
+    /** AJAX -- breakdown DN per artikel di modal halaman Detail Planning, tanpa harga asli. */
+    public function planningListDetailDn(Request $request)
+    {
+        $detId = $request->reportDetId;
+
+        $det = DB::table('conversion_report_det as d')
+            ->join('conversion_report_hdr as h', 'h.id', '=', 'd.report_id')
+            ->where('d.id', $detId)
+            ->select('d.avg_purchase_price', 'd.uom', 'h.conversion_value_used')
+            ->first();
+
+        $avgPurchase = (float) ($det->avg_purchase_price ?? 0);
+        $convVal     = (float) ($det->conversion_value_used ?? 0);
+
+        $data = DB::table('conversion_report_dn_det')
+            ->where('report_det_id', $detId)
+            ->orderByRaw("to_date(delivery_date, 'DD-MM-YYYY')")
+            ->get();
+
+        $dnIds = [];
+        $soIds = [];
+        $rows  = [];
+        $tQty = 0; $tConv = 0;
+
+        foreach ($data as $i => $d) {
+            $conv = $convVal > 0
+                ? ((((float) $d->price_unit) - $avgPurchase) * ((float) $d->qty)) / $convVal
+                : 0;
+
+            if ($d->dn_number && !array_key_exists($d->dn_number, $dnIds)) {
+                $dnIds[$d->dn_number] = DB::table('delivery_hdr')->where('delivery_number', $d->dn_number)->value('id');
+            }
+            if ($d->so_number && !array_key_exists($d->so_number, $soIds)) {
+                $soIds[$d->so_number] = DB::table('sales_order_hdr')->where('so_code', $d->so_number)->value('id');
+            }
+            $dnId = $d->dn_number ? ($dnIds[$d->dn_number] ?? null) : null;
+            $soId = $d->so_number ? ($soIds[$d->so_number] ?? null) : null;
+
+            $rows[] = [
+                'no'            => $i + 1,
+                'dn_number'     => $d->dn_number,
+                'dn_url'        => $dnId ? route('delivery.show', ['id' => Crypt::encryptString($dnId)]) : null,
+                'so_number'     => $d->so_number,
+                'so_url'        => $soId ? route('salesOrder.show', ['id' => Crypt::encryptString($soId)]) : null,
+                'customer_name' => $d->customer_name,
+                'qty'           => (float) $d->qty,
+                'conversion'    => round($conv, 4),
+            ];
+
+            $tQty  += (float) $d->qty;
+            $tConv += $conv;
+        }
+
+        return response()->json([
+            'status' => 1,
+            'rows'   => $rows,
+            'totals' => [
+                'qty'        => round($tQty, 4),
+                'conversion' => round($tConv, 4),
+            ],
+        ]);
     }
 
     /**
