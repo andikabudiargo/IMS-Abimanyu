@@ -158,7 +158,6 @@ class InspectionOrderController extends Controller
                 'inspection_post_id' => $postId,
                 'supplier_code' => $request->input('supplier_code'),
                 'article_code' => $articleCode,
-                'shift' => $request->input('shift'),
                 'check_method' => $request->input('check_method'),
                 'qty_received' => $request->input('qty_received', 0),
                 'total_check' => $request->total_check,
@@ -243,7 +242,6 @@ class InspectionOrderController extends Controller
                 'inspection_post_id' => $postId,
                 'supplier_code' => $request->input('supplier_code'),
                 'article_code' => $articleCode,
-                'shift' => $request->input('shift'),
                 'check_method' => $request->input('check_method'),
                 'qty_received' => $request->input('qty_received', 0),
                 'total_check' => $request->total_check,
@@ -278,7 +276,13 @@ class InspectionOrderController extends Controller
     {
         $hdr = DB::table('inspection_order_hdr')
             ->leftJoin('inspection_posts', 'inspection_posts.id', '=', 'inspection_order_hdr.inspection_post_id')
-            ->select('inspection_order_hdr.*', 'inspection_posts.name as post_name')
+            ->leftJoin('article', 'article.article_code', '=', 'inspection_order_hdr.article_code')
+            ->select(
+                'inspection_order_hdr.*',
+                'inspection_posts.name as post_name',
+                'article.article_alternative_code',
+                'article.article_desc'
+            )
             ->where('inspection_order_hdr.id', $request->id)
             ->first();
         if (!$hdr) {
@@ -358,9 +362,13 @@ class InspectionOrderController extends Controller
 
         $data = DB::table('inspection_order_hdr')
             ->leftJoin('inspection_posts', 'inspection_posts.id', '=', 'inspection_order_hdr.inspection_post_id')
-            ->select('inspection_order_hdr.*', 'inspection_posts.name as post_name');
+            ->leftJoin('article', 'article.article_code', '=', 'inspection_order_hdr.article_code')
+            ->select('inspection_order_hdr.*', 'inspection_posts.name as post_name', 'article.article_alternative_code');
         $orderNo ? $data->where('inspection_order_hdr.order_no', 'ilike', '%' . $orderNo . '%') : '';
-        $articleCode ? $data->where('inspection_order_hdr.article_code', 'ilike', '%' . $articleCode . '%') : '';
+        $articleCode ? $data->where(function ($q) use ($articleCode) {
+            $q->where('inspection_order_hdr.article_code', 'ilike', '%' . $articleCode . '%')
+              ->orWhere('article.article_alternative_code', 'ilike', '%' . $articleCode . '%');
+        }) : '';
         $data->orderBy('inspection_order_hdr.id', 'desc');
 
         return Datatables::of($data)
@@ -393,15 +401,26 @@ class InspectionOrderController extends Controller
                 return $buttons;
             })
             ->editColumn('status', function ($row) {
-                return self::STATUS_LABEL[$row->status] ?? $row->status;
+                $label = self::STATUS_LABEL[$row->status] ?? $row->status;
+                $badge = self::STATUS_BADGE[$row->status] ?? 'badge-secondary';
+                return '<span class="badge ' . $badge . '">' . $label . '</span>';
             })
             ->editColumn('result', function ($row) {
-                if (!$row->result) return '-';
+                if (!$row->result) return '<span class="text-muted">-</span>';
                 return $row->result == 'PASS'
                     ? '<span class="badge badge-success">PASS</span>'
                     : '<span class="badge badge-danger">FAIL</span>';
             })
-            ->rawColumns(['action', 'result'])
+            ->editColumn('article_alternative_code', function ($row) {
+                return $row->article_alternative_code ?: $row->article_code;
+            })
+            ->editColumn('pass_rate', function ($row) {
+                return number_format($row->pass_rate, 2) . '%';
+            })
+            ->editColumn('pass_through_rate', function ($row) {
+                return number_format($row->pass_through_rate, 2) . '%';
+            })
+            ->rawColumns(['action', 'result', 'status'])
             ->make(true);
     }
 }

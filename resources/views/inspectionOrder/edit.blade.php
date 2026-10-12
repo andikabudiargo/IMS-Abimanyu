@@ -8,14 +8,17 @@
         @csrf
         <input type="hidden" name="id" value="{{ $hdr->id }}" />
         <div class="card">
+            <div class="card-header">
+                <h4 class="card-title"><i data-feather="clipboard" class="mr-50"></i> {{ $hdr->order_no }}</h4>
+            </div>
             <div class="card-body">
-                <div class="row">
+                <div class="form-row">
                     <div class="form-group col-md-3">
-                        <label for="inspection_date">Inspection Date</label>
+                        <label for="inspection_date">Inspection Date <span class="text-danger">*</span></label>
                         <input type="date" id="inspection_date" name="inspection_date" class="form-control" value="{{ old('inspection_date', $hdr->inspection_date) }}" required />
                     </div>
                     <div class="form-group col-md-3">
-                        <label for="inspection_post_id">Inspection Post</label>
+                        <label for="inspection_post_id">Inspection Post <span class="text-danger">*</span></label>
                         <select class="select2 form-control" id="inspection_post_id" name="inspection_post_id" required>
                             <option value="">-- Select Post --</option>
                             @foreach ($posts as $post)
@@ -23,64 +26,53 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="form-group col-md-3">
-                        <label for="shift">Shift</label>
-                        <input type="text" id="shift" name="shift" class="form-control" value="{{ old('shift', $hdr->shift) }}" maxlength="20" />
-                    </div>
-                    <div class="form-group col-md-3" id="checkMethodWrapper">
-                        <label for="check_method">Check Method</label>
-                        <select class="select2 form-control" id="check_method" name="check_method">
-                            <option value="">-- Select Method --</option>
-                            <option value="100%" {{ old('check_method', $hdr->check_method) == '100%' ? 'selected' : '' }}>100% (A)</option>
-                            <option value="Sampling" {{ old('check_method', $hdr->check_method) == 'Sampling' ? 'selected' : '' }}>Sampling (S)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="form-group col-md-4" id="supplierWrapper">
-                        <label for="supplier_code">Supplier</label>
-                        <select class="select2 form-control" id="supplier_code" name="supplier_code">
-                            <option value="">-- Select Supplier --</option>
-                            @foreach ($suppliers as $supp)
-                            <option value="{{ $supp->kode }}" {{ old('supplier_code', $hdr->supplier_code) == $supp->kode ? 'selected' : '' }}>{{ $supp->nama }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label for="article_code">Article</label>
+                    <div class="form-group col-md-6">
+                        <label for="article_code">Article <span class="text-danger">*</span></label>
                         <select class="select2 form-control" id="article_code" name="article_code" required>
                             <option value="">-- Select Article --</option>
                             @foreach ($articles as $art)
-                            <option value="{{ $art->article_code }}" {{ old('article_code', $hdr->article_code) == $art->article_code ? 'selected' : '' }}>{{ $art->article_code }} - {{ $art->article_desc }}</option>
+                            <option value="{{ $art->article_code }}" {{ old('article_code', $hdr->article_code) == $art->article_code ? 'selected' : '' }}>{{ $art->article_alternative_code }} - {{ $art->article_desc }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="form-group col-md-4" id="qtyReceivedWrapper">
-                        <label for="qty_received">Qty Received</label>
-                        <input type="number" step="0.01" min="0" id="qty_received" name="qty_received" class="form-control" value="{{ old('qty_received', $hdr->qty_received) }}" />
+                </div>
+
+                <div class="border rounded bg-light p-2 mb-1" id="incomingFieldsWrapper">
+                    <small class="text-muted d-block mb-1 ml-1 text-uppercase font-weight-bold" style="letter-spacing:.03em;">Incoming Details</small>
+                    <div class="form-row">
+                        <div class="form-group col-md-4 mb-0">
+                            <label for="supplier_code">Supplier</label>
+                            <select class="select2 form-control" id="supplier_code" name="supplier_code">
+                                <option value="">-- Select Supplier --</option>
+                                @foreach ($suppliers as $supp)
+                                <option value="{{ $supp->kode }}" {{ old('supplier_code', $hdr->supplier_code) == $supp->kode ? 'selected' : '' }}>{{ $supp->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group col-md-4 mb-0" id="qtyReceivedWrapper">
+                            <label for="qty_received">Qty Received</label>
+                            <input type="number" step="0.01" min="0" id="qty_received" name="qty_received" class="form-control" value="{{ old('qty_received', $hdr->qty_received) }}" />
+                        </div>
+                        <div class="form-group col-md-4 mb-0" id="checkMethodWrapper">
+                            <label for="check_method">Check Method</label>
+                            <select class="select2 form-control" id="check_method" name="check_method">
+                                <option value="">-- Select Method --</option>
+                                <option value="100%" {{ old('check_method', $hdr->check_method) == '100%' ? 'selected' : '' }}>100% (A)</option>
+                                <option value="Sampling" {{ old('check_method', $hdr->check_method) == 'Sampling' ? 'selected' : '' }}>Sampling (S)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <div class="alert alert-info" id="ruleInfo" style="display:none;">
-                    Target for this Inspection Post &mdash; Pass Rate: <b id="ruleTargetPassRate">-</b>% |
-                    Pass Through: <b id="ruleTargetPassThrough">-</b>%
-                </div>
-                <div class="alert alert-warning" id="ruleInfoNone" style="display:none;">
-                    No target set on this Inspection Post. Result will not be flagged PASS/FAIL.
-                </div>
-
-                <div class="row">
+                <div class="form-row">
                     <div class="form-group col-md-3">
-                        <label for="total_check">Total Check</label>
+                        <label for="total_check">Total Check <span class="text-danger">*</span></label>
                         <input type="number" step="0.01" min="0" id="total_check" name="total_check" class="form-control" value="{{ old('total_check', $hdr->total_check) }}" required />
                         <small class="text-muted">Auto-filled from Qty Received + Check Method when post is Incoming</small>
                     </div>
-                </div>
-
-                <div class="row">
-                    <div class="form-group col-md-12">
+                    <div class="form-group col-md-9">
                         <label for="note">Note</label>
-                        <textarea id="note" name="note" class="form-control" rows="2">{{ old('note', $hdr->note) }}</textarea>
+                        <textarea id="note" name="note" class="form-control" rows="1">{{ old('note', $hdr->note) }}</textarea>
                     </div>
                 </div>
             </div>
@@ -91,23 +83,28 @@
         <input type="hidden" id="total_ng" name="total_ng" value="{{ old('total_ng', $hdr->total_ng) }}" />
 
         <div class="card">
-            <div class="card-header"><h4 class="card-title">Inspection Summary</h4></div>
-            <div class="card-body">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                <h4 class="card-title mb-0"><i data-feather="bar-chart-2" class="mr-50"></i> Inspection Summary</h4>
+                <small class="text-muted" id="targetSummaryText">Select an Inspection Post to see its target</small>
+            </div>
+            <div class="card-body py-0">
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <span class="text-muted">Total OK</span><b id="totalOkDisplay">0</b>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <span class="text-muted" id="okRepairLabel">Total OK Repair</span><b id="totalOkRepairDisplay">0</b>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <span class="text-muted">Total NG</span><b id="totalNgDisplay">0</b>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span class="text-muted">Pass Rate</span><b id="calcPassRate">0%</b>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span class="text-muted">Pass Rate</span>
+                        <span><b id="calcPassRate">0%</b> <small class="text-muted" id="targetPassRateInline"></small></span>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span class="text-muted">Pass Through Rate</span><b id="calcPassThrough">0%</b>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span class="text-muted">Pass Through Rate</span>
+                        <span><b id="calcPassThrough">0%</b> <small class="text-muted" id="targetPassThroughInline"></small></span>
                     </li>
                 </ul>
             </div>
@@ -115,17 +112,17 @@
 
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h4 class="card-title">Defect Lines</h4>
+                <h4 class="card-title"><i data-feather="list" class="mr-50"></i> Defect Lines</h4>
                 <button type="button" class="btn btn-sm btn-primary" id="btnAddLine"><i class="fa fa-plus"></i> Add Line</button>
             </div>
-            <div class="card-body">
-                <table class="table table-bordered" id="defectTable">
-                    <thead>
+            <div class="card-body table-responsive">
+                <table class="table table-bordered table-sm mb-0" id="defectTable">
+                    <thead class="thead-light">
                         <tr>
                             <th style="min-width:220px;">Defect</th>
-                            <th style="min-width:110px;">Category</th>
-                            <th style="min-width:100px;">Qty</th>
-                            <th style="min-width:100px;" class="okRepairCol">OK Repair</th>
+                            <th style="width:100px;">Category</th>
+                            <th style="width:100px;" class="text-right">Qty</th>
+                            <th style="width:110px;" class="text-right okRepairCol">OK Repair</th>
                             <th>Note</th>
                             <th style="width:40px;"></th>
                         </tr>
@@ -135,11 +132,9 @@
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-12">
-                <a href="{{ route('inspectionOrder.index') }}" class="btn btn-outline-secondary">Cancel</a>
-                <button class="btn btn-success" type="button" id="cmdSave">Save</button>
-            </div>
+        <div class="d-flex justify-content-end mb-2">
+            <a href="{{ route('inspectionOrder.index') }}" class="btn btn-outline-secondary mr-1">Cancel</a>
+            <button class="btn btn-success" type="button" id="cmdSave"><i data-feather="save" class="mr-50"></i> Save</button>
         </div>
     </form>
 </section>
@@ -149,6 +144,7 @@
     const existingLines = {!! $details->map(function($d){ return ['defect_id'=>$d->defect_id,'category'=>$d->category,'qty'=>$d->qty,'ok_repair'=>$d->ok_repair,'note'=>$d->note]; })->values() !!};
     const defectOptions = `<option value="">-- Select Defect --</option>@foreach ($defects as $d)<option value="{{ $d->id }}">{{ $d->code }} - {{ $d->name }}</option>@endforeach`;
     const postNames = { @foreach ($posts as $post) {{ $post->id }}: "{{ $post->name }}", @endforeach };
+    let currentTarget = null;
 
     function addLine(line) {
         line = line || {};
@@ -160,10 +156,10 @@
                     <option value="NC" ${line.category === 'NC' ? 'selected' : ''}>NC</option>
                 </select>
             </td>
-            <td><input type="number" step="0.01" min="0" class="form-control qty-input" name="defect_qty[]" value="${line.qty || 0}" /></td>
-            <td class="okRepairCol"><input type="number" step="0.01" min="0" class="form-control ok-repair-input" name="defect_ok_repair[]" value="${line.ok_repair || 0}" /></td>
+            <td><input type="number" step="0.01" min="0" class="form-control text-right qty-input" name="defect_qty[]" value="${line.qty || 0}" /></td>
+            <td class="okRepairCol"><input type="number" step="0.01" min="0" class="form-control text-right ok-repair-input" name="defect_ok_repair[]" value="${line.ok_repair || 0}" /></td>
             <td><input type="text" class="form-control" name="defect_note[]" value="${line.note || ''}" /></td>
-            <td><button type="button" class="btn btn-sm btn-danger btnRemoveLine"><i class="fa fa-trash"></i></button></td>
+            <td class="text-center"><button type="button" class="btn btn-sm btn-danger btnRemoveLine"><i class="fa fa-trash"></i></button></td>
         </tr>`;
         $('#defectTable tbody').append(row);
         $('#defectTable tbody tr:last .defect-select').val(line.defect_id || '').trigger('change').select2();
@@ -195,7 +191,7 @@
     function applyPostRules() {
         const isIncoming = isIncomingPost();
 
-        $('#supplierWrapper, #qtyReceivedWrapper, #checkMethodWrapper').toggle(isIncoming);
+        $('#incomingFieldsWrapper').toggle(isIncoming);
         $('#qty_received, #check_method').prop('required', isIncoming);
 
         $('.okRepairCol').toggle(isIncoming);
@@ -241,26 +237,35 @@
         $('#totalOkDisplay').text(totalOk);
         $('#totalOkRepairDisplay').text(totalOkRepair);
         $('#totalNgDisplay').text(totalNg);
-        $('#calcPassRate').text(passRate + '%');
-        $('#calcPassThrough').text(passThrough + '%');
+        $('#calcPassRate').text(passRate + '%').removeClass('text-success text-danger');
+        $('#calcPassThrough').text(passThrough + '%').removeClass('text-success text-danger');
+
+        if (currentTarget && totalCheck > 0) {
+            $('#calcPassRate').addClass(parseFloat(passRate) >= currentTarget.target_pass_rate ? 'text-success' : 'text-danger');
+            $('#calcPassThrough').addClass(parseFloat(passThrough) >= currentTarget.target_pass_through_rate ? 'text-success' : 'text-danger');
+        }
     }
 
     function loadRule() {
         const postId = $('#inspection_post_id').val();
         if (!postId) {
-            $('#ruleInfo, #ruleInfoNone').hide();
+            currentTarget = null;
+            $('#targetSummaryText').text('Select an Inspection Post to see its target');
+            $('#targetPassRateInline, #targetPassThroughInline').text('');
+            recalcSummary();
             return;
         }
         $.get('{{ route("inspectionOrder.getRule") }}', { postId: postId }, function (rule) {
+            currentTarget = rule || null;
             if (rule) {
-                $('#ruleTargetPassRate').text(rule.target_pass_rate);
-                $('#ruleTargetPassThrough').text(rule.target_pass_through_rate);
-                $('#ruleInfo').show();
-                $('#ruleInfoNone').hide();
+                $('#targetSummaryText').html('Target &mdash; Pass Rate <b>' + rule.target_pass_rate + '%</b> · Pass Through <b>' + rule.target_pass_through_rate + '%</b>');
+                $('#targetPassRateInline').text('/ target ' + rule.target_pass_rate + '%');
+                $('#targetPassThroughInline').text('/ target ' + rule.target_pass_through_rate + '%');
             } else {
-                $('#ruleInfo').hide();
-                $('#ruleInfoNone').show();
+                $('#targetSummaryText').text('No target set on this Inspection Post');
+                $('#targetPassRateInline, #targetPassThroughInline').text('');
             }
+            recalcSummary();
         });
     }
 

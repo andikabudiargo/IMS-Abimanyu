@@ -4,79 +4,110 @@
 @include('layouts.breadcrumb')
 @include('partials.alert')
 <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+        <h4 class="card-title mb-0">
+            <i data-feather="clipboard" class="mr-50"></i> {{ $hdr->order_no }}
+            <span class="badge {{ $statusBadge }} ml-1">{{ $statusLabel }}</span>
+            @if ($hdr->result == 'PASS')
+                <span class="badge badge-success">PASS</span>
+            @elseif ($hdr->result == 'FAIL')
+                <span class="badge badge-danger">FAIL</span>
+            @endif
+        </h4>
+        <div>
+            @if ($hdr->status == '1')
+                <a href="{{ route('inspectionOrder.edit', ['id' => $hdr->id]) }}" class="btn btn-sm btn-primary"><i data-feather="edit-2" class="mr-50"></i>Edit</a>
+                <button type="button" class="btn btn-sm btn-success" id="btnPosting"><i data-feather="check" class="mr-50"></i>Post</button>
+            @endif
+            @if ($hdr->status != '5')
+                <button type="button" class="btn btn-sm btn-danger" id="btnCancel" data-toggle="modal" data-target="#cancelModal"><i data-feather="x" class="mr-50"></i>Cancel</button>
+            @endif
+        </div>
+    </div>
     <div class="card-body">
-        <div class="d-flex justify-content-between">
-            <h4>{{ $hdr->order_no }} <span class="badge {{ $statusBadge }}">{{ $statusLabel }}</span></h4>
-            <div>
-                @if ($hdr->status == '1')
-                    <a href="{{ route('inspectionOrder.edit', ['id' => $hdr->id]) }}" class="btn btn-sm btn-primary">Edit</a>
-                    <button type="button" class="btn btn-sm btn-success" id="btnPosting">Post</button>
-                @endif
-                @if ($hdr->status != '5')
-                    <button type="button" class="btn btn-sm btn-danger" id="btnCancel" data-toggle="modal" data-target="#cancelModal">Cancel</button>
-                @endif
-            </div>
+        <div class="form-row">
+            <div class="col-md-3"><small class="text-muted d-block">Inspection Date</small>{{ $hdr->inspection_date }}</div>
+            <div class="col-md-3"><small class="text-muted d-block">Inspection Post</small>{{ $hdr->post_name }}</div>
+            <div class="col-md-3"><small class="text-muted d-block">Supplier</small>{{ $hdr->supplier_code ?: '-' }}</div>
+            <div class="col-md-3"><small class="text-muted d-block">Article</small>{{ $hdr->article_alternative_code ?: $hdr->article_code }} @if($hdr->article_desc)<br><span class="text-muted">{{ $hdr->article_desc }}</span>@endif</div>
         </div>
-        <hr>
-        <div class="row">
-            <div class="col-md-3"><b>Inspection Date</b><br>{{ $hdr->inspection_date }}</div>
-            <div class="col-md-3"><b>Inspection Post</b><br>{{ $hdr->post_name }}</div>
-            <div class="col-md-3"><b>Supplier</b><br>{{ $hdr->supplier_code ?: '-' }}</div>
-            <div class="col-md-3"><b>Article</b><br>{{ $hdr->article_code }}</div>
+        @if ($hdr->check_method || $hdr->qty_received)
+        <div class="form-row mt-1">
+            <div class="col-md-3"><small class="text-muted d-block">Check Method</small>{{ $hdr->check_method ?: '-' }}</div>
+            <div class="col-md-3"><small class="text-muted d-block">Qty Received</small>{{ $hdr->qty_received }}</div>
         </div>
-        <div class="row mt-2">
-            <div class="col-md-3"><b>Shift</b><br>{{ $hdr->shift ?: '-' }}</div>
-            <div class="col-md-3"><b>Check Method</b><br>{{ $hdr->check_method ?: '-' }}</div>
-            <div class="col-md-3"><b>Qty Received</b><br>{{ $hdr->qty_received }}</div>
-        </div>
-        <hr>
-        <div class="row">
-            <div class="col-md-2"><b>Total Check</b><br>{{ $hdr->total_check }}</div>
-            <div class="col-md-2"><b>Total OK</b><br>{{ $hdr->total_ok }}</div>
-            <div class="col-md-2"><b>OK Repair</b><br>{{ $hdr->total_ok_repair }}</div>
-            <div class="col-md-2"><b>Total NG</b><br>{{ $hdr->total_ng }}</div>
-            <div class="col-md-2"><b>Pass Rate</b><br>{{ $hdr->pass_rate }}% <small class="text-muted">(target {{ $hdr->target_pass_rate ?? '-' }}%)</small></div>
-            <div class="col-md-2"><b>Pass Through</b><br>{{ $hdr->pass_through_rate }}% <small class="text-muted">(target {{ $hdr->target_pass_through_rate ?? '-' }}%)</small></div>
-        </div>
-        <div class="row mt-2">
-            <div class="col-md-4">
-                <b>Result:</b>
-                @if ($hdr->result == 'PASS')
-                    <span class="badge badge-success">PASS</span>
-                @elseif ($hdr->result == 'FAIL')
-                    <span class="badge badge-danger">FAIL</span>
-                @else
-                    <span class="text-muted">No target set</span>
-                @endif
-            </div>
-        </div>
+        @endif
         @if ($hdr->note)
-        <div class="row mt-2"><div class="col-12"><b>Note</b><br>{{ $hdr->note }}</div></div>
+        <div class="form-row mt-1"><div class="col-12"><small class="text-muted d-block">Note</small>{{ $hdr->note }}</div></div>
         @endif
         @if ($hdr->status == '5' && $hdr->cancel_reason)
-        <div class="row mt-2"><div class="col-12"><b>Cancel Reason</b><br>{{ $hdr->cancel_reason }}</div></div>
+        <div class="form-row mt-1"><div class="col-12"><small class="text-muted d-block">Cancel Reason</small>{{ $hdr->cancel_reason }}</div></div>
         @endif
     </div>
 </div>
 
 <div class="card">
-    <div class="card-header"><h4 class="card-title">Defect Lines</h4></div>
+    <div class="card-header">
+        <h4 class="card-title mb-0"><i data-feather="bar-chart-2" class="mr-50"></i> Inspection Summary</h4>
+    </div>
+    <div class="card-body py-0">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span class="text-muted">Total Check</span><b>{{ $hdr->total_check }}</b>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span class="text-muted">Total OK</span><b>{{ $hdr->total_ok }}</b>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span class="text-muted">Total OK Repair / NC</span><b>{{ $hdr->total_ok_repair }}</b>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span class="text-muted">Total NG</span><b>{{ $hdr->total_ng }}</b>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span class="text-muted">Pass Rate</span>
+                <span class="{{ $hdr->result == 'FAIL' ? 'text-danger' : ($hdr->result == 'PASS' ? 'text-success' : '') }}">
+                    <b>{{ number_format($hdr->pass_rate, 2) }}%</b>
+                    @if (!is_null($hdr->target_pass_rate))<small class="text-muted">/ target {{ $hdr->target_pass_rate }}%</small>@endif
+                </span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span class="text-muted">Pass Through Rate</span>
+                <span class="{{ $hdr->result == 'FAIL' ? 'text-danger' : ($hdr->result == 'PASS' ? 'text-success' : '') }}">
+                    <b>{{ number_format($hdr->pass_through_rate, 2) }}%</b>
+                    @if (!is_null($hdr->target_pass_through_rate))<small class="text-muted">/ target {{ $hdr->target_pass_through_rate }}%</small>@endif
+                </span>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h4 class="card-title mb-0"><i data-feather="list" class="mr-50"></i> Defect Lines</h4>
+    </div>
     <div class="card-body table-responsive">
-        <table class="table table-bordered">
-            <thead>
-                <tr><th>Defect</th><th>Category</th><th>Qty</th><th>OK Repair</th><th>Note</th></tr>
+        <table class="table table-bordered table-sm mb-0">
+            <thead class="thead-light">
+                <tr>
+                    <th>Defect</th>
+                    <th style="width:100px;">Category</th>
+                    <th style="width:100px;" class="text-right">Qty</th>
+                    <th style="width:110px;" class="text-right">OK Repair</th>
+                    <th>Note</th>
+                </tr>
             </thead>
             <tbody>
                 @forelse ($details as $d)
                 <tr>
                     <td>{{ $d->defect_code }} - {{ $d->defect_name }}</td>
                     <td>{{ $d->category }}</td>
-                    <td>{{ $d->qty }}</td>
-                    <td>{{ $d->ok_repair }}</td>
+                    <td class="text-right">{{ $d->qty }}</td>
+                    <td class="text-right">{{ $d->ok_repair }}</td>
                     <td>{{ $d->note }}</td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="text-center">No defect lines</td></tr>
+                <tr><td colspan="5" class="text-center text-muted">No defect lines</td></tr>
                 @endforelse
             </tbody>
         </table>

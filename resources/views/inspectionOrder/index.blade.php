@@ -18,8 +18,8 @@
                   </div>
                   <div class="col-md-4">
                       <div class="form-group">
-                      <label for="searchArticle">Article Code</label>
-                      <input type="text" class="form-control" id="searchArticle" name="searchArticle" placeholder="" />
+                      <label for="searchArticle">Article</label>
+                      <input type="text" class="form-control" id="searchArticle" name="searchArticle" placeholder="Article code" />
                       </div>
                   </div>
               </div>
@@ -86,9 +86,9 @@
             { data: 'order_no', name: 'order_no', title:'Order No' },
             { data: 'inspection_date', name: 'inspection_date', title:'Date' },
             { data: 'post_name', name: 'post_name', title:'Inspection Post' },
-            { data: 'article_code', name: 'article_code', title:'Article Code' },
-            { data: 'pass_rate', name: 'pass_rate', title:'Pass Rate (%)' },
-            { data: 'pass_through_rate', name: 'pass_through_rate', title:'Pass Through (%)' },
+            { data: 'article_alternative_code', name: 'article_alternative_code', title:'Article' },
+            { data: 'pass_rate', name: 'pass_rate', title:'Pass Rate', className: 'text-right' },
+            { data: 'pass_through_rate', name: 'pass_through_rate', title:'Pass Through', className: 'text-right' },
             { data: 'result', name: 'result', title:'Result' },
             { data: 'status', name: 'status', title:'Status' }
         ],
