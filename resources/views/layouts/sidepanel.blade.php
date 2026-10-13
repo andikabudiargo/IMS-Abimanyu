@@ -189,6 +189,13 @@
             </li>
             @endcan
 
+              <li class="{{ \Request::segment(1) == 'deliverySchedules' ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('deliverySchedules.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Delivery Schedule</span>
+              </a>
+            </li>
+
             @can('salesOrder-index')
             <li class="{{ \Request::is(['salesOrderReport']) ? 'active' : '' }}">
               <a class="d-flex align-items-center" href="{{ route('salesOrder.report') }}">
@@ -198,12 +205,6 @@
             </li>
             @endcan
 
-            <li class="{{ \Request::segment(1) == 'deliverySchedules' ? 'active' : '' }}">
-              <a class="d-flex align-items-center" href="{{ route('deliverySchedules.index') }}">
-                <i data-feather="circle"></i>
-                <span class="menu-item text-truncate" data-i18n="Input">Delivery Schedule</span>
-              </a>
-            </li>
               @can('salesOrder-index')
                     <li class="{{ \Request::is(['deliveryReportAcc'])  ? 'active' : '' }}">
                       <a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}">

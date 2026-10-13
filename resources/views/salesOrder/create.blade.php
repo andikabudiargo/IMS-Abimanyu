@@ -355,7 +355,9 @@
     let currentDate = todayDate('dd-mm-yyyy');
     let lockedAt = "{{ $lockDate }}";
     statusSo = 'NEW';
-    
+
+    $('#deliveryDate').flatpickr({ dateFormat: "d-m-Y", allowInput:true });
+
     function toggleDeliveryFields(){
         let deliveryType = $('#deliveryType').val();
         $('#deliveryTypeOtherWrap').toggle(deliveryType === 'Other');
