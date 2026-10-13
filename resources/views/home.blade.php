@@ -1891,6 +1891,59 @@
         </div>
     </div>
 
+    {{-- ===== Row 2b: Delivery Schedule (7 Days) ===== --}}
+    <div class="form-row">
+        <div class="col-12">
+        <div class="card ds-card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                <div class="d-flex align-items-center">
+                    <div class="avatar bg-light-warning p-50 mr-1" style="border-radius:8px;">
+                        <i data-feather="truck" class="font-medium-3 text-warning"></i>
+                    </div>
+                    <div>
+                        <h4 class="card-title mb-0">Delivery Schedule</h4>
+                        <small class="text-muted">Rencana kirim 7 hari ke depan</small>
+                    </div>
+                </div>
+                <a href="{{ route('deliverySchedules.index') }}" class="btn btn-sm btn-outline-warning d-flex align-items-center">
+                    Lihat semua <i data-feather="arrow-right" class="font-small-4 ml-50"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                <div id="dsDayPills" class="ds-pills mb-1"></div>
+
+                <div id="dsEmpty" class="ds-empty" style="display:none;">
+                    <i data-feather="calendar" class="font-large-1 text-muted mb-50"></i>
+                    <p class="text-muted mb-0">Tidak ada jadwal kirim untuk 7 hari ke depan.</p>
+                </div>
+
+                <div id="dsTableWrap" class="table-responsive ds-table-wrap">
+                    <table class="table table-sm ds-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Article</th>
+                                <th class="text-right">Plan</th>
+                                <th class="text-right">Actual</th>
+                                <th class="text-right">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dsTableBody"></tbody>
+                        <tfoot>
+                            <tr class="ds-total-row">
+                                <td colspan="2" class="text-right font-weight-bold">Total</td>
+                                <td id="dsTotalPlan" class="text-right font-weight-bold">0</td>
+                                <td id="dsTotalActual" class="text-right font-weight-bold">0</td>
+                                <td id="dsTotalBalance" class="text-right font-weight-bold">0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
     {{-- ===== Row 3: Information Center ===== --}}
     <div class="form-row">
         <div class="col-12">
@@ -2241,10 +2294,167 @@
         color: #7367F0;
         background-color: #fff;
     }
+
+    /* ===== Delivery Schedule widget ===== */
+    .ds-card {
+        border: 1px solid #ebe9f1;
+        border-left: 3px solid #ff9f43;
+        box-shadow: 0 2px 10px 0 rgba(34,41,47,.06);
+        transition: box-shadow .2s ease;
+    }
+    .ds-card:hover {
+        box-shadow: 0 4px 18px 0 rgba(34,41,47,.1);
+    }
+    .ds-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+    .ds-pill {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        border-radius: 50px !important;
+        padding: .4rem .9rem !important;
+        font-size: .8rem;
+        font-weight: 600;
+        letter-spacing: .01em;
+        border-width: 1px !important;
+        transition: all .15s ease;
+    }
+    .ds-pill.btn-warning {
+        box-shadow: 0 3px 8px 0 rgba(255,159,67,.45);
+    }
+    .ds-pill .ds-pill-date {
+        font-weight: 400;
+        opacity: .75;
+        font-size: .72rem;
+    }
+    .ds-table-wrap {
+        max-height: 300px;
+        border-radius: .357rem;
+        overflow-y: auto;
+    }
+    .ds-table {
+        margin-bottom: 0;
+    }
+    .ds-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f8f8f8;
+        text-transform: uppercase;
+        font-size: .68rem;
+        letter-spacing: .06em;
+        color: #6e6b7b;
+        font-weight: 700;
+        border-top: 0;
+        padding: .6rem .75rem;
+        white-space: nowrap;
+    }
+    .ds-table tbody td {
+        padding: .55rem .75rem;
+        vertical-align: middle;
+        border-color: #f1f0f4;
+    }
+    .ds-table tbody tr {
+        transition: background-color .12s ease;
+    }
+    .ds-table tbody tr:hover {
+        background-color: #f8f7fa;
+    }
+    .ds-table tfoot td {
+        padding: .55rem .75rem;
+        border-top: 2px solid #ebe9f1;
+        background: #fafafc;
+    }
+    .ds-empty {
+        text-align: center;
+        padding: 2.5rem 1rem;
+    }
 </style>
 @endsection
 @section('scripts')
 <script type="text/javascript">
+    (function(){
+        let dsRows = @json($deliverySchedule7Days);
+        let dsByDate = {};
+        dsRows.forEach(function(r){
+            (dsByDate[r.plan_date] = dsByDate[r.plan_date] || []).push(r);
+        });
+
+        let dsDayNames = ['Minggu','Senin','Selasa','Rabu','Kamis',"Jumat",'Sabtu'];
+        let dsDays = [];
+        for (let i=0; i<7; i++){
+            let d = new Date();
+            d.setDate(d.getDate()+i);
+            let iso = d.toISOString().slice(0,10);
+            dsDays.push({
+                iso: iso,
+                label: i==0 ? 'Hari ini' : (i==1 ? 'Besok' : dsDayNames[d.getDay()]),
+                date: (d.getDate()<10?'0':'')+d.getDate()+'/'+((d.getMonth()+1)<10?'0':'')+(d.getMonth()+1),
+                count: (dsByDate[iso] || []).length
+            });
+        }
+
+        if (dsRows.length == 0){
+            $('#dsDayPills, #dsTableWrap').hide();
+            $('#dsEmpty').show();
+        }else{
+            let pillsHtml = '';
+            dsDays.forEach(function(day, idx){
+                pillsHtml += '<button type="button" class="btn btn-sm ds-pill '+(idx==0 ? 'btn-warning' : 'btn-outline-warning')+'" data-iso="'+day.iso+'">'
+                    + '<span>'+day.label+' <span class="ds-pill-date">'+day.date+'</span></span>'
+                    + '<span class="badge badge-pill '+(idx==0 ? 'badge-light' : 'badge-light-warning')+'">'+day.count+'</span>'
+                    + '</button>';
+            });
+            $('#dsDayPills').html(pillsHtml);
+            renderDsTable(dsDays[0].iso);
+
+            $(document).on('click', '.ds-pill', function(){
+                $('.ds-pill').removeClass('btn-warning').addClass('btn-outline-warning');
+                $('.ds-pill .badge').removeClass('badge-light').addClass('badge-light-warning');
+                $(this).removeClass('btn-outline-warning').addClass('btn-warning');
+                $(this).find('.badge').removeClass('badge-light-warning').addClass('badge-light');
+                renderDsTable($(this).data('iso'));
+            });
+        }
+
+        function dsNum(n){ return parseFloat(n || 0).toLocaleString('id-ID'); }
+
+        function renderDsTable(iso){
+            let rows = dsByDate[iso] || [];
+            if (!rows.length){
+                $('#dsTableBody').html('<tr><td colspan="5" class="text-muted text-center py-2">Tidak ada jadwal kirim di tanggal ini.</td></tr>');
+                $('#dsTotalPlan, #dsTotalActual, #dsTotalBalance').text('0');
+                return;
+            }
+            let html = '';
+            let totalPlan = 0, totalActual = 0, totalBalance = 0;
+            rows.forEach(function(r){
+                totalPlan += r.plan;
+                totalActual += r.actual;
+                totalBalance += r.balance;
+                let balCls = r.balance < 0 ? 'text-danger' : (r.balance > 0 ? 'text-warning' : '');
+                let balTxt = r.balance == 0 ? '0' : (r.balance > 0 ? '+'+dsNum(r.balance) : dsNum(r.balance));
+                html += '<tr>'
+                    + '<td><span class="font-weight-bold">'+(r.customer_id)+'</span><br><small class="text-muted">'+(r.customer_name || '')+'</small></td>'
+                    + '<td><span class="font-weight-bold">'+(r.article_alternative_code || r.article_code)+'</span><br><small class="text-muted">'+(r.article_desc || '')+'</small></td>'
+                    + '<td class="text-right">'+dsNum(r.plan)+'</td>'
+                    + '<td class="text-right">'+dsNum(r.actual)+'</td>'
+                    + '<td class="text-right font-weight-bold '+balCls+'">'+balTxt+'</td>'
+                    + '</tr>';
+            });
+            $('#dsTableBody').html(html);
+            $('#dsTotalPlan').text(dsNum(totalPlan));
+            $('#dsTotalActual').text(dsNum(totalActual));
+            $('#dsTotalBalance')
+                .text(totalBalance == 0 ? '0' : (totalBalance > 0 ? '+'+dsNum(totalBalance) : dsNum(totalBalance)))
+                .toggleClass('text-danger', totalBalance < 0)
+                .toggleClass('text-warning', totalBalance > 0);
+        }
+    })();
+
     if ("{{ Session::get('firstLogin') }}" == "success"){
         setTimeout(function () {
             show_msg('👋 {{ $greeting }},{{  strtoupper(Auth::user()->name) }}!', 'You have successfully logged in to IMS!', 'success');

@@ -64,7 +64,7 @@
   </div>
 
   <div class="card">
-    <div class="card-header"><h4 class="card-title">Heatmap Delivery - {{ $from }} s/d {{ $to }}</h4></div>
+    <div class="card-header"><h4 class="card-title">Heatmap Delivery vs Plan - {{ $from }} s/d {{ $to }}</h4></div>
     <div class="card-body">
       <div id="deliveryHeatmap"></div>
     </div>
@@ -201,17 +201,15 @@
         heatmap: {
           colorScale: {
             ranges: [
-              { from: 0, to: 0, name: 'Tidak Ada', color: '#f1f1f1' },
-              { from: 0.01, to: 1000, name: '< 1.000', color: '#e05252' },
-              { from: 1000.01, to: 5000, name: '1.000 - 5.000', color: '#eac54f' },
-              { from: 5000.01, to: 10000, name: '5.000 - 10.000', color: '#8bc98b' },
-              { from: 10000.01, to: 99999999, name: '> 10.000', color: '#2e8b45' },
+              { from: -99999999, to: -0.01, name: 'Kurang dari Plan', color: '#e05252' },
+              { from: -0.009999, to: 0.009999, name: 'Sesuai Plan', color: '#2e8b45' },
+              { from: 0.01, to: 99999999, name: 'Lebih dari Plan', color: '#eac54f' },
             ],
           },
         },
       },
       xaxis: { labels: { rotate: -45 } },
-      tooltip: { y: { formatter: (v) => v + ' qty' } },
+      tooltip: { y: { formatter: (v) => (v == null ? 'Tidak ada plan/delivery' : (v > 0 ? '+' : '') + v + ' qty vs plan') } },
     }).render();
   })();
 

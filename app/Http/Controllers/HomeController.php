@@ -938,6 +938,66 @@ $data['outstandingTransferInCount'] = $data['outstandingTransferIn']->count();
             'monthLabel' => '', 'targetQty' => 0, 'achievedQty' => 0, 'qtyPct' => 0,
             'targetConversion' => 0, 'achievedConversion' => 0, 'conversionPct' => 0, 'targetSoUrl' => route('targetSo.index')];
         $data['deptNames'] = DB::table('depts')->whereIn('code', $userDepts)->pluck('name')->implode(', ');
+
+        // Delivery Schedule (next 7 days): Plan source mirrors DeliveryMonitoringController@planRows -
+        // delivery_schedule_det for delivery_type='PO' SOs, else the SO's single header-level
+        // delivery_date (non-PO types ship the whole article qty in one go). Only customers/articles
+        // that actually have a plan in range show up here - no row, no entry. Actual/Balance are then
+        // merged in per (customer, article, date) the same way as the Delivery Monitoring page.
+        $dsFrom = date('Y-m-d');
+        $dsTo = date('Y-m-d', strtotime('+6 days'));
+
+        $dsPlanRows = DB::select("
+            SELECT x.customer_id, tp.nama as customer_name, x.article_code,
+                a.article_alternative_code, a.article_desc, x.plan_date, sum(x.qty) as qty
+            FROM (
+                SELECT h.customer_id, dsd.article_code, dsd.schedule_date as plan_date, dsd.qty
+                FROM delivery_schedule_det dsd
+                JOIN sales_order_hdr h ON h.so_code = dsd.so_code
+                WHERE h.delivery_type = 'PO'
+                UNION ALL
+                SELECT h.customer_id, d.article_code, h.delivery_date as plan_date, d.qty
+                FROM sales_order_det d
+                JOIN sales_order_hdr h ON h.so_code = d.so_code
+                WHERE h.delivery_type IS NOT NULL AND h.delivery_type <> 'PO' AND h.delivery_date IS NOT NULL
+            ) x
+            LEFT JOIN article a ON a.article_code = x.article_code
+            LEFT JOIN third_party tp ON tp.kode = x.customer_id
+            WHERE x.plan_date BETWEEN ? AND ?
+            GROUP BY x.customer_id, tp.nama, x.article_code, a.article_alternative_code, a.article_desc, x.plan_date
+        ", [$dsFrom, $dsTo]);
+
+        // Actual = DN + SJ Sementara only (DN Replace excluded), same rule as Delivery Monitoring.
+        $dsActualRows = DB::select("
+            SELECT x.customer_id, x.article_code, to_date(x.delivery_date,'DD-MM-YYYY') as plan_date, sum(x.qty) as qty
+            FROM (
+                SELECT dh.customer_id, dd.article_code, dh.delivery_date, dd.qty
+                FROM delivery_det dd JOIN delivery_hdr dh ON dh.delivery_number = dd.delivery_number
+                WHERE dh.status NOT IN ('5','7')
+                UNION ALL
+                SELECT th.customer_id, td.article_code, th.delivery_date, td.qty
+                FROM temporary_dn_det td JOIN temporary_dn_hdr th ON th.tdn_number = td.tdn_number
+                WHERE th.status <> '4'
+            ) x
+            WHERE to_date(x.delivery_date,'DD-MM-YYYY') BETWEEN ? AND ?
+            GROUP BY x.customer_id, x.article_code, to_date(x.delivery_date,'DD-MM-YYYY')
+        ", [$dsFrom, $dsTo]);
+
+        $dsActualMap = [];
+        foreach ($dsActualRows as $r) {
+            $dsActualMap[$r->customer_id.'|'.$r->article_code.'|'.$r->plan_date] = (float) $r->qty;
+        }
+
+        $deliverySchedule7Days = [];
+        foreach ($dsPlanRows as $r) {
+            $actual = $dsActualMap[$r->customer_id.'|'.$r->article_code.'|'.$r->plan_date] ?? 0;
+            $r->plan = (float) $r->qty;
+            $r->actual = $actual;
+            $r->balance = $actual - $r->plan;
+            $deliverySchedule7Days[] = $r;
+        }
+        usort($deliverySchedule7Days, fn($a, $b) => $a->plan_date <=> $b->plan_date ?: strcmp($a->customer_name ?? '', $b->customer_name ?? ''));
+        $data['deliverySchedule7Days'] = $deliverySchedule7Days;
         $data['actionCenterCount'] = count($data['listPoHome']) + count($data['listBomHome']) + count($data['listPrHome'])
             + count($data['listSoHome']) + count($data['listTsoHome']) + count($data['listDnHome']) + count($data['listRecHome'])
             + count($data['listBkHome']) + count($data['listBmHome']) + count($data['listKmHome']) + count($data['listKkHome'])

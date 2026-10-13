@@ -180,25 +180,41 @@ class DeliveryMonitoringController extends Controller
         return $data;
     }
 
-    // Heatmap hari-dalam-minggu x minggu-ke-N (relatif ke tanggal awal periode),
-    // persis pola kalender kontribusi: baris Minggu di atas, Senin di bawah.
-    private function heatmapSeries(array $rows, $from)
+    // Heatmap hari-dalam-minggu x minggu-ke-N (relatif ke tanggal awal periode), persis pola
+    // kalender kontribusi: baris Minggu di atas, Senin di bawah. Nilai tiap sel = Balance
+    // (Actual - Plan, Actual exclude DN Replace) supaya warnanya menunjukkan performa kirim
+    // terhadap rencana (kurang/sesuai/lebih), bukan volume mentah. Sel tanpa plan maupun
+    // actual sama sekali dibiarkan null (kosong, tidak ikut dihitung sebagai "sesuai plan").
+    private function heatmapSeries(array $actualRows, array $planRows, $from)
     {
         $dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', "Jum'at", 'Sabtu', 'Minggu'];
-        $daily = [];
-        foreach ($rows as $r) {
+
+        $dailyActual = [];
+        foreach ($actualRows as $r) {
+            if ($r->type === 'DN REPLACE') {
+                continue;
+            }
             $iso = implode('-', array_reverse(explode('-', $r->delivery_date)));
-            $daily[$iso] = ($daily[$iso] ?? 0) + (float) $r->qty;
+            $dailyActual[$iso] = ($dailyActual[$iso] ?? 0) + (float) $r->qty;
         }
+
+        $dailyPlan = [];
+        foreach ($planRows as $r) {
+            $iso = implode('-', array_reverse(explode('-', $r->delivery_date)));
+            $dailyPlan[$iso] = ($dailyPlan[$iso] ?? 0) + (float) $r->qty;
+        }
+
+        $allIso = array_unique(array_merge(array_keys($dailyActual), array_keys($dailyPlan)));
 
         $fromTs = strtotime($from);
         $grid = [];
         $maxWeek = 1;
-        foreach ($daily as $iso => $qty) {
+        foreach ($allIso as $iso) {
+            $balance = ($dailyActual[$iso] ?? 0) - ($dailyPlan[$iso] ?? 0);
             $ts = strtotime($iso);
             $week = (int) floor(($ts - $fromTs) / 86400 / 7) + 1;
             $dayIndex = ((int) date('N', $ts)) - 1; // 0=Senin..6=Minggu
-            $grid[$dayIndex][$week] = ($grid[$dayIndex][$week] ?? 0) + $qty;
+            $grid[$dayIndex][$week] = ($grid[$dayIndex][$week] ?? 0) + $balance;
             $maxWeek = max($maxWeek, $week);
         }
 
@@ -206,7 +222,7 @@ class DeliveryMonitoringController extends Controller
         foreach ([6, 5, 4, 3, 2, 1, 0] as $dayIndex) {
             $points = [];
             for ($w = 1; $w <= $maxWeek; $w++) {
-                $points[] = ['x' => "Minggu ke-$w", 'y' => round($grid[$dayIndex][$w] ?? 0, 2)];
+                $points[] = ['x' => "Minggu ke-$w", 'y' => array_key_exists($w, $grid[$dayIndex] ?? []) ? round($grid[$dayIndex][$w], 2) : null];
             }
             $series[] = ['name' => $dayNames[$dayIndex], 'data' => $points];
         }
@@ -235,7 +251,7 @@ class DeliveryMonitoringController extends Controller
             : $allRows;
         $planRows = $this->planRows($request);
         $data['groups'] = $this->groups($rows, $planRows, $data['summary']);
-        $data['heatmap'] = $this->heatmapSeries($rows, $data['from']);
+        $data['heatmap'] = $this->heatmapSeries($rows, $planRows, $data['from']);
         return $data;
     }
 
