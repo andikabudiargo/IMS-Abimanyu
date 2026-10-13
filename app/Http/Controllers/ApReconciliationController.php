@@ -17,15 +17,22 @@ use PDF;
     bulan: Saldo Awal -> + Penambah (Receiving/AP Invoice) -> - Pengurang
     (Bank/Kas digabung) -> Balance.
 
-    Filter "basis":
-      - 'receiving' : nilai = receiving_det.qty*price, tanggal = receiving_hdr.rec_date
-      - 'ap'         : nilai = ap_invoice.basis_amount (DPP),
-                        tanggal = COALESCE(ap_date, inv_date)
+    Filter "basis" menentukan tanggal Penambah utama (rec_date / COALESCE(ap_date,inv_date)).
+    Ada DUA kolom nilai, sengaja dipisah (sama seperti AR Reconciliation):
+      - "DPP"      : murni sebelum pajak (ap_invoice.basis_amount, receiving basis pakai
+                     qty*price karena tidak ada pecahan pajak) -- cuma referensi, TIDAK
+                     dipakai untuk Balance.
+      - "Penambah" (Receiving/AP Invoice) : TOTAL termasuk pajak (ap_invoice.grand_total)
+                     -- ini yang dipakai untuk Balance, karena Opening Balance (lihat
+                     bawah) juga grand_total-based.
     Tidak ada kolom kedua seperti Debit Note di sisi AR -- AP cuma satu
     sumber Penambah.
     Pengurang pakai aturan match yang sama persis dengan
     ApAgingReportController::paymentMatchSql() (jangan diubah sendiri-
     sendiri, supaya kedua report selalu konsisten).
+    Saldo Awal dihitung lewat ApAgingReportController::totalOutstanding() --
+    rumus yang SAMA dipakai di card "Opening Balance" halaman Account Payable
+    (AccountPayableController::analyticsAp) -- supaya kedua angka itu selalu cocok.
     ================================================================
 */
 
@@ -41,7 +48,9 @@ class ApReconciliationController extends Controller
         return view('apReconciliation.index', $data);
     }
 
-    private function additionSql($basis)
+    /** Nilai DPP murni (kolom "DPP", referensi sebelum pajak) -- receiving basis tidak
+     *  punya pecahan pajak sendiri jadi qty*price dipakai juga sebagai nilai DPP-nya. */
+    private function additionDppSql($basis)
     {
         if ($basis === 'receiving') {
             return "
@@ -61,6 +70,27 @@ class ApReconciliationController extends Controller
         return "
             SELECT to_char($anchor,'YYYY-MM') as ym,
                    SUM(ap_invoice.basis_amount) as amount
+            FROM ap_invoice
+            WHERE ap_invoice.status NOT IN ('1','5')
+              AND $anchor BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
+            GROUP BY 1
+        ";
+    }
+
+    /** Nilai Total (kolom "Penambah", termasuk pajak) -- yang dipakai untuk Balance,
+     *  supaya konsisten dengan Opening Balance yang juga grand_total-based. */
+    private function additionTotalSql($basis)
+    {
+        if ($basis === 'receiving') {
+            return $this->additionDppSql('receiving');
+        }
+        $anchor = "COALESCE(
+                to_date(NULLIF(ap_invoice.ap_date,''),'DD-MM-YYYY'),
+                to_date(NULLIF(ap_invoice.inv_date,''),'DD-MM-YYYY')
+              )";
+        return "
+            SELECT to_char($anchor,'YYYY-MM') as ym,
+                   SUM(ap_invoice.grand_total) as amount
             FROM ap_invoice
             WHERE ap_invoice.status NOT IN ('1','5')
               AND $anchor BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
@@ -96,29 +126,12 @@ class ApReconciliationController extends Controller
         ";
     }
 
-    private function sumBefore($sql, $yearStart)
-    {
-        $rows = DB::select(str_replace(
-            "BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')",
-            "< to_date(:to,'DD-MM-YYYY')",
-            $sql
-        ), [
-            'to' => $yearStart,
-        ]);
-        $total = 0;
-        foreach ($rows as $r) {
-            $total += (float) $r->amount;
-        }
-        return $total;
-    }
-
     private function buildReport($year, $basis)
     {
         $yearStart = "01-01-$year";
         $yearEnd   = "31-12-$year";
 
-        $additionSql = $this->additionSql($basis);
-        $paySql      = $this->paymentSql();
+        $paySql = $this->paymentSql();
 
         $byYm = function ($rows) {
             $out = [];
@@ -128,11 +141,15 @@ class ApReconciliationController extends Controller
             return $out;
         };
 
-        $addition = $byYm(DB::select($additionSql, ['from' => $yearStart, 'to' => $yearEnd]));
-        $payment  = $byYm(DB::select($paySql, ['from' => $yearStart, 'to' => $yearEnd]));
+        $additionDpp   = $byYm(DB::select($this->additionDppSql($basis), ['from' => $yearStart, 'to' => $yearEnd]));
+        $additionTotal = $byYm(DB::select($this->additionTotalSql($basis), ['from' => $yearStart, 'to' => $yearEnd]));
+        $payment       = $byYm(DB::select($paySql, ['from' => $yearStart, 'to' => $yearEnd]));
 
-        $openingBalance = $this->sumBefore($additionSql, $yearStart)
-            - $this->sumBefore($paySql, $yearStart);
+        // Pakai rumus outstanding yang SAMA dengan card "Opening Balance" di halaman
+        // Account Payable (AccountPayableController::analyticsAp -> ApAgingReportController
+        // ::totalOutstanding), supaya dua angka ini selalu cocok.
+        $dayBeforeYearStart = date('d-m-Y', strtotime("$year-01-01 -1 day"));
+        $openingBalance = (new ApAgingReportController())->totalOutstanding($dayBeforeYearStart, true);
 
         $rows = [];
         $balance = $openingBalance;
@@ -140,22 +157,23 @@ class ApReconciliationController extends Controller
 
         for ($m = 1; $m <= 12; $m++) {
             $ym = sprintf('%04d-%02d', $year, $m);
-            $add = $addition[$ym] ?? 0;
-            $pay = $payment[$ym] ?? 0;
-            $balance += $add - $pay;
+            $addDpp   = $additionDpp[$ym] ?? 0;
+            $addTotal = $additionTotal[$ym] ?? 0;
+            $pay      = $payment[$ym] ?? 0;
+            $balance += $addTotal - $pay;
 
             $rows[] = [
                 'ym'       => $ym,
                 'month'    => $m,
                 'label'    => date('F Y', mktime(0, 0, 0, $m, 1, $year)),
-                'dpp'      => $add,
-                'addition' => $add,
+                'dpp'      => $addDpp,
+                'addition' => $addTotal,
                 'payment'  => $pay,
                 'balance'  => $balance,
             ];
 
-            $totals['dpp']      += $add;
-            $totals['addition'] += $add;
+            $totals['dpp']      += $addDpp;
+            $totals['addition'] += $addTotal;
             $totals['payment']  += $pay;
         }
 
@@ -230,7 +248,7 @@ class ApReconciliationController extends Controller
                   )";
             $sql = "
                 SELECT ap_invoice.id, ap_invoice.inv_number as doc, to_char($anchor,'DD-MM-YYYY') as doc_date,
-                       ap_invoice.basis_amount as amount, 'AP Invoice' as doc_type
+                       ap_invoice.grand_total as amount, 'AP Invoice' as doc_type
                 FROM ap_invoice
                 WHERE ap_invoice.status NOT IN ('1','5') AND $anchor $dateCond
                 ORDER BY $anchor

@@ -100,6 +100,7 @@
                                                     <th>Article Code</th>
                                                     <th class="text-right">QTY SO</th>
                                                     <th class="text-right">QTY</th>
+                                                    <th class="text-right">SISA SO</th>
                                                     <th class="text-left">UOM</th>
                                                     @if ($key !=0)
                                                         @foreach( $headers as $key1 => $oki )
@@ -125,6 +126,7 @@
                                                         <td >{{ $item->article }}</td>
                                                         <td class="text-right">{{ number_format($item->qty_so,2) }} </td>
                                                         <td class="text-right">{{ number_format($item->qty,2) }} </td>
+                                                        <td class="text-right">{{ number_format($item->sisa_so,2) }} </td>
                                                         <td>{{ $item->uom }}</td>
                                                         {{-- <td class="text-left">{{ $item->notes }}</td> --}}
                                                         @php

@@ -12,9 +12,10 @@
       <div class="row">
         <div class="col-md-2"><strong>Type</strong><div>{{ $header->type }}</div></div>
         <div class="col-md-2"><strong>Periode</strong><div>{{ $header->periode }} / {{ $header->year }}</div></div>
+        <div class="col-md-2"><strong>Akun COA</strong><div>{{ $header->coa_account ? $header->coa_account . ' - ' . $header->coa_account_name : '-' }}</div></div>
         <div class="col-md-2"><strong>Saldo Awal</strong><div>{{ $header->saldo_awal !== null ? number_format($header->saldo_awal, 2) : '-' }}</div></div>
         <div class="col-md-2"><strong>Saldo Akhir</strong><div>{{ $header->saldo_akhir !== null ? number_format($header->saldo_akhir, 2) : '-' }}</div></div>
-        <div class="col-md-4"><strong>Description</strong><div>{{ $header->description ?: '-' }}</div></div>
+        <div class="col-md-2"><strong>Description</strong><div>{{ $header->description ?: '-' }}</div></div>
       </div>
     </div>
   </div>

@@ -20,6 +20,9 @@ class BankReconciliationController extends Controller
     private $voucherTypes = ['KAS' => ['KM', 'KK'], 'BANK' => ['BM', 'BK']];
     // voucher_type -> route prefix buat link ke halaman detail voucher (sama seperti CashBankController).
     private $voucherRoutePrefix = ['KM' => 'kasPenerimaan', 'KK' => 'kasKeluar', 'BM' => 'bankPenerimaan', 'BK' => 'bankKeluar'];
+    // accounts.parent_id yang menandai akun COA sebagai Kas / Bank, sama dengan
+    // CashBankController::$coaSubCode (acc_sub: 1100.10 = KAS, 1100.20 = BANK).
+    private $coaSubCode = ['KAS' => '1100.10', 'BANK' => '1100.20'];
 
     public function __construct()
     {
@@ -73,6 +76,19 @@ class BankReconciliationController extends Controller
         return view('accounting.bankReconciliation.create', $data);
     }
 
+    // Akun COA bertag Kas/Bank sesuai Type yang dipilih -- dipakai buat isi dropdown
+    // COA di create/show (matching cuma boleh lawan kas_det dari akun ini).
+    public function accountsByType(Request $request)
+    {
+        abort_unless(isset($this->coaSubCode[$request->type]), 422);
+        $accounts = DB::table('accounts')
+            ->where('parent_id', $this->coaSubCode[$request->type])
+            ->orderBy('account')
+            ->select('account', 'description')
+            ->get();
+        return response()->json($accounts);
+    }
+
     // Tahap 1: upload CSV, parse + cocokkan (read-only, belum ada yang disimpan ke DB)
     // supaya user bisa lihat dulu hasilnya sebelum memutuskan simpan.
     public function preview(Request $request)
@@ -81,6 +97,7 @@ class BankReconciliationController extends Controller
             'periode' => 'required',
             'year' => 'required|integer',
             'type' => 'required|in:KAS,BANK',
+            'coaAccount' => 'required|string',
             'statement' => 'required|file|mimes:csv,txt',
         ]);
 
@@ -95,6 +112,7 @@ class BankReconciliationController extends Controller
         $periode = (int) $request->periode;
         $year = (int) $request->year;
         $type = $request->type;
+        $coaAccount = $request->coaAccount;
 
         $file = $request->file('statement');
         $path = $file->store('bank-reconciliation', 'local');
@@ -109,7 +127,7 @@ class BankReconciliationController extends Controller
             return response()->json(['status' => 2, 'title' => "Preview $this->title", 'message' => 'Tidak ada baris transaksi yang terbaca dari CSV ini.', 'alert' => 'warning']);
         }
 
-        $rows = $this->matchRows($parsed['rows'], $type, $periode, $year);
+        $rows = $this->matchRows($parsed['rows'], $type, $periode, $year, $coaAccount);
         $matchedCount = count(array_filter($rows, fn ($r) => $r['status'] === 'MATCHED'));
         $checksumWarning = $this->checksumWarning($parsed['rows'], $parsed['summary']);
         $message = count($rows) . " baris terbaca, $matchedCount otomatis match.";
@@ -146,6 +164,7 @@ class BankReconciliationController extends Controller
             'periode' => 'required',
             'year' => 'required|integer',
             'type' => 'required|in:KAS,BANK',
+            'coaAccount' => 'required|string',
             'filePath' => 'required|string',
         ]);
 
@@ -160,6 +179,7 @@ class BankReconciliationController extends Controller
         $periode = (int) $request->periode;
         $year = (int) $request->year;
         $type = $request->type;
+        $coaAccount = $request->coaAccount;
         $description = $request->description;
         $filePath = $request->filePath;
 
@@ -183,7 +203,7 @@ class BankReconciliationController extends Controller
             return response()->json(['status' => 2, 'title' => "Save $this->title", 'message' => 'Tidak ada baris transaksi yang terbaca dari CSV ini.', 'alert' => 'warning']);
         }
 
-        $rows = $this->matchRows($parsed['rows'], $type, $periode, $year);
+        $rows = $this->matchRows($parsed['rows'], $type, $periode, $year, $coaAccount);
 
         // Pilihan manual dari dropdown per-baris di preview (index baris => kas_det.id),
         // menimpa hasil auto-match -- urutan $rows sama persis dengan preview karena
@@ -206,6 +226,7 @@ class BankReconciliationController extends Controller
                 'year' => $year,
                 'description' => $description,
                 'type' => $type,
+                'coa_account' => $coaAccount,
                 'status' => 'DONE',
                 'account_number' => $parsed['accountNumber'],
                 'account_name' => $parsed['accountName'],
@@ -280,12 +301,11 @@ class BankReconciliationController extends Controller
         return $issues ? ('Hasil parse tidak cocok dengan ringkasan CSV (' . implode('; ', $issues) . '). Kemungkinan ada baris yang ke-skip, cek manual.') : null;
     }
 
-    // Cocokkan tiap baris hasil parse ke kas_det (type + period/year + tanggal + nominal
-    // sisi yang sesuai), kas_det yang sudah kepakai di-skip biar tidak dobel-match dalam
-    // 1 batch. Read-only (cuma SELECT) -- dipakai baik di preview() maupun store(), supaya
-    // hasil yang ditampilkan ke user sama persis dengan yang akhirnya disimpan.
-    // Tidak difilter per akun COA -- scope saat ini cuma 1 rekening per Type (Kas/Bank).
-    private function matchRows(array $rows, string $type, int $periode, int $year): array
+    // Cocokkan tiap baris hasil parse ke kas_det (type + akun COA + period/year + tanggal
+    // + nominal sisi yang sesuai), kas_det yang sudah kepakai di-skip biar tidak dobel-match
+    // dalam 1 batch. Read-only (cuma SELECT) -- dipakai baik di preview() maupun store(),
+    // supaya hasil yang ditampilkan ke user sama persis dengan yang akhirnya disimpan.
+    private function matchRows(array $rows, string $type, int $periode, int $year, string $coaAccount): array
     {
         $voucherTypes = $this->voucherTypes[$type];
         // Voucher yang sudah dipakai batch Reconciliation lain (type+periode+tahun yang sama)
@@ -305,11 +325,12 @@ class BankReconciliationController extends Controller
             // (statement CR -> kas_det debit, statement DB -> kas_det credit), 'loose' = boleh
             // sisi manapun. Query dibungkus closure supaya gampang dipanggil ulang per strategi
             // dengan kombinasi syarat berbeda, tanpa duplikasi select/exclude/order.
-            $baseQuery = function (string $amountMode) use ($voucherTypes, $periode, $year, $row, $usedKasDetIds) {
+            $baseQuery = function (string $amountMode) use ($voucherTypes, $periode, $year, $row, $usedKasDetIds, $coaAccount) {
                 return DB::table('kas_det')
                     ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
                     ->whereIn('kas_hdr.voucher_type', $voucherTypes)
                     ->where('kas_hdr.status', '<>', '5')
+                    ->where('kas_det.account', $coaAccount)
                     ->whereRaw('kas_hdr.period::integer = ?', [$periode])
                     ->where('kas_hdr.year', $year)
                     ->where(function ($q) use ($row, $amountMode) {
@@ -427,7 +448,11 @@ class BankReconciliationController extends Controller
         $id = Crypt::decryptString($request->id);
         $data['title'] = "Detail $this->title";
         $data['subtitle'] = "Detail $this->title";
-        $data['header'] = DB::table('bank_reconciliation_hdr')->where('id', $id)->first();
+        $data['header'] = DB::table('bank_reconciliation_hdr')
+            ->leftJoin('accounts', 'accounts.account', '=', 'bank_reconciliation_hdr.coa_account')
+            ->select('bank_reconciliation_hdr.*', 'accounts.description as coa_account_name')
+            ->where('bank_reconciliation_hdr.id', $id)
+            ->first();
         abort_unless($data['header'], 404);
         $data['id'] = $id;
 
@@ -524,11 +549,13 @@ class BankReconciliationController extends Controller
             $type = $header->type;
             $periode = (int) $header->periode;
             $year = (int) $header->year;
+            $coaAccount = $header->coa_account;
         } else {
-            abort_unless(in_array($request->type, ['KAS', 'BANK']) && $request->periode && $request->year, 422);
+            abort_unless(in_array($request->type, ['KAS', 'BANK']) && $request->periode && $request->year && $request->coaAccount, 422);
             $type = $request->type;
             $periode = (int) $request->periode;
             $year = (int) $request->year;
+            $coaAccount = $request->coaAccount;
         }
         $voucherTypes = $this->voucherTypes[$type];
         // Range dilonggarkan ke ±3 bulan dari periode (voucher kadang diposting di bulan
@@ -541,6 +568,9 @@ class BankReconciliationController extends Controller
             ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
             ->whereIn('kas_hdr.voucher_type', $voucherTypes)
             ->where('kas_hdr.status', '<>', '5')
+            // $coaAccount bisa null buat recon lama yang dibuat sebelum kolom coa_account
+            // ada -- biar tetap jalan, filter akun di-skip (fallback ke behavior lama).
+            ->when($coaAccount, function ($q) use ($coaAccount) { $q->where('kas_det.account', $coaAccount); })
             ->whereRaw('(kas_hdr.year::integer * 12 + kas_hdr.period::integer) BETWEEN ? AND ?', [$targetAbsMonth - 3, $targetAbsMonth + 3])
             // Voucher yang di-exclude cuma yang kepakai di batch Type yang sama dalam
             // range ±3 bulan yang sama -- batch reconciliation periode jauh tidak saling kunci.

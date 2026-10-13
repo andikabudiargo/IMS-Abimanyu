@@ -34,6 +34,14 @@
               <label class="form-label" for="year">Tahun*</label>
               <input type="number" id="year" name="year" class="form-control" value="{{ date('Y') }}" required />
             </div>
+            <div class="form-group col-md-4">
+              <label class="form-label" for="coaAccount">Akun COA*</label>
+              <select class="select2 form-control" id="coaAccount" name="coaAccount" required disabled>
+                <option value=""></option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
             <div class="form-group col-md-8">
               <label class="form-label" for="description">Description</label>
               <input type="text" id="description" name="description" class="form-control" />
@@ -156,6 +164,28 @@
       $('#preview-bankReconciliation').addClass('d-none');
       $('#info-bankReconciliation').addClass('d-none');
     });
+
+    // Akun COA yang muncul cuma yang sub accountnya Kas/Bank sesuai Type yang dipilih --
+    // matching nantinya dibatasi ke akun ini, jadi harus pilih Type dulu sebelum COA.
+    $('#type').on('change', function () {
+      let coa = $('#coaAccount');
+      coa.val(null).html('<option value=""></option>').trigger('change');
+      let type = $(this).val();
+      if (!type) {
+        coa.attr('disabled', true);
+        return;
+      }
+      $.ajax({
+        url: "{{ route('bankReconciliation.accounts') }}",
+        data: { type: type },
+        success: function (rows) {
+          rows.forEach(function (r) {
+            coa.append(new Option(r.account + ' - ' + (r.description ?? ''), r.account));
+          });
+          coa.attr('disabled', false);
+        }
+      });
+    });
   });
 
   function fmtNumber(n) {
@@ -219,6 +249,7 @@
             type: $('#type').val(),
             periode: $('#periode').val(),
             year: $('#year').val(),
+            coaAccount: $('#coaAccount').val(),
             amount: $(this).data('amount'),
             search: params.term,
           };
@@ -299,6 +330,7 @@
         periode: $('#periode').val(),
         year: $('#year').val(),
         type: $('#type').val(),
+        coaAccount: $('#coaAccount').val(),
         description: $('#description').val(),
         filePath: previewFilePath,
         manualMatches: manualMatches,
