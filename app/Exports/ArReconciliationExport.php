@@ -23,7 +23,8 @@ class ArReconciliationExport implements FromArray, WithTitle, WithColumnWidths, 
     protected $year;
     protected $basis;
 
-    const TOTAL_COLS = 6;
+    const TOTAL_COLS_WITH_DN = 6;
+    const TOTAL_COLS_NO_DN   = 5;
 
     public function __construct(array $rows, array $totals, $openingBalance, $closingBalance, $year, $basis)
     {
@@ -40,29 +41,43 @@ class ArReconciliationExport implements FromArray, WithTitle, WithColumnWidths, 
         return 'AR Reconciliation';
     }
 
+    private function showDebitNote(): bool
+    {
+        return $this->basis !== 'delivery';
+    }
+
     public function array(): array
     {
         $additionLabel = $this->basis === 'delivery' ? 'Delivery Note' : 'AR Invoice';
+        $showDn = $this->showDebitNote();
 
         $out = [];
         $out[] = ['AR RECONCILIATION'];
         $out[] = ['Tahun: ' . $this->year . ' | Basis: ' . $additionLabel];
         $out[] = [];
-        $out[] = ['Periode', 'DPP', $additionLabel, 'Debit Note', 'Pengurang (Bank/Kas)', 'Balance'];
-        $out[] = ['Saldo Awal', '', '', '', '', $this->openingBalance];
+        $out[] = $showDn
+            ? ['Periode', 'DPP', $additionLabel, 'Debit Note', 'Pengurang (Bank/Kas)', 'Balance']
+            : ['Periode', 'DPP', $additionLabel, 'Pengurang (Bank/Kas)', 'Balance'];
+        $out[] = $showDn ? ['Saldo Awal', '', '', '', '', $this->openingBalance] : ['Saldo Awal', '', '', '', $this->openingBalance];
 
         foreach ($this->rows as $r) {
-            $out[] = [$r['label'], $r['dpp'], $r['addition'], $r['debitNote'], $r['payment'], $r['balance']];
+            $out[] = $showDn
+                ? [$r['label'], $r['dpp'], $r['addition'], $r['debitNote'], $r['payment'], $r['balance']]
+                : [$r['label'], $r['dpp'], $r['addition'], $r['payment'], $r['balance']];
         }
 
-        $out[] = ['TOTAL', $this->totals['dpp'], $this->totals['addition'], $this->totals['debitNote'], $this->totals['payment'], $this->closingBalance];
+        $out[] = $showDn
+            ? ['TOTAL', $this->totals['dpp'], $this->totals['addition'], $this->totals['debitNote'], $this->totals['payment'], $this->closingBalance]
+            : ['TOTAL', $this->totals['dpp'], $this->totals['addition'], $this->totals['payment'], $this->closingBalance];
 
         return $out;
     }
 
     public function columnWidths(): array
     {
-        return ['A' => 20, 'B' => 18, 'C' => 18, 'D' => 18, 'E' => 20, 'F' => 18];
+        return $this->showDebitNote()
+            ? ['A' => 20, 'B' => 18, 'C' => 18, 'D' => 18, 'E' => 20, 'F' => 18]
+            : ['A' => 20, 'B' => 18, 'C' => 18, 'D' => 20, 'E' => 18];
     }
 
     public function registerEvents(): array
@@ -70,7 +85,7 @@ class ArReconciliationExport implements FromArray, WithTitle, WithColumnWidths, 
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet   = $event->sheet->getDelegate();
-                $lastCol = Coordinate::stringFromColumnIndex(self::TOTAL_COLS);
+                $lastCol = Coordinate::stringFromColumnIndex($this->showDebitNote() ? self::TOTAL_COLS_WITH_DN : self::TOTAL_COLS_NO_DN);
 
                 $headerRow = 4;
                 $dataStart = 5;
@@ -99,7 +114,8 @@ class ArReconciliationExport implements FromArray, WithTitle, WithColumnWidths, 
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E9EDF3']],
                 ]);
 
-                foreach (['B', 'C', 'D', 'E', 'F'] as $c) {
+                $numberCols = $this->showDebitNote() ? ['B', 'C', 'D', 'E', 'F'] : ['B', 'C', 'D', 'E'];
+                foreach ($numberCols as $c) {
                     $sheet->getStyle("{$c}{$dataStart}:{$c}{$grandRow}")
                         ->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1);
                     $sheet->getStyle("{$c}{$dataStart}:{$c}{$grandRow}")

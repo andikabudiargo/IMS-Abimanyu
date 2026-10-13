@@ -18,6 +18,7 @@
                     <div class="card-body">
                         <form id="frmAdd" name="frmAdd" autocomplete="off">
                             @csrf
+                            <input type="hidden" id="opnamePosition" name="opnamePosition" value="{{ $header->opname_position ?? '' }}" />
                             <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label for="dnNumber">Delivery Note Number</label> <small class="text-muted"> automatic</small>
@@ -336,7 +337,46 @@ for(let i=0;i<detailSo.length;i++){
         reloadPage();
     });
 
-   $("#cmdSave").click(function(){    
+   // Cek apakah dnDate bertepatan dengan tanggal OB/SYSTEM CORRECTION aktif --
+   // kalau ya, tanya user via modal apakah transaksi ini sebelum/sesudah jam
+   // opname (STO 08:00-17:00), lihat StockAdjustmentController::obBoundaryFor().
+   // Kalau bukan tanggal itu, langsung lanjut simpan tanpa modal.
+   function checkOpnamePositionThenSave(dnDate, onReady){
+       $.ajax({
+           type: 'get',
+           url: "{{ route('sto.check-date') }}",
+           data: { date: dnDate },
+           dataType: 'json',
+           success: function(res){
+               if (res && res.hasSto) {
+                   Swal.fire({
+                       title: 'Tanggal Opname (STO)',
+                       html: 'Tanggal delivery ini bertepatan dengan jadwal stock opname (STO). Transaksi ini terjadi kapan?',
+                       input: 'select',
+                       inputOptions: {
+                           before: 'Sebelum/selama opname (08:00-17:00)',
+                           after: 'Sesudah opname (malam hari)'
+                       },
+                       inputPlaceholder: '-- Pilih --',
+                       showCancelButton: true,
+                       confirmButtonText: 'Lanjut Simpan',
+                       cancelButtonText: 'Batal',
+                       inputValidator: function(value){ return !value ? 'Wajib dipilih' : undefined; }
+                   }).then(function(result){
+                       if (result.isConfirmed) {
+                           $('#opnamePosition').val(result.value);
+                           onReady();
+                       }
+                   });
+               } else {
+                   onReady();
+               }
+           },
+           error: function(){ onReady(); }
+       });
+   }
+
+   $("#cmdSave").click(function(){
     if (!$("#frmAdd")[0].checkValidity()){
         $("#frmAdd").submit();
     }else{ 
@@ -398,7 +438,7 @@ for(let i=0;i<detailSo.length;i++){
             let osNumber = $('#osNumber').val();
             let armada = $('#armada').val();   // baru
 
-
+            checkOpnamePositionThenSave(dnDate, function(){
             $.ajax({
                 type: "post",
                 url: "{{ route('delivery.update') }}",
@@ -411,7 +451,8 @@ for(let i=0;i<detailSo.length;i++){
                     dnNumber:dnNumber,
                     note:note,
                     osNumber:osNumber,
-                    armada:armada   // baru
+                    armada:armada,   // baru
+                    opnamePosition: $('#opnamePosition').val()
                 },
                 dataType: "json",
                 success: function(data) {
@@ -429,6 +470,7 @@ for(let i=0;i<detailSo.length;i++){
                 error: function(error) {
                     console.log(error);
                 }
+            });
             });
 
         }else{

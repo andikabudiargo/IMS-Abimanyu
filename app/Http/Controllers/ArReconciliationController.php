@@ -18,14 +18,25 @@ use PDF;
                     -> - Pengurang (Bank/Kas, digabung)
                     -> Balance (saldo akhir bulan)
 
-    Filter "basis" menentukan dasar nilai & tanggal Penambah utama:
-      - 'delivery' : nilai = invoice_det.qty*price, tanggal = delivery_hdr.delivery_date
-      - 'invoice'  : nilai = invoice_hdr.dpp,        tanggal = invoice_hdr.invoice_date
-    Debit Note selalu dihitung dari dn_date (tidak ada basis Delivery untuknya).
+    Filter "basis" menentukan tanggal Penambah utama (delivery_date / invoice_date).
+    Ada DUA kolom nilai, sengaja dipisah:
+      - "DPP"      : murni sebelum pajak (invoice_hdr.dpp / debit_note_hdr.dpp,
+                     delivery basis pakai qty*price karena tidak ada pecahan pajak) --
+                     cuma referensi, TIDAK dipakai untuk Balance.
+      - "Penambah" (AR Invoice/Delivery Note + Debit Note) : TOTAL termasuk pajak
+                     (invoice_hdr.grand_total / debit_note_hdr.grand_total) -- ini yang
+                     dipakai untuk Balance, karena Opening Balance (lihat bawah) juga
+                     grand_total-based.
+    Debit Note hanya dihitung untuk basis 'invoice' -- basis 'delivery' murni melacak
+    nilai barang lewat Surat Jalan, bukan siklus AR Invoice/Debit Note, jadi Debit Note
+    disembunyikan di basis itu.
     Pengurang = kas_det.credit (voucher APPROVED, status='3') yang reference-nya
     cocok ke invoice_number atau dn_number -- Bank (BM/BK) & Kas (KM/KK) digabung
     jadi satu kolom, sama seperti pola balance invoice yang sudah established
     di ArAgingReportController (tanpa filter voucher_type).
+    Saldo Awal dihitung lewat ArAgingReportController::totalOutstanding() --
+    rumus yang SAMA dipakai di card "Opening Balance" halaman Invoice Customer
+    (InvoiceController::analyticsAr) -- supaya kedua angka itu selalu cocok.
     ================================================================
 */
 
@@ -41,7 +52,9 @@ class ArReconciliationController extends Controller
         return view('arReconciliation.index', $data);
     }
 
-    private function additionSql($basis)
+    /** Nilai DPP murni (kolom "DPP", referensi sebelum pajak) -- delivery basis tidak punya
+     *  pecahan pajak sendiri jadi qty*price dipakai juga sebagai nilai DPP-nya. */
+    private function additionDppSql($basis)
     {
         if ($basis === 'delivery') {
             return "
@@ -65,11 +78,40 @@ class ArReconciliationController extends Controller
         ";
     }
 
-    private function debitNoteSql()
+    /** Nilai Total (kolom "Penambah", termasuk pajak) -- yang dipakai untuk Balance,
+     *  supaya konsisten dengan Opening Balance yang juga grand_total-based. */
+    private function additionTotalSql($basis)
+    {
+        if ($basis === 'delivery') {
+            return $this->additionDppSql('delivery');
+        }
+        return "
+            SELECT to_char(to_date(invoice_hdr.invoice_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
+                   SUM(invoice_hdr.grand_total) as amount
+            FROM invoice_hdr
+            WHERE invoice_hdr.status NOT IN ('1','5')
+              AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
+            GROUP BY 1
+        ";
+    }
+
+    private function debitNoteDppSql()
     {
         return "
             SELECT to_char(to_date(dn_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
                    SUM(dpp) as amount
+            FROM debit_note_hdr
+            WHERE status NOT IN ('1','5')
+              AND to_date(dn_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
+            GROUP BY 1
+        ";
+    }
+
+    private function debitNoteTotalSql()
+    {
+        return "
+            SELECT to_char(to_date(dn_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
+                   SUM(grand_total) as amount
             FROM debit_note_hdr
             WHERE status NOT IN ('1','5')
               AND to_date(dn_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
@@ -94,31 +136,15 @@ class ArReconciliationController extends Controller
         ";
     }
 
-    /** Total satu sisi (addition/debitnote/payment) sebelum tanggal :to (exclusive), untuk Saldo Awal. */
-    private function sumBefore($sql, $yearStart)
-    {
-        $rows = DB::select(str_replace(
-            "BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')",
-            "< to_date(:to,'DD-MM-YYYY')",
-            $sql
-        ), [
-            'to' => $yearStart,
-        ]);
-        $total = 0;
-        foreach ($rows as $r) {
-            $total += (float) $r->amount;
-        }
-        return $total;
-    }
-
     private function buildReport($year, $basis)
     {
         $yearStart = "01-01-$year";
         $yearEnd   = "31-12-$year";
+        // Delivery Note/SJ basis tracks item value through delivery, bukan siklus invoice
+        // AR -> Debit Note yang dibukukan lewat account_piutang, jadi Debit Note di-skip.
+        $showDebitNote = $basis !== 'delivery';
 
-        $additionSql = $this->additionSql($basis);
-        $dnSql       = $this->debitNoteSql();
-        $paySql      = $this->paymentSql();
+        $paySql = $this->paymentSql();
 
         $byYm = function ($rows) {
             $out = [];
@@ -128,13 +154,17 @@ class ArReconciliationController extends Controller
             return $out;
         };
 
-        $addition = $byYm(DB::select($additionSql, ['from' => $yearStart, 'to' => $yearEnd]));
-        $dn       = $byYm(DB::select($dnSql, ['from' => $yearStart, 'to' => $yearEnd]));
-        $payment  = $byYm(DB::select($paySql, ['from' => $yearStart, 'to' => $yearEnd]));
+        $additionDpp   = $byYm(DB::select($this->additionDppSql($basis), ['from' => $yearStart, 'to' => $yearEnd]));
+        $additionTotal = $byYm(DB::select($this->additionTotalSql($basis), ['from' => $yearStart, 'to' => $yearEnd]));
+        $dnDpp         = $showDebitNote ? $byYm(DB::select($this->debitNoteDppSql(), ['from' => $yearStart, 'to' => $yearEnd])) : [];
+        $dnTotal       = $showDebitNote ? $byYm(DB::select($this->debitNoteTotalSql(), ['from' => $yearStart, 'to' => $yearEnd])) : [];
+        $payment       = $byYm(DB::select($paySql, ['from' => $yearStart, 'to' => $yearEnd]));
 
-        $openingBalance = $this->sumBefore($additionSql, $yearStart)
-            + $this->sumBefore($dnSql, $yearStart)
-            - $this->sumBefore($paySql, $yearStart);
+        // Pakai rumus outstanding yang SAMA dengan card "Opening Balance" di halaman Invoice
+        // Customer (InvoiceController::analyticsAr -> ArAgingReportController::totalOutstanding),
+        // supaya dua angka ini selalu cocok alih-alih dihitung ulang dengan query berbeda.
+        $dayBeforeYearStart = date('d-m-Y', strtotime("$year-01-01 -1 day"));
+        $openingBalance = (new ArAgingReportController())->totalOutstanding($dayBeforeYearStart, true);
 
         $rows = [];
         $balance = $openingBalance;
@@ -142,31 +172,34 @@ class ArReconciliationController extends Controller
 
         for ($m = 1; $m <= 12; $m++) {
             $ym = sprintf('%04d-%02d', $year, $m);
-            $add = $addition[$ym] ?? 0;
-            $dnv = $dn[$ym] ?? 0;
-            $pay = $payment[$ym] ?? 0;
-            $balance += $add + $dnv - $pay;
+            $addDpp   = $additionDpp[$ym] ?? 0;
+            $addTotal = $additionTotal[$ym] ?? 0;
+            $dnvDpp   = $showDebitNote ? ($dnDpp[$ym] ?? 0) : 0;
+            $dnvTotal = $showDebitNote ? ($dnTotal[$ym] ?? 0) : 0;
+            $pay      = $payment[$ym] ?? 0;
+            $balance += $addTotal + $dnvTotal - $pay;
 
             $rows[] = [
                 'ym'        => $ym,
                 'month'     => $m,
                 'label'     => date('F Y', mktime(0, 0, 0, $m, 1, $year)),
-                'dpp'       => $add + $dnv,
-                'addition'  => $add,
-                'debitNote' => $dnv,
+                'dpp'       => $addDpp + $dnvDpp,
+                'addition'  => $addTotal,
+                'debitNote' => $dnvTotal,
                 'payment'   => $pay,
                 'balance'   => $balance,
             ];
 
-            $totals['dpp']       += $add + $dnv;
-            $totals['addition']  += $add;
-            $totals['debitNote'] += $dnv;
+            $totals['dpp']       += $addDpp + $dnvDpp;
+            $totals['addition']  += $addTotal;
+            $totals['debitNote'] += $dnvTotal;
             $totals['payment']   += $pay;
         }
 
         return [
             'year'           => $year,
             'basis'          => $basis,
+            'showDebitNote'  => $showDebitNote,
             'openingBalance' => $openingBalance,
             'rows'           => $rows,
             'totals'         => $totals,
@@ -205,7 +238,7 @@ class ArReconciliationController extends Controller
 
         if ($column === 'debitNote') {
             $sql = "
-                SELECT id, dn_number as doc, dn_date as doc_date, dpp as amount, 'Debit Note' as doc_type
+                SELECT id, dn_number as doc, dn_date as doc_date, grand_total as amount, 'Debit Note' as doc_type
                 FROM debit_note_hdr
                 WHERE status NOT IN ('1','5') AND to_date(dn_date,'DD-MM-YYYY') $dateCond
                 ORDER BY to_date(dn_date,'DD-MM-YYYY')
@@ -238,7 +271,7 @@ class ArReconciliationController extends Controller
             ";
         } else {
             $sql = "
-                SELECT id, invoice_number as doc, invoice_date as doc_date, dpp as amount, 'AR Invoice' as doc_type
+                SELECT id, invoice_number as doc, invoice_date as doc_date, grand_total as amount, 'AR Invoice' as doc_type
                 FROM invoice_hdr
                 WHERE status NOT IN ('1','5') AND to_date(invoice_date,'DD-MM-YYYY') $dateCond
                 ORDER BY to_date(invoice_date,'DD-MM-YYYY')

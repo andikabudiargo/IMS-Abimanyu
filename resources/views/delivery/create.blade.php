@@ -13,6 +13,7 @@
                             <ul class="list-inline mb-0">
                                 <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
                                 <input type="hidden" id="idDn" name="idDn" class="form-control" />
+                                <input type="hidden" id="opnamePosition" name="opnamePosition" value="" />
                             </ul>
                         </div>    
                     </div>
@@ -504,6 +505,7 @@
                     let osNumber = $('#osNumber').val();
                     let armada = $('#armada').val();   // baru
 
+                    checkOpnamePositionThenSave(dnDate, function(){
                     $.ajax({
                         type: "post",
                         url: "{{ route('delivery.store') }}",
@@ -515,7 +517,8 @@
                             poNumber:poNumber,
                             note:note,
                             osNumber:osNumber,
-                            armada:armada   // baru
+                            armada:armada,   // baru
+                            opnamePosition: $('#opnamePosition').val()
                         },
                         dataType: "json",
                         success: function(data) {
@@ -545,6 +548,7 @@
                             Swal.fire('Error', 'Gagal menyimpan data, silakan coba lagi.', 'error');
                         }
                     });
+                    });
 
                 }else{
                     $('#cmdSave').removeAttr('disabled');
@@ -552,6 +556,47 @@
                     Swal.fire('Warning..',pesan,'warning');
                 }
             }
+        }
+
+        // Cek apakah dnDate bertepatan dengan tanggal OB/SYSTEM CORRECTION aktif --
+        // kalau ya, tanya user via modal apakah transaksi ini sebelum/sesudah jam
+        // opname (STO 08:00-17:00), lihat StockAdjustmentController::obBoundaryFor().
+        // Kalau bukan tanggal itu, langsung lanjut simpan tanpa modal.
+        function checkOpnamePositionThenSave(dnDate, onReady){
+            $.ajax({
+                type: 'get',
+                url: "{{ route('sto.check-date') }}",
+                data: { date: dnDate },
+                dataType: 'json',
+                success: function(res){
+                    if (res && res.hasSto) {
+                        Swal.fire({
+                            title: 'Tanggal Opname (STO)',
+                            html: 'Tanggal delivery ini bertepatan dengan jadwal stock opname (STO). Transaksi ini terjadi kapan?',
+                            input: 'select',
+                            inputOptions: {
+                                before: 'Sebelum/selama opname (08:00-17:00)',
+                                after: 'Sesudah opname (malam hari)'
+                            },
+                            inputPlaceholder: '-- Pilih --',
+                            showCancelButton: true,
+                            confirmButtonText: 'Lanjut Simpan',
+                            cancelButtonText: 'Batal',
+                            inputValidator: function(value){ return !value ? 'Wajib dipilih' : undefined; }
+                        }).then(function(result){
+                            if (result.isConfirmed) {
+                                $('#opnamePosition').val(result.value);
+                                onReady();
+                            } else {
+                                $('#cmdSave').removeAttr('disabled');
+                            }
+                        });
+                    } else {
+                        onReady();
+                    }
+                },
+                error: function(){ onReady(); }
+            });
         }
 
         $("#cmdSave").click(function(){

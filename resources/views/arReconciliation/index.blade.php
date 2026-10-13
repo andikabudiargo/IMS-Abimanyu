@@ -77,13 +77,13 @@
                         <tr>
                             <th rowspan="2" class="align-middle text-left">Periode</th>
                             <th rowspan="2" class="align-middle">DPP</th>
-                            <th colspan="2">Penambah</th>
+                            <th id="thPenambah" colspan="2">Penambah</th>
                             <th rowspan="2" class="align-middle">Pengurang<br>(Bank/Kas)</th>
                             <th rowspan="2" class="align-middle">Balance</th>
                         </tr>
                         <tr>
                             <th id="thAddition">Delivery Note</th>
-                            <th>Debit Note</th>
+                            <th id="thDebitNote">Debit Note</th>
                         </tr>
                     </thead>
                     <tbody id="reconBody">
@@ -192,10 +192,14 @@ $(document).ready(function () {
     }
 
     function renderReport(res) {
+        let showDn = res.showDebitNote !== false;
+        $('#thPenambah').attr('colspan', showDn ? 2 : 1);
+        $('#thDebitNote, #tDebitNote').toggle(showDn);
+
         let body = '';
         body += '<tr class="row-opening font-weight-bold">'
             + '<td class="text-left">Saldo Awal</td>'
-            + '<td>-</td><td>-</td><td>-</td><td>-</td>'
+            + '<td>-</td><td>-</td>' + (showDn ? '<td>-</td>' : '') + '<td>-</td>'
             + '<td class="' + balanceClass(res.openingBalance) + '">' + fmt(res.openingBalance) + '</td>'
             + '</tr>';
 
@@ -204,7 +208,7 @@ $(document).ready(function () {
                 + '<td class="text-left">' + r.label + '</td>'
                 + '<td>' + fmt(r.dpp) + '</td>'
                 + cell('', 'addition', r.month, r.addition)
-                + cell('', 'debitNote', r.month, r.debitNote)
+                + (showDn ? cell('', 'debitNote', r.month, r.debitNote) : '')
                 + cell('', 'payment', r.month, r.payment)
                 + '<td class="' + balanceClass(r.balance) + '">' + fmt(r.balance) + '</td>'
                 + '</tr>';

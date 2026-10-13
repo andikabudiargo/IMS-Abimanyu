@@ -191,33 +191,35 @@
             <h4 class="card-title mb-0">DSO (Days Sales Outstanding)</h4>
         </div>
         <div class="card-body">
-            <table class="table table-sm table-bordered text-right" style="font-size:.85rem;">
-                <thead class="text-center">
-                    <tr>
-                        <th class="text-left">Aging</th>
-                        <th>Saldo</th>
-                        <th>Hari</th>
-                        <th>Kontrol (Saldo x Hari)</th>
-                    </tr>
-                </thead>
-                <tbody id="dsoBody"></tbody>
-                <tfoot>
-                    <tr class="font-weight-bold">
-                        <td class="text-left">Total</td>
-                        <td id="dsoTotalSaldo">0</td>
-                        <td></td>
-                        <td id="dsoTotalKontrol">0</td>
-                    </tr>
-                </tfoot>
-            </table>
-            <div class="mt-1 d-flex flex-wrap" style="gap:2rem;">
-                <div>
-                    <strong>DSO</strong> (Total Kontrol / Total Saldo) =
-                    <span id="dsoValue" class="font-weight-bold">0</span> hari
-                </div>
-                <div>
-                    <strong>Overdue Ratio</strong> (Total Saldo / Total Piutang) =
-                    <span id="dsoOverdueRatio" class="font-weight-bold">0%</span>
+            <div class="d-inline-block" style="width:auto;">
+                <table class="table table-sm table-bordered text-right" style="font-size:.85rem;">
+                    <thead class="text-center">
+                        <tr>
+                            <th class="text-left">Aging</th>
+                            <th>Saldo</th>
+                            <th>Hari</th>
+                            <th>Kontrol (Saldo x Hari)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dsoBody"></tbody>
+                    <tfoot>
+                        <tr class="font-weight-bold">
+                            <td class="text-left">Total</td>
+                            <td id="dsoTotalSaldo">0</td>
+                            <td></td>
+                            <td id="dsoTotalKontrol">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div class="mt-1">
+                    <div>
+                        <strong>DSO</strong> (Total Kontrol / Total Saldo) =
+                        <span id="dsoValue" class="font-weight-bold">0</span> hari
+                    </div>
+                    <div>
+                        <strong>Overdue Ratio</strong> (Total Saldo / Total Piutang) =
+                        <span id="dsoOverdueRatio" class="font-weight-bold">0%</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -453,7 +455,7 @@ $(document).ready(function () {
             { label: '0 - 30 Hari',   saldo: g.d1_30,    hari: 15 },
             { label: '31 - 60 Hari',  saldo: g.d31_60,   hari: 45 },
             { label: '61 - 90 Hari',  saldo: g.d61_90,   hari: 75 },
-            { label: '91 - 120 Hari', saldo: g.d91_120,  hari: 105 },
+            { label: '> 90 Hari',     saldo: g.d91_120 + g.d120plus, hari: 90 },
         ];
 
         let body = '', totalSaldo = 0, totalKontrol = 0;

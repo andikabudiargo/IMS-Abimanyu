@@ -313,6 +313,12 @@ class DeliveryController extends Controller
         $osNumber = $request->osNumber;
         $armada = $request->armada;
 
+        // before/after opname (STO 08:00-17:00), diisi lewat modal di form kalau
+        // dnDate bertepatan dengan tanggal OB/SYSTEM CORRECTION aktif. Lihat
+        // StockAdjustmentController::obBoundaryFor() dan checkStoDate().
+        $opnamePosition = in_array($request->opnamePosition, ['before', 'after'], true)
+            ? $request->opnamePosition : null;
+
         // === Lock Transaction guard (activity + periode + overstock) ===
         $stockNeeds = [];
         foreach ((array) $articles as $a) {
@@ -372,6 +378,7 @@ class DeliveryController extends Controller
                         'delivery_number' => $dnCode,
                         'origin_delivery_number' => $dnCode,
                         'delivery_date' => $dnDate,
+                        'opname_position' => $opnamePosition,
                         'customer_id' => $customer,
                         'so_number' => $soNumber,
                         'po_number' => $poNumber,
@@ -706,6 +713,11 @@ $data['detail'] = DB::table('delivery_det')
         $osNumber = $request->osNumber;
         $armada = $request->armada;
 
+        // before/after opname -- lihat catatan yang sama di store(). Diisi dari
+        // modal di form edit kalau dnDate BARU bertepatan dengan tanggal OB aktif.
+        $opnamePosition = in_array($request->opnamePosition, ['before', 'after'], true)
+            ? $request->opnamePosition : null;
+
         // === Lock Transaction guard (activity + periode + overstock) ===
         $stockNeeds = [];
         foreach ((array) $articles as $a) {
@@ -800,8 +812,8 @@ $data['detail'] = DB::table('delivery_det')
                         $signed = (float) $mv->movement_plus - (float) $mv->movement_min;
                         if (abs($signed) < 0.000001) continue;
 
-                        $wasCovered = $adj->obBoundaryFor($mv->artikel_code, '007', $oldDt->format('Y-m-d'));
-                        $isCovered  = $adj->obBoundaryFor($mv->artikel_code, '007', $newDt->format('Y-m-d'));
+                        $wasCovered = $adj->obBoundaryFor($mv->artikel_code, '007', $oldDt->format('Y-m-d'), $oldHdr->opname_position);
+                        $isCovered  = $adj->obBoundaryFor($mv->artikel_code, '007', $newDt->format('Y-m-d'), $opnamePosition);
 
                         if ($wasCovered === $isCovered) continue; // tidak menyeberang anchor OB, aman
 
@@ -835,8 +847,9 @@ $data['detail'] = DB::table('delivery_det')
                     $row_affected=DB::table('delivery_hdr')
                     ->where('delivery_number',$dnNumber)
                     ->update(
-                        [   
+                        [
                         'delivery_date' => $dnDate,
+                        'opname_position' => $opnamePosition,
                         'customer_id' => $customer,
                         'so_number' => $soNumber,
                         'po_number' => $poNumber,
@@ -1199,7 +1212,7 @@ public function posting(Request $request)
             foreach ($dataSetMovementFg as $mv) {
                 $signed = (float) $mv['movement_plus'] - (float) $mv['movement_min'];
                 if (abs($signed) < 0.000001) continue;
-                if (!$adj->obBoundaryFor($mv['artikel_code'], $location, $dnDateYmd)) continue;
+                if (!$adj->obBoundaryFor($mv['artikel_code'], $location, $dnDateYmd, $hdrQ->opname_position)) continue;
 
                 $adj->absorbIntoLatestOpeningBalance(
                     $mv['artikel_code'], $location, $signed, $username,
@@ -1902,7 +1915,7 @@ public function posting(Request $request)
             ->exists();
 
         if ($wasPosted) {
-            $reverse = $this->reverseStock($dnNumber, 'Cancel');
+            $reverse = $this->reverseStock($dnNumber, 'Cancel', $username);
             if (!$reverse['success']) {
                 throw new \Exception($reverse['message']);
             }
@@ -2068,12 +2081,18 @@ select
     $numRevision, '$username', '" . date('Y-m-d H:i:s') . "', reason, os_number, armada
 from delivery_hdr where delivery_number = '$dnOrigin'";
 
+        // FIX: so_number/po_number TIDAK boleh di-suffix revisi -- itu dipakai
+        // sebagai join key ke sales_order_det/purchase_order_det di banyak modul
+        // (SalesOrderController, DeliveryController form edit, dll). Kalau di-suffix,
+        // qty_kirim/sisa SO-PO jadi tidak ketemu lagi begitu DN hasil revisi aktif.
+        // sisa_so juga harus ikut di-copy -- sebelumnya kolom ini hilang dari INSERT
+        // sehingga baris hasil revisi selalu NULL.
         $sqlDet = "INSERT into delivery_det
     (delivery_number, article_code, so_number, po_number, qty, uom, created_by, created_at,
-     updated_by, updated_at, qty_so)
+     updated_by, updated_at, qty_so, sisa_so)
     select
-        '$dnNew', article_code, concat(so_number,'$numRevisionName'), concat(po_number,'$numRevisionName'),
-        qty, uom, '$username', '" . date('Y-m-d H:i:s') . "', '$username', '" . date('Y-m-d H:i:s') . "', qty_so
+        '$dnNew', article_code, so_number, po_number,
+        qty, uom, '$username', '" . date('Y-m-d H:i:s') . "', '$username', '" . date('Y-m-d H:i:s') . "', qty_so, sisa_so
     from delivery_det where delivery_number = '$dnOrigin'";
 
         $rowAffected = DB::select($sqlHdr);
@@ -2103,7 +2122,7 @@ from delivery_hdr where delivery_number = '$dnOrigin'";
                   ->exists();
 
               if ($wasPosted) {
-    $reverse = $this->reverseStock($dnOrigin, 'Revision');
+    $reverse = $this->reverseStock($dnOrigin, 'Revision', $username);
     if (!$reverse['success']) {
         throw new \Exception($reverse['message']);
     }
@@ -3936,7 +3955,7 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
  * PENTING: panggil ini sebelum delivery_number di-rename (mis. tambah "(C)"),
  * karena movement_transnno tersimpan dengan nomor ASLI saat posting().
  */
-private function reverseStock(string $dnNumber, string $reasonLabel): array
+private function reverseStock(string $dnNumber, string $reasonLabel, ?string $username = null): array
 {
     $location = '007'; // Gudang FG, sama seperti posting()
 
@@ -3952,6 +3971,34 @@ private function reverseStock(string $dnNumber, string $reasonLabel): array
 
     if ($articleCodes->isEmpty()) {
         return ['success' => false, 'message' => "Tidak ada detail untuk $dnNumber"];
+    }
+
+    // Kalau delivery ini SEBELUMNYA terserap ke OB/SYSTEM CORRECTION aktif
+    // (backdate, lihat posting()), un-absorb dulu pakai tanggal & opname_position
+    // ASLI SEBELUM movement-nya dihapus -- supaya OB tidak ikut menyimpan efek
+    // dokumen yang sudah di-cancel/di-revisi.
+    $dnDateYmd = null;
+    $dnDt = \DateTime::createFromFormat('d-m-Y', trim((string) $hdr->delivery_date));
+    if ($dnDt) $dnDateYmd = $dnDt->format('Y-m-d');
+
+    if ($dnDateYmd) {
+        $oldMovs = DB::table('warehouse_movement')
+            ->where('movement_transnno', $dnNumber)
+            ->where('movement_type', 'DELIVERY')
+            ->select('artikel_code', 'location_number', 'movement_plus', 'movement_min')
+            ->get();
+
+        $adj = app(\App\Http\Controllers\StockAdjustmentController::class);
+        foreach ($oldMovs as $mv) {
+            $signed = (float) $mv->movement_plus - (float) $mv->movement_min;
+            if (abs($signed) < 0.000001) continue;
+            if (!$adj->obBoundaryFor($mv->artikel_code, $mv->location_number, $dnDateYmd, $hdr->opname_position)) continue;
+
+            $adj->absorbIntoLatestOpeningBalance(
+                $mv->artikel_code, $mv->location_number, -$signed, $username ?? ($hdr->updated_by ?? 'system'),
+                "Un-posting Delivery {$dnNumber} bertanggal {$hdr->delivery_date} ({$reasonLabel}, un-absorb OB)"
+            );
+        }
     }
 
     // Hapus movement POSTING asli milik DN ini (bukan insert movement pembalik baru)
