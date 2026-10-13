@@ -1905,7 +1905,7 @@
                         <small class="text-muted">Rencana kirim 7 hari ke depan</small>
                     </div>
                 </div>
-                <a href="{{ route('deliverySchedules.index') }}" class="btn btn-sm btn-outline-warning d-flex align-items-center">
+                <a href="{{ route('deliveryMonitoring.index') }}" class="btn btn-sm btn-outline-warning d-flex align-items-center">
                     Lihat semua <i data-feather="arrow-right" class="font-small-4 ml-50"></i>
                 </a>
             </div>
