@@ -907,20 +907,30 @@ if (!empty($toDelete)) {
             ->where('h.target_type', $m->target_type)
             ->where('h.target_ref', $m->target_ref);
 
-        $total    = (clone $base)->count();
-        $accurate = (clone $base)
-            ->where(function ($q) use ($tolerance) {
-                $q->where('d.count_status', 'MATCH');
-                if ($tolerance > 0) {
-                    $q->orWhere(function ($q2) use ($tolerance) {
-                        $q2->where('d.count_status', 'RECOUNT')
-                           ->whereNotNull('d.qty_system')
-                           ->where('d.qty_system', '<>', 0)
-                           ->whereRaw('ABS(d.qty_variance) / ABS(d.qty_system) * 100 <= ?', [$tolerance]);
-                    });
-                }
-            })
-            ->count();
+        // ── Per ARTIKEL, bukan per baris — TAPI cuma utk LOCATION (WIP dkk):
+        //    syncArticleStatus() menulis status yang sama ke semua baris sibling
+        //    artikel itu di satu keluarga lokasi, jadi aman digabung per article_code.
+        //    SUPPLIER/CUSTOMER TIDAK boleh digabung gitu: 1 artikel bisa ada di
+        //    beberapa location_number berbeda dalam mapping yang sama (stok
+        //    konsinyasi per lokasi), tiap baris dihitung independen (lihat
+        //    resolveStatus() / resolveSingleRowStatus()) — gabung per lokasi juga.
+        $groupKey = $m->target_type === 'LOCATION'
+            ? "COALESCE(d.article_code, 'M' || d.dtl_id)"
+            : "COALESCE(d.article_code || '|' || d.location_number, 'M' || d.dtl_id)";
+
+        $grouped = (clone $base)
+            ->selectRaw("{$groupKey} as grp_key")
+            ->selectRaw(
+                "CASE WHEN bool_and(d.count_status = 'MATCH' OR (? > 0 AND d.count_status = 'RECOUNT'
+                    AND d.qty_system IS NOT NULL AND d.qty_system <> 0
+                    AND ABS(d.qty_variance) / ABS(d.qty_system) * 100 <= ?)) THEN 1 ELSE 0 END as is_accurate",
+                [$tolerance, $tolerance]
+            )
+            ->groupBy('grp_key')
+            ->get();
+
+        $total    = $grouped->count();
+        $accurate = $grouped->where('is_accurate', 1)->count();
 
         // ── Phantom: artikel ada movement di lokasi ini tapi belum diinput STO ──
         if ($m->target_type === 'LOCATION') {
