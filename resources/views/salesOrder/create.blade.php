@@ -91,6 +91,24 @@
                                         @endforeach
                                     </select>
                                 </div>
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="deliveryType">Delivery Type*</label>
+                                    <select class="select2 form-control" id="deliveryType" name="deliveryType" required>
+                                        <option value="PO">PO</option>
+                                        <option value="Gitcall">Gitcall</option>
+                                        <option value="DI">DI</option>
+                                        <option value="Kanban">Kanban</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-2" id="deliveryTypeOtherWrap" style="display:none;">
+                                    <label for="deliveryTypeOther">Delivery Type (manual)*</label>
+                                    <input type="text" id="deliveryTypeOther" name="deliveryTypeOther" class="form-control" maxlength="40" />
+                                </div>
+                                <div class="form-group col-md-2" id="deliveryDateWrap" style="display:none;">
+                                    <label for="deliveryDate">Delivery Date*</label>
+                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control flatpickr-basic" placeholder="DD-MM-YYYY" />
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-8">
@@ -336,13 +354,24 @@
     let lockedAt = "{{ $lockDate }}";
     statusSo = 'NEW';
     
-    $(document).ready(function(){           
+    function toggleDeliveryFields(){
+        let deliveryType = $('#deliveryType').val();
+        $('#deliveryTypeOtherWrap').toggle(deliveryType === 'Other');
+        $('#deliveryTypeOther').prop('required', deliveryType === 'Other');
+        $('#deliveryDateWrap').toggle(deliveryType !== 'PO');
+        $('#deliveryDate').prop('required', deliveryType !== 'PO');
+    }
+
+    $(document).ready(function(){
         validateFormToast("frmAdd");
         $('#orderDate').val(currentDate);
         $("#nilaiLainCheck").prop('checked',true).change();
+        toggleDeliveryFields();
     });
-    
-    $("#cmdSave").click(function(){    
+
+    $('#deliveryType').change(toggleDeliveryFields);
+
+    $("#cmdSave").click(function(){
         $('#cmdSave').attr('disabled','disabled');
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
@@ -435,6 +464,11 @@
                 let aPembilangNumber = $('#pembilangNumber').val();
                 let aPenyebutNumber = $('#penyebutNumber').val();
                 let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
+                let deliveryType = $('#deliveryType').val();
+                if (deliveryType === 'Other'){
+                    deliveryType = $('#deliveryTypeOther').val();
+                }
+                let deliveryDate = $('#deliveryType').val() !== 'PO' ? $('#deliveryDate').val() : '';
 
                 $.ajax({
                     type: "post",
@@ -454,7 +488,9 @@
                         note:note,
                         pembilangNumber:aPembilangNumber,
                         penyebutNumber:aPenyebutNumber,
-                        totalDppNilaiLain:aTotalDppNilaiLain
+                        totalDppNilaiLain:aTotalDppNilaiLain,
+                        deliveryType:deliveryType,
+                        deliveryDate:deliveryDate
                     },
                     dataType: "json",
                     success: function(data) {

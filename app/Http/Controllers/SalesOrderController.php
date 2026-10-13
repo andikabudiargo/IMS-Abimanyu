@@ -256,6 +256,8 @@ class SalesOrderController extends Controller
         $poNumber = $request->poNumber;
         $customer = $request->customer;
         $salesman = $request->salesman;
+        $deliveryType = $request->deliveryType;
+        $deliveryDate = $deliveryType == 'PO' ? null : $request->deliveryDate;
 
         // === Lock Transaction guard: activity + periode ===
         if ($err = AppHelpers::lockGuard($this->moduleCode, $orderDate)) {
@@ -307,8 +309,10 @@ class SalesOrderController extends Controller
             'currency'  => 'required',
             'type'  => 'required',
             'customer'  => 'required',
+            'deliveryType'  => 'required',
+            'deliveryDate'  => $deliveryType != 'PO' ? 'required' : 'nullable',
         ]);
-        
+
         $error_array = array();
         $success_output = '';
         // return $validation;
@@ -345,7 +349,9 @@ class SalesOrderController extends Controller
                     'origin_so_code' => $soCode,
                     'dpp_lain_value' => $dppLainValue,
                     'dpp_lain_pembilang' => $dppPembilang,
-                    'dpp_lain_penyebut' => $dppPenyebut
+                    'dpp_lain_penyebut' => $dppPenyebut,
+                    'delivery_type' => $deliveryType,
+                    'delivery_date' => $deliveryDate
                 ]);
 
                 $dppLainBagi = $dppLainValue ? $dppPembilang/$dppPenyebut : 1;
@@ -701,6 +707,8 @@ class SalesOrderController extends Controller
         }
         $customer = $request->customer;
         $salesman = $request->salesman;
+        $deliveryType = $request->deliveryType;
+        $deliveryDate = $deliveryType == 'PO' ? null : $request->deliveryDate;
         // $ppn = $request->ppn;
         // $pph23 = $request->pph23;
         // $totalPpn = $request->totalPpn;
@@ -763,6 +771,8 @@ class SalesOrderController extends Controller
             'currency'  => 'required',
             'type'  => 'required',
             'customer'  => 'required',
+            'deliveryType'  => 'required',
+            'deliveryDate'  => $deliveryType != 'PO' ? 'required' : 'nullable',
         ]);
         
         $error_array = array();
@@ -799,7 +809,9 @@ class SalesOrderController extends Controller
                         'updated_at' => date('Y-m-d H:i:s'),
                         'dpp_lain_value' => $dppLainValue,
                         'dpp_lain_pembilang' => $dppPembilang,
-                        'dpp_lain_penyebut' => $dppPenyebut
+                        'dpp_lain_penyebut' => $dppPenyebut,
+                        'delivery_type' => $deliveryType,
+                        'delivery_date' => $deliveryDate
                     ]
                 );
 
