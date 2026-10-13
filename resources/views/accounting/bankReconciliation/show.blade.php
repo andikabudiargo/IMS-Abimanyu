@@ -120,12 +120,16 @@
             processResults: function (rows) {
               return {
                 results: rows.map(function (r) {
-                  return {
-                    id: r.id,
-                    text: r.voucher_number + ' | ' + r.voucher_date + ' | ' + (r.description ?? '')
-                      + ' | Dr ' + Number(r.debit).toLocaleString('id-ID', { minimumFractionDigits: 2 })
-                      + ' Cr ' + Number(r.credit).toLocaleString('id-ID', { minimumFractionDigits: 2 }),
-                  };
+                  let text = r.voucher_number + ' | ' + r.voucher_date + ' | ' + (r.description ?? '')
+                    + ' | Dr ' + Number(r.debit).toLocaleString('id-ID', { minimumFractionDigits: 2 })
+                    + ' Cr ' + Number(r.credit).toLocaleString('id-ID', { minimumFractionDigits: 2 });
+                  // used_count > 0 -> voucher ini sudah dipakai buat baris statement lain di
+                  // recon yang sama (jurnal gabungan, many-to-one) -- tampilkan running total.
+                  if (r.used_count > 0) {
+                    text += ' [sudah match ' + r.used_count + ' baris, total '
+                      + Number(r.used_amount).toLocaleString('id-ID', { minimumFractionDigits: 2 }) + ']';
+                  }
+                  return { id: r.id, text: text };
                 })
               };
             }
