@@ -105,7 +105,7 @@
         </li>
         <li class=" navigation-header"><span data-i18n="Marketing">Marketing</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo','forecastSales','salesOrderReport']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo','forecastSales','salesOrderReport','deliverySchedules']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='phone-outgoing'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Sales
@@ -197,6 +197,13 @@
               </a>
             </li>
             @endcan
+
+            <li class="{{ \Request::segment(1) == 'deliverySchedules' ? 'active' : '' }}">
+              <a class="d-flex align-items-center" href="{{ route('deliverySchedules.index') }}">
+                <i data-feather="circle"></i>
+                <span class="menu-item text-truncate" data-i18n="Input">Delivery Schedule</span>
+              </a>
+            </li>
               @can('salesOrder-index')
                     <li class="{{ \Request::is(['deliveryReportAcc'])  ? 'active' : '' }}">
                       <a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}">
