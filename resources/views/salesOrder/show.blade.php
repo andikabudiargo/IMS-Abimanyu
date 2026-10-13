@@ -109,6 +109,18 @@
                                             </div>
                                         </div>
                                         <div class="form-row">
+                                            <div class="form-group col-md-3">
+                                                <label for="deliveryType">Delivery Type</label>
+                                                <input type="text" class="form-control" value="{{ $header2->delivery_type }}" disabled />
+                                            </div>
+                                            @if($header2->delivery_type && $header2->delivery_type != 'PO')
+                                            <div class="form-group col-md-3">
+                                                <label for="deliveryDate">Delivery Date</label>
+                                                <input type="text" class="form-control" value="{{ $header2->delivery_date }}" disabled />
+                                            </div>
+                                            @endif
+                                        </div>
+                                        <div class="form-row">
                                             <div class="form-group col-md-8">
                                                 <label class="form-label" for="note">Notes</label>
                                                 <textarea type="text" id="note" name="note" class="form-control" rows="1" disabled >{{ $header2->note }}</textarea>
