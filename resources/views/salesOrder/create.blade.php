@@ -97,6 +97,7 @@
                                     <label class="form-label" for="deliveryType">Delivery Type*</label>
                                     <select class="select2 form-control" id="deliveryType" name="deliveryType" required>
                                         <option value="PO">PO</option>
+                                        <option value="OS">OS</option>
                                         <option value="Jitcall">Jitcall</option>
                                         <option value="DI">DI</option>
                                         <option value="Kanban">Kanban</option>

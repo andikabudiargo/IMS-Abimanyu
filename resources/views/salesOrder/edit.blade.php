@@ -95,7 +95,7 @@
                                 </div>
                             </div>
                             @php
-                                $deliveryTypeOptions = ['PO','Jitcall','DI','Kanban','Other'];
+                                $deliveryTypeOptions = ['PO','OS','Jitcall','DI','Kanban','Other'];
                                 $deliveryTypeSelected = in_array($header->delivery_type, $deliveryTypeOptions) ? $header->delivery_type : ($header->delivery_type ? 'Other' : 'PO');
                             @endphp
                             <div class="form-row">
