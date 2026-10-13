@@ -323,7 +323,7 @@ Route::group( ['middleware' => ['auth']], function() {
 
 	Route::get('deliverySchedules',['as'=>'deliverySchedules.index','uses'=>'DeliveryScheduleController@index']);
 	Route::get('deliverySchedules/list',['as'=>'deliverySchedule.list','uses'=>'DeliveryScheduleController@list']);
-	Route::get('deliverySchedules/list/detail',['as'=>'deliverySchedule.list.detail','uses'=>'DeliveryScheduleController@listDetail']);
+	Route::get('deliverySchedules/list/matrix',['as'=>'deliverySchedule.list.matrix','uses'=>'DeliveryScheduleController@matrix']);
 	Route::get('deliverySchedules/create',['as'=>'deliverySchedule.create','uses'=>'DeliveryScheduleController@create']);
 	Route::post('deliverySchedules/save',['as'=>'deliverySchedule.save','uses'=>'DeliveryScheduleController@save']);
 	Route::get('deliverySchedules/export/template',['as'=>'deliverySchedule.export.template','uses'=>'DeliveryScheduleController@exportTemplate']);

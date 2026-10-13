@@ -12,21 +12,13 @@
         <div class="card-content">
           <div class="card-body">
             <div class="form-row">
-              <div class="form-group col-md-2">
-                <label>SO Code</label>
-                <input type="text" class="form-control disabled-el" value="{{ $header->so_code }}" disabled />
-              </div>
-              <div class="form-group col-md-2">
-                <label>PO Number</label>
-                <input type="text" class="form-control disabled-el" value="{{ $header->po_number }}" disabled />
-              </div>
               <div class="form-group col-md-4">
                 <label>Customer</label>
-                <input type="text" class="form-control disabled-el" value="{{ $header->customer_id }} - {{ $header->cust_name }}" disabled />
+                <input type="text" class="form-control disabled-el" value="{{ $customer->kode }} - {{ $customer->nama }}" disabled />
               </div>
-              <div class="form-group col-md-2">
-                <label>SO Date</label>
-                <input type="text" class="form-control disabled-el" value="{{ $header->so_date }}" disabled />
+              <div class="form-group col-md-8">
+                <label>Sales Order ({{ $soCodes->count() }})</label>
+                <input type="text" class="form-control disabled-el" value="{{ $soCodes->implode(', ') }}" disabled />
               </div>
             </div>
           </div>
@@ -52,7 +44,7 @@
                 <button type="button" class="btn btn-primary" id="cmdGenerate">Generate Table</button>
               </div>
               <div class="form-group col-md-6" style="padding-top:22px;">
-                <a href="{{ route('deliverySchedule.export.template', ['so_code' => $header->so_code]) }}" class="btn btn-outline-secondary">
+                <a href="{{ route('deliverySchedule.export.template', ['customer_id' => $customer->kode]) }}" class="btn btn-outline-secondary">
                   <i data-feather="download"></i> Download Template
                 </a>
                 <input type="file" id="uploadFile" accept=".xls,.xlsx" class="d-none" />
@@ -97,7 +89,7 @@
 @section('scripts')
 <script src="{{ asset('assets/js/freeze-table.js') }}"></script>
 <script type="text/javascript">
-    const soCode = "{{ $header->so_code }}";
+    const customerId = "{{ $customer->kode }}";
     const articles = @json($articles);
     const existing = @json($existing);
 
@@ -127,11 +119,14 @@
         return dates;
     }
 
+    // rowKey = so_code|article_code (one row per SO/article combo)
+    function rowKeyOf(a){ return a.so_code+'|'+a.article_code; }
+
     let currentValues = {};
 
     function collectValues(){
         $('#tblSchedule input.qty-cell').each(function(){
-            let key = $(this).data('article-code')+'|'+$(this).data('date');
+            let key = $(this).data('row-key')+'|'+$(this).data('date');
             let val = parseFloat($(this).val()) || 0;
             if (val > 0) currentValues[key] = val;
         });
@@ -139,41 +134,52 @@
 
     function prefillFromExisting(){
         existing.forEach(function(row){
-            currentValues[row.article_code+'|'+row.schedule_date] = parseFloat(row.qty);
+            currentValues[row.so_code+'|'+row.article_code+'|'+row.schedule_date] = parseFloat(row.qty);
         });
     }
 
-    function recalcRow(articleCode){
+    function recalcRow(rowKey){
         let total = 0;
-        $('#tblSchedule input.qty-cell[data-article-code="'+articleCode+'"]').each(function(){
+        $('#tblSchedule input.qty-cell[data-row-key="'+rowKey+'"]').each(function(){
             total += parseFloat($(this).val()) || 0;
         });
-        let orderQty = parseFloat($('#tblSchedule .order-qty[data-article-code="'+articleCode+'"]').data('qty'));
-        let el = $('#tblSchedule .row-total[data-article-code="'+articleCode+'"]');
+        let orderQty = parseFloat($('#tblSchedule .order-qty[data-row-key="'+rowKey+'"]').data('qty'));
+        let el = $('#tblSchedule .row-total[data-row-key="'+rowKey+'"]');
+        let matched = Math.abs(total-orderQty) < 0.01;
         el.text(total.toFixed(2));
-        el.toggleClass('match', Math.abs(total-orderQty) < 0.01);
-        el.toggleClass('mismatch', Math.abs(total-orderQty) >= 0.01);
+        el.toggleClass('match', matched);
+        el.toggleClass('mismatch', !matched);
+
+        // Once a row's total matches its Order Qty, lock the still-empty cells
+        // in that row so it can't be overfilled; unlock them again if it no
+        // longer matches (e.g. the user edited a filled cell back down).
+        $('#tblSchedule input.qty-cell[data-row-key="'+rowKey+'"]').each(function(){
+            let hasValue = (parseFloat($(this).val()) || 0) > 0;
+            $(this).prop('disabled', matched && !hasValue);
+        });
     }
 
     function generateGrid(fromDdMmYyyy, toDdMmYyyy_){
         collectValues();
         let dates = buildDateList(toIso(fromDdMmYyyy), toIso(toDdMmYyyy_));
 
-        let html = '<thead class="thead-light"><tr><th>Article Code</th><th>Description</th><th>UOM</th><th>Order Qty</th>';
+        let html = '<thead class="thead-light"><tr><th>SO Code</th><th>Article Code</th><th>Description</th><th>UOM</th><th>Order Qty</th>';
         dates.forEach(function(d){ html += '<th>'+toDdMmYyyy(d)+'</th>'; });
         html += '<th>Total</th></tr></thead><tbody>';
 
         articles.forEach(function(a){
+            let rowKey = rowKeyOf(a);
             html += '<tr>';
-            html += '<td>'+a.article_code+'</td>';
+            html += '<td>'+a.so_code+'</td>';
+            html += '<td>'+(a.article_alternative_code || a.article_code)+'</td>';
             html += '<td>'+(a.article_desc || '')+'</td>';
             html += '<td>'+a.uom+'</td>';
-            html += '<td class="order-qty" data-article-code="'+a.article_code+'" data-qty="'+a.qty+'">'+a.qty+'</td>';
+            html += '<td class="order-qty" data-row-key="'+rowKey+'" data-qty="'+a.qty+'">'+a.qty+'</td>';
             dates.forEach(function(d){
-                let val = currentValues[a.article_code+'|'+d] || '';
-                html += '<td><input type="text" class="form-control qty-cell" data-article-code="'+a.article_code+'" data-date="'+d+'" value="'+val+'" /></td>';
+                let val = currentValues[rowKey+'|'+d] || '';
+                html += '<td><input type="text" class="form-control qty-cell" data-row-key="'+rowKey+'" data-date="'+d+'" value="'+val+'" /></td>';
             });
-            html += '<td class="row-total" data-article-code="'+a.article_code+'">0.00</td>';
+            html += '<td class="row-total" data-row-key="'+rowKey+'">0.00</td>';
             html += '</tr>';
         });
         html += '</tbody>';
@@ -187,13 +193,13 @@
         collectValues();
 
         $('#tblSchedule input.qty-cell').on('input', function(){
-            recalcRow($(this).data('article-code'));
+            recalcRow($(this).data('row-key'));
         });
 
-        articles.forEach(function(a){ recalcRow(a.article_code); });
+        articles.forEach(function(a){ recalcRow(rowKeyOf(a)); });
 
         if ($.fn.freezeTable){
-            $(".table-scrollable").freezeTable({ scrollable:true, columnNum:4 });
+            $(".table-scrollable").freezeTable({ scrollable:true, columnNum:5 });
         }
     }
 
@@ -230,7 +236,7 @@
 
         let formData = new FormData();
         formData.append('file', file);
-        formData.append('soCode', soCode);
+        formData.append('customerId', customerId);
 
         $.ajax({
             type:'post',
@@ -246,9 +252,9 @@
                 if (data.rows && data.rows.length){
                     collectValues();
                     data.rows.forEach(function(r){
-                        currentValues[r.article_code+'|'+r.schedule_date] = parseFloat(r.qty);
+                        currentValues[r.so_code+'|'+r.article_code+'|'+r.schedule_date] = parseFloat(r.qty);
                     });
-                    let allDates = Object.keys(currentValues).map(k => k.split('|')[1]).sort();
+                    let allDates = Object.keys(currentValues).map(k => k.split('|')[2]).sort();
                     let from = toDdMmYyyy(allDates[0]);
                     let to = toDdMmYyyy(allDates[allDates.length-1]);
                     $('#schedulePeriod').val(from+' to '+to);
@@ -275,14 +281,14 @@
         let rows = [];
         Object.keys(currentValues).forEach(function(key){
             let parts = key.split('|');
-            rows.push({ article_code: parts[0], schedule_date: toDdMmYyyy(parts[1]), qty: currentValues[key] });
+            rows.push({ so_code: parts[0], article_code: parts[1], schedule_date: toDdMmYyyy(parts[2]), qty: currentValues[key] });
         });
 
         $('#cmdSave').attr('disabled','disabled');
         $.ajax({
             type:'post',
             url:"{{ route('deliverySchedule.save') }}",
-            data:{ soCode: soCode, rows: JSON.stringify(rows) },
+            data:{ customerId: customerId, rows: JSON.stringify(rows) },
             dataType:'json',
             success:function(data){
                 $('#cmdSave').removeAttr('disabled');

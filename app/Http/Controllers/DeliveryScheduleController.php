@@ -31,6 +31,13 @@ class DeliveryScheduleController extends Controller
         return [$fromDate, $toDate];
     }
 
+    // Sorts "DD-MM-YYYY" strings chronologically (DeliveryMonitoringController@sortDates).
+    private function sortDates(array $dates)
+    {
+        usort($dates, fn($a, $b) => strtotime(implode('-', array_reverse(explode('-', $a)))) <=> strtotime(implode('-', array_reverse(explode('-', $b)))));
+        return $dates;
+    }
+
     public function index(Request $request)
     {
         $data['title'] = $this->title;
@@ -42,19 +49,11 @@ class DeliveryScheduleController extends Controller
 
         $data['kolom'] = json_encode([
             ['data' => 'action', 'name' => 'action', 'title' => 'Action', 'orderable' => false, 'searchable' => false],
-            ['data' => 'customer_id', 'name' => 'customer_id', 'title' => 'Customer Code'],
-            ['data' => 'cust_name', 'name' => 'cust_name', 'title' => 'Customer Name'],
+            ['data' => 'cust', 'name' => 'cust_name', 'title' => 'Customer'],
             ['data' => 'total_so', 'name' => 'total_so', 'title' => 'Total SO'],
-            ['data' => 'scheduled_so', 'name' => 'scheduled_so', 'title' => 'Scheduled'],
-        ]);
-
-        $data['kolomDetail'] = json_encode([
-            ['data' => 'action', 'name' => 'action', 'title' => 'Action', 'orderable' => false, 'searchable' => false],
-            ['data' => 'so_code', 'name' => 'so_code', 'title' => 'SO Code'],
-            ['data' => 'po_number', 'name' => 'po_number', 'title' => 'PO Number'],
-            ['data' => 'so_date', 'name' => 'so_date', 'title' => 'SO Date'],
-            ['data' => 'total_qty', 'name' => 'total_qty', 'title' => 'Order Qty'],
-            ['data' => 'status', 'name' => 'status', 'title' => 'Schedule Status'],
+            ['data' => 'status', 'name' => 'status', 'title' => 'Status', 'orderable' => false],
+            ['data' => 'updated_by', 'name' => 'updated_by', 'title' => 'Updated By'],
+            ['data' => 'updated_at', 'name' => 'updated_at', 'title' => 'Updated At'],
         ]);
 
         return view('deliverySchedule.index', $data);
@@ -70,7 +69,13 @@ class DeliveryScheduleController extends Controller
             'sales_order_hdr.customer_id',
             'third_party.nama as cust_name',
             DB::raw('count(*) as total_so'),
-            DB::raw("sum(case when exists (select 1 from delivery_schedule_det d where d.so_code = sales_order_hdr.so_code) then 1 else 0 end) as scheduled_so")
+            DB::raw("sum(case when exists (select 1 from delivery_schedule_det d where d.so_code = sales_order_hdr.so_code) then 1 else 0 end) as scheduled_so"),
+            DB::raw("(select d2.updated_by from delivery_schedule_det d2
+                        where d2.so_code in (select so_code from sales_order_hdr h2 where h2.customer_id = sales_order_hdr.customer_id and h2.delivery_type = 'PO')
+                        order by d2.updated_at desc limit 1) as updated_by"),
+            DB::raw("(select d2.updated_at from delivery_schedule_det d2
+                        where d2.so_code in (select so_code from sales_order_hdr h2 where h2.customer_id = sales_order_hdr.customer_id and h2.delivery_type = 'PO')
+                        order by d2.updated_at desc limit 1) as updated_at")
         )
         ->leftJoin('third_party', 'third_party.kode', '=', 'sales_order_hdr.customer_id')
         ->where('sales_order_hdr.delivery_type', 'PO')
@@ -83,79 +88,105 @@ class DeliveryScheduleController extends Controller
         ->get();
 
         return Datatables::of($data)
+        ->addColumn('cust', function ($row) {
+            return $row->customer_id.' - '.$row->cust_name;
+        })
+        ->addColumn('status', function ($row) {
+            if ($row->scheduled_so == 0) {
+                return '<div class="badge badge-secondary">Pending</div>';
+            }
+            if ($row->scheduled_so == $row->total_so) {
+                return '<div class="badge badge-success">Scheduled</div>';
+            }
+            return '<div class="badge badge-warning">Partially Scheduled</div>';
+        })
         ->addColumn('action', function ($row) {
-            return '<a href="javascript:;" class="btn btn-sm btn-primary" onclick="detailCustomer(\''.$row->customer_id.'\',\''.$row->cust_name.'\')">
-                        <i data-feather="list"></i> Detail
+            $isScheduled = $row->scheduled_so == $row->total_so;
+            return '<a href="'.route('deliverySchedule.create', ['customer_id' => $row->customer_id]).'" class="btn btn-sm btn-primary">
+                        <i data-feather="'.($isScheduled ? 'list' : 'calendar').'"></i> '.($isScheduled ? 'Detail' : 'Create Schedule').'
                     </a>';
         })
-        ->addColumn('scheduled_so', function ($row) {
-            return $row->scheduled_so.' / '.$row->total_so;
+        ->editColumn('updated_at', function ($row) {
+            return $row->updated_at ? date('d-m-Y H:i', strtotime($row->updated_at)) : '';
         })
-        ->rawColumns(['action'])
+        ->rawColumns(['action', 'status'])
         ->make(true);
     }
 
-    public function listDetail(Request $request)
+    // Detail toggle: grouped-by-customer article x schedule_date matrix, mirrors
+    // DeliveryMonitoringController@groups so the UI matches Delivery Monitoring.
+    public function matrix(Request $request)
     {
         [$fromDate, $toDate] = $this->parseRange($request->periode);
-        $customerId = $request->customerId;
+        $searchCustomer = $request->searchCustomer;
 
-        $data = DB::table('sales_order_hdr')
-        ->select(
-            'sales_order_hdr.so_code',
-            'sales_order_hdr.po_number',
-            'sales_order_hdr.so_date',
-            DB::raw('(select coalesce(sum(qty),0) from sales_order_det where so_code = sales_order_hdr.so_code) as total_qty'),
-            DB::raw("case when exists (select 1 from delivery_schedule_det d where d.so_code = sales_order_hdr.so_code) then 1 else 0 end as is_scheduled")
-        )
-        ->where('delivery_type', 'PO')
-        ->where('customer_id', $customerId)
-        ->where(function ($query) use ($fromDate, $toDate) {
-            $fromDate ? $query->whereBetween(DB::raw("to_date(so_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+        $rows = DB::table('delivery_schedule_det')
+        ->join('sales_order_hdr', 'sales_order_hdr.so_code', '=', 'delivery_schedule_det.so_code')
+        ->leftJoin('third_party', 'third_party.kode', '=', 'sales_order_hdr.customer_id')
+        ->leftJoin('article', 'article.article_code', '=', 'delivery_schedule_det.article_code')
+        ->where('sales_order_hdr.delivery_type', 'PO')
+        ->where(function ($query) use ($searchCustomer, $fromDate, $toDate) {
+            $searchCustomer ? $query->where('sales_order_hdr.customer_id', $searchCustomer) : '';
+            $fromDate ? $query->whereBetween(DB::raw("to_date(sales_order_hdr.so_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->orderByRaw("to_date(so_date,'DD-MM-YYYY')")
+        ->select(
+            'sales_order_hdr.customer_id',
+            'third_party.nama as cust_name',
+            'delivery_schedule_det.article_code',
+            'article.article_alternative_code',
+            'article.article_desc',
+            'delivery_schedule_det.schedule_date',
+            'delivery_schedule_det.qty'
+        )
         ->get();
 
-        return Datatables::of($data)
-        ->addColumn('status', function ($row) {
-            return $row->is_scheduled
-                ? '<div class="badge badge-success">Scheduled</div>'
-                : '<div class="badge badge-secondary">Not Scheduled</div>';
-        })
-        ->addColumn('action', function ($row) {
-            return '<a href="'.route('deliverySchedule.create', ['so_code' => $row->so_code]).'" class="btn btn-sm btn-info">
-                        <i data-feather="calendar"></i> '.($row->is_scheduled ? 'Edit Schedule' : 'Create Schedule').'
-                    </a>';
-        })
-        ->rawColumns(['status', 'action'])
-        ->make(true);
+        $groups = [];
+        foreach ($rows as $r) {
+            $key = $r->customer_id;
+            $date = date('d-m-Y', strtotime($r->schedule_date));
+            $rowKey = $r->article_code;
+            $groups[$key]['name'] = $r->cust_name ?? $r->customer_id;
+            $groups[$key]['articles'][$rowKey] = trim(($r->article_alternative_code ?? $r->article_code).' - '.$r->article_desc, ' -');
+            $groups[$key]['dates'][$date] = true;
+            $groups[$key]['matrix'][$rowKey][$date] = ($groups[$key]['matrix'][$rowKey][$date] ?? 0) + (float) $r->qty;
+        }
+        foreach ($groups as &$g) {
+            ksort($g['articles']);
+            $g['dates'] = $this->sortDates(array_keys($g['dates']));
+        }
+        uasort($groups, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+        return response()->json(['groups' => array_values($groups)]);
     }
 
     public function create(Request $request)
     {
-        $soCode = $request->so_code;
+        $customerId = $request->customer_id;
 
-        $header = DB::table('sales_order_hdr')
-        ->leftJoin('third_party', 'third_party.kode', '=', 'sales_order_hdr.customer_id')
-        ->where('sales_order_hdr.so_code', $soCode)
-        ->select('sales_order_hdr.*', 'third_party.nama as cust_name')
-        ->first();
+        $customer = DB::table('third_party')->where('kode', $customerId)->first();
 
-        if (!$header || $header->delivery_type != 'PO') {
-            return redirect()->route('deliverySchedules.index')->with(['alert' => 'warning', 'message' => "SO $soCode is not eligible for a Delivery Schedule"]);
+        $soCodes = DB::table('sales_order_hdr')
+        ->where('customer_id', $customerId)
+        ->where('delivery_type', 'PO')
+        ->pluck('so_code');
+
+        if (!$customer || $soCodes->isEmpty()) {
+            return redirect()->route('deliverySchedules.index')->with(['alert' => 'warning', 'message' => "No PO-type Sales Order found for customer $customerId"]);
         }
 
         $data['title'] = $this->title;
-        $data['header'] = $header;
+        $data['customer'] = $customer;
+        $data['soCodes'] = $soCodes;
 
         $data['articles'] = DB::table('sales_order_det')
         ->leftJoin('article', 'article.article_code', '=', 'sales_order_det.article_code')
-        ->where('sales_order_det.so_code', $soCode)
-        ->select('sales_order_det.article_code', 'sales_order_det.qty', 'sales_order_det.uom', 'article.article_desc', 'article.article_alternative_code')
+        ->whereIn('sales_order_det.so_code', $soCodes)
+        ->select('sales_order_det.so_code', 'sales_order_det.article_code', 'sales_order_det.qty', 'sales_order_det.uom', 'article.article_desc', 'article.article_alternative_code')
+        ->orderBy('sales_order_det.so_code')
         ->get();
 
         $data['existing'] = DB::table('delivery_schedule_det')
-        ->where('so_code', $soCode)
+        ->whereIn('so_code', $soCodes)
         ->orderBy('schedule_date')
         ->get();
 
@@ -165,31 +196,39 @@ class DeliveryScheduleController extends Controller
     public function save(Request $request)
     {
         $username = Auth::user()->username;
-        $soCode = $request->soCode;
+        $customerId = $request->customerId;
         $rows = json_decode($request->rows);
 
         $validation = Validator::make($request->all(), [
-            'soCode' => 'required',
+            'customerId' => 'required',
         ]);
 
         if ($validation->fails()) {
-            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => ['SO Code is required'], 'alert' => 'error']);
+            return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => ['Customer is required'], 'alert' => 'error']);
         }
 
-        $orderQty = DB::table('sales_order_det')
-        ->where('so_code', $soCode)
-        ->pluck('qty', 'article_code');
+        $soCodes = DB::table('sales_order_hdr')
+        ->where('customer_id', $customerId)
+        ->where('delivery_type', 'PO')
+        ->pluck('so_code')
+        ->toArray();
 
-        $totalPerArticle = [];
+        $orderQty = DB::table('sales_order_det')
+        ->whereIn('so_code', $soCodes)
+        ->get()
+        ->keyBy(fn($r) => $r->so_code.'|'.$r->article_code);
+
+        $totalPerKey = [];
         $dataSet = [];
         foreach ($rows as $val) {
             $qty = (float) $val->qty;
             if ($qty <= 0) {
                 continue;
             }
-            $totalPerArticle[$val->article_code] = ($totalPerArticle[$val->article_code] ?? 0) + $qty;
+            $key = $val->so_code.'|'.$val->article_code;
+            $totalPerKey[$key] = ($totalPerKey[$key] ?? 0) + $qty;
             $dataSet[] = [
-                'so_code' => $soCode,
+                'so_code' => $val->so_code,
                 'article_code' => $val->article_code,
                 // JS sends DD-MM-YYYY; store as a real date (Postgres won't parse DD-MM-YYYY by default)
                 'schedule_date' => \Carbon\Carbon::createFromFormat('d-m-Y', $val->schedule_date)->format('Y-m-d'),
@@ -202,10 +241,10 @@ class DeliveryScheduleController extends Controller
         }
 
         $errors = [];
-        foreach ($orderQty as $articleCode => $qty) {
-            $scheduled = round($totalPerArticle[$articleCode] ?? 0, 2);
-            if ($scheduled != round((float) $qty, 2)) {
-                $errors[] = "$articleCode: scheduled qty ($scheduled) does not match order qty ($qty)";
+        foreach ($orderQty as $key => $row) {
+            $scheduled = round($totalPerKey[$key] ?? 0, 2);
+            if ($scheduled != round((float) $row->qty, 2)) {
+                $errors[] = "{$row->so_code} / {$row->article_code}: scheduled qty ($scheduled) does not match order qty ({$row->qty})";
             }
         }
 
@@ -215,17 +254,17 @@ class DeliveryScheduleController extends Controller
 
         DB::beginTransaction();
         try {
-            DB::table('delivery_schedule_det')->where('so_code', $soCode)->delete();
+            DB::table('delivery_schedule_det')->whereIn('so_code', $soCodes)->delete();
             if (!empty($dataSet)) {
                 DB::table('delivery_schedule_det')->insert($dataSet);
             }
             DB::commit();
-            $message = "Delivery Schedule for $soCode is successfully saved";
+            $message = "Delivery Schedule for customer $customerId is successfully saved";
             \LogActivity::addToLog("Save $this->title", "username: $username Status $message");
             return response()->json(['status' => 1, 'title' => "Save $this->title", 'message' => $message, 'alert' => 'success']);
         } catch (\Exception $e) {
             DB::rollBack();
-            $message = "Delivery Schedule for $soCode is failed to save";
+            $message = "Delivery Schedule for customer $customerId is failed to save";
             \LogActivity::addToLog("Save $this->title", "username: $username Status $message");
             return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [$message], 'alert' => 'error']);
         }
@@ -233,29 +272,45 @@ class DeliveryScheduleController extends Controller
 
     public function exportTemplate(Request $request)
     {
-        $soCode = $request->so_code;
+        $customerId = $request->customer_id;
 
-        $articles = DB::table('sales_order_det')
-        ->where('so_code', $soCode)
+        $soCodes = DB::table('sales_order_hdr')
+        ->where('customer_id', $customerId)
+        ->where('delivery_type', 'PO')
+        ->pluck('so_code');
+
+        $rows = DB::table('sales_order_det')
+        ->whereIn('so_code', $soCodes)
+        ->orderBy('so_code')
         ->orderBy('article_code')
         ->get();
 
-        return Excel::download(new DeliveryScheduleTemplateExport($articles), "delivery_schedule_template_$soCode.xlsx");
+        return Excel::download(new DeliveryScheduleTemplateExport($rows), "delivery_schedule_template_$customerId.xlsx");
     }
 
     public function importExcel(Request $request)
     {
         $validation = Validator::make($request->all(), [
             'file' => 'required|mimes:xls,xlsx|max:5120',
-            'soCode' => 'required',
+            'customerId' => 'required',
         ]);
 
         if ($validation->fails()) {
-            return response()->json(['status' => 0, 'message' => ['A valid SO Code and xls/xlsx file are required']]);
+            return response()->json(['status' => 0, 'message' => ['A valid Customer and xls/xlsx file are required']]);
         }
 
-        $soCode = $request->soCode;
-        $validArticles = DB::table('sales_order_det')->where('so_code', $soCode)->pluck('article_code')->toArray();
+        $customerId = $request->customerId;
+        $soCodes = DB::table('sales_order_hdr')
+        ->where('customer_id', $customerId)
+        ->where('delivery_type', 'PO')
+        ->pluck('so_code')
+        ->toArray();
+
+        $validPairs = DB::table('sales_order_det')
+        ->whereIn('so_code', $soCodes)
+        ->get()
+        ->map(fn($r) => $r->so_code.'|'.$r->article_code)
+        ->toArray();
 
         $import = new DeliveryScheduleImport();
         Excel::import($import, $request->file('file'));
@@ -263,12 +318,12 @@ class DeliveryScheduleController extends Controller
         $rows = [];
         $errors = [];
         foreach ($import->rows as $row) {
-            if (!in_array($row['article_code'], $validArticles)) {
-                $errors[] = "{$row['article_code']} does not belong to SO $soCode";
+            if (!in_array($row['so_code'].'|'.$row['article_code'], $validPairs)) {
+                $errors[] = "{$row['so_code']} / {$row['article_code']} does not belong to this customer's PO Sales Orders";
                 continue;
             }
             if (!$row['schedule_date']) {
-                $errors[] = "{$row['article_code']}: invalid date, expected format DD-MM-YYYY";
+                $errors[] = "{$row['so_code']} / {$row['article_code']}: invalid date, expected format DD-MM-YYYY";
                 continue;
             }
             $rows[] = $row;

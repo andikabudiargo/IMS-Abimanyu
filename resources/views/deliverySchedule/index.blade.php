@@ -53,7 +53,9 @@
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
-        <div class="row">
+        <button type="button" class="btn btn-primary d-none" id ="btnDetail" name="btnDetail">Detail</button>
+        <button type="button" class="btn btn-primary d-none" id ="btnSummary" name="btnSummary">Summary</button>
+        <div class="row" id="summaryWrap">
             <div class="col-sm-12">
               <div class="card-datatable table-responsive pt-0">
                 <table id="detailedTable" class="table">
@@ -63,32 +65,25 @@
               </div>
             </div>
         </div>
+        <div id="detailWrap" style="display:none;"></div>
       </div>
     </div>
   </div>
 </section>
-<!-- Modal detail SO per customer -->
-<div class="modal fade text-left bisa-geser" id="mdlDetail" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-      <div class="modal-content">
-          <div class="modal-header">
-              <h5>Sales Order <span class="bold" id="mdlCustName"></span></h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
-              </button>
-          </div>
-          <div class="modal-body">
-            <div class="table-responsive">
-              <table class="table table-striped" id="mdlDetailTable">
-              </table>
-            </div>
-          </div>
-      </div>
-  </div>
-</div>
+@endsection
+@section('styles')
+<style>
+    .ds-table-scroll{ overflow-x:auto; }
+    .ds-table th, .ds-table td{ white-space:nowrap; }
+    .ds-sticky{ position:sticky; left:0; background:#fff; z-index:1; }
+    .ds-col-article{ left:0; min-width:220px; }
+</style>
 @endsection
 @section('scripts')
 <script type="text/javascript">
+  let btnSummary = $('#btnSummary');
+  let btnDetail = $('#btnDetail');
+
   $(document).ready(function(){
     validateFormToast("frmAdd");
     let now = new Date();
@@ -96,7 +91,7 @@
     let lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0);
     let fmt = (d) => (d.getDate()<10?'0':'')+d.getDate()+'-'+((d.getMonth()+1)<10?'0':'')+(d.getMonth()+1)+'-'+d.getFullYear();
     $('#periode').val(fmt(firstDay)+' to '+fmt(lastDay));
-    filterData();
+    showSummary();
   });
 
   rangePickr = $('.flatpickr-range');
@@ -109,7 +104,10 @@
     });
   }
 
-  function filterData(){
+  function showSummary(){
+    $('#summaryWrap').show();
+    $('#detailWrap').hide();
+
     let periode = $('#periode').val();
     let searchCustomer = $('#searchCustomer').val();
 
@@ -123,7 +121,7 @@
       tableId:"detailedTable",
       route:"{{ route('deliverySchedule.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4],
+      arrColPrint:[1,2,3,4,5],
       columnDefs :[
         { width: '10%', targets: 0 },
       ],
@@ -131,44 +129,92 @@
         periode:periode,
         searchCustomer:searchCustomer
       },
+      initComplete: function() {
+        let api = this.api();
+        if (api.data().length > 0) {
+          btnDetail.removeClass('d-none');
+          btnSummary.addClass('d-none');
+        }
+      },
       excelFileName:'delivery_schedule'
     });
   }
 
+  function showDetail(){
+    $('#summaryWrap').hide();
+    $('#detailWrap').show().html('<div class="text-muted p-2">Loading...</div>');
+
+    $.ajax({
+      type:'get',
+      url:"{{ route('deliverySchedule.list.matrix') }}",
+      data:{
+        periode:$('#periode').val(),
+        searchCustomer:$('#searchCustomer').val()
+      },
+      dataType:'json',
+      success:function(data){
+        renderMatrix(data.groups);
+      },
+      error:function(error){
+        console.log(error);
+      }
+    });
+  }
+
+  function renderMatrix(groups){
+    if (!groups.length){
+        $('#detailWrap').html('<div class="text-muted p-2">No schedule found for this periode.</div>');
+        return;
+    }
+
+    let html = '';
+    groups.forEach(function(g){
+      html += '<div class="card"><div class="card-header"><h4 class="card-title">'+g.name+'</h4></div>';
+      html += '<div class="card-body"><div class="ds-table-scroll"><table class="table table-bordered table-sm ds-table">';
+      html += '<thead class="thead-light"><tr><th class="ds-sticky ds-col-article">Article</th>';
+      g.dates.forEach(function(d){ html += '<th class="text-center">'+d+'</th>'; });
+      html += '<th class="text-center">Total</th></tr></thead><tbody>';
+
+      Object.keys(g.articles).forEach(function(rowKey){
+        let rowTotal = 0;
+        html += '<tr><td class="ds-sticky ds-col-article">'+g.articles[rowKey]+'</td>';
+        g.dates.forEach(function(d){
+          let qty = (g.matrix[rowKey] && g.matrix[rowKey][d]) ? g.matrix[rowKey][d] : 0;
+          rowTotal += qty;
+          html += '<td class="text-center">'+(qty ? qty : '-')+'</td>';
+        });
+        html += '<td class="text-center font-weight-bold">'+rowTotal+'</td></tr>';
+      });
+
+      html += '</tbody></table></div></div></div>';
+    });
+
+    $('#detailWrap').html(html);
+  }
+
   $("#btnSearch").click(function(e){
-    filterData();
+    showSummary();
+    btnDetail.removeClass('d-none');
+    btnSummary.addClass('d-none');
   });
 
   $('a[data-action="reload"]').on('click', function () {
-    filterData();
+    showSummary();
+    btnDetail.removeClass('d-none');
+    btnSummary.addClass('d-none');
   });
 
-  const detailCustomer = (customerId, custName) => {
-    $('#mdlDetail').modal('show');
-    $('#mdlCustName').text(' | '+custName);
+  btnSummary.click(function(e){
+    showSummary();
+    btnDetail.removeClass('d-none');
+    btnSummary.addClass('d-none');
+  });
 
-    if ($('#mdlDetailTable tr').length >0){
-        let table= $('#mdlDetailTable').DataTable();
-        table.destroy();
-        $('#mdlDetailTable tbody > tr').remove();
-        $("#mdlDetailTable thead > tr").remove();
-    }
-    showDataTables({
-      tableId:"mdlDetailTable",
-      route:"{{ route('deliverySchedule.list.detail') }}",
-      kolom:{!! $kolomDetail !!},
-      arrColPrint:[1,2,3,4,5],
-      columnDefs :[
-        { width: '10%', targets: 0 },
-      ],
-      dataSearch:{
-        customerId:customerId,
-        periode:$('#periode').val()
-      },
-      scrollY:350,
-      excelFileName:'delivery_schedule_detail_'+customerId
-    });
-  }
+  btnDetail.click(function(e){
+    showDetail();
+    btnDetail.addClass('d-none');
+    btnSummary.removeClass('d-none');
+  });
 
   $.ajaxSetup({
     headers: {

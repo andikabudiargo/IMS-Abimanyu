@@ -8,24 +8,24 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 class DeliveryScheduleTemplateExport implements FromArray, WithHeadings, ShouldAutoSize
 {
-    protected $articles;
+    protected $rows;
 
-    public function __construct($articles)
+    public function __construct($rows)
     {
-        $this->articles = $articles;
+        $this->rows = $rows;
     }
 
     public function headings(): array
     {
         // schedule_date format: DD-MM-YYYY (text, not an Excel date cell)
-        return ['article_code', 'schedule_date', 'qty'];
+        return ['so_code', 'article_code', 'schedule_date', 'qty'];
     }
 
     public function array(): array
     {
         $rows = [];
-        foreach ($this->articles as $article) {
-            $rows[] = [$article->article_code, '', ''];
+        foreach ($this->rows as $row) {
+            $rows[] = [$row->so_code, $row->article_code, '', ''];
         }
         return $rows;
     }
