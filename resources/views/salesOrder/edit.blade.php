@@ -94,6 +94,28 @@
                                     </select>
                                 </div>
                             </div>
+                            @php
+                                $deliveryTypeOptions = ['PO','Jitcall','DI','Kanban','Other'];
+                                $deliveryTypeSelected = in_array($header->delivery_type, $deliveryTypeOptions) ? $header->delivery_type : ($header->delivery_type ? 'Other' : 'PO');
+                            @endphp
+                            <div class="form-row">
+                                <div class="form-group col-md-2">
+                                    <label class="form-label" for="deliveryType">Delivery Type*</label>
+                                    <select class="select2 form-control" id="deliveryType" name="deliveryType" required>
+                                        @foreach($deliveryTypeOptions as $val)
+                                        <option value="{{$val}}" {{ $val == $deliveryTypeSelected ? "selected" : ""}}>{{$val}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-2" id="deliveryTypeOtherWrap" style="display:none;">
+                                    <label for="deliveryTypeOther">Delivery Type (manual)*</label>
+                                    <input type="text" id="deliveryTypeOther" name="deliveryTypeOther" class="form-control" maxlength="40" value="{{ $deliveryTypeSelected == 'Other' ? $header->delivery_type : '' }}" />
+                                </div>
+                                <div class="form-group col-md-2" id="deliveryDateWrap" style="display:none;">
+                                    <label for="deliveryDate">Delivery Date*</label>
+                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control flatpickr-basic" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" />
+                                </div>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group col-md-8">
                                     <label class="form-label" for="note">Notes</label>
@@ -321,6 +343,35 @@
         </div>
     </div>
 </section>
+
+{{-- Modal List Price SO --}}
+<div class="modal fade" id="modalListPriceSo" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Price History: <span id="modalArticleSo"></span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-bordered table-sm" id="modalTableDataSo">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>SO Number</th>
+                            <th>SO Date</th>
+                            <th>Updated</th>
+                            <th class="text-right">Price Material</th>
+                            <th class="text-right">Price Service</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 @section('styles')
 <style>
@@ -377,17 +428,64 @@
         }
     }
 
+/* Paksa teks article select2 selalu terlihat, walau modal aktif */
+#article_row .select2-selection__rendered {
+    color: #6e6b7b !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
 
+/* Cegah modal meng-inert-kan konten di belakang sampai teks jadi transparan */
+body.modal-open #article_row,
+body.modal-open #article_row .select2-container {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
     
 
 </style>
 @endsection
 @section('scripts')
+<script>
+$(function(){
+    // Repaint teks select2 article — HANYA menulis teks, tidak menghapus apa pun
+    function repaintArticleText(){
+        $('#article_row select[name="article_id[]"]').each(function(){
+            var $sel = $(this);
+            if (!$sel.val()) return;                          // skip baris kosong
+            var txt = $sel.find('option:selected').text();
+            if (!txt) return;
+            var s2 = $sel.data('select2');
+            if (s2 && s2.$selection) {
+                s2.$selection.find('.select2-selection__rendered')
+                    .attr('title', txt).text(txt);
+            }
+        });
+    }
+
+    $(document).on('shown.bs.modal', '#modalListPriceSo', function(){
+        repaintArticleText();
+    });
+    $(document).on('hidden.bs.modal', '#modalListPriceSo', function(){
+        repaintArticleText();
+    });
+});
+</script>
 @include('salesOrder.addArticle')
 <script type="text/javascript">
     let lockedAt = "{{ $lockDate }}";
 
-    $(document).ready(function(){           
+    $('#deliveryDate').flatpickr({ dateFormat: "d-m-Y", allowInput:true });
+
+    function toggleDeliveryFields(){
+        let deliveryType = $('#deliveryType').val();
+        $('#deliveryTypeOtherWrap').toggle(deliveryType === 'Other');
+        $('#deliveryTypeOther').prop('required', deliveryType === 'Other');
+        $('#deliveryDateWrap').toggle(deliveryType !== 'PO');
+        $('#deliveryDate').prop('required', deliveryType !== 'PO');
+    }
+
+    $(document).ready(function(){
         validateFormToast("frmAdd");
         tombolPanah('qty_order');
         tombolPanah('price');
@@ -398,7 +496,10 @@
         hitungGrandTotal();
         mask_thousand_digit(2);
         $('.sku-select-system').select2();
+        toggleDeliveryFields();
     });
+
+    $('#deliveryType').change(toggleDeliveryFields);
 
     statusSo = "{{ $statusSo }}";
 
@@ -490,7 +591,12 @@
                 let aPembilangNumber = $('#pembilangNumber').val();
                 let aPenyebutNumber = $('#penyebutNumber').val();
                 let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
-        
+                let deliveryType = $('#deliveryType').val();
+                if (deliveryType === 'Other'){
+                    deliveryType = $('#deliveryTypeOther').val();
+                }
+                let deliveryDate = $('#deliveryType').val() !== 'PO' ? $('#deliveryDate').val() : '';
+
                 $.ajax({
                     type: "post",
                     url: "{{ route('salesOrder.update') }}",
@@ -512,7 +618,9 @@
                         statusSimpan:statusSimpan,
                         pembilangNumber:aPembilangNumber,
                         penyebutNumber:aPenyebutNumber,
-                        totalDppNilaiLain:aTotalDppNilaiLain
+                        totalDppNilaiLain:aTotalDppNilaiLain,
+                        deliveryType:deliveryType,
+                        deliveryDate:deliveryDate
                     },
                     dataType: "json",
                     success: function(data) {
