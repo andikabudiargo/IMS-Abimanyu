@@ -43,7 +43,7 @@
               <div class="form-group col-md-2" style="padding-top:22px;">
                 <button type="button" class="btn btn-primary" id="cmdGenerate">Generate Table</button>
               </div>
-              <div class="form-group col-md-6 d-flex justify-content-between" style="padding-top:22px;">
+              <div class="form-group col-md-6 d-flex justify-content-end" style="padding-top:22px; gap:8px;">
                 <a href="javascript:;" id="lnkTemplate" class="btn btn-success disabled" title="Pilih Delivery Date Range lalu klik Generate Table dulu">
                   <i data-feather="download"></i> Download Template
                 </a>
@@ -160,8 +160,10 @@
     }
 
     function updateTemplateLink(fromDdMmYyyy, toDdMmYyyy_){
+        // route() already appends ?customer_id=... since the route has no {customer_id} placeholder,
+        // so this must use & here, not another ?.
         let url = "{{ route('deliverySchedule.export.template', ['customer_id' => $customer->kode]) }}"
-            + "?periode=" + encodeURIComponent(fromDdMmYyyy + ' to ' + toDdMmYyyy_);
+            + "&periode=" + encodeURIComponent(fromDdMmYyyy + ' to ' + toDdMmYyyy_);
         $('#lnkTemplate').attr('href', url).removeClass('disabled').removeAttr('title');
     }
 
