@@ -110,6 +110,12 @@ class StoReportController extends Controller
         $this->moduleCode = 'STO_REPORT';
     }
 
+    // Kolom Nilai Persediaan & Consumption hanya utk accounting/Superuser.
+    protected function canSeeValuation()
+    {
+        return Auth::user()->hasAnyRole(['Superuser', 'accounting']);
+    }
+
     // ══════════════════════════════════════════════
     // HELPER GRUP LOKASI
     // ══════════════════════════════════════════════
@@ -283,6 +289,7 @@ class StoReportController extends Controller
             'totals'  => $result['totals'],
             'summary' => $result['summary'],
             'columns' => $result['columns'],
+            'can_see_valuation' => $result['can_see_valuation'],
         ]);
     }
 
@@ -1160,6 +1167,7 @@ class StoReportController extends Controller
         // ── BARU: Nilai Persediaan & Consumption ──
         // group dipakai buat gate kolom Consumption (cuma CHEMICAL: 005/006/009)
         $group = $this->getLocationGroup($locationCode);
+        $canSeeValuation = $this->canSeeValuation(); // hanya accounting/Superuser
 
         // Info konversi UoM Con v2 per artikel, mis. "1 PAX = 500 PCS" (beda supplier digabung, duplikat dibuang)
         $uomRows  = DB::table('uom_con_v2')->whereIn('article_code', $realCodes)
@@ -1174,8 +1182,9 @@ class StoReportController extends Controller
 
         $fgCodes = $articles->filter(fn($x) => strtoupper($x->article_type ?? '') === 'FG')->keys()->map(fn($c) => (string) $c)->all();
         $isWip   = $anchor === '012';
-        $dnAvg   = $isWip ? $this->avgBomRmValues($fgCodes) : $this->avgDnValues($fgCodes, $dateFrom, $dateTo);
-        $recAvg  = $this->avgReceivingValues(array_values(array_diff($articles->keys()->map(fn($c) => (string) $c)->all(), $fgCodes)));
+        // skip query harga kalau role tidak berhak lihat Nilai Persediaan/Consumption
+        $dnAvg   = $canSeeValuation ? ($isWip ? $this->avgBomRmValues($fgCodes) : $this->avgDnValues($fgCodes, $dateFrom, $dateTo)) : collect();
+        $recAvg  = $canSeeValuation ? $this->avgReceivingValues(array_values(array_diff($articles->keys()->map(fn($c) => (string) $c)->all(), $fgCodes))) : collect();
 
         foreach ($realCodes as $rc) {
             $meta    = $articles->get($rc);
@@ -1234,25 +1243,29 @@ class StoReportController extends Controller
             $totalArtikel++;
             if ($accurate) $totalPoin++;
 
-            // ── Nilai Persediaan: FG pakai avg harga jual DN (periode report ini),
-            //    selain FG pakai avg harga receiving (fresh, bukan warehouse_stock.avg_price).
-            $articleType = strtoupper($meta->article_type ?? '');
-            $unitValue   = $articleType === 'FG'
-                ? ($dnAvg[$rc] ?? 0.0)
-                : ($recAvg[$rc] ?? 0.0);
-            $valuation   = $stoQty !== null ? round($unitValue * $stoQty, 2) : null;
-
-            // ── Consumption: cuma untuk lokasi CHEMICAL (005/006/009).
-            //    Consumption = Supply - Return, diselaraskan dengan Variance
-            //    (opsi 2 yang sudah disetujui) supaya total pergerakan pas
-            //    dengan hasil fisik STO.
+            // ── Nilai Persediaan & Consumption: hanya accounting/Superuser ──
+            $unitValue        = 0.0;
+            $valuation        = null;
             $consumptionQty   = null;
             $consumptionValue = null;
-            if ($group === 'CHEMICAL') {
-                $supplyQty      = $moveVals['out_supply_transfer'] ?? 0;
-                $returnQty      = $moveVals['in_return_transfer'] ?? 0;
-                $consumptionQty = round(($supplyQty - $returnQty) - ($variance ?? 0), 2);
-                $consumptionValue = round($unitValue * $consumptionQty, 2);
+
+            if ($canSeeValuation) {
+                // FG pakai avg harga jual DN (periode report ini), selain FG pakai avg harga receiving (fresh, bukan warehouse_stock.avg_price).
+                $articleType = strtoupper($meta->article_type ?? '');
+                $unitValue   = $articleType === 'FG'
+                    ? ($dnAvg[$rc] ?? 0.0)
+                    : ($recAvg[$rc] ?? 0.0);
+                $valuation   = $stoQty !== null ? round($unitValue * $stoQty, 2) : null;
+
+                // Consumption: cuma untuk lokasi CHEMICAL (005/006/009).
+                // Consumption = Supply - Return, diselaraskan dengan Variance
+                // (opsi 2 yang sudah disetujui) supaya total pergerakan pas dengan hasil fisik STO.
+                if ($group === 'CHEMICAL') {
+                    $supplyQty        = $moveVals['out_supply_transfer'] ?? 0;
+                    $returnQty        = $moveVals['in_return_transfer'] ?? 0;
+                    $consumptionQty   = round(($supplyQty - $returnQty) - ($variance ?? 0), 2);
+                    $consumptionValue = round($unitValue * $consumptionQty, 2);
+                }
             }
 
             $rowData = array_merge([
@@ -1323,6 +1336,7 @@ class StoReportController extends Controller
                 'threshold_pct'  => $this->accuracyThresholdPercent,
             ],
             'columns' => $columnDefs,
+            'can_see_valuation' => $canSeeValuation,
         ];
     }
 

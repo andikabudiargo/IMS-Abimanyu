@@ -398,7 +398,7 @@ $(document).ready(function () {
 
     // ── bangun header tabel dinamis (kolom IN/OUT beda-beda per grup lokasi) ──
     // columns = { in: [{key,label}, ...], out: [{key,label}, ...] }
-    function buildTableHead(columns) {
+    function buildTableHead(columns, canSeeValuation) {
         let inCols  = (columns && columns.in)  ? columns.in  : [];
         let outCols = (columns && columns.out) ? columns.out : [];
 
@@ -416,8 +416,7 @@ $(document).ready(function () {
             + '<th rowspan="2">Variance</th>'
             + '<th rowspan="2">Status</th>'
             + '<th rowspan="2">Akurasi</th>'
-            + '<th rowspan="2">Nilai Persediaan</th>'
-            + '<th rowspan="2">Consumption</th>'
+            + (canSeeValuation ? '<th rowspan="2">Nilai Persediaan</th><th rowspan="2">Consumption</th>' : '')
             + '</tr>';
 
         let row2 = '<tr>';
@@ -429,7 +428,7 @@ $(document).ready(function () {
     }
 
     // ── bangun baris footer total, dinamis ikut kolom yang sama ──
-    function buildTableFoot(columns) {
+    function buildTableFoot(columns, canSeeValuation) {
         let inCols  = (columns && columns.in)  ? columns.in  : [];
         let outCols = (columns && columns.out) ? columns.out : [];
 
@@ -444,8 +443,7 @@ $(document).ready(function () {
             + '<td id="tVariance">-</td>'
             + '<td class="text-center">-</td>'
             + '<td id="tAkurasi" class="text-center">-</td>'
-            + '<td id="tValuation">-</td>'
-            + '<td id="tConsumption">-</td>';
+            + (canSeeValuation ? '<td id="tValuation">-</td><td id="tConsumption">-</td>' : '');
 
         $('#reportTfoot').html('<tr>' + cells + '</tr>');
     }
@@ -532,11 +530,12 @@ $(document).ready(function () {
         let columns = res.columns || { in: [], out: [] };
         let inCols  = columns.in  || [];
         let outCols = columns.out || [];
+        let canSeeValuation = !!res.can_see_valuation;
 
         // header & footer tabel dibangun ulang tiap generate, karena kolom
         // movement (IN/OUT) beda-beda tergantung grup lokasi yang dipilih
-        buildTableHead(columns);
-        buildTableFoot(columns);
+        buildTableHead(columns, canSeeValuation);
+        buildTableFoot(columns, canSeeValuation);
 
         // info header
         $('#hSto').text(h.sto_code);
@@ -548,7 +547,7 @@ $(document).ready(function () {
         // tabel body + akumulasi akurasi
         let body = '';
         let accSum = 0, accCount = 0, meetCount = 0;
-        let totalCols = 13 + inCols.length + outCols.length; // 6 kolom kiri statis + movement + 7 kolom kanan statis
+        let totalCols = (canSeeValuation ? 13 : 11) + inCols.length + outCols.length; // 6 kolom kiri statis + movement + kolom kanan statis
 
         if (!res.rows || res.rows.length === 0) {
             body = '<tr><td colspan="' + totalCols + '" class="text-center text-muted py-1">Tidak ada data untuk lokasi/periode ini.</td></tr>';
@@ -595,8 +594,10 @@ $(document).ready(function () {
                     + '<td class="text-right ' + varCls + '">' + varVal + '</td>'
                     + '<td class="text-center">' + statusBadge(r.sto_status) + '</td>'
                     + '<td class="text-center">' + accuracyCell(r, target, tolerance) + '</td>'
-                    + '<td class="text-right">' + (r.valuation !== null ? fmt(r.valuation) : '<span class="text-muted">-</span>') + '</td>'
-                    + '<td class="text-right">' + (r.consumption_value !== null ? fmt(r.consumption_value) : '<span class="text-muted">-</span>') + '</td>'
+                    + (canSeeValuation
+                        ? '<td class="text-right">' + (r.valuation !== null ? fmt(r.valuation) : '<span class="text-muted">-</span>') + '</td>'
+                        + '<td class="text-right">' + (r.consumption_value !== null ? fmt(r.consumption_value) : '<span class="text-muted">-</span>') + '</td>'
+                        : '')
                     + '</tr>';
             });
         }
