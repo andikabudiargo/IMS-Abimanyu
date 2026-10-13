@@ -259,7 +259,8 @@ class SalesOrderController extends Controller
         $customer = $request->customer;
         $salesman = $request->salesman;
         $deliveryType = $request->deliveryType;
-        $deliveryDate = $deliveryType == 'PO' ? null : $request->deliveryDate;
+        // JS sends DD-MM-YYYY; delivery_date is a real date column, not text like so_date
+        $deliveryDate = ($deliveryType == 'PO' || !$request->deliveryDate) ? null : \Carbon\Carbon::createFromFormat('d-m-Y', $request->deliveryDate)->format('Y-m-d');
 
         // === Lock Transaction guard: activity + periode ===
         if ($err = AppHelpers::lockGuard($this->moduleCode, $orderDate)) {
@@ -713,7 +714,8 @@ class SalesOrderController extends Controller
         $customer = $request->customer;
         $salesman = $request->salesman;
         $deliveryType = $request->deliveryType;
-        $deliveryDate = $deliveryType == 'PO' ? null : $request->deliveryDate;
+        // JS sends DD-MM-YYYY; delivery_date is a real date column, not text like so_date
+        $deliveryDate = ($deliveryType == 'PO' || !$request->deliveryDate) ? null : \Carbon\Carbon::createFromFormat('d-m-Y', $request->deliveryDate)->format('Y-m-d');
         // $ppn = $request->ppn;
         // $pph23 = $request->pph23;
         // $totalPpn = $request->totalPpn;

@@ -116,7 +116,7 @@
                                             @if($header2->delivery_type && $header2->delivery_type != 'PO')
                                             <div class="form-group col-md-3">
                                                 <label for="deliveryDate">Delivery Date</label>
-                                                <input type="text" class="form-control" value="{{ $header2->delivery_date }}" disabled />
+                                                <input type="text" class="form-control" value="{{ $header2->delivery_date ? date('d-m-Y', strtotime($header2->delivery_date)) : '' }}" disabled />
                                             </div>
                                             @endif
                                         </div>

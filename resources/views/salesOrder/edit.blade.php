@@ -113,7 +113,7 @@
                                 </div>
                                 <div class="form-group col-md-2" id="deliveryDateWrap" style="display:none;">
                                     <label for="deliveryDate">Delivery Date*</label>
-                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control flatpickr-basic" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" />
+                                    <input type="text" id="deliveryDate" name="deliveryDate" class="form-control flatpickr-basic" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date ? date('d-m-Y', strtotime($header->delivery_date)) : '' }}" />
                                 </div>
                             </div>
                             <div class="form-row">
