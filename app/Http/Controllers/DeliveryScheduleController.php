@@ -270,20 +270,50 @@ class DeliveryScheduleController extends Controller
         }
     }
 
-    public function exportTemplate(Request $request)
+    // Builds the (so_code, article_code, article_alternative_code) pairs eligible
+    // for a customer's Delivery Schedule - shared by exportTemplate/importExcel.
+    private function articlePairs($customerId)
     {
-        $customerId = $request->customer_id;
-
         $soCodes = DB::table('sales_order_hdr')
         ->where('customer_id', $customerId)
         ->where('delivery_type', 'PO')
         ->pluck('so_code');
 
-        $rows = DB::table('sales_order_det')
-        ->whereIn('so_code', $soCodes)
-        ->orderBy('so_code')
-        ->orderBy('article_code')
+        return DB::table('sales_order_det')
+        ->leftJoin('article', 'article.article_code', '=', 'sales_order_det.article_code')
+        ->whereIn('sales_order_det.so_code', $soCodes)
+        ->select('sales_order_det.so_code', 'sales_order_det.article_code', DB::raw('coalesce(article.article_alternative_code, sales_order_det.article_code) as alt_code'))
+        ->orderBy('sales_order_det.so_code')
+        ->orderBy('sales_order_det.article_code')
         ->get();
+    }
+
+    public function exportTemplate(Request $request)
+    {
+        $customerId = $request->customer_id;
+        $periode = $request->periode;
+
+        if (!$periode || strpos($periode, 'to') === false) {
+            abort(422, 'Please pick the Delivery Date Range before downloading the template');
+        }
+
+        [$fromRaw, $toRaw] = array_map('trim', explode('to', $periode, 2));
+        $from = \Carbon\Carbon::createFromFormat('d-m-Y', $fromRaw);
+        $to = \Carbon\Carbon::createFromFormat('d-m-Y', $toRaw);
+
+        $dates = [];
+        for ($d = $from->copy(); $d->lte($to); $d->addDay()) {
+            $dates[] = $d->format('d-m-Y');
+        }
+
+        $pairs = $this->articlePairs($customerId);
+
+        $rows = [];
+        foreach ($pairs as $p) {
+            foreach ($dates as $d) {
+                $rows[] = (object) ['so_code' => $p->so_code, 'article_code' => $p->alt_code, 'schedule_date' => $d];
+            }
+        }
 
         return Excel::download(new DeliveryScheduleTemplateExport($rows), "delivery_schedule_template_$customerId.xlsx");
     }
@@ -300,17 +330,12 @@ class DeliveryScheduleController extends Controller
         }
 
         $customerId = $request->customerId;
-        $soCodes = DB::table('sales_order_hdr')
-        ->where('customer_id', $customerId)
-        ->where('delivery_type', 'PO')
-        ->pluck('so_code')
-        ->toArray();
 
-        $validPairs = DB::table('sales_order_det')
-        ->whereIn('so_code', $soCodes)
-        ->get()
-        ->map(fn($r) => $r->so_code.'|'.$r->article_code)
-        ->toArray();
+        // Template shows article_alternative_code, so map it back to the real article_code.
+        $lookup = [];
+        foreach ($this->articlePairs($customerId) as $p) {
+            $lookup[$p->so_code.'|'.$p->alt_code] = $p->article_code;
+        }
 
         $import = new DeliveryScheduleImport();
         Excel::import($import, $request->file('file'));
@@ -318,7 +343,8 @@ class DeliveryScheduleController extends Controller
         $rows = [];
         $errors = [];
         foreach ($import->rows as $row) {
-            if (!in_array($row['so_code'].'|'.$row['article_code'], $validPairs)) {
+            $key = $row['so_code'].'|'.$row['article_code'];
+            if (!isset($lookup[$key])) {
                 $errors[] = "{$row['so_code']} / {$row['article_code']} does not belong to this customer's PO Sales Orders";
                 continue;
             }
@@ -326,6 +352,7 @@ class DeliveryScheduleController extends Controller
                 $errors[] = "{$row['so_code']} / {$row['article_code']}: invalid date, expected format DD-MM-YYYY";
                 continue;
             }
+            $row['article_code'] = $lookup[$key];
             $rows[] = $row;
         }
 

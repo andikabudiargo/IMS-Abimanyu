@@ -25,7 +25,7 @@ class DeliveryScheduleTemplateExport implements FromArray, WithHeadings, ShouldA
     {
         $rows = [];
         foreach ($this->rows as $row) {
-            $rows[] = [$row->so_code, $row->article_code, '', ''];
+            $rows[] = [$row->so_code, $row->article_code, $row->schedule_date, ''];
         }
         return $rows;
     }

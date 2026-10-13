@@ -43,12 +43,12 @@
               <div class="form-group col-md-2" style="padding-top:22px;">
                 <button type="button" class="btn btn-primary" id="cmdGenerate">Generate Table</button>
               </div>
-              <div class="form-group col-md-6" style="padding-top:22px;">
-                <a href="{{ route('deliverySchedule.export.template', ['customer_id' => $customer->kode]) }}" class="btn btn-outline-secondary">
+              <div class="form-group col-md-6 d-flex justify-content-between" style="padding-top:22px;">
+                <a href="javascript:;" id="lnkTemplate" class="btn btn-success disabled" title="Pilih Delivery Date Range lalu klik Generate Table dulu">
                   <i data-feather="download"></i> Download Template
                 </a>
                 <input type="file" id="uploadFile" accept=".xls,.xlsx" class="d-none" />
-                <button type="button" class="btn btn-outline-secondary" id="cmdUpload">
+                <button type="button" class="btn btn-info" id="cmdUpload">
                   <i data-feather="upload"></i> Upload Schedule
                 </button>
               </div>
@@ -159,7 +159,14 @@
         });
     }
 
+    function updateTemplateLink(fromDdMmYyyy, toDdMmYyyy_){
+        let url = "{{ route('deliverySchedule.export.template', ['customer_id' => $customer->kode]) }}"
+            + "?periode=" + encodeURIComponent(fromDdMmYyyy + ' to ' + toDdMmYyyy_);
+        $('#lnkTemplate').attr('href', url).removeClass('disabled').removeAttr('title');
+    }
+
     function generateGrid(fromDdMmYyyy, toDdMmYyyy_){
+        updateTemplateLink(fromDdMmYyyy, toDdMmYyyy_);
         collectValues();
         let dates = buildDateList(toIso(fromDdMmYyyy), toIso(toDdMmYyyy_));
 
