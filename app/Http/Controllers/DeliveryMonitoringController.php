@@ -99,25 +99,82 @@ class DeliveryMonitoringController extends Controller
         return $dates;
     }
 
+    // Plan source: delivery_schedule_det for delivery_type='PO' SOs (per-date planned qty,
+    // see DeliveryScheduleController), else the SO's single header-level delivery_date holds
+    // the whole article qty (non-PO types are shipped in one go, not scheduled across dates).
+    private function planRows(Request $request)
+    {
+        [$from, $to] = $this->period($request);
+        $selected = array_filter((array) $request->customer);
+        $articles = array_filter((array) $request->article);
+
+        $where = ["x.plan_date BETWEEN ? AND ?"];
+        $bindings = [$from, $to];
+
+        if ($selected) {
+            $where[] = 'x.customer_id IN (' . implode(',', array_fill(0, count($selected), '?')) . ')';
+            $bindings = array_merge($bindings, $selected);
+        }
+        if ($articles) {
+            $where[] = 'x.article_code IN (' . implode(',', array_fill(0, count($articles), '?')) . ')';
+            $bindings = array_merge($bindings, $articles);
+        }
+
+        $sql = "SELECT x.customer_id, tp.nama AS customer_name, x.article_code,
+                a.article_alternative_code, a.article_desc, to_char(x.plan_date,'DD-MM-YYYY') AS delivery_date, x.qty
+            FROM (
+                SELECT h.customer_id, dsd.article_code, dsd.schedule_date AS plan_date, dsd.qty
+                FROM delivery_schedule_det dsd
+                JOIN sales_order_hdr h ON h.so_code = dsd.so_code
+                WHERE h.delivery_type = 'PO'
+                UNION ALL
+                SELECT h.customer_id, d.article_code, h.delivery_date AS plan_date, d.qty
+                FROM sales_order_det d
+                JOIN sales_order_hdr h ON h.so_code = d.so_code
+                WHERE h.delivery_type IS NOT NULL AND h.delivery_type <> 'PO' AND h.delivery_date IS NOT NULL
+            ) x
+            LEFT JOIN article a ON a.article_code = x.article_code
+            LEFT JOIN third_party tp ON tp.kode = x.customer_id
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY x.plan_date";
+
+        return DB::select($sql, $bindings);
+    }
+
     // $summary true = satu tabel gabungan, baris = customer+article (bukan dipecah per card customer).
-    private function groups(array $rows, $summary = false)
+    // $actualRows feeds 'matrix' (Actual - DN Replace excluded, see Plan/Actual/Balance remarks
+    // on the monitoring table), $planRows feeds 'plan'; Balance (Actual - Plan) is computed in the view.
+    private function groups(array $actualRows, array $planRows, $summary = false)
     {
         $data = [];
-        foreach ($rows as $r) {
+        $add = function ($r, $field) use (&$data, $summary) {
             $key = $summary ? 'ALL' : $r->customer_id;
             $data[$key]['name'] = $summary ? 'Summary - Semua Customer' : ($r->customer_name ?? $r->customer_id);
             $rowKey = $summary ? $r->customer_id . '|' . $r->article_code : $r->article_code;
             $data[$key]['articles'][$rowKey] = trim(($r->article_alternative_code ?? $r->article_code) . ' - ' . $r->article_desc, ' -');
             $data[$key]['rowCustomer'][$rowKey] = $r->customer_name ?? $r->customer_id;
             $data[$key]['dates'][$r->delivery_date] = true;
-            $data[$key]['matrix'][$rowKey][$r->delivery_date] = ($data[$key]['matrix'][$rowKey][$r->delivery_date] ?? 0) + (float) $r->qty;
+            $data[$key][$field][$rowKey][$r->delivery_date] = ($data[$key][$field][$rowKey][$r->delivery_date] ?? 0) + (float) $r->qty;
+        };
+
+        foreach ($actualRows as $r) {
+            if ($r->type === 'DN REPLACE') {
+                continue;
+            }
+            $add($r, 'matrix');
         }
+        foreach ($planRows as $r) {
+            $add($r, 'plan');
+        }
+
         foreach ($data as &$g) {
             $customers = $g['rowCustomer'] ?? [];
             $articles = $g['articles'];
             uksort($articles, fn($a, $b) => strcmp(($customers[$a] ?? '') . $articles[$a], ($customers[$b] ?? '') . $articles[$b]));
             $g['articles'] = $articles;
             $g['dates'] = $this->sortDates(array_keys($g['dates']));
+            $g['matrix'] = $g['matrix'] ?? [];
+            $g['plan'] = $g['plan'] ?? [];
         }
         uasort($data, fn($a, $b) => strcmp($a['name'], $b['name']));
         return $data;
@@ -176,7 +233,8 @@ class DeliveryMonitoringController extends Controller
         $rows = $data['selectedArticles']
             ? array_values(array_filter($allRows, fn($r) => in_array($r->article_code, $data['selectedArticles'])))
             : $allRows;
-        $data['groups'] = $this->groups($rows, $data['summary']);
+        $planRows = $this->planRows($request);
+        $data['groups'] = $this->groups($rows, $planRows, $data['summary']);
         $data['heatmap'] = $this->heatmapSeries($rows, $data['from']);
         return $data;
     }

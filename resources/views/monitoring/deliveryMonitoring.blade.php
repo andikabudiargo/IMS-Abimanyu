@@ -94,6 +94,7 @@
                 <th class="dm-sticky dm-col-no">No</th>
                 @if($summary)<th class="dm-sticky dm-col-customer">Customer</th>@endif
                 <th class="dm-sticky dm-col-article" @if($summary) style="left:265px" @endif>Article</th>
+                <th>Remarks</th>
                 @foreach($g['dates'] as $d)<th class="text-center">{{ $d }}</th>@endforeach
                 <th class="text-center font-weight-bold">Total</th>
               </tr>
@@ -101,22 +102,36 @@
             <tbody>
               @foreach($g['articles'] as $rowKey => $articleName)
                 @php([$rowCustomerId, $rowArticleCode] = $summary ? explode('|', $rowKey, 2) : [$kode, $rowKey])
+                @foreach(['plan' => 'Plan', 'matrix' => 'Actual', 'balance' => 'Balance'] as $remarkKey => $remarkLabel)
                 <tr>
-                  <td class="dm-sticky dm-col-no text-center">{{ $loop->iteration }}</td>
-                  @if($summary)<td class="dm-sticky dm-col-customer" title="{{ $g['rowCustomer'][$rowKey] ?? $rowCustomerId }}">{{ $g['rowCustomer'][$rowKey] ?? $rowCustomerId }}</td>@endif
-                  <td class="dm-sticky dm-col-article" @if($summary) style="left:265px" @endif>{{ $articleName }}</td>
+                  @if($remarkKey == 'plan')
+                  <td class="dm-sticky dm-col-no text-center" rowspan="3">{{ $loop->parent->iteration }}</td>
+                  @if($summary)<td class="dm-sticky dm-col-customer" rowspan="3" title="{{ $g['rowCustomer'][$rowKey] ?? $rowCustomerId }}">{{ $g['rowCustomer'][$rowKey] ?? $rowCustomerId }}</td>@endif
+                  <td class="dm-sticky dm-col-article" @if($summary) style="left:265px" @endif rowspan="3">{{ $articleName }}</td>
+                  @endif
+                  <td class="text-muted">{{ $remarkLabel }}</td>
                   @php($rowTotal = 0)
                   @foreach($g['dates'] as $d)
-                    @php($qty = $g['matrix'][$rowKey][$d] ?? 0)
-                    @php($rowTotal += $qty)
-                    <td class="text-center">
-                      @if($qty)
-                        <a href="#" class="btn-qty" data-customer="{{ $rowCustomerId }}" data-article="{{ $rowArticleCode }}" data-date="{{ $d }}" data-label="{{ $articleName }} - {{ $d }}">{{ rtrim(rtrim(number_format($qty, 2, '.', ''), '0'), '.') }}</a>
+                    @php($plan = $g['plan'][$rowKey][$d] ?? 0)
+                    @php($actual = $g['matrix'][$rowKey][$d] ?? 0)
+                    @php($balance = $actual - $plan)
+                    @if($remarkKey == 'plan') @php($val = $plan)
+                    @elseif($remarkKey == 'matrix') @php($val = $actual)
+                    @else @php($val = $balance) @endif
+                    @php($rowTotal += $val)
+                    <td class="text-center @if($remarkKey=='balance') @if($balance < 0) text-danger font-weight-bold @elseif($balance > 0) text-warning font-weight-bold @endif @endif">
+                      @if($remarkKey == 'balance')
+                        {{ $balance == 0 ? '0' : ($balance > 0 ? '+'.rtrim(rtrim(number_format($balance, 2, '.', ''), '0'), '.') : rtrim(rtrim(number_format($balance, 2, '.', ''), '0'), '.')) }}
+                      @elseif($remarkKey == 'matrix' && $val)
+                        <a href="#" class="btn-qty" data-customer="{{ $rowCustomerId }}" data-article="{{ $rowArticleCode }}" data-date="{{ $d }}" data-label="{{ $articleName }} - {{ $d }}">{{ rtrim(rtrim(number_format($val, 2, '.', ''), '0'), '.') }}</a>
+                      @elseif($val)
+                        {{ rtrim(rtrim(number_format($val, 2, '.', ''), '0'), '.') }}
                       @else - @endif
                     </td>
                   @endforeach
                   <td class="text-center font-weight-bold">{{ rtrim(rtrim(number_format($rowTotal, 2, '.', ''), '0'), '.') }}</td>
                 </tr>
+                @endforeach
               @endforeach
             </tbody>
             <tfoot>
@@ -124,6 +139,7 @@
                 <td class="dm-sticky dm-col-no"></td>
                 @if($summary)<td class="dm-sticky dm-col-customer"></td>@endif
                 <td class="dm-sticky dm-col-article text-right" @if($summary) style="left:265px" @endif>Total</td>
+                <td></td>
                 @php($grandTotal = 0)
                 @foreach($g['dates'] as $d)
                   @php($colTotal = array_sum(array_column($g['matrix'], $d)))
