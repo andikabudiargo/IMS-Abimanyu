@@ -105,7 +105,7 @@
         </li>
         <li class=" navigation-header"><span data-i18n="Marketing">Marketing</span><i data-feather="more-horizontal"></i>
         </li>
-        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo','forecastSales','salesOrderReport','deliverySchedules']) ? 'active' : '' }} nav-item">
+        <li class=" {{ in_array(\Request::segment(1), ['salesOrders','customers','targetSo','forecastSales','salesOrderReport','deliverySchedules','dnMonitoring']) ? 'active' : '' }} nav-item">
           <a class="d-flex align-items-center" href="javascript:void(0);">
             <i data-feather='phone-outgoing'></i>
             <span class="menu-title text-truncate" data-i18n="Form Elements">Sales
@@ -210,6 +210,12 @@
                       <a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}">
                         <i data-feather="circle"></i>
                         <span class="menu-item text-truncate" data-i18n="Dn Report Acc">DN Report</span>
+                      </a>
+                    </li>
+                    <li class="{{ \Request::segment(1) == 'dnMonitoring' ? 'active' : '' }}">
+                      <a class="d-flex align-items-center" href="{{ route('dnMonitoring.index') }}">
+                        <i data-feather="circle"></i>
+                        <span class="menu-item text-truncate" data-i18n="Dn Monitoring">DN Monitoring</span>
                       </a>
                     </li>
               @endcan
