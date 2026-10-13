@@ -129,6 +129,7 @@ class SalesOrderController extends Controller
         ->leftJoin('users','users.username','=','user_dept.username')
         ->select('users.username','users.name')
         ->where('dept','009')
+        ->where('users.status','1')
         ->whereNotIn('user_dept.username',['oki','yoga','Administrator','Supervisor','admin','konsultan','itabimanyu','budi','yorin'])
         ->orderBy('users.name')
         ->get();
@@ -185,6 +186,7 @@ class SalesOrderController extends Controller
         ->leftJoin('users','users.username','=','user_dept.username')
         ->select('users.username','users.name')
         ->where('dept','009')
+        ->where('users.status','1')
         ->whereNotIn('user_dept.username',['oki','yoga','Administrator','Supervisor','admin','konsultan','itabimanyu','budi','yorin'])
         ->orderBy('users.name')
         ->get();
@@ -498,6 +500,7 @@ class SalesOrderController extends Controller
         ->leftJoin('users','users.username','=','user_dept.username')
         ->select('users.username','users.name')
         ->where('dept','009')
+        ->where('users.status','1')
         ->whereNotIn('user_dept.username',['oki','yoga','Administrator','Supervisor','admin','konsultan','itabimanyu','budi','yorin'])
         ->orderBy('users.name')
         ->get();
@@ -581,6 +584,7 @@ class SalesOrderController extends Controller
         ->leftJoin('users','users.username','=','user_dept.username')
         ->select('users.username','users.name')
         ->where('dept','009')
+        ->where('users.status','1')
         ->whereNotIn('user_dept.username',['oki','yoga','Administrator','Supervisor','admin','konsultan','itabimanyu','budi','yorin'])
         ->orderBy('users.name')
         ->get();
@@ -661,6 +665,7 @@ class SalesOrderController extends Controller
         ->leftJoin('users','users.username','=','user_dept.username')
         ->select('users.username','users.name')
         ->where('dept','009')
+        ->where('users.status','1')
         ->whereNotIn('user_dept.username',['oki','yoga','Administrator','Supervisor','admin','konsultan','itabimanyu','budi','yorin'])
         ->orderBy('users.name')
         ->get();

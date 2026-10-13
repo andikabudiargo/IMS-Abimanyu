@@ -91,11 +91,13 @@
                                         @endforeach
                                     </select>
                                 </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-2">
                                     <label class="form-label" for="deliveryType">Delivery Type*</label>
                                     <select class="select2 form-control" id="deliveryType" name="deliveryType" required>
                                         <option value="PO">PO</option>
-                                        <option value="Gitcall">Gitcall</option>
+                                        <option value="Jitcall">Jitcall</option>
                                         <option value="DI">DI</option>
                                         <option value="Kanban">Kanban</option>
                                         <option value="Other">Other</option>
