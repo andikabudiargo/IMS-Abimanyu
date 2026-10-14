@@ -90,11 +90,13 @@ class AssetController extends Controller
             ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Ap Number'],
             ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Invoice Number'],
             ['data'=> 'tanggal_awal_penyusutan', 'name'=> 'tanggal_awal_penyusutan','title'=>'Tanggal Awal Penyusutan'],
+            ['data'=> 'tanggal_akhir_penyusutan', 'name'=> 'tanggal_akhir_penyusutan','title'=>'Tanggal Akhir Penyusutan'],
             ['data'=> 'coa_number', 'name'=> 'coa_number','title'=>'Akun Aktiva Tetap'],
             ['data'=> 'asset_desc', 'name'=> 'asset_desc','title'=>'Nama Asset'],
             ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'],
-            ['data'=> 'buying_price', 'name'=> 'buying_price','title'=>'Harga Beli'],
-            ['data'=> 'nilai_penyusutan', 'name'=> 'nilai_penyusutan','title'=>'Penyusutan'],
+            ['data'=> 'buying_price', 'name'=> 'buying_price','title'=>'Harga Perolehan'],
+            ['data'=> 'penyusutan_bulan', 'name'=> 'penyusutan_bulan','title'=>'Penyusutan'],
+            ['data'=> 'nilai_penyusutan', 'name'=> 'nilai_penyusutan','title'=>'Nilai Penyusutan'],
             ['data'=> 'masa_manfaat', 'name'=> 'masa_manfaat','title'=>'Masa Manfaat'],
             ['data'=> 'umur', 'name'=> 'umur','title'=>'Umur'],
             ['data'=> 'nilai_buku', 'name'=> 'nilai_buku','title'=>'Nilai Buku']
@@ -746,6 +748,9 @@ class AssetController extends Controller
         $searchName = $request->searchName;
         $searchDate = $request->searchDate;
         $searchJenisAset = $request->searchJenisAset;
+        $searchPeriode = $request->searchPeriode;
+
+        $periodeDate = ($searchPeriode ? $searchPeriode : date('Y-m')).'-01';
 
         $fromDate = "";
         $toDate = "";
@@ -771,9 +776,11 @@ class AssetController extends Controller
         ->where('assets.status','1')
         ->select(
             'assets.*'
+            ,DB::raw("assets.tanggal_awal_penyusutan as tgl_awal_raw")
             ,DB::raw("to_char(created_at,'DD-MM-YYYY') as tanggal_awal_penyusutan")
             ,DB::raw("EXTRACT(YEAR FROM age(buying_date)) as umur")
             ,DB::raw("(SELECT nilai_buku FROM asset_detail z where z.asset_number = assets.asset_number and  date_part('year', tanggal_asset) = date_part('year', CURRENT_DATE)) as nilai_buku")
+            ,DB::raw("(select concat(account,' - ',description) from accounts where account = assets.coa_number) as coa_description")
         )
         ->orderBy('assets.id')
         ->get(); 
@@ -828,6 +835,18 @@ class AssetController extends Controller
             return $buttons;
             })
         
+        ->addColumn('coa_number', function ($data) {
+            return $data->coa_description ? $data->coa_description : $data->coa_number;
+        })
+        ->addColumn('tanggal_akhir_penyusutan', function ($data) {
+            return $data->tanggal_akhir_penyusutan ? date('d-m-Y', strtotime($data->tanggal_akhir_penyusutan)) : '';
+        })
+        ->addColumn('penyusutan_bulan', function ($data) use ($periodeDate) {
+            if ($data->penyusutan != '1' || !$data->akumulai_penyusutan) return '';
+            if ($data->tgl_awal_raw && $periodeDate < $data->tgl_awal_raw) return '';
+            if ($data->tanggal_akhir_penyusutan && $periodeDate > $data->tanggal_akhir_penyusutan) return '';
+            return round($data->akumulai_penyusutan / 12);
+        })
         ->addColumn('nilai_penyusutan', function ($data) {
             return $data->nilai_penyusutan ? $data->nilai_penyusutan.'%' : '';
         })
@@ -839,7 +858,7 @@ class AssetController extends Controller
             return $data->nilai_buku ? $data->nilai_buku : $data->buying_price;
         })
 
-        ->rawColumns(['action','status','nilai_penyusutan','masa_manfaat','nilai_buku'])
+        ->rawColumns(['action','status','coa_number','tanggal_akhir_penyusutan','penyusutan_bulan','nilai_penyusutan','masa_manfaat','nilai_buku'])
         ->make(true);
     }
 

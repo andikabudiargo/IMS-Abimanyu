@@ -37,6 +37,10 @@
                   @endforeach
                 </select>
               </div>
+              <div class="form-group col-md-3">
+                <label for="searchPeriode">Periode Penyusutan</label>
+                <input type="month" id="searchPeriode" name="searchPeriode" class="form-control" value="{{ date('Y-m') }}" />
+              </div>
             </div>
             <div class="form-row">
                 <div class="col-12"> 
@@ -116,10 +120,11 @@
     let searchName = $("#searchName").val();
     let searchDate = $("#tanggalPenyusutan").val();
     let searchJenisAset = $("#jenisAset").val();
-    showList(searchNoAsset,searchName,searchDate,searchJenisAset);
+    let searchPeriode = $("#searchPeriode").val();
+    showList(searchNoAsset,searchName,searchDate,searchJenisAset,searchPeriode);
   });
 
-  const showList = (searchNoAsset,searchName,searchDate,searchJenisAset) => {
+  const showList = (searchNoAsset,searchName,searchDate,searchJenisAset,searchPeriode) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -130,21 +135,22 @@
       tableId:"detailedTable",
       route:"{{ route('asset.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12],
+      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 7,8,9,10,11,12],
+          targets: [ 8,9,10,11,12,13,14],
           render: $.fn.dataTable.render.number(',', '.', 0, ''),
           className: "text-right"
-        },        
+        },
       ],
       type:"POST",
       dataSearch:  {
         searchNoAsset:searchNoAsset,
         searchName:searchName,
         searchDate:searchDate,
-        searchJenisAset:searchJenisAset
+        searchJenisAset:searchJenisAset,
+        searchPeriode:searchPeriode
       },
       orderColumn:[[ 1, 'desc' ]],
       excelFileName:'assets'

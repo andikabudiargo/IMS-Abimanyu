@@ -207,8 +207,14 @@
     
     $(document).ready(function(){
         validateFormToast("frmAdd");
-        // let opsiPenyusutan = $("input[name='opsiPenyusutan']:checked"). val();    
+        // let opsiPenyusutan = $("input[name='opsiPenyusutan']:checked"). val();
         $('#assetCoa').val({{ $header->coa_number }}).trigger('change');
+
+        $('#assetName').select2('destroy').select2({
+            tags: true,
+            width: '100%',
+            dropdownParent: $('#assetName').parent()
+        });
     });
 
     $('#assetCoa').change(function(){
