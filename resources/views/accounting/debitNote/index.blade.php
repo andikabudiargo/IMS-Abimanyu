@@ -21,8 +21,8 @@
                 <label for="searchDn">DN Number</label>
                 <input type="text" class="form-control text-uppercase" id="searchDn" name="searchDn" placeholder=""  />
               </div>
-              <div class="form-group col-md-6"> 
-                <label class="form-label" for="searchCustomer">Customer</label>
+              <div class="form-group col-md-6">
+                <label class="form-label" for="searchCustomer">Customer / Supplier</label>
                 <select class="select2 form-control" id="searchCustomer" name="searchCustomer">
                     <option value="">All</option>
                     @foreach($customers as $val)
@@ -144,7 +144,7 @@
       tableId:"detailedTable",
       route:"{{ route('debitNote.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22],
+      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
       columnDefs :[
         { width: '5%', targets: 0 },
         {

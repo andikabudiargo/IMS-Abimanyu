@@ -23,6 +23,7 @@
                             <input type="text" id="pph23" name="ppn23" values="{{ $nilaiPPH }}" hidden>
                             <input type="text" class="form-control" id="pembilangNumber" name="pembilangNumber" hidden/>
                             <input type="text" class="form-control" id="penyebutNumber" name="penyebutNumber" hidden/>
+                            <input type="text" id="partyType" name="partyType" value="{{ $partyType }}" hidden>
                             <datalist id="articlesList">
                             </datalist>
                             <div class="form-group col-md-6">
@@ -38,7 +39,7 @@
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group col-md-12">
-                                        <label class="form-label" for="customer">Customer*</label>
+                                        <label class="form-label" for="customer">{{ $partyLabel }}*</label>
                                         <select class="select2 form-control" id="customer" name="customer" required>
                                             <option value="">All</option>
                                             @foreach($customers as $val)
@@ -49,11 +50,11 @@
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
-                                        <label for="accountPiutang">COA Piutang*</label>
+                                        <label for="accountPiutang">{{ $partyType == 'supp' ? 'COA Hutang*' : 'COA Piutang*' }}</label>
                                         <input type="text" id="accountPiutang" name="accountPiutang" class="form-control disabled-el" value="{{ old('accountPiutang') }}" disabled />
                                     </div>
                                     <div class="form-group col-md-6">
-                                        <label for="accountPenjualan">COA Penjualan*</label>
+                                        <label for="accountPenjualan">{{ $partyType == 'supp' ? 'COA Retur Pembelian*' : 'COA Penjualan*' }}</label>
                                         <input type="text" id="accountPenjualan" name="accountPenjualan" class="form-control disabled-el" value="{{ old('accountPenjualan') }}" disabled />
                                     </div>
                                 </div>
@@ -75,6 +76,10 @@
                                     <div class="form-group col-md-6">
                                         <label for="bupotDate">Bukti Potong Date</label>
                                         <input type="text" id="bupotDate" name="bupotDate" class="form-control" placeholder="DD-MM-YYYY" />
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="noFaktur">No Faktur</label>
+                                        <input type="text" id="noFaktur" name="noFaktur" class="form-control" value="{{ old('noFaktur') }}" />
                                     </div>
                                 </div>
                                 <div class="form-row">
@@ -289,6 +294,12 @@
         showDetail='false';
         edit='false';
         $("#nilaiLainCheck").prop('checked',true).change();
+
+        // ponytail: DN ke supplier belum punya mapping COA PPN Masukan/PPh23,
+        // jadi PPN & PPH disembunyikan supaya tidak dikira ke-apply padahal di-nolkan di server.
+        if ($('#partyType').val() == 'supp') {
+            $('#vatCheck,#nilaiLainCheck,#pph23Check').prop('checked', false).prop('disabled', true).closest('.form-group').hide();
+        }
     });
 
     debitNDate = $('#debitNDate');
@@ -396,6 +407,8 @@
                     let aTotalDppNilaiLain = $('#totalDppNilaiLain').val().replace(/,/gi, '') || 0;
                     let buktiPotong = $('#buktiPotong').val();
                     let bupotDate = $('#bupotDate').val();
+                    let noFaktur = $('#noFaktur').val();
+                    let partyType = $('#partyType').val();
 
                     $.ajax({
                         type: "post",
@@ -404,6 +417,7 @@
                             articles:JSON.stringify(articles),
                             debitNDate:debitNDate,
                             customer:customer,
+                            partyType:partyType,
                             ppn:ppn,
                             pph23:pph23,
                             totalPpn:totalPpn,
@@ -418,7 +432,8 @@
                             penyebutNumber:aPenyebutNumber,
                             totalDppNilaiLain:aTotalDppNilaiLain,
                             buktiPotong:buktiPotong,
-                            bupotDate:bupotDate
+                            bupotDate:bupotDate,
+                            noFaktur:noFaktur
                         },
                         dataType: "json",
                         success: function(data) {
@@ -451,7 +466,8 @@
                 }
             }
         }else{
-            Swal.fire("Warning","Customer belum memiliki COA Piutang","warning"); 
+            let partyLabel = $('#partyType').val() == 'supp' ? 'Supplier' : 'Customer';
+            Swal.fire("Warning",partyLabel+" belum memiliki COA","warning");
         }
     });
 

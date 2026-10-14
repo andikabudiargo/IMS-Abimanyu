@@ -134,7 +134,8 @@
                 $('#accountPenjualan').val(coaPenjualan);
                 listArticle(customerCode);
             }else{
-                Swal.fire("Warning","Customer belum memiliki COA Piutang atau COA Penjualan","warning"); 
+                let partyLabel = $('#partyType').val() == 'supp' ? 'Supplier' : 'Customer';
+                Swal.fire("Warning",partyLabel+" belum memiliki COA yang lengkap","warning");
             }
         }
     });

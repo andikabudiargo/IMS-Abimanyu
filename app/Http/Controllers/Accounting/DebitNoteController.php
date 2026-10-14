@@ -78,7 +78,7 @@ class DebitNoteController extends Controller
             ['data'=> 'dn_date_2', 'name'=> 'dn_date_2','title'=>'Date','visible'=>false ],
             ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number' ],
             ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number' ],
-            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer' ],
+            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer / Supplier' ],
             ['data'=> 'dpp', 'name'=> 'dpp','title'=>'DPP' ],
             ['data'=> 'dpp_lain_value', 'name'=> 'dpp_lain_value','title'=>'DPP Nilai Lain'],
             ['data'=> 'total_ppn', 'name'=> 'total_ppn','title'=>'PPN' ],
@@ -95,7 +95,8 @@ class DebitNoteController extends Controller
             // ditambahkan di akhir (bukan disisip) supaya index kolom lama di atas
             // (dipakai arrColPrint & orderColumn di index.blade.php) tidak geser.
             ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'],
-            ['data'=> 'bupot_date', 'name'=> 'bupot_date','title'=>'Bukti Potong Date']
+            ['data'=> 'bupot_date', 'name'=> 'bupot_date','title'=>'Bukti Potong Date'],
+            ['data'=> 'no_faktur', 'name'=> 'no_faktur','title'=>'No Faktur']
         ];
         return json_encode($kolom, true);
     }
@@ -105,7 +106,7 @@ class DebitNoteController extends Controller
         $data['title'] = $this->title;
 
         $data['customers'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
+        ->whereIn('third_party_type',['cust','supp'])
         ->orderBy('nama')
         ->get();
 
@@ -219,11 +220,22 @@ class DebitNoteController extends Controller
 
     public function create(Request $request)
     {
+        $partyType = $request->type;
+
+        // Belum pilih mau ke customer atau supplier -> tampilkan halaman pilihan dulu
+        // (mirip pola bankKeluar/kasPenerimaan yang terpisah per pihak).
+        if (!in_array($partyType, ['cust','supp'])) {
+            $data['title'] = "Create $this->title";
+            return view("accounting.debitNote.createChoose",$data);
+        }
+
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
-        
+        $data['partyType'] = $partyType;
+        $data['partyLabel'] = $partyType == 'supp' ? 'Supplier' : 'Customer';
+
         $data['customers'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
+        ->where ('third_party_type','=',$partyType)
         ->orderBy('nama')
         ->get();
 
@@ -231,7 +243,7 @@ class DebitNoteController extends Controller
         $data['nilaiPPH'] = $this->nilaiPph23;
 
         $data['ppnPenyebut'] = $this->ppnPenyebut;
-        $data['ppnPembilang'] = $this->ppnPembilang; 
+        $data['ppnPembilang'] = $this->ppnPembilang;
 
         $data['status']='DRAFT';
 
@@ -244,6 +256,10 @@ class DebitNoteController extends Controller
         $articles = json_decode($request -> articles);
         $debitNDate = $request->debitNDate;
         $customer = $request->customer;
+        // Diturunkan dari third_party, bukan dipercaya dari input client, supaya
+        // tidak bisa dipalsukan untuk melewati guard PPN/PPH di bawah.
+        $partyType = DB::table('third_party')->where('kode',$customer)->value('third_party_type');
+        $partyType = in_array($partyType, ['cust','supp']) ? $partyType : 'cust';
         $ppn = $request->ppn;
         $pph23 = $request->pph23;
         $totalPpn = $request->totalPpn;
@@ -256,6 +272,7 @@ class DebitNoteController extends Controller
         $kurs = 1;
         $buktiPotong = $request->buktiPotong;
         $bupotDate = $request->bupotDate;
+        $noFaktur = $request->noFaktur;
 
         // === Lock Transaction guard: activity + periode ===
         if ($err = \AppHelpers::lockGuard($this->moduleCode, $debitNDate)) {
@@ -264,6 +281,13 @@ class DebitNoteController extends Controller
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
+
+        // ponytail: belum ada mapping COA PPN Masukan / PPh23 untuk sisi supplier,
+        // jadi DN ke supplier dipaksa tanpa PPN/PPH dulu supaya posting GL (Dr Hutang = Cr Retur
+        // Pembelian) tetap balance. Upgrade: tambah akun PPN Masukan & PPh23 reversal kalau sudah ada mapping-nya.
+        if ($partyType == 'supp') {
+            $ppn = 0; $pph23 = 0; $totalPpn = 0; $totalPph = 0; $grandTotal = $dpp;
+        }
         $period = (int)explode('-', $debitNDate)[1];
         $periodNomor = (int)explode('-', $debitNDate)[1];
 
@@ -324,6 +348,7 @@ class DebitNoteController extends Controller
                     'dn_number' => $dnCode,
                     'dn_date' => $debitNDate,
                     'customer_id' => $customer,
+                    'no_faktur' => $noFaktur,
                     'so_number' => $soNumber,
                     'po_number' => $poNumber,
                     'dpp' => $dpp,
@@ -406,6 +431,10 @@ class DebitNoteController extends Controller
         ->get()->first();
 
         $dnNumber = $data['header']->dn_number;
+        $partyType = DB::table('third_party')->where('kode',$data['header']->customer_id)->value('third_party_type');
+        $partyType = in_array($partyType, ['cust','supp']) ? $partyType : 'cust';
+        $data['partyType'] = $partyType;
+        $data['partyLabel'] = $partyType == 'supp' ? 'Supplier' : 'Customer';
 
         $data['detail']=DB::table('debit_note_det')
         ->select('article_code as article'
@@ -419,7 +448,7 @@ class DebitNoteController extends Controller
 
 
         $data['customers'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
+        ->where ('third_party_type','=',$partyType)
         ->orderBy('nama')
         ->get();
 
@@ -457,14 +486,18 @@ class DebitNoteController extends Controller
 
         $dnNumber = $data['header']->dn_number;
         $data['soNumber'] = $data['header']->so_number;
+        $partyType = DB::table('third_party')->where('kode',$data['header']->customer_id)->value('third_party_type');
+        $partyType = in_array($partyType, ['cust','supp']) ? $partyType : 'cust';
+        $data['partyType'] = $partyType;
+        $data['partyLabel'] = $partyType == 'supp' ? 'Supplier' : 'Customer';
 
         $data['details'] = DB::table('debit_note_det')
         ->where('dn_number',$dnNumber)
         ->orderBy('id')
         ->get();
-        
+
         $data['customers'] = DB::table('third_party')
-        ->where ('third_party_type','=','cust')
+        ->where ('third_party_type','=',$partyType)
         ->orderBy('nama')
         ->get();
 
@@ -520,6 +553,8 @@ class DebitNoteController extends Controller
             return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
         }
         $customer = $request->customer;
+        $partyType = DB::table('third_party')->where('kode',$customer)->value('third_party_type');
+        $partyType = in_array($partyType, ['cust','supp']) ? $partyType : 'cust';
         $ppn = $request->ppn;
         $pph23 = $request->pph23;
         $totalPpn = $request->totalPpn;
@@ -532,9 +567,16 @@ class DebitNoteController extends Controller
         $kurs = 1;
         $buktiPotong = $request->buktiPotong;
         $bupotDate = $request->bupotDate;
+        $noFaktur = $request->noFaktur;
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
+
+        // ponytail: lihat catatan yang sama di store() - DN ke supplier belum punya mapping
+        // COA PPN Masukan/PPh23, dipaksa 0 supaya posting GL tetap balance.
+        if ($partyType == 'supp') {
+            $ppn = 0; $pph23 = 0; $totalPpn = 0; $totalPph = 0; $grandTotal = $dpp;
+        }
         $period = (int)explode('-', $debitNDate)[1];
         $periodNomor = (int)explode('-', $debitNDate)[1];
 
@@ -588,6 +630,7 @@ class DebitNoteController extends Controller
                         [   
                             'dn_date' => $debitNDate,
                             'customer_id' => $customer,
+                            'no_faktur' => $noFaktur,
                             'so_number' => $soNumber,
                             'po_number' => $poNumber,
                             'dpp' => $dpp,
@@ -1266,7 +1309,9 @@ class DebitNoteController extends Controller
         $data['customers']=DB::table('third_party')
         ->where('kode',$dnHdr -> customer_id)
         ->first();
-        
+
+        $data['partyLabel'] = $data['customers'] && $data['customers']->third_party_type == 'supp' ? 'Supplier' : 'Customer';
+
         $data['status'] ='1';
         $data['no'] = 0 ;
 

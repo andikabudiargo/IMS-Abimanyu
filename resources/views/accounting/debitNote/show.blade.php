@@ -37,7 +37,7 @@
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-12">
-                                            <label class="form-label" for="customer">Customer*</label>
+                                            <label class="form-label" for="customer">{{ $partyLabel }}*</label>
                                             <select class="select2 form-control" id="customer" name="customer" required disabled>
                                                 <option value="">All</option>
                                                 @foreach($customers as $val)
@@ -48,9 +48,9 @@
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-6">
-                                            <label for="accountPiutang">COA Piutang*</label>
+                                            <label for="accountPiutang">{{ $partyType == 'supp' ? 'COA Hutang*' : 'COA Piutang*' }}</label>
                                             <input type="text" id="accountPiutang" name="accountPiutang" class="form-control disabled-el" value="{{ old('accountPiutang',$header->account_piutang) }}" disabled />
-                                        </div> 
+                                        </div>
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-6">
@@ -70,6 +70,10 @@
                                         <div class="form-group col-md-6">
                                             <label for="bupotDate">Bukti Potong Date</label>
                                             <input type="text" id="bupotDate" name="bupotDate" value="{{ $header->bupot_date }}" class="form-control" disabled />
+                                        </div>
+                                        <div class="form-group col-md-6">
+                                            <label for="noFaktur">No Faktur</label>
+                                            <input type="text" id="noFaktur" name="noFaktur" value="{{ $header->no_faktur }}" class="form-control" disabled />
                                         </div>
                                     </div>
                                     <div class="form-row">

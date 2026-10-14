@@ -341,7 +341,7 @@
                             </tr>
                             <tr>
                                 <td width="65%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
-                                    <strong> Customer: </strong><br>
+                                    <strong> {{ $partyLabel }}: </strong><br>
                                     {{ $customers->nama }} <br>
                                     {{ $customers->alamat_kirim_1 }} <br>
                                     @if(strlen($customers->alamat_kirim_1)<69)
@@ -489,7 +489,7 @@
                         </tr>
                     </tbody>
                 </table>
-                <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
+                <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada {{ $partyLabel }}</i></span><br>
                 <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
             </div>
         @else
@@ -575,7 +575,7 @@
                                 </tr>
                                 <tr>
                                     <td width="65%" valign="top" style="border: 1px solid #0c0c0c;padding-left:5px;padding-right:5px">
-                                        <strong> Customer: </strong><br>
+                                        <strong> {{ $partyLabel }}: </strong><br>
                                         {{ $customers->nama }} <br>
                                         {{ $customers->alamat_kirim_1 }} <br>
                                         @if(strlen($customers->alamat_kirim_1)<69)
@@ -727,7 +727,7 @@
                 <table>
                     <tr>
                         <td>
-                            <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
+                            <span class = "arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada {{ $partyLabel }}</i></span><br>
                             <span class = "arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
                         </td>
                         <td align="right"  valign="top" width="10%">  Page 2 of 2</td>
