@@ -43,6 +43,17 @@ class ArticleBulkUpdateTemplateSheet implements FromArray, WithHeadings, WithTit
                 $lastCol = $event->sheet->getHighestDataColumn();
                 $event->sheet->getDelegate()->getStyle("A1:{$lastCol}1")->getFont()->setBold(true);
 
+                // Format kolom yang bisa disalahartikan sebagai tanggal oleh Excel (misal kode COA "5-1")
+                // sebagai Text, agar nilai yang diketik user tidak otomatis dikonversi jadi date.
+                foreach (['article_code', 'coa'] as $textCol) {
+                    $idx = array_search($textCol, $this->headings());
+                    if ($idx !== false) {
+                        $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($idx + 1);
+                        $event->sheet->getDelegate()->getStyle("{$col}2:{$col}1000")
+                            ->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_TEXT);
+                    }
+                }
+
                 $cfIndex = array_search('cashflow_category', $this->headings());
                 if ($cfIndex !== false && !empty($this->cashflowCategoryValues)) {
                     $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($cfIndex + 1);
