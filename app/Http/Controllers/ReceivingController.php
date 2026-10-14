@@ -2434,9 +2434,9 @@ try {
     DB::select($sqlDet, [$recNew, $username, $now, $recOrigin]);
 
     if (!$isManual) {
-        DB::select($sqlDetFromPO, [$recOrigin, $username, $username, $now, $now, $poNumber, $recNew]);
-        DB::select($deleteArticleNotInPO, [$recOrigin, $poNumber]);
-        DB::select($sqlUpdatePriceFromPo, [$poNumber, $recOrigin]);
+        DB::select($sqlDetFromPO, [$recNew, $username, $username, $now, $now, $poNumber, $recNew]);
+        DB::select($deleteArticleNotInPO, [$recNew, $poNumber]);
+        DB::select($sqlUpdatePriceFromPo, [$poNumber, $recNew]);
     }
 
     DB::table('receiving_hdr')
@@ -2465,7 +2465,8 @@ try {
 
     $message = "$title Revision Rec: $recOrigin to $recNew is successfully saved";
     \LogActivity::addToLog($title, "username: $username Status $message");
-    return redirect()->route('receiving.edit', ['id' => Crypt::encryptString($id)]);
+    $newId = DB::table('receiving_hdr')->where('rec_number', $recNew)->value('id');
+    return redirect()->route('receiving.edit', ['id' => Crypt::encryptString($newId)]);
 
 } catch (\Exception $e) {
     DB::rollBack();
