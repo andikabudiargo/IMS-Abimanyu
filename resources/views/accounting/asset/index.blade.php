@@ -144,6 +144,9 @@
       if (k.name === 'penyusutan_bulan'){
         k.title = 'Penyusutan' + (periode ? ' (' + labelPeriode(periode) + ')' : '');
       }
+      if (k.name === 'nilai_buku'){
+        k.title = 'Nilai Buku' + (periode ? ' (' + labelPeriode(periode) + ')' : '');
+      }
     });
     showDataTables({
       tableId:"detailedTable",
@@ -153,8 +156,12 @@
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 8,9,10,11,12,13,14],
+          targets: [ 8,9,10,14],
           render: $.fn.dataTable.render.number(',', '.', 0, ''),
+          className: "text-right"
+        },
+        {
+          targets: [ 11,12,13],
           className: "text-right"
         },
       ],

@@ -778,7 +778,8 @@ class AssetController extends Controller
             'assets.*'
             ,DB::raw("assets.tanggal_awal_penyusutan as tgl_awal_raw")
             ,DB::raw("to_char(created_at,'DD-MM-YYYY') as tanggal_awal_penyusutan")
-            ,DB::raw("EXTRACT(YEAR FROM age(buying_date)) as umur")
+            ,DB::raw("EXTRACT(YEAR FROM age(buying_date)) as umur_tahun")
+            ,DB::raw("EXTRACT(MONTH FROM age(buying_date)) as umur_bulan")
             ,DB::raw("(select concat(account,' - ',description) from accounts where account = assets.coa_number) as coa_description")
         )
         ->orderBy('assets.id')
@@ -852,6 +853,14 @@ class AssetController extends Controller
         ->addColumn('masa_manfaat', function ($data) {
             return $data->masa_manfaat ? $data->masa_manfaat.' Tahun' : '';
         })
+        ->addColumn('umur', function ($data) {
+            $tahun = (int) $data->umur_tahun;
+            $bulan = (int) $data->umur_bulan;
+            if ($tahun > 0) {
+                return $bulan > 0 ? "$tahun Tahun $bulan Bulan" : "$tahun Tahun";
+            }
+            return "$bulan Bulan";
+        })
 
         ->addColumn('nilai_buku', function ($data) use ($periodeDate) {
             if ($data->penyusutan != '1' || !$data->akumulai_penyusutan || !$data->tgl_awal_raw) {
@@ -870,7 +879,7 @@ class AssetController extends Controller
             return max($data->buying_price - $akumulasi, 0);
         })
 
-        ->rawColumns(['action','status','coa_number','tanggal_akhir_penyusutan','penyusutan_bulan','nilai_penyusutan','masa_manfaat','nilai_buku'])
+        ->rawColumns(['action','status','coa_number','tanggal_akhir_penyusutan','penyusutan_bulan','nilai_penyusutan','masa_manfaat','umur','nilai_buku'])
         ->make(true);
     }
 
