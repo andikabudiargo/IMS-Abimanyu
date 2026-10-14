@@ -376,7 +376,7 @@
         $("#new_row"+ cloneCount).find('#vcRef').attr('id', 'vcRef'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
-        accList('account','account'+ cloneCount, prefill ? prefill.account : '');
+        accList('account','account'+ cloneCount, prefill);
         $("#account"+cloneCount).select2();
         $("#vcCc"+cloneCount).select2();
         initRefSelect2($("#vcRef"+cloneCount));
@@ -389,14 +389,6 @@
         findInvoice();
         getAmount();
         $('[data-toggle="tooltip"]').tooltip();
-
-        if (prefill) {
-            $('#vcDesc'+cloneCount).val(prefill.description || '');
-            $('#vcCc'+cloneCount).val(prefill.cc || '').trigger('change');
-            if (prefill.debit) $('#new_row'+cloneCount).find('input[name="vcDebit[]"]').val(humanizeNumber(parseFloat(prefill.debit).toFixed(2)));
-            if (prefill.credit) $('#new_row'+cloneCount).find('input[name="vcCredit[]"]').val(humanizeNumber(parseFloat(prefill.credit).toFixed(2)));
-            hitungGrandTotal();
-        }
     };
 
     $('#paidTo').change(function(e){
@@ -452,7 +444,7 @@
         });
     }
     
-    function accList(dependent,obj,prefillValue) {
+    function accList(dependent,obj,prefill) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
@@ -461,7 +453,16 @@
         },
         success:function(result){
             $('#'+obj).html(result);
-            $('#'+obj).val(prefillValue || '').trigger('change');
+            $('#'+obj).val(prefill ? prefill.account : '').trigger('change');
+
+            if (prefill) {
+                let idx = obj.replace('account','');
+                $('#vcDesc'+idx).val(prefill.description || '');
+                $('#vcCc'+idx).val(prefill.cc || '').trigger('change');
+                if (prefill.debit) $('#new_row'+idx).find('input[name="vcDebit[]"]').val(humanizeNumber(parseFloat(prefill.debit).toFixed(2)));
+                if (prefill.credit) $('#new_row'+idx).find('input[name="vcCredit[]"]').val(humanizeNumber(parseFloat(prefill.credit).toFixed(2)));
+                hitungGrandTotal();
+            }
         }
       })
     }
