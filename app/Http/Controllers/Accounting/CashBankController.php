@@ -63,9 +63,11 @@ class CashBankController extends Controller
             ['data' => 'voucher_date', 'name' => 'voucher_date', 'title' => 'Date'],
             ['data' => 'account_number', 'name' => 'account_number', 'title' => 'Account Number'],
             ['data' => 'account_name', 'name' => 'account_name', 'title' => 'Account Name'],
+            ['data' => 'reference', 'name' => 'reference', 'title' => 'Referensi'],
             ['data' => 'debit', 'name' => 'debit', 'title' => 'Debit'],
             ['data' => 'credit', 'name' => 'credit', 'title' => 'Credit'],
             ['data' => 'memo', 'name' => 'memo', 'title' => 'Memo'],
+            ['data' => 'cost_center_name', 'name' => 'cost_center_name', 'title' => 'CC'],
             ['data' => 'created_by', 'name' => 'created_by', 'title' => 'Created By'],
             ['data' => 'created_at', 'name' => 'created_at', 'title' => 'Created At'],
         ]);
@@ -248,6 +250,7 @@ private function applyPartyFilter($q, Request $request, $group)
         $data = DB::table('kas_det')
             ->join('kas_hdr', 'kas_hdr.voucher_number', 'kas_det.voucher_number')
             ->leftJoin('accounts', 'accounts.account', 'kas_det.account')
+            ->leftJoin('depts', 'depts.code', 'kas_det.cost_center')
             ->whereIn('kas_hdr.voucher_type', $type ? [$type] : array_keys($types))
             ->where('kas_hdr.status', '<>', '5')
             ->when($search, function ($q) use ($search) { $q->where('kas_det.voucher_number', 'ilike', "%$search%"); })
@@ -262,9 +265,11 @@ private function applyPartyFilter($q, Request $request, $group)
                 DB::raw("to_char(to_date(kas_hdr.voucher_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as voucher_date"),
                 'kas_det.account as account_number',
                 'accounts.description as account_name',
+                'kas_det.reference',
                 'kas_det.debit',
                 'kas_det.credit',
                 'kas_det.description as memo',
+                'depts.name as cost_center_name',
                 'kas_det.created_by',
                 'kas_det.created_at'
             )

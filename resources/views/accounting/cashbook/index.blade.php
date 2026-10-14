@@ -337,9 +337,9 @@
       tableId: 'detailedTable',
       route: "{{ route('cashbook.list.detail', ['group' => $group]) }}",
       kolom: {!! $kolomDetail !!},
-      arrColPrint: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+      arrColPrint: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       columnDefs: [
-        {targets: [5, 6], render: $.fn.dataTable.render.number(',', '.', 2, ''), className: 'text-right'},
+        {targets: [6, 7], render: $.fn.dataTable.render.number(',', '.', 2, ''), className: 'text-right'},
       ],
       excelCustomize: function (xlsx) {
         $('row:last c', xlsx.xl.worksheets['sheet1.xml']).attr('s', '50');
