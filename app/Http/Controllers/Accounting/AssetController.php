@@ -779,7 +779,6 @@ class AssetController extends Controller
             ,DB::raw("assets.tanggal_awal_penyusutan as tgl_awal_raw")
             ,DB::raw("to_char(created_at,'DD-MM-YYYY') as tanggal_awal_penyusutan")
             ,DB::raw("EXTRACT(YEAR FROM age(buying_date)) as umur")
-            ,DB::raw("(SELECT nilai_buku FROM asset_detail z where z.asset_number = assets.asset_number and  date_part('year', tanggal_asset) = date_part('year', CURRENT_DATE)) as nilai_buku")
             ,DB::raw("(select concat(account,' - ',description) from accounts where account = assets.coa_number) as coa_description")
         )
         ->orderBy('assets.id')
@@ -854,8 +853,21 @@ class AssetController extends Controller
             return $data->masa_manfaat ? $data->masa_manfaat.' Tahun' : '';
         })
 
-        ->addColumn('nilai_buku', function ($data) {
-            return $data->nilai_buku ? $data->nilai_buku : $data->buying_price;
+        ->addColumn('nilai_buku', function ($data) use ($periodeDate) {
+            if ($data->penyusutan != '1' || !$data->akumulai_penyusutan || !$data->tgl_awal_raw) {
+                return $data->buying_price;
+            }
+
+            $awal = new \DateTime($data->tgl_awal_raw);
+            $periode = new \DateTime($periodeDate);
+            if ($periode < $awal) return $data->buying_price;
+
+            $bulanBerjalan = (($periode->format('Y') - $awal->format('Y')) * 12) + ($periode->format('n') - $awal->format('n')) + 1;
+            $bulanMaksimal = $data->masa_manfaat ? $data->masa_manfaat * 12 : $bulanBerjalan;
+            $bulanBerjalan = min($bulanBerjalan, $bulanMaksimal);
+
+            $akumulasi = $bulanBerjalan * ($data->akumulai_penyusutan / 12);
+            return max($data->buying_price - $akumulasi, 0);
         })
 
         ->rawColumns(['action','status','coa_number','tanggal_akhir_penyusutan','penyusutan_bulan','nilai_penyusutan','masa_manfaat','nilai_buku'])

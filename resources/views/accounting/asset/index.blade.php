@@ -124,6 +124,13 @@
     showList(searchNoAsset,searchName,searchDate,searchJenisAset,searchPeriode);
   });
 
+  const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const labelPeriode = (val) => {
+    if (!val) return '';
+    let [y,m] = val.split('-');
+    return bulanNama[parseInt(m,10)-1] + ' ' + y;
+  }
+
   const showList = (searchNoAsset,searchName,searchDate,searchJenisAset,searchPeriode) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
@@ -131,10 +138,17 @@
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
+    let kolom = {!! $kolom !!};
+    let periode = searchPeriode || $("#searchPeriode").val();
+    kolom.forEach(function(k){
+      if (k.name === 'penyusutan_bulan'){
+        k.title = 'Penyusutan' + (periode ? ' (' + labelPeriode(periode) + ')' : '');
+      }
+    });
     showDataTables({
       tableId:"detailedTable",
       route:"{{ route('asset.list') }}",
-      kolom:{!! $kolom !!},
+      kolom:kolom,
       arrColPrint:[1,2,3,4,5,6,7,8,9,10,11,12,13,14],
       columnDefs :[
         { width: '5%', targets: 0 },
