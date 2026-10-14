@@ -7,6 +7,8 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 
 class DeliveryMonitoringExport implements WithMultipleSheets
 {
@@ -27,7 +29,7 @@ class DeliveryMonitoringExport implements WithMultipleSheets
     }
 }
 
-class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitle, ShouldAutoSize
+class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitle, ShouldAutoSize, WithEvents
 {
     private $g;
     private $title;
@@ -49,7 +51,10 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
         $remarks = ['plan' => 'Plan', 'matrix' => 'Actual', 'balance' => 'Balance'];
         foreach ($this->g['articles'] as $code => $name) {
             foreach ($remarks as $remarkKey => $remarkLabel) {
-                $row = $this->hasCustomerCol() ? [$this->g['rowCustomer'][$code] ?? '', $name] : [$name];
+                $isFirst = $remarkKey == 'plan';
+                $row = $this->hasCustomerCol()
+                    ? [$isFirst ? ($this->g['rowCustomer'][$code] ?? '') : '', $isFirst ? $name : '']
+                    : [$isFirst ? $name : ''];
                 $row[] = $remarkLabel;
                 $total = 0;
                 foreach ($this->g['dates'] as $d) {
@@ -65,7 +70,8 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
         }
         if ($rows) {
             foreach ($remarks as $remarkKey => $remarkLabel) {
-                $totalRow = $this->hasCustomerCol() ? ['', 'TOTAL'] : ['TOTAL'];
+                $isFirst = $remarkKey == 'plan';
+                $totalRow = $this->hasCustomerCol() ? ['', $isFirst ? 'TOTAL' : ''] : [$isFirst ? 'TOTAL' : ''];
                 $totalRow[] = $remarkLabel;
                 $grand = 0;
                 foreach ($this->g['dates'] as $d) {
@@ -92,5 +98,24 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
     public function title(): string
     {
         return $this->title;
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                $sheet = $event->sheet->getDelegate();
+                $articleCol = $this->hasCustomerCol() ? 'B' : 'A';
+                $blockCount = count($this->g['articles']) + ($this->g['articles'] ? 1 : 0);
+                for ($i = 0; $i < $blockCount; $i++) {
+                    $startRow = 2 + $i * 3;
+                    $endRow = $startRow + 2;
+                    if ($this->hasCustomerCol()) {
+                        $sheet->mergeCells("A{$startRow}:A{$endRow}");
+                    }
+                    $sheet->mergeCells("{$articleCol}{$startRow}:{$articleCol}{$endRow}");
+                }
+            },
+        ];
     }
 }
