@@ -30,7 +30,7 @@
     }
     
 </style>
-{{-- table row untuk di clone--}}  
+{{-- table row untuk di clone --}}
 <div id="new_row" name="new_row[]" class="d-none">
     <div id="baru" class="tanda-baris" >
         <table class="table-bordered" style="width: 98%;table-layout: fixed;">

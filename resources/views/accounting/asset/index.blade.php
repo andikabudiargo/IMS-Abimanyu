@@ -47,6 +47,7 @@
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     {{-- @can('asset-create') --}}
                     <a href="{{ route('asset.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                    <a href="{{ route('asset.postingJurnal') }}" class="btn btn-warning"><i class="fa fa-book"></i> Posting Jurnal</a>
                     {{-- @endcan --}}
                 </div>
             </div>

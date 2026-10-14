@@ -218,16 +218,32 @@
         });
     }
         
+    let draftJurnal = @json(session('draftJurnal'));
+
     $(document).ready(function(){
         validateFormToast('frmAdd');
         vcDate.val(currentDate);
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        add_new_row();
-        
+
+        if (draftJurnal) {
+            $('#vcDate').val(draftJurnal.vcDate);
+            $('#period').val(draftJurnal.period).trigger('change');
+            $('#totalAmount').val(humanizeNumber(parseFloat(draftJurnal.totalAmount).toFixed(2)));
+            $('#note').val(draftJurnal.note);
+            $('#paidTo').val(draftJurnal.paidTo).trigger('change');
+            $('.other-desc').removeClass('d-none');
+            $('#paidToDesc').val(draftJurnal.paidToDesc);
+
+            draftJurnal.details.forEach(function(d){
+                add_new_row(d);
+            });
+        } else {
+            add_new_row();
+            add_new_row();
+            add_new_row();
+            add_new_row();
+            add_new_row();
+            add_new_row();
+        }
     });
     
     vcDate = $('#vcDate');
@@ -352,7 +368,7 @@
     });
 
     let cloneCount=0;
-    function add_new_row() {
+    function add_new_row(prefill) {
         $("#item_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#item_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -360,7 +376,7 @@
         $("#new_row"+ cloneCount).find('#vcRef').attr('id', 'vcRef'+ cloneCount);
         $("#new_row"+ cloneCount).find('#account').attr('id', 'account'+ cloneCount);
         $("#new_row"+ cloneCount).find('#vcCc').attr('id', 'vcCc'+ cloneCount);
-        accList('account','account'+ cloneCount);
+        accList('account','account'+ cloneCount, prefill ? prefill.account : '');
         $("#account"+cloneCount).select2();
         $("#vcCc"+cloneCount).select2();
         initRefSelect2($("#vcRef"+cloneCount));
@@ -373,6 +389,14 @@
         findInvoice();
         getAmount();
         $('[data-toggle="tooltip"]').tooltip();
+
+        if (prefill) {
+            $('#vcDesc'+cloneCount).val(prefill.description || '');
+            $('#vcCc'+cloneCount).val(prefill.cc || '').trigger('change');
+            if (prefill.debit) $('#new_row'+cloneCount).find('input[name="vcDebit[]"]').val(humanizeNumber(parseFloat(prefill.debit).toFixed(2)));
+            if (prefill.credit) $('#new_row'+cloneCount).find('input[name="vcCredit[]"]').val(humanizeNumber(parseFloat(prefill.credit).toFixed(2)));
+            hitungGrandTotal();
+        }
     };
 
     $('#paidTo').change(function(e){
@@ -428,7 +452,7 @@
         });
     }
     
-    function accList(dependent,obj) {
+    function accList(dependent,obj,prefillValue) {
       $.ajax({
         url:"{{route('dynamic.dependent')}}",
         method:"POST",
@@ -437,7 +461,7 @@
         },
         success:function(result){
             $('#'+obj).html(result);
-            $('#'+obj).val('').trigger('change');
+            $('#'+obj).val(prefillValue || '').trigger('change');
         }
       })
     }

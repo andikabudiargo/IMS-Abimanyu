@@ -1346,6 +1346,7 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 
 	Route::get('asset',['as'=>'asset.index','uses'=>'Accounting\AssetController@index','middleware' => ['permission:article-index']]);
 	Route::get('asset/create',['as'=>'asset.create','uses'=>'Accounting\AssetController@create','middleware' => ['permission:article-create']]);
+	Route::get('asset/posting-jurnal',['as'=>'asset.postingJurnal','uses'=>'Accounting\AssetController@postingJurnal','middleware' => ['permission:article-create']]);
 	Route::post('asset/store',['as'=>'asset.store','uses'=>'Accounting\AssetController@store']);
 	Route::post('asset/image/store',['as'=>'asset.image.store','uses'=>'Accounting\AssetController@storeImage']);
 	Route::post('asset/list',['as'=>'asset.list','uses'=>'Accounting\AssetController@list']);

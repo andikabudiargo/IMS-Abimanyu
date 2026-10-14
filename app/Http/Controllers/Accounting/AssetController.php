@@ -319,6 +319,71 @@ class AssetController extends Controller
         return view("accounting.asset.create",$data);
     }
 
+    public function postingJurnal(Request $request)
+    {
+        $bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+        $prevMonthTs = strtotime('first day of last month');
+        $periodeDate = date('Y-m-01', $prevMonthTs);
+        $period = (int) date('n', $prevMonthTs);
+        $year = date('Y', $prevMonthTs);
+        $vcDate = date('d-m-Y', strtotime('last day of last month'));
+
+        $assets = DB::table('assets')
+        ->where('status','1')
+        ->where('penyusutan','1')
+        ->get();
+
+        $akumulasi = [];
+        $total = 0;
+
+        foreach ($assets as $a) {
+            if (!$a->akumulai_penyusutan || !$a->tanggal_awal_penyusutan) continue;
+            if ($periodeDate < $a->tanggal_awal_penyusutan) continue;
+            if ($a->tanggal_akhir_penyusutan && $periodeDate > $a->tanggal_akhir_penyusutan) continue;
+
+            $nilai = round($a->akumulai_penyusutan / 12);
+            if ($nilai <= 0) continue;
+
+            $total += $nilai;
+
+            $akumulasi[$a->akun_penyusutan]['debit'] = ($akumulasi[$a->akun_penyusutan]['debit'] ?? 0) + $nilai;
+            $akumulasi[$a->akun_penyusutan]['credit'] = $akumulasi[$a->akun_penyusutan]['credit'] ?? 0;
+
+            $akumulasi[$a->akun_akumulasi_penyusutan]['credit'] = ($akumulasi[$a->akun_akumulasi_penyusutan]['credit'] ?? 0) + $nilai;
+            $akumulasi[$a->akun_akumulasi_penyusutan]['debit'] = $akumulasi[$a->akun_akumulasi_penyusutan]['debit'] ?? 0;
+        }
+
+        $note = 'DEPRESIASI & AKUMULASI PENYUSUTAN PER '.strtoupper($bulanNama[$period-1]).' '.$year;
+        $cc = DB::table('depts')->where('name','FINANCE, ACCOUNTING & TAX')->value('code') ?: '007';
+
+        $details = [];
+        foreach ($akumulasi as $account => $val) {
+            if (!$account) continue;
+            $details[] = [
+                'account' => $account,
+                'description' => $note,
+                'cc' => $cc,
+                'debit' => $val['debit'],
+                'credit' => $val['credit'],
+            ];
+        }
+
+        if (empty($details)) {
+            return redirect()->route('asset.index')->with(['title'=>'Posting Jurnal','message'=>'Tidak ada nilai penyusutan untuk periode '.$bulanNama[$period-1].' '.$year,'alert'=>'warning']);
+        }
+
+        return redirect()->route('jurnalUmum.create')->with('draftJurnal', [
+            'vcDate' => $vcDate,
+            'period' => $period,
+            'paidTo' => 'other',
+            'paidToDesc' => 'PT ABIMANYU SEKAR NUSANTARA',
+            'totalAmount' => $total,
+            'note' => $note,
+            'details' => $details,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $username =  Auth::user()->username;
