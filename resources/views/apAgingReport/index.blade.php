@@ -455,7 +455,7 @@ $(document).ready(function () {
             { label: '0 - 30 Hari',   saldo: g.d1_30,    hari: 15 },
             { label: '31 - 60 Hari',  saldo: g.d31_60,   hari: 45 },
             { label: '61 - 90 Hari',  saldo: g.d61_90,   hari: 75 },
-            { label: '> 90 Hari',     saldo: g.d91_120 + g.d120plus, hari: 90 },
+            { label: '> 90 Hari',     saldo: g.d91_120 + g.d120plus, hari: 105 },
         ];
 
         let body = '', totalSaldo = 0, totalKontrol = 0;
