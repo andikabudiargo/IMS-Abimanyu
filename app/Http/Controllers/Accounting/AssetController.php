@@ -323,11 +323,12 @@ class AssetController extends Controller
     {
         $bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
-        $prevMonthTs = strtotime('first day of last month');
+        $baseMonth = $request->periode ? $request->periode.'-01' : date('Y-m-01');
+        $prevMonthTs = strtotime('first day of last month', strtotime($baseMonth));
         $periodeDate = date('Y-m-01', $prevMonthTs);
         $period = (int) date('n', $prevMonthTs);
         $year = date('Y', $prevMonthTs);
-        $vcDate = date('d-m-Y', strtotime('last day of last month'));
+        $vcDate = date('d-m-Y', strtotime('last day of last month', strtotime($baseMonth)));
 
         $assets = DB::table('assets')
         ->where('status','1')

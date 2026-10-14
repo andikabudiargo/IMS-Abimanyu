@@ -47,7 +47,7 @@
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     {{-- @can('asset-create') --}}
                     <a href="{{ route('asset.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
-                    <a href="{{ route('asset.postingJurnal') }}" class="btn btn-warning"><i class="fa fa-book"></i> Posting Jurnal</a>
+                    <button type="button" class="btn btn-warning" id="btnPostingJurnal"><i class="fa fa-book"></i> Posting Jurnal</button>
                     {{-- @endcan --}}
                 </div>
             </div>
@@ -123,6 +123,11 @@
     let searchJenisAset = $("#jenisAset").val();
     let searchPeriode = $("#searchPeriode").val();
     showList(searchNoAsset,searchName,searchDate,searchJenisAset,searchPeriode);
+  });
+
+  $("#btnPostingJurnal").click(function(e){
+    let searchPeriode = $("#searchPeriode").val();
+    window.location.href = "{{ route('asset.postingJurnal') }}" + (searchPeriode ? "?periode=" + searchPeriode : "");
   });
 
   const bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
