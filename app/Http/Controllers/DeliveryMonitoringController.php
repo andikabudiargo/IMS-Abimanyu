@@ -11,10 +11,10 @@ use App\Exports\DeliveryMonitoringExport;
 
 class DeliveryMonitoringController extends Controller
 {
-    private function period(Request $request)
+    private function period(Request $request, $unbounded = false)
     {
         return [
-            $request->from ?: date('Y-m-01'),
+            $unbounded ? '1900-01-01' : ($request->from ?: date('Y-m-01')),
             $request->to ?: date('Y-m-t'),
         ];
     }
@@ -39,9 +39,9 @@ class DeliveryMonitoringController extends Controller
     // supaya konsisten dengan qty_delivery yang dipakai modul lain.
     // $ignoreArticle = true saat memanggil hanya untuk mengisi pilihan dropdown article
     // (supaya pilihan yang sudah dicentang tidak ikut menyempitkan daftarnya sendiri).
-    private function rows(Request $request, $ignoreArticle = false)
+    private function rows(Request $request, $ignoreArticle = false, $unbounded = false)
     {
-        [$from, $to] = $this->period($request);
+        [$from, $to] = $this->period($request, $unbounded);
         $selected = array_filter((array) $request->customer);
         $dnType = $this->dnType($request);
         $articles = $ignoreArticle ? [] : array_filter((array) $request->article);
@@ -102,9 +102,9 @@ class DeliveryMonitoringController extends Controller
     // Plan source: delivery_schedule_det for delivery_type='PO' SOs (per-date planned qty,
     // see DeliveryScheduleController), else the SO's single header-level delivery_date holds
     // the whole article qty (non-PO types are shipped in one go, not scheduled across dates).
-    private function planRows(Request $request)
+    private function planRows(Request $request, $unbounded = false)
     {
-        [$from, $to] = $this->period($request);
+        [$from, $to] = $this->period($request, $unbounded);
         $selected = array_filter((array) $request->customer);
         $articles = array_filter((array) $request->article);
 
@@ -229,6 +229,47 @@ class DeliveryMonitoringController extends Controller
         return $series;
     }
 
+    // Saldo Kumulatif: running balance (Actual - Plan) dihitung dari seluruh histori SO
+    // (bukan cuma rentang $from-$to), supaya kekurangan/kelebihan kirim hari sebelumnya
+    // kebawa ke hari berikutnya. Plan asli di DB tidak diubah, ini cuma metrik tampilan.
+    private function cumulativeBalances(array $allActualRows, array $allPlanRows, $summary)
+    {
+        $key = function ($r) use ($summary) {
+            $g = $summary ? 'ALL' : $r->customer_id;
+            $row = $summary ? $r->customer_id . '|' . $r->article_code : $r->article_code;
+            return [$g, $row];
+        };
+        $toIso = fn($d) => implode('-', array_reverse(explode('-', $d)));
+
+        $daily = [];
+        foreach ($allActualRows as $r) {
+            if ($r->type === 'DN REPLACE') {
+                continue;
+            }
+            [$g, $row] = $key($r);
+            $iso = $toIso($r->delivery_date);
+            $daily[$g][$row][$iso] = ($daily[$g][$row][$iso] ?? 0) + (float) $r->qty;
+        }
+        foreach ($allPlanRows as $r) {
+            [$g, $row] = $key($r);
+            $iso = $toIso($r->delivery_date);
+            $daily[$g][$row][$iso] = ($daily[$g][$row][$iso] ?? 0) - (float) $r->qty;
+        }
+
+        $cumulative = [];
+        foreach ($daily as $g => $rows) {
+            foreach ($rows as $row => $byIso) {
+                ksort($byIso);
+                $running = 0;
+                foreach ($byIso as $iso => $delta) {
+                    $running += $delta;
+                    $cumulative[$g][$row][$toIso($iso)] = $running;
+                }
+            }
+        }
+        return $cumulative;
+    }
+
     private function viewData(Request $request)
     {
         $data['from'] = $request->from ?: date('Y-m-01');
@@ -252,6 +293,13 @@ class DeliveryMonitoringController extends Controller
         $planRows = $this->planRows($request);
         $data['groups'] = $this->groups($rows, $planRows, $data['summary']);
         $data['heatmap'] = $this->heatmapSeries($rows, $planRows, $data['from']);
+
+        $allActualRows = $this->rows($request, false, true);
+        $allPlanRowsUnbounded = $this->planRows($request, true);
+        $cumulative = $this->cumulativeBalances($allActualRows, $allPlanRowsUnbounded, $data['summary']);
+        foreach ($data['groups'] as $gKey => &$g) {
+            $g['cumulative'] = $cumulative[$gKey] ?? [];
+        }
         return $data;
     }
 
