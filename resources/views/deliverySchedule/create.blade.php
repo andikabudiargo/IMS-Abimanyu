@@ -202,7 +202,19 @@
         collectValues();
 
         $('#tblSchedule input.qty-cell').on('input', function(){
-            recalcRow($(this).data('row-key'));
+            let rowKey = $(this).data('row-key');
+            let orderQty = parseFloat($('#tblSchedule .order-qty[data-row-key="'+rowKey+'"]').data('qty')) || 0;
+            let othersTotal = 0;
+            $('#tblSchedule input.qty-cell[data-row-key="'+rowKey+'"]').not(this).each(function(){
+                othersTotal += parseFloat($(this).val()) || 0;
+            });
+            let remaining = orderQty - othersTotal;
+            let val = parseFloat($(this).val()) || 0;
+            if (val > remaining){
+                $(this).val(remaining > 0 ? remaining : '');
+                Swal.fire('Warning..','Qty melebihi sisa Order Qty, maksimal '+remaining.toFixed(2),'warning');
+            }
+            recalcRow(rowKey);
         });
 
         articles.forEach(function(a){ recalcRow(rowKeyOf(a)); });
