@@ -336,6 +336,7 @@ class AssetController extends Controller
 
         $akumulasi = [];
         $total = 0;
+        $assetTanpaAkun = [];
 
         foreach ($assets as $a) {
             if (!$a->akumulai_penyusutan || !$a->tanggal_awal_penyusutan) continue;
@@ -344,6 +345,11 @@ class AssetController extends Controller
 
             $nilai = round($a->akumulai_penyusutan / 12);
             if ($nilai <= 0) continue;
+
+            if (!$a->akun_penyusutan || !$a->akun_akumulasi_penyusutan) {
+                $assetTanpaAkun[] = $a->asset_number;
+                continue;
+            }
 
             $total += $nilai;
 
@@ -373,7 +379,11 @@ class AssetController extends Controller
             return redirect()->route('asset.index')->with(['title'=>'Posting Jurnal','message'=>'Tidak ada nilai penyusutan untuk periode '.$bulanNama[$period-1].' '.$year,'alert'=>'warning']);
         }
 
-        return redirect()->route('jurnalUmum.create')->with('draftJurnal', [
+        $warning = $assetTanpaAkun
+            ? ['title'=>'Posting Jurnal','message'=>'Asset berikut dilewati karena akun penyusutan/akumulasi penyusutannya belum diisi: '.implode(', ',$assetTanpaAkun),'alert'=>'warning']
+            : [];
+
+        return redirect()->route('jurnalUmum.create')->with($warning)->with('draftJurnal', [
             'vcDate' => $vcDate,
             'period' => $period,
             'paidTo' => 'other',
