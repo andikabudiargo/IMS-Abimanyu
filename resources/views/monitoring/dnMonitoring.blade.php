@@ -9,7 +9,7 @@
       <form method="GET" autocomplete="off">
         @if(request('src') == 'delivery')<input type="hidden" name="src" value="delivery">@endif
         <div class="form-row align-items-end">
-          <div class="form-group col-md-3">
+          <div class="form-group col-md-2">
             <label for="periode">Periode</label>
             <input type="month" id="periode" name="periode" value="{{ $periode }}" class="form-control">
           </div>
@@ -21,17 +21,19 @@
               <option value="temp" @if($dnType == 'temp') selected @endif>DN Temporary</option>
             </select>
           </div>
-          @if(request('src') != 'delivery')
           <div class="form-group col-md-3">
             <label for="filter">Filter</label>
             <select id="filter" name="filter" class="form-control">
-              <option value="invoice" @if($filter == 'invoice') selected @endif>Belum Dibuatkan Invoice</option>
+              @if(request('src') != 'delivery')
+                <option value="invoice" @if($filter == 'invoice') selected @endif>Belum Dibuatkan Invoice</option>
+              @endif
               <option value="kembali" @if($filter == 'kembali') selected @endif>Belum Kembali</option>
               <option value="all" @if($filter == 'all') selected @endif>All</option>
             </select>
           </div>
-          @endif
-          <div class="form-group col-md-6">
+        </div>
+        <div class="form-row align-items-end">
+          <div class="form-group col-md-8">
             <label for="customer">Customer</label>
             <select id="customer" name="customer[]" class="select2 form-control" multiple>
               @foreach($customers as $c)
@@ -39,8 +41,10 @@
               @endforeach
             </select>
           </div>
-          <div class="form-group col-md-3">
-            <button class="btn btn-primary"><i class="fa fa-search"></i> Tampilkan</button>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-12">
+            <button class="btn btn-primary"><i class="fa fa-search"></i> Generate</button>
             <a href="{{ route('dnMonitoring.exportSummary', request()->query()) }}" class="btn btn-success"><i class="fa fa-download"></i> Export Excel</a>
           </div>
         </div>

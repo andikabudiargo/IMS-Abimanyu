@@ -62,8 +62,8 @@ class DnMonitoringController extends Controller
 
     private function filter(Request $request)
     {
-        if ($request->src == 'delivery') { // menu Delivery: filter dihilangkan, selalu "belum kembali"
-            return 'kembali';
+        if ($request->src == 'delivery') { // menu Delivery: filter cuma "Belum Kembali"/"All", default "Belum Kembali"
+            return $request->filter == 'all' ? 'all' : 'kembali';
         }
         return in_array($request->filter, ['kembali', 'all']) ? $request->filter : 'invoice';
     }
@@ -89,12 +89,12 @@ class DnMonitoringController extends Controller
     // Cut-off yang berlaku untuk satu delivery adalah kejadian cuttOff PERTAMA pada/sesudah
     // tanggal delivery itu sendiri: kalau delivery masih <= tanggal cuttOff bulan berjalan,
     // cut off-nya bulan berjalan juga; kalau sudah lewat, cut off-nya baru jatuh bulan depan.
-    private function nextCutOffDate($deliveryDateDMY, $cuttOff)
+    private function nextCutOffDate($deliveryYmd, $cuttOff)
     {
-        if (!$cuttOff || !$deliveryDateDMY) {
+        if (!$cuttOff || !$deliveryYmd) {
             return null;
         }
-        [$d, $m, $y] = explode('-', $deliveryDateDMY);
+        [$y, $m, $d] = explode('-', $deliveryYmd);
         $sameMonthDay = min((int) $cuttOff, (int) date('t', strtotime("$y-$m-01")));
         $sameMonthDate = sprintf('%s-%s-%02d', $y, $m, $sameMonthDay);
         if (strtotime("$y-$m-$d") <= strtotime($sameMonthDate)) {
@@ -141,19 +141,24 @@ class DnMonitoringController extends Controller
             }
             $c = $r->customer_id;
             $summary[$c]['name'] = $customers[$c]->nama ?? $c;
-            $cutOffDate = $this->nextCutOffDate($r->delivery_date, $customers[$c]->cutt_off ?? null);
-            if ($cutOffDate && (!isset($summary[$c]['cutt_off_sort']) || $cutOffDate < $summary[$c]['cutt_off_sort'])) {
-                $summary[$c]['cutt_off_sort'] = $cutOffDate;
+            [$d, $mo, $y] = explode('-', $r->delivery_date);
+            $deliveryYmd = "$y-$mo-$d";
+            // Cut off dihitung dari pengiriman TERAKHIR customer di periode ini: kalau cuma dipakai
+            // yang paling awal, satu DN yang kebetulan persis di tanggal cut off bikin seluruh baris
+            // customer itu salah tampil (cut off bulan ini), padahal mayoritas DN-nya baru jatuh bulan depan.
+            if (!isset($summary[$c]['last_delivery']) || $deliveryYmd > $summary[$c]['last_delivery']) {
+                $summary[$c]['last_delivery'] = $deliveryYmd;
             }
-            $summary[$c]['cutt_off_sort'] ??= '9999-99-99';
             $w = $this->week($r->delivery_date);
             $summary[$c]['w'][$w] = ($summary[$c]['w'][$w] ?? 0) + 1;
         }
         foreach ($summary as $c => &$row) {
-            $cutOff = $this->describeCutOff($row['cutt_off_sort'] == '9999-99-99' ? null : $row['cutt_off_sort']);
+            $cutOffDate = $this->nextCutOffDate($row['last_delivery'], $customers[$c]->cutt_off ?? null);
+            $cutOff = $this->describeCutOff($cutOffDate);
             $row['cutt_off'] = $cutOff['label'];
             $row['cutt_off_remaining'] = $cutOff['remaining'];
             $row['cutt_off_status'] = $cutOff['status'];
+            $row['cutt_off_sort'] = $cutOffDate ?? '9999-99-99';
         }
         unset($row);
         uasort($summary, fn($a, $b) => $a['cutt_off_sort'] <=> $b['cutt_off_sort'] ?: strcmp($a['name'], $b['name']));
@@ -166,7 +171,8 @@ class DnMonitoringController extends Controller
             if (!$r->belum_kembali) {
                 continue;
             }
-            $cutOffDate = $this->nextCutOffDate($r->delivery_date, $customers[$r->customer_id]->cutt_off ?? null);
+            [$d, $mo, $y] = explode('-', $r->delivery_date);
+            $cutOffDate = $this->nextCutOffDate("$y-$mo-$d", $customers[$r->customer_id]->cutt_off ?? null);
             if ($this->describeCutOff($cutOffDate)['status'] == 'over') {
                 $overQty++;
             }
