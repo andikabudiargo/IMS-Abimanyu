@@ -45,29 +45,29 @@
                 <td class="num">-</td>
                 @endif
                 <td class="num">-</td>
-                <td class="num {{ $openingBalance < 0 ? 'neg' : 'pos' }}">{{ number_format($openingBalance, 0) }}</td>
+                <td class="num {{ $openingBalance < 0 ? 'neg' : 'pos' }}">{{ number_format($openingBalance, 2) }}</td>
             </tr>
             @foreach ($rows as $r)
                 <tr>
                     <td>{{ $r['label'] }}</td>
-                    <td class="num">{{ number_format($r['dpp'], 0) }}</td>
-                    <td class="num">{{ number_format($r['addition'], 0) }}</td>
+                    <td class="num">{{ number_format($r['dpp'], 2) }}</td>
+                    <td class="num">{{ number_format($r['addition'], 2) }}</td>
                     @if ($basis !== 'delivery')
-                    <td class="num">{{ number_format($r['debitNote'], 0) }}</td>
+                    <td class="num">{{ number_format($r['debitNote'], 2) }}</td>
                     @endif
-                    <td class="num">{{ number_format($r['payment'], 0) }}</td>
-                    <td class="num {{ $r['balance'] < 0 ? 'neg' : 'pos' }}">{{ number_format($r['balance'], 0) }}</td>
+                    <td class="num">{{ number_format($r['payment'], 2) }}</td>
+                    <td class="num {{ $r['balance'] < 0 ? 'neg' : 'pos' }}">{{ number_format($r['balance'], 2) }}</td>
                 </tr>
             @endforeach
             <tr class="grand">
                 <td>TOTAL</td>
-                <td class="num">{{ number_format($totals['dpp'], 0) }}</td>
-                <td class="num">{{ number_format($totals['addition'], 0) }}</td>
+                <td class="num">{{ number_format($totals['dpp'], 2) }}</td>
+                <td class="num">{{ number_format($totals['addition'], 2) }}</td>
                 @if ($basis !== 'delivery')
-                <td class="num">{{ number_format($totals['debitNote'], 0) }}</td>
+                <td class="num">{{ number_format($totals['debitNote'], 2) }}</td>
                 @endif
-                <td class="num">{{ number_format($totals['payment'], 0) }}</td>
-                <td class="num {{ $closingBalance < 0 ? 'neg' : 'pos' }}">{{ number_format($closingBalance, 0) }}</td>
+                <td class="num">{{ number_format($totals['payment'], 2) }}</td>
+                <td class="num {{ $closingBalance < 0 ? 'neg' : 'pos' }}">{{ number_format($closingBalance, 2) }}</td>
             </tr>
         </tbody>
     </table>
