@@ -9,11 +9,14 @@ use Illuminate\Support\Facades\DB;
 // without duplicating the revision/snapshot handling.
 trait ResolvesTsoCodes
 {
-    // Trait tidak boleh punya const (butuh PHP 8.2+), jadi pakai static property.
+    // Trait tidak boleh punya const (butuh PHP 8.2+), jadi pakai static property. Tiap bulan
+    // dicek nama Indonesia & Inggris -- tso_name kadang ditulis "OKTOBER", kadang "October"
+    // (ketemu TSO/2026/X/56 "Target SO October 2026"), jadi dua-duanya harus dikenali.
     private static $bulanNames = [
-        1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL',
-        5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
-        9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER',
+        1 => ['JANUARI', 'JANUARY'], 2 => ['FEBRUARI', 'FEBRUARY'], 3 => ['MARET', 'MARCH'],
+        4 => ['APRIL'], 5 => ['MEI', 'MAY'], 6 => ['JUNI', 'JUNE'], 7 => ['JULI', 'JULY'],
+        8 => ['AGUSTUS', 'AUGUST'], 9 => ['SEPTEMBER'], 10 => ['OKTOBER', 'OCTOBER'],
+        11 => ['NOVEMBER'], 12 => ['DESEMBER', 'DECEMBER'],
     ];
 
     // Bulan target dari tso_name (lihat HomeController::targetMonthFromName untuk alasannya
@@ -21,9 +24,11 @@ trait ResolvesTsoCodes
     private function targetMonthFromName(string $name): ?int
     {
         $upper = strtoupper($name);
-        foreach (self::$bulanNames as $num => $label) {
-            if (strpos($upper, $label) !== false) {
-                return $num;
+        foreach (self::$bulanNames as $num => $labels) {
+            foreach ($labels as $label) {
+                if (strpos($upper, $label) !== false) {
+                    return $num;
+                }
             }
         }
         return null;
