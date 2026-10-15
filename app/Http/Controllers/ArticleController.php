@@ -770,7 +770,7 @@
             ->count();
 
             $statusDelete ='Deleted';
-            if ($count > 1){
+            if ($count > 0){
                 $rowAffected=DB::table('article')
                 ->where('id',$id)
                 ->update(
