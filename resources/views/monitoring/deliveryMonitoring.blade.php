@@ -103,7 +103,7 @@
               @foreach($g['articles'] as $rowKey => $articleName)
                 @php([$rowCustomerId, $rowArticleCode] = $summary ? explode('|', $rowKey, 2) : [$kode, $rowKey])
                 @foreach(['plan' => 'Plan', 'outstanding' => 'Outstanding', 'matrix' => 'Actual', 'balance' => 'Balance'] as $remarkKey => $remarkLabel)
-                <tr>
+                <tr @if($remarkKey == 'plan' && $loop->parent->index > 0) class="dm-article-divider" @endif>
                   @if($remarkKey == 'plan')
                   <td class="dm-sticky dm-col-no text-center" rowspan="4">{{ $loop->parent->iteration }}</td>
                   @if($summary)<td class="dm-sticky dm-col-customer" rowspan="4" title="{{ $g['rowCustomer'][$rowKey] ?? $rowCustomerId }}">{{ $g['rowCustomer'][$rowKey] ?? $rowCustomerId }}</td>@endif
@@ -114,15 +114,20 @@
                   @foreach($g['dates'] as $d)
                     @php($plan = $g['plan'][$rowKey][$d] ?? 0)
                     @php($actual = $g['matrix'][$rowKey][$d] ?? 0)
-                    @php($balance = $actual - $plan)
                     @php($outstanding = $g['outstanding'][$rowKey][$d] ?? 0)
+                    @php($balance = $actual - ($plan + $outstanding))
                     @if($remarkKey == 'plan') @php($val = $plan)
                     @elseif($remarkKey == 'matrix') @php($val = $actual)
                     @elseif($remarkKey == 'balance') @php($val = $balance)
                     @else @php($val = $outstanding) @endif
                     @php($rowTotal += $val)
-                    <td class="text-center @if($remarkKey=='balance') @if($balance < 0) text-danger font-weight-bold @elseif($balance > 0) text-warning font-weight-bold @endif @elseif($remarkKey=='outstanding') @if($outstanding < 0) text-danger font-weight-bold @elseif($outstanding > 0) text-warning font-weight-bold @endif @endif">
-                      @if($remarkKey == 'balance' || $remarkKey == 'outstanding')
+                    {{-- Outstanding kurang kirim (>0) selalu tampil sampai lunas; outstanding
+                    lebih kirim/lunas (<=0) cuma tampil kalau ada plan baru di tanggal itu. --}}
+                    @php($hideOutstanding = $remarkKey == 'outstanding' && $outstanding <= 0 && !$plan)
+                    <td class="text-center @if($remarkKey=='balance') @if($balance < 0) text-danger font-weight-bold @elseif($balance > 0) text-warning font-weight-bold @endif @elseif($remarkKey=='outstanding' && !$hideOutstanding) @if($outstanding < 0) text-danger font-weight-bold @elseif($outstanding > 0) text-warning font-weight-bold @endif @endif">
+                      @if($hideOutstanding)
+                        -
+                      @elseif($remarkKey == 'balance' || $remarkKey == 'outstanding')
                         {{ $val == 0 ? '0' : ($val > 0 ? '+'.rtrim(rtrim(number_format($val, 2, '.', ''), '0'), '.') : rtrim(rtrim(number_format($val, 2, '.', ''), '0'), '.')) }}
                       @elseif($remarkKey == 'matrix' && $val)
                         <a href="#" class="btn-qty" data-customer="{{ $rowCustomerId }}" data-article="{{ $rowArticleCode }}" data-date="{{ $d }}" data-label="{{ $articleName }} - {{ $d }}">{{ rtrim(rtrim(number_format($val, 2, '.', ''), '0'), '.') }}</a>
@@ -189,6 +194,7 @@
   .dm-table tbody tr:nth-child(even) td { background-color: #fff; }
   .dm-table tbody tr:hover td { background-color: #eaf3ff; }
   .dm-table tfoot td.dm-sticky { background: #f5f5f5; }
+  .dm-table tbody tr.dm-article-divider td { border-top: 3px solid #999; }
 </style>
 @endsection
 @section('scripts')

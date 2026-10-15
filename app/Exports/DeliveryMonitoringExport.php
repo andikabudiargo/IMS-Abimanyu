@@ -50,7 +50,7 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
         $rows = [];
         $remarks = ['plan' => 'Plan', 'outstanding' => 'Outstanding', 'matrix' => 'Actual', 'balance' => 'Balance'];
         $qtyFor = function ($remarkKey, $plan, $actual, $outstanding) {
-            return $remarkKey == 'plan' ? $plan : ($remarkKey == 'matrix' ? $actual : ($remarkKey == 'balance' ? $actual - $plan : $outstanding));
+            return $remarkKey == 'plan' ? $plan : ($remarkKey == 'matrix' ? $actual : ($remarkKey == 'balance' ? $actual - ($plan + $outstanding) : $outstanding));
         };
         foreach ($this->g['articles'] as $code => $name) {
             foreach ($remarks as $remarkKey => $remarkLabel) {

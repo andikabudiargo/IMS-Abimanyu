@@ -234,9 +234,11 @@ class DeliveryMonitoringController extends Controller
         return $series;
     }
 
-    // Outstanding: Balance (Actual - Plan) tanggal sebelumnya menambah/mengurangi Plan
-    // tanggal berikutnya, dihitung berurutan sejak ROLLING_PLAN_ANCHOR (bukan cuma dalam
-    // rentang $from-$to) supaya carry-nya tidak hilang saat filter tanggal dipersempit.
+    // Outstanding tanggal berjalan = carry dari Balance tanggal sebelumnya (kurang kirim jadi
+    // tambahan, lebih kirim jadi pengurang target hari ini); tanggal pertama outstanding = 0
+    // karena belum ada Balance sebelumnya. Target hari itu = Plan + Outstanding, dan
+    // Balance = Actual - Target (dihitung di view). Dihitung berurutan sejak ROLLING_PLAN_ANCHOR
+    // (bukan cuma dalam rentang $from-$to) supaya carry-nya tidak hilang saat filter dipersempit.
     // Plan asli di delivery_schedule_det/SO tidak diubah/ditimpa, ini baris terpisah.
     private function rollingPlans(array $anchoredActualRows, array $anchoredPlanRows, $summary)
     {
@@ -266,17 +268,21 @@ class DeliveryMonitoringController extends Controller
         $adjusted = [];
         foreach (array_unique(array_merge(array_keys($actual), array_keys($plan))) as $g) {
             $rows = array_unique(array_merge(array_keys($actual[$g] ?? []), array_keys($plan[$g] ?? [])));
+            // Carry dijalankan sepanjang tanggal yang dipakai GRUP (bukan cuma tanggal
+            // plan/actual milik row itu sendiri), supaya outstanding tetap mengalir di
+            // kolom tanggal lain yang sudah tampil di tabel karena artikel/transaksi lain.
+            $groupIso = [];
             foreach ($rows as $row) {
-                $isoDates = array_unique(array_merge(
-                    array_keys($actual[$g][$row] ?? []),
-                    array_keys($plan[$g][$row] ?? [])
-                ));
-                sort($isoDates);
+                $groupIso = array_merge($groupIso, array_keys($actual[$g][$row] ?? []), array_keys($plan[$g][$row] ?? []));
+            }
+            $groupIso = array_unique($groupIso);
+            sort($groupIso);
+            foreach ($rows as $row) {
                 $carry = 0;
-                foreach ($isoDates as $iso) {
-                    $adjPlan = ($plan[$g][$row][$iso] ?? 0) + $carry;
-                    $carry = $adjPlan - ($actual[$g][$row][$iso] ?? 0);
-                    $adjusted[$g][$row][$toIso($iso)] = $adjPlan;
+                foreach ($groupIso as $iso) {
+                    $adjusted[$g][$row][$toIso($iso)] = $carry;
+                    $target = ($plan[$g][$row][$iso] ?? 0) + $carry;
+                    $carry = $target - ($actual[$g][$row][$iso] ?? 0);
                 }
             }
         }
