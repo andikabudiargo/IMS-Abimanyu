@@ -362,9 +362,7 @@
 
   $('#bulkEdit').click(function(){ window.location.href = $('.chk-req:checked').first().data('url'); });
 
-  $(document).on('click', '.bulk-btn', function(){
-    const act = $(this).data('act');
-    const ids = $('.chk-req:checked').map(function(){ return this.value; }).get();
+  const bulkPost = (act, ids) => {
     Swal.fire({title: act.charAt(0).toUpperCase() + act.slice(1) + ' ' + ids.length + ' article request?', icon: 'question', showCancelButton: true})
     .then((r) => {
       if (!r.isConfirmed) return;
@@ -374,6 +372,15 @@
         });
       }).fail(() => Swal.fire('Error','Request failed','error'));
     });
+  };
+
+  $(document).on('click', '.bulk-btn', function(){
+    bulkPost($(this).data('act'), $('.chk-req:checked').map(function(){ return this.value; }).get());
+  });
+
+  // aksi langsung dari dropdown per-row, tanpa perlu checklist
+  $(document).on('click', '.req-single-act', function(){
+    bulkPost($(this).data('act'), [$(this).data('id')]);
   });
 
   $.ajaxSetup({

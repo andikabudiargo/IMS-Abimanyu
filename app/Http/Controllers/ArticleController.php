@@ -2728,17 +2728,36 @@ private function buildSummaryRow(array $p)
                 return '<input type="checkbox" class="chk-req" value="'.Crypt::encryptString($data->idku).'" data-a="'.(int)$canApprove.'" data-s="'.(int)$canSubmit.'" data-e="'.(int)$canEdit.'" data-d="'.(int)$canDelete.'" data-url="'.route('article.request.edit', ['id'=>Crypt::encryptString($data->idku)]).'">';
             })
             ->addColumn('action', function ($data) {
+                $user = Auth::user();
+                $inDept = $data->bisa_approve > 0;
+                $canApprove = $inDept && $data->status_approve == '1' && $user->can('article-request-approve');
+                $canSubmit = $data->status_approve == '2' && self::canSubmitRequest();
+
                 $buttons = '<div class="d-inline-flex">
                                 <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
                                     <i data-feather="menu"></i>
                                 </a>';
                 $buttons .=     '<div class="dropdown-menu dropdown-menu-right">';
-            
+
 
                 $buttons .=         '<a href="'. route('article.request.show', ['id'=>Crypt::encryptString($data->idku)]) .'" class="dropdown-item">
                                         <i data-feather="list"></i>
                                         Detail
                                     </a>';
+
+                if ($canApprove) {
+                    $buttons .=         '<a href="javascript:;" class="dropdown-item req-single-act" data-act="approve" data-id="'. Crypt::encryptString($data->idku) .'">
+                                            <i data-feather="check"></i>
+                                            Approve
+                                        </a>';
+                }
+
+                if ($canSubmit) {
+                    $buttons .=         '<a href="javascript:;" class="dropdown-item req-single-act" data-act="submit" data-id="'. Crypt::encryptString($data->idku) .'">
+                                            <i data-feather="send"></i>
+                                            Submit
+                                        </a>';
+                }
 
                 if (Auth::user()->can('article-request-delete')) {
                     if (in_array($data->status_approve, ['1','2'])) {
