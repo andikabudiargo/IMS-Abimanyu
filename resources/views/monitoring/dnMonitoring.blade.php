@@ -49,15 +49,15 @@
   </div>
 
   <div class="card">
-    <div class="card-header"><h4 class="card-title">Progress Kembali vs Cut Off</h4></div>
+    <div class="card-header"><h4 class="card-title">Progress Surat Jalan Kembali - {{ $monthLabel }}</h4></div>
     <div class="card-body">
       <div class="row align-items-center">
-        <div class="col-md-3 text-center">
-          <div id="cutOffGauge"></div>
+        <div class="col-md-3 d-flex justify-content-center">
+          <div id="cutOffGauge" style="width:180px"></div>
         </div>
         <div class="col-md-9">
-          <p class="mb-1"><strong>{{ $onTimeQty }}</strong> dari <strong>{{ $totalQty }}</strong> DN outstanding ({{ $onTimePct }}%) masih dalam periode cut off.</p>
-          <p class="mb-0 {{ $overQty ? 'text-danger' : 'text-muted' }}"><strong>{{ $overQty }}</strong> DN sudah lewat tanggal cut off customernya.</p>
+          <p class="mb-1"><strong>{{ $kembaliQty }}</strong> dari <strong>{{ $totalQty }}</strong> DN periode ini sudah kembali ({{ $kembaliPct }}%).</p>
+          <p class="mb-0 {{ $overQty ? 'text-danger' : 'text-muted' }}">Dari <strong>{{ $belumKembaliQty }}</strong> DN yang belum kembali, <strong>{{ $overQty }}</strong> sudah lewat tanggal cut off customernya.</p>
         </div>
       </div>
     </div>
@@ -142,10 +142,10 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
 <script type="text/javascript">
   new ApexCharts(document.querySelector('#cutOffGauge'), {
-    chart: { type: 'radialBar', height: 180 },
-    series: [{{ $onTimePct }}],
-    labels: ['On Time'],
-    colors: ['{{ $onTimePct >= 70 ? "#28c76f" : ($onTimePct >= 40 ? "#ff9f43" : "#ea5455") }}'],
+    chart: { type: 'radialBar', width: 180, height: 180 },
+    series: [{{ $kembaliPct }}],
+    labels: ['Kembali'],
+    colors: ['{{ $kembaliPct >= 70 ? "#28c76f" : ($kembaliPct >= 40 ? "#ff9f43" : "#ea5455") }}'],
     plotOptions: { radialBar: { hollow: { size: '60%' }, dataLabels: { value: { fontSize: '20px', formatter: v => v + '%' } } } },
   }).render();
 

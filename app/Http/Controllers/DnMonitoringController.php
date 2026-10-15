@@ -136,8 +136,19 @@ class DnMonitoringController extends Controller
         }
         uasort($summary, fn($a, $b) => $a['cutt_off_sort'] <=> $b['cutt_off_sort'] ?: strcmp($a['name'], $b['name']));
 
-        $totalQty = array_sum(array_map(fn($r) => array_sum($r['w']), $summary));
-        $overQty = array_sum(array_map(fn($r) => $r['cutt_off_status'] == 'over' ? array_sum($r['w']) : 0, $summary));
+        $allRows = array_filter($this->pendingRows($month, 'all', $this->dnType($request)), fn($r) => !$selected || in_array($r->customer_id, $selected));
+        $totalQty = count($allRows);
+        $kembaliQty = count(array_filter($allRows, fn($r) => !$r->belum_kembali));
+        $overQty = 0;
+        foreach ($allRows as $r) {
+            if (!$r->belum_kembali) {
+                continue;
+            }
+            $cutOff = $this->cutOffInfo($month, $customers[$r->customer_id]->cutt_off ?? null);
+            if ($cutOff['status'] == 'over') {
+                $overQty++;
+            }
+        }
 
         $weeks = range(1, $this->weekCount($month));
         $daysInMonth = date('t', strtotime("$month-01"));
@@ -150,9 +161,10 @@ class DnMonitoringController extends Controller
         }
         $data['monthLabel'] = date('F Y', strtotime("$month-01"));
         $data['totalQty'] = $totalQty;
-        $data['onTimeQty'] = $totalQty - $overQty;
+        $data['kembaliQty'] = $kembaliQty;
+        $data['belumKembaliQty'] = $totalQty - $kembaliQty;
         $data['overQty'] = $overQty;
-        $data['onTimePct'] = $totalQty ? round(($totalQty - $overQty) / $totalQty * 100) : 0;
+        $data['kembaliPct'] = $totalQty ? round($kembaliQty / $totalQty * 100) : 0;
         $data['periode'] = $month;
         $data['filter'] = $this->filter($request);
         $data['dnType'] = $this->dnType($request);
