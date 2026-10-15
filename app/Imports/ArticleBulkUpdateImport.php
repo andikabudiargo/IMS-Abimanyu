@@ -18,6 +18,13 @@ class ArticleBulkUpdateImport implements ToModel, WithStartRow, WithHeadingRow
 
     public function model(array $row)
     {
+        if (empty($row['article_code'])) {
+            // ponytail: template workbook has reference sheets (Referensi Article/COA/...)
+            // that get fed through this same mapper since we don't implement
+            // WithMultipleSheets; their rows never have article_code, so skip them here.
+            return null;
+        }
+
         return new ArticleBulkUpdateStake([
             'batch_id'     => $this->data['batch_id'],
             'article_code' => $row['article_code'] ?? null,
