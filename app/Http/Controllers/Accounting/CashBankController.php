@@ -277,12 +277,17 @@ private function applyPartyFilter($q, Request $request, $group)
             ->orderBy('kas_det.id')
             ->get();
 
+        $data = \AppHelpers::attachInvoiceRefUrl($data);
+
         return Datatables::of($data)
             ->addColumn('tipe', function ($d) use ($types) {
                 $cls = substr($d->voucher_type, 1) == 'M' ? 'badge-light-success' : 'badge-light-danger';
                 return "<div class='badge $cls'>" . $types[$d->voucher_type][0] . '</div>';
             })
-            ->rawColumns(['tipe'])
+            ->editColumn('reference', function ($d) {
+                return $d->ref_url ? "<a href='{$d->ref_url}' target='_blank'>{$d->reference}</a>" : $d->reference;
+            })
+            ->rawColumns(['tipe', 'reference'])
             ->make(true);
     }
 }

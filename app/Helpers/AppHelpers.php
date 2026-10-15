@@ -1,6 +1,7 @@
 <?php
 namespace App\Helpers;
 use DB;
+use Illuminate\Support\Facades\Crypt;
 
 /*global function supaya bisa di panggil dari controller yang lain 
 */
@@ -17,6 +18,31 @@ class AppHelpers
             (date_part(reset_by,last_reset) <> date_part(reset_by,current_date::timestamp) or last_reset is null) and 
             code_key = '$condKey'");
         return $afterEffect;
+    }
+
+    // Kas/Bank detail rows store the AP/AR invoice number (not the internal id) in
+    // `reference` -- match it against ap_invoice.inv_number / invoice_hdr.invoice_number
+    // so the view can render it as a link instead of plain text.
+    public static function attachInvoiceRefUrl($details){
+        $refs = $details->pluck('reference')->filter()->unique()->values()->all();
+        if (empty($refs)) {
+            return $details;
+        }
+
+        $apIds = DB::table('ap_invoice')->whereIn('inv_number', $refs)->pluck('id', 'inv_number');
+        $arIds = DB::table('invoice_hdr')->whereIn('invoice_number', $refs)->pluck('id', 'invoice_number');
+
+        foreach ($details as $row) {
+            if (isset($apIds[$row->reference])) {
+                $row->ref_url = route('accountPayable.show', ['id' => Crypt::encryptString($apIds[$row->reference])]);
+            } elseif (isset($arIds[$row->reference])) {
+                $row->ref_url = route('invoice.show', ['id' => Crypt::encryptString($arIds[$row->reference])]);
+            } else {
+                $row->ref_url = null;
+            }
+        }
+
+        return $details;
     }
 
     public static function lockDate($moduleCode){
