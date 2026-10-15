@@ -49,6 +49,21 @@
   </div>
 
   <div class="card">
+    <div class="card-header"><h4 class="card-title">Progress Kembali vs Cut Off</h4></div>
+    <div class="card-body">
+      <div class="row align-items-center">
+        <div class="col-md-3 text-center">
+          <div id="cutOffGauge"></div>
+        </div>
+        <div class="col-md-9">
+          <p class="mb-1"><strong>{{ $onTimeQty }}</strong> dari <strong>{{ $totalQty }}</strong> DN outstanding ({{ $onTimePct }}%) masih dalam periode cut off.</p>
+          <p class="mb-0 {{ $overQty ? 'text-danger' : 'text-muted' }}"><strong>{{ $overQty }}</strong> DN sudah lewat tanggal cut off customernya.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-header"><h4 class="card-title">Outstanding Surat Jalan Kembali - {{ $monthLabel }}</h4></div>
     <div class="card-body table-responsive">
       @php($colspan = 3 + count($weeks) + 1)
@@ -124,7 +139,16 @@
 </div>
 @endsection
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
 <script type="text/javascript">
+  new ApexCharts(document.querySelector('#cutOffGauge'), {
+    chart: { type: 'radialBar', height: 180 },
+    series: [{{ $onTimePct }}],
+    labels: ['On Time'],
+    colors: ['{{ $onTimePct >= 70 ? "#28c76f" : ($onTimePct >= 40 ? "#ff9f43" : "#ea5455") }}'],
+    plotOptions: { radialBar: { hollow: { size: '60%' }, dataLabels: { value: { fontSize: '20px', formatter: v => v + '%' } } } },
+  }).render();
+
   $('.select2').select2({placeholder: 'Semua Customer', allowClear: true});
   const esc = s => $('<div>').text(s ?? '').html();
   $('.btn-dn').on('click', function (e) {

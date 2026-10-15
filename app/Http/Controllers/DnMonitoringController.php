@@ -136,6 +136,9 @@ class DnMonitoringController extends Controller
         }
         uasort($summary, fn($a, $b) => $a['cutt_off_sort'] <=> $b['cutt_off_sort'] ?: strcmp($a['name'], $b['name']));
 
+        $totalQty = array_sum(array_map(fn($r) => array_sum($r['w']), $summary));
+        $overQty = array_sum(array_map(fn($r) => $r['cutt_off_status'] == 'over' ? array_sum($r['w']) : 0, $summary));
+
         $weeks = range(1, $this->weekCount($month));
         $daysInMonth = date('t', strtotime("$month-01"));
         $data['summary'] = $summary;
@@ -146,6 +149,10 @@ class DnMonitoringController extends Controller
             $data['weekLabels'][$w] = "W$w (" . ($w * 7 - 6) . "-" . ($w == count($weeks) ? 'akhir' : $end) . ')';
         }
         $data['monthLabel'] = date('F Y', strtotime("$month-01"));
+        $data['totalQty'] = $totalQty;
+        $data['onTimeQty'] = $totalQty - $overQty;
+        $data['overQty'] = $overQty;
+        $data['onTimePct'] = $totalQty ? round(($totalQty - $overQty) / $totalQty * 100) : 0;
         $data['periode'] = $month;
         $data['filter'] = $this->filter($request);
         $data['dnType'] = $this->dnType($request);
