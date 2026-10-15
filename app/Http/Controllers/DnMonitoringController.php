@@ -142,23 +142,24 @@ class DnMonitoringController extends Controller
             $c = $r->customer_id;
             $summary[$c]['name'] = $customers[$c]->nama ?? $c;
             [$d, $mo, $y] = explode('-', $r->delivery_date);
-            $deliveryYmd = "$y-$mo-$d";
-            // Cut off dihitung dari pengiriman TERAKHIR customer di periode ini: kalau cuma dipakai
-            // yang paling awal, satu DN yang kebetulan persis di tanggal cut off bikin seluruh baris
-            // customer itu salah tampil (cut off bulan ini), padahal mayoritas DN-nya baru jatuh bulan depan.
-            if (!isset($summary[$c]['last_delivery']) || $deliveryYmd > $summary[$c]['last_delivery']) {
-                $summary[$c]['last_delivery'] = $deliveryYmd;
+            $cutOffDate = $this->nextCutOffDate("$y-$mo-$d", $customers[$c]->cutt_off ?? null);
+            // Cut off customer = yang PALING CEPAT (paling mendesak) di antara DN outstanding-nya di
+            // periode ini, bukan dari DN yang paling terakhir dikirim: supaya kalau ada satu DN lama
+            // yang sudah lewat cut off, baris customer itu memang kelihatan "lewat" (konsisten dengan
+            // hitungan jumlah DN lewat cut off di panel Progress), bukan malah ketutup oleh DN lain yang
+            // cut off-nya masih jauh di depan.
+            if ($cutOffDate && (!isset($summary[$c]['cutt_off_sort']) || $cutOffDate < $summary[$c]['cutt_off_sort'])) {
+                $summary[$c]['cutt_off_sort'] = $cutOffDate;
             }
+            $summary[$c]['cutt_off_sort'] ??= '9999-99-99';
             $w = $this->week($r->delivery_date);
             $summary[$c]['w'][$w] = ($summary[$c]['w'][$w] ?? 0) + 1;
         }
         foreach ($summary as $c => &$row) {
-            $cutOffDate = $this->nextCutOffDate($row['last_delivery'], $customers[$c]->cutt_off ?? null);
-            $cutOff = $this->describeCutOff($cutOffDate);
+            $cutOff = $this->describeCutOff($row['cutt_off_sort'] == '9999-99-99' ? null : $row['cutt_off_sort']);
             $row['cutt_off'] = $cutOff['label'];
             $row['cutt_off_remaining'] = $cutOff['remaining'];
             $row['cutt_off_status'] = $cutOff['status'];
-            $row['cutt_off_sort'] = $cutOffDate ?? '9999-99-99';
         }
         unset($row);
         uasort($summary, fn($a, $b) => $a['cutt_off_sort'] <=> $b['cutt_off_sort'] ?: strcmp($a['name'], $b['name']));
