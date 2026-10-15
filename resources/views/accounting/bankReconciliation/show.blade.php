@@ -48,7 +48,7 @@
        saat halaman dibuka, tidak disimpan di DB, supaya selalu sinkron kalau ada posting baru. --}}
   <div class="card">
     <div class="card-header">
-      <h4 class="card-title">Saldo &amp; Mutasi — Rekening Koran vs Buku Besar</h4>
+      <h4 class="card-title">Summary Reconciliation</h4>
     </div>
     <div class="card-body">
       <table class="table table-sm table-bordered bb2-info mb-3">
@@ -77,8 +77,8 @@
               $glRows = [
                 ['Saldo Awal', $header->saldo_awal, $gl['saldo_awal'] ?? null],
                 ['Saldo Akhir', $header->saldo_akhir, $gl['saldo_akhir'] ?? null],
-                ['Mutasi Debet (vs GL Kredit)', $stmtMutasiDebet, $gl['mutasi_kredit'] ?? null],
-                ['Mutasi Kredit (vs GL Debet)', $stmtMutasiKredit, $gl['mutasi_debet'] ?? null],
+                ['Mutasi Debet (vs Buku Besar Kredit)', $stmtMutasiDebet, $gl['mutasi_kredit'] ?? null],
+                ['Mutasi Kredit (vs Buku Besar Debet)', $stmtMutasiKredit, $gl['mutasi_debet'] ?? null],
               ];
             @endphp
             @foreach ($glRows as [$label, $koran, $buku])
@@ -100,7 +100,7 @@
 
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-      <h4 class="card-title">Detail Mutasi — PDF vs Buku Besar</h4>
+      <h4 class="card-title">Detail Mutasi</h4>
       <div class="form-group mb-0" style="min-width:200px">
         <select id="statusFilter" class="form-control form-control-sm">
           <option value="">Semua Status</option>
