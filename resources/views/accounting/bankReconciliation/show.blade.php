@@ -53,10 +53,8 @@
     <div class="card-body">
       <table class="table table-sm table-bordered bb2-info mb-3">
         <tbody>
-          <tr>
-            <th width="14%">No. Rekening</th><td width="36%">{{ $header->account_number ?: '-' }}</td>
-            <th width="14%">Nama Rekening</th><td>{{ $header->account_name ?: '-' }}</td>
-          </tr>
+          <tr><th width="14%">No. Rekening</th><td>{{ $header->account_number ?: '-' }}</td></tr>
+          <tr><th>Nama Rekening</th><td>{{ $header->account_name ?: '-' }}</td></tr>
         </tbody>
       </table>
       <div class="table-responsive">
