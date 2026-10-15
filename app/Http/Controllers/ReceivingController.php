@@ -3601,16 +3601,17 @@ public function unPosting($recNumber)
             }
         }
 
-        // AP dokumen yang terkait receiving ini (posted/paid).
+        // AP dokumen yang terkait receiving ini.
         // $apInv (nomor invoice supplier) tetap dipakai untuk mencocokkan voucher
         // pembayaran (kas_det.reference = inv_number). Kolom Invoice Number di
         // report menampilkan ap_number (nomor AP), bukan inv_number.
-        // status AP: 4=POSTED(belum bayar), 6=PAID(lunas), 7=PARTIALLY PAID
+        // Semua status AP ditampilkan (DRAFT/VALIDATED/APPROVED/POSTED/PAID/PARTIALLY PAID),
+        // hanya status 5=CANCELED yang disembunyikan.
         $apNumberSub = "(select ap_number from ap_invoice_detail where rec_number = receiving_hdr.rec_number limit 1)";
-        $apInv    = "(select inv_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)";
-        $apId     = "(select id from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)";
-        $apNo     = "(select ap_number from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)";
-        $apStatus = "(select status from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1)";
+        $apInv    = "(select inv_number from ap_invoice where ap_number = $apNumberSub and status <> '5' limit 1)";
+        $apId     = "(select id from ap_invoice where ap_number = $apNumberSub and status <> '5' limit 1)";
+        $apNo     = "(select ap_number from ap_invoice where ap_number = $apNumberSub and status <> '5' limit 1)";
+        $apStatus = "(select status from ap_invoice where ap_number = $apNumberSub and status <> '5' limit 1)";
         // Formula PPN disamakan dgn Detail Receiving (listDetail): total_dpp,
         // total_ppn, total_plus_ppn.
         $dpp     = "(receiving_det.price*receiving_det.qty)";
@@ -3652,8 +3653,8 @@ public function unPosting($recNumber)
         ,'article_types.name as article_type_name'
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("case when receiving_hdr.rec_type = 'NP' then 'Logistic' when receiving_hdr.rec_type = 'TRIAL' then 'Engineering' else (select (select name from depts where code = dept) from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1) end as nama_dept")
-        ,DB::raw("(select to_char(to_date(nullif(ap_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1) as invoice_date")
-        ,DB::raw("(select case when a.account is null or a.account = '' then '' else a.account || ' - ' || coalesce(acc.description,'') end from ap_invoice_det a left join accounts acc on acc.account = a.account where a.ap_number = $apNumberSub and a.reference = receiving_det.article_code limit 1) as coa")
+        ,DB::raw("(select to_char(to_date(nullif(ap_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') from ap_invoice where ap_number = $apNumberSub and status <> '5' limit 1) as invoice_date")
+        ,DB::raw("(select case when a.account is null or a.account = '' then '' else a.account || ' - ' || coalesce(acc.description,'') end from ap_invoice_det a left join accounts acc on acc.account = a.account where a.ap_number = $apNo and a.reference = receiving_det.article_code limit 1) as coa")
         ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("case when coalesce(purchase_order_hdr.ppn::numeric,0) > 0 then 'PPN' else '' end as ppn")
         ,DB::raw("$dpp as total_dpp")
@@ -3661,10 +3662,10 @@ public function unPosting($recNumber)
         ,DB::raw("$lineGt as total_plus_ppn")
         ,DB::raw("$apNo as invoice_number")
         ,DB::raw("$apId as invoice_id")
-        ,DB::raw("(select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as voucher_number")
-        ,DB::raw("(select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as voucher_id")
-        ,DB::raw("(select kas_hdr.voucher_type from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as voucher_type")
-        ,DB::raw("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'YYYY-MM-DD') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status not in ('5','6') and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as paid_date")
+        ,DB::raw("(select kas_det.voucher_number from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status <> '5' and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as voucher_number")
+        ,DB::raw("(select kas_hdr.id from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status <> '5' and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as voucher_id")
+        ,DB::raw("(select kas_hdr.voucher_type from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status <> '5' and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as voucher_type")
+        ,DB::raw("(select to_char(to_date(kas_hdr.voucher_date,'DD-MM-YYYY'),'YYYY-MM-DD') from kas_det left join kas_hdr on kas_det.voucher_number = kas_hdr.voucher_number where kas_hdr.status <> '5' and kas_hdr.voucher_type in ('KK','BK','BM') and kas_det.reference = $apInv limit 1) as paid_date")
         // Balance per baris receiving: kalau AP-nya sudah LUNAS (status 6) → 0,
         // selain itu → Total Plus PPN baris ini. Tidak memakai grand total AP
         // (1 AP bisa mencakup beberapa receiving) maupun nominal kas.
