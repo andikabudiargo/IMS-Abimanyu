@@ -85,19 +85,34 @@ class DnMonitoringController extends Controller
         return (int) ceil(date('t', strtotime("$month-01")) / 7);
     }
 
-    // Cut-off jatuh di bulan SETELAH periode delivery yang dilihat (tanggal cuttOff,
-    // di-clamp ke jumlah hari bulan itu). Dibandingkan ke hari ini untuk status & sisa hari.
-    private function cutOffInfo($month, $cuttOff)
+    // Cut-off berulang tiap tanggal cuttOff tiap bulan (di-clamp ke jumlah hari bulan itu).
+    // Cut-off yang berlaku untuk satu delivery adalah kejadian cuttOff PERTAMA pada/sesudah
+    // tanggal delivery itu sendiri: kalau delivery masih <= tanggal cuttOff bulan berjalan,
+    // cut off-nya bulan berjalan juga; kalau sudah lewat, cut off-nya baru jatuh bulan depan.
+    private function nextCutOffDate($deliveryDateDMY, $cuttOff)
     {
-        if (!$cuttOff) {
-            return ['date' => null, 'label' => '', 'remaining' => null, 'status' => ''];
+        if (!$cuttOff || !$deliveryDateDMY) {
+            return null;
         }
-        $nextMonth = date('Y-m', strtotime("$month-01 +1 month"));
-        $day = min((int) $cuttOff, (int) date('t', strtotime("$nextMonth-01")));
-        $date = "$nextMonth-" . str_pad($day, 2, '0', STR_PAD_LEFT);
+        [$d, $m, $y] = explode('-', $deliveryDateDMY);
+        $sameMonthDay = min((int) $cuttOff, (int) date('t', strtotime("$y-$m-01")));
+        $sameMonthDate = sprintf('%s-%s-%02d', $y, $m, $sameMonthDay);
+        if (strtotime("$y-$m-$d") <= strtotime($sameMonthDate)) {
+            return $sameMonthDate;
+        }
+        $nextMonth = date('Y-m', strtotime("$y-$m-01 +1 month"));
+        $nextDay = min((int) $cuttOff, (int) date('t', strtotime("$nextMonth-01")));
+        return "$nextMonth-" . str_pad($nextDay, 2, '0', STR_PAD_LEFT);
+    }
+
+    // Dibandingkan ke hari ini untuk label, sisa hari, dan status (over/near).
+    private function describeCutOff($date)
+    {
+        if (!$date) {
+            return ['label' => '', 'remaining' => null, 'status' => ''];
+        }
         $remaining = (int) ((strtotime($date) - strtotime(date('Y-m-d'))) / 86400);
         return [
-            'date' => $date,
             'label' => date('j F Y', strtotime($date)),
             'remaining' => $remaining,
             'status' => $remaining < 0 ? 'over' : ($remaining <= 3 ? 'near' : ''),
@@ -126,14 +141,21 @@ class DnMonitoringController extends Controller
             }
             $c = $r->customer_id;
             $summary[$c]['name'] = $customers[$c]->nama ?? $c;
-            $cutOff = $this->cutOffInfo($month, $customers[$c]->cutt_off ?? null);
-            $summary[$c]['cutt_off'] = $cutOff['label'];
-            $summary[$c]['cutt_off_remaining'] = $cutOff['remaining'];
-            $summary[$c]['cutt_off_status'] = $cutOff['status'];
-            $summary[$c]['cutt_off_sort'] = $cutOff['date'] ?? '9999-99-99';
+            $cutOffDate = $this->nextCutOffDate($r->delivery_date, $customers[$c]->cutt_off ?? null);
+            if ($cutOffDate && (!isset($summary[$c]['cutt_off_sort']) || $cutOffDate < $summary[$c]['cutt_off_sort'])) {
+                $summary[$c]['cutt_off_sort'] = $cutOffDate;
+            }
+            $summary[$c]['cutt_off_sort'] ??= '9999-99-99';
             $w = $this->week($r->delivery_date);
             $summary[$c]['w'][$w] = ($summary[$c]['w'][$w] ?? 0) + 1;
         }
+        foreach ($summary as $c => &$row) {
+            $cutOff = $this->describeCutOff($row['cutt_off_sort'] == '9999-99-99' ? null : $row['cutt_off_sort']);
+            $row['cutt_off'] = $cutOff['label'];
+            $row['cutt_off_remaining'] = $cutOff['remaining'];
+            $row['cutt_off_status'] = $cutOff['status'];
+        }
+        unset($row);
         uasort($summary, fn($a, $b) => $a['cutt_off_sort'] <=> $b['cutt_off_sort'] ?: strcmp($a['name'], $b['name']));
 
         $allRows = array_filter($this->pendingRows($month, 'all', $this->dnType($request)), fn($r) => !$selected || in_array($r->customer_id, $selected));
@@ -144,8 +166,8 @@ class DnMonitoringController extends Controller
             if (!$r->belum_kembali) {
                 continue;
             }
-            $cutOff = $this->cutOffInfo($month, $customers[$r->customer_id]->cutt_off ?? null);
-            if ($cutOff['status'] == 'over') {
+            $cutOffDate = $this->nextCutOffDate($r->delivery_date, $customers[$r->customer_id]->cutt_off ?? null);
+            if ($this->describeCutOff($cutOffDate)['status'] == 'over') {
                 $overQty++;
             }
         }
