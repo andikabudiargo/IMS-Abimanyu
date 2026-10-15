@@ -124,7 +124,7 @@
                     {{-- Outstanding kurang kirim (>0) selalu tampil sampai lunas; outstanding
                     lebih kirim/lunas (<=0) cuma tampil kalau ada plan baru di tanggal itu. --}}
                     @php($hideOutstanding = $remarkKey == 'outstanding' && $outstanding <= 0 && !$plan)
-                    <td class="text-center @if($remarkKey=='balance') @if($balance < 0) text-danger font-weight-bold @elseif($balance > 0) text-warning font-weight-bold @endif @elseif($remarkKey=='outstanding' && !$hideOutstanding) @if($outstanding < 0) text-danger font-weight-bold @elseif($outstanding > 0) text-warning font-weight-bold @endif @endif">
+                    <td class="text-center @if($remarkKey=='balance') @if($balance < 0) text-danger font-weight-bold @elseif($balance > 0) text-warning font-weight-bold @endif @elseif($remarkKey=='outstanding' && !$hideOutstanding) @if($outstanding > 0) text-danger font-weight-bold @elseif($outstanding < 0) text-warning font-weight-bold @endif @endif">
                       @if($hideOutstanding)
                         -
                       @elseif($remarkKey == 'balance' || $remarkKey == 'outstanding')
