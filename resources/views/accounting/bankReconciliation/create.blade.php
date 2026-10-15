@@ -13,15 +13,18 @@
         <form id="frmAdd" name="frmAdd" autocomplete="off" enctype="multipart/form-data">
           @csrf
           <div class="form-row">
-            <div class="form-group col-md-3">
-              <label class="form-label" for="type">Type*</label>
-              <select class="select2 form-control" id="type" name="type" required>
-                <option value=""></option>
-                <option value="KAS">Kas</option>
-                <option value="BANK">Bank</option>
-              </select>
+             <div class="form-group col-md-4">
+                <label for="reconciliationNumber" class="form-label">
+                    Reconciliation Number
+                    <small class="text-muted">automatic</small>
+                </label>
+                <input type="text"
+                       id="reconciliationNumber"
+                       name="reconciliationNumber"
+                       class="form-control text-hitam disabled-el"
+                       disabled>
             </div>
-            <div class="form-group col-md-3">
+            <div class="form-group col-md-2">
               <label class="form-label" for="periode">Periode*</label>
               <select class="select2 form-control" id="periode" name="periode" required>
                 <option value=""></option>
@@ -34,7 +37,17 @@
               <label class="form-label" for="year">Tahun*</label>
               <input type="number" id="year" name="year" class="form-control" value="{{ date('Y') }}" required />
             </div>
-            <div class="form-group col-md-4">
+            </div>
+            <div class="form-row">
+             <div class="form-group col-md-2">
+              <label class="form-label" for="type">Type*</label>
+              <select class="select2 form-control" id="type" name="type" required>
+                <option value=""></option>
+                <option value="KAS">Kas</option>
+                <option value="BANK">Bank</option>
+              </select>
+            </div>
+            <div class="form-group col-md-6">
               <label class="form-label" for="coaAccount">Akun COA*</label>
               <select class="select2 form-control" id="coaAccount" name="coaAccount" required disabled>
                 <option value=""></option>
@@ -206,7 +219,7 @@
       }
       let voucherCell = r.status === 'MATCHED'
         ? (r.voucher_url ? `<a href="${r.voucher_url}" target="_blank">${r.voucher_number}</a>` : (r.voucher_number ?? '-'))
-        : `<select class="form-control form-control-sm manual-voucher-select" data-row-index="${i}" data-amount="${r.amount}" style="min-width:260px"></select>`;
+        : `<select class="form-control form-control-sm manual-voucher-select" data-row-index="${i}" data-amount="${r.amount}" data-mutation-type="${r.mutation_type}" style="min-width:260px"></select>`;
       return `<tr>
         <td>${i + 1}</td>
         <td>${r.stmt_date}</td>
@@ -251,6 +264,7 @@
             year: $('#year').val(),
             coaAccount: $('#coaAccount').val(),
             amount: $(this).data('amount'),
+            mutationType: $(this).data('mutation-type'),
             search: params.term,
           };
         },

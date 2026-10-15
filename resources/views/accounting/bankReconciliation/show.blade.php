@@ -115,7 +115,7 @@
             dataType: 'json',
             delay: 300,
             data: function (params) {
-              return { reconNumber: reconNumber, amount: amount, search: params.term };
+              return { reconNumber: reconNumber, amount: amount, mutationType: type, search: params.term };
             },
             processResults: function (rows) {
               return {

@@ -558,17 +558,25 @@ class BankReconciliationController extends Controller
             $coaAccount = $request->coaAccount;
         }
         $voucherTypes = $this->voucherTypes[$type];
-        // Range dilonggarkan ke ±3 bulan dari periode (voucher kadang diposting di bulan
-        // sebelum/sesudah transaksi bank-nya) -- dibandingkan sebagai "bulan absolut"
-        // (year*12+month) supaya gampang di-range tanpa ribet soal pergantian tahun.
-        $targetAbsMonth = $year * 12 + $periode;
         $amount = $request->amount !== null && $request->amount !== '' ? (float) $request->amount : null;
+        // Sisi lawan dari rekening koran: statement DB (debit di koran) dipasangkan ke buku
+        // besar CR dan sebaliknya -- sama seperti aturan strict di matchRows(). Dikirim dari
+        // tombol "Match Manual" baris statement ybs, jadi selalu ada di 2 pemanggil endpoint ini.
+        $mutationType = $request->mutationType;
+        $sideColumn = $mutationType === 'CR' ? 'kas_det.debit' : ($mutationType === 'DB' ? 'kas_det.credit' : null);
         // Ketik voucher_number PERSIS (lengkap) -> dipakai sebagai "jalur darurat" buat
         // kasus 1 jurnal gabungan yang nominalnya beda dari 1 baris statement (misal 1
         // voucher representasi 3 baris mutasi di rekening koran) -- bypass toleransi
-        // nominal dan exclusion "sudah kepakai" di bawah, SELAMA ketikannya persis sama
+        // nominal dan filter "sisa belum terpakai" di bawah, SELAMA ketikannya persis sama
         // dengan voucher_number (bukan sekadar mengandung kata itu).
         $exactVoucher = $request->search ? trim($request->search) : null;
+
+        // Dipakai dua kali: buat filter "sisa belum terpakai" dan buat kolom used_amount yang
+        // ditampilkan di dropdown. Scope type+tahun+periode (bukan global) supaya konsisten
+        // dengan exclusion auto-match di matchRows().
+        $usedAmountSub = "(select coalesce(sum(brd.amount),0) from bank_reconciliation_det brd
+            join bank_reconciliation_hdr brh on brh.recon_number = brd.recon_number
+            where brd.matched_kas_det_id = kas_det.id and brh.type = ? and brh.year = ? and brh.periode::integer = ?)";
 
         $candidates = DB::table('kas_det')
             ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
@@ -577,24 +585,21 @@ class BankReconciliationController extends Controller
             // $coaAccount bisa null buat recon lama yang dibuat sebelum kolom coa_account
             // ada -- biar tetap jalan, filter akun di-skip (fallback ke behavior lama).
             ->when($coaAccount, function ($q) use ($coaAccount) { $q->where('kas_det.account', $coaAccount); })
-            ->whereRaw('(kas_hdr.year::integer * 12 + kas_hdr.period::integer) BETWEEN ? AND ?', [$targetAbsMonth - 3, $targetAbsMonth + 3])
-            // Voucher yang di-exclude cuma yang kepakai di batch Type yang sama dalam
-            // range ±3 bulan yang sama -- batch reconciliation periode jauh tidak saling kunci.
-            // Exclusion ini di-skip kalau ketikannya persis voucher_number-nya, supaya voucher
-            // yang sudah di-match ke baris statement lain tetap bisa dipilih lagi utk baris
-            // lain dari jurnal gabungan yang sama (many-to-one).
-            ->where(function ($q) use ($type, $targetAbsMonth, $exactVoucher) {
-                $q->whereNotIn('kas_det.id', function ($sub) use ($type, $targetAbsMonth) {
-                    $sub->select('bank_reconciliation_det.matched_kas_det_id')
-                        ->from('bank_reconciliation_det')
-                        ->join('bank_reconciliation_hdr', 'bank_reconciliation_hdr.recon_number', '=', 'bank_reconciliation_det.recon_number')
-                        ->whereNotNull('bank_reconciliation_det.matched_kas_det_id')
-                        ->where('bank_reconciliation_hdr.type', $type)
-                        ->whereRaw('(bank_reconciliation_hdr.year::integer * 12 + bank_reconciliation_hdr.periode::integer) BETWEEN ? AND ?', [$targetAbsMonth - 3, $targetAbsMonth + 3]);
+            // Cuma voucher dari periode yang sama persis dengan recon ini -- periode
+            // sebelum/sesudah disembunyikan dari dropdown.
+            ->where('kas_hdr.year', $year)
+            ->whereRaw('kas_hdr.period::integer = ?', [$periode])
+            // Cuma sisi lawan dari rekening koran.
+            ->when($sideColumn, function ($q) use ($sideColumn) { $q->where($sideColumn, '>', 0); })
+            // Sisa nilai (nilai sisi tsb dikurangi yang sudah terpakai di batch type+periode+
+            // tahun yang sama) harus masih > 0 -- kecuali ketikannya persis voucher_number-nya.
+            ->when($sideColumn, function ($q) use ($sideColumn, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
+                $q->where(function ($s) use ($sideColumn, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
+                    $s->whereRaw("$sideColumn - $usedAmountSub > 0.01", [$type, $year, $periode]);
+                    if ($exactVoucher) {
+                        $s->orWhereRaw('lower(kas_det.voucher_number) = lower(?)', [$exactVoucher]);
+                    }
                 });
-                if ($exactVoucher) {
-                    $q->orWhereRaw('lower(kas_det.voucher_number) = lower(?)', [$exactVoucher]);
-                }
             })
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function ($s) use ($request) {
@@ -605,24 +610,28 @@ class BankReconciliationController extends Controller
             // Cuma tampilkan voucher yang nominalnya dekat (toleransi 5%, minimal Rp1.000)
             // ke nilai baris statement -- bukan sekadar diurutkan, yang jauh difilter total --
             // kecuali ketikannya persis voucher_number-nya (lihat $exactVoucher di atas).
-            ->when($amount !== null, function ($q) use ($amount, $exactVoucher) {
+            ->when($amount !== null, function ($q) use ($amount, $sideColumn, $exactVoucher) {
                 $tolerance = max($amount * 0.05, 1000);
-                $q->where(function ($s) use ($amount, $tolerance, $exactVoucher) {
-                    $s->whereBetween('kas_det.debit', [$amount - $tolerance, $amount + $tolerance])
-                      ->orWhereBetween('kas_det.credit', [$amount - $tolerance, $amount + $tolerance]);
+                $q->where(function ($s) use ($amount, $tolerance, $sideColumn, $exactVoucher) {
+                    if ($sideColumn) {
+                        $s->whereBetween($sideColumn, [$amount - $tolerance, $amount + $tolerance]);
+                    } else {
+                        $s->whereBetween('kas_det.debit', [$amount - $tolerance, $amount + $tolerance])
+                          ->orWhereBetween('kas_det.credit', [$amount - $tolerance, $amount + $tolerance]);
+                    }
                     if ($exactVoucher) {
                         $s->orWhereRaw('lower(kas_det.voucher_number) = lower(?)', [$exactVoucher]);
                     }
                 });
             })
-            // used_count/used_amount: sudah dipakai berapa baris statement lain (recon yang
-            // sama) buat voucher ini -- ditampilkan sebagai running total di dropdown supaya
-            // kelihatan kalau voucher gabungan ini sudah separuh/penuh ter-cover.
+            // used_count/used_amount: sudah dipakai berapa baris statement lain buat voucher ini
+            // -- ditampilkan sebagai running total di dropdown supaya kelihatan kalau voucher
+            // gabungan ini sudah separuh/penuh ter-cover.
             ->selectRaw(
                 "kas_det.id, kas_det.voucher_number, kas_hdr.voucher_date, kas_det.description, kas_det.debit, kas_det.credit,
                 (select count(*) from bank_reconciliation_det brd where brd.recon_number = ? and brd.matched_kas_det_id = kas_det.id) as used_count,
-                (select coalesce(sum(brd.amount),0) from bank_reconciliation_det brd where brd.recon_number = ? and brd.matched_kas_det_id = kas_det.id) as used_amount",
-                [$request->reconNumber, $request->reconNumber]
+                $usedAmountSub as used_amount",
+                [$request->reconNumber, $type, $year, $periode]
             )
             ->when($amount !== null, function ($q) use ($amount) {
                 // Di antara yang lolos filter toleransi, yang paling dekat tetap muncul duluan.
