@@ -5,9 +5,27 @@ namespace App\Imports;
 use App\Models\ArticleBulkUpdateStake;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\WithStartRow;
 
-class ArticleBulkUpdateImport implements ToModel, WithStartRow, WithHeadingRow
+class ArticleBulkUpdateImport implements WithMultipleSheets
+{
+    private $data;
+
+    public function __construct(array $data = [])
+    {
+        $this->data = $data;
+    }
+
+    public function sheets(): array
+    {
+        // Workbook also has "Referensi Article"/"Referensi COA"/etc sheets for the
+        // user to look codes up in; only sheet 0 ("Template") holds actual data to import.
+        return [0 => new ArticleBulkUpdateSheetImport($this->data)];
+    }
+}
+
+class ArticleBulkUpdateSheetImport implements ToModel, WithStartRow, WithHeadingRow
 {
     private $data;
 
@@ -19,9 +37,7 @@ class ArticleBulkUpdateImport implements ToModel, WithStartRow, WithHeadingRow
     public function model(array $row)
     {
         if (empty($row['article_code'])) {
-            // ponytail: template workbook has reference sheets (Referensi Article/COA/...)
-            // that get fed through this same mapper since we don't implement
-            // WithMultipleSheets; their rows never have article_code, so skip them here.
+            // skip blank trailing rows in the Template sheet
             return null;
         }
 
