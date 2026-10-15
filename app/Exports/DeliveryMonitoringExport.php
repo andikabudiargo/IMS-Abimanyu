@@ -69,7 +69,7 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
                     $total += $qty;
                 }
                 $row[] = $total;
-                $row[] = $isFirst ? ($this->g['totalKonversi'][$code] ?? 0) : '';
+                $row[] = $isFirst ? round($this->g['totalKonversi'][$code] ?? 0, 8) : '';
                 $rows[] = $row;
             }
         }
@@ -88,7 +88,7 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
                     $grand += $colTotal;
                 }
                 $totalRow[] = $grand;
-                $totalRow[] = $isFirst ? array_sum($this->g['totalKonversi'] ?? []) : '';
+                $totalRow[] = $isFirst ? round(array_sum($this->g['totalKonversi'] ?? []), 8) : '';
                 $rows[] = $totalRow;
             }
         }

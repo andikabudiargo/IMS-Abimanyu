@@ -139,7 +139,7 @@
                   @endforeach
                   <td class="text-center font-weight-bold">{{ rtrim(rtrim(number_format($rowTotal, 2, '.', ''), '0'), '.') }}</td>
                   @if($remarkKey == 'plan')
-                  <td class="text-center font-weight-bold" rowspan="4">{{ rtrim(rtrim(number_format($g['totalKonversi'][$rowKey] ?? 0, 2, '.', ''), '0'), '.') }}</td>
+                  <td class="text-center font-weight-bold" rowspan="4">{{ rtrim(rtrim(number_format($g['totalKonversi'][$rowKey] ?? 0, 8, '.', ''), '0'), '.') }}</td>
                   @endif
                 </tr>
                 @endforeach
@@ -158,7 +158,7 @@
                   <td class="text-center">{{ rtrim(rtrim(number_format($colTotal, 2, '.', ''), '0'), '.') }}</td>
                 @endforeach
                 <td class="text-center">{{ rtrim(rtrim(number_format($grandTotal, 2, '.', ''), '0'), '.') }}</td>
-                <td class="text-center">{{ rtrim(rtrim(number_format(array_sum($g['totalKonversi'] ?? []), 2, '.', ''), '0'), '.') }}</td>
+                <td class="text-center">{{ rtrim(rtrim(number_format(array_sum($g['totalKonversi'] ?? []), 8, '.', ''), '0'), '.') }}</td>
               </tr>
             </tfoot>
           </table>
