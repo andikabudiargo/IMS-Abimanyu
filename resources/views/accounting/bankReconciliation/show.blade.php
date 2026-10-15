@@ -6,21 +6,41 @@
 <section id="show-bankReconciliation">
   <div class="card">
     <div class="card-header">
-      <h4 class="card-title">{{ $header->recon_number }}</h4>
+      <h4 class="card-title">Detail Reconciliation Kas &amp; Bank</h4>
     </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-2"><strong>Type</strong><div>{{ $header->type }}</div></div>
-        <div class="col-md-2"><strong>Periode</strong><div>{{ $header->periode }} / {{ $header->year }}</div></div>
-        <div class="col-md-3"><strong>Akun COA</strong><div>{{ $header->coa_account ? $header->coa_account . ' - ' . $header->coa_account_name : '-' }}</div></div>
-        <div class="col-md-2"><strong>No. Rekening</strong><div>{{ $header->account_number ?: '-' }}</div></div>
-        <div class="col-md-3"><strong>Nama Rekening</strong><div>{{ $header->account_name ?: '-' }}</div></div>
-      </div>
-      @if ($header->description)
-        <div class="row mt-1">
-          <div class="col-12"><strong>Description</strong><div>{{ $header->description }}</div></div>
+    <div class="card-content collapse show">
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label class="form-label">Reconciliation Number</label>
+            <input type="text" class="form-control text-hitam disabled-el" value="{{ $header->recon_number }}" disabled>
+          </div>
+          <div class="form-group col-md-2">
+            <label class="form-label">Periode</label>
+            <input type="text" class="form-control text-hitam disabled-el" value="{{ $periodes[(int) $header->periode] ?? $header->periode }}" disabled>
+          </div>
+          <div class="form-group col-md-2">
+            <label class="form-label">Tahun</label>
+            <input type="text" class="form-control text-hitam disabled-el" value="{{ $header->year }}" disabled>
+          </div>
         </div>
-      @endif
+        <div class="form-row">
+          <div class="form-group col-md-2">
+            <label class="form-label">Type</label>
+            <input type="text" class="form-control text-hitam disabled-el" value="{{ $header->type === 'KAS' ? 'Kas' : 'Bank' }}" disabled>
+          </div>
+          <div class="form-group col-md-6">
+            <label class="form-label">Akun COA</label>
+            <input type="text" class="form-control text-hitam disabled-el" value="{{ $header->coa_account ? $header->coa_account . ' - ' . $header->coa_account_name : '-' }}" disabled>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-8">
+            <label class="form-label">Description</label>
+            <input type="text" class="form-control text-hitam disabled-el" value="{{ $header->description }}" disabled>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -31,6 +51,14 @@
       <h4 class="card-title">Saldo &amp; Mutasi — Rekening Koran vs Buku Besar</h4>
     </div>
     <div class="card-body">
+      <table class="table table-sm table-bordered bb2-info mb-3">
+        <tbody>
+          <tr>
+            <th width="14%">No. Rekening</th><td width="36%">{{ $header->account_number ?: '-' }}</td>
+            <th width="14%">Nama Rekening</th><td>{{ $header->account_name ?: '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
       <div class="table-responsive">
         <table class="table table-sm table-bordered bb2-info mb-0">
           <thead class="thead-light">
@@ -43,11 +71,16 @@
           </thead>
           <tbody>
             @php
+              // Mutasi Debet/Kredit rekening koran DIPASANGKAN SILANG ke Buku Besar -- sesuai
+              // aturan matching (statement DB <-> GL kredit, statement CR <-> GL debit, lihat
+              // matchRows()/searchVoucher() di controller), bukan dibandingkan apple-to-apple
+              // nama kolomnya. Saldo Awal/Akhir tidak kena aturan ini karena itu saldo bersih,
+              // bukan sisi debit/kredit.
               $glRows = [
                 ['Saldo Awal', $header->saldo_awal, $gl['saldo_awal'] ?? null],
                 ['Saldo Akhir', $header->saldo_akhir, $gl['saldo_akhir'] ?? null],
-                ['Mutasi Debet', $stmtMutasiDebet, $gl['mutasi_debet'] ?? null],
-                ['Mutasi Kredit', $stmtMutasiKredit, $gl['mutasi_kredit'] ?? null],
+                ['Mutasi Debet (vs GL Kredit)', $stmtMutasiDebet, $gl['mutasi_kredit'] ?? null],
+                ['Mutasi Kredit (vs GL Debet)', $stmtMutasiKredit, $gl['mutasi_debet'] ?? null],
               ];
             @endphp
             @foreach ($glRows as [$label, $koran, $buku])

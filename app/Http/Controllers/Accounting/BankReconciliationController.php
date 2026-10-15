@@ -23,6 +23,13 @@ class BankReconciliationController extends Controller
     // accounts.parent_id yang menandai akun COA sebagai Kas / Bank, sama dengan
     // CashBankController::$coaSubCode (acc_sub: 1100.10 = KAS, 1100.20 = BANK).
     private $coaSubCode = ['KAS' => '1100.10', 'BANK' => '1100.20'];
+    // Sama dengan select "Period" di accounting.bank.create: 1-12 tanpa zero-pad, supaya
+    // langsung sama dengan kas_hdr.period dan tidak perlu konversi saat matching.
+    private $periodes = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+    ];
     // Tanggal mulai pembukuan yang diakui -- sama dengan BukuBesarV2Controller::GL_EPOCH,
     // mutasi sebelum ini diabaikan (accounts.opening_balance dianggap sudah mengakumulasi itu).
     const GL_EPOCH = '2024-01-01';
@@ -69,13 +76,7 @@ class BankReconciliationController extends Controller
     {
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
-        // Sama dengan select "Period" di accounting.bank.create: 1-12 tanpa zero-pad,
-        // supaya langsung sama dengan kas_hdr.period dan tidak perlu konversi saat matching.
-        $data['periodes'] = [
-            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
-        ];
+        $data['periodes'] = $this->periodes;
         return view('accounting.bankReconciliation.create', $data);
     }
 
@@ -501,6 +502,7 @@ class BankReconciliationController extends Controller
             ->first();
         abort_unless($data['header'], 404);
         $data['id'] = $id;
+        $data['periodes'] = $this->periodes;
         $data['gl'] = $data['header']->coa_account
             ? $this->glSummary($data['header']->coa_account, (int) $data['header']->periode, (int) $data['header']->year)
             : null;
