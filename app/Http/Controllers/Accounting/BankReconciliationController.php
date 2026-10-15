@@ -59,11 +59,19 @@ class BankReconciliationController extends Controller
     {
         $data['title'] = $this->title;
         $data['subtitle'] = $this->title;
+        // Semua akun Kas + Bank buat dropdown filter -- tidak dibatasi per Type karena
+        // filter Type-nya sendiri independen/opsional ("All").
+        $data['coaAccounts'] = DB::table('accounts')
+            ->whereIn('parent_id', array_values($this->coaSubCode))
+            ->orderBy('account')
+            ->select('account', 'description')
+            ->get();
         $data['kolom'] = json_encode([
             ['data' => 'action', 'name' => 'action', 'title' => 'action', 'orderable' => false, 'searchable' => false],
             ['data' => 'recon_number', 'name' => 'recon_number', 'title' => 'Recon Number'],
             ['data' => 'periode', 'name' => 'periode', 'title' => 'Periode'],
             ['data' => 'type', 'name' => 'type', 'title' => 'Type'],
+            ['data' => 'coa_account', 'name' => 'coa_account', 'title' => 'Akun COA'],
             ['data' => 'description', 'name' => 'description', 'title' => 'Description'],
             ['data' => 'match_summary', 'name' => 'match_summary', 'title' => 'Match'],
             ['data' => 'created_by', 'name' => 'created_by', 'title' => 'Created By'],
@@ -458,17 +466,21 @@ class BankReconciliationController extends Controller
         $search = strtolower($request->searchReconNumber);
         $searchType = $request->searchType;
         $searchPeriode = $request->searchPeriode;
+        $searchCoa = $request->searchCoa;
 
         $data = DB::table('bank_reconciliation_hdr')
-            ->when($search, function ($q) use ($search) { $q->where('recon_number', 'ilike', "%$search%"); })
-            ->when($searchType, function ($q) use ($searchType) { $q->where('type', $searchType); })
-            ->when($searchPeriode, function ($q) use ($searchPeriode) { $q->where('periode', $searchPeriode); })
+            ->leftJoin('accounts', 'accounts.account', '=', 'bank_reconciliation_hdr.coa_account')
+            ->when($search, function ($q) use ($search) { $q->where('bank_reconciliation_hdr.recon_number', 'ilike', "%$search%"); })
+            ->when($searchType, function ($q) use ($searchType) { $q->where('bank_reconciliation_hdr.type', $searchType); })
+            ->when($searchPeriode, function ($q) use ($searchPeriode) { $q->where('bank_reconciliation_hdr.periode', $searchPeriode); })
+            ->when($searchCoa, function ($q) use ($searchCoa) { $q->where('bank_reconciliation_hdr.coa_account', $searchCoa); })
             ->select(
                 'bank_reconciliation_hdr.*',
+                'accounts.description as coa_account_name',
                 DB::raw("(select count(*) from bank_reconciliation_det where recon_number = bank_reconciliation_hdr.recon_number) as total_row"),
                 DB::raw("(select count(*) from bank_reconciliation_det where recon_number = bank_reconciliation_hdr.recon_number and status = 'MATCHED') as matched_row")
             )
-            ->orderBy('id', 'desc')
+            ->orderBy('bank_reconciliation_hdr.id', 'desc')
             ->get();
 
         return Datatables::of($data)
@@ -486,6 +498,12 @@ class BankReconciliationController extends Controller
             })
             ->addColumn('recon_number', function ($d) {
                 return '<a href="' . route('bankReconciliation.show', ['id' => Crypt::encryptString($d->id)]) . '">' . $d->recon_number . '</a>';
+            })
+            ->addColumn('periode', function ($d) {
+                return ($this->periodes[(int) $d->periode] ?? $d->periode) . ' / ' . $d->year;
+            })
+            ->addColumn('coa_account', function ($d) {
+                return $d->coa_account ? $d->coa_account . ' - ' . $d->coa_account_name : '-';
             })
             ->addColumn('match_summary', function ($d) {
                 $pct = $d->total_row > 0 ? round($d->matched_row / $d->total_row * 100, 1) : 0;

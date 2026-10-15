@@ -38,6 +38,15 @@
                 @endfor
               </select>
             </div>
+            <div class="form-group col-md-3">
+              <label class="form-label" for="searchCoa">Akun COA</label>
+              <select class="select2 form-control" id="searchCoa" name="searchCoa">
+                <option value="">All</option>
+                @foreach ($coaAccounts as $acc)
+                  <option value="{{ $acc->account }}">{{ $acc->account }} - {{ $acc->description }}</option>
+                @endforeach
+              </select>
+            </div>
           </div>
           <div class="form-row">
             <div class="col-12">
@@ -89,6 +98,7 @@
   let searchReconNumber = document.querySelector('#searchReconNumber');
   let searchType         = document.querySelector('#searchType');
   let searchPeriode       = document.querySelector('#searchPeriode');
+  let searchCoa           = document.querySelector('#searchCoa');
   let refresh             = document.querySelector('a[data-action="reload"]');
 
   function getSearchParams() {
@@ -96,6 +106,7 @@
       searchReconNumber: searchReconNumber.value,
       searchType: searchType.value,
       searchPeriode: searchPeriode.value,
+      searchCoa: searchCoa.value,
     };
   }
 
@@ -115,7 +126,7 @@
       tableId: "bankReconciliationTable",
       route: "{{ route('bankReconciliation.list') }}",
       kolom: {!! $kolom !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7],
+      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8],
       columnDefs: [
         { width: '5%', targets: 0 },
       ],
