@@ -40,6 +40,14 @@
             <input type="text" class="form-control text-hitam disabled-el" value="{{ $header->description }}" disabled>
           </div>
         </div>
+        <div class="form-row">
+          <div class="col-12">
+            <button class="btn btn-warning" type="button" id="cmdRecalculate">
+              <i data-feather="refresh-cw" class="align-middle mr-sm-25 mr-0"></i>
+              <span class="align-middle d-sm-inline-block d-none">Recalculate</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -255,6 +263,41 @@
       }
     });
   }
+
+  // Cocokkan ulang semua baris dari nol (status/match lama diabaikan, persis seperti upload
+  // ulang CSV yang sama) -- lalu reload halaman supaya section summary & tabel detail
+  // sama-sama kebaca ulang dari DB, bukan cuma ditambal di client.
+  $('#cmdRecalculate').on('click', function () {
+    Swal.fire({
+      title: 'Recalculate?',
+      text: 'Semua baris akan dicocokkan ulang dari awal (hasil Match Manual sebelumnya ikut ditimpa kalau hasil otomatisnya beda).',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, cocokkan ulang',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      $(".loading-spinner-container").addClass("-show");
+      $.ajax({
+        url: "{{ route('bankReconciliation.recalculate') }}",
+        method: "POST",
+        data: { id: "{{ $id }}" },
+        success: function (data) {
+          show_msg(data.title, data.message, data.alert);
+          if (data.status == 1) {
+            setTimeout(function () { window.location.reload(); }, 1200);
+          } else {
+            $(".loading-spinner-container").removeClass("-show");
+          }
+        },
+        error: function (xhr) {
+          $(".loading-spinner-container").removeClass("-show");
+          let err = JSON.parse(xhr.responseText);
+          Swal.fire('Error..', err.message ? JSON.stringify(err.message) : 'Failed to recalculate', 'error');
+        }
+      });
+    });
+  });
 
   $.ajaxSetup({
     headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }

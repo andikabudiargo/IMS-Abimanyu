@@ -309,18 +309,24 @@ class BankReconciliationController extends Controller
     // + nominal sisi yang sesuai), kas_det yang sudah kepakai di-skip biar tidak dobel-match
     // dalam 1 batch. Read-only (cuma SELECT) -- dipakai baik di preview() maupun store(),
     // supaya hasil yang ditampilkan ke user sama persis dengan yang akhirnya disimpan.
-    private function matchRows(array $rows, string $type, int $periode, int $year, string $coaAccount): array
+    private function matchRows(array $rows, string $type, int $periode, int $year, string $coaAccount, ?string $excludeReconNumber = null): array
     {
         $voucherTypes = $this->voucherTypes[$type];
         // Voucher yang sudah dipakai batch Reconciliation lain (type+periode+tahun yang sama)
         // ikut di-exclude dari awal, bukan cuma yang kepakai dalam batch berjalan ini --
         // supaya upload ulang CSV periode yang sama tidak rebutan/dobel-match voucher.
+        // $excludeReconNumber dipakai saat recalculate() recon yang SUDAH tersimpan --
+        // match lama miliknya sendiri jangan ikut dianggap "sudah kepakai" (baris itu justru
+        // lagi dicocokkan ulang, bukan rebutan lawan batch lain).
         $usedKasDetIds = DB::table('bank_reconciliation_det')
             ->join('bank_reconciliation_hdr', 'bank_reconciliation_hdr.recon_number', '=', 'bank_reconciliation_det.recon_number')
             ->whereNotNull('bank_reconciliation_det.matched_kas_det_id')
             ->where('bank_reconciliation_hdr.type', $type)
             ->where('bank_reconciliation_hdr.periode', $periode)
             ->where('bank_reconciliation_hdr.year', $year)
+            ->when($excludeReconNumber, function ($q) use ($excludeReconNumber) {
+                $q->where('bank_reconciliation_det.recon_number', '<>', $excludeReconNumber);
+            })
             ->pluck('bank_reconciliation_det.matched_kas_det_id')
             ->all();
 
@@ -715,6 +721,65 @@ class BankReconciliationController extends Controller
             'matched_kas_det_id' => null,
         ]);
         return response()->json(['status' => 1, 'title' => "Unmatch $this->title", 'message' => 'Match dibatalkan.', 'alert' => 'success']);
+    }
+
+    // Cocokkan ulang SEMUA baris recon ini dari nol -- status/matched_kas_det_id yang sudah
+    // ada (hasil otomatis maupun Match Manual) diabaikan sepenuhnya, persis seperti upload
+    // ulang CSV yang sama. matchRows() dipanggil dengan excludeReconNumber supaya voucher
+    // yang tadinya sudah di-match ke recon ini sendiri tidak dianggap "kepakai" dan malah
+    // gagal ke-match ulang.
+    public function recalculate(Request $request)
+    {
+        $username = Auth::user()->username;
+        // $request->id di sini sudah plain (sama seperti listDetail()) -- dikirim dari
+        // JS pakai $id hasil decrypt yang show() kirim ke view, bukan id ter-enkripsi.
+        $header = DB::table('bank_reconciliation_hdr')->where('id', $request->id)->first();
+        abort_unless($header, 404);
+
+        if (!$header->coa_account) {
+            return response()->json(['status' => -1, 'title' => "Recalculate $this->title", 'message' => 'Recon ini belum punya Akun COA (data lama), tidak bisa dicocokkan ulang.', 'alert' => 'error']);
+        }
+
+        $rows = DB::table('bank_reconciliation_det')
+            ->where('recon_number', $header->recon_number)
+            ->orderBy('stmt_date')
+            ->orderBy('id')
+            ->get()
+            ->map(function ($d) {
+                $row = (array) $d;
+                $row['amount'] = (float) $row['amount']; // numeric Postgres kolom balik sebagai string lewat PDO
+                return $row;
+            })
+            ->all();
+
+        if (empty($rows)) {
+            return response()->json(['status' => 2, 'title' => "Recalculate $this->title", 'message' => 'Tidak ada baris untuk dicocokkan ulang.', 'alert' => 'warning']);
+        }
+
+        $matched = $this->matchRows($rows, $header->type, (int) $header->periode, (int) $header->year, $header->coa_account, $header->recon_number);
+
+        DB::beginTransaction();
+        try {
+            foreach ($matched as $row) {
+                DB::table('bank_reconciliation_det')->where('id', $row['id'])->update([
+                    'status' => $row['status'],
+                    'matched_kas_det_id' => $row['matched_kas_det_id'],
+                ]);
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $title = "Recalculate $this->title";
+            $message = 'Gagal mencocokkan ulang: ' . $e->getMessage();
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return response()->json(['status' => -1, 'title' => $title, 'message' => $message, 'alert' => 'error']);
+        }
+
+        $matchedCount = count(array_filter($matched, fn ($r) => $r['status'] === 'MATCHED'));
+        $title = "Recalculate $this->title";
+        $message = "$header->recon_number dicocokkan ulang. " . count($matched) . " baris, $matchedCount match.";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+        return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success']);
     }
 
     public function destroy(Request $request)
