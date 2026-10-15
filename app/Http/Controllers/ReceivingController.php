@@ -3349,7 +3349,6 @@ public function unPosting($recNumber)
             ['data'=>'rec_number','name'=>'rec_number','title'=>'Rec Number'],
             ['data'=>'po_number','name'=>'po_number','title'=>'PO Number'],
             ['data'=>'pr_number','name'=>'pr_number','title'=>'PR Number'],
-            ['data'=>'ap_number','name'=>'ap_number','title'=>'AP Number'],
             ['data'=>'rec_type','name'=>'rec_type','title'=>'Receive Type'],
             ['data'=>'rec_date','name'=>'rec_date','title'=>'Rec Date'],
             ['data'=>'do_date','name'=>'do_date','title'=>'DO Date'],
@@ -3369,16 +3368,17 @@ public function unPosting($recNumber)
             ['data'=>'total_plus_ppn','name'=>'total_plus_ppn','title'=>'Total Plus PPN'],
             ['data'=>'invoice_number','name'=>'invoice_number','title'=>'Invoice Number'],
             ['data'=>'invoice_date','name'=>'invoice_date','title'=>'Invoice Date'],
+            ['data'=>'coa','name'=>'coa','title'=>'COA'],
             ['data'=>'voucher_number','name'=>'voucher_number','title'=>'Voucher Number'],
             ['data'=>'paid_date','name'=>'paid_date','title'=>'Paid Date'],
             ['data'=>'balance','name'=>'balance','title'=>'Balance'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
-            ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan'],
-            ['data'=>'note','name'=>'note','title'=>'Note'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created At'],
             ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated At'],
+            ['data'=>'article_type_name','name'=>'article_type_name','title'=>'Keterangan'],
+            ['data'=>'note','name'=>'note','title'=>'Note'],
         ];
         return json_encode($kolom, true);
     }
@@ -3653,6 +3653,7 @@ public function unPosting($recNumber)
         ,DB::raw("(select STRING_AGG((select name from users where username = a.username), ' -> ' ORDER BY approval_order) from approval_history a where module_number = receiving_hdr.rec_number) as approval_by")
         ,DB::raw("case when receiving_hdr.rec_type = 'NP' then 'Logistic' when receiving_hdr.rec_type = 'TRIAL' then 'Engineering' else (select (select name from depts where code = dept) from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1) end as nama_dept")
         ,DB::raw("(select to_char(to_date(nullif(ap_date::text,''),'DD-MM-YYYY'),'YYYY-MM-DD') from ap_invoice where ap_number = $apNumberSub and status in ('4','6','7') limit 1) as invoice_date")
+        ,DB::raw("(select case when a.account is null or a.account = '' then '' else a.account || ' - ' || coalesce(acc.description,'') end from ap_invoice_det a left join accounts acc on acc.account = a.account where a.ap_number = $apNumberSub and a.reference = receiving_det.article_code limit 1) as coa")
         ,DB::raw("(select nama from third_party where kode = receiving_hdr.supplier_id limit 1) as supp_name")
         ,DB::raw("case when coalesce(purchase_order_hdr.ppn::numeric,0) > 0 then 'PPN' else '' end as ppn")
         ,DB::raw("$dpp as total_dpp")
@@ -3691,15 +3692,10 @@ public function unPosting($recNumber)
                 return '<a href="'.route('purchaseRequest.show', ['id' => Crypt::encryptString($prId)]).'" target="_blank">'.$prNumber.'</a>';
             }, explode(',', $row->pr_number)));
         })
-        ->addColumn('ap_number', function ($row) {
-            // Sama dengan data Invoice Number, ditampilkan lagi di sini dengan link Edit AP.
+        ->addColumn('invoice_number', function ($row) {
+            // Invoice Number = nomor AP (ap_number) dari Account Payable, link ke edit AP.
             if (!$row->invoice_id || !$row->invoice_number) return $row->invoice_number;
             return '<a href="'.route('accountPayable.edit', ['id' => Crypt::encryptString($row->invoice_id)]).'" target="_blank">'.$row->invoice_number.'</a>';
-        })
-        ->addColumn('invoice_number', function ($row) {
-            // Invoice Number = nomor AP (ap_number) dari Account Payable, link ke dokumen AP.
-            if (!$row->invoice_id || !$row->invoice_number) return $row->invoice_number;
-            return '<a href="'.route('accountPayable.show', ['id' => Crypt::encryptString($row->invoice_id)]).'" target="_blank">'.$row->invoice_number.'</a>';
         })
         ->addColumn('voucher_number', function ($row) {
             if (!$row->voucher_id || !$row->voucher_number) return $row->voucher_number;
@@ -3712,7 +3708,7 @@ public function unPosting($recNumber)
             $statusRec = ['NEW','VALIDATE','APPROVE','POSTED','CANCELED','','','','','REVISI'];
             return $statusRec[$row->status - 1] ?? $row->status;
         })
-        ->rawColumns(['rec_number', 'po_number', 'pr_number', 'ap_number', 'invoice_number', 'voucher_number'])
+        ->rawColumns(['rec_number', 'po_number', 'pr_number', 'invoice_number', 'voucher_number'])
         ->make(true);
     }
 

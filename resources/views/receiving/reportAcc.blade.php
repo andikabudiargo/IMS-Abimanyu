@@ -231,17 +231,17 @@
       columnDefs :[
         { width: '5%', targets: 0 },
         {
-          targets: [ 16,17,18,19,20,21,22,27 ],
+          targets: [ 15,16,17,18,19,20,21,27 ],
           render: $.fn.dataTable.render.number(',','.',2,''),
           className: "text-right"
         },
-        { targets: [ 7,8,24,26 ], render: dateRender },
-        // Kolom hasil correlated subquery berat (dept, pr, ap, supplier, invoice,
+        { targets: [ 6,7,23,26 ], render: dateRender },
+        // Kolom hasil correlated subquery berat (dept, pr, supplier, invoice, coa,
         // voucher, paid date, balance, approval chain) — jangan ikut di-scan oleh
         // kotak search/sort bawaan DataTable, karena itu memaksa evaluasi subquery
         // di SEMUA baris sebelum LIMIT dan bikin timeout/exhaust untuk dataset besar.
         // Pencarian untuk field ini sudah ada lewat form filter (searchPr, searchInv, searchVoucher, dst).
-        { targets: [ 0,4,5,11,23,24,25,26,27,30 ], orderable: false, searchable: false },
+        { targets: [ 0,4,10,22,23,24,25,26,27,30 ], orderable: false, searchable: false },
       ],
       excelDates:true,
       dataSearch: filters(),
