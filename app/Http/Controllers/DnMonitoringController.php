@@ -164,7 +164,7 @@ class DnMonitoringController extends Controller
         $data['kembaliQty'] = $kembaliQty;
         $data['belumKembaliQty'] = $totalQty - $kembaliQty;
         $data['overQty'] = $overQty;
-        $data['kembaliPct'] = $totalQty ? round($kembaliQty / $totalQty * 100) : 0;
+        $data['kembaliPct'] = $totalQty ? (int) floor($kembaliQty / $totalQty * 100) : 0;
         $data['periode'] = $month;
         $data['filter'] = $this->filter($request);
         $data['dnType'] = $this->dnType($request);

@@ -621,6 +621,13 @@
           render: function (v, type) { return (type === 'sort' || type === 'type') ? sortAccount(v) : v; }
         },
         {
+          targets: idxOf('voucher_number'),
+          render: function (v, type, row) {
+            if (type !== 'display' || !v || !row.voucher_link) return v;
+            return '<a href="' + esc(row.voucher_link) + '" target="_blank">' + esc(v) + '</a>';
+          }
+        },
+        {
           targets: amountIdx,
           className: 'text-right',
           render: function (v, type, row) {

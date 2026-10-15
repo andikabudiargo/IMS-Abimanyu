@@ -146,7 +146,16 @@
     series: [{{ $kembaliPct }}],
     labels: ['Kembali'],
     colors: ['{{ $kembaliPct >= 70 ? "#28c76f" : ($kembaliPct >= 40 ? "#ff9f43" : "#ea5455") }}'],
-    plotOptions: { radialBar: { hollow: { size: '60%' }, dataLabels: { value: { fontSize: '20px', formatter: v => v + '%' } } } },
+    plotOptions: {
+      radialBar: {
+        hollow: { size: '70%' },
+        track: { strokeWidth: '100%' },
+        dataLabels: {
+          name: { fontSize: '13px', offsetY: -10 },
+          value: { fontSize: '22px', offsetY: 6, formatter: v => v + '%' },
+        },
+      },
+    },
   }).render();
 
   $('.select2').select2({placeholder: 'Semua Customer', allowClear: true});

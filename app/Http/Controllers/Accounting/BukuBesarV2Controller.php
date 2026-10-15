@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Crypt;
 
 ini_set('memory_limit', '1024M');
 set_time_limit(300);
@@ -456,6 +457,8 @@ class BukuBesarV2Controller extends Controller
                 'accounts.description as nama_akun',
                 'd.reference',
                 'd.voucher_number',
+                'h.id as kas_hdr_id',
+                'h.voucher_type',
                 'd.description',
                 DB::raw("to_char(to_date(h.voucher_date,'DD-MM-YYYY'),'DD-MM-YYYY') as voucher_date"),
                 DB::raw("to_date(h.voucher_date,'DD-MM-YYYY') as voucher_date_2"),
@@ -473,6 +476,55 @@ class BukuBesarV2Controller extends Controller
             ->orderBy(DB::raw("string_to_array(d.account,'.')::int[]"))
             ->orderBy('d.id')
             ->get();
+
+        return $this->attachVoucherLinks($rows);
+    }
+
+    /**
+     * Tempel 'voucher_link' (URL halaman edit) ke setiap baris transaksi.
+     *
+     * KK/KM/BK/BM/GJ diterbitkan dari kas_hdr sendiri -> link memakai kas_hdr.id.
+     * AP/INV-DN/INV/SCO diposting dari modul lain -> voucher_number = nomor dokumen modul
+     * itu, jadi id-nya dicari lewat satu query batch per tipe (hindari N+1).
+     */
+    private function attachVoucherLinks($rows)
+    {
+        // voucher_type => [route name, tabel sumber, kolom nomor] untuk tipe yang butuh lookup id terpisah.
+        $lookupDef = [
+            'AP'      => ['accountPayable.edit', 'ap_invoice', 'ap_number'],
+            'INV-DN'  => ['debitNote.edit', 'debit_note_hdr', 'dn_number'],
+            'INV'     => ['invoice.edit', 'invoice_hdr', 'invoice_number'],
+        ];
+        $directRoute = [
+            'KK' => 'kasKeluar.edit',
+            'KM' => 'kasPenerimaan.edit',
+            'BK' => 'bankKeluar.edit',
+            'BM' => 'bankPenerimaan.edit',
+            'GJ' => 'jurnalUmum.edit',
+        ];
+
+        $idMaps = [];
+        foreach ($lookupDef as $type => [$route, $table, $col]) {
+            $numbers = $rows->where('voucher_type', $type)->pluck('voucher_number')->unique()->all();
+            if ($numbers) {
+                $idMaps[$type] = DB::table($table)->whereIn($col, $numbers)->pluck('id', $col)->all();
+            }
+        }
+
+        foreach ($rows as $r) {
+            $type = $r->voucher_type;
+            if (isset($directRoute[$type])) {
+                $r->voucher_link = route($directRoute[$type], ['id' => Crypt::encryptString((string) $r->kas_hdr_id)]);
+            } elseif ($type === 'SCO') {
+                $r->voucher_link = route('stockConsumption.edit', ['id' => Crypt::encryptString((string) $r->voucher_number)]);
+            } elseif (isset($lookupDef[$type]) && isset($idMaps[$type][$r->voucher_number])) {
+                $r->voucher_link = route($lookupDef[$type][0], ['id' => Crypt::encryptString((string) $idMaps[$type][$r->voucher_number])]);
+            } else {
+                $r->voucher_link = null;
+            }
+        }
+
+        return $rows;
     }
 
     /* ====================================================================
@@ -579,6 +631,7 @@ class BukuBesarV2Controller extends Controller
             'nama_akun'      => '',
             'reference'      => '',
             'voucher_number' => '',
+            'voucher_link'   => null,
             'description'    => '',
             'voucher_date'   => '',
             'period'         => '',
@@ -619,6 +672,7 @@ class BukuBesarV2Controller extends Controller
             'nama_akun'      => $r->nama_akun,
             'reference'      => $r->reference,
             'voucher_number' => $r->voucher_number,
+            'voucher_link'   => $r->voucher_link,
             'description'    => $r->description,
             'voucher_date'   => $r->voucher_date,
             'period'         => $r->period,
