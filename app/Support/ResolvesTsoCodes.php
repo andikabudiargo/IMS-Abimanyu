@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\DB;
 // without duplicating the revision/snapshot handling.
 trait ResolvesTsoCodes
 {
-    private const BULAN_NAMES = [
+    // Trait tidak boleh punya const (butuh PHP 8.2+), jadi pakai static property.
+    private static $bulanNames = [
         1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL',
         5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
         9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER',
@@ -20,7 +21,7 @@ trait ResolvesTsoCodes
     private function targetMonthFromName(string $name): ?int
     {
         $upper = strtoupper($name);
-        foreach (self::BULAN_NAMES as $num => $label) {
+        foreach (self::$bulanNames as $num => $label) {
             if (strpos($upper, $label) !== false) {
                 return $num;
             }
