@@ -48,7 +48,10 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
     public function array(): array
     {
         $rows = [];
-        $remarks = ['plan' => 'Plan', 'matrix' => 'Actual', 'balance' => 'Balance'];
+        $remarks = ['plan' => 'Plan', 'outstanding' => 'Outstanding', 'matrix' => 'Actual', 'balance' => 'Balance'];
+        $qtyFor = function ($remarkKey, $plan, $actual, $outstanding) {
+            return $remarkKey == 'plan' ? $plan : ($remarkKey == 'matrix' ? $actual : ($remarkKey == 'balance' ? $actual - $plan : $outstanding));
+        };
         foreach ($this->g['articles'] as $code => $name) {
             foreach ($remarks as $remarkKey => $remarkLabel) {
                 $isFirst = $remarkKey == 'plan';
@@ -60,7 +63,8 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
                 foreach ($this->g['dates'] as $d) {
                     $plan = $this->g['plan'][$code][$d] ?? 0;
                     $actual = $this->g['matrix'][$code][$d] ?? 0;
-                    $qty = $remarkKey == 'plan' ? $plan : ($remarkKey == 'matrix' ? $actual : $actual - $plan);
+                    $outstanding = $this->g['outstanding'][$code][$d] ?? 0;
+                    $qty = $qtyFor($remarkKey, $plan, $actual, $outstanding);
                     $row[] = $qty;
                     $total += $qty;
                 }
@@ -77,7 +81,8 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
                 foreach ($this->g['dates'] as $d) {
                     $planTotal = array_sum(array_column($this->g['plan'], $d));
                     $actualTotal = array_sum(array_column($this->g['matrix'], $d));
-                    $colTotal = $remarkKey == 'plan' ? $planTotal : ($remarkKey == 'matrix' ? $actualTotal : $actualTotal - $planTotal);
+                    $outstandingTotal = array_sum(array_column($this->g['outstanding'] ?? [], $d));
+                    $colTotal = $qtyFor($remarkKey, $planTotal, $actualTotal, $outstandingTotal);
                     $totalRow[] = $colTotal;
                     $grand += $colTotal;
                 }
@@ -108,8 +113,8 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
                 $articleCol = $this->hasCustomerCol() ? 'B' : 'A';
                 $blockCount = count($this->g['articles']) + ($this->g['articles'] ? 1 : 0);
                 for ($i = 0; $i < $blockCount; $i++) {
-                    $startRow = 2 + $i * 3;
-                    $endRow = $startRow + 2;
+                    $startRow = 2 + $i * 4;
+                    $endRow = $startRow + 3;
                     if ($this->hasCustomerCol()) {
                         $sheet->mergeCells("A{$startRow}:A{$endRow}");
                     }

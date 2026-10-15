@@ -179,6 +179,7 @@ class DeliveryMonitoringController extends Controller
             $g['dates'] = $this->sortDates(array_keys($g['dates']));
             $g['matrix'] = $g['matrix'] ?? [];
             $g['plan'] = $g['plan'] ?? [];
+            $g['outstanding'] = $g['outstanding'] ?? [];
         }
         uasort($data, fn($a, $b) => strcmp($a['name'], $b['name']));
         return $data;
@@ -233,10 +234,10 @@ class DeliveryMonitoringController extends Controller
         return $series;
     }
 
-    // Plan berjalan: Balance (Actual - Plan) tanggal sebelumnya menambah/mengurangi Plan
+    // Outstanding: Balance (Actual - Plan) tanggal sebelumnya menambah/mengurangi Plan
     // tanggal berikutnya, dihitung berurutan sejak ROLLING_PLAN_ANCHOR (bukan cuma dalam
     // rentang $from-$to) supaya carry-nya tidak hilang saat filter tanggal dipersempit.
-    // Plan asli di delivery_schedule_det/SO tidak diubah, ini cuma nilai tampilan.
+    // Plan asli di delivery_schedule_det/SO tidak diubah/ditimpa, ini baris terpisah.
     private function rollingPlans(array $anchoredActualRows, array $anchoredPlanRows, $summary)
     {
         $key = function ($r) use ($summary) {
@@ -313,7 +314,7 @@ class DeliveryMonitoringController extends Controller
             foreach ($g['articles'] as $rowKey => $name) {
                 foreach ($adjustedPlan[$gKey][$rowKey] ?? [] as $d => $v) {
                     if (in_array($d, $g['dates'], true)) {
-                        $g['plan'][$rowKey][$d] = $v;
+                        $g['outstanding'][$rowKey][$d] = $v;
                     }
                 }
             }
