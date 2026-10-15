@@ -12,17 +12,71 @@
       <div class="row">
         <div class="col-md-2"><strong>Type</strong><div>{{ $header->type }}</div></div>
         <div class="col-md-2"><strong>Periode</strong><div>{{ $header->periode }} / {{ $header->year }}</div></div>
-        <div class="col-md-2"><strong>Akun COA</strong><div>{{ $header->coa_account ? $header->coa_account . ' - ' . $header->coa_account_name : '-' }}</div></div>
-        <div class="col-md-2"><strong>Saldo Awal</strong><div>{{ $header->saldo_awal !== null ? number_format($header->saldo_awal, 2) : '-' }}</div></div>
-        <div class="col-md-2"><strong>Saldo Akhir</strong><div>{{ $header->saldo_akhir !== null ? number_format($header->saldo_akhir, 2) : '-' }}</div></div>
-        <div class="col-md-2"><strong>Description</strong><div>{{ $header->description ?: '-' }}</div></div>
+        <div class="col-md-3"><strong>Akun COA</strong><div>{{ $header->coa_account ? $header->coa_account . ' - ' . $header->coa_account_name : '-' }}</div></div>
+        <div class="col-md-2"><strong>No. Rekening</strong><div>{{ $header->account_number ?: '-' }}</div></div>
+        <div class="col-md-3"><strong>Nama Rekening</strong><div>{{ $header->account_name ?: '-' }}</div></div>
+      </div>
+      @if ($header->description)
+        <div class="row mt-1">
+          <div class="col-12"><strong>Description</strong><div>{{ $header->description }}</div></div>
+        </div>
+      @endif
+    </div>
+  </div>
+
+  {{-- Rekening Koran vs Buku Besar -- Buku Besar dihitung on the fly dari kas_det/kas_hdr
+       saat halaman dibuka, tidak disimpan di DB, supaya selalu sinkron kalau ada posting baru. --}}
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">Saldo &amp; Mutasi — Rekening Koran vs Buku Besar</h4>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered bb2-info mb-0">
+          <thead class="thead-light">
+            <tr>
+              <th>Keterangan</th>
+              <th class="text-right">Rekening Koran</th>
+              <th class="text-right">Buku Besar</th>
+              <th class="text-right">Selisih</th>
+            </tr>
+          </thead>
+          <tbody>
+            @php
+              $glRows = [
+                ['Saldo Awal', $header->saldo_awal, $gl['saldo_awal'] ?? null],
+                ['Saldo Akhir', $header->saldo_akhir, $gl['saldo_akhir'] ?? null],
+                ['Mutasi Debet', $stmtMutasiDebet, $gl['mutasi_debet'] ?? null],
+                ['Mutasi Kredit', $stmtMutasiKredit, $gl['mutasi_kredit'] ?? null],
+              ];
+            @endphp
+            @foreach ($glRows as [$label, $koran, $buku])
+              @php $selisih = ($koran !== null && $buku !== null) ? round($koran - $buku, 2) : null; @endphp
+              <tr>
+                <th>{{ $label }}</th>
+                <td class="text-right">{{ $koran !== null ? number_format($koran, 2) : '-' }}</td>
+                <td class="text-right">{{ $buku !== null ? number_format($buku, 2) : '-' }}</td>
+                <td class="text-right {{ $selisih !== null && abs($selisih) > 0.01 ? 'text-danger font-weight-bold' : 'text-success' }}">
+                  {{ $selisih !== null ? number_format($selisih, 2) : '-' }}
+                </td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
       <h4 class="card-title">Detail Mutasi — PDF vs Buku Besar</h4>
+      <div class="form-group mb-0" style="min-width:200px">
+        <select id="statusFilter" class="form-control form-control-sm">
+          <option value="">Semua Status</option>
+          <option value="MATCHED">MATCH</option>
+          <option value="UNMATCHED">NOT MATCH</option>
+        </select>
+      </div>
     </div>
     <div class="card-body">
       <div class="card-datatable table-responsive pt-0">
@@ -78,7 +132,7 @@
       ],
       // dataSearch wajib diisi (walau kosong) -- tanpa ini draw/start/length dari
       // DataTables tidak terkirim dengan benar dan tabel macet di "Processing...".
-      dataSearch: {},
+      dataSearch: { status: $('#statusFilter').val() },
       initComplete: function () {
         $(".loading-spinner-container").removeClass("-show");
       },
@@ -177,6 +231,7 @@
 
   $(document).ready(function () {
     showListDetail();
+    $('#statusFilter').on('change', showListDetail);
   });
 
 </script>

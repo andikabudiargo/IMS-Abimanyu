@@ -23,6 +23,9 @@ class BankReconciliationController extends Controller
     // accounts.parent_id yang menandai akun COA sebagai Kas / Bank, sama dengan
     // CashBankController::$coaSubCode (acc_sub: 1100.10 = KAS, 1100.20 = BANK).
     private $coaSubCode = ['KAS' => '1100.10', 'BANK' => '1100.20'];
+    // Tanggal mulai pembukuan yang diakui -- sama dengan BukuBesarV2Controller::GL_EPOCH,
+    // mutasi sebelum ini diabaikan (accounts.opening_balance dianggap sudah mengakumulasi itu).
+    const GL_EPOCH = '2024-01-01';
 
     public function __construct()
     {
@@ -400,6 +403,49 @@ class BankReconciliationController extends Controller
         return $rows;
     }
 
+    // Saldo awal/akhir + mutasi debet/kredit versi Buku Besar (kas_det/kas_hdr) untuk 1 akun
+    // COA di periode tertentu -- dihitung on the fly, tidak disimpan, buat dibandingkan
+    // dengan ringkasan rekening koran di header. Formula & sumber sama dengan
+    // BukuBesarV2Controller::priorMovements()/movementQuery() (saldo_awal(T) = saldo_normal *
+    // accounts.opening_balance + SUM(debit-credit) sejak GL_EPOCH s/d T-1).
+    private function glSummary(string $coaAccount, int $periode, int $year): array
+    {
+        $account = DB::table('accounts')->where('account', $coaAccount)->first();
+        if (!$account) {
+            return ['saldo_awal' => null, 'saldo_akhir' => null, 'mutasi_debet' => null, 'mutasi_kredit' => null];
+        }
+
+        $from = sprintf('%04d-%02d-01', $year, $periode);
+        $to = date('Y-m-t', strtotime($from));
+        $sign = strtoupper($account->debit_credit) === 'KREDIT' ? -1 : 1;
+
+        $baseQuery = fn () => DB::table('kas_det as d')
+            ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
+            ->where('d.account', $coaAccount)
+            ->where('h.status', '<>', '5');
+
+        $priorNet = $from > self::GL_EPOCH
+            ? (float) $baseQuery()
+                ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') >= ?", [self::GL_EPOCH])
+                ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') < ?", [$from])
+                ->selectRaw('coalesce(sum(d.debit - d.credit), 0) as net')
+                ->value('net')
+            : 0;
+        $saldoAwal = $sign * (float) $account->opening_balance + $priorNet;
+
+        $period = $baseQuery()
+            ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') between ? and ?", [$from, $to])
+            ->selectRaw('coalesce(sum(d.debit), 0) as debet, coalesce(sum(d.credit), 0) as kredit')
+            ->first();
+
+        return [
+            'saldo_awal' => $saldoAwal,
+            'mutasi_debet' => (float) $period->debet,
+            'mutasi_kredit' => (float) $period->kredit,
+            'saldo_akhir' => $saldoAwal + (float) $period->debet - (float) $period->kredit,
+        ];
+    }
+
     public function list(Request $request)
     {
         $search = strtolower($request->searchReconNumber);
@@ -455,6 +501,18 @@ class BankReconciliationController extends Controller
             ->first();
         abort_unless($data['header'], 404);
         $data['id'] = $id;
+        $data['gl'] = $data['header']->coa_account
+            ? $this->glSummary($data['header']->coa_account, (int) $data['header']->periode, (int) $data['header']->year)
+            : null;
+        // Mutasi Debet/Kredit versi rekening koran tidak disimpan di header (cuma saldo
+        // awal/akhir) -- dihitung ulang dari baris det, dibandingkan dengan $data['gl'].
+        $stmtMutasi = DB::table('bank_reconciliation_det')
+            ->where('recon_number', $data['header']->recon_number)
+            ->selectRaw("coalesce(sum(amount) filter (where mutation_type = 'DB'), 0) as mutasi_debet,
+                coalesce(sum(amount) filter (where mutation_type = 'CR'), 0) as mutasi_kredit")
+            ->first();
+        $data['stmtMutasiDebet'] = (float) $stmtMutasi->mutasi_debet;
+        $data['stmtMutasiKredit'] = (float) $stmtMutasi->mutasi_kredit;
 
         $data['kolomDetail'] = json_encode([
             ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'title' => 'No', 'orderable' => false, 'searchable' => false],
@@ -484,6 +542,9 @@ class BankReconciliationController extends Controller
             ->leftJoin('kas_det', 'kas_det.id', '=', 'bank_reconciliation_det.matched_kas_det_id')
             ->leftJoin('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
             ->where('bank_reconciliation_det.recon_number', $header->recon_number)
+            ->when($request->status, function ($q) use ($request) {
+                $q->where('bank_reconciliation_det.status', $request->status);
+            })
             ->select(
                 'bank_reconciliation_det.*',
                 'kas_hdr.id as voucher_id',
@@ -607,23 +668,6 @@ class BankReconciliationController extends Controller
                       ->orWhere('kas_det.description', 'ilike', '%' . $request->search . '%');
                 });
             })
-            // Cuma tampilkan voucher yang nominalnya dekat (toleransi 5%, minimal Rp1.000)
-            // ke nilai baris statement -- bukan sekadar diurutkan, yang jauh difilter total --
-            // kecuali ketikannya persis voucher_number-nya (lihat $exactVoucher di atas).
-            ->when($amount !== null, function ($q) use ($amount, $sideColumn, $exactVoucher) {
-                $tolerance = max($amount * 0.05, 1000);
-                $q->where(function ($s) use ($amount, $tolerance, $sideColumn, $exactVoucher) {
-                    if ($sideColumn) {
-                        $s->whereBetween($sideColumn, [$amount - $tolerance, $amount + $tolerance]);
-                    } else {
-                        $s->whereBetween('kas_det.debit', [$amount - $tolerance, $amount + $tolerance])
-                          ->orWhereBetween('kas_det.credit', [$amount - $tolerance, $amount + $tolerance]);
-                    }
-                    if ($exactVoucher) {
-                        $s->orWhereRaw('lower(kas_det.voucher_number) = lower(?)', [$exactVoucher]);
-                    }
-                });
-            })
             // used_count/used_amount: sudah dipakai berapa baris statement lain buat voucher ini
             // -- ditampilkan sebagai running total di dropdown supaya kelihatan kalau voucher
             // gabungan ini sudah separuh/penuh ter-cover.
@@ -633,8 +677,9 @@ class BankReconciliationController extends Controller
                 $usedAmountSub as used_amount",
                 [$request->reconNumber, $type, $year, $periode]
             )
+            // Tidak ada filter nominal -- semua voucher periode ybs (sisi lawan, belum habis
+            // terpakai) ditampilkan; yang nominalnya paling dekat cuma diurutkan duluan.
             ->when($amount !== null, function ($q) use ($amount) {
-                // Di antara yang lolos filter toleransi, yang paling dekat tetap muncul duluan.
                 $q->orderByRaw('least(abs(coalesce(kas_det.debit,0) - ?), abs(coalesce(kas_det.credit,0) - ?)) asc', [$amount, $amount]);
             }, function ($q) {
                 $q->orderBy('kas_hdr.voucher_date', 'desc');
