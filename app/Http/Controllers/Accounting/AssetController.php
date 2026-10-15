@@ -324,11 +324,11 @@ class AssetController extends Controller
         $bulanNama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
         $baseMonth = $request->periode ? $request->periode.'-01' : date('Y-m-01');
-        $prevMonthTs = strtotime('first day of last month', strtotime($baseMonth));
-        $periodeDate = date('Y-m-01', $prevMonthTs);
-        $period = (int) date('n', $prevMonthTs);
-        $year = date('Y', $prevMonthTs);
-        $vcDate = date('d-m-Y', strtotime('last day of last month', strtotime($baseMonth)));
+        $baseTs = strtotime($baseMonth);
+        $periodeDate = date('Y-m-01', $baseTs);
+        $period = (int) date('n', $baseTs);
+        $year = date('Y', $baseTs);
+        $vcDate = date('d-m-Y', strtotime('last day of this month', $baseTs));
 
         $assets = DB::table('assets')
         ->where('status','1')
@@ -826,7 +826,7 @@ class AssetController extends Controller
         $searchJenisAset = $request->searchJenisAset;
         $searchPeriode = $request->searchPeriode;
 
-        $periodeDate = ($searchPeriode ? $searchPeriode : date('Y-m')).'-01';
+        $periodeDate = ($searchPeriode && preg_match('/^\d{4}-\d{2}$/', $searchPeriode) ? $searchPeriode : date('Y-m')).'-01';
 
         $fromDate = "";
         $toDate = "";
@@ -854,12 +854,12 @@ class AssetController extends Controller
             'assets.*'
             ,DB::raw("assets.tanggal_awal_penyusutan as tgl_awal_raw")
             ,DB::raw("to_char(created_at,'DD-MM-YYYY') as tanggal_awal_penyusutan")
-            ,DB::raw("EXTRACT(YEAR FROM age(buying_date)) as umur_tahun")
-            ,DB::raw("EXTRACT(MONTH FROM age(buying_date)) as umur_bulan")
+            ,DB::raw("EXTRACT(YEAR FROM age('".$periodeDate."'::date, buying_date)) as umur_tahun")
+            ,DB::raw("EXTRACT(MONTH FROM age('".$periodeDate."'::date, buying_date)) as umur_bulan")
             ,DB::raw("(select concat(account,' - ',description) from accounts where account = assets.coa_number) as coa_description")
         )
         ->orderBy('assets.id')
-        ->get(); 
+        ->get();
 
         $bisaEdit = Auth::user()->can('ap-edit');
         $bisaDelete = Auth::user()->can('ap-delete');
