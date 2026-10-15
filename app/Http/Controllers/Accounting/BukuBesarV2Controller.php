@@ -446,7 +446,7 @@ class BukuBesarV2Controller extends Controller
     /** Transaksi di rentang [$from, $to], urut tanggal -> kode akun -> id. */
     private function fetchTransactions(array $codes, Request $request, $from, $to)
     {
-        return $this->movementQuery($codes, $request)
+        $rows = $this->movementQuery($codes, $request)
             ->leftJoin('depts', 'depts.code', 'd.cost_center')
             ->leftJoin('accounts', 'accounts.account', 'd.account')
             ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') between ? and ?", [$from, $to])
