@@ -124,6 +124,27 @@ class DnMonitoringController extends Controller
         return preg_match('/^\d{4}-\d{2}$/', $request->periode) ? $request->periode : date('Y-m');
     }
 
+    // Cut off satu customer diwakili oleh pengiriman TERAKHIRnya di kumpulan baris ini (bukan yang
+    // paling awal): satu DN nyasar di awal bulan tidak boleh bikin seluruh baris customer (yang isinya
+    // puluhan DN dari minggu-minggu berikutnya) salah tampil seolah cut off-nya sudah di awal bulan itu.
+    private function lastCutOffByCustomer(array $rows, $customers)
+    {
+        $lastDelivery = [];
+        foreach ($rows as $r) {
+            $c = $r->customer_id;
+            [$d, $mo, $y] = explode('-', $r->delivery_date);
+            $ymd = "$y-$mo-$d";
+            if (!isset($lastDelivery[$c]) || $ymd > $lastDelivery[$c]) {
+                $lastDelivery[$c] = $ymd;
+            }
+        }
+        $result = [];
+        foreach ($lastDelivery as $c => $ymd) {
+            $result[$c] = $this->nextCutOffDate($ymd, $customers[$c]->cutt_off ?? null);
+        }
+        return $result;
+    }
+
     private function summaryData(Request $request)
     {
         $month = $this->month($request);
@@ -133,29 +154,19 @@ class DnMonitoringController extends Controller
             ->select('kode', 'nama', DB::raw($hasCutOff ? 'cutt_off_dn as cutt_off' : "'' as cutt_off"))
             ->get()->keyBy('kode');
 
-        $summary = [];
         $selected = array_filter((array) $request->customer);
-        foreach ($this->pendingRows($month, $this->filter($request), $this->dnType($request), $request->src) as $r) {
-            if ($selected && !in_array($r->customer_id, $selected)) {
-                continue;
-            }
+        $rows = array_filter($this->pendingRows($month, $this->filter($request), $this->dnType($request), $request->src), fn($r) => !$selected || in_array($r->customer_id, $selected));
+        $cutOffByCustomer = $this->lastCutOffByCustomer($rows, $customers);
+
+        $summary = [];
+        foreach ($rows as $r) {
             $c = $r->customer_id;
             $summary[$c]['name'] = $customers[$c]->nama ?? $c;
-            [$d, $mo, $y] = explode('-', $r->delivery_date);
-            $cutOffDate = $this->nextCutOffDate("$y-$mo-$d", $customers[$c]->cutt_off ?? null);
-            // Cut off customer = yang PALING CEPAT (paling mendesak) di antara DN outstanding-nya di
-            // periode ini, bukan dari DN yang paling terakhir dikirim: supaya kalau ada satu DN lama
-            // yang sudah lewat cut off, baris customer itu memang kelihatan "lewat" (konsisten dengan
-            // hitungan jumlah DN lewat cut off di panel Progress), bukan malah ketutup oleh DN lain yang
-            // cut off-nya masih jauh di depan.
-            if ($cutOffDate && (!isset($summary[$c]['cutt_off_sort']) || $cutOffDate < $summary[$c]['cutt_off_sort'])) {
-                $summary[$c]['cutt_off_sort'] = $cutOffDate;
-            }
-            $summary[$c]['cutt_off_sort'] ??= '9999-99-99';
+            $summary[$c]['cutt_off_sort'] = $cutOffByCustomer[$c] ?? '9999-99-99';
             $w = $this->week($r->delivery_date);
             $summary[$c]['w'][$w] = ($summary[$c]['w'][$w] ?? 0) + 1;
         }
-        foreach ($summary as $c => &$row) {
+        foreach ($summary as &$row) {
             $cutOff = $this->describeCutOff($row['cutt_off_sort'] == '9999-99-99' ? null : $row['cutt_off_sort']);
             $row['cutt_off'] = $cutOff['label'];
             $row['cutt_off_remaining'] = $cutOff['remaining'];
@@ -167,17 +178,9 @@ class DnMonitoringController extends Controller
         $allRows = array_filter($this->pendingRows($month, 'all', $this->dnType($request)), fn($r) => !$selected || in_array($r->customer_id, $selected));
         $totalQty = count($allRows);
         $kembaliQty = count(array_filter($allRows, fn($r) => !$r->belum_kembali));
-        $overQty = 0;
-        foreach ($allRows as $r) {
-            if (!$r->belum_kembali) {
-                continue;
-            }
-            [$d, $mo, $y] = explode('-', $r->delivery_date);
-            $cutOffDate = $this->nextCutOffDate("$y-$mo-$d", $customers[$r->customer_id]->cutt_off ?? null);
-            if ($this->describeCutOff($cutOffDate)['status'] == 'over') {
-                $overQty++;
-            }
-        }
+        $outstandingRows = array_filter($allRows, fn($r) => $r->belum_kembali);
+        $cutOffForOutstanding = $this->lastCutOffByCustomer($outstandingRows, $customers);
+        $overQty = count(array_filter($outstandingRows, fn($r) => $this->describeCutOff($cutOffForOutstanding[$r->customer_id] ?? null)['status'] == 'over'));
 
         $weeks = range(1, $this->weekCount($month));
         $daysInMonth = date('t', strtotime("$month-01"));
