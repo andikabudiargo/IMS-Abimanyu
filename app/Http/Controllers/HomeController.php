@@ -8,13 +8,16 @@ use Illuminate\Support\Facades\Crypt;
 use Carbon\Carbon;
 use DB;
 use DataTables;
+use App\Support\ResolvesTsoCodes;
 
 /*
-    4-2-2026 : ada perbaikan untuk antisipasi revisi ke approved 
+    4-2-2026 : ada perbaikan untuk antisipasi revisi ke approved
 */
 
 class HomeController extends Controller
 {
+    use ResolvesTsoCodes;
+
     /**
      * Create a new controller instance.
      *
@@ -205,31 +208,6 @@ private function isMaklonHome(string $articleCode): bool
 }
 
     /** 12 nama bulan Indonesia, dipakai buat cari nama bulan target di dalam tso_name. */
-    private const BULAN_NAMES = [
-        1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL',
-        5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
-        9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER',
-    ];
-
-    /**
-     * Bulan target dari tso_name, mis. "TARGET SO SEPTEMBER" / "TSO SEMIFIX
-     * SEPTEMBER" -> 9. tso_date TIDAK dipakai buat ini -- terbukti dari data
-     * riil, tso_date cuma tanggal dibuatnya dokumen, bisa kapan saja relatif
-     * ke bulan target (pernah ketemu 3 TSO dibuat di tanggal yang SAMA tapi
-     * menyasar 3 bulan target yang berbeda -- Feb/Mar/Apr, dibedakan cuma
-     * lewat tso_name). Return null kalau nggak ketemu nama bulan di tso_name.
-     */
-    private function targetMonthFromName(string $name): ?int
-    {
-        $upper = strtoupper($name);
-        foreach (self::BULAN_NAMES as $num => $label) {
-            if (strpos($upper, $label) !== false) {
-                return $num;
-            }
-        }
-        return null;
-    }
-
     /**
      * Widget "Sales Achievement" di Home: qty & konversi delivery bulan
      * $periode/$tahun dibandingkan Target SO -- default bulan berjalan
@@ -271,49 +249,7 @@ private function isMaklonHome(string $articleCode): bool
         $convVal = $this->activeConversionValueHome();
 
        // ---- TARGET (TSO status APPROVED, bulan target dari tso_name, tahun dari tso_date) ----
-$candidateHeaders = DB::table('target_order_hdr')
-    ->whereColumn('tso_code', 'origin_tso_code')   // cuma row utama, bukan snapshot -R
-    ->whereIn('status', ['1', '2', '3'])           // ikut tangkap yang lagi direvisi
-    ->whereRaw("EXTRACT(YEAR FROM to_date(tso_date,'DD-MM-YYYY')) BETWEEN ? AND ?", [$tahun - 1, $tahun + 1])
-    ->orderBy('id')
-    ->get(['id', 'tso_code', 'tso_name', 'tso_date', 'status']);
-
-$matchedTsoCodes = [];
-$firstMatchedId  = null;
-foreach ($candidateHeaders as $h) {
-    $month = $this->targetMonthFromName((string) $h->tso_name);
-    if ($month === null) {
-        continue;
-    }
-    $dt = \DateTime::createFromFormat('d-m-Y', trim((string) $h->tso_date));
-    if (!$dt) {
-        continue;
-    }
-    if ($month === $periode && (int) $dt->format('Y') === $tahun) {
-        if ($firstMatchedId === null) {
-            $firstMatchedId = $h->id;
-        }
-
-        if ($h->status === '3') {
-            // sudah approved, pakai data row utama seperti biasa
-            $matchedTsoCodes[] = $h->tso_code;
-        } else {
-            // lagi direvisi (status draft/pending) -- fallback ke snapshot
-            // approved terakhir (num_revision tertinggi) biar data lama tetap tampil
-            $lastApprovedSnapshot = DB::table('target_order_hdr')
-                ->where('origin_tso_code', $h->tso_code)
-                ->where('tso_code', '<>', $h->tso_code)
-                ->orderByDesc('num_revision')
-                ->first(['tso_code']);
-
-            if ($lastApprovedSnapshot) {
-                $matchedTsoCodes[] = $lastApprovedSnapshot->tso_code;
-            }
-            // kalau belum pernah ada snapshot sama sekali (TSO baru, belum
-            // pernah approved sekalipun), memang belum ada data buat ditampilkan
-        }
-    }
-}
+$matchedTsoCodes = $this->resolveTsoCodes($periode, $tahun, $firstMatchedId);
 
         // Kalau ada beberapa TSO yang cocok (beda customer, bulan target sama),
         // tombol "Target SO" cuma nunjuk ke yang pertama -- widget ini agregat,

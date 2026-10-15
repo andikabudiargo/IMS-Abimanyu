@@ -8,9 +8,12 @@ use DB;
 use PDF;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DeliveryMonitoringExport;
+use App\Support\ResolvesTsoCodes;
 
 class DeliveryMonitoringController extends Controller
 {
+    use ResolvesTsoCodes;
+
     // ponytail: hardcoded cutover, rolling-plan belum ada datanya sebelum tanggal ini.
     // Naikkan ke constant config kalau nanti butuh anchor berbeda per customer/periode.
     private const ROLLING_PLAN_ANCHOR = '2026-10-01';
@@ -289,6 +292,36 @@ class DeliveryMonitoringController extends Controller
         return $adjusted;
     }
 
+    // Rate konversi per artikel per bulan, diambil dari target_order_det.conversion (snapshot
+    // TSO yang sudah di-approve/dilihat user -- TIDAK dihitung ulang live dari Conversion
+    // Report/BOM, lihat soConversion() di TargetSoController kalau butuh itu). Kalau artikel
+    // belum ada di TSO bulan tsb, fallback ke rate bulan terdekat sebelumnya yang sudah ketemu.
+    private function monthlyConversionRates(string $from, string $to): array
+    {
+        $cursor = new \DateTime(date('Y-m-01', strtotime($from)));
+        $end = new \DateTime(date('Y-m-01', strtotime($to)));
+        $rates = [];
+        $carry = [];
+        while ($cursor <= $end) {
+            $periode = (int) $cursor->format('n');
+            $tahun = (int) $cursor->format('Y');
+            $tsoCodes = $this->resolveTsoCodes($periode, $tahun);
+            if ($tsoCodes) {
+                $rows = DB::table('target_order_det')
+                    ->whereIn('tso_code', $tsoCodes)
+                    ->selectRaw('article_code, AVG(conversion) as conversion')
+                    ->groupBy('article_code')
+                    ->get();
+                foreach ($rows as $r) {
+                    $carry[$r->article_code] = (float) $r->conversion;
+                }
+            }
+            $rates[$cursor->format('Y-m')] = $carry;
+            $cursor->modify('+1 month');
+        }
+        return $rates;
+    }
+
     private function viewData(Request $request)
     {
         $data['from'] = $request->from ?: date('Y-m-01');
@@ -316,6 +349,7 @@ class DeliveryMonitoringController extends Controller
         $anchoredActualRows = $this->rows($request, false, true);
         $anchoredPlanRows = $this->planRows($request, true);
         $adjustedPlan = $this->rollingPlans($anchoredActualRows, $anchoredPlanRows, $data['summary']);
+        $rates = $this->monthlyConversionRates($data['from'], $data['to']);
         foreach ($data['groups'] as $gKey => &$g) {
             foreach ($g['articles'] as $rowKey => $name) {
                 foreach ($adjustedPlan[$gKey][$rowKey] ?? [] as $d => $v) {
@@ -323,6 +357,14 @@ class DeliveryMonitoringController extends Controller
                         $g['outstanding'][$rowKey][$d] = $v;
                     }
                 }
+
+                $articleCode = $data['summary'] ? explode('|', $rowKey, 2)[1] : $rowKey;
+                $totalKonversi = 0;
+                foreach ($g['matrix'][$rowKey] ?? [] as $d => $qty) {
+                    $monthKey = date('Y-m', strtotime(implode('-', array_reverse(explode('-', $d)))));
+                    $totalKonversi += $qty * ($rates[$monthKey][$articleCode] ?? 0);
+                }
+                $g['totalKonversi'][$rowKey] = $totalKonversi;
             }
         }
         return $data;

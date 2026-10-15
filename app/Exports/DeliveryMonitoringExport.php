@@ -69,6 +69,7 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
                     $total += $qty;
                 }
                 $row[] = $total;
+                $row[] = $isFirst ? ($this->g['totalKonversi'][$code] ?? 0) : '';
                 $rows[] = $row;
             }
         }
@@ -87,6 +88,7 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
                     $grand += $colTotal;
                 }
                 $totalRow[] = $grand;
+                $totalRow[] = $isFirst ? array_sum($this->g['totalKonversi'] ?? []) : '';
                 $rows[] = $totalRow;
             }
         }
@@ -97,7 +99,7 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
     {
         $head = $this->hasCustomerCol() ? ['Customer', 'Article'] : ['Article'];
         $head[] = 'Remarks';
-        return array_merge($head, $this->g['dates'], ['Total']);
+        return array_merge($head, $this->g['dates'], ['Total', 'Total Konversi']);
     }
 
     public function title(): string
@@ -111,6 +113,10 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
                 $articleCol = $this->hasCustomerCol() ? 'B' : 'A';
+                // kolom sebelum tanggal: [Customer,]Article,Remarks lalu +2 untuk Total & Total Konversi di akhir
+                $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(
+                    count($this->g['dates']) + ($this->hasCustomerCol() ? 5 : 4)
+                );
                 $blockCount = count($this->g['articles']) + ($this->g['articles'] ? 1 : 0);
                 for ($i = 0; $i < $blockCount; $i++) {
                     $startRow = 2 + $i * 4;
@@ -119,6 +125,7 @@ class DeliveryMonitoringSheetExport implements FromArray, WithHeadings, WithTitl
                         $sheet->mergeCells("A{$startRow}:A{$endRow}");
                     }
                     $sheet->mergeCells("{$articleCol}{$startRow}:{$articleCol}{$endRow}");
+                    $sheet->mergeCells("{$lastCol}{$startRow}:{$lastCol}{$endRow}");
                 }
             },
         ];

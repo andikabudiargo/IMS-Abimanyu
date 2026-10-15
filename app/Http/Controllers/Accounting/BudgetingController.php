@@ -389,18 +389,30 @@ class BudgetingController extends Controller
         try {
             foreach ($edits as $e) {
                 $det = DB::table('budgeting_det')->where('budgeting_hdr_id', $id)->where('account', $e['account'])->first();
-                if (!$det) {
-                    continue;
-                }
+
                 $unbudget = (bool) ($e['is_unbudget'] ?? false);
                 $cr = min(100, max(0, (float) ($e['cost_reduction'] ?? 0)));
                 $inflation = max(0, (float) ($e['inflation'] ?? 0));
-                $budget = $unbudget ? 0 : round(((float) $det->average) * (1 - $cr / 100 + $inflation / 100), 2);
+                // debit/average/active_months/realisasi dikirim dari UI (hasil Recalculate yang belum
+                // di-Save sebelumnya); kalau tidak dikirim, pertahankan nilai yang sudah ada di DB.
+                $average = isset($e['average']) ? (float) $e['average'] : (float) ($det->average ?? 0);
+                $debit = isset($e['debit']) ? (float) $e['debit'] : (float) ($det->debit ?? 0);
+                $activeMonths = isset($e['active_months']) ? (int) $e['active_months'] : (int) ($det->active_months ?? 0);
+                $realisasiTotal = isset($e['realisasi_total']) ? (float) $e['realisasi_total'] : (float) ($det->realisasi_total ?? 0);
+                $realisasiJson = isset($e['realisasi']) ? json_encode($e['realisasi']) : ($det->realisasi_json ?? json_encode([]));
+
+                $budget = $unbudget ? 0 : round($average * (1 - $cr / 100 + $inflation / 100), 2);
                 // final_budget = TOTAL untuk seluruh budget period (bukan bulanan).
                 $final = $unbudget ? 0 : (isset($e['final_budget']) ? (float) $e['final_budget'] : round($budget * $monthsCount, 2));
                 $additional = (float) ($e['additional_budget'] ?? 0);
 
-                DB::table('budgeting_det')->where('id', $det->id)->update([
+                $payload = [
+                    'nama_akun'         => $e['nama_akun'] ?? ($det->nama_akun ?? $e['account']),
+                    'debit'             => $debit,
+                    'average'           => $average,
+                    'active_months'     => $activeMonths,
+                    'realisasi_json'    => $realisasiJson,
+                    'realisasi_total'   => $realisasiTotal,
                     'cost_reduction'    => $cr,
                     'inflation'         => $inflation,
                     'budget'            => $budget,
@@ -408,7 +420,24 @@ class BudgetingController extends Controller
                     'additional_budget' => $additional,
                     'is_unbudget'       => $unbudget,
                     'updated_at'        => now(),
-                ]);
+                ];
+
+                if ($det) {
+                    DB::table('budgeting_det')->where('id', $det->id)->update($payload);
+                } else {
+                    DB::table('budgeting_det')->insert($payload + [
+                        'budgeting_hdr_id' => $id,
+                        'account'          => $e['account'],
+                        'created_at'       => now(),
+                    ]);
+                }
+            }
+
+            // Akun yang sudah tidak ada di hasil Recalculate (dibuang dari UI) ikut dibuang dari DB,
+            // supaya tidak "muncul lagi" saat halaman di-load ulang.
+            $keepAccounts = $edits->pluck('account')->all();
+            if ($keepAccounts) {
+                DB::table('budgeting_det')->where('budgeting_hdr_id', $id)->whereNotIn('account', $keepAccounts)->delete();
             }
 
             DB::table('budgeting_hdr')->where('id', $id)->update([
@@ -438,11 +467,11 @@ class BudgetingController extends Controller
         return response()->json(['status' => 1, 'message' => 'Budgeting berhasil dihapus.']);
     }
 
-    /** AJAX: tarik ulang debit/average (previous) & realisasi (budget period) dari kas_det, lalu simpan. */
     /**
      * AJAX: tarik ulang Debit/Average/Realisasi dari transaksi terbaru dan hitung ulang
      * Budget/Final Budget/Monthly Budget mengikuti. Read-only -- tidak menulis ke DB,
-     * supaya hasilnya hanya tampil di UI sampai user klik Save.
+     * supaya hasilnya hanya tampil di UI sampai user klik Save (lihat update(), yang
+     * menyimpan seluruh row termasuk debit/average/realisasi hasil recalculate ini).
      */
     public function recalculate(Request $request, $id)
     {

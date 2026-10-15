@@ -337,7 +337,7 @@
   });
 
   $('#btnSave').click(function () {
-    const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget }));
+    const payload = rows.map((r) => ({ account: r.account, nama_akun: r.nama_akun, debit: r.debit, average: r.average, active_months: r.active_months, realisasi: r.realisasi, realisasi_total: r.realisasi_total, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget }));
     $('.loading-spinner-container').addClass('-show');
     $.ajax({
       url: "{{ route('budgeting.update', $hdr->id) }}", type: 'PUT',
