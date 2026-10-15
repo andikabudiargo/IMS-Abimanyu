@@ -85,19 +85,23 @@ class DnMonitoringController extends Controller
         return (int) ceil(date('t', strtotime("$month-01")) / 7);
     }
 
-    // Cut-off berulang tiap bulan (tanggal 1-31), dibandingkan ke hari ini:
-    // 'over' kalau tanggal cut-off bulan ini sudah lewat, 'near' kalau H-3 atau kurang.
-    private function cutOffStatus($cuttOff)
+    // Cut-off jatuh di bulan SETELAH periode delivery yang dilihat (tanggal cuttOff,
+    // di-clamp ke jumlah hari bulan itu). Dibandingkan ke hari ini untuk status & sisa hari.
+    private function cutOffInfo($month, $cuttOff)
     {
         if (!$cuttOff) {
-            return '';
+            return ['date' => null, 'label' => '', 'remaining' => null, 'status' => ''];
         }
-        $day = min((int) $cuttOff, (int) date('t'));
-        $remaining = $day - (int) date('j');
-        if ($remaining < 0) {
-            return 'over';
-        }
-        return $remaining <= 3 ? 'near' : '';
+        $nextMonth = date('Y-m', strtotime("$month-01 +1 month"));
+        $day = min((int) $cuttOff, (int) date('t', strtotime("$nextMonth-01")));
+        $date = "$nextMonth-" . str_pad($day, 2, '0', STR_PAD_LEFT);
+        $remaining = (int) ((strtotime($date) - strtotime(date('Y-m-d'))) / 86400);
+        return [
+            'date' => $date,
+            'label' => date('j F Y', strtotime($date)),
+            'remaining' => $remaining,
+            'status' => $remaining < 0 ? 'over' : ($remaining <= 3 ? 'near' : ''),
+        ];
     }
 
     private function month(Request $request)
@@ -122,12 +126,15 @@ class DnMonitoringController extends Controller
             }
             $c = $r->customer_id;
             $summary[$c]['name'] = $customers[$c]->nama ?? $c;
-            $summary[$c]['cutt_off'] = $customers[$c]->cutt_off ?? '';
-            $summary[$c]['cutt_off_status'] = $this->cutOffStatus($customers[$c]->cutt_off ?? null);
+            $cutOff = $this->cutOffInfo($month, $customers[$c]->cutt_off ?? null);
+            $summary[$c]['cutt_off'] = $cutOff['label'];
+            $summary[$c]['cutt_off_remaining'] = $cutOff['remaining'];
+            $summary[$c]['cutt_off_status'] = $cutOff['status'];
+            $summary[$c]['cutt_off_sort'] = $cutOff['date'] ?? '9999-99-99';
             $w = $this->week($r->delivery_date);
             $summary[$c]['w'][$w] = ($summary[$c]['w'][$w] ?? 0) + 1;
         }
-        uasort($summary, fn($a, $b) => strcmp($a['name'], $b['name']));
+        uasort($summary, fn($a, $b) => $a['cutt_off_sort'] <=> $b['cutt_off_sort'] ?: strcmp($a['name'], $b['name']));
 
         $weeks = range(1, $this->weekCount($month));
         $daysInMonth = date('t', strtotime("$month-01"));
@@ -150,7 +157,7 @@ class DnMonitoringController extends Controller
     public function index(Request $request)
     {
         $data = $this->summaryData($request);
-        $data['title'] = 'DN Monitoring';
+        $data['title'] = 'DN Outstanding';
         return view('monitoring.dnMonitoring', $data);
     }
 

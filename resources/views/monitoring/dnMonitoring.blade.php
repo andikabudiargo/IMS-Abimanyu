@@ -67,8 +67,15 @@
               <td>
                 @if($row['cutt_off'])
                   <span class="{{ ['over' => 'text-danger font-weight-bold', 'near' => 'text-warning font-weight-bold'][$row['cutt_off_status']] ?? '' }}">
-                    Tgl {{ $row['cutt_off'] }}
+                    {{ $row['cutt_off'] }}
                   </span>
+                  <br><small class="text-muted">
+                    @if($row['cutt_off_remaining'] < 0)
+                      Lewat {{ abs($row['cutt_off_remaining']) }} hari dari cut off
+                    @else
+                      {{ $row['cutt_off_remaining'] }} hari menuju cut off
+                    @endif
+                  </small>
                 @else
                   <small><em class="text-muted">Belum Ada Cut Off Tanggal Kembali Surat Jalan</em></small>
                 @endif

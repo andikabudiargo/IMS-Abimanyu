@@ -529,7 +529,7 @@
                   @can('delivery-report-acc')
                     <li class="{{ \Request::is(['dnMonitoring'])  ? 'active' : '' }}">
                       <a class="d-flex align-items-center" href="{{ route('dnMonitoring.index') }}">
-                        <span class="menu-item text-truncate" data-i18n="DN Monitoring">DN Monitoring</span>
+                        <span class="menu-item text-truncate" data-i18n="DN Monitoring">DN Outstanding</span>
                       </a>
                     </li>
                   @endcan
