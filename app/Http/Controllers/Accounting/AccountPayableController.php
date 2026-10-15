@@ -855,27 +855,16 @@ class AccountPayableController extends Controller
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }
 
-        $inputYear = substr($apDate,-4)*1;
-        $inputMonth = explode("-",$apDate)[1]*1;
-        $getCurrentYear = date('Y')*1;
-        $getCurrentMonth = date('m')*1;
-        $getTodayDate = date('d')*1; 
-        
-        $periodNomor=$period;
-
-        /*
-            Khusus untuk bulan Januai dibatasi oleh cut off per tanggal 5
-        */
-
-        if ($getCurrentMonth == 1){
-            if($periodNomor == 1){
-                $inputYear = $getCurrentYear;
-            }
-            
-            if($periodNomor == 12){
-                $inputYear=$getCurrentYear-1;
-            }
+        // Tahun & bulan romawi nomor AP: PO => tanggal receiving terbaru dari rec yang dipilih,
+        // NONPO (atau tidak ada rec) => AP Date (format d-m-Y).
+        $numDate = null;
+        $recList = array_values(array_filter(array_map('trim', $recNumberSave), 'strlen'));
+        if ($apType == 'PO' && count($recList) > 0) {
+            $numDate = DB::table('receiving_hdr')->whereIn('rec_number', $recList)->max('rec_date');
         }
+        $numDate = $numDate ? \Carbon\Carbon::parse($numDate) : \Carbon\Carbon::createFromFormat('d-m-Y', $apDate);
+        $periodNomor = $numDate->month;
+        $inputYear = $numDate->year;
 
         // if ($getCurrentMonth == 1){
         //     if($getTodayDate < 6 ){
@@ -1266,6 +1255,9 @@ class AccountPayableController extends Controller
         $account= $request->account;
         $note=$request->note;
         $period=$request->period;
+        if (!in_array((int)$period, range(1, 12), true)) {
+            return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [['Period is required.']], 'alert' => 'error']);
+        }
         $accountHutang = $request->accountHutang;
 
         $details = json_decode($request->details);

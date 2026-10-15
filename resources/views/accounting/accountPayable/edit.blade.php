@@ -33,7 +33,7 @@
                                         </div>
                                         <div class="form-group col-md-2">
                                             <label for="period">Period*</label>
-                                            <select class="select2 form-control disabled-el" id="period" name="period" disabled>
+                                            <select class="select2 form-control" id="period" name="period" required>
                                                 <option value=""></option>
                                                 @for ($i = 1; $i <= 12; $i++)
                                                     <option value="{{ $i }}" {{$i == $header->period ? "selected" : ""}}>{{ $i }}</option>
