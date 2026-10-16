@@ -303,6 +303,10 @@
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
         },
+        {
+          targets: [5,6,7,8],
+          className: "text-left"
+        },
       ],
       type:"POST",
       excelCustomize:function(xlsx) {
