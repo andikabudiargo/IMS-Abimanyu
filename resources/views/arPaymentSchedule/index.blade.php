@@ -324,7 +324,7 @@ $(document).ready(function () {
     function fmtAlways(v) {
         let n = parseFloat(v);
         if (isNaN(n)) n = 0;
-        return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     let lastFilters = null;
