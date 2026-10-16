@@ -471,10 +471,16 @@
                 invList('reference','vcRef'+ cloneCount,paidTo,ref);
             }
         }
-        
+
         $("#account"+cloneCount).select2();
         $("#vcCc"+cloneCount).select2();
         initRefSelect2($("#vcRef"+cloneCount));
+
+        // account selain 2000.11 tidak punya dropdown dependent, jadi reference
+        // lama harus ditambahkan manual sebagai option supaya tidak hilang saat disimpan ulang.
+        if(account!=='2000.11' && ref){
+            $("#vcRef"+cloneCount).append(new Option(ref, ref, true, true)).trigger('change');
+        }
 
         // $("#account"+cloneCount).val(account).trigger('change');;
         $("#vcCc"+cloneCount).val(cc).trigger('change');
