@@ -390,7 +390,7 @@ $('#arCutoff').on('change', function () {
       tableId:"detailedTable",
       route:"{{ route('invoice.list') }}",
       kolom:{!! $kolom !!},
-      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,16,18,20,21,22,23,24,26,27,28,29,30,31],
+      arrColPrint:[1,2,4,5,6,7,8,9,10,11,12,13,14,16,18,20,21,22,23,24,25,27,28,29,30,31],
       columnDefs :[
         { width: '5%', targets: 0 },
         {
@@ -424,7 +424,7 @@ $('#arCutoff').on('change', function () {
           btnDetail.removeClass('d-none');
         }
       },
-      orderColumn:[[ 29, 'desc' ]],
+      orderColumn:[[ 30, 'desc' ]],
       excelFileName:'invoice_customer'
     });
   }
@@ -440,13 +440,16 @@ $('#arCutoff').on('change', function () {
       tableId:"detailedTable",
       route:"{{ route('invoice.list.detail') }}",
       kolom:{!! $kolomDetail !!},
-      arrColPrint:[1,2,3,4,5,6,7,8,9,10,11],
+      arrColPrint:[0,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],
       columnDefs :[
-        { width: '5%', targets: 0 },
         {
-          targets: [5,6,7,8,9,10,11],
+          targets: [9,11,12,13,14,15],
           render: $.fn.dataTable.render.number(',', '.', 2, ''),
           className: "text-right"
+        },
+        {
+          targets: [5,6,7,8],
+          className: "text-left"
         },
       ],
       type:"POST",
@@ -466,7 +469,7 @@ $('#arCutoff').on('change', function () {
         searchArticle:searchArticle
         // searchPeriod:searchPeriod
       },
-      orderColumn:[[ 1, 'asc' ],[ 2, 'asc' ]],
+      orderColumn:[[ 1, 'asc' ],[ 3, 'asc' ]],
       excelFileName:'invoice_customer_detail'
     });
   }

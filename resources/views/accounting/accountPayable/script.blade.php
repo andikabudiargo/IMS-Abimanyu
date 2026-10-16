@@ -7,6 +7,7 @@
     let sNilaiPPH23= "{{ $nilaiPPH23 }}";
     let sNilaiPPH21= "{{ $nilaiPPH21 }}";
     let sNilaiPPH42= "{{ $nilaiPPH42 }}";
+    let sNilaiPB1= "{{ $nilaiPB1 }}";
     let sNilaiPpnPembilang= "{{ $ppnPembilang }}";
     let sNilaiPpnPenyebut= "{{ $ppnPenyebut }}";
     let showDetail="";
@@ -142,6 +143,38 @@
             $('#totalPPH42').attr('disabled','disabled');
             $("#totalPPH42").prop('required',false);
             hitungTotal();  
+        }
+    });
+
+    // PB 1 bersifat menambah Total Bill (seperti VAT), bukan potongan seperti WHT. Persentase bisa diubah user.
+    const pctPb1 = () => { let v = parseFloat($('#pctPB1').val()); return isNaN(v) ? parseFloat(sNilaiPB1) : v; };
+    $('#pctPB1').val(sNilaiPB1);
+    $('#pctPB1').on('input', function() {
+        if(!$('#pb1Check').is(':checked')) return;
+        let ba = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
+        $("#totalPB1").val(parseFloat(ba * (pctPb1()/100)).toFixed(2));
+        $("#nilaiPB1").text(pctPb1()+'%');
+        mask_thousand_digit(2);
+        hitungTotal();
+    });
+
+    $("#pb1Check").change(function() {
+        if(this.checked) {
+            let basisAmount = parseFloat($('#basisAmount').val().replace(/,/gi, '')) || 0;
+            $("#totalPB1").val(parseFloat(basisAmount * (pctPb1()/100)).toFixed(2));
+            $("#nilaiPB1").text(pctPb1()+'%');
+            $('#totalPB1').removeAttr('disabled');
+            $('#totalPB1').focus().select();
+            $("#totalPB1").prop('required',true);
+            mask_thousand_digit(2);
+            mask_thousand();
+            hitungTotal();
+        }else{
+            $("#totalPB1").val('');
+            $("#nilaiPB1").text('');
+            $('#totalPB1').attr('disabled','disabled');
+            $("#totalPB1").prop('required',false);
+            hitungTotal();
         }
     });
 
@@ -286,6 +319,7 @@
         let pph23 = parseFloat($('#totalPPH23').val().replace(/[^0-9.]/g, '')) || 0;
         let pph21 = parseFloat($('#totalPPH21').val().replace(/[^0-9.]/g, '')) || 0;
         let pph42 = parseFloat($('#totalPPH42').val().replace(/[^0-9.]/g, '')) || 0;
+        let pb1 = parseFloat($('#totalPB1').val().replace(/[^0-9.]/g, '')) || 0;
 
         let od = parseFloat($('#totalDiscount').val().replace(/[^0-9.]/g, '')) || 0;
         let total;
@@ -347,16 +381,26 @@
                     clearTimeout(delayTimerTax);
                     delayTimerTax = setTimeout(function() {
                         $("#totalPPH42").val(parseFloat(ba * (pctPph42()/100)).toFixed(2));
-                    }, 2100); 
+                    }, 2100);
                 }
                 pph42 = parseFloat($('#totalPPH42').val().replace(/[^0-9.]/g, '')) || 0;
             }
+
+            if($("#pb1Check").is(':checked') ) {
+                if(!$("#totalPB1").val()){
+                    clearTimeout(delayTimerTax);
+                    delayTimerTax = setTimeout(function() {
+                        $("#totalPB1").val(parseFloat(ba * (pctPb1()/100)).toFixed(2));
+                    }, 2100);
+                }
+                pb1 = parseFloat($('#totalPB1').val().replace(/[^0-9.]/g, '')) || 0;
+            }
         }
-        
+
         if(vat){
-            total = ba ? (ba-od)+vat-(pph23+pph21+pph42) : '';
+            total = ba ? (ba-od)+vat+pb1-(pph23+pph21+pph42) : '';
         }else{
-            total = ba ? (ba-od)-(pph23+pph21+pph42) : '';
+            total = ba ? (ba-od)+pb1-(pph23+pph21+pph42) : '';
         }
 
         $('#basisAmount').val(humanizeNumber(parseFloat(ba).toFixed(2)))
@@ -367,8 +411,8 @@
         mask_thousand();
     }
 
-    // $("#basisAmount,#totalPPN,#totalPPH23,#totalPPH21,#totalPPH42,#totalDiscount,nilaiDebit").keyup(function(){
-    $("#basisAmount,#totalPPN,#totalPPH23,#totalPPH21,#totalPPH42,#totalDiscount,nilaiDebit").keyup(function(){
+    // $("#basisAmount,#totalPPN,#totalPPH23,#totalPPH21,#totalPPH42,#totalPB1,#totalDiscount,nilaiDebit").keyup(function(){
+    $("#basisAmount,#totalPPN,#totalPPH23,#totalPPH21,#totalPPH42,#totalPB1,#totalDiscount,nilaiDebit").keyup(function(){
         hitungTotal();
     })
 
@@ -731,13 +775,16 @@
             $('#pph23Check').prop('checked',false);
             $('#pph21Check').prop('checked',false);
             $('#pph42Check').prop('checked',false);
+            $('#pb1Check').prop('checked',false);
             $("#vatCheck").prop("checked",false);
             $("#nilaiPPH23").text('');
             $("#nilaiPPH21").text('');
             $("#nilaiPPH42").text('');
+            $("#nilaiPB1").text('');
             $('#totalPPH23').val(0);
             $('#totalPPH21').val(0);
             $('#totalPPH42').val(0);
+            $('#totalPB1').val(0);
             $('#totalDiscount').val(0);
             $("#nilaiPPN").text('');
             $('#totalPPN').val(0);

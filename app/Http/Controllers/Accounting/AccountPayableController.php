@@ -40,6 +40,7 @@ class AccountPayableController extends Controller
     private $nilaiPph23;
     private $nilaiPph21;
     private $nilaiPph42;
+    private $nilaiPb1;
     private $lockDate;
     private $lockDateIndex;
     private $ppnPenyebut;
@@ -70,6 +71,10 @@ class AccountPayableController extends Controller
         $this->nilaiPph42 = DB::table('attributes')
         ->where('attr_id','mainpph42')
         ->value('attr_value');
+
+        $this->nilaiPb1 = DB::table('attributes')
+        ->where('attr_id','mainpb1')
+        ->value('attr_value') ?: 10;
 
         $lockDate1 = DB::table('application_lock')
         ->where('code_key',$this->moduleCode)
@@ -684,6 +689,7 @@ class AccountPayableController extends Controller
         $data['nilaiPPH23'] = $this->nilaiPph23;
         $data['nilaiPPH21'] = $this->nilaiPph21;
         $data['nilaiPPH42'] = $this->nilaiPph42;
+        $data['nilaiPB1'] = $this->nilaiPb1;
 
         $data['ppnPenyebut'] = $this->ppnPenyebut;
         $data['ppnPembilang'] = $this->ppnPembilang; 
@@ -746,19 +752,20 @@ class AccountPayableController extends Controller
         $pph23 = is_null($request->totalPPH23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH23);
         $pph21 = is_null($request->totalPPH21) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH21);
         $pph42 = is_null($request->totalPPH42) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH42);
+        $pb1 = is_null($request->totalPB1) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPB1);
 
         // Grand Total dihitung ulang di server (tidak percaya ke $request->grandTotal begitu saja),
         // mengikuti rumus yang sama dengan hitungTotal() di script.blade.php. Ini supaya grand_total
         // tidak pernah nyeleneh dari basis_amount kalau field Total Bill di browser telat ke-sync
         // (basis_amount berubah tapi grand_total ketinggalan, seperti kasus AP-ASN-2024-XII-3758).
-        $grandTotal = round(((float) $basisAmount - (float) $totalDiscount) + (float) $vat - ((float) $pph23 + (float) $pph21 + (float) $pph42), 2);
+        $grandTotal = round(((float) $basisAmount - (float) $totalDiscount) + (float) $vat + (float) $pb1 - ((float) $pph23 + (float) $pph21 + (float) $pph42), 2);
 
         $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
         $vatValue = $request->ppnValue;
         $dppPembilang = $request->pembilangNumber;
         $dppPenyebut = $request->penyebutNumber;
 
-        $typePph ='';        
+        $typePph ='';
         if($pph23 > 0 && $typePph==''){
             $typePph='PPH23';
         }
@@ -783,9 +790,9 @@ class AccountPayableController extends Controller
         if($pph42 > 0 && $nilaiPph ==0){
             $nilaiPph=$pph42;
         }
-                
+
         $accountVat   ='1100.73';
-        // $acountTotal  ='2000.11';  
+        // $acountTotal  ='2000.11';
         $acountTotal  =$accountHutang; //ambil dari kode supplier
         $accountPph23 ='2000.14.3';
         $accountPph21 ='2000.14.2';
@@ -897,6 +904,7 @@ class AccountPayableController extends Controller
                     'basis_amount' => $basisAmount,
                     'total_discount' => $totalDiscount,
                     'vat' => $vat,
+                    'pb1' => $pb1,
                     'other_deduction' => $otherDeduct,
                     'pph23' => $nilaiPph,
                     'pph23_type' =>$typePph,
@@ -1126,6 +1134,7 @@ class AccountPayableController extends Controller
         $data['nilaiPPH23'] = $this->nilaiPph23;
         $data['nilaiPPH21'] = $this->nilaiPph21;
         $data['nilaiPPH42'] = $this->nilaiPph42;
+        $data['nilaiPB1'] = $this->nilaiPb1;
 
         $data['statusRevision'] = '';
         $data['approvalHistory'] = Approval::approvalHistory($this->moduleCode,$apNumber,$username);
@@ -1218,6 +1227,7 @@ class AccountPayableController extends Controller
         $data['nilaiPPH23'] = $this->nilaiPph23;
         $data['nilaiPPH21'] = $this->nilaiPph21;
         $data['nilaiPPH42'] = $this->nilaiPph42;
+        $data['nilaiPB1'] = $this->nilaiPb1;
 
         $data['ppnPenyebut'] = $this->ppnPenyebut;
         $data['ppnPembilang'] = $this->ppnPembilang;
@@ -1274,19 +1284,20 @@ class AccountPayableController extends Controller
         $pph23 = is_null($request->totalPPH23) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH23);
         $pph21 = is_null($request->totalPPH21) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH21);
         $pph42 = is_null($request->totalPPH42) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPPH42);
+        $pb1 = is_null($request->totalPB1) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPB1);
 
         // Grand Total dihitung ulang di server (tidak percaya ke $request->grandTotal begitu saja),
         // mengikuti rumus yang sama dengan hitungTotal() di script.blade.php. Ini supaya grand_total
         // tidak pernah nyeleneh dari basis_amount kalau field Total Bill di browser telat ke-sync
         // (basis_amount berubah tapi grand_total ketinggalan, seperti kasus AP-ASN-2024-XII-3758).
-        $grandTotal = round(((float) $basisAmount - (float) $totalDiscount) + (float) $vat - ((float) $pph23 + (float) $pph21 + (float) $pph42), 2);
+        $grandTotal = round(((float) $basisAmount - (float) $totalDiscount) + (float) $vat + (float) $pb1 - ((float) $pph23 + (float) $pph21 + (float) $pph42), 2);
 
         $dppLainValue=is_null($request->totalDppNilaiLain) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalDppNilaiLain);
         $vatValue = $request->ppnValue;
         $dppPembilang = $request->pembilangNumber;
         $dppPenyebut = $request->penyebutNumber;
 
-        $typePph ='';        
+        $typePph ='';
         if($pph23 > 0 && $typePph==''){
             $typePph='PPH23';
         }
@@ -1311,7 +1322,7 @@ class AccountPayableController extends Controller
         if($pph42 > 0 && $nilaiPph ==0){
             $nilaiPph=$pph42;
         }
-                
+
         $accountVat   ='1100.73';
         // $acountTotal  ='2000.11';
         $acountTotal  =  $accountHutang;
@@ -1375,6 +1386,7 @@ class AccountPayableController extends Controller
                         'basis_amount' => $basisAmount,
                         'total_discount' => $totalDiscount,
                         'vat' => $vat,
+                        'pb1' => $pb1,
                         'other_deduction' => $otherDeduct,
                         'pph23' => $nilaiPph,
                         'pph23_type' => $typePph,

@@ -270,6 +270,18 @@
                                         </div>
                                     </div>
                                     <div class="form-group row mb-03">
+                                        <label for="totalPB1" class="col-sm-4 col-form-label titik-dua">PB 1 <span class="input-group d-inline-flex flex-nowrap align-items-stretch ml-1" style="width:110px;vertical-align:middle"><input type="number" step="any" min="0" class="form-control text-right" style="height:auto" id="pctPB1" value="{{ $header->pb1 > 0 ? $nilaiPB1 : '' }}" title="Persentase PB 1"/><span class="input-group-append d-flex"><span class="input-group-text">%</span></span></span></label>
+                                        <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input" id="pb1Check" name="pb1Check" {{ $header->pb1 > 0 ? 'checked' : '' }}/>
+                                                <label class="custom-control-label" for="pb1Check"></label>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-5">
+                                            <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" id="totalPB1" name="totalPB1" oninput='inputDecimal(this)' value="{{ $header->pb1 > 0 ? number_format($header->pb1,2) : 0 }}" {{ $header->pb1 > 0 ? '' : 'disabled' }} {{ $header->pb1 > 0 ? 'required' : '' }}/>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row mb-03">
                                         <label for="totalPPH23" class="col-sm-4 col-form-label titik-dua">WHT 23 <span id="nilaiPPH23">{{ $header->pph23_type == 'PPH23' ? $nilaiPPH23."%" : '' }}</span> </label>
                                         <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                             <div class="custom-control custom-checkbox">
