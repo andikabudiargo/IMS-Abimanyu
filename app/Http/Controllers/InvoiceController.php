@@ -115,15 +115,13 @@ class InvoiceController extends Controller
         ['data'=> 'balance', 'name'=> 'balance','title'=>'Balance','searchable'=>false], //22
         ['data'=> 'voucher_number', 'name'=> 'voucher_number','title'=>'Voucher Number','searchable'=>false], //23
         ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'], //24
-        ['data'=> 'note', 'name'=> 'note','title'=>'Note'], //25
-        ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By','searchable'=>false], //26
-        ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At','searchable'=>false], //27
-        ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'], //28
-        ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'], //29
-        ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number'], //30  (searchable via filterColumn)
-        // ditambahkan di akhir (bukan disisip) supaya index kolom lama di atas
-        // (dipakai arrColPrint & columnDefs.targets di index.blade.php) tidak geser.
-        ['data'=> 'bupot_date', 'name'=> 'bupot_date','title'=>'Bukti Potong Date'], //31
+        ['data'=> 'bupot_date', 'name'=> 'bupot_date','title'=>'Bukti Potong Date'], //25
+        ['data'=> 'note', 'name'=> 'note','title'=>'Note'], //26
+        ['data'=> 'approval_by', 'name'=> 'approval_by','title'=>'Approved By','searchable'=>false], //27
+        ['data'=> 'approval_at', 'name'=> 'approval_at','title'=>'Approved At','searchable'=>false], //28
+        ['data'=> 'created_by', 'name'=> 'created_by','title'=>'Created By'], //29
+        ['data'=> 'created_at', 'name'=> 'created_at','title'=>'Created At'], //30
+        ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number'], //31  (searchable via filterColumn)
     ];
     return json_encode($kolom, true);
 }
@@ -132,18 +130,24 @@ class InvoiceController extends Controller
     {
         $kolom=
         [
-            ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date'],
-            ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date','visible'=>false],
-            ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number'],
-            ['data'=> 'article_code', 'name'=> 'article_code','title'=>'Article Code'],
-            ['data'=> 'article_desc', 'name'=> 'article_desc','title'=>'Desc'],
-            ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'],
-            ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'],
-            ['data'=> 'price', 'name'=> 'price','title'=>'M. Price'],
-            ['data'=> 'price_service', 'name'=> 'price_service','title'=>'S. Price'],
-            ['data'=> 'total_price_material', 'name'=> 'total_price_material','title'=>'T. Material'],
-            ['data'=> 'total_price_service', 'name'=> 'total_price_service','title'=>'T. Service'],
-            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total'],
+            ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date'], //0
+            ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date','visible'=>false], //1
+            ['data'=> 'period', 'name'=> 'period','title'=>'Period'], //2
+            ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number'], //3
+            ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number'], //4
+            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'], //5
+            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer'], //6
+            ['data'=> 'article_code', 'name'=> 'article_code','title'=>'Article Code'], //7
+            ['data'=> 'article_desc', 'name'=> 'article_desc','title'=>'Desc'], //8
+            ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'], //9
+            ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'], //10
+            ['data'=> 'price', 'name'=> 'price','title'=>'M. Price'], //11
+            ['data'=> 'price_service', 'name'=> 'price_service','title'=>'S. Price'], //12
+            ['data'=> 'total_price_material', 'name'=> 'total_price_material','title'=>'T. Material'], //13
+            ['data'=> 'total_price_service', 'name'=> 'total_price_service','title'=>'T. Service'], //14
+            ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total'], //15
+            ['data'=> 'status', 'name'=> 'status','title'=>'Status'], //16
+            ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number'], //17
         ];
         return json_encode($kolom, true);
     }
@@ -1887,6 +1891,7 @@ DB::raw("
         $data = DB::table('invoice_det')
         ->leftJoin('invoice_hdr','invoice_det.invoice_number','invoice_hdr.invoice_number')
         ->leftJoin('article','article.article_code','=','invoice_det.article_code')
+        ->leftJoin('third_party','third_party.kode','=','invoice_hdr.customer_id')
         ->where(function ($query) use ($searchInv,$searchSo,$searchCustomer,$searchStatus,$invDate,$fromDate,$toDate,$searchPeriod1,$searchPeriod2,$searchArticle) {
             $searchInv ? $query->where('invoice_det.invoice_number','ilike','%'.$searchInv.'%') : '';
             $searchSo ? $query->where('invoice_hdr.so_number','ilike','%'.$searchSo.'%') : '';
@@ -1909,6 +1914,12 @@ DB::raw("
             ,'article.article_desc'
             ,DB::raw("to_char(to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as invoice_date")
             ,DB::raw("to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY') as invoice_date_2")
+            ,DB::raw("max(invoice_hdr.period) as period")
+            ,DB::raw("max(invoice_det.so_number) as so_number")
+            ,DB::raw("max((select po_number from sales_order_hdr where so_code = invoice_det.so_number)) as po_number")
+            ,DB::raw("max(third_party.nama) as customer_name")
+            ,DB::raw("max(invoice_det.dn_number) as dn_number")
+            ,DB::raw("max(invoice_hdr.status) as status")
             ,DB::raw("sum(qty) as qty")
             ,'price'
             ,'price_service'
@@ -1922,10 +1933,22 @@ DB::raw("
         ->groupBy('price_service')
         ->groupBy('article.article_alternative_code')
         ->groupBy('article.article_desc')
+        ->groupBy('invoice_det.so_number')
+        ->groupBy('invoice_det.dn_number')
         // ->orderBy('article.article_alternative_code')
-        ->get(); 
+        ->get();
 
         return Datatables::of($data)
+        ->addColumn('status', function ($data) {
+            $badges    = ['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-warning'];
+            $statusInv = ['DRAFT','VALIDATE','APPROVED','POSTED','CANCELED','PAID','REVISED','PARTIALLY PAID'];
+
+            $idx = (int) $data->status - 1;
+            if ($idx < 0 || $idx >= count($statusInv)) $idx = 0;
+
+            return "<div class='badge {$badges[$idx]}'>{$statusInv[$idx]}</div>";
+        })
+        ->rawColumns(['status'])
         ->make(true);
     }
 
