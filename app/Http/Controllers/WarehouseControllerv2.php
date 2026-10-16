@@ -1422,11 +1422,10 @@ public function chemicalLotGenerateStore(Request $request)
         return response()->json(['status' => 0, 'message' => 'Data tidak lengkap']);
     }
 
-    foreach ($rows as $r) {
-        if (empty($r->expired_date)) {
-            return response()->json(['status' => 0, 'message' => 'Ada kaleng yang belum diisi Expired Date']);
-        }
-    }
+    // Expired date OPSIONAL di sini -- beda dengan Receiving (chemicalUnitStoreByRec),
+    // stock lama/gap StockAdjustment seringkali expired date aslinya sudah tidak
+    // diketahui. Kaleng tanpa expired date tetap bisa di-extend belakangan lewat
+    // "Kelola Kaleng" / bulk-extend yang sudah ada.
 
     DB::beginTransaction();
     try {
@@ -1448,7 +1447,7 @@ public function chemicalLotGenerateStore(Request $request)
                 'qty'              => $r->qty,
                 'remaining_qty'    => $r->qty,
                 'barcode_code'     => $barcodeCode,
-                'expired_date'     => date('Y-m-d', strtotime($r->expired_date)),
+                'expired_date'     => !empty($r->expired_date) ? date('Y-m-d', strtotime($r->expired_date)) : null,
                 'status'           => 'active',
                 'source'           => 'stock_adjustment',
                 'print_status'     => true,

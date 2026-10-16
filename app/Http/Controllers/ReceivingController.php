@@ -475,7 +475,7 @@ public function printChemicalUnitLabel(Request $request)
             'qr_url'        => 'data:image/png;base64,' . $qrBase64,
             'alt_code'      => $unit->article_alternative_code,
             'article_desc'  => $unit->article_desc,
-            'expired_date'  => date('d-m-Y', strtotime($unit->expired_date)),
+            'expired_date'  => $unit->expired_date ? date('d-m-Y', strtotime($unit->expired_date)) : '-',
         ];
     }
 

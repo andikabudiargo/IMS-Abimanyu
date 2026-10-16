@@ -376,14 +376,14 @@
 
           <div id="lotGenerateArea" style="display:none;">
             <hr>
-            <h6>Isi Expired Date untuk kaleng baru</h6>
+            <h6>Isi Expired Date untuk kaleng baru (opsional)</h6>
             <div class="table-responsive mb-1">
               <table class="table table-sm mb-0" id="lotGenerateTable">
                 <thead class="thead-light">
                   <tr>
                     <th>#</th>
                     <th class="text-right">Qty</th>
-                    <th>Expired Date</th>
+                    <th>Expired Date (opsional)</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -1160,21 +1160,16 @@ $('#btnLotGenerateCancel').on('click', function () {
 });
 
 $('#btnLotGenerateSave').on('click', function () {
+    // Expired date opsional di sini (stock lama sering sudah tidak diketahui
+    // expired-nya) -- kaleng tanpa expired date tetap bisa di-extend belakangan.
     const rows = [];
-    let hasEmpty = false;
     $('.lot-gen-exp').each(function () {
-        const val = $(this).val();
-        if (!val) hasEmpty = true;
         rows.push({
             unit_sequence: $(this).data('seq'),
             qty: $(this).data('qty'),
-            expired_date: val
+            expired_date: $(this).val() || null
         });
     });
-    if (hasEmpty) {
-        Swal.fire('Lengkapi Dulu', 'Semua kaleng wajib diisi Expired Date.', 'warning');
-        return;
-    }
 
     const $btn = $(this).prop('disabled', true);
     $.ajax({
