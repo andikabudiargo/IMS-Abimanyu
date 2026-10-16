@@ -1201,6 +1201,7 @@ public function printLabelNetwork(Request $request)
     $toDate      = $request->toDate   ?: date('d-m-Y');
     $inout       = $request->inout;
     $isGlobal    = empty($location);
+    $isChemical  = DB::table('article')->where('article_code', $articleCode)->value('article_type') === 'CM1';
 
     // ── Resolusi lokasi MOVEMENT: parent → child, child/biasa → dirinya sendiri ──
     // (OB tetap dicari di $location/parent — jangan pakai list ini untuk OB)
@@ -1533,6 +1534,14 @@ if (!$isGlobal) {
             }
             return $this->renderRefLink($d->movement_type, $d->movement_transnno);
         })
+        ->addColumn('lot', function ($d) use ($isChemical) {
+            if (!$isChemical || !empty($d->is_summary) || empty($d->movement_transnno)) return '';
+            return "<button type='button' class='btn btn-sm btn-outline-secondary' onclick='lotByTransaction("
+                . json_encode($d->movement_type, JSON_HEX_APOS) . ","
+                . json_encode($d->movement_transnno, JSON_HEX_APOS) . ","
+                . json_encode($d->artikel_code, JSON_HEX_APOS) . ")'>"
+                . "<i data-feather='tag' class='font-small-3'></i></button>";
+        })
         ->addColumn('inout', function ($d) {
     if (!empty($d->is_summary)) return '';
     [$in, $out] = $this->splitQty($d);
@@ -1576,7 +1585,7 @@ if (!$isGlobal) {
             $text   = $isOpen ? 'SALDO AWAL' : 'SALDO AKHIR';
             return "<span class='mv-summary-badge'><i data-feather='$icon'></i>$text</span>";
         })
-        ->rawColumns(['qty_in','qty_out','last_qty','balanceqty','movement_transnno','inout','trx_status','summary_label','movement_type'])
+        ->rawColumns(['qty_in','qty_out','last_qty','balanceqty','movement_transnno','lot','inout','trx_status','summary_label','movement_type'])
         ->make(true);
 }
 

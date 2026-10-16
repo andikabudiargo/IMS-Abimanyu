@@ -14,9 +14,12 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Traits\GeneratesChemicalBarcode;
 
 class ReceivingController extends Controller
 {
+    use GeneratesChemicalBarcode;
+
     private $title;
     private $moduleCode;
     private $decimalPlaces;
@@ -430,30 +433,6 @@ public function chemicalUnitStoreByRec(Request $request)
     }
 }
 
-/**
- * Increment murni dari string barcode terakhir, TANPA query ke DB.
- * Dipakai supaya generate banyak barcode sekaligus dalam satu request
- * tidak saling tabrakan (beda dengan nextChemicalBarcode() yang query DB).
- */
-private function incrementChemicalBarcode(string $last): string
-{
-    if (!preg_match('/^LOT-([A-Z]{3})-(\d{9})$/', $last, $m)) {
-        return 'LOT-AAA-' . str_pad(1, 9, '0', STR_PAD_LEFT);
-    }
-
-    $letters = $m[1];
-    $number  = (int) $m[2];
-
-    if ($number >= 999999999) {
-        $letters = $this->incrementLetterSeq($letters);
-        $number  = 1;
-    } else {
-        $number++;
-    }
-
-    return 'LOT-' . $letters . '-' . str_pad($number, 9, '0', STR_PAD_LEFT);
-}
-
 public function printChemicalUnitLabel(Request $request)
 {
     $unitIds = $request->unit_ids; // array of int
@@ -629,53 +608,6 @@ private function lockMovementSequence(): void
 {
     // Key SAMA PERSIS dengan TransferStockController — supaya posting lintas modul tidak tabrakan.
     DB::select("SELECT pg_advisory_xact_lock(hashtext('warehouse_movement_code'))");
-}
-
-private function lockChemicalBarcodeSequence(): void
-{
-    // Advisory lock khusus barcode chemical unit, biar generate sequence aman dari race condition
-    DB::select("SELECT pg_advisory_xact_lock(hashtext('receiving_chemical_unit_barcode'))");
-}
-
-private function nextChemicalBarcode(): string
-{
-    $last = DB::table('receiving_chemical_unit')
-        ->where('barcode_code', 'like', 'LOT-%')
-        ->orderByRaw("substring(barcode_code from 5 for 3) desc, (substring(barcode_code from 9))::bigint desc")
-        ->value('barcode_code');
-
-    if (!$last || !preg_match('/^LOT-([A-Z]{3})-(\d{9})$/', $last, $m)) {
-        return 'LOT-AAA-' . str_pad(1, 9, '0', STR_PAD_LEFT);
-    }
-
-    $letters = $m[1];
-    $number  = (int) $m[2];
-
-    if ($number >= 999999999) {
-        $letters = $this->incrementLetterSeq($letters);
-        $number  = 1;
-    } else {
-        $number++;
-    }
-
-    return 'LOT-' . $letters . '-' . str_pad($number, 9, '0', STR_PAD_LEFT);
-}
-
-private function incrementLetterSeq(string $letters): string
-{
-    $chars = str_split($letters);
-    for ($i = 2; $i >= 0; $i--) {
-        if ($chars[$i] === 'Z') {
-            $chars[$i] = 'A';
-            if ($i === 0) {
-                throw new \Exception('Barcode letter sequence overflow (ZZZ tercapai), perlu penanganan manual');
-            }
-        } else {
-            $chars[$i] = chr(ord($chars[$i]) + 1);
-            break;
-        }
-    }
-    return implode('', $chars);
 }
 
     /**
@@ -3402,6 +3334,7 @@ public function unPosting($recNumber)
         $inv      = array_map('strtoupper', $multi('searchInv'));
         $voucher  = array_map('strtoupper', $multi('searchVoucher'));
         $pr       = array_map('strtoupper', $multi('searchPr'));
+        $dept     = $multi('searchDept');
 
         $supplier ? $q->whereIn('receiving_hdr.supplier_id', $supplier) : '';
         $po       ? $q->whereIn('receiving_hdr.po_number', $po) : '';
@@ -3409,6 +3342,13 @@ public function unPosting($recNumber)
         $r->searchDo   ? $q->where('receiving_hdr.do_number', 'ilike', '%'.$r->searchDo.'%') : '';
         $r->searchStatus ? $q->where('receiving_hdr.status', $r->searchStatus) : '';
         $r->recType    ? $q->where('receiving_hdr.rec_type', $r->recType) : '';
+
+        // Departemen: sama derivasinya dengan kolom nama_dept (NP->Logistic, TRIAL->Engineering,
+        // selain itu dept dari PR terakhir pada PO-nya), tapi dicocokkan via kode, bukan nama.
+        if ($dept) {
+            $deptKey = "case when receiving_hdr.rec_type = 'NP' then '__NP__' when receiving_hdr.rec_type = 'TRIAL' then '__TRIAL__' else (select dept from purchase_request_hdr where pr_number in (select pr_number from purchase_order_det where po_number = receiving_hdr.po_number) order by dept desc limit 1) end";
+            $q->whereRaw("($deptKey) in (".implode(',', array_fill(0, count($dept), '?')).")", $dept);
+        }
 
         // PR Number: satu PO bisa berasal dari beberapa PR, jadi dicocokkan lewat purchase_order_det.
         if ($pr) {
@@ -3573,6 +3513,8 @@ public function unPosting($recNumber)
         $data['kolom'] = $this->getTableColoumnReportAcc();
         $data['kolomSummary'] = $this->getTableColoumnReportAccSummary();
         $data['status'] = ['1'=>'NEW','2'=>'VALIDATE','3'=>'APPROVED','4'=>'POSTED','10'=>'REVISI'];
+
+        $data['depts'] = DB::table('depts')->select('code','name')->orderBy('name')->get();
 
         return view("receiving.reportAcc",$data);
     }
@@ -4896,14 +4838,20 @@ public function scanChemicalUnit(Request $request)
     $unit = DB::table('receiving_chemical_unit as rcu')
         ->leftJoin('article', 'article.article_code', 'rcu.article_code')
         ->leftJoin('receiving_hdr as rh', 'rh.rec_number', 'rcu.rec_number')
+        ->leftJoin('stock_location_master as loc', 'loc.location_code', 'rcu.location_number')
         ->where('rcu.barcode_code', $barcodeCode)
         ->select(
             'rcu.id',
+            'rcu.article_code',
             'article.article_alternative_code',
             'article.article_desc',
             'rcu.barcode_code',
             'rcu.qty',
+            'rcu.remaining_qty',
+            'rcu.status',
             'rcu.expired_date',
+            'rcu.location_number',
+            'loc.location_name',
             'rh.rec_number',
             'rh.rec_date',
             'rh.created_by as received_by'
@@ -4916,6 +4864,12 @@ public function scanChemicalUnit(Request $request)
             'message' => 'Barcode tidak ditemukan'
         ]);
     }
+
+    $unit->stock_qty = (float) DB::table('warehouse_stock')
+        ->where('site_code', 'HO')
+        ->where('article_code', $unit->article_code)
+        ->where('location_number', $unit->location_number)
+        ->value('article_qty') ?? 0;
 
     return response()->json([
         'status' => 1,

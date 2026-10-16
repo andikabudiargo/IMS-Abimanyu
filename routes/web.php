@@ -921,6 +921,12 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('warehouse/article/recalculate-ledger', ['as' => 'stock.ledger.recalculate', 'uses' => 'WarehouseControllerv2@runRecalculate']);
 	Route::get('warehouse/article/articles-by-location', ['as' => 'stock.ledger.articlesByLocation', 'uses' => 'WarehouseControllerv2@articlesByLocation']);
 
+	Route::post('warehouse/chemical-lot/detail', ['as' => 'stock.chemicalLot.detail', 'uses' => 'WarehouseControllerv2@chemicalLotDetail']);
+	Route::post('warehouse/chemical-lot/by-transaction', ['as' => 'stock.chemicalLot.byTransaction', 'uses' => 'WarehouseControllerv2@chemicalLotByTransaction']);
+	Route::post('warehouse/chemical-lot/generate-preview', ['as' => 'stock.chemicalLot.generatePreview', 'uses' => 'WarehouseControllerv2@chemicalLotGeneratePreview']);
+	Route::post('warehouse/chemical-lot/generate-store', ['as' => 'stock.chemicalLot.generateStore', 'uses' => 'WarehouseControllerv2@chemicalLotGenerateStore']);
+	Route::post('warehouse/chemical-lot/mark-empty', ['as' => 'stock.chemicalLot.markEmpty', 'uses' => 'WarehouseControllerv2@chemicalLotMarkEmpty']);
+
 Route::get('location',               'LocationController@index')->name('location.index');
 Route::get('location/list',          'LocationController@list')->name('location.list');
 Route::get('location/create',        'LocationController@create')->name('location.create');

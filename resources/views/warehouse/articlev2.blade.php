@@ -306,6 +306,98 @@
   </div>
 </div>
 
+<!-- Modal Lot per Transaksi Movement (read-only) -->
+<div class="modal fade" id="mdlLotByTransaction" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Lot di Transaksi Ini</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-sm table-striped mb-0" id="lotByTrxTable">
+            <thead class="thead-light">
+              <tr><th>Barcode / Lot</th><th class="text-right">Qty</th><th>Expired</th><th>Status</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="lotByTrxEmpty" class="text-center text-muted py-2" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detail Lot (chemical per-kaleng) -->
+<div class="modal fade text-left" id="mdlChemicalLot" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title d-flex align-items-center">
+          <i data-feather="tag" class="mr-50"></i>
+          Detail Lot <span class="font-weight-bolder ml-50" id="lotArtikel"></span>
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="lotNoLocation" class="alert alert-warning" style="display:none;">
+          Pilih lokasi (bukan "All") di filter dulu, baru buka Detail Lot — lot dicatat per lokasi.
+        </div>
+
+        <div id="lotContent" style="display:none;">
+          <div id="lotExpiredWarning" class="alert alert-danger" style="display:none;"></div>
+
+          <div class="table-responsive mb-1">
+            <table class="table table-sm table-striped mb-0" id="lotTable">
+              <thead class="thead-light">
+                <tr>
+                  <th>Barcode / Lot</th>
+                  <th class="text-right">Qty Awal</th>
+                  <th class="text-right">Sisa</th>
+                  <th>Expired</th>
+                  <th>Status</th>
+                  <th>Asal</th>
+                  <th class="text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div id="lotUncovered" class="alert alert-secondary d-flex justify-content-between align-items-center" style="display:none;">
+            <span id="lotUncoveredText"></span>
+            <button type="button" class="btn btn-sm btn-primary" id="btnLotGeneratePreview">
+              <i data-feather="plus-circle"></i> Generate Barcode
+            </button>
+          </div>
+
+          <div id="lotGenerateArea" style="display:none;">
+            <hr>
+            <h6>Isi Expired Date untuk kaleng baru</h6>
+            <div class="table-responsive mb-1">
+              <table class="table table-sm mb-0" id="lotGenerateTable">
+                <thead class="thead-light">
+                  <tr>
+                    <th>#</th>
+                    <th class="text-right">Qty</th>
+                    <th>Expired Date</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLotGenerateCancel">Batal</button>
+            <button type="button" class="btn btn-sm btn-success" id="btnLotGenerateSave">Simpan & Cetak Label</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="mdlAnalytics" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
     <div class="modal-content">
@@ -883,11 +975,299 @@ $('#btnExportAnomaly').on('click', function () {
     window.location.href = "{{ route('stock.anomaly.export') }}";
 });
 
+// ================= Lot per transaksi (dari modal Movement) =================
+const lotByTransaction = (movementType, movementTransnno, articleCode) => {
+    $('#mdlLotByTransaction').modal('show');
+    const $tbody = $('#lotByTrxTable tbody');
+    $tbody.empty();
+    $('#lotByTrxEmpty').hide();
+
+    $.ajax({
+        url: "{{ route('stock.chemicalLot.byTransaction') }}",
+        type: 'POST',
+        data: { movement_type: movementType, movement_transnno: movementTransnno, article_code: articleCode },
+        success: function (res) {
+            if (res.status !== 1) {
+                $('#lotByTrxEmpty').text(res.message).show();
+                return;
+            }
+            res.lots.forEach(function (l) {
+                $tbody.append(
+                    '<tr>' +
+                        '<td>' + l.barcode_code + '</td>' +
+                        '<td class="text-right">' + Number(l.remaining_qty ?? l.qty).toLocaleString() + '</td>' +
+                        '<td>' + (l.expired_date || '-') + '</td>' +
+                        '<td>' + l.status + '</td>' +
+                    '</tr>'
+                );
+            });
+        },
+        error: function () {
+            $('#lotByTrxEmpty').text('Gagal memuat data lot.').show();
+        }
+    });
+};
+
+// ================= Detail Lot (chemical per-kaleng) =================
+let curLot = { articleCode: '', location: '' };
+
+const chemicalLotDetail = (artCode, artikelAlternativeCode, artDesc) => {
+    const location = $('#searchLoc').val();
+    $('#lotArtikel').text(' | ' + artikelAlternativeCode + ' - ' + artDesc);
+    $('#lotGenerateArea').hide();
+    $('#mdlChemicalLot').modal('show');
+
+    if (!location) {
+        $('#lotNoLocation').show();
+        $('#lotContent').hide();
+        return;
+    }
+    $('#lotNoLocation').hide();
+    $('#lotContent').show();
+
+    curLot = { articleCode: artCode, location: location };
+    loadChemicalLotDetail();
+};
+
+const loadChemicalLotDetail = () => {
+    $.ajax({
+        url: "{{ route('stock.chemicalLot.detail') }}",
+        type: 'POST',
+        data: { article_code: curLot.articleCode, location_number: curLot.location },
+        success: function (res) {
+            if (res.status !== 1) {
+                Swal.fire('Info', res.message, 'info');
+                return;
+            }
+            renderLotTable(res.lots);
+
+            if (res.expired_lots && res.expired_lots.length) {
+                $('#lotExpiredWarning')
+                    .html('<i data-feather="alert-triangle"></i> ' + res.expired_lots.length +
+                        ' lot sudah EXPIRED tapi masih di lokasi ini — perlu ditransfer ke Chemical Expired.')
+                    .show();
+            } else {
+                $('#lotExpiredWarning').hide();
+            }
+
+            if (res.uncovered_qty > 0) {
+                $('#lotUncoveredText').text(
+                    Number(res.uncovered_qty).toLocaleString() + ' qty di lokasi ini belum ada barcode-nya.'
+                );
+                $('#lotUncovered').show();
+            } else {
+                $('#lotUncovered').hide();
+            }
+
+            if (window.feather) feather.replace();
+        },
+        error: function () {
+            Swal.fire('Error', 'Gagal memuat detail lot.', 'error');
+        }
+    });
+};
+
+function renderLotTable(lots) {
+    const $tbody = $('#lotTable tbody');
+    $tbody.empty();
+
+    if (!lots.length) {
+        $tbody.append('<tr><td colspan="7" class="text-center text-muted">Belum ada kaleng tercatat.</td></tr>');
+        return;
+    }
+
+    const statusBadge = {
+        active: '<span class="badge badge-light-success">Active</span>',
+        out_at_workstation: '<span class="badge badge-light-warning">Di Workstation</span>',
+        empty: '<span class="badge badge-light-secondary">Habis</span>',
+    };
+
+    lots.forEach(function (l) {
+        const remaining = l.remaining_qty ?? l.qty;
+        const canMarkEmpty = l.status === 'active' || l.status === 'out_at_workstation';
+        const actionBtn = canMarkEmpty
+            ? '<button type="button" class="btn btn-sm btn-outline-danger btn-lot-empty" data-id="' + l.id + '">Tandai Habis</button>'
+            : '';
+
+        $tbody.append(
+            '<tr>' +
+                '<td>' + l.barcode_code + '</td>' +
+                '<td class="text-right">' + Number(l.qty).toLocaleString() + '</td>' +
+                '<td class="text-right">' + Number(remaining).toLocaleString() + '</td>' +
+                '<td>' + (l.expired_date || '-') + '</td>' +
+                '<td>' + (statusBadge[l.status] || l.status) + '</td>' +
+                '<td>' + (l.source === 'stock_adjustment' ? 'Stock' : 'Receiving') + '</td>' +
+                '<td class="text-right">' + actionBtn + '</td>' +
+            '</tr>'
+        );
+    });
+}
+
+$(document).on('click', '.btn-lot-empty', function () {
+    const id = $(this).data('id');
+    Swal.fire({
+        title: 'Tandai kaleng ini habis?',
+        text: 'Barcode-nya tidak bisa dipakai lagi setelah ini.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Tandai Habis',
+        cancelButtonText: 'Batal'
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        $.ajax({
+            url: "{{ route('stock.chemicalLot.markEmpty') }}",
+            type: 'POST',
+            data: { ids: [id] },
+            success: function (res) {
+                if (res.status === 1) {
+                    loadChemicalLotDetail();
+                } else {
+                    Swal.fire('Gagal', res.message, 'warning');
+                }
+            }
+        });
+    });
+});
+
+$('#btnLotGeneratePreview').on('click', function () {
+    $.ajax({
+        url: "{{ route('stock.chemicalLot.generatePreview') }}",
+        type: 'POST',
+        data: { article_code: curLot.articleCode, location_number: curLot.location },
+        success: function (res) {
+            if (res.status !== 1) {
+                Swal.fire('Info', res.message, 'warning');
+                return;
+            }
+            const $tbody = $('#lotGenerateTable tbody');
+            $tbody.empty();
+            res.rows.forEach(function (r) {
+                $tbody.append(
+                    '<tr>' +
+                        '<td>' + r.unit_sequence + '</td>' +
+                        '<td class="text-right">' + Number(r.qty).toLocaleString() + '</td>' +
+                        '<td><input type="date" class="form-control form-control-sm lot-gen-exp" data-seq="' + r.unit_sequence + '" data-qty="' + r.qty + '"></td>' +
+                    '</tr>'
+                );
+            });
+            $('#lotGenerateArea').show();
+        }
+    });
+});
+
+$('#btnLotGenerateCancel').on('click', function () {
+    $('#lotGenerateArea').hide();
+});
+
+$('#btnLotGenerateSave').on('click', function () {
+    const rows = [];
+    let hasEmpty = false;
+    $('.lot-gen-exp').each(function () {
+        const val = $(this).val();
+        if (!val) hasEmpty = true;
+        rows.push({
+            unit_sequence: $(this).data('seq'),
+            qty: $(this).data('qty'),
+            expired_date: val
+        });
+    });
+    if (hasEmpty) {
+        Swal.fire('Lengkapi Dulu', 'Semua kaleng wajib diisi Expired Date.', 'warning');
+        return;
+    }
+
+    const $btn = $(this).prop('disabled', true);
+    $.ajax({
+        url: "{{ route('stock.chemicalLot.generateStore') }}",
+        type: 'POST',
+        data: {
+            article_code: curLot.articleCode,
+            location_number: curLot.location,
+            rows: JSON.stringify(rows)
+        },
+        success: function (res) {
+            $btn.prop('disabled', false);
+            if (res.status !== 1) {
+                Swal.fire('Gagal', res.message, 'warning');
+                return;
+            }
+            $('#lotGenerateArea').hide();
+            loadChemicalLotDetail();
+
+            const unitIds = (res.units || []).map(u => u.id);
+            if (!unitIds.length) return;
+
+            $.ajax({
+                url: "{{ route('receiving.printChemicalUnitLabel') }}",
+                type: 'POST',
+                data: { unit_ids: unitIds },
+                success: function (printRes) {
+                    if (printRes.status === 1) doBrowserPrintChemical(printRes);
+                }
+            });
+        },
+        error: function () {
+            $btn.prop('disabled', false);
+            Swal.fire('Error', 'Gagal menyimpan.', 'error');
+        }
+    });
+});
+
+function doBrowserPrintChemical(data) {
+    var labels    = data.labels;
+    var printedBy = data.printed_by;
+    var total     = labels.length;
+
+    var labelsHtml = '';
+    labels.forEach(function (lbl, i) {
+        labelsHtml +=
+            '<div class="label-card">' +
+            '<div class="label-top">' +
+            '<img class="label-qr" src="' + lbl.qr_url + '">' +
+            '<div class="label-text">' +
+            '<div class="label-altcode">' + lbl.alt_code + '</div>' +
+            '<div class="label-desc">' + lbl.article_desc + '</div>' +
+            '<div class="label-exp">EXP: ' + lbl.expired_date + '</div>' +
+            '</div></div>' +
+            '<div class="label-footer">Dicetak: ' + printedBy + ' &bull; ' + (i+1) + '/' + total + '</div>' +
+            '</div>';
+    });
+
+    var html = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+        '<title>Label Chemical Unit</title>' +
+        '<style>' +
+        '.label-sheet{display:flex;flex-wrap:wrap;}' +
+        '.label-card{width:30mm;height:16mm;border:0.2mm solid #000;margin:1mm;padding:0.5mm;box-sizing:border-box;}' +
+        '.label-top{display:flex;gap:1mm;}' +
+        '.label-qr{width:10mm;height:10mm;}' +
+        '.label-text{flex:1;overflow:hidden;}' +
+        '.label-altcode{font-size:5pt;font-weight:700;}' +
+        '.label-exp{font-size:4pt;font-weight:700;font-style:italic;color:#000;white-space:nowrap;margin-top:0.3mm;}' +
+        '.label-desc{font-size:4pt;color:#333;font-weight:600;line-height:1.2;overflow:visible;word-wrap:break-word;}' +
+        '.label-footer{font-size:3.5pt;color:#555;border-top:0.2mm solid #999;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+        '</style></head><body>' +
+        '<div class="label-sheet">' + labelsHtml + '</div>' +
+        '<script>window.onload=function(){' +
+            'var imgs=document.querySelectorAll("img"),loaded=0;' +
+            'if(!imgs.length){window.print();return;}' +
+            'imgs.forEach(function(img){' +
+                'if(img.complete){loaded++;if(loaded===imgs.length)window.print();}' +
+                'else{img.onload=img.onerror=function(){loaded++;if(loaded===imgs.length)window.print();};}' +
+            '});' +
+        '};' +
+        '<\/script></body></html>';
+
+    var w = window.open('', '_blank', 'width=600,height=400');
+    if (!w) { Swal.fire('Popup Diblokir', 'Izinkan popup di browser Anda.', 'warning'); return; }
+    w.document.write(html);
+    w.document.close();
+}
+
   $.ajaxSetup({
     headers: {
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
     }
   });
-    
+
 </script>
 @endsection

@@ -18,9 +18,12 @@ use Artisan;
 use Excel;
 use App\Exports\StockAnomalyExport;
 use App\Http\Controllers\ArticleController; // sesuaikan namespace aslinya
+use App\Traits\GeneratesChemicalBarcode;
 
 class WarehouseControllerv2 extends Controller
 {
+    use GeneratesChemicalBarcode;
+
     private $title;
     private $moduleCode;
     private $decimalPlaces;
@@ -82,6 +85,7 @@ class WarehouseControllerv2 extends Controller
             ['data'=>'inout','name'=>'inout','title'=>'Transaction'],
             ['data'=>'movement_type','name'=>'movement_type','title'=>'Type'],
             ['data'=>'movement_transnno','name'=>'movement_transnno','title'=>'Ref'],
+            ['data'=>'lot','name'=>'lot','title'=>'Lot','orderable'=>false,'searchable'=>false],
             ['data'=>'last_qty','name'=>'last_qty','title'=>'Opening','className'=>'text-right'],
             ['data'=>'qty_in','name'=>'qty_in','title'=>'QTY In','className'=>'text-right','searchable'=>false],
             ['data'=>'qty_out','name'=>'qty_out','title'=>'QTY Out','className'=>'text-right','searchable'=>false],
@@ -318,6 +322,15 @@ class WarehouseControllerv2 extends Controller
                     <i data-feather='activity'></i>
                     Movement
                 </a>";
+                if ($data->article_type === 'CM1') {
+                    $buttons .= "<a href='javascript:;' onclick='chemicalLotDetail("
+                        . json_encode($data->art_code, JSON_HEX_APOS) . ","
+                        . json_encode($data->code,     JSON_HEX_APOS) . ","
+                        . json_encode($data->desc,     JSON_HEX_APOS) . ")' class='dropdown-item'>
+                        <i data-feather='tag'></i>
+                        Detail Lot
+                    </a>";
+                }
                 $buttons .= '</div></div>';
                 return $buttons;
             })
@@ -1231,6 +1244,277 @@ private function refInfo(?string $type, ?string $ref): array
         'enc_id'   => $docKind ? $encId : null,   // hanya diisi kalau ada halaman in-app
         'doc_kind' => $docKind,                    // 'transfer' | null (nanti bisa 'receiving', dll)
     ];
+}
+
+/**
+ * Daftar lot yang terlibat di SATU transaksi movement (dipanggil dari modal
+ * Movement di Stock, tombol per baris). Saat ini cuma RECEIVING yang bisa
+ * di-resolve (lewat rec_number) -- TRANSFER/SUPPLY/RETURN baru bisa setelah
+ * alur supply/retur per-kaleng di Transfer Stock (ims_mobile) ikut menyimpan
+ * barcode yang dipakai, belum ada saat ini.
+ */
+public function chemicalLotByTransaction(Request $request)
+{
+    $movementType = $request->movement_type;
+    $transnno     = trim($request->movement_transnno);
+    $articleCode  = trim($request->article_code);
+
+    if ($movementType === 'RECEIVING') {
+        $lots = DB::table('receiving_chemical_unit')
+            ->where('rec_number', $transnno)
+            ->where('article_code', $articleCode)
+            ->where('status', '<>', 'cancelled')
+            ->orderBy('unit_sequence')
+            ->get(['barcode_code', 'qty', 'remaining_qty', 'expired_date', 'status']);
+    } elseif (in_array($movementType, ['TRANSFER', 'SUPPLY', 'RETURN'], true)) {
+        // TRANSFER/SUPPLY/RETURN (lihat editColumn('movement_type') di ArticleController::
+        // movement2() -- ketiganya sama-sama lahir dari transfer_stock_hdr/det, cuma
+        // dibedakan label di tampilan) -- kaleng-nya dicari lewat barcode_code yang
+        // disimpan di transfer_stock_det saat posting (lihat applyChemicalLotTransitions
+        // di TransferStockController).
+        $lots = DB::table('transfer_stock_det as tsd')
+            ->join('receiving_chemical_unit as rcu', 'rcu.barcode_code', 'tsd.barcode_code')
+            ->where('tsd.tr_number', $transnno)
+            ->where('tsd.article_code', $articleCode)
+            ->whereNotNull('tsd.barcode_code')
+            ->orderBy('rcu.unit_sequence')
+            ->get(['rcu.barcode_code', 'rcu.qty', 'rcu.remaining_qty', 'rcu.expired_date', 'rcu.status']);
+    } else {
+        return response()->json([
+            'status'  => 0,
+            'message' => 'Lot tracking untuk tipe transaksi ini belum tersedia.',
+        ]);
+    }
+
+    if ($lots->isEmpty()) {
+        return response()->json(['status' => 0, 'message' => 'Belum ada kaleng ber-barcode untuk transaksi ini.']);
+    }
+
+    return response()->json(['status' => 1, 'lots' => $lots]);
+}
+
+/**
+ * Detail Lot untuk satu article_code + location_number: daftar kaleng
+ * (barcode_code, remaining_qty, expired_date, status), plus qty yang
+ * belum ada barcode-nya sama sekali (selisih vs warehouse_stock), plus
+ * warning kalau ada lot expired yang masih nyangkut di Gudang Chemical.
+ */
+public function chemicalLotDetail(Request $request)
+{
+    $articleCode = trim($request->article_code);
+    $location    = trim($request->location_number);
+
+    if (!$articleCode || !$location) {
+        return response()->json(['status' => 0, 'message' => 'Article & location wajib diisi']);
+    }
+
+    $lots = DB::table('receiving_chemical_unit')
+        ->where('article_code', $articleCode)
+        ->where('location_number', $location)
+        ->where('status', '<>', 'cancelled')
+        ->orderBy('expired_date')
+        ->get(['id', 'barcode_code', 'qty', 'remaining_qty', 'expired_date', 'status', 'source', 'rec_number']);
+
+    $stockQty = (float) DB::table('warehouse_stock')
+        ->where('site_code', 'HO')
+        ->where('article_code', $articleCode)
+        ->where('location_number', $location)
+        ->value('article_qty') ?? 0;
+
+    $coveredQty = (float) $lots->whereIn('status', ['active'])->sum(fn ($l) => (float) ($l->remaining_qty ?? $l->qty));
+    $uncoveredQty = round($stockQty - $coveredQty, 3);
+
+    // Gudang Chemical (005): lot yang sudah expired tapi masih di sini -> perlu ditransfer ke Chemical Expired
+    $todayYmd = date('Y-m-d');
+    $expiredLots = ($location === '005')
+        ? $lots->filter(fn ($l) => $l->status === 'active' && $l->expired_date && $l->expired_date < $todayYmd)->values()
+        : collect();
+
+    return response()->json([
+        'status'        => 1,
+        'article_code'  => $articleCode,
+        'location'      => $location,
+        'stock_qty'     => $stockQty,
+        'covered_qty'   => $coveredQty,
+        'uncovered_qty' => $uncoveredQty > 0 ? $uncoveredQty : 0,
+        'lots'          => $lots,
+        'expired_lots'  => $expiredLots,
+    ]);
+}
+
+/**
+ * Preview split kaleng untuk qty yang belum ada barcode-nya (stock lama,
+ * atau gap hasil StockAdjustment) -- logic split sama persis dengan
+ * ReceivingController::chemicalUnitPreviewByRec, cuma basis qty-nya dari
+ * selisih warehouse_stock vs SUM(remaining_qty), bukan dari receiving_det.
+ */
+public function chemicalLotGeneratePreview(Request $request)
+{
+    $articleCode = trim($request->article_code);
+    $location    = trim($request->location_number);
+
+    $article = DB::table('article')->where('article_code', $articleCode)->first();
+    if (!$article) {
+        return response()->json(['status' => 0, 'message' => 'Artikel tidak ditemukan']);
+    }
+
+    $minPackage = (float) $article->min_package;
+    if ($minPackage <= 0) {
+        return response()->json(['status' => 0, 'message' => "min_package belum di-set di master artikel {$articleCode}"]);
+    }
+
+    $stockQty = (float) DB::table('warehouse_stock')
+        ->where('site_code', 'HO')
+        ->where('article_code', $articleCode)
+        ->where('location_number', $location)
+        ->value('article_qty') ?? 0;
+
+    $coveredQty = (float) DB::table('receiving_chemical_unit')
+        ->where('article_code', $articleCode)
+        ->where('location_number', $location)
+        ->where('status', 'active')
+        ->sum('remaining_qty');
+
+    $uncoveredQty = round($stockQty - $coveredQty, 3);
+    if ($uncoveredQty <= 0) {
+        return response()->json(['status' => 0, 'message' => 'Tidak ada qty yang belum ber-barcode di lokasi ini']);
+    }
+
+    $lastSeq = (int) DB::table('receiving_chemical_unit')
+        ->where('article_code', $articleCode)
+        ->where('location_number', $location)
+        ->max('unit_sequence');
+
+    $fullUnits = (int) floor($uncoveredQty / $minPackage);
+    $remainder = round($uncoveredQty - ($fullUnits * $minPackage), 3);
+
+    $rows = [];
+    $seq  = $lastSeq + 1;
+    for ($i = 0; $i < $fullUnits; $i++) {
+        $rows[] = ['unit_sequence' => $seq++, 'qty' => $minPackage, 'expired_date' => null];
+    }
+    if ($remainder > 0) {
+        $rows[] = ['unit_sequence' => $seq++, 'qty' => $remainder, 'expired_date' => null];
+    }
+
+    return response()->json([
+        'status'        => 1,
+        'article_code'  => $articleCode,
+        'article_desc'  => $article->article_desc,
+        'location'      => $location,
+        'uncovered_qty' => $uncoveredQty,
+        'rows'          => $rows,
+    ]);
+}
+
+/**
+ * Simpan hasil generate barcode dari stock lama / gap StockAdjustment.
+ * Payload: article_code, location_number, rows = [{unit_sequence, qty, expired_date}, ...]
+ */
+public function chemicalLotGenerateStore(Request $request)
+{
+    $username    = Auth::user()->username;
+    $articleCode = trim($request->article_code);
+    $location    = trim($request->location_number);
+    $rows        = json_decode($request->rows);
+
+    if (!$articleCode || !$location || empty($rows)) {
+        return response()->json(['status' => 0, 'message' => 'Data tidak lengkap']);
+    }
+
+    foreach ($rows as $r) {
+        if (empty($r->expired_date)) {
+            return response()->json(['status' => 0, 'message' => 'Ada kaleng yang belum diisi Expired Date']);
+        }
+    }
+
+    DB::beginTransaction();
+    try {
+        $this->lockChemicalBarcodeSequence();
+
+        $currentBarcode = $this->nextChemicalBarcode();
+        $dataSet = [];
+
+        foreach ($rows as $r) {
+            $barcodeCode    = $currentBarcode;
+            $currentBarcode = $this->incrementChemicalBarcode($currentBarcode);
+
+            $dataSet[] = [
+                'receiving_det_id' => null,
+                'rec_number'       => null,
+                'location_number'  => $location,
+                'article_code'     => $articleCode,
+                'unit_sequence'    => $r->unit_sequence,
+                'qty'              => $r->qty,
+                'remaining_qty'    => $r->qty,
+                'barcode_code'     => $barcodeCode,
+                'expired_date'     => date('Y-m-d', strtotime($r->expired_date)),
+                'status'           => 'active',
+                'source'           => 'stock_adjustment',
+                'print_status'     => true,
+                'print_count'      => 1,
+                'created_by'       => $username,
+                'updated_by'       => $username,
+                'created_at'       => date('Y-m-d H:i:s'),
+                'updated_at'       => date('Y-m-d H:i:s'),
+            ];
+        }
+
+        DB::table('receiving_chemical_unit')->insert($dataSet);
+
+        $barcodeCodes = array_column($dataSet, 'barcode_code');
+        $insertedRows = DB::table('receiving_chemical_unit')
+            ->whereIn('barcode_code', $barcodeCodes)
+            ->get(['id', 'barcode_code', 'article_code', 'expired_date']);
+
+        DB::commit();
+
+        $title   = "Generate Barcode dari Stock";
+        $message = "$title untuk $articleCode @ $location berhasil (" . count($dataSet) . " kaleng)";
+        \LogActivity::addToLog($title, "username: $username Status $message");
+
+        return response()->json([
+            'status'  => 1,
+            'message' => count($dataSet) . " kaleng berhasil digenerate",
+            'units'   => $insertedRows,
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $message = "Generate Barcode dari Stock gagal: " . $e->getMessage();
+        \LogActivity::addToLog("Generate Barcode dari Stock", "username: $username Status $message");
+        return response()->json(['status' => 0, 'message' => $message]);
+    }
+}
+
+/**
+ * Tandai habis kaleng langsung dari Stock module (Detail Lot modal) --
+ * efeknya sama persis dengan retur qty 0: remaining_qty jadi 0, status
+ * 'empty', barcode mati (tidak bisa dipakai lagi di scan manapun).
+ */
+public function chemicalLotMarkEmpty(Request $request)
+{
+    $username = Auth::user()->username;
+    $ids      = $request->ids;
+
+    if (empty($ids) || !is_array($ids)) {
+        return response()->json(['status' => 0, 'message' => 'Pilih minimal satu kaleng']);
+    }
+
+    $updated = DB::table('receiving_chemical_unit')
+        ->whereIn('id', $ids)
+        ->where('status', '<>', 'cancelled')
+        ->update([
+            'remaining_qty' => 0,
+            'status'        => 'empty',
+            'updated_by'    => $username,
+            'updated_at'    => date('Y-m-d H:i:s'),
+        ]);
+
+    $title   = "Tandai Habis Kaleng Chemical";
+    $message = "$title: $updated kaleng ditandai habis";
+    \LogActivity::addToLog($title, "username: $username Status $message");
+
+    return response()->json(['status' => 1, 'message' => $message, 'updated' => $updated]);
 }
 
 }

@@ -17,6 +17,7 @@ namespace App\Http\Controllers;
     use Excel;
     use App\Imports\TransferOutImport;
     use App\Exports\TransferOutExport;
+    use App\Traits\HasChemicalLotLocations;
 
         /*
 
@@ -26,6 +27,8 @@ namespace App\Http\Controllers;
 
         class TransferStockController extends Controller
         {
+            use HasChemicalLotLocations;
+
             private $title;
             private $moduleCode;
             private $ngRmLocation = '037';   // Gudang NG RM
@@ -512,6 +515,7 @@ $data['locationsTo'] = DB::table('stock_location_master')
     $uom = is_array($val) ? ($val['uom']  ?? null) : ($val->uom  ?? null);
     $nt  = is_array($val) ? ($val['note'] ?? null) : ($val->note ?? null);
     $qtyWos = is_array($val) ? ($val['qty_wos'] ?? null) : ($val->qty_wos ?? null);   // ← tambah
+    $barcodeCode = is_array($val) ? ($val['barcode_code'] ?? null) : ($val->barcode_code ?? null);
 
     $dataSet[] = [
         'tr_number'    => $trNumber,
@@ -520,6 +524,7 @@ $data['locationsTo'] = DB::table('stock_location_master')
         'qty_wos'      => $qtyWos,   // ← tambah
         'uom'          => $uom,
         'note'         => $nt,
+        'barcode_code' => $barcodeCode,
         'created_by'   => $username,
         'updated_by'   => $username,
         'created_at'   => date('Y-m-d H:i:s'),
@@ -527,6 +532,13 @@ $data['locationsTo'] = DB::table('stock_location_master')
     ];
 }
             DB::table('transfer_stock_det')->insert($dataSet);
+
+            // Kaleng chemical yang ikut ditransfer (barcode_code terisi) --
+            // validasi & update remaining_qty/status di sini, DALAM transaksi
+            // yang sama dengan posting movement di bawah, supaya tidak pernah
+            // ada state kaleng yang nyangkut beda dari warehouse_stock
+            // (lihat keputusan anti-drift di memory chemical-kaleng-lot-tracking).
+            $this->applyChemicalLotTransitions($locationCode, $locationTo, $dataSet);
 
             $postResult = $this->processPosting($trNumber, $username);
             if (!$postResult['success']) {
@@ -552,6 +564,86 @@ $data['locationsTo'] = DB::table('stock_location_master')
 
         $trNumber = $runner();
         return ['success'=>true,'trNumber'=>$trNumber,'message'=>"Transfer $trNumber berhasil dibuat"];
+    }
+
+    /**
+     * Validasi + apply transisi kaleng chemical (receiving_chemical_unit) untuk
+     * baris transfer yang punya barcode_code. Tiga arah:
+     * - SUPPLY   (gudang chemical -> non-chemical/workstation): kaleng pindah
+     *   UTUH (qty baris harus = remaining_qty saat ini), status -> out_at_workstation,
+     *   remaining_qty TIDAK berubah (isinya ikut pindah bersama kaleng).
+     * - RETUR    (non-chemical/workstation -> gudang chemical): qty bebas
+     *   (sisa fisik yang diretur), remaining_qty di-SET ke qty itu (bukan
+     *   dikurangi), status -> empty kalau 0 else active, location_number pindah.
+     * - RELOKASI (gudang chemical -> gudang chemical lain, misal 005 -> 049
+     *   Expired / 042 Dead Stock): sama seperti supply (pindah utuh), tapi
+     *   status tetap active, cuma location_number yang pindah.
+     * Baris tanpa barcode_code (bukan chemical per-kaleng) dilewati begitu saja.
+     * THROW kalau ada baris yang tidak valid -- transaksi pemanggil akan
+     * rollback semuanya (movement belum sempat diposting di titik ini).
+     */
+    private function applyChemicalLotTransitions(string $locationFrom, string $locationTo, array $dataSet): void
+    {
+        $isFromChem = self::isChemicalLotLocation($locationFrom);
+        $isToChem   = self::isChemicalLotLocation($locationTo);
+
+        foreach ($dataSet as $row) {
+            $barcodeCode = $row['barcode_code'] ?? null;
+            if (empty($barcodeCode)) continue;
+
+            $unit = DB::table('receiving_chemical_unit')
+                ->where('barcode_code', $barcodeCode)
+                ->where('article_code', $row['article_code'])
+                ->first();
+
+            if (!$unit) {
+                throw new \RuntimeException("Barcode kaleng $barcodeCode tidak ditemukan.");
+            }
+
+            $qty = (float) $row['qty'];
+
+            if ($isFromChem && !$isToChem) {
+                // SUPPLY: keluar dari gudang chemical ke workstation/non-chemical
+                if ($unit->status !== 'active') {
+                    throw new \RuntimeException("Kaleng $barcodeCode tidak aktif (status: $unit->status), tidak bisa disupply.");
+                }
+                if (round($qty, 3) !== round((float) $unit->remaining_qty, 3)) {
+                    throw new \RuntimeException("Kaleng $barcodeCode harus dipindah utuh (qty harus sama dengan sisa kaleng: $unit->remaining_qty).");
+                }
+                DB::table('receiving_chemical_unit')->where('id', $unit->id)->update([
+                    'status'     => 'out_at_workstation',
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+            } elseif (!$isFromChem && $isToChem) {
+                // RETUR: balik dari workstation/non-chemical ke gudang chemical
+                if ($unit->status !== 'out_at_workstation') {
+                    throw new \RuntimeException("Kaleng $barcodeCode belum berstatus di-supply keluar, tidak bisa diretur.");
+                }
+                if ($qty < 0 || round($qty, 3) > round((float) $unit->remaining_qty, 3)) {
+                    throw new \RuntimeException("Qty retur kaleng $barcodeCode ($qty) melebihi qty yang disupply ($unit->remaining_qty).");
+                }
+                DB::table('receiving_chemical_unit')->where('id', $unit->id)->update([
+                    'remaining_qty'   => $qty,
+                    'status'          => $qty > 0.0005 ? 'active' : 'empty',
+                    'location_number' => $locationTo,
+                    'updated_at'      => date('Y-m-d H:i:s'),
+                ]);
+            } elseif ($isFromChem && $isToChem) {
+                // RELOKASI antar gudang chemical (mis. ke Expired / Dead Stock)
+                if ($unit->status !== 'active') {
+                    throw new \RuntimeException("Kaleng $barcodeCode tidak aktif (status: $unit->status), tidak bisa direlokasi.");
+                }
+                if (round($qty, 3) !== round((float) $unit->remaining_qty, 3)) {
+                    throw new \RuntimeException("Kaleng $barcodeCode harus dipindah utuh (qty harus sama dengan sisa kaleng: $unit->remaining_qty).");
+                }
+                DB::table('receiving_chemical_unit')->where('id', $unit->id)->update([
+                    'location_number' => $locationTo,
+                    'updated_at'      => date('Y-m-d H:i:s'),
+                ]);
+            }
+            // !$isFromChem && !$isToChem: barcode_code seharusnya tidak muncul
+            // di jalur ini (transfer antar lokasi non-chemical) -- diabaikan.
+        }
     }
 
     public function store(Request $request)
@@ -2825,11 +2917,36 @@ public function apiArticleByBarcode(Request $request)
         ->select(
             'rcu.article_code',
             'rcu.qty as unit_qty',
+            'rcu.remaining_qty',
+            'rcu.status as lot_status',
             'article.article_alternative_code',
             'article.article_desc',
             'article.uom'
         )
         ->first();
+
+    if ($unit) {
+        // Arah ditentukan dari lokasi asal scan: dari gudang chemical = SUPPLY
+        // (kaleng harus masih aktif di gudang), dari lokasi lain = RETUR
+        // (kaleng harus lagi berstatus di luar/out_at_workstation). Barcode
+        // yang sudah habis/kosong tidak bisa dipakai lagi di jalur manapun.
+        $isSupplyScan = self::isChemicalLotLocation($locationFrom);
+        if ($isSupplyScan && $unit->lot_status !== 'active') {
+            return response()->json([
+                'status'  => 0,
+                'message' => "Kaleng $barcode tidak aktif (status: $unit->lot_status), tidak bisa disupply.",
+            ]);
+        }
+        if (!$isSupplyScan && $unit->lot_status !== 'out_at_workstation') {
+            return response()->json([
+                'status'  => 0,
+                'message' => "Kaleng $barcode belum tercatat disupply keluar (status: $unit->lot_status), tidak bisa diretur.",
+            ]);
+        }
+        // unit_qty = batas qty baris ini: SUPPLY dikunci ke remaining_qty (pindah utuh),
+        // RETUR dipakai sebagai batas atas input bebas (lihat applyChemicalLotTransitions).
+        $unit->unit_qty = (float) $unit->remaining_qty;
+    }
 
     // ── Jalur 2: fallback ke QR artikel biasa (article_alternative_code / article_code) ──
     if (!$unit) {
@@ -2874,6 +2991,8 @@ public function apiArticleByBarcode(Request $request)
             ->value('article_qty') ?? 0;
     }
 
+    $isChemicalLot = isset($unit->lot_status);
+
     return response()->json([
         'status' => 1,
         'data'   => [
@@ -2883,8 +3002,46 @@ public function apiArticleByBarcode(Request $request)
             'uom'                      => $unit->uom,
             'unit_qty'                 => $unit->unit_qty,
             'stock'                    => $stock,
+            'barcode_code'             => $isChemicalLot ? $barcode : null,
+            'is_chemical_lot'          => $isChemicalLot,
+            'lot_status'               => $isChemicalLot ? $unit->lot_status : null,
+            'is_supply_direction'      => $isChemicalLot ? self::isChemicalLotLocation($locationFrom) : null,
         ],
     ]);
+}
+
+// Fallback retur manual (barcode rusak/hilang): daftar kaleng yang SEDANG
+// out_at_workstation di satu lokasi -- "sedang di lokasi X" ditentukan dari
+// transfer SUPPLY terakhir yang mengirim barcode itu ke X (lihat
+// applyChemicalLotTransitions -- begitu diretur statusnya berubah, jadi
+// otomatis hilang dari daftar ini).
+public function apiOutAtWorkstation(Request $request)
+{
+    $location = trim($request->location);
+    if (!$location) {
+        return response()->json(['status' => 0, 'message' => 'Lokasi wajib diisi']);
+    }
+
+    $units = DB::table('receiving_chemical_unit as rcu')
+        ->join('transfer_stock_det as tsd', 'tsd.barcode_code', 'rcu.barcode_code')
+        ->join('transfer_stock_hdr as tsh', 'tsh.tr_number', 'tsd.tr_number')
+        ->leftJoin('article', 'article.article_code', 'rcu.article_code')
+        ->where('tsh.location_to', $location)
+        ->where('rcu.status', 'out_at_workstation')
+        ->select(
+            'rcu.barcode_code',
+            'rcu.article_code',
+            'rcu.remaining_qty',
+            'article.article_alternative_code',
+            'article.article_desc',
+            'article.uom',
+            DB::raw('max(tsh.tr_date) as last_supply_date')
+        )
+        ->groupBy('rcu.barcode_code', 'rcu.article_code', 'rcu.remaining_qty', 'article.article_alternative_code', 'article.article_desc', 'article.uom')
+        ->orderByDesc('last_supply_date')
+        ->get();
+
+    return response()->json(['status' => 1, 'units' => $units]);
 }
 
 // Dashboard outstanding: transfer masuk yang perlu diposting + keluar yang menunggu

@@ -33,6 +33,7 @@ Route::middleware(['auth:sanctum','active'])->prefix('transfer')->group(function
     Route::get('/edit-data',  [TransferStockController::class, 'apiEditData']);
     Route::post('/update',    [TransferStockController::class, 'apiUpdate']);
     Route::post('/cancel',    [TransferStockController::class, 'apiCancel']);
+    Route::get('/out-at-workstation', [TransferStockController::class, 'apiOutAtWorkstation']);
 });
 
 Route::middleware(['auth:sanctum','active'])->prefix('sto')->group(function () {

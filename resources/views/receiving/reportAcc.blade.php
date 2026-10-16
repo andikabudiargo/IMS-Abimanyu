@@ -51,6 +51,17 @@
             </div>
              <div class="form-row">
               <div class="form-group col-md-3">
+                <label for="searchDept">Departemen</label>
+                <select class="select2 form-control" id="searchDept" name="searchDept[]" multiple>
+                  <option value="__NP__">Logistic</option>
+                  <option value="__TRIAL__">Engineering</option>
+                  @foreach($depts as $dept)
+                      <option value="{{ $dept->code }}">{{ $dept->name }}</option>
+                  @endforeach
+                </select>
+                <small class="text-muted">Kosongkan = All</small>
+              </div>
+              <div class="form-group col-md-3">
                 <label for="searchSupplier">Supplier</label>
                 <select class="select2 form-control" id="searchSupplier" name="searchSupplier[]" multiple>
                   @foreach($suppliers as $supplier)
@@ -152,6 +163,7 @@
     recType: $("#recType").val(),
     recDate: $("#recDate").val(),
     doDate: $("#doDate").val(),
+    searchDept: $("#searchDept").val(),
     searchSupplier: $("#searchSupplier").val(),
     searchPo: $("#searchPo").val(),
     searchPr: $("#searchPr").val(),
