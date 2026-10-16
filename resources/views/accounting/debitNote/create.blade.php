@@ -294,12 +294,6 @@
         showDetail='false';
         edit='false';
         $("#nilaiLainCheck").prop('checked',true).change();
-
-        // ponytail: DN ke supplier belum punya mapping COA PPN Masukan/PPh23,
-        // jadi PPN & PPH disembunyikan supaya tidak dikira ke-apply padahal di-nolkan di server.
-        if ($('#partyType').val() == 'supp') {
-            $('#vatCheck,#nilaiLainCheck,#pph23Check').prop('checked', false).prop('disabled', true).closest('.form-group').hide();
-        }
     });
 
     debitNDate = $('#debitNDate');

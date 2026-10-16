@@ -344,10 +344,6 @@
             
         edit='true';
         showDetail='false';
-
-        if ($('#partyType').val() == 'supp') {
-            $('#vatCheck,#nilaiLainCheck,#pph23Check').prop('disabled', true).closest('.form-group').hide();
-        }
     });
 
     let detail = {!! $details !!};

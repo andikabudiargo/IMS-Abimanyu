@@ -256,10 +256,6 @@ class DebitNoteController extends Controller
         $articles = json_decode($request -> articles);
         $debitNDate = $request->debitNDate;
         $customer = $request->customer;
-        // Diturunkan dari third_party, bukan dipercaya dari input client, supaya
-        // tidak bisa dipalsukan untuk melewati guard PPN/PPH di bawah.
-        $partyType = DB::table('third_party')->where('kode',$customer)->value('third_party_type');
-        $partyType = in_array($partyType, ['cust','supp']) ? $partyType : 'cust';
         $ppn = $request->ppn;
         $pph23 = $request->pph23;
         $totalPpn = $request->totalPpn;
@@ -281,13 +277,6 @@ class DebitNoteController extends Controller
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
-
-        // ponytail: belum ada mapping COA PPN Masukan / PPh23 untuk sisi supplier,
-        // jadi DN ke supplier dipaksa tanpa PPN/PPH dulu supaya posting GL (Dr Hutang = Cr Retur
-        // Pembelian) tetap balance. Upgrade: tambah akun PPN Masukan & PPh23 reversal kalau sudah ada mapping-nya.
-        if ($partyType == 'supp') {
-            $ppn = 0; $pph23 = 0; $totalPpn = 0; $totalPph = 0; $grandTotal = $dpp;
-        }
         $period = (int)explode('-', $debitNDate)[1];
         $periodNomor = (int)explode('-', $debitNDate)[1];
 
@@ -553,8 +542,6 @@ class DebitNoteController extends Controller
             return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
         }
         $customer = $request->customer;
-        $partyType = DB::table('third_party')->where('kode',$customer)->value('third_party_type');
-        $partyType = in_array($partyType, ['cust','supp']) ? $partyType : 'cust';
         $ppn = $request->ppn;
         $pph23 = $request->pph23;
         $totalPpn = $request->totalPpn;
@@ -571,12 +558,6 @@ class DebitNoteController extends Controller
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
-
-        // ponytail: lihat catatan yang sama di store() - DN ke supplier belum punya mapping
-        // COA PPN Masukan/PPh23, dipaksa 0 supaya posting GL tetap balance.
-        if ($partyType == 'supp') {
-            $ppn = 0; $pph23 = 0; $totalPpn = 0; $totalPph = 0; $grandTotal = $dpp;
-        }
         $period = (int)explode('-', $debitNDate)[1];
         $periodNomor = (int)explode('-', $debitNDate)[1];
 
@@ -1626,12 +1607,14 @@ class DebitNoteController extends Controller
         /* Proses posting ke kas*/
 
         $pphDibayarDimuka = '1100.75';
+        $hutangPphSupplier = '2000.14.3';
         $ppnKeluaranCustomer = '2000.14.1';
+        $ppnMasukanSupplier = '1100.73';
         $costCenter = '007';
 
         $dnvData = db::table('debit_note_hdr')
         ->leftJoin('third_party', 'third_party.kode', '=', 'debit_note_hdr.customer_id')
-        ->select('debit_note_hdr.*','third_party.nama as customer_name')
+        ->select('debit_note_hdr.*','third_party.nama as customer_name','third_party.third_party_type')
         ->where('dn_number',$dnNumber)->first();
 
         $periodYear = (int)explode('-', $dnvData->dn_date)[2];
@@ -1678,14 +1661,13 @@ class DebitNoteController extends Controller
         ];
 
         /*
-            2.pph dibayar dimuka 1100.75
-
+            2.pph dibayar dimuka (customer, 1100.75) atau reversal hutang pph23 (supplier, 2000.14.3)
         */
-        
+
         if($dnvData->total_pph > 0){
             $dataSet[] = [
                 'voucher_number' => $dnNumber,
-                'account' =>$pphDibayarDimuka,
+                'account' =>$dnvData->third_party_type == 'supp' ? $hutangPphSupplier : $pphDibayarDimuka,
                 'description' => $dnNumber.' '.$dnvData->customer_name,
                 'debit' => $dnvData->total_pph,
                 'credit' => 0,
@@ -1717,13 +1699,13 @@ class DebitNoteController extends Controller
         ];
 
         /*
-            3.ppn keluran customer
+            3.ppn keluaran customer, atau reversal ppn masukan kalau ke supplier
         */
 
         if($dnvData->total_ppn > 0){
             $dataSet[] = [
                 'voucher_number' => $dnNumber,
-                'account' =>$ppnKeluaranCustomer,
+                'account' =>$dnvData->third_party_type == 'supp' ? $ppnMasukanSupplier : $ppnKeluaranCustomer,
                 'description' => $dnNumber.' '.$dnvData->customer_name,
                 'debit' => 0,
                 'credit' => $dnvData->total_ppn,
@@ -1734,7 +1716,7 @@ class DebitNoteController extends Controller
                 'updated_at' => date('Y-m-d H:i:s'),
                 'cost_center' => $costCenter
             ];
-        }       
+        }
 
         DB::table('kas_det')->insert($dataSet);
     }
@@ -1743,12 +1725,14 @@ class DebitNoteController extends Controller
         /* Proses posting ke kas*/
 
         $pphDibayarDimuka = '1100.75';
+        $hutangPphSupplier = '2000.14.3';
         $ppnKeluaranCustomer = '2000.14.1';
+        $ppnMasukanSupplier = '1100.73';
         $costCenter = '007';
 
         $dnvData = db::table('debit_note_hdr')
         ->leftJoin('third_party', 'third_party.kode', '=', 'debit_note_hdr.customer_id')
-        ->select('debit_note_hdr.*','third_party.nama as customer_name')
+        ->select('debit_note_hdr.*','third_party.nama as customer_name','third_party.third_party_type')
         ->where('dn_number',$dnNumber)->first();
 
         $periodYear=(int)explode('-', $dnvData->dn_date)[2];
@@ -1801,14 +1785,13 @@ class DebitNoteController extends Controller
         ];
 
         /*
-            2.pph dibayar dimuka 1100.75
-
+            2.pph dibayar dimuka (customer, 1100.75) atau reversal hutang pph23 (supplier, 2000.14.3)
         */
-        
+
         if($dnvData->total_pph > 0){
             $dataSet[] = [
                 'voucher_number' => $dnNumber,
-                'account' =>$pphDibayarDimuka,
+                'account' =>$dnvData->third_party_type == 'supp' ? $hutangPphSupplier : $pphDibayarDimuka,
                 'description' => $dnNumber.' '.$dnvData->customer_name,
                 'debit' => $dnvData->total_pph,
                 'credit' => 0,
@@ -1840,13 +1823,13 @@ class DebitNoteController extends Controller
         ];
 
         /*
-            3.ppn keluran customer
+            3.ppn keluaran customer, atau reversal ppn masukan kalau ke supplier
         */
 
         if($dnvData->total_ppn > 0){
             $dataSet[] = [
                 'voucher_number' => $dnNumber,
-                'account' =>$ppnKeluaranCustomer,
+                'account' =>$dnvData->third_party_type == 'supp' ? $ppnMasukanSupplier : $ppnKeluaranCustomer,
                 'description' => $dnNumber.' '.$dnvData->customer_name,
                 'debit' => 0,
                 'credit' => $dnvData->total_ppn,
@@ -1857,7 +1840,7 @@ class DebitNoteController extends Controller
                 'updated_at' => date('Y-m-d H:i:s'),
                 'cost_center' => $costCenter
             ];
-        }       
+        }
 
         DB::table('kas_det')->insert($dataSet);
     }
