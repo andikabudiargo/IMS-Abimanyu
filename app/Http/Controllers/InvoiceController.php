@@ -135,10 +135,10 @@ class InvoiceController extends Controller
             ['data'=> 'period', 'name'=> 'period','title'=>'Period','searchable'=>false], //2
             ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number','searchable'=>false], //3
             ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number','searchable'=>false], //4
-            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number','searchable'=>false], //5
-            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer','searchable'=>false], //6
-            ['data'=> 'article_code', 'name'=> 'article_code','title'=>'Article Code'], //7
-            ['data'=> 'article_desc', 'name'=> 'article_desc','title'=>'Desc'], //8
+            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number','searchable'=>false,'type'=>'string'], //5
+            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer','searchable'=>false,'type'=>'string'], //6
+            ['data'=> 'article_code', 'name'=> 'article_code','title'=>'Article Code','type'=>'string'], //7
+            ['data'=> 'article_desc', 'name'=> 'article_desc','title'=>'Desc','type'=>'string'], //8
             ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'], //9
             ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'], //10
             ['data'=> 'price', 'name'=> 'price','title'=>'M. Price'], //11
