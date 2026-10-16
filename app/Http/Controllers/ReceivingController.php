@@ -3672,8 +3672,14 @@ public function unPosting($recNumber)
         // ponytail: AP dibayar sebagian (status 7) tetap ditampilkan penuh —
         // pembayaran AP di level dokumen, tidak bisa dibagi bersih per baris.
         ,DB::raw("case when $apStatus = '6' then 0 else $lineGt end as balance")
-        )
-        ->orderByRaw("to_date(nullif(receiving_hdr.do_date,''),'DD-MM-YYYY') asc nulls last, receiving_det.id asc");
+        );
+
+        // Default sort (DO Date terkecil dulu) hanya dipakai kalau user belum klik sort
+        // kolom manapun di DataTable — kalau sudah, default ini akan selalu menang
+        // (receiving_det.id unik, jadi sort kolom yang diklik tidak pernah kelihatan efeknya).
+        if (empty($request->input('order'))) {
+            $data->orderByRaw("to_date(nullif(receiving_hdr.do_date,''),'DD-MM-YYYY') asc nulls last, receiving_det.id asc");
+        }
 
         return Datatables::of($data)
         ->editColumn("rec_type", fn ($d) => $this->recTypeLabel($d->rec_type))
