@@ -241,7 +241,9 @@
         // kotak search/sort bawaan DataTable, karena itu memaksa evaluasi subquery
         // di SEMUA baris sebelum LIMIT dan bikin timeout/exhaust untuk dataset besar.
         // Pencarian untuk field ini sudah ada lewat form filter (searchPr, searchInv, searchVoucher, dst).
-        { targets: [ 0,4,10,22,23,24,25,26,27,30 ], orderable: false, searchable: false },
+        { targets: [ 0,4,10,22,23,25,26,27,30 ], orderable: false, searchable: false },
+        // COA (24): boleh di-sort (sudah dihitung di SELECT, bukan tambahan query baru), tapi search tetap dimatikan.
+        { targets: [ 24 ], orderable: true, searchable: false },
       ],
       excelDates:true,
       dataSearch: filters(),
