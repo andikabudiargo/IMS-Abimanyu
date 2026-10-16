@@ -97,9 +97,9 @@
                 <div class="form-row">
                     <div class="col-12">
                         <div class="custom-control custom-checkbox mb-1">
-                            <input type="checkbox" class="custom-control-input" id="chkIncludeDraft">
+                            <input type="checkbox" class="custom-control-input" id="chkIncludeDraft" checked>
                             <label class="custom-control-label" for="chkIncludeDraft">
-                                Sertakan invoice DRAFT (uji nilai -- status CANCELED tetap tidak dihitung)
+                                Sertakan invoice DRAFT (default ON -- biar Total konsisten sama AR Dashboard/Reconciliation/Payment Schedule; CANCELED tetap tidak dihitung)
                             </label>
                         </div>
                     </div>

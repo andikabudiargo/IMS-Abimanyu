@@ -42,6 +42,10 @@ use DB;
         sending_date + third_party.top_batas_1 hari.
       - balance = grand_total - SUM(kas_det.credit) yang sudah
         APPROVED (kas_hdr.status='3'), tanpa filter voucher_type.
+      - Balance (grand total, opening_remain) cuma menjumlah invoice yang
+        balance_asof > 0.01 -- SAMA dengan totalOutstanding() yang
+        exclude invoice lunas/overpaid (balance negatif/nol), supaya tidak
+        "menetralkan" saldo customer lain & beda sama card Dashboard.
       - CANCELED('5') di-exclude, DRAFT('1') ikut dihitung -- sama
         dengan AR Dashboard (InvoiceController::analyticsAr yang pakai
         includeDraft=true), supaya Opening/Balance di sini tidak beda
@@ -288,7 +292,7 @@ class ArPaymentScheduleController extends Controller
                 piutang.customer_id as customer_code,
                 third_party.nama    as customer_name,
                 SUM(piutang.balance_open) as opening,
-                SUM(piutang.balance_asof) as opening_remain,
+                SUM(CASE WHEN piutang.balance_asof > 0.01 THEN piutang.balance_asof ELSE 0 END) as opening_remain,
                 SUM(CASE WHEN piutang.jatuh_tempo_actual < to_date(:periodStart,'DD-MM-YYYY') AND piutang.balance_asof > 0.01 THEN piutang.balance_asof ELSE 0 END) as outstanding_opening
             FROM ($subquery) piutang
             LEFT JOIN third_party ON third_party.kode = piutang.customer_id

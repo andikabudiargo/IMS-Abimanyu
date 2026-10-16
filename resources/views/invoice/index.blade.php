@@ -96,6 +96,15 @@
                 </select>
               </div>
               <div class="col-md-1 form-group">
+                <label class="form-label" for="searchYear">Tahun</label>
+                <select class="select2 form-control" id="searchYear" name="searchYear">
+                  <option value=""></option>
+                  @foreach($years as $y)
+                      <option value="{{ $y }}">{{ $y }}</option>
+                  @endforeach
+                </select>
+              </div>
+              <div class="col-md-1 form-group">
                 <label class="form-label" for="arPeriod1">Period Awal</label>
                 <select class="select2 form-control" id="arPeriod1" name="arPeriod1">
                   <option value=""></option>
@@ -350,18 +359,19 @@ $('#arCutoff').on('change', function () {
     let recDate = $("#recDate").val();
     let searchPeriod1 = $("#arPeriod1").val();
     let searchPeriod2 = $("#arPeriod2").val();
+    let searchYear = $("#searchYear").val();
     let searchArticle = $("#searchArticle").val();
     btnSummary.addClass('d-none');
     btnDetail.removeClass('d-none');
     if($type == 'detail'){
       btnDetail.addClass('d-none');
       btnSummary.removeClass('d-none');
-      showListDetail(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle);
+      showListDetail(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle,searchYear);
     }
     if($type == 'summary'){
       btnSummary.addClass('d-none');
       btnDetail.removeClass('d-none');
-      showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle);
+      showList(searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle,searchYear);
     }
   }
 
@@ -379,7 +389,7 @@ $('#arCutoff').on('change', function () {
     searcData('summary');
   });
 
-  const showList = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle) => {
+  const showList = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle,searchYear) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -413,7 +423,8 @@ $('#arCutoff').on('change', function () {
         recDate:recDate,
         searchPeriod1:searchPeriod1,
         searchPeriod2:searchPeriod2,
-        searchArticle:searchArticle
+        searchArticle:searchArticle,
+        searchYear:searchYear
         // searchPeriod:searchPeriod
       },
       initComplete: function() {
@@ -429,7 +440,7 @@ $('#arCutoff').on('change', function () {
     });
   }
 
-  const showListDetail = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle) => {
+  const showListDetail = (searchInv,searchSo,searchCustomer,searchStatus,recDate,searchPeriod1,searchPeriod2,searchArticle,searchYear) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -466,7 +477,8 @@ $('#arCutoff').on('change', function () {
         recDate:recDate,
         searchPeriod1:searchPeriod1,
         searchPeriod2:searchPeriod2,
-        searchArticle:searchArticle
+        searchArticle:searchArticle,
+        searchYear:searchYear
         // searchPeriod:searchPeriod
       },
       orderColumn:[[ 1, 'asc' ],[ 3, 'asc' ]],
