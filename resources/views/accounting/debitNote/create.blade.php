@@ -163,32 +163,9 @@
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPN"  name="totalPPN" disabled/>
                                 </div>
                             </div>
-                            <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">
-                                    @if($partyType == 'supp')
-                                        <select id="pphType" name="pphType" class="d-inline-block" style="width:auto;">
-                                            <option value="23">PPh23</option>
-                                            <option value="21">PPh21</option>
-                                            <option value="42">PPh4(2)</option>
-                                        </select>
-                                    @else
-                                        PPH23
-                                    @endif
-                                    <span id="nilaiPPH"></span>
-                                </label>
-                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
-                                    <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
-                                        <label class="custom-control-label" for="pph23Check"></label>
-                                    </div>
-                                </div>
-                                <div class="col-sm-5">
-                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el"  oninput='inputDecimal(this)' id="totalPPH" name="totalPPH" disabled/>
-                                </div>
-                            </div>
                             @if($partyType == 'supp')
                             <div class="form-group row mb-03">
-                                <label for="totalPB1" class="col-sm-4 col-form-label titik-dua">PB1 <span id="nilaiPB1"></span></label>
+                                <label for="totalPB1" class="col-sm-4 col-form-label titik-dua">PB 1 <span class="input-group d-inline-flex flex-nowrap align-items-stretch ml-1" style="width:110px;vertical-align:middle"><input type="number" step="any" min="0" class="form-control text-right" style="height:auto" id="pctPB1" title="Persentase PB 1"/><span class="input-group-append d-flex"><span class="input-group-text">%</span></span></span></label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="pb1Check" name="pb1Check" />
@@ -197,6 +174,55 @@
                                 </div>
                                 <div class="col-sm-5">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPB1" name="totalPB1" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPH23" class="col-sm-4 col-form-label titik-dua">WHT 23 <span id="nilaiPPH23"></span> </label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
+                                        <label class="custom-control-label" for="pph23Check"></label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPH23" name="totalPPH23" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPH21" class="col-sm-4 col-form-label titik-dua">WHT 21 <span id="nilaiPPH21"></span> </label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="pph21Check" name="pph21Check" />
+                                        <label class="custom-control-label" for="pph21Check"></label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPH21" name="totalPPH21" disabled/>
+                                </div>
+                            </div>
+                            <div class="form-group row mb-03">
+                                <label for="totalPPH42" class="col-sm-4 col-form-label titik-dua">WHT 4(2) <span class="input-group d-inline-flex flex-nowrap align-items-stretch ml-1" style="width:110px;vertical-align:middle"><input type="number" step="any" min="0" class="form-control text-right" style="height:auto" id="pctPPH42" title="Persentase WHT 4(2)"/><span class="input-group-append d-flex"><span class="input-group-text">%</span></span></span></label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="pph42Check" name="pph42Check" />
+                                        <label class="custom-control-label" for="pph42Check"></label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPPH42" name="totalPPH42" disabled/>
+                                </div>
+                            </div>
+                            @else
+                            <div class="form-group row mb-03">
+                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
+                                        <label class="custom-control-label" for="pph23Check"></label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el"  oninput='inputDecimal(this)' id="totalPPH" name="totalPPH" disabled/>
                                 </div>
                             </div>
                             @endif

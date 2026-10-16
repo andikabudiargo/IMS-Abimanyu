@@ -166,8 +166,8 @@ class InvoiceController extends Controller
         $data['years'] = range(2023, (int) date('Y') + 1);
 
         $statistic = db::select("SELECT sum(grand_total) as grand_total
-        ,sum(case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end) as total_paid 
-        ,sum(grand_total) - sum(case when invoice_hdr.status = '6' then (select credit from kas_det where reference = invoice_hdr.invoice_number) else 0 end) as balance
+        ,sum(case when invoice_hdr.status = '6' then (select coalesce(sum(credit),0) from kas_det where reference = invoice_hdr.invoice_number) else 0 end) as total_paid
+        ,sum(grand_total) - sum(case when invoice_hdr.status = '6' then (select coalesce(sum(credit),0) from kas_det where reference = invoice_hdr.invoice_number) else 0 end) as balance
         from invoice_hdr
         WHERE date_part('year', to_date(invoice_date,'dd-mm-yyyy')) = date_part('year', CURRENT_DATE)");
 
