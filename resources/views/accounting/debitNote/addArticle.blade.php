@@ -93,6 +93,9 @@
 
     let sNilaiPPN= "{{ $nilaiPPN }}";
     let sNilaiPPH= "{{ $nilaiPPH }}";
+    let sNilaiPPH21= "{{ $nilaiPPH21 ?? 0 }}";
+    let sNilaiPPH42= "{{ $nilaiPPH42 ?? 0 }}";
+    let sNilaiPB1= "{{ $nilaiPB1 ?? 0 }}";
     let showDetail="";
     let edit="";
     let dataArticle="";
@@ -273,17 +276,22 @@
                     $("#totalPPH").val(humanizeNumber((totalAmount * (sNilaiPPH/100)).toFixed(2)));
                 }
             }
+
+            if ($('#pb1Check').is(':checked')){
+                $("#totalPB1").val(humanizeNumber((totalAmountMaterial * (sNilaiPB1/100)).toFixed(2)));
+            }
         }
 
         let tDpp =  totalAmount;
         let tPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
         let tPph = $("#totalPPH").val().replace(/,/gi, '') || 0;
-        let totalNetto1 = (tDpp+parseFloat(tPpn))-parseFloat(tPph);
+        let tPb1 = $('#totalPB1').length ? ($("#totalPB1").val().replace(/,/gi, '') || 0) : 0;
+        let totalNetto1 = (tDpp+parseFloat(tPpn)+parseFloat(tPb1))-parseFloat(tPph);
         $("#totalNetto").val(humanizeNumber(totalNetto1.toFixed(2)));
         mask_thousand_digit(2);
     }
 
-    $('#totalPPH,#totalPPN').keyup(function() {
+    $('#totalPPH,#totalPPN,#totalPB1').keyup(function() {
         // totalSummary();
         hitungGrandTotal();
     })
@@ -310,6 +318,34 @@
             $('#totalPPH').attr('disabled','disabled');
             hitungGrandTotal();
             // totalSummary();
+        }
+    });
+
+    // pilihan jenis WHT (PPh23/PPh21/PPh42) hanya ada di DN supplier, ganti rate yang dipakai
+    // oleh kalkulasi #totalPPH di atas - account GL-nya ditentukan controller dari pphType ini.
+    $("#pphType").change(function() {
+        const rate = {'23': sNilaiPPH, '21': sNilaiPPH21, '42': sNilaiPPH42};
+        sNilaiPPH = rate[this.value] || 0;
+        if ($('#pph23Check').is(':checked')) {
+            $("#pph23Check").change();
+        }
+    });
+
+    $("#pb1Check").change(function() {
+        if(this.checked) {
+            let totalAmountMaterial = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
+            $("#totalPB1").val((totalAmountMaterial * (sNilaiPB1/100)).toFixed(2));
+            $("#nilaiPB1").text(sNilaiPB1+'%');
+            $('#totalPB1').removeAttr('disabled');
+            $('#totalPB1').focus().select();
+            mask_thousand();
+            mask_thousand_digit(2);
+            hitungGrandTotal();
+        }else{
+            $("#totalPB1").val(0);
+            $("#nilaiPB1").text('');
+            $('#totalPB1').attr('disabled','disabled');
+            hitungGrandTotal();
         }
     });
 

@@ -22,6 +22,9 @@ class DebitNoteController extends Controller
     private $moduleCode;
     private $nilaiPpn;
     private $nilaiPph23;
+    private $nilaiPph21;
+    private $nilaiPph42;
+    private $nilaiPb1;
     private $lockDate;
     private $lockDateIndex;
     private $ppnPenyebut;
@@ -42,6 +45,18 @@ class DebitNoteController extends Controller
 
         $this->nilaiPph23 = DB::table('attributes')
         ->where('attr_id','mainpph23')
+        ->value('attr_value');
+
+        $this->nilaiPph21 = DB::table('attributes')
+        ->where('attr_id','mainpph21')
+        ->value('attr_value');
+
+        $this->nilaiPph42 = DB::table('attributes')
+        ->where('attr_id','mainpph42')
+        ->value('attr_value');
+
+        $this->nilaiPb1 = DB::table('attributes')
+        ->where('attr_id','mainpb1')
         ->value('attr_value');
 
         $lockDate1 = DB::table('application_lock')
@@ -241,6 +256,9 @@ class DebitNoteController extends Controller
 
         $data['nilaiPPN'] = $this->nilaiPpn;
         $data['nilaiPPH'] = $this->nilaiPph23;
+        $data['nilaiPPH21'] = $this->nilaiPph21;
+        $data['nilaiPPH42'] = $this->nilaiPph42;
+        $data['nilaiPB1'] = $this->nilaiPb1;
 
         $data['ppnPenyebut'] = $this->ppnPenyebut;
         $data['ppnPembilang'] = $this->ppnPembilang;
@@ -277,6 +295,8 @@ class DebitNoteController extends Controller
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
+        $pb1 = is_null($request->totalPB1) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPB1);
+        $pphType = $request->pphType ? 'PPH'.$request->pphType : '';
         $period = (int)explode('-', $debitNDate)[1];
         $periodNomor = (int)explode('-', $debitNDate)[1];
 
@@ -366,7 +386,9 @@ class DebitNoteController extends Controller
                     'dpp_lain_pembilang' => $dppPembilang,
                     'dpp_lain_penyebut' => $dppPenyebut,
                     'bukti_potong' => $buktiPotong,
-                    'bupot_date' => $bupotDate
+                    'bupot_date' => $bupotDate,
+                    'pb1' => $pb1,
+                    'pph23_type' => $pphType
                 ]);
 
                 $dataSet = [];
@@ -523,6 +545,9 @@ class DebitNoteController extends Controller
 
         $data['nilaiPPN'] = $data['header']->ppn;
         $data['nilaiPPH'] = $data['header']->pph23 ? $data['header']->pph23 : $this->nilaiPph23 ;
+        $data['nilaiPPH21'] = $this->nilaiPph21;
+        $data['nilaiPPH42'] = $this->nilaiPph42;
+        $data['nilaiPB1'] = $this->nilaiPb1;
 
         $data['ppnPenyebut'] = $data['header']->dpp_lain_penyebut;
         $data['ppnPembilang'] = $data['header']->dpp_lain_pembilang;
@@ -558,6 +583,8 @@ class DebitNoteController extends Controller
         $fakturPajak  = $request->fakturPajak;
         $dpp = $request->totalAmount;
         $grandTotal = $request->grandTotal;
+        $pb1 = is_null($request->totalPB1) ? 0 : preg_replace('/[^0-9.]+/', '', $request->totalPB1);
+        $pphType = $request->pphType ? 'PPH'.$request->pphType : '';
         $period = (int)explode('-', $debitNDate)[1];
         $periodNomor = (int)explode('-', $debitNDate)[1];
 
@@ -637,7 +664,9 @@ class DebitNoteController extends Controller
                             'dpp_lain_pembilang' => $dppPembilang,
                             'dpp_lain_penyebut' => $dppPenyebut,
                             'bukti_potong' => $buktiPotong,
-                            'bupot_date' => $bupotDate
+                            'bupot_date' => $bupotDate,
+                            'pb1' => $pb1,
+                            'pph23_type' => $pphType
                         ]
                     );
 
@@ -1607,15 +1636,21 @@ class DebitNoteController extends Controller
         /* Proses posting ke kas*/
 
         $pphDibayarDimuka = '1100.75';
-        $hutangPphSupplier = '2000.14.3';
+        $hutangPph23Supplier = '2000.14.3';
+        $hutangPph21Supplier = '2000.14.2';
+        $hutangPph42Supplier = '2000.14.6';
         $ppnKeluaranCustomer = '2000.14.1';
         $ppnMasukanSupplier = '1100.73';
+        $accountPb1 = '5000.75.4';
         $costCenter = '007';
 
         $dnvData = db::table('debit_note_hdr')
         ->leftJoin('third_party', 'third_party.kode', '=', 'debit_note_hdr.customer_id')
         ->select('debit_note_hdr.*','third_party.nama as customer_name','third_party.third_party_type')
         ->where('dn_number',$dnNumber)->first();
+
+        $akunHutangPph = ['PPH21' => $hutangPph21Supplier, 'PPH42' => $hutangPph42Supplier];
+        $hutangPphSupplier = $akunHutangPph[$dnvData->pph23_type] ?? $hutangPph23Supplier;
 
         $periodYear = (int)explode('-', $dnvData->dn_date)[2];
         $invStatus = $dnvData->status;
@@ -1718,6 +1753,26 @@ class DebitNoteController extends Controller
             ];
         }
 
+        /*
+            4.reversal pb1 (biaya pb1 yang sudah dibukukan di AP invoice, supplier only)
+        */
+
+        if($dnvData->pb1 > 0){
+            $dataSet[] = [
+                'voucher_number' => $dnNumber,
+                'account' => $accountPb1,
+                'description' => $dnNumber.' '.$dnvData->customer_name,
+                'debit' => 0,
+                'credit' => $dnvData->pb1,
+                'reference' => $reference,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+                'cost_center' => $costCenter
+            ];
+        }
+
         DB::table('kas_det')->insert($dataSet);
     }
 
@@ -1725,15 +1780,21 @@ class DebitNoteController extends Controller
         /* Proses posting ke kas*/
 
         $pphDibayarDimuka = '1100.75';
-        $hutangPphSupplier = '2000.14.3';
+        $hutangPph23Supplier = '2000.14.3';
+        $hutangPph21Supplier = '2000.14.2';
+        $hutangPph42Supplier = '2000.14.6';
         $ppnKeluaranCustomer = '2000.14.1';
         $ppnMasukanSupplier = '1100.73';
+        $accountPb1 = '5000.75.4';
         $costCenter = '007';
 
         $dnvData = db::table('debit_note_hdr')
         ->leftJoin('third_party', 'third_party.kode', '=', 'debit_note_hdr.customer_id')
         ->select('debit_note_hdr.*','third_party.nama as customer_name','third_party.third_party_type')
         ->where('dn_number',$dnNumber)->first();
+
+        $akunHutangPph = ['PPH21' => $hutangPph21Supplier, 'PPH42' => $hutangPph42Supplier];
+        $hutangPphSupplier = $akunHutangPph[$dnvData->pph23_type] ?? $hutangPph23Supplier;
 
         $periodYear=(int)explode('-', $dnvData->dn_date)[2];
         $invStatus = $dnvData->status == '4'? '3' : $dnvData->status;
@@ -1833,6 +1894,26 @@ class DebitNoteController extends Controller
                 'description' => $dnNumber.' '.$dnvData->customer_name,
                 'debit' => 0,
                 'credit' => $dnvData->total_ppn,
+                'reference' => $reference,
+                'created_by' => $createdBy,
+                'updated_by' => Auth::user()->username,
+                'created_at' => $createdAt,
+                'updated_at' => date('Y-m-d H:i:s'),
+                'cost_center' => $costCenter
+            ];
+        }
+
+        /*
+            4.reversal pb1 (biaya pb1 yang sudah dibukukan di AP invoice, supplier only)
+        */
+
+        if($dnvData->pb1 > 0){
+            $dataSet[] = [
+                'voucher_number' => $dnNumber,
+                'account' => $accountPb1,
+                'description' => $dnNumber.' '.$dnvData->customer_name,
+                'debit' => 0,
+                'credit' => $dnvData->pb1,
                 'reference' => $reference,
                 'created_by' => $createdBy,
                 'updated_by' => Auth::user()->username,

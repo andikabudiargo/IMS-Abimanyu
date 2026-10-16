@@ -164,17 +164,42 @@
                                 </div>
                             </div>
                             <div class="form-group row mb-03">
-                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">PPH23 <span id="nilaiPPH"></span> </label>
+                                <label for="totalPPH" class="col-sm-4 col-form-label titik-dua">
+                                    @if($partyType == 'supp')
+                                        <select id="pphType" name="pphType" class="d-inline-block" style="width:auto;">
+                                            <option value="23">PPh23</option>
+                                            <option value="21">PPh21</option>
+                                            <option value="42">PPh4(2)</option>
+                                        </select>
+                                    @else
+                                        PPH23
+                                    @endif
+                                    <span id="nilaiPPH"></span>
+                                </label>
                                 <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="pph23Check" name="pph23Check" />
                                         <label class="custom-control-label" for="pph23Check"></label>
                                     </div>
-                                </div> 
+                                </div>
                                 <div class="col-sm-5">
                                     <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el"  oninput='inputDecimal(this)' id="totalPPH" name="totalPPH" disabled/>
                                 </div>
                             </div>
+                            @if($partyType == 'supp')
+                            <div class="form-group row mb-03">
+                                <label for="totalPB1" class="col-sm-4 col-form-label titik-dua">PB1 <span id="nilaiPB1"></span></label>
+                                <div class="col-sm-1" style="padding-right: 0rem;display: flex;align-items: center;">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="pb1Check" name="pb1Check" />
+                                        <label class="custom-control-label" for="pb1Check"></label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5">
+                                    <input type="text" class="form-control text-right font-weight-bold numeral-mask-digit disabled-el" oninput='inputDecimal(this)' id="totalPB1" name="totalPB1" disabled/>
+                                </div>
+                            </div>
+                            @endif
                             <div class="form-group row mb-03">
                                 <label for="totalNetto" class="col-sm-4 col-form-label titik-dua tanpa-padding">Netto</label>
                                 <div class="col-sm-6">
@@ -403,6 +428,8 @@
                     let bupotDate = $('#bupotDate').val();
                     let noFaktur = $('#noFaktur').val();
                     let partyType = $('#partyType').val();
+                    let totalPb1 = $('#totalPB1').length ? ($('#totalPB1').val().replace(/,/gi, '') || 0) : 0;
+                    let pphType = $('#pphType').val() || '';
 
                     $.ajax({
                         type: "post",
@@ -427,7 +454,9 @@
                             totalDppNilaiLain:aTotalDppNilaiLain,
                             buktiPotong:buktiPotong,
                             bupotDate:bupotDate,
-                            noFaktur:noFaktur
+                            noFaktur:noFaktur,
+                            totalPB1:totalPb1,
+                            pphType:pphType
                         },
                         dataType: "json",
                         success: function(data) {
