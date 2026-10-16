@@ -793,6 +793,7 @@ class AccountPayableController extends Controller
         }
 
         $accountVat   ='1100.73';
+        $accountPb1   ='5000.75.4';
         // $acountTotal  ='2000.11';
         $acountTotal  =$accountHutang; //ambil dari kode supplier
         $accountPph23 ='2000.14.3';
@@ -906,6 +907,7 @@ class AccountPayableController extends Controller
                     'total_discount' => $totalDiscount,
                     'vat' => $vat,
                     'pb1' => $pb1,
+                    'account_pb1' => $accountPb1,
                     'other_deduction' => $otherDeduct,
                     'pph23' => $nilaiPph,
                     'pph23_type' =>$typePph,
@@ -1325,6 +1327,7 @@ class AccountPayableController extends Controller
         }
 
         $accountVat   ='1100.73';
+        $accountPb1   ='5000.75.4';
         // $acountTotal  ='2000.11';
         $acountTotal  =  $accountHutang;
         $accountPph23 ='2000.14.3';
@@ -1388,6 +1391,7 @@ class AccountPayableController extends Controller
                         'total_discount' => $totalDiscount,
                         'vat' => $vat,
                         'pb1' => $pb1,
+                        'account_pb1' => $accountPb1,
                         'other_deduction' => $otherDeduct,
                         'pph23' => $nilaiPph,
                         'pph23_type' => $typePph,
@@ -1750,6 +1754,22 @@ class AccountPayableController extends Controller
             ];
         }
 
+        if($apData->pb1 > 0){
+            $dataSet[] = [
+                'voucher_number' => $apNumber,
+                'account' =>$apData->account_pb1,
+                'description' => $apNumber.' '.$apData->supplier_name,
+                'cost_center' => '',
+                'debit' => $apData->pb1,
+                'credit' => 0,
+                'reference' => $reference,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+        }
+
         //belum ada no account nya
         // if($apData->total_discount > 0){
         //     $dataSet[] = [
@@ -1895,6 +1915,22 @@ class AccountPayableController extends Controller
             ];
         }
 
+        if($apData->pb1 > 0){
+            $dataSet[] = [
+                'voucher_number' => $apNumber,
+                'account' =>$apData->account_pb1,
+                'description' => $apNumber.' '.$apData->supplier_name,
+                'cost_center' => '',
+                'debit' => $apData->pb1,
+                'credit' => 0,
+                'reference' => $reference,
+                'created_by' => Auth::user()->username,
+                'updated_by' => Auth::user()->username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+        }
+
         if($apData->pph23 > 0){
             $dataSet[] = [
                 'voucher_number' => $apNumber,
@@ -1908,7 +1944,7 @@ class AccountPayableController extends Controller
                 'updated_by' => Auth::user()->username,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
-            ];  
+            ];
         }
 
         $dataSet[] = [
