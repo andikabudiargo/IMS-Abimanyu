@@ -37,6 +37,9 @@ use PDF;
     Saldo Awal dihitung lewat ArAgingReportController::totalOutstanding() --
     rumus yang SAMA dipakai di card "Opening Balance" halaman Invoice Customer
     (InvoiceController::analyticsAr) -- supaya kedua angka itu selalu cocok.
+    Status dokumen: DRAFT (status '1') ikut dihitung (cuma status '5'/CANCEL yang
+    disingkirkan), sama seperti InvoiceController::analyticsAr -- supaya Sales &
+    Balance di sini selalu cocok dengan card Sales/Balance di AR Dashboard.
     ================================================================
 */
 
@@ -63,7 +66,7 @@ class ArReconciliationController extends Controller
                 FROM invoice_det
                 JOIN invoice_hdr ON invoice_hdr.invoice_number = invoice_det.invoice_number
                 JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.dn_number
-                WHERE invoice_hdr.status NOT IN ('1','5')
+                WHERE invoice_hdr.status <> '5'
                   AND to_date(delivery_hdr.delivery_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
                 GROUP BY 1
             ";
@@ -72,7 +75,7 @@ class ArReconciliationController extends Controller
             SELECT to_char(to_date(invoice_hdr.invoice_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
                    SUM(invoice_hdr.dpp) as amount
             FROM invoice_hdr
-            WHERE invoice_hdr.status NOT IN ('1','5')
+            WHERE invoice_hdr.status <> '5'
               AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
             GROUP BY 1
         ";
@@ -89,7 +92,7 @@ class ArReconciliationController extends Controller
             SELECT to_char(to_date(invoice_hdr.invoice_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
                    SUM(invoice_hdr.grand_total) as amount
             FROM invoice_hdr
-            WHERE invoice_hdr.status NOT IN ('1','5')
+            WHERE invoice_hdr.status <> '5'
               AND to_date(invoice_hdr.invoice_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
             GROUP BY 1
         ";
@@ -101,7 +104,7 @@ class ArReconciliationController extends Controller
             SELECT to_char(to_date(dn_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
                    SUM(dpp) as amount
             FROM debit_note_hdr
-            WHERE status NOT IN ('1','5')
+            WHERE status <> '5'
               AND to_date(dn_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
             GROUP BY 1
         ";
@@ -113,7 +116,7 @@ class ArReconciliationController extends Controller
             SELECT to_char(to_date(dn_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
                    SUM(grand_total) as amount
             FROM debit_note_hdr
-            WHERE status NOT IN ('1','5')
+            WHERE status <> '5'
               AND to_date(dn_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
             GROUP BY 1
         ";
@@ -240,7 +243,7 @@ class ArReconciliationController extends Controller
             $sql = "
                 SELECT id, dn_number as doc, dn_date as doc_date, grand_total as amount, 'Debit Note' as doc_type
                 FROM debit_note_hdr
-                WHERE status NOT IN ('1','5') AND to_date(dn_date,'DD-MM-YYYY') $dateCond
+                WHERE status <> '5' AND to_date(dn_date,'DD-MM-YYYY') $dateCond
                 ORDER BY to_date(dn_date,'DD-MM-YYYY')
             ";
         } elseif ($column === 'payment') {
@@ -264,7 +267,7 @@ class ArReconciliationController extends Controller
                 FROM invoice_det
                 JOIN invoice_hdr ON invoice_hdr.invoice_number = invoice_det.invoice_number
                 JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.dn_number
-                WHERE invoice_hdr.status NOT IN ('1','5')
+                WHERE invoice_hdr.status <> '5'
                   AND to_date(delivery_hdr.delivery_date,'DD-MM-YYYY') $dateCond
                 GROUP BY delivery_hdr.id, delivery_hdr.delivery_number, delivery_hdr.delivery_date
                 ORDER BY to_date(delivery_hdr.delivery_date,'DD-MM-YYYY')
@@ -273,7 +276,7 @@ class ArReconciliationController extends Controller
             $sql = "
                 SELECT id, invoice_number as doc, invoice_date as doc_date, grand_total as amount, 'AR Invoice' as doc_type
                 FROM invoice_hdr
-                WHERE status NOT IN ('1','5') AND to_date(invoice_date,'DD-MM-YYYY') $dateCond
+                WHERE status <> '5' AND to_date(invoice_date,'DD-MM-YYYY') $dateCond
                 ORDER BY to_date(invoice_date,'DD-MM-YYYY')
             ";
         }
