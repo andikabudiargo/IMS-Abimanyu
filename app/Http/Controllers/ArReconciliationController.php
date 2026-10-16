@@ -56,13 +56,16 @@ class ArReconciliationController extends Controller
     }
 
     /** Nilai DPP murni (kolom "DPP", referensi sebelum pajak) -- delivery basis tidak punya
-     *  pecahan pajak sendiri jadi qty*price dipakai juga sebagai nilai DPP-nya. */
+     *  pecahan pajak sendiri jadi qty*(price material + price service) dipakai sebagai nilai
+     *  DPP-nya, SAMA dengan invoice_hdr.dpp (lihat InvoiceController addArticle.blade.php
+     *  totalAmount = qty*price + qty*priceJasa) -- kalau cuma qty*price, DPP delivery basis
+     *  bakal lebih kecil dari DPP invoice basis sebesar nilai jasanya. */
     private function additionDppSql($basis)
     {
         if ($basis === 'delivery') {
             return "
                 SELECT to_char(to_date(delivery_hdr.delivery_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
-                       SUM(invoice_det.qty * invoice_det.price) as amount
+                       SUM(invoice_det.qty * (invoice_det.price + invoice_det.price_service)) as amount
                 FROM invoice_det
                 JOIN invoice_hdr ON invoice_hdr.invoice_number = invoice_det.invoice_number
                 JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.dn_number
@@ -263,7 +266,7 @@ class ArReconciliationController extends Controller
         } elseif ($basis === 'delivery') {
             $sql = "
                 SELECT delivery_hdr.id, delivery_hdr.delivery_number as doc, delivery_hdr.delivery_date as doc_date,
-                       SUM(invoice_det.qty * invoice_det.price) as amount, 'Delivery Note' as doc_type
+                       SUM(invoice_det.qty * (invoice_det.price + invoice_det.price_service)) as amount, 'Delivery Note' as doc_type
                 FROM invoice_det
                 JOIN invoice_hdr ON invoice_hdr.invoice_number = invoice_det.invoice_number
                 JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.dn_number
