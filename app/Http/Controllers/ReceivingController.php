@@ -4869,7 +4869,7 @@ public function scanChemicalUnit(Request $request)
         ->where('site_code', 'HO')
         ->where('article_code', $unit->article_code)
         ->where('location_number', $unit->location_number)
-        ->value('article_qty') ?? 0;
+        ->sum('article_qty');
 
     return response()->json([
         'status' => 1,

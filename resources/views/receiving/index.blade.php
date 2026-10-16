@@ -894,6 +894,7 @@ function doBrowserPrintChemical(data) {
             '<img class="label-qr" src="' + lbl.qr_url + '">' +
             '<div class="label-text">' +
             '<div class="label-altcode">' + lbl.alt_code + '</div>' +
+            '<div class="label-lot">' + lbl.barcode_code + '</div>' +
             '<div class="label-desc">' + lbl.article_desc + '</div>' +
             '<div class="label-exp">EXP: ' + lbl.expired_date + '</div>' +
             '</div></div>' +
@@ -908,15 +909,16 @@ function doBrowserPrintChemical(data) {
         '*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;text-shadow:none;}' +
         'body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
         '.label-sheet{display:flex;flex-wrap:wrap;}' +
-        '.label-card{width:30mm;height:20mm;border:0.3mm solid #000;padding:1mm 1.5mm;' +
+        '.label-card{width:30mm;height:20mm;border:0.3mm solid #000;padding:1mm 1.3mm;' +
             'display:flex;flex-direction:column;justify-content:space-between;' +
             'overflow:hidden;page-break-inside:avoid;}' +
-        '.label-top{display:flex;align-items:center;gap:1.5mm;flex:1;min-height:0;overflow:hidden;}' +
-        '.label-qr{width:10mm;height:10mm;flex-shrink:0;object-fit:contain;}' +
-        '.label-text{overflow:visible;min-width:0;flex:1;}' +
-        '.label-altcode{font-size:5.5pt;font-weight:900;color:#000;white-space:nowrap;overflow:visible;}' +
-       '.label-exp{font-size:4pt;font-weight:700;font-style:italic;color:#000;white-space:nowrap;margin-top:0.3mm;}' +
-        '.label-desc{font-size:4pt;color:#333;font-weight:600;line-height:1.2;overflow:visible;word-wrap:break-word;}' +
+        '.label-top{display:flex;align-items:center;gap:1.2mm;flex:1;min-height:0;overflow:hidden;}' +
+        '.label-qr{width:13mm;height:13mm;flex-shrink:0;object-fit:contain;}' +
+        '.label-text{overflow:hidden;min-width:0;flex:1;display:flex;flex-direction:column;gap:0.3mm;}' +
+        '.label-altcode{font-size:5.5pt;font-weight:900;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+        '.label-lot{font-size:3.3pt;font-weight:700;color:#000;font-family:"Courier New",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+        '.label-desc{font-size:3.8pt;color:#333;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+        '.label-exp{font-size:4pt;font-weight:700;font-style:italic;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '.label-footer{font-size:3.5pt;color:#555;border-top:0.2mm solid #999;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '</style></head><body>' +
         '<div class="label-sheet">' + labelsHtml + '</div>' +

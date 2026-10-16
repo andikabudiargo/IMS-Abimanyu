@@ -1315,11 +1315,14 @@ public function chemicalLotDetail(Request $request)
         ->orderBy('expired_date')
         ->get(['id', 'barcode_code', 'qty', 'remaining_qty', 'expired_date', 'status', 'source', 'rec_number']);
 
+    // SUM, bukan value() -- satu article_code+location_number bisa punya lebih
+    // dari satu baris warehouse_stock (beda dept_code), sama seperti query stock
+    // utama di listArticle() ($stockSub pakai sum()+groupBy juga).
     $stockQty = (float) DB::table('warehouse_stock')
         ->where('site_code', 'HO')
         ->where('article_code', $articleCode)
         ->where('location_number', $location)
-        ->value('article_qty') ?? 0;
+        ->sum('article_qty');
 
     $coveredQty = (float) $lots->whereIn('status', ['active'])->sum(fn ($l) => (float) ($l->remaining_qty ?? $l->qty));
     $uncoveredQty = round($stockQty - $coveredQty, 3);
@@ -1367,7 +1370,7 @@ public function chemicalLotGeneratePreview(Request $request)
         ->where('site_code', 'HO')
         ->where('article_code', $articleCode)
         ->where('location_number', $location)
-        ->value('article_qty') ?? 0;
+        ->sum('article_qty');
 
     $coveredQty = (float) DB::table('receiving_chemical_unit')
         ->where('article_code', $articleCode)

@@ -1085,9 +1085,11 @@ function renderLotTable(lots) {
     lots.forEach(function (l) {
         const remaining = l.remaining_qty ?? l.qty;
         const canMarkEmpty = l.status === 'active' || l.status === 'out_at_workstation';
-        const actionBtn = canMarkEmpty
-            ? '<button type="button" class="btn btn-sm btn-outline-danger btn-lot-empty" data-id="' + l.id + '">Tandai Habis</button>'
-            : '';
+        let actionBtn = '<button type="button" class="btn btn-sm btn-outline-secondary btn-lot-reprint" data-id="' + l.id + '" title="Cetak ulang label">'
+            + '<i data-feather="printer"></i></button>';
+        if (canMarkEmpty) {
+            actionBtn += ' <button type="button" class="btn btn-sm btn-outline-danger btn-lot-empty" data-id="' + l.id + '">Tandai Habis</button>';
+        }
 
         $tbody.append(
             '<tr>' +
@@ -1101,7 +1103,30 @@ function renderLotTable(lots) {
             '</tr>'
         );
     });
+    if (window.feather) feather.replace();
 }
+
+$(document).on('click', '.btn-lot-reprint', function () {
+    const id = $(this).data('id');
+    const $btn = $(this).prop('disabled', true);
+    $.ajax({
+        url: "{{ route('receiving.reprintChemicalUnitLabel') }}",
+        type: 'POST',
+        data: { unit_ids: [id] },
+        success: function (res) {
+            $btn.prop('disabled', false);
+            if (res.status === 1) {
+                doBrowserPrintChemical(res);
+            } else {
+                Swal.fire('Gagal Print', res.message, 'warning');
+            }
+        },
+        error: function () {
+            $btn.prop('disabled', false);
+            Swal.fire('Error Print', 'Gagal generate label.', 'error');
+        }
+    });
+});
 
 $(document).on('click', '.btn-lot-empty', function () {
     const id = $(this).data('id');
@@ -1221,6 +1246,7 @@ function doBrowserPrintChemical(data) {
             '<img class="label-qr" src="' + lbl.qr_url + '">' +
             '<div class="label-text">' +
             '<div class="label-altcode">' + lbl.alt_code + '</div>' +
+            '<div class="label-lot">' + lbl.barcode_code + '</div>' +
             '<div class="label-desc">' + lbl.article_desc + '</div>' +
             '<div class="label-exp">EXP: ' + lbl.expired_date + '</div>' +
             '</div></div>' +
@@ -1231,14 +1257,20 @@ function doBrowserPrintChemical(data) {
     var html = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
         '<title>Label Chemical Unit</title>' +
         '<style>' +
+        '@page{margin:0;size:30mm 20mm;}' +
+        '*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;text-shadow:none;}' +
+        'body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
         '.label-sheet{display:flex;flex-wrap:wrap;}' +
-        '.label-card{width:30mm;height:16mm;border:0.2mm solid #000;margin:1mm;padding:0.5mm;box-sizing:border-box;}' +
-        '.label-top{display:flex;gap:1mm;}' +
-        '.label-qr{width:10mm;height:10mm;}' +
-        '.label-text{flex:1;overflow:hidden;}' +
-        '.label-altcode{font-size:5pt;font-weight:700;}' +
-        '.label-exp{font-size:4pt;font-weight:700;font-style:italic;color:#000;white-space:nowrap;margin-top:0.3mm;}' +
-        '.label-desc{font-size:4pt;color:#333;font-weight:600;line-height:1.2;overflow:visible;word-wrap:break-word;}' +
+        '.label-card{width:30mm;height:20mm;border:0.3mm solid #000;padding:1mm 1.3mm;' +
+            'display:flex;flex-direction:column;justify-content:space-between;' +
+            'overflow:hidden;page-break-inside:avoid;}' +
+        '.label-top{display:flex;align-items:center;gap:1.2mm;flex:1;min-height:0;overflow:hidden;}' +
+        '.label-qr{width:13mm;height:13mm;flex-shrink:0;object-fit:contain;}' +
+        '.label-text{overflow:hidden;min-width:0;flex:1;display:flex;flex-direction:column;gap:0.3mm;}' +
+        '.label-altcode{font-size:5.5pt;font-weight:900;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+        '.label-lot{font-size:3.3pt;font-weight:700;color:#000;font-family:"Courier New",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+        '.label-desc{font-size:3.8pt;color:#333;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+        '.label-exp{font-size:4pt;font-weight:700;font-style:italic;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '.label-footer{font-size:3.5pt;color:#555;border-top:0.2mm solid #999;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '</style></head><body>' +
         '<div class="label-sheet">' + labelsHtml + '</div>' +
