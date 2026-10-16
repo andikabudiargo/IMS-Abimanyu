@@ -147,7 +147,8 @@ class AccountPayableController extends Controller
         // ditambahkan di akhir (bukan disisip) supaya semua index kolom lama di atas
         // (dipakai arrColPrint & columnDefs.targets di index.blade.php) tidak geser.
         ['data'=> 'bukti_potong', 'name'=> 'bukti_potong','title'=>'No Bukti Potong'],//36
-        ['data'=> 'bupot_date', 'name'=> 'bupot_date','title'=>'Bukti Potong Date']//37
+        ['data'=> 'bupot_date', 'name'=> 'bupot_date','title'=>'Bukti Potong Date'],//37
+        ['data'=> 'pb1', 'name'=> 'pb1','title'=>'PB 1']//38
     ];
     return json_encode($kolom, true);
 }
