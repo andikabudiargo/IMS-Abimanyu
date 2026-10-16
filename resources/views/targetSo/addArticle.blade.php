@@ -465,7 +465,20 @@
         whenArticlesReady(function () {
             suppressConversionAjax = true;
             rows.forEach(function (r) {
-                add_new_row_import(r.article_code, r.qty_target, r.qty_forcast, r.total_conversion);
+                // Revisi TSO: artikel yang diupload bisa sudah ada di baris existing.
+                // Update baris itu, jangan tambah baris baru (dulu selalu append, bikin artikel
+                // duplikat -> ditolak sebagai "entered more than once" saat Save, qty jadi tidak kesimpan).
+                let $existing = $('#article_row select[name="articleId[]"]').filter(function () {
+                    return $(this).val() == r.article_code;
+                }).closest('.tanda-baris');
+
+                if ($existing.length) {
+                    $existing.find('input[name="qtyTarget[]"]').val(r.qty_target);
+                    $existing.find('input[name="qtyForcast[]"]').val(r.qty_forcast);
+                    $existing.find('.conversion-preview').val(r.total_conversion);
+                } else {
+                    add_new_row_import(r.article_code, r.qty_target, r.qty_forcast, r.total_conversion);
+                }
             });
             suppressConversionAjax = false;
             mask_thousand_satuan();
