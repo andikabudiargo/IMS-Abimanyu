@@ -745,6 +745,10 @@
         {
             $username =  Auth::user()->username;
 
+            if (!Auth::user()->hasRole('accounting') && !Auth::user()->hasRole('Superuser')) {
+                abort(403);
+            }
+
             // === Lock Transaction guard: activity (Article tidak punya tanggal) ===
             if ($err = \AppHelpers::lockGuard($this->moduleCode)) {
                 return redirect()->back()->with(['alert' => 'warning', 'title' => "Delete $this->title", 'message' => $err]);
@@ -853,7 +857,8 @@
     $this->applyExtraFilters($data, $request, 'article');
 
     $bisaEdit = Auth::user()->can('article-edit');
-    $bisaDelete = Auth::user()->can('article-delete');
+    $bisaDelete = Auth::user()->can('article-delete')
+        && (Auth::user()->hasRole('accounting') || Auth::user()->hasRole('Superuser'));
 
     return Datatables::of($data)
     ->addColumn('action', function ($data) use ($bisaEdit,$bisaDelete) {
