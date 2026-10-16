@@ -132,22 +132,22 @@ class InvoiceController extends Controller
         [
             ['data'=> 'invoice_date', 'name'=> 'invoice_date','title'=>'Date'], //0
             ['data'=> 'invoice_date_2', 'name'=> 'invoice_date_2','title'=>'Date','visible'=>false], //1
-            ['data'=> 'period', 'name'=> 'period','title'=>'Period'], //2
-            ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number'], //3
-            ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number'], //4
-            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number'], //5
-            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer'], //6
+            ['data'=> 'period', 'name'=> 'period','title'=>'Period','searchable'=>false], //2
+            ['data'=> 'invoice_number', 'name'=> 'invoice_number','title'=>'Inv. Number','searchable'=>false], //3
+            ['data'=> 'so_number', 'name'=> 'so_number','title'=>'SO Number','searchable'=>false], //4
+            ['data'=> 'po_number', 'name'=> 'po_number','title'=>'PO Number','searchable'=>false], //5
+            ['data'=> 'customer_name', 'name'=> 'customer_name','title'=>'Customer','searchable'=>false], //6
             ['data'=> 'article_code', 'name'=> 'article_code','title'=>'Article Code'], //7
             ['data'=> 'article_desc', 'name'=> 'article_desc','title'=>'Desc'], //8
             ['data'=> 'qty', 'name'=> 'qty','title'=>'QTY'], //9
             ['data'=> 'uom', 'name'=> 'uom','title'=>'UOM'], //10
             ['data'=> 'price', 'name'=> 'price','title'=>'M. Price'], //11
             ['data'=> 'price_service', 'name'=> 'price_service','title'=>'S. Price'], //12
-            ['data'=> 'total_price_material', 'name'=> 'total_price_material','title'=>'T. Material'], //13
-            ['data'=> 'total_price_service', 'name'=> 'total_price_service','title'=>'T. Service'], //14
+            ['data'=> 'total_price_material', 'name'=> 'total_price_material','title'=>'T. Material','searchable'=>false], //13
+            ['data'=> 'total_price_service', 'name'=> 'total_price_service','title'=>'T. Service','searchable'=>false], //14
             ['data'=> 'grand_total', 'name'=> 'grand_total','title'=>'Total'], //15
-            ['data'=> 'status', 'name'=> 'status','title'=>'Status'], //16
-            ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number'], //17
+            ['data'=> 'status', 'name'=> 'status','title'=>'Status','searchable'=>false], //16
+            ['data'=> 'dn_number', 'name'=> 'dn_number','title'=>'DN Number','searchable'=>false], //17
         ];
         return json_encode($kolom, true);
     }
@@ -1934,9 +1934,8 @@ DB::raw("
         ->groupBy('article.article_alternative_code')
         ->groupBy('article.article_desc')
         ->groupBy('invoice_det.so_number')
-        ->groupBy('invoice_det.dn_number')
+        ->groupBy('invoice_det.dn_number');
         // ->orderBy('article.article_alternative_code')
-        ->get();
 
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
