@@ -15,6 +15,8 @@ use DB;
 use PDF;
 use AppHelpers;
 use Approval;
+use App\Exports\TrialBalanceGridExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TrialBalanceController extends Controller
 {
@@ -145,13 +147,8 @@ class TrialBalanceController extends Controller
     // = net kumulatif seluruh transaksi sebelum bulan itu; saldo akhir = saldo awal +
     // pergerakan bulan itu. Net positif (debit>credit) ditaruh di kolom debit, net
     // negatif ditaruh di kolom credit (konvensi trial balance standar).
-    public function savedGenerateData(Request $request)
+    private function monthlyDataForYear(int $year): array
     {
-        $year = (int) $request->year;
-        if (!$year) {
-            return response()->json(['status' => 0, 'message' => 'Year wajib diisi'], 422);
-        }
-
         $monthly = DB::select("
             SELECT d.account,
                    extract(month from to_date(h.voucher_date,'dd-mm-yyyy'))::int as month,
@@ -206,7 +203,33 @@ class TrialBalanceController extends Controller
             $result[$account] = $monthsData;
         }
 
-        return response()->json(['status' => 1, 'data' => $result]);
+        return $result;
+    }
+
+    public function savedGenerateData(Request $request)
+    {
+        $year = (int) $request->year;
+        if (!$year) {
+            return response()->json(['status' => 0, 'message' => 'Year wajib diisi'], 422);
+        }
+
+        return response()->json(['status' => 1, 'data' => $this->monthlyDataForYear($year)]);
+    }
+
+    public function savedExportExcel(Request $request)
+    {
+        $year = (int) $request->year;
+        if (!$year) {
+            return redirect()->back()->with(['status' => 1, 'alert' => 'warning', 'message' => 'Year wajib diisi']);
+        }
+
+        [$accounts, $groups] = $this->groupedAccounts();
+        $monthlyData = $this->monthlyDataForYear($year);
+
+        return Excel::download(
+            new TrialBalanceGridExport($year, $accounts, $groups, $monthlyData, $this->months),
+            "trial_balance_$year.xlsx"
+        );
     }
 
     // Voucher yang jadi sumber angka 1 cell (Saldo Awal/Pergerakan/Saldo Akhir), dipanggil

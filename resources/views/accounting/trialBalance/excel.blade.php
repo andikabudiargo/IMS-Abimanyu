@@ -1,93 +1,74 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ $title }}</title>
-</head>
-<body>
-    <table>
-        <thead>
-            <tr>
-                <td>
-                    <div class="header-space">
-                        <table width="100%">
-                            <tr>
-                                <td colspan="2" style="text-align:center;">LABA RUGI</td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" style="text-align:center;">PT ABIMANYU SEKAR NUSANTARA</td><td></td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" style="text-align:center;">PERIODE {{ $tanggal }}</td><td></td>
-                            </tr>
-                        </table>
-                    </div>
-                </td>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>
-                    <div class="content">
-                        <table class="table table-condensed table-striped">
-                            <tbody>
-                                <tr>
-                                    <td>Akun</td><td >Balance</td>
-                                </tr>
-                            @foreach($mains as $key => $main)
-                                @foreach($groups as $keyGroup => $group)
-                                    @if($group->main == $main->main)
-                                    <tr><td></td><td></td></tr>
-                                        <tr>
-                                            <td><b>{{ $group ->group_name}}</b></td><td></td>
-                                        </tr>
-                                        @foreach($details as $keyDetail => $detail)
-                                            @if($detail->group_code == $group->group_data)
-                                            <tr>
-                                                <td>{{ $detail->sub_group_name }} ({{ $detail->account }})</td>
-                                                <td>Rp.{{ number_format($detail->saldo,2) }} </td>
-                                            </tr>
-                                            @endif
-                                        @endforeach
-                                        @foreach($totalGroups as $keyTotalGroup => $totalGroup)
-                                            @if($totalGroup->group_code == $group->group_data)
-                                            <tr>
-                                                <td><b>Total {{ $totalGroup->group_name }}</b></td>
-                                                <td><b>Rp.{{ number_format($totalGroup->jumlah,2) }}</b></td> 
-                                            </tr>
-                                            @endif
-                                        @endforeach
-                                    @endif
-                                @endforeach
-                                @foreach($totalMains as $keyTotalMain => $totalMain)
-                                    @if($totalMain->main == $main->main)
-                                        <tr><td></td><td></td></tr>
-                                        <tr>
-                                            <td><b>{{ $totalMain->main_name }}</b></td>
-                                            @if($totalMain->main == 'lababersih')
-                                              <td><b>Rp.{{ $labaBersih }}</b></td>
-                                            @endif
-                                            @if($totalMain->main == 'labakotor')
-                                              <td><b>Rp.{{ $labaKotor }}</b></td>
-                                            @endif
-                                        </tr>
-                                    @endif                                    
-                                @endforeach
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </td>
-            </tr>
-        </tbody>
-        <tfoot>
-            <tr>
-            <td>
-            <div class="footer-space">
-            </div>
-            </td>
-            </tr>
-        </tfoot>
-    </table>
-</body>
-</html>
+<table>
+  <thead>
+    <tr>
+      <th rowspan="3">Account</th>
+      <th rowspan="3">Description</th>
+      <th rowspan="3">Normal Balance</th>
+      <th rowspan="3">Final Statement</th>
+      @foreach($months as $m)
+        <th colspan="6">{{ \DateTime::createFromFormat('n',$m)->format('F') }} {{ $year }}</th>
+      @endforeach
+    </tr>
+    <tr>
+      @foreach($months as $m)
+        <th colspan="2">Saldo Awal</th>
+        <th colspan="2">Pergerakan</th>
+        <th colspan="2">Saldo Akhir</th>
+      @endforeach
+    </tr>
+    <tr>
+      @foreach($months as $m)
+        <th>Debit</th><th>Credit</th><th>Debit</th><th>Credit</th><th>Debit</th><th>Credit</th>
+      @endforeach
+    </tr>
+  </thead>
+  <tbody>
+    @php
+      $fieldKeys = ['open_debit','open_credit','mutasi_debit','mutasi_credit','saldo_debit','saldo_credit'];
+      $grandTotals = [];
+    @endphp
+    @foreach($groups as $g)
+      @php
+        $groupAccounts = $accounts->where('group_data', $g->group_data)->values();
+        $groupTotals = [];
+      @endphp
+      <tr>
+        <td colspan="{{ 4 + count($months)*6 }}"><strong>{{ $g->group_name }}</strong></td>
+      </tr>
+      @foreach($groupAccounts as $acc)
+        <tr>
+          <td>{{ $acc->account }}</td>
+          <td>{{ $acc->description }}</td>
+          <td>{{ $acc->debit_credit }}</td>
+          <td>{{ $acc->final_statement }}</td>
+          @foreach($months as $m)
+            @foreach($fieldKeys as $field)
+              @php
+                $val = $monthlyData[$acc->account][$m][$field] ?? 0;
+                $groupTotals["$m|$field"] = ($groupTotals["$m|$field"] ?? 0) + $val;
+                $grandTotals["$m|$field"] = ($grandTotals["$m|$field"] ?? 0) + $val;
+              @endphp
+              <td>{{ $val }}</td>
+            @endforeach
+          @endforeach
+        </tr>
+      @endforeach
+      <tr>
+        <td colspan="4"><strong>Subtotal {{ $g->group_name }}</strong></td>
+        @foreach($months as $m)
+          @foreach($fieldKeys as $field)
+            <td><strong>{{ $groupTotals["$m|$field"] ?? 0 }}</strong></td>
+          @endforeach
+        @endforeach
+      </tr>
+    @endforeach
+    <tr>
+      <td colspan="4"><strong>Grand Total</strong></td>
+      @foreach($months as $m)
+        @foreach($fieldKeys as $field)
+          <td><strong>{{ $grandTotals["$m|$field"] ?? 0 }}</strong></td>
+        @endforeach
+      @endforeach
+    </tr>
+  </tbody>
+</table>

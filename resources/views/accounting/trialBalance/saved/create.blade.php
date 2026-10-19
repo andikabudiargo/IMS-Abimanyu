@@ -35,6 +35,7 @@
           </div>
         </div>
         <button type="button" id="btnGenerate" class="btn btn-primary">Generate</button>
+        <button type="button" id="btnExport" class="btn btn-success" disabled>Export Excel</button>
       </div>
     </div>
   </div>
@@ -191,6 +192,7 @@
           });
 
           $('#tbTableWrap').show();
+          $('#btnExport').prop('disabled', false).data('year', year);
         })
         .fail(function(){
           swal.fire('Error', 'Gagal generate data dari jurnal', 'error');
@@ -198,6 +200,11 @@
         .always(function(){
           $(".loading-spinner-container").removeClass("-show");
         });
+    });
+
+    $('#btnExport').on('click', function(){
+      const year = $(this).data('year');
+      window.location.href = "{{ route('trialBalance.saved.exportExcel') }}?year=" + encodeURIComponent(year);
     });
 
     $(document).on('click', 'tr.group-row', function(){
