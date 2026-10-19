@@ -917,9 +917,8 @@ function doBrowserPrintChemical(data) {
         '.label-text{overflow:visible;min-width:0;flex:1;display:flex;flex-direction:column;gap:0.3mm;}' +
         '.label-altcode{font-size:4.2pt;font-weight:900;color:#000;white-space:nowrap;overflow:visible;letter-spacing:-0.1pt;}' +
         '.label-lot{font-size:2.6pt;font-weight:700;color:#000;font-family:"Courier New",monospace;white-space:nowrap;overflow:visible;letter-spacing:-0.1pt;}' +
-        '.label-desc{font-size:3pt;color:#333;font-weight:600;overflow:hidden;letter-spacing:-0.1pt;' +
-            'display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.15;word-break:break-word;}' +
-        '.label-exp{font-size:4pt;font-weight:700;font-style:italic;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+        '.label-desc{font-size:2.3pt;color:#333;font-weight:600;letter-spacing:-0.1pt;line-height:1.15;word-break:break-word;}' +
+        '.label-exp{font-size:2.6pt;font-weight:700;font-style:italic;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '.label-footer{font-size:3.5pt;color:#555;border-top:0.2mm solid #999;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '</style></head><body>' +
         '<div class="label-sheet">' + labelsHtml + '</div>' +
