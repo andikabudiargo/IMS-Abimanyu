@@ -230,16 +230,19 @@ class TrialBalanceController extends Controller
             $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') <= '$monthEnd'";
         }
 
-        // Filter d.debit/d.credit > 0 DULU (baris mentah) baru di-group per voucher --
-        // supaya klik kolom Debit cuma nampilin voucher yang punya baris debit di account
-        // ini, bukan ketarik voucher lain yang di baris lain punya kredit juga.
+        // Pergerakan (mutasi) itu angka mentah satu sisi -> filter cuma baris debit/kredit
+        // yang diklik. Tapi Saldo Awal/Akhir itu angka NET (debit-credit), jadi harus
+        // tampilin SEMUA transaksi (debit & kredit) biar totalnya nyambung ke saldo di grid --
+        // kalau di-filter satu sisi doang, totalnya ga akan pernah sama kayak saldo net-nya.
+        $sideFilter = $bucket === 'mutasi' ? "AND d.$side > 0" : '';
+
         $rows = DB::select("
             SELECT h.id as hdr_id, h.voucher_number, h.voucher_date, h.voucher_type,
                    sum(d.debit) as debit, sum(d.credit) as credit, max(dp.name) as cost_center_name
             FROM kas_det d
             JOIN kas_hdr h ON d.voucher_number = h.voucher_number
             LEFT JOIN depts dp ON dp.code = d.cost_center
-            WHERE h.status <> '5' AND d.account = ? AND $dateCond AND d.$side > 0
+            WHERE h.status <> '5' AND d.account = ? AND $dateCond $sideFilter
             GROUP BY h.id, h.voucher_number, h.voucher_date, h.voucher_type
             ORDER BY to_date(h.voucher_date,'dd-mm-yyyy'), h.voucher_number
         ", [$account]);
@@ -257,9 +260,11 @@ class TrialBalanceController extends Controller
 
         return response()->json([
             'status' => 1,
+            'bucket' => $bucket,
             'rows' => $rows,
             'total_debit' => $totalDebit,
             'total_credit' => $totalCredit,
+            'net' => $totalDebit - $totalCredit,
         ]);
     }
 

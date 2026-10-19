@@ -25,6 +25,10 @@
                 <td class="text-right" id="voucherModalTotalDebit">0</td>
                 <td class="text-right" id="voucherModalTotalCredit">0</td>
               </tr>
+              <tr id="voucherModalNetRow" style="display:none;">
+                <td colspan="3"><strong>Net (Saldo)</strong></td>
+                <td colspan="2" class="text-right" id="voucherModalNet"><strong>0</strong></td>
+              </tr>
             </tfoot>
           </table>
         </div>

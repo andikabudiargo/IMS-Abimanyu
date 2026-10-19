@@ -13,19 +13,23 @@
     <div class="card-content">
       <div class="card-body">
         <div class="form-row">
-          <div class="form-group col-md-2">
+          <div class="form-group col-md-3">
             <label class="form-label">Nomor</label>
             <input type="text" id="tbNumber" class="form-control" value="{{ $nextCode }}" disabled>
           </div>
-          <div class="form-group col-md-2">
+          <div class="form-group col-md-3">
             <label class="form-label">Year *</label>
             <input type="number" id="year" class="form-control" value="{{ date('Y') }}" min="2000" max="2100" required>
           </div>
-          <div class="form-group col-md-4">
+          </div>
+          <div class="form-row">
+          <div class="form-group col-md-6">
             <label class="form-label">Description</label>
             <input type="text" id="description" class="form-control">
           </div>
-          <div class="form-group col-md-4">
+        </div>
+          <div class="form-row">
+          <div class="form-group col-md-6">
             <label class="form-label">Note</label>
             <input type="text" id="note" class="form-control">
           </div>
