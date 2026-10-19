@@ -212,6 +212,59 @@ class AccTypeController extends Controller
 
     }
 
+    // Dipakai modal "Tambah Account Type" di accounts/create: list + edit + delete
+    // inline tanpa pindah halaman, id tidak di-encrypt karena cuma dipanggil dari
+    // AJAX sesi yang sudah login (bukan link yang di-share).
+    public function quickList(Request $request)
+    {
+        $data = DB::table('acc_types')
+        ->where('status', 1)
+        ->orderBy('code')
+        ->get(['id', 'code', 'name']);
+
+        return response()->json($data);
+    }
+
+    public function quickUpdate(Request $request)
+    {
+        $username = Auth::user()->username;
+        $id = $request->input('id');
+        $nama = strtoupper($request->input('nama'));
+
+        $this->validate($request, [
+            'id' => 'required',
+            'nama' => 'required',
+        ]);
+
+        DB::table('acc_types')->where('id', $id)->update([
+            'name' => $nama,
+            'updated_by' => $username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        \LogActivity::addToLog('Update Account Type', "username: $username id: $id");
+
+        $row = DB::table('acc_types')->where('id', $id)->first(['id', 'code', 'name']);
+        return response()->json($row);
+    }
+
+    public function quickDestroy(Request $request)
+    {
+        $username = Auth::user()->username;
+        $id = $request->input('id');
+        $code = DB::table('acc_types')->where('id', $id)->value('code');
+
+        if ($code && (DB::table('accounts')->where('type_code', $code)->exists() || DB::table('acc_sub')->where('type_code', $code)->exists())) {
+            return response()->json(['status' => 0, 'message' => "Tidak bisa dihapus, masih dipakai oleh Sub Account/Account di bawah $code"], 422);
+        }
+
+        DB::table('acc_types')->where('id', $id)->delete();
+
+        \LogActivity::addToLog('Delete Account Type', "username: $username id: $id");
+
+        return response()->json(['status' => 1]);
+    }
+
     public function list(Request $request)
     {
         $code = strtolower($request->code);

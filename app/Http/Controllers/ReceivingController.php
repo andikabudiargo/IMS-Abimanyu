@@ -463,12 +463,6 @@ public function printChemicalUnitLabel(Request $request)
 
     $printedBy = Auth::user()->username;
 
-    // ZPL control char ('^' dan '~') kalau ikut masuk ke field data bikin
-    // sisa command ZPL setelahnya rusak -- buang dulu sebelum disisipkan.
-    $zplSafe = function ($v) {
-        return str_replace(['^', '~'], '', (string) $v);
-    };
-
     $labels = [];
     foreach ($units as $unit) {
         // FIX: sesuaikan dengan package QR yang terpasang
@@ -476,37 +470,12 @@ public function printChemicalUnitLabel(Request $request)
             \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')->size(300)->margin(1)->generate($unit->barcode_code)
         );
 
-        $expiredLabel = $unit->expired_date ? date('d-m-Y', strtotime($unit->expired_date)) : '-';
-        $altCode      = $zplSafe($unit->article_alternative_code);
-        $barcodeCode  = $zplSafe($unit->barcode_code);
-        $desc         = $zplSafe($unit->article_desc);
-        $footer       = $zplSafe(mb_substr("Dicetak: {$printedBy}", 0, 50));
-
-        // ZPL 30x20mm @ 203 DPI (sama persis dengan label artikel master),
-        // QR native (^BQ) berisi barcode_code kaleng -- yang ini yang dipakai scan,
-        // bukan article_alternative_code seperti di label artikel.
-        $zpl = "^XA
-^MMT
-^PW240
-^LL160
-^LS0
-^CI28
-^FO4,4^BQN,2,3^FDQA,{$barcodeCode}^FS
-^FO94,6^A0N,14,13^FD{$altCode}^FS
-^FO94,24^A0N,9,8^FD{$barcodeCode}^FS
-^FO94,36^A0N,8,7^FB142,3,0,L^FD{$desc}^FS
-^FO4,140^A0N,9,8^FDEXP: {$expiredLabel}^FS
-^FO4,152^A0N,7,6^FD{$footer}^FS
-^PQ1,0,1,Y
-^XZ";
-
         $labels[] = [
             'barcode_code'  => $unit->barcode_code,
             'qr_url'        => 'data:image/png;base64,' . $qrBase64,
             'alt_code'      => $unit->article_alternative_code,
             'article_desc'  => $unit->article_desc,
-            'expired_date'  => $expiredLabel,
-            'zpl'           => $zpl,
+            'expired_date'  => $unit->expired_date ? date('d-m-Y', strtotime($unit->expired_date)) : '-',
         ];
     }
 

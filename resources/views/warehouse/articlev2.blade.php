@@ -1122,7 +1122,7 @@ $(document).on('click', '.btn-lot-reprint', function () {
         success: function (res) {
             $btn.prop('disabled', false);
             if (res.status === 1) {
-                promptChemicalPrintMethod(res);
+                doBrowserPrintChemical(res);
             } else {
                 Swal.fire('Gagal Print', res.message, 'warning');
             }
@@ -1273,7 +1273,7 @@ $('#btnLotGenerateSave').on('click', function () {
                 type: 'POST',
                 data: { unit_ids: unitIds },
                 success: function (printRes) {
-                    if (printRes.status === 1) promptChemicalPrintMethod(printRes);
+                    if (printRes.status === 1) doBrowserPrintChemical(printRes);
                 }
             });
         },
@@ -1283,60 +1283,6 @@ $('#btnLotGenerateSave').on('click', function () {
         }
     });
 });
-
-// Pilih metode cetak: Browser (default, jalur yang sudah ada & selalu jalan)
-// atau Network IP (kirim ZPL native langsung ke printer -- lebih tajam, tapi
-// opsional: kalau gagal/IP salah, browser print tetap tersedia sebagai fallback).
-function promptChemicalPrintMethod(data) {
-    var savedIp = localStorage.getItem('zebra_ip') || '';
-    Swal.fire({
-        title: 'Pilih Metode Cetak Label',
-        html:
-            '<div style="text-align:left;">' +
-            '<button type="button" id="pmBrowserBtn" class="btn btn-outline-primary btn-block mb-2">🖨️ Browser Print (default)</button>' +
-            '<button type="button" id="pmNetworkToggleBtn" class="btn btn-outline-secondary btn-block">🖧 Network IP (ZPL, lebih tajam di printer kecil)</button>' +
-            '<div id="pmNetworkArea" style="display:none;margin-top:8px;">' +
-            '<input type="text" id="pmIpInput" class="form-control form-control-sm mb-2" placeholder="192.168.1.xxx" value="' + savedIp + '">' +
-            '<button type="button" id="pmSendNetworkBtn" class="btn btn-sm btn-success btn-block">Kirim ke Printer</button>' +
-            '</div>' +
-            '</div>',
-        showConfirmButton: false,
-        showCloseButton: true,
-        didOpen: function () {
-            $('#pmBrowserBtn').on('click', function () {
-                Swal.close();
-                doBrowserPrintChemical(data);
-            });
-            $('#pmNetworkToggleBtn').on('click', function () {
-                $('#pmNetworkArea').slideToggle(150);
-            });
-            $('#pmSendNetworkBtn').on('click', function () {
-                var ip = $('#pmIpInput').val().trim();
-                if (!ip) return;
-                Swal.close();
-                doNetworkZplChemical(data, ip);
-            });
-        }
-    });
-}
-
-function doNetworkZplChemical(data, ip) {
-    var zpl = (data.labels || []).map(function (l) { return l.zpl; }).join('\n');
-    if (!zpl) { Swal.fire('Error', 'ZPL tidak tersedia untuk label ini.', 'error'); return; }
-    localStorage.setItem('zebra_ip', ip);
-    $.ajax({
-        url: "{{ route('article.printLabelNetwork') }}",
-        type: 'POST',
-        data: { _token: '{{ csrf_token() }}', zpl: zpl, ip: ip, port: 9100 },
-        success: function (res) {
-            if (res.status === 1) Swal.fire('Berhasil', res.message, 'success');
-            else Swal.fire('Gagal Kirim', res.message, 'warning');
-        },
-        error: function () {
-            Swal.fire('Error', 'Gagal mengirim ke printer.', 'error');
-        }
-    });
-}
 
 function doBrowserPrintChemical(data) {
     var labels    = data.labels;

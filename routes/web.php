@@ -160,8 +160,19 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::get('accTypes/edit',['as'=>'accType.edit','uses'=>'AccTypeController@edit','middleware' => ['permission:accType-edit']]);
 	Route::post('accTypes/update',['as'=>'accType.update','uses'=>'AccTypeController@update']);
 	Route::post('accTypes/delete',['as'=>'accType.destroy','uses'=>'AccTypeController@destroy']);
+	Route::get('accTypes/quickList',['as'=>'accType.quickList','uses'=>'AccTypeController@quickList']);
+	Route::post('accTypes/quickUpdate',['as'=>'accType.quickUpdate','uses'=>'AccTypeController@quickUpdate']);
+	Route::post('accTypes/quickDelete',['as'=>'accType.quickDestroy','uses'=>'AccTypeController@quickDestroy']);
 
+	Route::get('accSub',['as'=>'accSub.index','uses'=>'AccSubController@index']);
+	Route::get('accSub/list',['as'=>'accSub.list','uses'=>'AccSubController@list']);
+	Route::get('accSub/edit',['as'=>'accSub.edit','uses'=>'AccSubController@edit']);
+	Route::post('accSub/update',['as'=>'accSub.update','uses'=>'AccSubController@update']);
+	Route::post('accSub/delete',['as'=>'accSub.destroy','uses'=>'AccSubController@destroy']);
 	Route::post('accSub/store',['as'=>'accSub.store','uses'=>'AccSubController@store']);
+	Route::get('accSub/quickList',['as'=>'accSub.quickList','uses'=>'AccSubController@quickList']);
+	Route::post('accSub/quickUpdate',['as'=>'accSub.quickUpdate','uses'=>'AccSubController@quickUpdate']);
+	Route::post('accSub/quickDelete',['as'=>'accSub.quickDestroy','uses'=>'AccSubController@quickDestroy']);
 
 	Route::get('groups',['as'=>'groups.index','uses'=>'GroupController@index','middleware' => ['permission:group-index']]);
 	Route::get('groups/create',['as'=>'group.create','uses'=>'GroupController@create','middleware' => ['permission:group-create']]);
