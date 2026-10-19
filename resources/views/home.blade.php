@@ -1974,8 +1974,20 @@
                                             </div>
                                         </div>
                                         <div class="card-body">
-                                           <div class="table-responsive" style="max-height:300px; overflow-y:auto;">
-                <table class="table table-hover mb-0" width="100%">
+                                           <div class="table-responsive" style="max-height:300px; overflow-y:auto; overflow-x:hidden;">
+                <table class="table table-hover table-sm mb-0" style="font-size:0.82rem; table-layout:fixed; width:100%;">
+                    <colgroup>
+                        <col style="width:3%">
+                        <col style="width:12%">
+                        <col style="width:9%">
+                        <col style="width:25%">
+                        <col style="width:16%">
+                        <col style="width:8%">
+                        <col style="width:9%">
+                        <col style="width:6%">
+                        <col style="width:7%">
+                        <col style="width:5%">
+                    </colgroup>
                     <thead style="position: sticky; top: 0; z-index: 10; background: #fff;">
                         <tr>
                             <th>No</th>
@@ -2012,17 +2024,17 @@
                     <tr>
                         <td>{{ $key+1 }}</td>
 
-                        <td class="font-weight-bold">{{ $val->location_name }}</td>
+                        <td class="font-weight-bold" style="word-break:break-word; white-space:normal;">{{ $val->location_name }}</td>
 
-                        <td class="font-weight-bold">
+                        <td class="font-weight-bold" style="word-break:break-word; white-space:normal;">
                             {{ $val->code }}
                         </td>
 
-                        <td class="font-weight-bold">
+                        <td class="font-weight-bold" style="word-break:break-word; white-space:normal;">
                             {{ $val->name }}
                         </td>
 
-                        <td>{{ $val->supplier_name }}</td>
+                        <td style="word-break:break-word; white-space:normal;">{{ $val->supplier_name }}</td>
 
                         <td class="text-right text-danger font-weight-bolder">
                             {{ number_format($val->stock_qty) }}
