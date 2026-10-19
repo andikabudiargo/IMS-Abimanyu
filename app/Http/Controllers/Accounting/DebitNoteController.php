@@ -1734,11 +1734,7 @@ class DebitNoteController extends Controller
         ];
 
         /*
-            3.ppn keluaran customer, ATAU ppn masukan kalau ke supplier.
-            Permintaan user: DN supplier TIDAK membalik/mengurangi PPN Masukan yang
-            sudah diklaim di AP invoice - PPN tetap menambah (debit), bukan mengurangi
-            (credit), ke ppnMasukanSupplier. Alasan bisnisnya tidak dijelaskan ke saya,
-            jadi ikuti saja seperti yang diminta.
+            3.ppn keluaran customer, atau reversal ppn masukan kalau ke supplier
         */
 
         if($dnvData->total_ppn > 0){
@@ -1746,8 +1742,8 @@ class DebitNoteController extends Controller
                 'voucher_number' => $dnNumber,
                 'account' =>$dnvData->third_party_type == 'supp' ? $ppnMasukanSupplier : $ppnKeluaranCustomer,
                 'description' => $dnNumber.' '.$dnvData->customer_name,
-                'debit' => $dnvData->third_party_type == 'supp' ? $dnvData->total_ppn : 0,
-                'credit' => $dnvData->third_party_type == 'supp' ? 0 : $dnvData->total_ppn,
+                'debit' => 0,
+                'credit' => $dnvData->total_ppn,
                 'reference' => $reference,
                 'created_by' => Auth::user()->username,
                 'updated_by' => Auth::user()->username,
@@ -1888,11 +1884,7 @@ class DebitNoteController extends Controller
         ];
 
         /*
-            3.ppn keluaran customer, ATAU ppn masukan kalau ke supplier.
-            Permintaan user: DN supplier TIDAK membalik/mengurangi PPN Masukan yang
-            sudah diklaim di AP invoice - PPN tetap menambah (debit), bukan mengurangi
-            (credit), ke ppnMasukanSupplier. Alasan bisnisnya tidak dijelaskan ke saya,
-            jadi ikuti saja seperti yang diminta.
+            3.ppn keluaran customer, atau reversal ppn masukan kalau ke supplier
         */
 
         if($dnvData->total_ppn > 0){
@@ -1900,8 +1892,8 @@ class DebitNoteController extends Controller
                 'voucher_number' => $dnNumber,
                 'account' =>$dnvData->third_party_type == 'supp' ? $ppnMasukanSupplier : $ppnKeluaranCustomer,
                 'description' => $dnNumber.' '.$dnvData->customer_name,
-                'debit' => $dnvData->third_party_type == 'supp' ? $dnvData->total_ppn : 0,
-                'credit' => $dnvData->third_party_type == 'supp' ? 0 : $dnvData->total_ppn,
+                'debit' => 0,
+                'credit' => $dnvData->total_ppn,
                 'reference' => $reference,
                 'created_by' => $createdBy,
                 'updated_by' => Auth::user()->username,
