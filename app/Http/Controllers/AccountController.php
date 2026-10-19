@@ -310,7 +310,12 @@ class AccountController extends Controller
         ->where('account','ilike','%'.$code.'%')
         ->where('accounts.description','ilike','%'.$name.'%')  
         ->select('accounts.*','acc_types.name as type','acc_sub.description as sub_account')
-        ->orderBy('account')->get();
+        ->orderByRaw("
+            NULLIF(split_part(account, '.', 1), '')::numeric,
+            NULLIF(split_part(account, '.', 2), '')::numeric,
+            NULLIF(split_part(account, '.', 3), '')::numeric,
+            account
+        ")->get();
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {
@@ -357,6 +362,15 @@ class AccountController extends Controller
                             </div>';
             }
             return $status;
+        })
+        ->orderColumn('account', function ($query, $order) {
+            $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
+            $query->orderByRaw("
+                NULLIF(split_part(account, '.', 1), '')::numeric $order,
+                NULLIF(split_part(account, '.', 2), '')::numeric $order,
+                NULLIF(split_part(account, '.', 3), '')::numeric $order,
+                account $order
+            ");
         })
         ->rawColumns(['action','blacklist'])
         ->make(true);

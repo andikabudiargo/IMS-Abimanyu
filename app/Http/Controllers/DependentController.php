@@ -12,6 +12,18 @@ use DB;
 class DependentController extends Controller
 {
 
+    // Urutan "natural" per segmen kode akun (1200 < 1200.10 < 1200.10.1 < 1200.20),
+    // bukan urutan string biasa yang bikin 1200.10 dianggap "lebih besar" dari 1200.9.
+    private function coaNaturalOrder()
+    {
+        return "
+            NULLIF(split_part(account, '.', 1), '')::numeric,
+            NULLIF(split_part(account, '.', 2), '')::numeric,
+            NULLIF(split_part(account, '.', 3), '')::numeric,
+            account
+        ";
+    }
+
     public function dependentFetch(Request $request)
     {
         $skipDefaultQuery = false;
@@ -863,14 +875,14 @@ class DependentController extends Controller
             ->orderBy('so_code')
             ->get();
         }elseif($dependent =='account'){
-            $data= DB::table($table) 
+            $data= DB::table($table)
             ->where('acc_header','!=','HEADER')
-            ->orderBy($order)
+            ->orderByRaw($this->coaNaturalOrder())
             ->get();
         }elseif($dependent =='list_coa'){
             $data= DB::table($table)
             ->where('acc_header','!=','HEADER')
-            ->orderBy($order)
+            ->orderByRaw($this->coaNaturalOrder())
             ->get();
         }elseif($dependent =='accNumberRange'){
             // $code = sub_code (contoh 1100.10) -> dekade 1100.11..1100.19
@@ -887,7 +899,7 @@ class DependentController extends Controller
             $data = DB::table('accounts')
             ->where('parent_id', $code)
             ->where('acc_header', 'HEADER')
-            ->orderBy('account')
+            ->orderByRaw($this->coaNaturalOrder())
             ->get();
         }elseif($dependent =='accDetailNumberRange'){
             // $code = kode akun HEADER (contoh 1100.13) -> anak 1100.13.1, 1100.13.2, dst (tanpa padding)

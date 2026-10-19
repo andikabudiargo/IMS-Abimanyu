@@ -323,6 +323,144 @@ class TrialBalanceController extends Controller
         $data['pergerakanKas'] = number_format($qTotalPergerakanKas,2);
         $data['tanggal'] = str_replace('to',' to ',$datePeriode);
 
-        return view("accounting.trialBalance.print",$data);       
+        return view("accounting.trialBalance.print",$data);
+    }
+
+    private $months = [1,2,3,4,5,6,7,8,9,10,11,12];
+
+    private function emptyMonthly()
+    {
+        $monthly = [];
+        foreach ($this->months as $m) {
+            $monthly[$m] = [
+                'open_debit' => 0, 'open_credit' => 0,
+                'mutasi_debit' => 0, 'mutasi_credit' => 0,
+                'saldo_debit' => 0, 'saldo_credit' => 0,
+            ];
+        }
+        return $monthly;
+    }
+
+    public function getLastCode($key)
+    {
+        DB::table('master_code')->where('code_key', $key)->update([
+            'code_number' => DB::raw('code_number + 1'),
+            'updated_by' => Auth::user()->username,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        $newCode = DB::table('master_code')->where('code_key', $key)->value('code_number');
+        $padded = str_pad($newCode, 4, '0', STR_PAD_LEFT);
+        return "TB-ASN-" . date('Y') . "-$padded";
+    }
+
+    public function savedList(Request $request)
+    {
+        $data['title'] = "Saved Trial Balance";
+        $data['list'] = DB::table('trial_balance_hdr')->orderByDesc('id')->get();
+        return view('accounting.trialBalance.saved.list', $data);
+    }
+
+    public function savedCreate(Request $request)
+    {
+        $data['title'] = "Create Trial Balance";
+        return view('accounting.trialBalance.saved.create', $data);
+    }
+
+    public function savedStore(Request $request)
+    {
+        $this->validate($request, [
+            'year' => 'required|integer',
+        ]);
+
+        $username = Auth::user()->username;
+
+        AppHelpers::resetCode($this->moduleCode);
+        $tbNumber = $this->getLastCode($this->moduleCode);
+
+        $accounts = DB::table('accounts')->orderBy('account')->get();
+
+        DB::beginTransaction();
+        try {
+            $hdrId = DB::table('trial_balance_hdr')->insertGetId([
+                'tb_number' => $tbNumber,
+                'year' => $request->year,
+                'description' => $request->description,
+                'note' => $request->note,
+                'created_by' => $username,
+                'updated_by' => $username,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $monthlyJson = json_encode($this->emptyMonthly());
+            $rows = $accounts->map(function ($acc) use ($hdrId, $monthlyJson) {
+                return [
+                    'tb_hdr_id' => $hdrId,
+                    'account' => $acc->account,
+                    'description' => $acc->description,
+                    'debit_credit' => $acc->debit_credit,
+                    'final_statement' => $acc->final_statement,
+                    'monthly' => $monthlyJson,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
+            })->toArray();
+
+            foreach (array_chunk($rows, 500) as $chunk) {
+                DB::table('trial_balance_det')->insert($chunk);
+            }
+
+            DB::commit();
+            \LogActivity::addToLog("Save Trial Balance", "username: $username Status $tbNumber successfully saved");
+            return redirect()->route('trialBalance.saved.edit', ['id' => Crypt::encryptString($hdrId)])
+                ->with(['status' => 1, 'alert' => 'success', 'message' => "$tbNumber successfully saved"]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with(['status' => 1, 'alert' => 'warning', 'message' => "Failed to save: " . $e->getMessage()]);
+        }
+    }
+
+    public function savedEdit(Request $request)
+    {
+        $id = Crypt::decryptString($request->id);
+        $data['title'] = "Edit Trial Balance";
+        $data['hdr'] = DB::table('trial_balance_hdr')->where('id', $id)->first();
+        $data['id'] = $request->id;
+        $data['details'] = DB::table('trial_balance_det')->where('tb_hdr_id', $id)->orderBy('account')->get();
+        $data['months'] = $this->months;
+        return view('accounting.trialBalance.saved.edit', $data);
+    }
+
+    public function savedUpdate(Request $request)
+    {
+        $id = Crypt::decryptString($request->id);
+        $username = Auth::user()->username;
+        $rows = json_decode($request->getContent(), true)['rows'] ?? [];
+
+        DB::beginTransaction();
+        try {
+            DB::table('trial_balance_hdr')->where('id', $id)->update([
+                'description' => $request->input('description') ?? DB::raw('description'),
+                'note' => $request->input('note') ?? DB::raw('note'),
+                'updated_by' => $username,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            foreach ($rows as $row) {
+                DB::table('trial_balance_det')
+                    ->where('id', $row['id'])
+                    ->where('tb_hdr_id', $id)
+                    ->update([
+                        'monthly' => json_encode($row['monthly']),
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
+            }
+
+            DB::commit();
+            return response()->json(['status' => 1, 'alert' => 'success', 'message' => 'Trial Balance updated']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 0, 'alert' => 'warning', 'message' => $e->getMessage()]);
+        }
     }
 }

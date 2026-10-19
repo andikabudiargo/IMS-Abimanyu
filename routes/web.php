@@ -1443,6 +1443,12 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 	Route::get('trialBalance/print',['as'=>'trialBalance.print','uses'=>'Accounting\TrialBalanceController@print']);
 	Route::get('trialBalance/export-excel',['as'=>'trialBalance.export.excel','uses'=>'Accounting\TrialBalanceController@export']);
 
+	Route::get('trialBalance/saved',['as'=>'trialBalance.saved.list','uses'=>'Accounting\TrialBalanceController@savedList']);
+	Route::get('trialBalance/saved/create',['as'=>'trialBalance.saved.create','uses'=>'Accounting\TrialBalanceController@savedCreate']);
+	Route::post('trialBalance/saved/store',['as'=>'trialBalance.saved.store','uses'=>'Accounting\TrialBalanceController@savedStore']);
+	Route::get('trialBalance/saved/edit',['as'=>'trialBalance.saved.edit','uses'=>'Accounting\TrialBalanceController@savedEdit']);
+	Route::post('trialBalance/saved/update',['as'=>'trialBalance.saved.update','uses'=>'Accounting\TrialBalanceController@savedUpdate']);
+
 	Route::get('masterPpn',['as'=>'masterPpn.index','uses'=>'Accounting\MasterPpnController@index']);
 	Route::get('masterPpn/create',['as'=>'masterPpn.create','uses'=>'Accounting\MasterPpnController@create']);
 	Route::get('masterPpn/edit',['as'=>'masterPpn.edit','uses'=>'Accounting\MasterPpnController@edit']);

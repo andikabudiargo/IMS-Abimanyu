@@ -8,6 +8,7 @@
       <h4 class="card-title">Filter</h4>
       <div class="heading-elements">
         <ul class="list-inline mb-0">
+            <li><a href="{{ route('trialBalance.saved.list') }}" class="btn btn-sm btn-outline-primary">Saved Trial Balance</a></li>
             <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
         </ul>
       </div>
