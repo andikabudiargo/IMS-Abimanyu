@@ -1288,7 +1288,8 @@ function doBrowserPrintChemical(data) {
         '<title>Label Chemical Unit</title>' +
         '<style>' +
         '@page{margin:0;size:30mm 20mm;}' +
-        '*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;text-shadow:none;}' +
+        '*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;text-shadow:none;' +
+            '-webkit-font-smoothing:none;font-smooth:never;text-rendering:optimizeSpeed;}' +
         'body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
         '.label-sheet{display:flex;flex-wrap:wrap;}' +
         '.label-card{width:30mm;height:20mm;border:0.3mm solid #000;padding:1mm 1.3mm;' +
@@ -1299,7 +1300,7 @@ function doBrowserPrintChemical(data) {
         '.label-text{overflow:visible;min-width:0;flex:1;display:flex;flex-direction:column;gap:0.3mm;}' +
         '.label-altcode{font-size:4.2pt;font-weight:900;color:#000;white-space:nowrap;overflow:visible;letter-spacing:-0.1pt;}' +
         '.label-lot{font-size:2.6pt;font-weight:700;color:#000;font-family:"Courier New",monospace;white-space:nowrap;overflow:visible;letter-spacing:-0.1pt;}' +
-        '.label-desc{font-size:2.3pt;color:#333;font-weight:600;letter-spacing:-0.1pt;line-height:1.15;word-break:break-word;}' +
+        '.label-desc{font-size:2.3pt;color:#000;font-weight:700;letter-spacing:-0.1pt;line-height:1.15;word-break:break-word;}' +
         '.label-exp{font-size:2.6pt;font-weight:700;font-style:italic;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '.label-footer{font-size:3.5pt;color:#555;border-top:0.2mm solid #999;padding-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
         '</style></head><body>' +
