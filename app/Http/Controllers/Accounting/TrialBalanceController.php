@@ -368,11 +368,33 @@ class TrialBalanceController extends Controller
         return view('accounting.trialBalance.saved.list', $data);
     }
 
+    // Accounts di-grouping sama seperti live Trial Balance report: lewat
+    // master_neraca_detail_tb (account -> group_data/sub_group) + master_neraca_tb
+    // (group_data/sub_group -> group_name, urutan). Account yang belum di-mapping
+    // masuk bucket "UNGROUPED" di urutan paling akhir.
+    private function groupedAccounts()
+    {
+        $accounts = collect(DB::select("
+            SELECT a.account, a.description, a.debit_credit, a.final_statement,
+                   COALESCE(mn.group_data, 'UNGROUPED') as group_data,
+                   COALESCE(mn.group_name, 'Ungrouped') as group_name,
+                   COALESCE(mn.urutan, 999999) as urutan
+            FROM accounts a
+            LEFT JOIN master_neraca_detail_tb d ON a.account = d.account
+            LEFT JOIN master_neraca_tb mn ON mn.group_data = d.group_data AND mn.sub_group = d.sub_group
+            ORDER BY COALESCE(mn.urutan, 999999), a.account
+        "));
+
+        $groups = $accounts->unique('group_data')->sortBy('urutan')->values();
+
+        return [$accounts, $groups];
+    }
+
     public function savedCreate(Request $request)
     {
         $data['title'] = "Create Trial Balance";
         $data['nextCode'] = $this->previewLastCode($this->moduleCode);
-        $data['accounts'] = DB::table('accounts')->orderBy('account')->get();
+        [$data['accounts'], $data['groups']] = $this->groupedAccounts();
         $data['months'] = $this->months;
         return view('accounting.trialBalance.saved.create', $data);
     }
@@ -441,7 +463,31 @@ class TrialBalanceController extends Controller
         $data['title'] = "Edit Trial Balance";
         $data['hdr'] = DB::table('trial_balance_hdr')->where('id', $id)->first();
         $data['id'] = $request->id;
-        $data['details'] = DB::table('trial_balance_det')->where('tb_hdr_id', $id)->orderBy('account')->get();
+
+        [, $groups] = $this->groupedAccounts();
+        $groupByAccount = DB::select("
+            SELECT a.account,
+                   COALESCE(mn.group_data, 'UNGROUPED') as group_data,
+                   COALESCE(mn.urutan, 999999) as urutan
+            FROM accounts a
+            LEFT JOIN master_neraca_detail_tb d ON a.account = d.account
+            LEFT JOIN master_neraca_tb mn ON mn.group_data = d.group_data AND mn.sub_group = d.sub_group
+        ");
+        $groupByAccount = collect($groupByAccount)->keyBy('account');
+
+        $details = DB::table('trial_balance_det')->where('tb_hdr_id', $id)->get()
+            ->map(function ($d) use ($groupByAccount) {
+                $g = $groupByAccount->get($d->account);
+                $d->group_data = $g->group_data ?? 'UNGROUPED';
+                $d->urutan = $g->urutan ?? 999999;
+                return $d;
+            })
+            ->sortBy('account')
+            ->sortBy('urutan')
+            ->values();
+
+        $data['details'] = $details;
+        $data['groups'] = $groups;
         $data['months'] = $this->months;
         return view('accounting.trialBalance.saved.edit', $data);
     }

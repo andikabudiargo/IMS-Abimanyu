@@ -2,6 +2,9 @@
 @section('title', $title)
 @section('content')
 @include('layouts.breadcrumb')
+@php
+  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_debit'=>'Debit','saldo_credit'=>'Credit'];
+@endphp
 <section>
   <div class="card">
     <div class="card-header">
@@ -18,48 +21,74 @@
             <label class="form-label">Note</label>
             <input type="text" id="note" class="form-control" value="{{ $hdr->note }}">
           </div>
-          <div class="form-group col-md-2">
-            <label class="form-label">Month</label>
-            <select id="monthSelect" class="form-control">
-              @foreach($months as $m)
-                <option value="{{ $m }}">{{ \DateTime::createFromFormat('n', $m)->format('F') }}</option>
-              @endforeach
-            </select>
-          </div>
         </div>
 
-        <div class="tableFixHead" style="max-height:65vh;overflow:auto;">
-          <table class="table table-sm table-bordered">
+        <div class="tbFixHead">
+          <table class="table table-sm table-bordered tbGrid">
             <thead>
               <tr>
-                <th>Account</th>
-                <th>Description</th>
-                <th>Normal Balance</th>
-                <th>Final Statement</th>
-                <th>Saldo Awal Debit</th>
-                <th>Saldo Awal Credit</th>
-                <th>Mutasi Debit</th>
-                <th>Mutasi Credit</th>
-                <th>Saldo Akhir Debit</th>
-                <th>Saldo Akhir Credit</th>
+                <th rowspan="3" class="sticky-col col1">Account</th>
+                <th rowspan="3" class="sticky-col col2">Description</th>
+                <th rowspan="3">Normal Balance</th>
+                <th rowspan="3">Final Statement</th>
+                @foreach($months as $m)
+                  <th colspan="6" class="text-center">{{ \DateTime::createFromFormat('n',$m)->format('F') }}</th>
+                @endforeach
+              </tr>
+              <tr>
+                @foreach($months as $m)
+                  <th colspan="2" class="text-center">Saldo Awal</th>
+                  <th colspan="2" class="text-center">Pergerakan</th>
+                  <th colspan="2" class="text-center">Saldo Akhir</th>
+                @endforeach
+              </tr>
+              <tr>
+                @foreach($months as $m)
+                  @foreach($fields as $label)
+                    <th class="text-center">{{ $label }}</th>
+                  @endforeach
+                @endforeach
               </tr>
             </thead>
             <tbody>
-              @foreach($details as $d)
-                <tr data-det-id="{{ $d->id }}">
-                  <td>{{ $d->account }}</td>
-                  <td>{{ $d->description }}</td>
-                  <td>{{ $d->debit_credit }}</td>
-                  <td>{{ $d->final_statement }}</td>
-                  <td><input type="number" step="0.01" class="form-control form-control-sm m-open-debit" value="0"></td>
-                  <td><input type="number" step="0.01" class="form-control form-control-sm m-open-credit" value="0"></td>
-                  <td><input type="number" step="0.01" class="form-control form-control-sm m-mutasi-debit" value="0"></td>
-                  <td><input type="number" step="0.01" class="form-control form-control-sm m-mutasi-credit" value="0"></td>
-                  <td><input type="number" step="0.01" class="form-control form-control-sm m-saldo-debit" value="0"></td>
-                  <td><input type="number" step="0.01" class="form-control form-control-sm m-saldo-credit" value="0"></td>
+              @foreach($groups as $g)
+                <tr class="group-row" data-group="{{ $g->group_data }}">
+                  <td colspan="{{ 4 + count($months)*6 }}"><span class="toggle-sign">+</span> {{ $g->group_name }}</td>
+                </tr>
+                @foreach($details->where('group_data', $g->group_data)->values() as $i => $d)
+                  @php $monthly = json_decode($d->monthly, true) ?? []; @endphp
+                  <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-det-id="{{ $d->id }}" style="display:none;">
+                    <td class="sticky-col col1">{{ $d->account }}</td>
+                    <td class="sticky-col col2">{{ $d->description }}</td>
+                    <td>{{ $d->debit_credit }}</td>
+                    <td>{{ $d->final_statement }}</td>
+                    @foreach($months as $m)
+                      @foreach(array_keys($fields) as $field)
+                        <td><input type="text" inputmode="decimal" class="cell-input" data-month="{{ $m }}" data-field="{{ $field }}" value="{{ $monthly[$m][$field] ?? 0 }}"></td>
+                      @endforeach
+                    @endforeach
+                  </tr>
+                @endforeach
+                <tr class="subtotal-row" data-subtotal-group="{{ $g->group_data }}">
+                  <td colspan="4">Subtotal {{ $g->group_name }}</td>
+                  @foreach($months as $m)
+                    @foreach(array_keys($fields) as $field)
+                      <td class="subtotal-cell text-right" data-subtotal-group="{{ $g->group_data }}" data-month="{{ $m }}" data-field="{{ $field }}">0</td>
+                    @endforeach
+                  @endforeach
                 </tr>
               @endforeach
             </tbody>
+            <tfoot>
+              <tr class="grandtotal-row">
+                <td colspan="4">Grand Total</td>
+                @foreach($months as $m)
+                  @foreach(array_keys($fields) as $field)
+                    <td class="grandtotal-cell text-right" data-month="{{ $m }}" data-field="{{ $field }}">0</td>
+                  @endforeach
+                @endforeach
+              </tr>
+            </tfoot>
           </table>
         </div>
 
@@ -70,52 +99,85 @@
   </div>
 </section>
 @endsection
+@section('styles')
+<style>
+  .tbFixHead { overflow: auto; max-height: 70vh; }
+  .tbGrid { font-size: 11px; }
+  .tbGrid th, .tbGrid td { white-space: nowrap; vertical-align: middle; }
+  .tbGrid thead th { position: sticky; top: 0; background: #eee; z-index: 3; }
+  .tbGrid thead tr:nth-child(2) th { top: 24px; }
+  .tbGrid thead tr:nth-child(3) th { top: 48px; }
+  .sticky-col { position: sticky; z-index: 2; background: inherit; }
+  .col1 { left: 0; min-width: 90px; }
+  .col2 { left: 90px; min-width: 150px; }
+  .tbGrid thead th.sticky-col { z-index: 4; background: #eee; }
+  .group-row td { background: #d8d8d8; font-weight: bold; cursor: pointer; }
+  .subtotal-row td { background: #f1f1f1; font-weight: 600; }
+  .grandtotal-row td { background: #cfd8dc; font-weight: bold; }
+  tr.row-even td { background: #ffffff; }
+  tr.row-odd td { background: #f7f7f7; }
+  .cell-input {
+    border: none; background: transparent; width: 85px; text-align: right;
+    padding: 2px 4px;
+  }
+  .cell-input:focus { background: #fff3cd; outline: 1px solid #f0ad4e; }
+  .text-right { text-align: right; }
+</style>
+@endsection
 @section('scripts')
 <script type="text/javascript">
-  // data per det id: { 1: {1:{open_debit:0,...}, 2:{...}, ...}, 2: {...} }
-  const tbData = {!! $details->mapWithKeys(function($d){ return [$d->id => json_decode($d->monthly, true)]; })->toJson() !!};
-  let currentMonth = $('#monthSelect').val();
-
-  function loadMonth(month){
-    $('tbody tr[data-det-id]').each(function(){
-      const detId = $(this).data('det-id');
-      const m = (tbData[detId] && tbData[detId][month]) ? tbData[detId][month] : {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_debit:0,saldo_credit:0};
-      $(this).find('.m-open-debit').val(m.open_debit);
-      $(this).find('.m-open-credit').val(m.open_credit);
-      $(this).find('.m-mutasi-debit').val(m.mutasi_debit);
-      $(this).find('.m-mutasi-credit').val(m.mutasi_credit);
-      $(this).find('.m-saldo-debit').val(m.saldo_debit);
-      $(this).find('.m-saldo-credit').val(m.saldo_credit);
-    });
+  function fmt(n){
+    return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   }
 
-  function storeMonth(month){
-    $('tbody tr[data-det-id]').each(function(){
-      const detId = $(this).data('det-id');
-      if(!tbData[detId]) tbData[detId] = {};
-      tbData[detId][month] = {
-        open_debit: parseFloat($(this).find('.m-open-debit').val()) || 0,
-        open_credit: parseFloat($(this).find('.m-open-credit').val()) || 0,
-        mutasi_debit: parseFloat($(this).find('.m-mutasi-debit').val()) || 0,
-        mutasi_credit: parseFloat($(this).find('.m-mutasi-credit').val()) || 0,
-        saldo_debit: parseFloat($(this).find('.m-saldo-debit').val()) || 0,
-        saldo_credit: parseFloat($(this).find('.m-saldo-credit').val()) || 0,
-      };
+  function recompute(month, field){
+    $('tr.subtotal-row').each(function(){
+      const group = $(this).data('subtotal-group');
+      let sum = 0;
+      $(`tr.child-row[data-group="${group}"] input.cell-input[data-month="${month}"][data-field="${field}"]`).each(function(){
+        sum += parseFloat($(this).val()) || 0;
+      });
+      $(this).find(`.subtotal-cell[data-month="${month}"][data-field="${field}"]`).text(fmt(sum));
     });
+
+    let grand = 0;
+    $(`input.cell-input[data-month="${month}"][data-field="${field}"]`).each(function(){
+      grand += parseFloat($(this).val()) || 0;
+    });
+    $(`.grandtotal-cell[data-month="${month}"][data-field="${field}"]`).text(fmt(grand));
   }
 
   $(document).ready(function(){
-    loadMonth(currentMonth);
+    @foreach($months as $m)
+      @foreach(array_keys($fields) as $field)
+        recompute({{ $m }}, '{{ $field }}');
+      @endforeach
+    @endforeach
 
-    $('#monthSelect').on('change', function(){
-      storeMonth(currentMonth);
-      currentMonth = $(this).val();
-      loadMonth(currentMonth);
+    $(document).on('click', 'tr.group-row', function(){
+      const g = $(this).data('group');
+      $(`tr.child-row[data-group="${g}"]`).toggle();
+      $(this).find('.toggle-sign').text(function(i, old){ return old === '+' ? '-' : '+'; });
+    });
+
+    $(document).on('change', '.cell-input', function(){
+      recompute($(this).data('month'), $(this).data('field'));
     });
 
     $('#btnSave').on('click', function(){
-      storeMonth(currentMonth);
-      const rows = Object.keys(tbData).map(id => ({ id: parseInt(id), monthly: tbData[id] }));
+      const rows = [];
+      $('tr[data-det-id]').each(function(){
+        const detId = $(this).data('det-id');
+        const monthly = {};
+        $(this).find('input.cell-input').each(function(){
+          const m = $(this).data('month');
+          const field = $(this).data('field');
+          if(!monthly[m]) monthly[m] = {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_debit:0,saldo_credit:0};
+          monthly[m][field] = parseFloat($(this).val()) || 0;
+        });
+        rows.push({ id: detId, monthly: monthly });
+      });
+
       const id = "{{ $id }}";
       $.ajax({
         url: "{{ route('trialBalance.saved.update') }}?id=" + encodeURIComponent(id),
