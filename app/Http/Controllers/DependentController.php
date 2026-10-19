@@ -371,7 +371,7 @@ class DependentController extends Controller
                 $default='';
                 $defaulttxt='Choose SO';
                 break;
-            case 'list_coa': 
+            case 'list_coa':
                 $table='accounts';
                 $field ='';
                 $order ='account';
@@ -379,6 +379,23 @@ class DependentController extends Controller
                 $name  ='description';
                 $default='';
                 $defaulttxt='Choose Account';
+                break;
+            case 'accSub':
+                $table='acc_sub';
+                $field ='type_code';
+                $order ='sub_code';
+                $value ='sub_code';
+                $name  ='description';
+                $default='';
+                $defaulttxt='Choose Sub Account';
+                break;
+            case 'accNumberRange':
+                // $code = sub_code terpilih (contoh: 1100.70). Nomor akun valid ada di
+                // rentang 1 digit terakhir 1-9 dari sub_code tersebut (1100.71 s/d 1100.79),
+                // sesuai konvensi penomoran COA yang sudah dipakai (lihat data acc_sub/accounts).
+                $table='accounts';
+                $default='';
+                $defaulttxt='Choose account number';
                 break;
             case 'list_inv': 
                 $table='invoice_hdr';
@@ -821,10 +838,18 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='list_coa'){
-            $data= DB::table($table) 
+            $data= DB::table($table)
             ->where('acc_header','!=','HEADER')
             ->orderBy($order)
             ->get();
+        }elseif($dependent =='accNumberRange'){
+            $prefix = substr($code, 0, -1);
+            $candidates = [];
+            for ($i = 1; $i <= 9; $i++) {
+                $candidates[] = $prefix.$i;
+            }
+            $used = DB::table('accounts')->whereIn('account', $candidates)->pluck('account')->all();
+            $data = array_values(array_diff($candidates, $used));
         }elseif($dependent =='list_inv'){
             /*
                 27/3/2024
@@ -1273,6 +1298,8 @@ class DependentController extends Controller
                 $output .='<option value="'.$row->account.'">'.$row->account.' - '.$row->description.'</option>';
             }elseif($dependent =='list_coa'){
                 $output .='<option value="'.$row->account.'">'.$row->account.' - '.$row->description.'</option>';
+            }elseif($dependent =='accNumberRange'){
+                $output .='<option value="'.$row.'">'.$row.'</option>';
             }elseif($dependent =='tsoArticle'){
                 $output .="<option value='$row->article_code' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";
             }elseif($dependent =='trArticle'){

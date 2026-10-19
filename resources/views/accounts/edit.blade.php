@@ -65,7 +65,7 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="accHeader">Header</label>
+                                <label class="form-label" for="accHeader">Category</label>
                                 <select class="select2 w-100" id="accHeader" name="accHeader">
                                     <option value=""></option>
                                     <option label="HEADER" {{ old('accHeader',$accounts->acc_header)== 'HEADER' ? 'selected' : '' }}>HEADER</option>
@@ -75,7 +75,7 @@
                         </div>
                         <div class="row">
                             <div class="form-group col-md-6">
-                                <label class="form-label" for="accDebitCredit">Header</label>
+                                <label class="form-label" for="accDebitCredit">Normal Balance</label>
                                 <select class="select2 w-100" id="accDebitCredit" name="accDebitCredit">
                                     <option value=""></option>
                                     <option label="DEBIT" {{ old('accDebitCredit',$accounts->debit_credit)== 'DEBIT' ? 'selected' : '' }}>DEBIT</option>
@@ -164,6 +164,23 @@
         $(".select2").val('').trigger('change');
         $("#frmAdd").validate().resetForm();
         $("#account").focus();
+    });
+
+    // Sub Account mengikuti Account Type kalau Account Type diganti
+    $('#type').on('change', function(){
+        let typeCode = $(this).val();
+        if(!typeCode){
+            return;
+        }
+
+        $.ajax({
+            url: "{{ route('dynamic.dependent') }}",
+            method: 'POST',
+            data: { dependent: 'accSub', value: typeCode },
+            success: function(result){
+                $('#subAccount').html('<option value="">Choose Sub Account</option>' + result).trigger('change');
+            }
+        });
     });
 
     let delayTimer;

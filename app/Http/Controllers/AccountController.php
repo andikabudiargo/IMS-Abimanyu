@@ -31,10 +31,10 @@ class AccountController extends Controller
             ['data'=> 'type_code', 'name'=>'type_code','title'=>'Account Type' ],
             ['data'=> 'description', 'name'=>'description','title'=>'Description' ],
             ['data'=> 'opening_balance', 'name'=>'opening_balance','title'=>'Opening Balance' ],
-            ['data'=> 'acc_header', 'name'=>'acc_header','title'=>'Header' ],
-            ['data'=> 'type', 'name'=>'type','title'=>'Account Type' ],            
+            ['data'=> 'acc_header', 'name'=>'acc_header','title'=>'Category' ],
+            ['data'=> 'type', 'name'=>'type','title'=>'Account Type' ],
             ['data'=> 'sub_account', 'name'=>'sub_account','title'=>'Sub Account' ],
-            ['data'=> 'debit_credit', 'name'=>'debit_credit','title'=>'Db/Cr' ],
+            ['data'=> 'debit_credit', 'name'=>'debit_credit','title'=>'Normal Balance' ],
             ['data'=> 'final_statement', 'name'=>'final_statement','title'=>'Final Statement' ],
             ['data'=> 'note', 'name'=>'note','title'=>'Note' ]
         ];
@@ -180,6 +180,7 @@ class AccountController extends Controller
         ->get()->first();
 
         $data['subAcc'] = DB::table('acc_sub')
+        ->where('type_code',$data['accounts']->type_code)
         ->orderBy('description')
         ->get();
 

@@ -94,16 +94,24 @@ class AccTypeController extends Controller
                 $alert  ="success";
                 $message  = "$kode successfully saved";
                 \LogActivity::addToLog($title,"username: $username Status $message");
-                return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]); 
+
+                if ($request->wantsJson()) {
+                    return response()->json(['status' => 1, 'code' => $kode, 'name' => $nama]);
+                }
+                return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]);
         } catch (Exception $e) {
             DB::rollBack();
             $title ="Save $this->title";
             $alert  ="warning";
             $message  = "$kode is failed to save";
             \LogActivity::addToLog($title,"username: $username Status $message");
+
+            if ($request->wantsJson()) {
+                return response()->json(['status' => 0, 'message' => $message], 422);
+            }
             return redirect()->back()->with(['status' => 1,'alert'=>$alert,'message'=> $message]);
         }
-        
+
     }
 
     public function edit(Request $request)

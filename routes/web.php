@@ -161,6 +161,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('accTypes/update',['as'=>'accType.update','uses'=>'AccTypeController@update']);
 	Route::post('accTypes/delete',['as'=>'accType.destroy','uses'=>'AccTypeController@destroy']);
 
+	Route::post('accSub/store',['as'=>'accSub.store','uses'=>'AccSubController@store']);
+
 	Route::get('groups',['as'=>'groups.index','uses'=>'GroupController@index','middleware' => ['permission:group-index']]);
 	Route::get('groups/create',['as'=>'group.create','uses'=>'GroupController@create','middleware' => ['permission:group-create']]);
 	Route::post('groups/store',['as'=>'group.store','uses'=>'GroupController@store']);
