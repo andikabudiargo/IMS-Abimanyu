@@ -15,6 +15,7 @@
               <th>Cost Center</th>
               <th class="text-right">Debit</th>
               <th class="text-right">Credit</th>
+              <th class="text-right">Balance</th>
             </tr>
           </thead>
           <tbody id="voucherModalBody"></tbody>
@@ -23,6 +24,7 @@
               <td colspan="3">Total</td>
               <td class="text-right" id="voucherModalTotalDebit">0</td>
               <td class="text-right" id="voucherModalTotalCredit">0</td>
+              <td class="text-right" id="voucherModalEndingBalance">0</td>
             </tr>
           </tfoot>
         </table>

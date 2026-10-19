@@ -44,286 +44,43 @@ class TrialBalanceController extends Controller
 
     }
 
-    public function index(Request $request)
-    {
-
-        $data['title'] = "$this->title";
-        $datePeriode = $request->bsDate;
-
-        $period1 = $request->period2 ? $request->period1 : $request->period2;
-        $period2 = $request->period1 ? $request->period2 : $request->period1;
-
-        if($datePeriode){
-
-            if ($datePeriode){
-                $date = explode("to",$datePeriode);
-                if(count($date)>1){
-                    $startDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                    $endDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-                }else{
-                    $startDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                    $endDate = $startDate; 
-                }
-            }
-
-            if($period1){
-                $filter = " and period::integer between $period1 and $period2 ";
-            }
-
-            $queries="SELECT 
-            mn.urutan
-            ,mn.key
-            ,mn.group_data
-            ,mn.group_name
-            ,mn.sub_group
-            ,mn.sub_group_name
-            ,concat(account_awal_asli,'-',account_akhir_asli) as account
-            ,account_awal_asli
-            ,account_akhir_asli
-            , case when sumber_data ='debit' then opening_balance else 0 end as opening_balance_debit
-            , case when sumber_data ='credit' then opening_balance else 0 end as opening_balance_credit
-            ,pergerakan_debit
-            ,pergerakan_credit
-            ,case when sumber_data ='debit' then (opening_balance+pergerakan_debit)-pergerakan_credit end as saldo_akhir_debit
-            ,case when sumber_data ='credit' then (opening_balance+pergerakan_credit)-pergerakan_credit end as saldo_akhir_credit
-            from master_neraca_tb mn
-            left join (
-            select sub_group, sum(opening_balance) as opening_balance from master_neraca_detail_tb x
-            left join accounts y on x.account = y.account
-            group by sub_group
-            ) h
-            on mn.sub_group = h.sub_group
-            left join (
-            select group_data,sub_group, sum(debit) as pergerakan_debit,sum(credit) as pergerakan_credit from (
-            select account, sum(debit) as debit,sum(credit) as credit
-            from 
-            kas_det 
-            where 
-            voucher_number in (select voucher_number from kas_hdr where to_date(voucher_date, 'dd-mm-yyyy') between '$startDate' and  '$endDate' and status = '3' $filter) 
-            and account in (select account from master_neraca_detail_tb)
-            group by account) c 
-            left join master_neraca_detail_tb d on c.account = d.account
-            group by group_data,sub_group
-            order by d.group_data,d.sub_group) i
-            on mn.group_data = i.group_data and mn.sub_group = i.sub_group
-            order by urutan";
-
-            /*
-            ini pake cara langsung hitung opening balance
-            $queries = "SELECT 
-            mn.urutan
-            ,mn.key
-            ,mn.group_data
-            ,mn.group_name
-            ,mn.sub_group
-            ,mn.sub_group_name
-            ,concat(account_awal_asli,'-',account_akhir_asli) as account
-            ,account_awal_asli
-            ,account_akhir_asli
-            , case when ((opening_balance_debit_1 > 0) and (opening_balance_credit_1) > 0) or (pergerakan_debit > 0 and pergerakan_debit > 0) then (opening_balance_debit_1-opening_balance_credit_1) else opening_balance_debit_1 end as opening_balance_debit
-            , case when ((opening_balance_debit_1 > 0) and (opening_balance_credit_1) > 0) or (pergerakan_debit > 0 and pergerakan_debit > 0) then 0 else opening_balance_credit_1 end as opening_balance_credit
-            ,pergerakan_debit
-            ,pergerakan_credit
-            ,case when ((opening_balance_debit_1 > 0) and (opening_balance_credit_1) > 0) or (pergerakan_debit > 0 and pergerakan_debit > 0) then 
-            ((case when ((opening_balance_debit_1 > 0) and (opening_balance_credit_1) > 0) or (pergerakan_debit > 0 and pergerakan_debit > 0) then (opening_balance_debit_1-opening_balance_credit_1) else opening_balance_debit_1 end)+pergerakan_debit)-pergerakan_credit
-            else (case when ((opening_balance_debit_1 > 0) and (opening_balance_credit_1) > 0) or (pergerakan_debit > 0 and pergerakan_debit > 0) then (opening_balance_debit_1-opening_balance_credit_1) else opening_balance_debit_1 end)+pergerakan_debit end as saldo_akhir_debit
-            ,case when ((opening_balance_debit_1 > 0) and (opening_balance_credit_1) > 0) or (pergerakan_debit > 0 and pergerakan_debit > 0) then 
-            00
-            else (case when ((opening_balance_debit_1 > 0) and (opening_balance_credit_1) > 0) or (pergerakan_debit > 0 and pergerakan_debit > 0) then (opening_balance_debit_1-opening_balance_credit_1) else opening_balance_debit_1 end)+pergerakan_credit end as saldo_akhir_credit
-            --,saldo_akhir_debit
-            --,saldo_akhir_credit 
-            from master_neraca_tb mn
-            left join (
-            select group_data,sub_group, sum(debit) as opening_balance_debit_1,sum(credit) as opening_balance_credit_1 from (
-            select account, sum(debit) as debit,sum(credit) as credit
-            from 
-            kas_det 
-            where 
-            voucher_number in (select voucher_number from kas_hdr where to_date(voucher_date, 'dd-mm-yyyy') < '$startDate' and status = '3') 
-            and account in (select account from master_neraca_detail_tb)
-            group by account) a 
-            left join master_neraca_detail_tb b on a.account = b.account
-            group by group_data,sub_group
-            order by b.group_data,b.sub_group) h
-            on mn.group_data = h.group_data and mn.sub_group = h.sub_group
-            left join (
-            select group_data,sub_group, sum(debit) as pergerakan_debit,sum(credit) as pergerakan_credit from (
-            select account, sum(debit) as debit,sum(credit) as credit
-            from 
-            kas_det 
-            where 
-            voucher_number in (select voucher_number from kas_hdr where to_date(voucher_date, 'dd-mm-yyyy') between '$startDate' and  '$endDate' and status = '3') 
-            and account in (select account from master_neraca_detail_tb)
-            group by account) c 
-            left join master_neraca_detail_tb d on c.account = d.account
-            group by group_data,sub_group
-            order by d.group_data,d.sub_group) i
-            on mn.group_data = i.group_data and mn.sub_group = i.sub_group
-            --where key = '3'
-            order by urutan";
-            */
-
-            /*
-            $queries = "SELECT oki.*, main_name, group_name, sub_group_name, concat(account_awal_asli,'-',account_akhir_asli) as account from (
-            SELECT (select urutan from master_neraca_tb mn where mn.group_data = n.group_data and mn.sub_group = n.sub_group) as urutan, n.main,n.group_data, n.sub_group, sum(t.debit) as opening_balance_debit, sum(t.credit) opening_balance_credit, sum(a.debit) pergerakan_debit, sum(a.credit) pergerakan_credit,sum(a.debit+t.debit) saldo_akhir_debit, sum(a.credit+t.credit) saldo_akhir_credit from 
-            (
-            select account, sum(debit) as debit,sum(credit) as credit
-            from 
-            kas_det 
-            where 
-            voucher_number in (select voucher_number from kas_hdr where to_date(voucher_date, 'dd-mm-yyyy') < '$startDate') 
-            and account in (select account from master_neraca_detail_tb)
-            group by account
-            )
-            a
-            left join (
-            select account, sum(debit) debit ,sum(credit) credit
-            from 
-            kas_det 
-            where 
-            voucher_number in (select voucher_number from kas_hdr where to_date(voucher_date, 'dd-mm-yyyy') between '$startDate' and  '$endDate')
-            and account in (select account from master_neraca_detail_tb)
-            group by account
-            ) t
-            on a.account = t.account
-            left join master_neraca_detail_tb n on n.account = a.account 
-            group by n.main,n.group_data,n.sub_group) oki
-            left join master_neraca_tb m on (m.group_data = oki.group_data and m.sub_group = oki.sub_group)
-            order by oki.urutan";
-            */
-           
-            $data['details'] = db::select($queries);
-            $data['groups'] = db::select("select * from (select distinct on (group_data) * from master_neraca_tb) as oki order by urutan asc");
-            $data['tanggal'] = $datePeriode;
-            $data['start'] = false;
-  
-            $data['total'] = db::select("SELECT 
-            sum(opening_balance_debit) as opening_balance_debit
-            ,sum(opening_balance_credit) as opening_balance_credit
-            ,sum(pergerakan_debit) as pergerakan_debit
-            ,sum(pergerakan_credit) as pergerakan_credit
-            ,sum(saldo_akhir_debit) as saldo_akhir_debit
-            ,sum(saldo_akhir_credit) as saldo_akhir_credit 
-            from ($queries) oki");
-
-            $qTotalSaldoAwal = $data['total'][0]->opening_balance_debit;
-            $qTotalSaldoAkhir = $data['total'][0]->saldo_akhir_debit;
-            $qTotalNet = $data['total'][0]->saldo_akhir_debit-$data['total'][0]->saldo_akhir_credit;
-            $qTotalPergerakanKas = ($qTotalSaldoAwal+$data['total'][0]->pergerakan_debit+$qTotalSaldoAkhir)-($data['total'][0]->opening_balance_credit+$data['total'][0]->pergerakan_credit+$data['total'][0]->saldo_akhir_credit);
-
-            $data['saldoAwal'] = number_format($qTotalSaldoAwal,2);
-            $data['saldoAkhir'] = number_format($qTotalSaldoAkhir,2);
-            $data['net'] = number_format($qTotalNet,2);
-            $data['pergerakanKas'] = number_format($qTotalPergerakanKas,2);
-            
-            return view("accounting.trialBalance.index",$data);
-        }else{
-            $data['start'] = true;
-            return view("accounting.trialBalance.index",$data);
-        }
+    public function getSavedTableColoumn(){
+        $kolom=
+        [
+            ['data'=> 'action', 'name'=>'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
+            ['data'=> 'tb_number', 'name'=>'tb_number','title'=>'Nomor' ],
+            ['data'=> 'year', 'name'=>'year','title'=>'Year' ],
+            ['data'=> 'description', 'name'=>'description','title'=>'Description' ],
+            ['data'=> 'note', 'name'=>'note','title'=>'Note' ],
+            ['data'=> 'created_at', 'name'=>'created_at','title'=>'Created At' ],
+        ];
+        return json_encode($kolom, true);
     }
 
-    public function print(Request $request)
+    public function index(Request $request)
     {
-        // $id=Crypt::decryptString($request->id);
-        $username = Auth::user()->username;
-
-        $ukuranKertas = "A42pageLs";
-        $jumlahBaris=0;
-
-        $data['ukuranKertas'] = $ukuranKertas;
-        $data['jumlahBaris'] = $jumlahBaris;
-        
-        $datePeriode = $request->bsDate;
         $data['title'] = "$this->title";
+        $data['kolom'] = $this->getSavedTableColoumn();
+        return view('accounting.trialBalance.index', $data);
+    }
 
-        $data['title'] = "$this->title";
-        $datePeriode = $request->bsDate;
+    public function list(Request $request)
+    {
+        $tbNumber = $request->tbNumber;
+        $year = $request->year;
 
-        $period1 = $request->period2 ? $request->period1 : $request->period2;
-        $period2 = $request->period1 ? $request->period2 : $request->period1;
+        $data = DB::table('trial_balance_hdr')
+            ->when($tbNumber, fn($q) => $q->where('tb_number', 'ilike', "%$tbNumber%"))
+            ->when($year, fn($q) => $q->where('year', $year))
+            ->orderByDesc('id')
+            ->get();
 
-        
-
-        if ($datePeriode){
-            $date = explode("to",$datePeriode);
-            if(count($date)>1){
-                $startDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $endDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-            }else{
-                $startDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $endDate = $startDate; 
-            }
-        }
-
-        if($period1){
-            $filter = " and period::integer between $period1 and $period2 ";
-        }
-
-        $queries="SELECT 
-        mn.urutan
-        ,mn.key
-        ,mn.group_data
-        ,mn.group_name
-        ,mn.sub_group
-        ,mn.sub_group_name
-        ,concat(account_awal_asli,'-',account_akhir_asli) as account
-        ,account_awal_asli
-        ,account_akhir_asli
-        , case when sumber_data ='debit' then opening_balance else 0 end as opening_balance_debit
-        , case when sumber_data ='credit' then opening_balance else 0 end as opening_balance_credit
-        ,pergerakan_debit
-        ,pergerakan_credit
-        ,case when sumber_data ='debit' then (opening_balance+pergerakan_debit)-pergerakan_credit end as saldo_akhir_debit
-        ,case when sumber_data ='credit' then (opening_balance+pergerakan_credit)-pergerakan_credit end as saldo_akhir_credit
-        from master_neraca_tb mn
-        left join (
-        select sub_group, sum(opening_balance) as opening_balance from master_neraca_detail_tb x
-        left join accounts y on x.account = y.account
-        group by sub_group
-        ) h
-        on mn.sub_group = h.sub_group
-        left join (
-        select group_data,sub_group, sum(debit) as pergerakan_debit,sum(credit) as pergerakan_credit from (
-        select account, sum(debit) as debit,sum(credit) as credit
-        from 
-        kas_det 
-        where 
-        voucher_number in (select voucher_number from kas_hdr where to_date(voucher_date, 'dd-mm-yyyy') between '$startDate' and  '$endDate' and status = '3' $filter) 
-        and account in (select account from master_neraca_detail_tb)
-        group by account) c 
-        left join master_neraca_detail_tb d on c.account = d.account
-        group by group_data,sub_group
-        order by d.group_data,d.sub_group) i
-        on mn.group_data = i.group_data and mn.sub_group = i.sub_group
-        order by urutan";
-                    
-        $data['details'] = db::select($queries);
-        $data['groups'] = db::select("select * from (select distinct on (group_data) * from master_neraca_tb) as oki order by urutan asc");
-        $data['tanggal'] = $datePeriode;
-        $data['start'] = false;
-
-        $data['total'] = db::select("SELECT 
-        sum(opening_balance_debit) as opening_balance_debit
-        ,sum(opening_balance_credit) as opening_balance_credit
-        ,sum(pergerakan_debit) as pergerakan_debit
-        ,sum(pergerakan_credit) as pergerakan_credit
-        ,sum(saldo_akhir_debit) as saldo_akhir_debit
-        ,sum(saldo_akhir_credit) as saldo_akhir_credit 
-        from ($queries) oki");
-
-        $qTotalSaldoAwal = $data['total'][0]->opening_balance_debit;
-        $qTotalSaldoAkhir = $data['total'][0]->saldo_akhir_debit;
-        $qTotalNet = $data['total'][0]->saldo_akhir_debit-$data['total'][0]->saldo_akhir_credit;
-        $qTotalPergerakanKas = ($qTotalSaldoAwal+$data['total'][0]->pergerakan_debit+$qTotalSaldoAkhir)-($data['total'][0]->opening_balance_credit+$data['total'][0]->pergerakan_credit+$data['total'][0]->saldo_akhir_credit);
-
-        $data['saldoAwal'] = number_format($qTotalSaldoAwal,2);
-        $data['saldoAkhir'] = number_format($qTotalSaldoAkhir,2);
-        $data['net'] = number_format($qTotalNet,2);
-        $data['pergerakanKas'] = number_format($qTotalPergerakanKas,2);
-        $data['tanggal'] = str_replace('to',' to ',$datePeriode);
-
-        return view("accounting.trialBalance.print",$data);
+        return Datatables::of($data)
+            ->addColumn('action', function ($row) {
+                return '<a href="'.route('trialBalance.saved.edit', ['id' => Crypt::encryptString($row->id)]).'" class="btn btn-sm btn-outline-primary">Edit</a>';
+            })
+            ->rawColumns(['action'])
+            ->make(true);
     }
 
     private $months = [1,2,3,4,5,6,7,8,9,10,11,12];
@@ -359,13 +116,6 @@ class TrialBalanceController extends Controller
         $current = (int) DB::table('master_code')->where('code_key', $key)->value('code_number');
         $padded = str_pad($current + 1, 4, '0', STR_PAD_LEFT);
         return "TB-ASN-" . date('Y') . "-$padded";
-    }
-
-    public function savedList(Request $request)
-    {
-        $data['title'] = "Saved Trial Balance";
-        $data['list'] = DB::table('trial_balance_hdr')->orderByDesc('id')->get();
-        return view('accounting.trialBalance.saved.list', $data);
     }
 
     // Accounts di-grouping per Account Type (accounts.type_code -> acc_types),
@@ -471,37 +221,54 @@ class TrialBalanceController extends Controller
         $monthStart = sprintf('%04d-%02d-01', $year, $month);
         $monthEnd = date('Y-m-t', strtotime($monthStart));
 
+        $startingBalance = 0;
         if ($bucket === 'open') {
             $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') < '$monthStart'";
         } elseif ($bucket === 'mutasi') {
             $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') between '$monthStart' and '$monthEnd'";
+            $before = DB::select("
+                SELECT sum(d.debit) as debit, sum(d.credit) as credit
+                FROM kas_det d
+                JOIN kas_hdr h ON d.voucher_number = h.voucher_number
+                WHERE h.status <> '5' AND d.account = ? AND to_date(h.voucher_date,'dd-mm-yyyy') < ?
+            ", [$account, $monthStart]);
+            $startingBalance = (float) ($before[0]->debit ?? 0) - (float) ($before[0]->credit ?? 0);
         } else {
             $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') <= '$monthEnd'";
         }
 
+        // Satu voucher bisa punya beberapa baris kas_det buat account yang sama
+        // (mis. koreksi debit-kredit di voucher yang sama) -- di-group jadi 1 baris
+        // per voucher supaya debit & kredit nya nyatu, bukan kepisah 2 baris.
         $rows = DB::select("
             SELECT h.id as hdr_id, h.voucher_number, h.voucher_date, h.voucher_type,
-                   d.debit, d.credit, dp.name as cost_center_name
+                   sum(d.debit) as debit, sum(d.credit) as credit, max(dp.name) as cost_center_name
             FROM kas_det d
             JOIN kas_hdr h ON d.voucher_number = h.voucher_number
             LEFT JOIN depts dp ON dp.code = d.cost_center
             WHERE h.status <> '5' AND d.account = ? AND $dateCond
+            GROUP BY h.id, h.voucher_number, h.voucher_date, h.voucher_type
             ORDER BY to_date(h.voucher_date,'dd-mm-yyyy'), h.voucher_number
         ", [$account]);
 
         $editRoutes = ['KK' => 'kasKeluar.edit', 'KM' => 'kasPenerimaan.edit', 'BK' => 'bankKeluar.edit', 'BM' => 'bankPenerimaan.edit'];
         $totalDebit = 0;
         $totalCredit = 0;
+        $balance = $startingBalance;
         foreach ($rows as $row) {
             $row->edit_url = isset($editRoutes[$row->voucher_type])
                 ? route($editRoutes[$row->voucher_type], ['id' => Crypt::encryptString($row->hdr_id)])
                 : null;
+            $balance += (float) $row->debit - (float) $row->credit;
+            $row->balance = $balance;
             $totalDebit += (float) $row->debit;
             $totalCredit += (float) $row->credit;
         }
 
         return response()->json([
             'status' => 1,
+            'starting_balance' => $startingBalance,
+            'ending_balance' => $balance,
             'rows' => $rows,
             'total_debit' => $totalDebit,
             'total_credit' => $totalCredit,
@@ -568,7 +335,7 @@ class TrialBalanceController extends Controller
 
             DB::commit();
             \LogActivity::addToLog("Save Trial Balance", "username: $username Status $tbNumber successfully saved");
-            return response()->json(['status' => 1, 'alert' => 'success', 'message' => "$tbNumber successfully saved", 'redirect' => route('trialBalance.saved.list')]);
+            return response()->json(['status' => 1, 'alert' => 'success', 'message' => "$tbNumber successfully saved", 'redirect' => route('trialBalance.index')]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['status' => 0, 'alert' => 'warning', 'message' => "Failed to save: " . $e->getMessage()]);

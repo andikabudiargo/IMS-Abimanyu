@@ -1440,10 +1440,8 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 	Route::get('labaRugi/export-excel',['as'=>'labaRugi.export.excel','uses'=>'Accounting\LabaRugiController@export']);
 
 	Route::get('trialBalance',['as'=>'trialBalance.index','uses'=>'Accounting\TrialBalanceController@index']);
-	Route::get('trialBalance/print',['as'=>'trialBalance.print','uses'=>'Accounting\TrialBalanceController@print']);
-	Route::get('trialBalance/export-excel',['as'=>'trialBalance.export.excel','uses'=>'Accounting\TrialBalanceController@export']);
+	Route::get('trialBalance/list',['as'=>'trialBalance.list','uses'=>'Accounting\TrialBalanceController@list']);
 
-	Route::get('trialBalance/saved',['as'=>'trialBalance.saved.list','uses'=>'Accounting\TrialBalanceController@savedList']);
 	Route::get('trialBalance/saved/create',['as'=>'trialBalance.saved.create','uses'=>'Accounting\TrialBalanceController@savedCreate']);
 	Route::get('trialBalance/saved/generate-data',['as'=>'trialBalance.saved.generateData','uses'=>'Accounting\TrialBalanceController@savedGenerateData']);
 	Route::get('trialBalance/saved/voucher-list',['as'=>'trialBalance.saved.voucherList','uses'=>'Accounting\TrialBalanceController@savedVoucherList']);

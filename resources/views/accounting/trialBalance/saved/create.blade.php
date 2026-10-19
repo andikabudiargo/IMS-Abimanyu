@@ -107,7 +107,7 @@
           </table>
         </div>
         <button type="button" id="btnSave" class="btn btn-primary mt-2">Save</button>
-        <a href="{{ route('trialBalance.saved.list') }}" class="btn btn-secondary mt-2">Back</a>
+        <a href="{{ route('trialBalance.index') }}" class="btn btn-secondary mt-2">Back</a>
       </div>
     </div>
   </div>
