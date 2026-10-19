@@ -390,9 +390,39 @@ class DependentController extends Controller
                 $defaulttxt='Choose Sub Account';
                 break;
             case 'accNumberRange':
-                // $code = Account Type terpilih (contoh: 1100). Nomor akun yang ditawarkan
-                // adalah 1100.01 s/d 1100.99 yang belum dipakai di accounts dan bukan
-                // sub_code (acc_sub) yang sudah jadi kode grup/header.
+                // $code = Sub Account terpilih (contoh: 1100.10). Nomor akun 2 segmen yang
+                // ditawarkan adalah 1100.11 s/d 1100.19 (satu dekade di bawah sub account
+                // tsb, sesuai konvensi nyata di data: cek 1100.13/1100.33/2000.14/5000.71 dst,
+                // semuanya ada di dekade sub account induknya) yang belum dipakai di accounts.
+                $table='accounts';
+                $default='';
+                $defaulttxt='Choose account number';
+                break;
+            case 'accSubCodeRange':
+                // $code = Account Type terpilih (contoh: 1100). Kode Sub Account yang
+                // ditawarkan adalah 1100.10 s/d 1100.90 (kelipatan 10, sesuai konvensi
+                // yang sudah dipakai) yang belum ada di acc_sub.
+                $table='acc_sub';
+                $default='';
+                $defaulttxt='Choose sub account code';
+                break;
+            case 'accHeaderBySub':
+                // $code = Sub Account terpilih (contoh: 1100.10). List akun ber-Category
+                // HEADER yang ada di bawah sub account tsb, buat jadi parent dari DETAIL
+                // yang kodenya 3 segmen (contoh: 1100.13.1 di bawah header 1100.13).
+                $table='accounts';
+                $field ='parent_id';
+                $order ='account';
+                $value ='account';
+                $name  ='description';
+                $default='';
+                $defaulttxt='(Tidak ada - langsung di bawah Sub Account)';
+                break;
+            case 'accDetailNumberRange':
+                // $code = kode akun HEADER terpilih (contoh: 1100.13). Nomor DETAIL 3 segmen
+                // di bawahnya tidak pakai padding (1100.13.1, 1100.13.2, ... sesuai data nyata
+                // yang sampai 2 digit juga: 1100.13.10, 1100.13.11), jadi di-generate dari
+                // nomor terbesar yang sudah dipakai + buffer, bukan rentang tetap.
                 $table='accounts';
                 $default='';
                 $defaulttxt='Choose account number';
@@ -843,13 +873,39 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='accNumberRange'){
+            // $code = sub_code (contoh 1100.10) -> dekade 1100.11..1100.19
+            $prefix = substr($code, 0, -1);
             $candidates = [];
-            for ($i = 1; $i <= 99; $i++) {
-                $candidates[] = $code.'.'.str_pad($i, 2, '0', STR_PAD_LEFT);
+            for ($i = 1; $i <= 9; $i++) {
+                $candidates[] = $prefix.$i;
             }
-            $used = DB::table('accounts')->whereIn('account', $candidates)->pluck('account')->all();
-            $reserved = DB::table('acc_sub')->where('type_code', $code)->pluck('sub_code')->all();
-            $data = array_values(array_diff($candidates, $used, $reserved));
+            $data = array_values(array_diff(
+                $candidates,
+                DB::table('accounts')->whereIn('account', $candidates)->pluck('account')->all()
+            ));
+        }elseif($dependent =='accHeaderBySub'){
+            $data = DB::table('accounts')
+            ->where('parent_id', $code)
+            ->where('acc_header', 'HEADER')
+            ->orderBy('account')
+            ->get();
+        }elseif($dependent =='accDetailNumberRange'){
+            // $code = kode akun HEADER (contoh 1100.13) -> anak 1100.13.1, 1100.13.2, dst (tanpa padding)
+            $used = DB::table('accounts')->where('account', 'like', $code.'.%')->pluck('account')->all();
+            $usedNums = array_map(function($a) use ($code) { return (int) substr($a, strlen($code) + 1); }, $used);
+            $upper = max(($usedNums ? max($usedNums) : 0) + 10, 10);
+            $candidates = [];
+            for ($i = 1; $i <= $upper; $i++) {
+                $candidates[] = $code.'.'.$i;
+            }
+            $data = array_values(array_diff($candidates, $used));
+        }elseif($dependent =='accSubCodeRange'){
+            $candidates = [];
+            for ($i = 10; $i <= 90; $i += 10) {
+                $candidates[] = $code.'.'.$i;
+            }
+            $used = DB::table('acc_sub')->whereIn('sub_code', $candidates)->pluck('sub_code')->all();
+            $data = array_values(array_diff($candidates, $used));
         }elseif($dependent =='list_inv'){
             /*
                 27/3/2024
@@ -1299,6 +1355,14 @@ class DependentController extends Controller
             }elseif($dependent =='list_coa'){
                 $output .='<option value="'.$row->account.'">'.$row->account.' - '.$row->description.'</option>';
             }elseif($dependent =='accNumberRange'){
+                $output .='<option value="'.$row.'">'.$row.'</option>';
+            }elseif($dependent =='accSub'){
+                $output .='<option value="'.$row->sub_code.'">'.$row->sub_code.' - '.$row->description.'</option>';
+            }elseif($dependent =='accHeaderBySub'){
+                $output .='<option value="'.$row->account.'">'.$row->account.' - '.$row->description.'</option>';
+            }elseif($dependent =='accDetailNumberRange'){
+                $output .='<option value="'.$row.'">'.$row.'</option>';
+            }elseif($dependent =='accSubCodeRange'){
                 $output .='<option value="'.$row.'">'.$row.'</option>';
             }elseif($dependent =='tsoArticle'){
                 $output .="<option value='$row->article_code' data-uom-group ='$row->uom_group' data-uom ='$row->uom'>$row->article_alternative_code - $row->article_desc</option>";

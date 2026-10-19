@@ -58,7 +58,7 @@
                                 <select class="select2 w-100" id="subAccount" name="subAccount" required>
                                     <option value=""></option>
                                     @foreach($subAcc as $val)
-                                        <option value="{{$val->sub_code}}" {{ old('subAccount',$accounts->parent_id)== $val->sub_code ? 'selected' : '' }}>{{$val->description}}</option>
+                                        <option value="{{$val->sub_code}}" {{ old('subAccount',$accounts->parent_id)== $val->sub_code ? 'selected' : '' }}>{{$val->sub_code}} - {{$val->description}}</option>
                                     @endforeach
                                 </select>
                             </div>

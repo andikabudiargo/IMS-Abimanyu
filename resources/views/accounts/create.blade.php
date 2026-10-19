@@ -34,7 +34,7 @@
                                 <label class="form-label" for="subAccount">Sub account</label>
                                 <div class="d-flex align-items-start">
                                     <div class="flex-grow-1">
-                                        <select class="select2 w-100" id="subAccount" name="subAccount" disabled>
+                                        <select class="select2 w-100" id="subAccount" disabled>
                                             <option value="">Choose Account Type first</option>
                                         </select>
                                     </div>
@@ -42,6 +42,7 @@
                                 </div>
                             </div>
                         </div>
+                        <input type="hidden" id="parentId" name="subAccount" value="" />
                         <div class="row">
                              <div class="form-group col-md-6">
                                 <label class="form-label" for="accHeader">Category</label>
@@ -55,6 +56,14 @@
                                 <label for="account">Account*</label>
                                 <select class="select2 w-100" id="account" name="account" required disabled>
                                     <option value="">Choose Account Type first</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row d-none" id="rowParentHeader">
+                            <div class="form-group col-md-12">
+                                <label class="form-label" for="parentHeader">Parent Header <small class="text-muted">(kosongkan kalau langsung di bawah Sub Account)</small></label>
+                                <select class="select2 w-100" id="parentHeader" disabled>
+                                    <option value="">Choose Sub Account first</option>
                                 </select>
                             </div>
                         </div>
@@ -143,8 +152,19 @@
       <div class="modal-body">
         <form id="frmAddSub" autocomplete="off">
             <div class="form-group">
-                <label for="newSubCode">Code* <small class="text-muted">(contoh: 1100.80, kelipatan 10 dari Account Type)</small></label>
-                <input type="text" id="newSubCode" class="form-control text-uppercase" maxlength="50" required />
+                <label for="newSubType">Account Type*</label>
+                <select class="select2 w-100" id="newSubType" required>
+                    <option value=""></option>
+                    @foreach($types as $val)
+                        <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="newSubCode">Code*</label>
+                <select class="select2 w-100" id="newSubCode" required disabled>
+                    <option value="">Choose Account Type first</option>
+                </select>
             </div>
             <div class="form-group">
                 <label for="newSubDesc">Description*</label>
@@ -205,15 +225,18 @@
         $("#account").focus();
     });
 
-    // Sub Account & Account (nomor akun) sama-sama mengikuti Account Type yang dipilih.
-    // Sub Account dipakai untuk kategori, Account Number untuk cari nomor yang belum dipakai
-    // di seluruh range type tsb (contoh: pilih 1100 -> tawarkan 1100.01 s/d 1100.99 yang kosong).
+    // Struktur COA: Account Type (1100) -> Sub Account (1100.10) -> Account 2 segmen
+    // di dekade sub-nya (1100.13, HEADER atau DETAIL) -> kalau DETAIL boleh juga nested
+    // 3 segmen di bawah HEADER yang ada (1100.13.1), lewat field Parent Header.
+
+    // 1) Account Type dipilih -> load Sub Account-nya
     $('#type').on('change', function(){
         let typeCode = $(this).val();
 
         if(!typeCode){
             resetSelect('#subAccount', 'Choose Account Type first');
             resetSelect('#account', 'Choose Account Type first');
+            resetParentHeader();
             return;
         }
 
@@ -222,26 +245,93 @@
             method: 'POST',
             data: { dependent: 'accSub', value: typeCode },
             success: function(result){
-                let hasSub = $(result).filter('option').length > 0;
-                $('#subAccount')
-                    .html('<option value="">'+(hasSub ? 'Choose Sub Account' : 'No Sub Account for this type')+'</option>' + result)
-                    .prop('disabled', false)
-                    .trigger('change');
-            }
-        });
-
-        $.ajax({
-            url: "{{ route('dynamic.dependent') }}",
-            method: 'POST',
-            data: { dependent: 'accNumberRange', value: typeCode },
-            success: function(result){
-                $('#account').html('<option value="">Choose Account Number</option>' + result).prop('disabled', false).trigger('change');
+                $('#subAccount').html(result).prop('disabled', false).trigger('change');
             }
         });
     });
 
+    // 2) Sub Account dipilih -> load daftar HEADER di bawahnya (buat opsi Parent Header)
+    //    dan set parent_id sementara = sub account (dipakai kalau Category != DETAIL atau
+    //    Parent Header dikosongkan)
+    $('#subAccount').on('change', function(){
+        let subCode = $(this).val();
+        $('#parentHeader').val('');
+        $('#parentId').val(subCode || '');
+
+        if(!subCode){
+            resetSelect('#account', 'Choose Sub Account first');
+            resetParentHeader();
+            return;
+        }
+
+        refreshAccountNumber();
+
+        $.ajax({
+            url: "{{ route('dynamic.dependent') }}",
+            method: 'POST',
+            data: { dependent: 'accHeaderBySub', value: subCode },
+            success: function(result){
+                $('#parentHeader').html(result).prop('disabled', false).trigger('change');
+            }
+        });
+    });
+
+    // 3) Category berubah -> tampilkan/sembunyikan field Parent Header (cuma relevan untuk DETAIL)
+    $('#accHeader').on('change', function(){
+        let isDetail = $(this).val() === 'DETAIL';
+        $('#rowParentHeader').toggleClass('d-none', !isDetail);
+        if(!isDetail){
+            $('#parentHeader').val('').trigger('change');
+        }
+        refreshAccountNumber();
+    });
+
+    // 4) Parent Header berubah -> kalau dipilih, parent_id = header itu & nomor akun jadi 3 segmen;
+    //    kalau dikosongkan, balik ke parent_id = sub account & nomor akun 2 segmen dekade
+    $('#parentHeader').on('change', function(){
+        $('#parentId').val($(this).val() || $('#subAccount').val() || '');
+        refreshAccountNumber();
+    });
+
+    function refreshAccountNumber(){
+        let isDetail = $('#accHeader').val() === 'DETAIL';
+        let headerCode = $('#parentHeader').val();
+        let subCode = $('#subAccount').val();
+
+        if(isDetail && headerCode){
+            $.ajax({
+                url: "{{ route('dynamic.dependent') }}",
+                method: 'POST',
+                data: { dependent: 'accDetailNumberRange', value: headerCode },
+                success: function(result){
+                    $('#account').html(result).prop('disabled', false).trigger('change');
+                }
+            });
+            return;
+        }
+
+        if(!subCode){
+            resetSelect('#account', 'Choose Sub Account first');
+            return;
+        }
+
+        $.ajax({
+            url: "{{ route('dynamic.dependent') }}",
+            method: 'POST',
+            data: { dependent: 'accNumberRange', value: subCode },
+            success: function(result){
+                $('#account').html(result).prop('disabled', false).trigger('change');
+            }
+        });
+    }
+
     function resetSelect(selector, placeholder){
         $(selector).html('<option value="">'+placeholder+'</option>').prop('disabled', true).trigger('change');
+    }
+
+    function resetParentHeader(){
+        $('#rowParentHeader').addClass('d-none');
+        resetSelect('#parentHeader', 'Choose Sub Account first');
     }
 
     // Tambah Account Type lewat modal, tanpa pindah halaman
@@ -278,24 +368,42 @@
         });
     });
 
-    // Tambah Sub Account lewat modal, mengikuti Account Type yang sedang dipilih
+    // Tambah Sub Account lewat modal. Account Type di modal di-prefill dari form utama
+    // (kalau sudah dipilih), tapi tetap bisa diganti. Code-nya dropdown nomor kelipatan
+    // 10 yang belum dipakai untuk type tsb (1100.10, 1100.20, dst).
     $('#btnAddSub').click(function(){
-        let typeCode = $('#type').val();
-        if(!typeCode){
-            alert('Pilih Account Type dahulu.');
-            return;
-        }
         $('#errAddSub').text('');
         $('#frmAddSub')[0].reset();
+        resetSelect('#newSubCode', 'Choose Account Type first');
+
+        let typeCode = $('#type').val();
+        $('#newSubType').val(typeCode || '').trigger('change');
         $('#mdlAddSub').modal('show');
     });
 
+    $('#newSubType').on('change', function(){
+        let typeCode = $(this).val();
+        if(!typeCode){
+            resetSelect('#newSubCode', 'Choose Account Type first');
+            return;
+        }
+
+        $.ajax({
+            url: "{{ route('dynamic.dependent') }}",
+            method: 'POST',
+            data: { dependent: 'accSubCodeRange', value: typeCode },
+            success: function(result){
+                $('#newSubCode').html(result).prop('disabled', false).trigger('change');
+            }
+        });
+    });
+
     $('#cmdSaveSub').click(function(){
-        let typeCode = $('#type').val();
-        let subCode = $('#newSubCode').val().trim();
+        let typeCode = $('#newSubType').val();
+        let subCode = $('#newSubCode').val();
         let desc = $('#newSubDesc').val().trim();
-        if(!subCode || !desc){
-            $('#errAddSub').text('Code dan Description wajib diisi.');
+        if(!typeCode || !subCode || !desc){
+            $('#errAddSub').text('Account Type, Code, dan Description wajib diisi.');
             return;
         }
 
@@ -305,8 +413,10 @@
             data: { typeCode: typeCode, subCode: subCode, desc: desc },
             headers: { Accept: 'application/json' },
             success: function(result){
-                let option = new Option(result.description, result.sub_code, true, true);
-                $('#subAccount').append(option).trigger('change');
+                let option = new Option(result.sub_code+' - '+result.description, result.sub_code, true, true);
+                if (typeCode === $('#type').val()) {
+                    $('#subAccount').append(option).trigger('change');
+                }
                 $('#mdlAddSub').modal('hide');
             },
             error: function(xhr){
