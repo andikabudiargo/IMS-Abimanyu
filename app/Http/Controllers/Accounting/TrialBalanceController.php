@@ -217,36 +217,29 @@ class TrialBalanceController extends Controller
         $year = (int) $request->year;
         $month = (int) $request->month;
         $bucket = $request->bucket; // open | mutasi | saldo
+        $side = $request->side === 'credit' ? 'credit' : 'debit'; // sisi yang diklik di grid
 
         $monthStart = sprintf('%04d-%02d-01', $year, $month);
         $monthEnd = date('Y-m-t', strtotime($monthStart));
 
-        $startingBalance = 0;
         if ($bucket === 'open') {
             $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') < '$monthStart'";
         } elseif ($bucket === 'mutasi') {
             $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') between '$monthStart' and '$monthEnd'";
-            $before = DB::select("
-                SELECT sum(d.debit) as debit, sum(d.credit) as credit
-                FROM kas_det d
-                JOIN kas_hdr h ON d.voucher_number = h.voucher_number
-                WHERE h.status <> '5' AND d.account = ? AND to_date(h.voucher_date,'dd-mm-yyyy') < ?
-            ", [$account, $monthStart]);
-            $startingBalance = (float) ($before[0]->debit ?? 0) - (float) ($before[0]->credit ?? 0);
         } else {
             $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') <= '$monthEnd'";
         }
 
-        // Satu voucher bisa punya beberapa baris kas_det buat account yang sama
-        // (mis. koreksi debit-kredit di voucher yang sama) -- di-group jadi 1 baris
-        // per voucher supaya debit & kredit nya nyatu, bukan kepisah 2 baris.
+        // Filter d.debit/d.credit > 0 DULU (baris mentah) baru di-group per voucher --
+        // supaya klik kolom Debit cuma nampilin voucher yang punya baris debit di account
+        // ini, bukan ketarik voucher lain yang di baris lain punya kredit juga.
         $rows = DB::select("
             SELECT h.id as hdr_id, h.voucher_number, h.voucher_date, h.voucher_type,
                    sum(d.debit) as debit, sum(d.credit) as credit, max(dp.name) as cost_center_name
             FROM kas_det d
             JOIN kas_hdr h ON d.voucher_number = h.voucher_number
             LEFT JOIN depts dp ON dp.code = d.cost_center
-            WHERE h.status <> '5' AND d.account = ? AND $dateCond
+            WHERE h.status <> '5' AND d.account = ? AND $dateCond AND d.$side > 0
             GROUP BY h.id, h.voucher_number, h.voucher_date, h.voucher_type
             ORDER BY to_date(h.voucher_date,'dd-mm-yyyy'), h.voucher_number
         ", [$account]);
@@ -254,21 +247,16 @@ class TrialBalanceController extends Controller
         $editRoutes = ['KK' => 'kasKeluar.edit', 'KM' => 'kasPenerimaan.edit', 'BK' => 'bankKeluar.edit', 'BM' => 'bankPenerimaan.edit'];
         $totalDebit = 0;
         $totalCredit = 0;
-        $balance = $startingBalance;
         foreach ($rows as $row) {
             $row->edit_url = isset($editRoutes[$row->voucher_type])
                 ? route($editRoutes[$row->voucher_type], ['id' => Crypt::encryptString($row->hdr_id)])
                 : null;
-            $balance += (float) $row->debit - (float) $row->credit;
-            $row->balance = $balance;
             $totalDebit += (float) $row->debit;
             $totalCredit += (float) $row->credit;
         }
 
         return response()->json([
             'status' => 1,
-            'starting_balance' => $startingBalance,
-            'ending_balance' => $balance,
             'rows' => $rows,
             'total_debit' => $totalDebit,
             'total_credit' => $totalCredit,
