@@ -166,7 +166,7 @@
           const grandTotals = {};
 
           $('#tbTableWrap tr.child-row').each(function(){
-            const account = $(this).data('account');
+            const account = $(this).attr('data-account');
             const group = $(this).data('group');
             const monthly = data[account] || {};
             $(this).find('.cell-value').each(function(){
@@ -216,7 +216,7 @@
     $('#btnSave').on('click', function(){
       const rows = [];
       $('#tbTableWrap tr.child-row').each(function(){
-        const account = $(this).data('account');
+        const account = $(this).attr('data-account');
         const monthly = {};
         $(this).find('.cell-value').each(function(){
           const m = $(this).data('month');

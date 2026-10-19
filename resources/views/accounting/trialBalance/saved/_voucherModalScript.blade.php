@@ -30,7 +30,7 @@
   }
 
   $(document).on('click', '.cell-value', function(){
-    const account = $(this).closest('tr').data('account');
+    const account = $(this).closest('tr').attr('data-account');
     const month = $(this).data('month');
     const field = $(this).data('field');
     const bucket = field.startsWith('open') ? 'open' : (field.startsWith('mutasi') ? 'mutasi' : 'saldo');

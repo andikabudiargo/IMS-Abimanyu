@@ -253,16 +253,21 @@ class TrialBalanceController extends Controller
             $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') <= '$monthEnd'";
         }
 
-        // Grid-nya punya section Debit & Credit terpisah buat Saldo Awal/Pergerakan/Saldo
-        // Akhir -- jadi klik cell Debit manapun cuma nampilin baris debit account ini,
-        // klik Credit cuma nampilin baris credit, konsisten di semua section.
+        // Pergerakan = angka mentah satu sisi -> filter cuma baris debit/kredit yang diklik,
+        // totalnya persis sama kayak cell-nya. Saldo Awal/Akhir = angka NET (debit-credit) --
+        // kalau di-filter satu sisi doang, totalnya matematis TIDAK AKAN PERNAH sama dengan
+        // saldo net di grid kecuali akun itu emang cuma pernah kena satu sisi. Jadi buat
+        // saldo, tampilin semua transaksi (gak difilter) supaya Total Debit - Total Credit
+        // di modal = saldo net yang ada di grid.
+        $sideFilter = $bucket === 'mutasi' ? "AND d.$side > 0" : '';
+
         $rows = DB::select("
             SELECT h.id as hdr_id, h.voucher_number, h.voucher_date, h.voucher_type,
                    sum(d.debit) as debit, sum(d.credit) as credit, max(dp.name) as cost_center_name
             FROM kas_det d
             JOIN kas_hdr h ON d.voucher_number = h.voucher_number
             LEFT JOIN depts dp ON dp.code = d.cost_center
-            WHERE h.status <> '5' AND d.account = ? AND $dateCond AND d.$side > 0
+            WHERE h.status <> '5' AND d.account = ? AND $dateCond $sideFilter
             GROUP BY h.id, h.voucher_number, h.voucher_date, h.voucher_type
             ORDER BY to_date(h.voucher_date,'dd-mm-yyyy'), h.voucher_number
         ", [$account]);
@@ -329,10 +334,14 @@ class TrialBalanceController extends Controller
 
             $detRows = [];
             foreach ($rows as $row) {
-                $acc = $accounts->get($row['account']);
+                $accountCode = $row['account'] ?? null;
+                if (!$accountCode) {
+                    continue;
+                }
+                $acc = $accounts->get($accountCode);
                 $detRows[] = [
                     'tb_hdr_id' => $hdrId,
-                    'account' => $row['account'],
+                    'account' => $accountCode,
                     'description' => $acc->description ?? null,
                     'debit_credit' => $acc->debit_credit ?? null,
                     'final_statement' => $acc->final_statement ?? null,
@@ -349,7 +358,7 @@ class TrialBalanceController extends Controller
             DB::commit();
             \LogActivity::addToLog("Save Trial Balance", "username: $username Status $tbNumber successfully saved");
             return response()->json(['status' => 1, 'alert' => 'success', 'message' => "$tbNumber successfully saved", 'redirect' => route('trialBalance.index')]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json(['status' => 0, 'alert' => 'warning', 'message' => "Failed to save: " . $e->getMessage()]);
         }
@@ -386,7 +395,8 @@ class TrialBalanceController extends Controller
     {
         $id = Crypt::decryptString($request->id);
         $username = Auth::user()->username;
-        $rows = json_decode($request->getContent(), true)['rows'] ?? [];
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $rows = $payload['rows'] ?? [];
 
         DB::beginTransaction();
         try {
@@ -398,18 +408,21 @@ class TrialBalanceController extends Controller
             ]);
 
             foreach ($rows as $row) {
+                if (!isset($row['id'])) {
+                    continue;
+                }
                 DB::table('trial_balance_det')
                     ->where('id', $row['id'])
                     ->where('tb_hdr_id', $id)
                     ->update([
-                        'monthly' => json_encode($row['monthly']),
+                        'monthly' => json_encode($row['monthly'] ?? $this->emptyMonthly()),
                         'updated_at' => date('Y-m-d H:i:s'),
                     ]);
             }
 
             DB::commit();
             return response()->json(['status' => 1, 'alert' => 'success', 'message' => 'Trial Balance updated']);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json(['status' => 0, 'alert' => 'warning', 'message' => $e->getMessage()]);
         }
