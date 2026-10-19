@@ -15,34 +15,38 @@
                         @csrf
                         <div class="row">
                             <div class="form-group col-md-12">
-                                <label class="form-label" for="type">
-                                    Account Type*
-                                    <a href="javascript:;" id="btnAddType" data-toggle="tooltip" title="Tambah Account Type"><i data-feather="plus-circle" class="feather-14"></i></a>
-                                </label>
-                                <select class="select2 w-100" id="type" name="type" required>
-                                    <option value=""></option>
-                                    @foreach($types as $val)
-                                        <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
-                                    @endforeach
-                                </select>
+                                <label class="form-label" for="type">Account Type*</label>
+                                <div class="d-flex align-items-start">
+                                    <div class="flex-grow-1">
+                                        <select class="select2 w-100" id="type" name="type" required>
+                                            <option value=""></option>
+                                            @foreach($types as $val)
+                                                <option value="{{$val->code}}">{{$val->code}} - {{$val->name}}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary ml-1" id="btnAddType" data-toggle="tooltip" title="Tambah Account Type"><i data-feather="plus" class="feather-14"></i></button>
+                                </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-12">
-                                <label class="form-label" for="subAccount">
-                                    Sub account*
-                                    <a href="javascript:;" id="btnAddSub" data-toggle="tooltip" title="Tambah Sub Account"><i data-feather="plus-circle" class="feather-14"></i></a>
-                                </label>
-                                <select class="select2 w-100" id="subAccount" name="subAccount" required disabled>
-                                    <option value="">Choose Account Type first</option>
-                                </select>
+                                <label class="form-label" for="subAccount">Sub account</label>
+                                <div class="d-flex align-items-start">
+                                    <div class="flex-grow-1">
+                                        <select class="select2 w-100" id="subAccount" name="subAccount" disabled>
+                                            <option value="">Choose Account Type first</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary ml-1" id="btnAddSub" data-toggle="tooltip" title="Tambah Sub Account"><i data-feather="plus" class="feather-14"></i></button>
+                                </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-4">
                                 <label for="account">Account*</label>
                                 <select class="select2 w-100" id="account" name="account" required disabled>
-                                    <option value="">Choose Sub Account first</option>
+                                    <option value="">Choose Account Type first</option>
                                 </select>
                             </div>
                         </div>
@@ -173,6 +177,10 @@
 @endsection
 @section('scripts')
 <script type="text/javascript">
+    $.ajaxSetup({
+        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+    });
+
     $(document).ready(function(){
         validateFormToast("frmAdd");
         mask_thousand();
@@ -203,13 +211,15 @@
         $("#account").focus();
     });
 
-    // Sub Account mengikuti Account Type yang dipilih
+    // Sub Account & Account (nomor akun) sama-sama mengikuti Account Type yang dipilih.
+    // Sub Account dipakai untuk kategori, Account Number untuk cari nomor yang belum dipakai
+    // di seluruh range type tsb (contoh: pilih 1100 -> tawarkan 1100.01 s/d 1100.99 yang kosong).
     $('#type').on('change', function(){
         let typeCode = $(this).val();
-        resetSelect('#account', 'Choose Sub Account first');
 
         if(!typeCode){
             resetSelect('#subAccount', 'Choose Account Type first');
+            resetSelect('#account', 'Choose Account Type first');
             return;
         }
 
@@ -218,23 +228,18 @@
             method: 'POST',
             data: { dependent: 'accSub', value: typeCode },
             success: function(result){
-                $('#subAccount').html('<option value="">Choose Sub Account</option>' + result).prop('disabled', false).trigger('change');
+                let hasSub = $(result).filter('option').length > 0;
+                $('#subAccount')
+                    .html('<option value="">'+(hasSub ? 'Choose Sub Account' : 'No Sub Account for this type')+'</option>' + result)
+                    .prop('disabled', false)
+                    .trigger('change');
             }
         });
-    });
-
-    // Account (nomor akun) mengikuti rentang nomor dari Sub Account yang dipilih
-    $('#subAccount').on('change', function(){
-        let subCode = $(this).val();
-        if(!subCode){
-            resetSelect('#account', 'Choose Sub Account first');
-            return;
-        }
 
         $.ajax({
             url: "{{ route('dynamic.dependent') }}",
             method: 'POST',
-            data: { dependent: 'accNumberRange', value: subCode },
+            data: { dependent: 'accNumberRange', value: typeCode },
             success: function(result){
                 $('#account').html('<option value="">Choose Account Number</option>' + result).prop('disabled', false).trigger('change');
             }

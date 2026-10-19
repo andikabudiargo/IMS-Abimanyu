@@ -390,9 +390,9 @@ class DependentController extends Controller
                 $defaulttxt='Choose Sub Account';
                 break;
             case 'accNumberRange':
-                // $code = sub_code terpilih (contoh: 1100.70). Nomor akun valid ada di
-                // rentang 1 digit terakhir 1-9 dari sub_code tersebut (1100.71 s/d 1100.79),
-                // sesuai konvensi penomoran COA yang sudah dipakai (lihat data acc_sub/accounts).
+                // $code = Account Type terpilih (contoh: 1100). Nomor akun yang ditawarkan
+                // adalah 1100.01 s/d 1100.99 yang belum dipakai di accounts dan bukan
+                // sub_code (acc_sub) yang sudah jadi kode grup/header.
                 $table='accounts';
                 $default='';
                 $defaulttxt='Choose account number';
@@ -843,13 +843,13 @@ class DependentController extends Controller
             ->orderBy($order)
             ->get();
         }elseif($dependent =='accNumberRange'){
-            $prefix = substr($code, 0, -1);
             $candidates = [];
-            for ($i = 1; $i <= 9; $i++) {
-                $candidates[] = $prefix.$i;
+            for ($i = 1; $i <= 99; $i++) {
+                $candidates[] = $code.'.'.str_pad($i, 2, '0', STR_PAD_LEFT);
             }
             $used = DB::table('accounts')->whereIn('account', $candidates)->pluck('account')->all();
-            $data = array_values(array_diff($candidates, $used));
+            $reserved = DB::table('acc_sub')->where('type_code', $code)->pluck('sub_code')->all();
+            $data = array_values(array_diff($candidates, $used, $reserved));
         }elseif($dependent =='list_inv'){
             /*
                 27/3/2024
