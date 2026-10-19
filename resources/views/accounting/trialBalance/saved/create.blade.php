@@ -38,6 +38,7 @@
   <div id="tbTableWrap" class="card" style="display:none;">
     <div class="card-content">
       <div class="card-body">
+        <small class="text-muted">Nilai diambil otomatis dari jurnal (kas/bank). Klik angka untuk lihat detail vouchernya.</small>
         <div class="tbFixHead">
           <table class="table table-sm table-bordered tbGrid">
             <thead>
@@ -78,7 +79,7 @@
                     <td>{{ $acc->final_statement }}</td>
                     @foreach($months as $m)
                       @foreach(array_keys($fields) as $field)
-                        <td><input type="text" inputmode="decimal" class="cell-input" data-month="{{ $m }}" data-field="{{ $field }}" value="0"></td>
+                        <td class="cell-value text-right" data-month="{{ $m }}" data-field="{{ $field }}" data-raw="0">0</td>
                       @endforeach
                     @endforeach
                   </tr>
@@ -111,6 +112,7 @@
     </div>
   </div>
 </section>
+@include('accounting.trialBalance.saved._voucherModal')
 @endsection
 @section('styles')
 <style>
@@ -129,11 +131,10 @@
   .grandtotal-row td { background: #cfd8dc; font-weight: bold; }
   tr.row-even td { background: #ffffff; }
   tr.row-odd td { background: #f7f7f7; }
-  .cell-input {
-    border: none; background: transparent; width: 85px; text-align: right;
-    padding: 2px 4px;
+  .cell-value {
+    min-width: 95px; padding: 2px 6px; cursor: pointer;
   }
-  .cell-input:focus { background: #fff3cd; outline: 1px solid #f0ad4e; }
+  .cell-value:hover { background: #fff3cd !important; text-decoration: underline; }
   .text-right { text-align: right; }
 </style>
 @endsection
@@ -143,23 +144,6 @@
     return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   }
 
-  function recompute(month, field){
-    $('tr.subtotal-row').each(function(){
-      const group = $(this).data('subtotal-group');
-      let sum = 0;
-      $(`tr.child-row[data-group="${group}"] input.cell-input[data-month="${month}"][data-field="${field}"]`).each(function(){
-        sum += parseFloat($(this).val()) || 0;
-      });
-      $(this).find(`.subtotal-cell[data-month="${month}"][data-field="${field}"]`).text(fmt(sum));
-    });
-
-    let grand = 0;
-    $(`input.cell-input[data-month="${month}"][data-field="${field}"]`).each(function(){
-      grand += parseFloat($(this).val()) || 0;
-    });
-    $(`.grandtotal-cell[data-month="${month}"][data-field="${field}"]`).text(fmt(grand));
-  }
-
   $(document).ready(function(){
     $('#btnGenerate').on('click', function(){
       const year = $('#year').val();
@@ -167,25 +151,40 @@
         swal.fire('Warning', 'Isi Year dulu', 'warning');
         return;
       }
+      window.tbYear = year;
       $(".loading-spinner-container").addClass("-show");
       $.get("{{ route('trialBalance.saved.generateData') }}", { year: year })
         .done(function(res){
           const data = res.data || {};
-          $('#tbTableWrap tr[data-account]').each(function(){
+          const groupTotals = {};
+          const grandTotals = {};
+
+          $('#tbTableWrap tr.child-row').each(function(){
             const account = $(this).data('account');
-            const monthly = data[account];
-            if(!monthly) return;
-            $(this).find('input.cell-input').each(function(){
+            const group = $(this).data('group');
+            const monthly = data[account] || {};
+            $(this).find('.cell-value').each(function(){
               const m = $(this).data('month');
               const field = $(this).data('field');
-              $(this).val(monthly[m] ? monthly[m][field] : 0);
+              const val = (monthly[m] && monthly[m][field]) ? monthly[m][field] : 0;
+              $(this).attr('data-raw', val).text(fmt(val));
+
+              const key = `${group}|${m}|${field}`;
+              groupTotals[key] = (groupTotals[key] || 0) + val;
+              const gkey = `${m}|${field}`;
+              grandTotals[gkey] = (grandTotals[gkey] || 0) + val;
             });
           });
-          @foreach($months as $m)
-            @foreach(array_keys($fields) as $field)
-              recompute({{ $m }}, '{{ $field }}');
-            @endforeach
-          @endforeach
+
+          $('.subtotal-cell').each(function(){
+            const key = `${$(this).data('subtotal-group')}|${$(this).data('month')}|${$(this).data('field')}`;
+            $(this).text(fmt(groupTotals[key] || 0));
+          });
+          $('.grandtotal-cell').each(function(){
+            const key = `${$(this).data('month')}|${$(this).data('field')}`;
+            $(this).text(fmt(grandTotals[key] || 0));
+          });
+
           $('#tbTableWrap').show();
         })
         .fail(function(){
@@ -202,20 +201,16 @@
       $(this).find('.toggle-sign').text(function(i, old){ return old === '+' ? '-' : '+'; });
     });
 
-    $(document).on('change', '.cell-input', function(){
-      recompute($(this).data('month'), $(this).data('field'));
-    });
-
     $('#btnSave').on('click', function(){
       const rows = [];
-      $('#tbTableWrap tr[data-account]').each(function(){
+      $('#tbTableWrap tr.child-row').each(function(){
         const account = $(this).data('account');
         const monthly = {};
-        $(this).find('input.cell-input').each(function(){
+        $(this).find('.cell-value').each(function(){
           const m = $(this).data('month');
           const field = $(this).data('field');
           if(!monthly[m]) monthly[m] = {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_debit:0,saldo_credit:0};
-          monthly[m][field] = parseFloat($(this).val()) || 0;
+          monthly[m][field] = parseFloat($(this).attr('data-raw')) || 0;
         });
         rows.push({ account: account, monthly: monthly });
       });

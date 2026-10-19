@@ -458,6 +458,55 @@ class TrialBalanceController extends Controller
         return response()->json(['status' => 1, 'data' => $result]);
     }
 
+    // Voucher yang jadi sumber angka 1 cell (Saldo Awal/Pergerakan/Saldo Akhir), dipanggil
+    // dari modal drill-down -- angka di grid read-only, klik untuk lihat detailnya.
+    public function savedVoucherList(Request $request)
+    {
+        $account = $request->account;
+        $year = (int) $request->year;
+        $month = (int) $request->month;
+        $bucket = $request->bucket; // open | mutasi | saldo
+
+        $monthStart = sprintf('%04d-%02d-01', $year, $month);
+        $monthEnd = date('Y-m-t', strtotime($monthStart));
+
+        if ($bucket === 'open') {
+            $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') < '$monthStart'";
+        } elseif ($bucket === 'mutasi') {
+            $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') between '$monthStart' and '$monthEnd'";
+        } else {
+            $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') <= '$monthEnd'";
+        }
+
+        $rows = DB::select("
+            SELECT h.id as hdr_id, h.voucher_number, h.voucher_date, h.voucher_type,
+                   d.debit, d.credit, dp.name as cost_center_name
+            FROM kas_det d
+            JOIN kas_hdr h ON d.voucher_number = h.voucher_number
+            LEFT JOIN depts dp ON dp.code = d.cost_center
+            WHERE h.status = '3' AND d.account = ? AND $dateCond
+            ORDER BY to_date(h.voucher_date,'dd-mm-yyyy'), h.voucher_number
+        ", [$account]);
+
+        $editRoutes = ['KK' => 'kasKeluar.edit', 'KM' => 'kasPenerimaan.edit', 'BK' => 'bankKeluar.edit', 'BM' => 'bankPenerimaan.edit'];
+        $totalDebit = 0;
+        $totalCredit = 0;
+        foreach ($rows as $row) {
+            $row->edit_url = isset($editRoutes[$row->voucher_type])
+                ? route($editRoutes[$row->voucher_type], ['id' => Crypt::encryptString($row->hdr_id)])
+                : null;
+            $totalDebit += (float) $row->debit;
+            $totalCredit += (float) $row->credit;
+        }
+
+        return response()->json([
+            'status' => 1,
+            'rows' => $rows,
+            'total_debit' => $totalDebit,
+            'total_credit' => $totalCredit,
+        ]);
+    }
+
     public function savedCreate(Request $request)
     {
         $data['title'] = "Create Trial Balance";

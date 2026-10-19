@@ -248,7 +248,7 @@ class BukuBesarController extends Controller
         return Datatables::of($data)
         ->addColumn('statusku', function ($data) {
             $statusBb = ['NEW','VALIDATE','APPROVED','','','PAID'];
-            return $statusBb[$data->statusku - 1];
+            return $statusBb[$data->statusku - 1] ?? $data->statusku;
         })
         ->rawColumns(['statusku'])
         ->make(true);
