@@ -43,7 +43,15 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="form-group col-md-4">
+                             <div class="form-group col-md-6">
+                                <label class="form-label" for="accHeader">Category</label>
+                                <select class="select2 w-100" id="accHeader" name="accHeader">
+                                    <option value=""></option>
+                                    <option label="HEADER">HEADER</option>
+                                    <option label="DETAIL">DETAIL</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-6">
                                 <label for="account">Account*</label>
                                 <select class="select2 w-100" id="account" name="account" required disabled>
                                     <option value="">Choose Account Type first</option>
@@ -57,23 +65,7 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="form-group col-md-5">
-                                <label for="openingBalance">Opening balance</label>
-                                <input type="text" id="openingBalance" name="openingBalance" oninput='inputDecimal(this)' value="{{ old('openingBalance') }}" class="form-control numeral-mask-digit" maxlength="20"/>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="form-group col-md-6">
-                                <label class="form-label" for="accHeader">Category</label>
-                                <select class="select2 w-100" id="accHeader" name="accHeader">
-                                    <option value=""></option>
-                                    <option label="HEADER">HEADER</option>
-                                    <option label="DETAIL">DETAIL</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-4">
                                 <label class="form-label" for="accDebitCredit">Normal Balance</label>
                                 <select class="select2 w-100" id="accDebitCredit" name="accDebitCredit">
                                     <option value=""></option>
@@ -81,9 +73,11 @@
                                     <option label="KREDIT">KREDIT</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="form-group col-md-6">
+                            <div class="form-group col-md-4">
+                                <label for="openingBalance">Opening balance</label>
+                                <input type="text" id="openingBalance" name="openingBalance" oninput='inputDecimal(this)' value="{{ old('openingBalance') }}" class="form-control numeral-mask-digit" maxlength="20"/>
+                            </div>
+                             <div class="form-group col-md-4">
                                 <label class="form-label" for="accFinalStatement">Final Statement</label>
                                 <select class="select2 w-100" id="accFinalStatement" name="accFinalStatement">
                                     <option value=""></option>
