@@ -442,7 +442,7 @@
                     let ppn = $('#ppn').val().replace(/,/gi, '');
                     let pph23 = $('#pph23').val().replace(/,/gi, '');
                     let totalPpn = $('#totalPPN').val().replace(/,/gi, '') || 0;
-                    let totalPph = $('#totalPPH').val().replace(/,/gi, '') || 0;
+                    let totalPph = collectTotalPph();
                     let note = $('#note').val();
                     let fakturPajak =$('#fakturPajak').val();
                     let totalAmount = $('#totalAmount').val().replace(/,/gi, '') || 0;

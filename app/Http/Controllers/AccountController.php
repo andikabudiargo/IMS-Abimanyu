@@ -315,7 +315,7 @@ class AccountController extends Controller
             NULLIF(split_part(account, '.', 2), '')::numeric,
             NULLIF(split_part(account, '.', 3), '')::numeric,
             account
-        ")->get();
+        ");
 
         return Datatables::of($data)
         ->addColumn('action', function ($data) {

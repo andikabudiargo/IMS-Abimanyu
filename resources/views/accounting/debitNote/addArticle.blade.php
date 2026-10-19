@@ -116,6 +116,19 @@
         });
     }
 
+    // Total WHT yang dikirim ke server: DN customer pakai #totalPPH, DN supplier pakai
+    // #totalPPH23/21/42 terpisah (hanya satu yang kecentang/berisi). Dipakai di tombol
+    // Save/Update supaya tidak crash saat #totalPPH tidak ada di DOM mode supplier.
+    function collectTotalPph(){
+        let total = 0;
+        ['#totalPPH','#totalPPH23','#totalPPH21','#totalPPH42'].forEach(function(sel){
+            if ($(sel).length){
+                total += parseFloat($(sel).val().replace(/,/gi, '')) || 0;
+            }
+        });
+        return total;
+    }
+
     // Isi/kosongkan field total PB1/WHT sesuai checkbox-nya. No-op kalau field (totalFieldId)
     // tidak ada di DOM - dipakai supaya satu pemanggilan aman untuk mode customer & supplier.
     function applyPercentAmount(totalFieldId, checked, rate, base, labelFieldId){
@@ -295,17 +308,7 @@
 
         let tDpp =  totalAmount;
         let tPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
-        // DN customer pakai #totalPPH; DN supplier pakai #totalPPH23/21/42 terpisah (field #totalPPH
-        // tidak ada di DOM-nya) - jumlahkan yang ada biar tidak crash dan Netto tetap kehitung.
-        let tPph = 0;
-        if ($('#totalPPH').length){
-            tPph += parseFloat($('#totalPPH').val().replace(/,/gi, '')) || 0;
-        }
-        ['#totalPPH23','#totalPPH21','#totalPPH42'].forEach(function(sel){
-            if ($(sel).length){
-                tPph += parseFloat($(sel).val().replace(/,/gi, '')) || 0;
-            }
-        });
+        let tPph = collectTotalPph();
         let tPb1 = $('#totalPB1').length ? ($("#totalPB1").val().replace(/,/gi, '') || 0) : 0;
         let totalNetto1 = (tDpp+parseFloat(tPpn)+parseFloat(tPb1))-parseFloat(tPph);
         $("#totalNetto").val(humanizeNumber(totalNetto1.toFixed(2)));
