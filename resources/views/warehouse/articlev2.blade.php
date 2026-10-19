@@ -376,18 +376,24 @@
 
           <div id="lotGenerateArea" style="display:none;">
             <hr>
-            <h6>Isi Expired Date untuk kaleng baru (opsional)</h6>
+            <h6>Atur Qty per Kaleng &amp; Expired Date (opsional)</h6>
             <div class="table-responsive mb-1">
               <table class="table table-sm mb-0" id="lotGenerateTable">
                 <thead class="thead-light">
                   <tr>
                     <th>#</th>
-                    <th class="text-right">Qty</th>
+                    <th class="text-right" style="width:140px;">Qty</th>
                     <th>Expired Date (opsional)</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
               </table>
+            </div>
+            <div class="mb-2">
+              Total: <b id="lotGenerateTotal">0</b> / <span id="lotGenerateTarget">0</span>
+              <span id="lotGenerateTotalWarn" class="text-danger ml-1" style="display:none;">
+                <i data-feather="alert-triangle"></i> Total tidak sama dengan qty yang belum ber-barcode
+              </span>
             </div>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLotGenerateCancel">Batal</button>
             <button type="button" class="btn btn-sm btn-success" id="btnLotGenerateSave">Simpan & Cetak Label</button>
@@ -1154,6 +1160,18 @@ $(document).on('click', '.btn-lot-empty', function () {
     });
 });
 
+let lotGenTarget = 0;
+
+const recalcLotGenerateTotal = () => {
+    let total = 0;
+    $('.lot-gen-qty').each(function () { total += Number($(this).val()) || 0; });
+    total = Math.round(total * 1000) / 1000;
+    $('#lotGenerateTotal').text(total.toLocaleString());
+    const mismatch = Math.abs(total - lotGenTarget) > 0.001;
+    $('#lotGenerateTotalWarn').toggle(mismatch);
+    $('#btnLotGenerateSave').prop('disabled', mismatch);
+};
+
 $('#btnLotGeneratePreview').on('click', function () {
     $.ajax({
         url: "{{ route('stock.chemicalLot.generatePreview') }}",
@@ -1164,21 +1182,26 @@ $('#btnLotGeneratePreview').on('click', function () {
                 Swal.fire('Info', res.message, 'warning');
                 return;
             }
+            lotGenTarget = Number(res.uncovered_qty) || 0;
+            $('#lotGenerateTarget').text(lotGenTarget.toLocaleString());
             const $tbody = $('#lotGenerateTable tbody');
             $tbody.empty();
             res.rows.forEach(function (r) {
                 $tbody.append(
                     '<tr>' +
                         '<td>' + r.unit_sequence + '</td>' +
-                        '<td class="text-right">' + Number(r.qty).toLocaleString() + '</td>' +
-                        '<td><input type="date" class="form-control form-control-sm lot-gen-exp" data-seq="' + r.unit_sequence + '" data-qty="' + r.qty + '"></td>' +
+                        '<td class="text-right"><input type="number" step="0.001" min="0.001" class="form-control form-control-sm text-right lot-gen-qty" data-seq="' + r.unit_sequence + '" value="' + r.qty + '"></td>' +
+                        '<td><input type="date" class="form-control form-control-sm lot-gen-exp" data-seq="' + r.unit_sequence + '"></td>' +
                     '</tr>'
                 );
             });
+            recalcLotGenerateTotal();
             $('#lotGenerateArea').show();
         }
     });
 });
+
+$(document).on('input', '.lot-gen-qty', recalcLotGenerateTotal);
 
 $('#btnLotGenerateCancel').on('click', function () {
     $('#lotGenerateArea').hide();
@@ -1188,13 +1211,20 @@ $('#btnLotGenerateSave').on('click', function () {
     // Expired date opsional di sini (stock lama sering sudah tidak diketahui
     // expired-nya) -- kaleng tanpa expired date tetap bisa di-extend belakangan.
     const rows = [];
-    $('.lot-gen-exp').each(function () {
+    $('.lot-gen-qty').each(function () {
+        const seq = $(this).data('seq');
         rows.push({
-            unit_sequence: $(this).data('seq'),
-            qty: $(this).data('qty'),
-            expired_date: $(this).val() || null
+            unit_sequence: seq,
+            qty: Number($(this).val()) || 0,
+            expired_date: $('.lot-gen-exp[data-seq="' + seq + '"]').val() || null
         });
     });
+
+    const total = Math.round(rows.reduce((s, r) => s + r.qty, 0) * 1000) / 1000;
+    if (Math.abs(total - lotGenTarget) > 0.001) {
+        Swal.fire('Total Tidak Sesuai', 'Total qty kaleng harus sama dengan qty yang belum ber-barcode (' + lotGenTarget.toLocaleString() + ').', 'warning');
+        return;
+    }
 
     const $btn = $(this).prop('disabled', true);
     $.ajax({
