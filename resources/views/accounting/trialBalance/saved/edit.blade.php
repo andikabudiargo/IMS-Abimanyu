@@ -128,6 +128,10 @@
 @section('scripts')
 <script type="text/javascript">
   window.tbYear = {{ $hdr->year }};
+</script>
+@include('accounting.trialBalance.saved._voucherModalScript')
+<script type="text/javascript">
+  // window.tbYear sudah di-set di atas
 
   function fmt(n){
     return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });

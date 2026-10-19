@@ -139,6 +139,7 @@
 </style>
 @endsection
 @section('scripts')
+@include('accounting.trialBalance.saved._voucherModalScript')
 <script type="text/javascript">
   function fmt(n){
     return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });

@@ -390,7 +390,8 @@ class TrialBalanceController extends Controller
     }
 
     // Hitung saldo awal/pergerakan/saldo akhir per bulan per account langsung dari
-    // jurnal (kas_det/kas_hdr, status posted), bukan input manual. Saldo awal bulan N
+    // jurnal (kas_det/kas_hdr, semua status kecuali cancelled/'5' -- draft & pending
+    // tetap ikut keitung), bukan input manual. Saldo awal bulan N
     // = net kumulatif seluruh transaksi sebelum bulan itu; saldo akhir = saldo awal +
     // pergerakan bulan itu. Net positif (debit>credit) ditaruh di kolom debit, net
     // negatif ditaruh di kolom credit (konvensi trial balance standar).
@@ -407,7 +408,7 @@ class TrialBalanceController extends Controller
                    sum(d.debit) as debit, sum(d.credit) as credit
             FROM kas_det d
             JOIN kas_hdr h ON d.voucher_number = h.voucher_number
-            WHERE h.status = '3'
+            WHERE h.status <> '5'
               AND extract(year from to_date(h.voucher_date,'dd-mm-yyyy')) = ?
             GROUP BY d.account, month
         ", [$year]);
@@ -416,7 +417,7 @@ class TrialBalanceController extends Controller
             SELECT d.account, sum(d.debit) as debit, sum(d.credit) as credit
             FROM kas_det d
             JOIN kas_hdr h ON d.voucher_number = h.voucher_number
-            WHERE h.status = '3'
+            WHERE h.status <> '5'
               AND to_date(h.voucher_date,'dd-mm-yyyy') < make_date(?,1,1)
             GROUP BY d.account
         ", [$year]);
@@ -484,7 +485,7 @@ class TrialBalanceController extends Controller
             FROM kas_det d
             JOIN kas_hdr h ON d.voucher_number = h.voucher_number
             LEFT JOIN depts dp ON dp.code = d.cost_center
-            WHERE h.status = '3' AND d.account = ? AND $dateCond
+            WHERE h.status <> '5' AND d.account = ? AND $dateCond
             ORDER BY to_date(h.voucher_date,'dd-mm-yyyy'), h.voucher_number
         ", [$account]);
 
