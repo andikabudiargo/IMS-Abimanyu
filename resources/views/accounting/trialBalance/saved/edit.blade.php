@@ -65,7 +65,7 @@
                     <td>{{ $d->final_statement }}</td>
                     @foreach($months as $m)
                       @foreach(array_keys($fields) as $field)
-                        <td class="cell-value text-right" data-month="{{ $m }}" data-field="{{ $field }}" data-raw="{{ $monthly[$m][$field] ?? 0 }}">{{ number_format($monthly[$m][$field] ?? 0, 0, ',', '.') }}</td>
+                        <td class="cell-value text-right" data-month="{{ $m }}" data-field="{{ $field }}" data-raw="{{ $monthly[$m][$field] ?? 0 }}">{{ number_format($monthly[$m][$field] ?? 0, 2, ',', '.') }}</td>
                       @endforeach
                     @endforeach
                   </tr>
@@ -134,7 +134,7 @@
   // window.tbYear sudah di-set di atas
 
   function fmt(n){
-    return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function recomputeTotals(){

@@ -48,7 +48,7 @@
                 $groupTotals["$m|$field"] = ($groupTotals["$m|$field"] ?? 0) + $val;
                 $grandTotals["$m|$field"] = ($grandTotals["$m|$field"] ?? 0) + $val;
               @endphp
-              <td>{{ $val }}</td>
+              <td>{{ number_format($val, 2, '.', '') }}</td>
             @endforeach
           @endforeach
         </tr>
@@ -57,7 +57,7 @@
         <td colspan="4"><strong>Subtotal {{ $g->group_name }}</strong></td>
         @foreach($months as $m)
           @foreach($fieldKeys as $field)
-            <td><strong>{{ $groupTotals["$m|$field"] ?? 0 }}</strong></td>
+            <td><strong>{{ number_format($groupTotals["$m|$field"] ?? 0, 2, '.', '') }}</strong></td>
           @endforeach
         @endforeach
       </tr>
@@ -66,7 +66,7 @@
       <td colspan="4"><strong>Grand Total</strong></td>
       @foreach($months as $m)
         @foreach($fieldKeys as $field)
-          <td><strong>{{ $grandTotals["$m|$field"] ?? 0 }}</strong></td>
+          <td><strong>{{ number_format($grandTotals["$m|$field"] ?? 0, 2, '.', '') }}</strong></td>
         @endforeach
       @endforeach
     </tr>

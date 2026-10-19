@@ -1,6 +1,6 @@
 <script type="text/javascript">
   function fmtRp(n){
-    return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function openVoucherModal(account, month, bucket, side){
@@ -23,12 +23,6 @@
         $('#voucherModalBody').html(html);
         $('#voucherModalTotalDebit').text(fmtRp(res.total_debit));
         $('#voucherModalTotalCredit').text(fmtRp(res.total_credit));
-        if(res.bucket === 'mutasi'){
-          $('#voucherModalNetRow').hide();
-        }else{
-          $('#voucherModalNet').html('<strong>' + fmtRp(res.net) + '</strong>');
-          $('#voucherModalNetRow').show();
-        }
       })
       .fail(function(){
         $('#voucherModalBody').html('<tr><td colspan="5" class="text-center text-danger">Gagal memuat data</td></tr>');

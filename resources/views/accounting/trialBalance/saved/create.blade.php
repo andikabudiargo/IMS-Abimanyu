@@ -147,7 +147,7 @@
 @include('accounting.trialBalance.saved._voucherModalScript')
 <script type="text/javascript">
   function fmt(n){
-    return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   $(document).ready(function(){
