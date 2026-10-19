@@ -116,6 +116,20 @@
         });
     }
 
+    // Isi/kosongkan field total PB1/WHT sesuai checkbox-nya. No-op kalau field (totalFieldId)
+    // tidak ada di DOM - dipakai supaya satu pemanggilan aman untuk mode customer & supplier.
+    function applyPercentAmount(totalFieldId, checked, rate, base, labelFieldId){
+        let objTotal = $('#'+totalFieldId);
+        if (!objTotal.length) return;
+        if (checked){
+            objTotal.val(humanizeNumber((base * (rate/100)).toFixed(2)));
+            if (labelFieldId) $('#'+labelFieldId).text(rate+'%');
+        }else{
+            objTotal.val(0);
+            if (labelFieldId) $('#'+labelFieldId).text('');
+        }
+    }
+
     let delayTimer;
     function inputDecimal(ele) {
         clearTimeout(delayTimer);
@@ -269,17 +283,14 @@
                 $("#totalDppNilaiLain").val('');
             }
     
-            if ($('#pph23Check').is(':checked')){
-                if(totalAmountJasa > 0){
-                    $("#totalPPH").val(humanizeNumber((totalAmountJasa * (sNilaiPPH/100)).toFixed(2)));
-                }else{
-                    $("#totalPPH").val(humanizeNumber((totalAmount * (sNilaiPPH/100)).toFixed(2)));
-                }
-            }
-
-            if ($('#pb1Check').is(':checked')){
-                $("#totalPB1").val(humanizeNumber((totalAmountMaterial * (sNilaiPB1/100)).toFixed(2)));
-            }
+            // DN customer pakai #totalPPH; DN supplier pakai #totalPPH23/21/42 terpisah - panggil
+            // keduanya, applyPercentAmount no-op kalau field-nya tidak ada di DOM mode ini.
+            let whtBase = totalAmountJasa > 0 ? totalAmountJasa : totalAmount;
+            applyPercentAmount('totalPPH', $('#pph23Check').is(':checked'), sNilaiPPH, whtBase, 'nilaiPPH');
+            applyPercentAmount('totalPPH23', $('#pph23Check').is(':checked'), sNilaiPPH, whtBase, 'nilaiPPH23');
+            applyPercentAmount('totalPPH21', $('#pph21Check').is(':checked'), sNilaiPPH21, whtBase, 'nilaiPPH21');
+            applyPercentAmount('totalPPH42', $('#pph42Check').is(':checked'), sNilaiPPH42, whtBase, null);
+            applyPercentAmount('totalPB1', $('#pb1Check').is(':checked'), sNilaiPB1, totalAmountMaterial, 'nilaiPB1');
         }
 
         let tDpp =  totalAmount;
@@ -306,38 +317,56 @@
         hitungGrandTotal();
     })
 
+    function whtBaseNow(){
+        let totalAmountJasa = parseFloat($('#totalAmountJasa').val().replace(/,/gi, '')) || 0;
+        let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
+        return totalAmountJasa > 0 ? totalAmountJasa : totalAmount;
+    }
+
+    // DN customer pakai #totalPPH, DN supplier pakai #totalPPH23 - isi dua-duanya,
+    // applyPercentAmount otomatis skip yang field-nya tidak ada di DOM mode ini.
     $("#pph23Check").change(function() {
-        if(this.checked) {
-            let totalAmountJasa = parseFloat($('#totalAmountJasa').val().replace(/,/gi, '')) || 0;
-            let totalAmount = parseFloat($('#totalAmount').val().replace(/,/gi, '')) || 0;
-            if (totalAmountJasa){
-                $("#totalPPH").val((totalAmountJasa * (sNilaiPPH/100)).toFixed(2));
-            }else{
-                $("#totalPPH").val((totalAmount * (sNilaiPPH/100)).toFixed(2));
-            }
-            $("#nilaiPPH").text(sNilaiPPH+'%');
-            $('#totalPPH').removeAttr('disabled');
-            $('#totalPPH').focus().select();
-            mask_thousand();
-            mask_thousand_digit(2);
-            // totalSummary();
-            hitungGrandTotal();
-        }else{
-            $("#totalPPH").val(0);
-            $("#nilaiPPH").text('');
-            $('#totalPPH').attr('disabled','disabled');
-            hitungGrandTotal();
-            // totalSummary();
+        let base = whtBaseNow();
+        applyPercentAmount('totalPPH', this.checked, sNilaiPPH, base, 'nilaiPPH');
+        applyPercentAmount('totalPPH23', this.checked, sNilaiPPH, base, 'nilaiPPH23');
+        $('#totalPPH,#totalPPH23').prop('disabled', !this.checked);
+        if (this.checked){
+            $('#totalPPH,#totalPPH23').filter(':visible').first().focus().select();
         }
+        mask_thousand();
+        mask_thousand_digit(2);
+        hitungGrandTotal();
     });
 
-    // pilihan jenis WHT (PPh23/PPh21/PPh42) hanya ada di DN supplier, ganti rate yang dipakai
-    // oleh kalkulasi #totalPPH di atas - account GL-nya ditentukan controller dari pphType ini.
-    $("#pphType").change(function() {
-        const rate = {'23': sNilaiPPH, '21': sNilaiPPH21, '42': sNilaiPPH42};
-        sNilaiPPH = rate[this.value] || 0;
-        if ($('#pph23Check').is(':checked')) {
-            $("#pph23Check").change();
+    $("#pph21Check").change(function() {
+        let base = whtBaseNow();
+        applyPercentAmount('totalPPH21', this.checked, sNilaiPPH21, base, 'nilaiPPH21');
+        $('#totalPPH21').prop('disabled', !this.checked);
+        if (this.checked){
+            $('#totalPPH21').focus().select();
+        }
+        mask_thousand();
+        mask_thousand_digit(2);
+        hitungGrandTotal();
+    });
+
+    $("#pph42Check").change(function() {
+        let base = whtBaseNow();
+        applyPercentAmount('totalPPH42', this.checked, sNilaiPPH42, base, null);
+        $('#totalPPH42').prop('disabled', !this.checked);
+        if (this.checked){
+            $('#totalPPH42').focus().select();
+        }
+        mask_thousand();
+        mask_thousand_digit(2);
+        hitungGrandTotal();
+    });
+
+    // rate WHT 4(2) diketik manual di #pctPPH42 (tidak ada attribute default di tabel attributes)
+    $("#pctPPH42").on('input change', function() {
+        sNilaiPPH42 = parseFloat($(this).val()) || 0;
+        if ($('#pph42Check').is(':checked')){
+            $('#pph42Check').change();
         }
     });
 
@@ -356,6 +385,14 @@
             $("#nilaiPB1").text('');
             $('#totalPB1').attr('disabled','disabled');
             hitungGrandTotal();
+        }
+    });
+
+    // rate PB1 diketik manual di #pctPB1 (sNilaiPB1 awalnya dari setting default "mainpb1")
+    $("#pctPB1").on('input change', function() {
+        sNilaiPB1 = parseFloat($(this).val()) || 0;
+        if ($('#pb1Check').is(':checked')){
+            $('#pb1Check').change();
         }
     });
 
