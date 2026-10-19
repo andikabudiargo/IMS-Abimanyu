@@ -1986,7 +1986,6 @@
                         <col style="width:9%">
                         <col style="width:6%">
                         <col style="width:7%">
-                        <col style="width:5%">
                     </colgroup>
                     <thead style="position: sticky; top: 0; z-index: 10; background: #fff;">
                         <tr>
@@ -1999,7 +1998,6 @@
                             <th>Safety Stock</th>
                             <th>UOM</th>
                             <th>Min Package</th>
-                            <th>Action</th>
                         </tr>
                     </thead>
                <tbody>
@@ -2011,7 +2009,7 @@
 
                     @if($lastLocation != $val->location_name)
                         <tr style="background:#e8f4fd;">
-                            <td colspan="10" class="font-weight-bold text-primary">
+                            <td colspan="9" class="font-weight-bold text-primary">
                                 {{ $val->location_name }}
                             </td>
                         </tr>
@@ -2047,14 +2045,6 @@
                         <td>{{ $val->uom }}</td>
 
                         <td class="text-right">{{ number_format($val->min_package) }}</td>
-
-                        <td>
-                            <a class="btn btn-outline-info btn-sm"
-                               href="{{ route('warehouse.article') }}?code={{ $val->code }}">
-                                <i data-feather="eye"></i>
-                                Detail
-                            </a>
-                        </td>
                     </tr>
 
                 @endforeach
