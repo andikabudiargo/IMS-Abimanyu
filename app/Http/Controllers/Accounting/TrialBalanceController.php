@@ -368,26 +368,94 @@ class TrialBalanceController extends Controller
         return view('accounting.trialBalance.saved.list', $data);
     }
 
-    // Accounts di-grouping sama seperti live Trial Balance report: lewat
-    // master_neraca_detail_tb (account -> group_data/sub_group) + master_neraca_tb
-    // (group_data/sub_group -> group_name, urutan). Account yang belum di-mapping
-    // masuk bucket "UNGROUPED" di urutan paling akhir.
+    // Accounts di-grouping per Account Type (accounts.type_code -> acc_types),
+    // bukan master_neraca_detail_tb -- itu cuma mapping manual sebagian akun jadi
+    // banyak sub-akun (mis. BCA-FLASH 1100.13.xx) jatuh ke "Ungrouped". Account Type
+    // kodenya numeric (1100, 1200, 2000, ...) dan dimiliki SEMUA akun.
     private function groupedAccounts()
     {
         $accounts = collect(DB::select("
             SELECT a.account, a.description, a.debit_credit, a.final_statement,
-                   COALESCE(mn.group_data, 'UNGROUPED') as group_data,
-                   COALESCE(mn.group_name, 'Ungrouped') as group_name,
-                   COALESCE(mn.urutan, 999999) as urutan
+                   COALESCE(a.type_code, 'UNGROUPED') as group_data,
+                   COALESCE(t.name, 'Ungrouped') as group_name,
+                   COALESCE(NULLIF(a.type_code,'')::numeric, 999999) as urutan
             FROM accounts a
-            LEFT JOIN master_neraca_detail_tb d ON a.account = d.account
-            LEFT JOIN master_neraca_tb mn ON mn.group_data = d.group_data AND mn.sub_group = d.sub_group
-            ORDER BY COALESCE(mn.urutan, 999999), a.account
+            LEFT JOIN acc_types t ON t.code = a.type_code
+            ORDER BY urutan, a.account
         "));
 
         $groups = $accounts->unique('group_data')->sortBy('urutan')->values();
 
         return [$accounts, $groups];
+    }
+
+    // Hitung saldo awal/pergerakan/saldo akhir per bulan per account langsung dari
+    // jurnal (kas_det/kas_hdr, status posted), bukan input manual. Saldo awal bulan N
+    // = net kumulatif seluruh transaksi sebelum bulan itu; saldo akhir = saldo awal +
+    // pergerakan bulan itu. Net positif (debit>credit) ditaruh di kolom debit, net
+    // negatif ditaruh di kolom credit (konvensi trial balance standar).
+    public function savedGenerateData(Request $request)
+    {
+        $year = (int) $request->year;
+        if (!$year) {
+            return response()->json(['status' => 0, 'message' => 'Year wajib diisi'], 422);
+        }
+
+        $monthly = DB::select("
+            SELECT d.account,
+                   extract(month from to_date(h.voucher_date,'dd-mm-yyyy'))::int as month,
+                   sum(d.debit) as debit, sum(d.credit) as credit
+            FROM kas_det d
+            JOIN kas_hdr h ON d.voucher_number = h.voucher_number
+            WHERE h.status = '3'
+              AND extract(year from to_date(h.voucher_date,'dd-mm-yyyy')) = ?
+            GROUP BY d.account, month
+        ", [$year]);
+
+        $before = DB::select("
+            SELECT d.account, sum(d.debit) as debit, sum(d.credit) as credit
+            FROM kas_det d
+            JOIN kas_hdr h ON d.voucher_number = h.voucher_number
+            WHERE h.status = '3'
+              AND to_date(h.voucher_date,'dd-mm-yyyy') < make_date(?,1,1)
+            GROUP BY d.account
+        ", [$year]);
+
+        $runningNet = [];
+        foreach ($before as $b) {
+            $runningNet[$b->account] = (float) $b->debit - (float) $b->credit;
+        }
+
+        $byAccount = [];
+        foreach ($monthly as $m) {
+            $byAccount[$m->account][(int) $m->month] = ['debit' => (float) $m->debit, 'credit' => (float) $m->credit];
+        }
+
+        $allAccounts = DB::table('accounts')->pluck('account');
+
+        $result = [];
+        foreach ($allAccounts as $account) {
+            $net = $runningNet[$account] ?? 0;
+            $monthsData = [];
+            for ($m = 1; $m <= 12; $m++) {
+                $openNet = $net;
+                $debit = $byAccount[$account][$m]['debit'] ?? 0;
+                $credit = $byAccount[$account][$m]['credit'] ?? 0;
+                $net = $net + $debit - $credit;
+
+                $monthsData[$m] = [
+                    'open_debit' => $openNet >= 0 ? $openNet : 0,
+                    'open_credit' => $openNet < 0 ? -$openNet : 0,
+                    'mutasi_debit' => $debit,
+                    'mutasi_credit' => $credit,
+                    'saldo_debit' => $net >= 0 ? $net : 0,
+                    'saldo_credit' => $net < 0 ? -$net : 0,
+                ];
+            }
+            $result[$account] = $monthsData;
+        }
+
+        return response()->json(['status' => 1, 'data' => $result]);
     }
 
     public function savedCreate(Request $request)
@@ -464,16 +532,8 @@ class TrialBalanceController extends Controller
         $data['hdr'] = DB::table('trial_balance_hdr')->where('id', $id)->first();
         $data['id'] = $request->id;
 
-        [, $groups] = $this->groupedAccounts();
-        $groupByAccount = DB::select("
-            SELECT a.account,
-                   COALESCE(mn.group_data, 'UNGROUPED') as group_data,
-                   COALESCE(mn.urutan, 999999) as urutan
-            FROM accounts a
-            LEFT JOIN master_neraca_detail_tb d ON a.account = d.account
-            LEFT JOIN master_neraca_tb mn ON mn.group_data = d.group_data AND mn.sub_group = d.sub_group
-        ");
-        $groupByAccount = collect($groupByAccount)->keyBy('account');
+        [$allAccounts, $groups] = $this->groupedAccounts();
+        $groupByAccount = $allAccounts->keyBy('account');
 
         $details = DB::table('trial_balance_det')->where('tb_hdr_id', $id)->get()
             ->map(function ($d) use ($groupByAccount) {

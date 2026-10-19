@@ -162,11 +162,38 @@
 
   $(document).ready(function(){
     $('#btnGenerate').on('click', function(){
-      if(!$('#year').val()){
+      const year = $('#year').val();
+      if(!year){
         swal.fire('Warning', 'Isi Year dulu', 'warning');
         return;
       }
-      $('#tbTableWrap').show();
+      $(".loading-spinner-container").addClass("-show");
+      $.get("{{ route('trialBalance.saved.generateData') }}", { year: year })
+        .done(function(res){
+          const data = res.data || {};
+          $('#tbTableWrap tr[data-account]').each(function(){
+            const account = $(this).data('account');
+            const monthly = data[account];
+            if(!monthly) return;
+            $(this).find('input.cell-input').each(function(){
+              const m = $(this).data('month');
+              const field = $(this).data('field');
+              $(this).val(monthly[m] ? monthly[m][field] : 0);
+            });
+          });
+          @foreach($months as $m)
+            @foreach(array_keys($fields) as $field)
+              recompute({{ $m }}, '{{ $field }}');
+            @endforeach
+          @endforeach
+          $('#tbTableWrap').show();
+        })
+        .fail(function(){
+          swal.fire('Error', 'Gagal generate data dari jurnal', 'error');
+        })
+        .always(function(){
+          $(".loading-spinner-container").removeClass("-show");
+        });
     });
 
     $(document).on('click', 'tr.group-row', function(){

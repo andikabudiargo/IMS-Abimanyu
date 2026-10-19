@@ -1445,6 +1445,7 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 
 	Route::get('trialBalance/saved',['as'=>'trialBalance.saved.list','uses'=>'Accounting\TrialBalanceController@savedList']);
 	Route::get('trialBalance/saved/create',['as'=>'trialBalance.saved.create','uses'=>'Accounting\TrialBalanceController@savedCreate']);
+	Route::get('trialBalance/saved/generate-data',['as'=>'trialBalance.saved.generateData','uses'=>'Accounting\TrialBalanceController@savedGenerateData']);
 	Route::post('trialBalance/saved/store',['as'=>'trialBalance.saved.store','uses'=>'Accounting\TrialBalanceController@savedStore']);
 	Route::get('trialBalance/saved/edit',['as'=>'trialBalance.saved.edit','uses'=>'Accounting\TrialBalanceController@savedEdit']);
 	Route::post('trialBalance/saved/update',['as'=>'trialBalance.saved.update','uses'=>'Accounting\TrialBalanceController@savedUpdate']);
