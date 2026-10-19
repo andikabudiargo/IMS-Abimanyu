@@ -1122,7 +1122,7 @@ $(document).on('click', '.btn-lot-reprint', function () {
         success: function (res) {
             $btn.prop('disabled', false);
             if (res.status === 1) {
-                doBrowserPrintChemical(res);
+                promptChemicalPrintMethod(res);
             } else {
                 Swal.fire('Gagal Print', res.message, 'warning');
             }
@@ -1167,9 +1167,21 @@ const recalcLotGenerateTotal = () => {
     $('.lot-gen-qty').each(function () { total += Number($(this).val()) || 0; });
     total = Math.round(total * 1000) / 1000;
     $('#lotGenerateTotal').text(total.toLocaleString());
-    const mismatch = Math.abs(total - lotGenTarget) > 0.001;
-    $('#lotGenerateTotalWarn').toggle(mismatch);
-    $('#btnLotGenerateSave').prop('disabled', mismatch);
+
+    // qty boleh diisi sebagian (kaleng sisa biar nanti digenerate belakangan),
+    // yang tidak boleh cuma kalau total melebihi qty yang belum ber-barcode.
+    const over = total - lotGenTarget > 0.001;
+    $('#lotGenerateTotalWarn')
+        .toggleClass('text-danger', over)
+        .toggleClass('text-muted', !over)
+        .html(over
+            ? '<i data-feather="alert-triangle"></i> Total melebihi qty yang belum ber-barcode'
+            : (total < lotGenTarget - 0.001
+                ? '<i data-feather="info"></i> Sisa ' + (lotGenTarget - total).toLocaleString() + ' tetap belum ber-barcode, bisa digenerate lagi nanti'
+                : ''))
+        .toggle(true);
+    if (window.feather) feather.replace();
+    $('#btnLotGenerateSave').prop('disabled', over);
 };
 
 $('#btnLotGeneratePreview').on('click', function () {
@@ -1210,19 +1222,28 @@ $('#btnLotGenerateCancel').on('click', function () {
 $('#btnLotGenerateSave').on('click', function () {
     // Expired date opsional di sini (stock lama sering sudah tidak diketahui
     // expired-nya) -- kaleng tanpa expired date tetap bisa di-extend belakangan.
+    // Baris yang qty-nya dikosongkan/0 dianggap belum mau digenerate sekarang
+    // (sisa-nya tetap "belum ber-barcode", bisa digenerate lagi belakangan).
     const rows = [];
     $('.lot-gen-qty').each(function () {
+        const qty = Number($(this).val()) || 0;
+        if (qty <= 0) return;
         const seq = $(this).data('seq');
         rows.push({
             unit_sequence: seq,
-            qty: Number($(this).val()) || 0,
+            qty: qty,
             expired_date: $('.lot-gen-exp[data-seq="' + seq + '"]').val() || null
         });
     });
 
+    if (!rows.length) {
+        Swal.fire('Info', 'Isi qty minimal untuk satu kaleng.', 'info');
+        return;
+    }
+
     const total = Math.round(rows.reduce((s, r) => s + r.qty, 0) * 1000) / 1000;
-    if (Math.abs(total - lotGenTarget) > 0.001) {
-        Swal.fire('Total Tidak Sesuai', 'Total qty kaleng harus sama dengan qty yang belum ber-barcode (' + lotGenTarget.toLocaleString() + ').', 'warning');
+    if (total - lotGenTarget > 0.001) {
+        Swal.fire('Total Melebihi', 'Total qty kaleng tidak boleh melebihi qty yang belum ber-barcode (' + lotGenTarget.toLocaleString() + ').', 'warning');
         return;
     }
 
@@ -1252,7 +1273,7 @@ $('#btnLotGenerateSave').on('click', function () {
                 type: 'POST',
                 data: { unit_ids: unitIds },
                 success: function (printRes) {
-                    if (printRes.status === 1) doBrowserPrintChemical(printRes);
+                    if (printRes.status === 1) promptChemicalPrintMethod(printRes);
                 }
             });
         },
@@ -1262,6 +1283,60 @@ $('#btnLotGenerateSave').on('click', function () {
         }
     });
 });
+
+// Pilih metode cetak: Browser (default, jalur yang sudah ada & selalu jalan)
+// atau Network IP (kirim ZPL native langsung ke printer -- lebih tajam, tapi
+// opsional: kalau gagal/IP salah, browser print tetap tersedia sebagai fallback).
+function promptChemicalPrintMethod(data) {
+    var savedIp = localStorage.getItem('zebra_ip') || '';
+    Swal.fire({
+        title: 'Pilih Metode Cetak Label',
+        html:
+            '<div style="text-align:left;">' +
+            '<button type="button" id="pmBrowserBtn" class="btn btn-outline-primary btn-block mb-2">🖨️ Browser Print (default)</button>' +
+            '<button type="button" id="pmNetworkToggleBtn" class="btn btn-outline-secondary btn-block">🖧 Network IP (ZPL, lebih tajam di printer kecil)</button>' +
+            '<div id="pmNetworkArea" style="display:none;margin-top:8px;">' +
+            '<input type="text" id="pmIpInput" class="form-control form-control-sm mb-2" placeholder="192.168.1.xxx" value="' + savedIp + '">' +
+            '<button type="button" id="pmSendNetworkBtn" class="btn btn-sm btn-success btn-block">Kirim ke Printer</button>' +
+            '</div>' +
+            '</div>',
+        showConfirmButton: false,
+        showCloseButton: true,
+        didOpen: function () {
+            $('#pmBrowserBtn').on('click', function () {
+                Swal.close();
+                doBrowserPrintChemical(data);
+            });
+            $('#pmNetworkToggleBtn').on('click', function () {
+                $('#pmNetworkArea').slideToggle(150);
+            });
+            $('#pmSendNetworkBtn').on('click', function () {
+                var ip = $('#pmIpInput').val().trim();
+                if (!ip) return;
+                Swal.close();
+                doNetworkZplChemical(data, ip);
+            });
+        }
+    });
+}
+
+function doNetworkZplChemical(data, ip) {
+    var zpl = (data.labels || []).map(function (l) { return l.zpl; }).join('\n');
+    if (!zpl) { Swal.fire('Error', 'ZPL tidak tersedia untuk label ini.', 'error'); return; }
+    localStorage.setItem('zebra_ip', ip);
+    $.ajax({
+        url: "{{ route('article.printLabelNetwork') }}",
+        type: 'POST',
+        data: { _token: '{{ csrf_token() }}', zpl: zpl, ip: ip, port: 9100 },
+        success: function (res) {
+            if (res.status === 1) Swal.fire('Berhasil', res.message, 'success');
+            else Swal.fire('Gagal Kirim', res.message, 'warning');
+        },
+        error: function () {
+            Swal.fire('Error', 'Gagal mengirim ke printer.', 'error');
+        }
+    });
+}
 
 function doBrowserPrintChemical(data) {
     var labels    = data.labels;
