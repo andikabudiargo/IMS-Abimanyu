@@ -224,6 +224,7 @@ class BukuBesarController extends Controller
         ->select(
             DB::RAW("case when kas_det.cost_center = '' then (select name from depts where code = '007') else depts.name end as nama_dept")
             // 'depts.name as nama_dept'
+            ,'kas_hdr.voucher_type'
             ,'kas_det.account'
             ,'kas_hdr.period'
             ,'accounts.description as nama_akun'
@@ -247,7 +248,13 @@ class BukuBesarController extends Controller
        
         return Datatables::of($data)
         ->addColumn('statusku', function ($data) {
-            $statusBb = ['NEW','VALIDATE','APPROVED','','','PAID'];
+            // status 7/8 artinya beda-beda tergantung modul yang posting voucher ini ke kas_hdr
+            $statusByType = [
+                'AP' => ['DRAFT','VALIDATED','APPROVED','POSTED','','PAID','PARTIALLY PAID'],
+                'INV' => ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED','PARTIALLY PAID'],
+                'INV-DN' => ['DRAFT','VALIDATE','APPROVED','','','PAID','REVISED','PARTIALLY PAID'],
+            ];
+            $statusBb = $statusByType[$data->voucher_type] ?? ['NEW','VALIDATE','APPROVED','','','PAID'];
             return $statusBb[$data->statusku - 1] ?? $data->statusku;
         })
         ->rawColumns(['statusku'])
