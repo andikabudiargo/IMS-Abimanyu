@@ -284,7 +284,17 @@
 
         let tDpp =  totalAmount;
         let tPpn = $("#totalPPN").val().replace(/,/gi, '') || 0;
-        let tPph = $("#totalPPH").val().replace(/,/gi, '') || 0;
+        // DN customer pakai #totalPPH; DN supplier pakai #totalPPH23/21/42 terpisah (field #totalPPH
+        // tidak ada di DOM-nya) - jumlahkan yang ada biar tidak crash dan Netto tetap kehitung.
+        let tPph = 0;
+        if ($('#totalPPH').length){
+            tPph += parseFloat($('#totalPPH').val().replace(/,/gi, '')) || 0;
+        }
+        ['#totalPPH23','#totalPPH21','#totalPPH42'].forEach(function(sel){
+            if ($(sel).length){
+                tPph += parseFloat($(sel).val().replace(/,/gi, '')) || 0;
+            }
+        });
         let tPb1 = $('#totalPB1').length ? ($("#totalPB1").val().replace(/,/gi, '') || 0) : 0;
         let totalNetto1 = (tDpp+parseFloat(tPpn)+parseFloat(tPb1))-parseFloat(tPph);
         $("#totalNetto").val(humanizeNumber(totalNetto1.toFixed(2)));
