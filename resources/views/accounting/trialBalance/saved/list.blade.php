@@ -32,7 +32,7 @@
                 <td>{{ $row->note }}</td>
                 <td>{{ $row->created_at }}</td>
                 <td>
-                  <a href="{{ route('trialBalance.saved.edit', ['id'=>\Crypt::encryptString($row->id)]) }}" class="btn btn-sm btn-outline-primary">Open</a>
+                  <a href="{{ route('trialBalance.saved.edit', ['id'=>\Crypt::encryptString($row->id)]) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                 </td>
               </tr>
             @endforeach
