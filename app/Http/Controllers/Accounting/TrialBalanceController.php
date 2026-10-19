@@ -253,19 +253,16 @@ class TrialBalanceController extends Controller
             $dateCond = "to_date(h.voucher_date,'dd-mm-yyyy') <= '$monthEnd'";
         }
 
-        // Pergerakan (mutasi) itu angka mentah satu sisi -> filter cuma baris debit/kredit
-        // yang diklik. Tapi Saldo Awal/Akhir itu angka NET (debit-credit), jadi harus
-        // tampilin SEMUA transaksi (debit & kredit) biar totalnya nyambung ke saldo di grid --
-        // kalau di-filter satu sisi doang, totalnya ga akan pernah sama kayak saldo net-nya.
-        $sideFilter = $bucket === 'mutasi' ? "AND d.$side > 0" : '';
-
+        // Grid-nya punya section Debit & Credit terpisah buat Saldo Awal/Pergerakan/Saldo
+        // Akhir -- jadi klik cell Debit manapun cuma nampilin baris debit account ini,
+        // klik Credit cuma nampilin baris credit, konsisten di semua section.
         $rows = DB::select("
             SELECT h.id as hdr_id, h.voucher_number, h.voucher_date, h.voucher_type,
                    sum(d.debit) as debit, sum(d.credit) as credit, max(dp.name) as cost_center_name
             FROM kas_det d
             JOIN kas_hdr h ON d.voucher_number = h.voucher_number
             LEFT JOIN depts dp ON dp.code = d.cost_center
-            WHERE h.status <> '5' AND d.account = ? AND $dateCond $sideFilter
+            WHERE h.status <> '5' AND d.account = ? AND $dateCond AND d.$side > 0
             GROUP BY h.id, h.voucher_number, h.voucher_date, h.voucher_type
             ORDER BY to_date(h.voucher_date,'dd-mm-yyyy'), h.voucher_number
         ", [$account]);
