@@ -55,8 +55,9 @@
         <option value="LUXIO" {{$header->armada == "LUXIO" ? "selected" : ""}}>LUXIO</option>
         <option value="MOBIL SEWA PAGI" {{$header->armada == "MOBIL SEWA PAGI" ? "selected" : ""}}>MOBIL SEWA PAGI</option>
         <option value="PICKUP" {{$header->armada == "PICKUP" ? "selected" : ""}}>PICKUP</option>
-        <option value="KPA PAGI" {{$header->armada == "KPA PAGI" ? "selected" : ""}}>KPA PAGI</option>
-        <option value="KPA MALAM" {{$header->armada == "KPA MALAM" ? "selected" : ""}}>KPA MALAM</option>
+        <option value="KPA 001 PAGI" {{$header->armada == "KPA 001 PAGI" ? "selected" : ""}}>KPA 001 PAGI</option>
+        <option value="KPA 002 PAGI" {{$header->armada == "KPA 002 PAGI" ? "selected" : ""}}>KPA 002 PAGI</option>
+        <option value="KPA 002 MALAM" {{$header->armada == "KPA 002 MALAM" ? "selected" : ""}}>KPA 002 MALAM</option>
     </select>
 </div>
                             </div>

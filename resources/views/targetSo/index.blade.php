@@ -33,7 +33,7 @@
                 <label for="tsoDate">Date</label>
                 <input type="text" id="tsoDate" name="tsoDate" class="form-control flatpickr-range" placeholder="YYYY-MM-DD to YYYY-MM-DD" />
               </div>
-              <div class="form-group col-md-3"> 
+              <div class="form-group col-md-3">
                 <label class="form-label" for="searchStatus">Order Status</label>
                 <select class="select2 form-control" id="searchStatus" name="searchStatus">
                     <option value="">All</option>
@@ -42,9 +42,13 @@
                     @endforeach
                 </select>
               </div>
+              <div class="form-group col-md-3">
+                <label for="searchPeriode">Periode</label>
+                <input type="month" class="form-control" id="searchPeriode" name="searchPeriode" />
+              </div>
             </div>
             <div class="form-row">
-                <div class="col-12"> 
+                <div class="col-12">
                     <button type="button" class="btn btn-primary" id ="btnSearch" name="btnSearch">Search</button>
                     @can('targetSo-create')
                     <a href="{{ route('targetSo.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
@@ -95,8 +99,9 @@
 <script type="text/javascript">
 
   let searchTso = document.querySelector("#searchTso");
-  let searchCustomer = document.querySelector("#searchCustomer"); 
+  let searchCustomer = document.querySelector("#searchCustomer");
   let searchStatus = document.querySelector("#searchStatus");
+  let searchPeriode = document.querySelector("#searchPeriode");
   let tsoDate = document.querySelector("#tsoDate");
   let search = document.querySelector('#btnSearch');
   let refresh = document.querySelector('a[data-action="reload"]');
@@ -127,28 +132,28 @@
   refresh.addEventListener("click",function(){
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchTso.value,searchCustomer.value,searchStatus.value,tsoDate.value);
+    showList(searchTso.value,searchCustomer.value,searchStatus.value,searchPeriode.value,tsoDate.value);
   })
 
-  search.addEventListener("click", function(){ 
+  search.addEventListener("click", function(){
     btnDetail.style.display = "block";
     btnSummary.style.display = "none";
-    showList(searchTso.value,searchCustomer.value,searchStatus.value,tsoDate.value);
+    showList(searchTso.value,searchCustomer.value,searchStatus.value,searchPeriode.value,tsoDate.value);
   });
 
   btnSummary.addEventListener("click", function(){
     btnSummary.style.display = "none";
     btnDetail.style.display = "block";
-    showList(searchTso.value,searchCustomer.value,searchStatus.value,tsoDate.value);
+    showList(searchTso.value,searchCustomer.value,searchStatus.value,searchPeriode.value,tsoDate.value);
   });
-  
+
   btnDetail.addEventListener("click", function(){
     btnSummary.style.display = "block";
     btnDetail.style.display = "none";
-    showListDetail(searchTso.value,searchCustomer.value,searchStatus.value,tsoDate.value);
+    showListDetail(searchTso.value,searchCustomer.value,searchStatus.value,searchPeriode.value,tsoDate.value);
   });
 
-  const showList = (searchTso,searchCustomer,searchStatus,tsoDate) => {
+  const showList = (searchTso,searchCustomer,searchStatus,searchPeriode,tsoDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -167,6 +172,7 @@
         searchTso:searchTso,
         searchCustomer:searchCustomer,
         searchStatus:searchStatus,
+        searchPeriode:searchPeriode,
         tsoDate:tsoDate
       },
       orderColumn:[[ 1, 'desc' ]],
@@ -174,7 +180,7 @@
     });
   }
 
-  const showListDetail = (searchTso,searchCustomer,searchStatus,tsoDate) => {
+  const showListDetail = (searchTso,searchCustomer,searchStatus,searchPeriode,tsoDate) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -194,6 +200,7 @@
         searchTso:searchTso,
         searchCustomer:searchCustomer,
         searchStatus:searchStatus,
+        searchPeriode:searchPeriode,
         tsoDate:tsoDate
       },
       orderColumn:[[ 2, 'asc' ]],

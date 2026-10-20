@@ -54,8 +54,9 @@
         <option value="LUXIO">LUXIO</option>
         <option value="MOBIL SEWA PAGI">MOBIL SEWA PAGI</option>
         <option value="PICKUP">PICKUP</option>
-        <option value="KPA PAGI">KPA PAGI</option>
-        <option value="KPA MALAM">KPA MALAM</option>
+        <option value="KPA 001 PAGI">KPA 001 PAGI</option>
+        <option value="KPA 002 PAGI">KPA 002 PAGI</option>
+        <option value="KPA 002 MALAM">KPA 002 MALAM</option>
     </select>
 </div>
                             </div>

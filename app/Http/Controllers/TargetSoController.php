@@ -596,6 +596,7 @@ class TargetSoController extends Controller
         $searchTso = strtolower($request->searchTso);
         $searchCustomer = $request->searchCustomer;
         $searchStatus = $request->searchStatus;
+        $searchPeriode = $request->searchPeriode;
         $tsoDate = $request->tsoDate;
         $fromDate ="";
         $toDate = "";
@@ -606,7 +607,7 @@ class TargetSoController extends Controller
                 $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
             }else{
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = $fromDate; 
+                $toDate = $fromDate;
             }
 
             // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
@@ -615,11 +616,16 @@ class TargetSoController extends Controller
 
         $data = DB::table('target_order_hdr')
         ->leftJoin('third_party','third_party.kode','target_order_hdr.customer_id')
-        ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer) {
+        ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer,$searchPeriode) {
             $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
             $searchTso ? $query->where('tso_code','ilike','%'.$searchTso.'%') : '';
             $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
             $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            if ($searchPeriode) {
+                [$tahun,$periode] = explode('-',$searchPeriode);
+                $query->where('target_order_hdr.tso_periode',(int)$periode)
+                      ->where('target_order_hdr.tso_tahun',(int)$tahun);
+            }
         })
         ->where('status','!=','7')
         ->select('target_order_hdr.*'
@@ -738,10 +744,11 @@ class TargetSoController extends Controller
         $username = Auth::user()->username;
         $searchCustomer = $request->searchCustomer;
         $searchStatus = $request->searchStatus;
+        $searchPeriode = $request->searchPeriode;
         $tsoDate = $request->tsoDate;
         $fromDate ="";
         $toDate = "";
-        
+
         if ($tsoDate){
             $date = explode("to",$tsoDate);
             if(count($date)>1){
@@ -749,7 +756,7 @@ class TargetSoController extends Controller
                 $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
             }else{
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = $fromDate; 
+                $toDate = $fromDate;
             }
 
             // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
@@ -761,11 +768,16 @@ class TargetSoController extends Controller
         ->leftJoin('article','article.article_code','target_order_det.article_code')
         ->leftJoin('third_party','third_party.kode','article.third_party')
         ->leftJoin('uom','uom.code','target_order_det.uom')
-        ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer) {
+        ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer,$searchPeriode) {
             $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
             $searchTso ? $query->where('target_order_det.tso_code','ilike','%'.$searchTso.'%') : '';
             $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
             $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
+            if ($searchPeriode) {
+                [$tahun,$periode] = explode('-',$searchPeriode);
+                $query->where('target_order_hdr.tso_periode',(int)$periode)
+                      ->where('target_order_hdr.tso_tahun',(int)$tahun);
+            }
         })
         ->select('target_order_det.*'
         ,'target_order_hdr.*'
