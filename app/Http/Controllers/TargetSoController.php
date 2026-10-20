@@ -45,9 +45,49 @@ class TargetSoController extends Controller
         return json_encode($kolom, true);
     }
 
-    // snapshot rows (status '7') are tagged with a fixed revision number at the time they're created, so this is the widest "Qty R{n}" pivot we'll ever need
-    private function maxRevisionCount(){
-        return (int) DB::table('target_order_hdr')->where('status','7')->max('num_revision');
+    private function parseTsoDateRange($tsoDate){
+        if (!$tsoDate) return ['',''];
+        $date = explode("to",$tsoDate);
+        if (count($date) > 1){
+            $from = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $to = implode("/", array_reverse(explode("-", trim($date[1]))));
+        } else {
+            $from = implode("/", array_reverse(explode("-", trim($date[0]))));
+            $to = $from;
+        }
+        return [$from,$to];
+    }
+
+    // snapshot rows (status '7') are tagged with a fixed revision number at the time they're created.
+    // Scoped to $filters (the same search params as list()/listDetail()) so the column count only reflects revisions among the filtered TSOs.
+    private function maxRevisionCount($filters = []){
+        [$fromDate,$toDate] = $this->parseTsoDateRange($filters['tsoDate'] ?? null);
+        $query = DB::table('target_order_hdr as snap')
+        ->join('target_order_hdr as cur','cur.origin_tso_code','snap.origin_tso_code')
+        ->where('snap.status','7')
+        ->where('cur.status','!=','7');
+
+        if (!empty($filters['searchTso'])) $query->where('cur.tso_code','ilike','%'.$filters['searchTso'].'%');
+        if (!empty($filters['searchCustomer'])) $query->where('cur.customer_id',$filters['searchCustomer']);
+        if (!empty($filters['searchStatus'])) $query->where('cur.status',$filters['searchStatus']);
+        if (!empty($filters['tsoDate'])) $query->whereBetween(DB::raw("to_date(cur.tso_date,'DD-MM-YYYY')"), [$fromDate,$toDate]);
+        if (!empty($filters['searchPeriode'])) {
+            [$tahun,$periode] = explode('-',$filters['searchPeriode']);
+            $query->where('cur.tso_periode',(int)$periode)->where('cur.tso_tahun',(int)$tahun);
+        }
+
+        return (int) $query->max('snap.num_revision');
+    }
+
+    // kolom + indeks print/rata-kanan untuk tabel detail, dihitung dari $filters supaya jumlah kolom Qty R{n} mengikuti data yang kefilter
+    private function detailColumnsPayload($filters = []){
+        $maxRev = $this->maxRevisionCount($filters);
+        $kolom = $this->getTableColoumnDetail($maxRev);
+        return [
+            'kolom' => $kolom,
+            'arrColPrint' => range(0, count($kolom) - 3),
+            'textRight' => array_values(array_keys(array_filter($kolom, fn($k) => $k['data'] === 'qty_target' || $k['data'] === 'qty_forcast' || strpos($k['data'], 'qty_r') === 0))),
+        ];
     }
 
     public function getTableColoumnDetail($maxRev = 0){
@@ -63,7 +103,8 @@ class TargetSoController extends Controller
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty_target','name'=>'qty_target','title'=>'Qty Target'],
         ];
-        for ($n = 1; $n <= $maxRev; $n++) {
+        // Qty Target (current/terbaru) sudah di depan, jadi revisi diurutkan mundur (terbaru ke terlama) biar searah
+        for ($n = $maxRev; $n >= 1; $n--) {
             $kolom[] = ['data'=>"qty_r$n",'name'=>"qty_r$n",'title'=>"Qty R$n",'orderable'=>false,'searchable'=>false];
         }
         $kolom = array_merge($kolom, [
@@ -82,12 +123,6 @@ class TargetSoController extends Controller
     {
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
-        $maxRev = $this->maxRevisionCount();
-        $kolomDetailArr = $this->getTableColoumnDetail($maxRev);
-        $data['kolomDetail'] = json_encode($kolomDetailArr, true);
-        // print semua kolom kecuali updated_by/updated_at; qty_target, tiap qty_r{n}, dan qty_forcast rata kanan
-        $data['arrColPrintDetail'] = json_encode(range(0, count($kolomDetailArr) - 3));
-        $data['textRightDetail'] = json_encode(array_keys(array_filter($kolomDetailArr, fn($k) => $k['data'] === 'qty_target' || $k['data'] === 'qty_forcast' || strpos($k['data'], 'qty_r') === 0)));
         $data['customer'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
         ->orderBy('nama')
@@ -752,6 +787,19 @@ class TargetSoController extends Controller
         ->make(true);
     }
 
+    // dipanggil dari JS sebelum render tabel Detail, supaya jumlah kolom Qty R{n} mengikuti filter yang lagi aktif
+    public function listDetailColumns(Request $request)
+    {
+        $filters = [
+            'searchTso' => strtolower($request->searchTso),
+            'searchCustomer' => $request->searchCustomer,
+            'searchStatus' => $request->searchStatus,
+            'searchPeriode' => $request->searchPeriode,
+            'tsoDate' => $request->tsoDate,
+        ];
+        return response()->json($this->detailColumnsPayload($filters));
+    }
+
     public function listDetail(Request $request)
     {
         $searchTso = strtolower($request->searchTso);
@@ -760,24 +808,15 @@ class TargetSoController extends Controller
         $searchStatus = $request->searchStatus;
         $searchPeriode = $request->searchPeriode;
         $tsoDate = $request->tsoDate;
-        $fromDate ="";
-        $toDate = "";
+        [$fromDate,$toDate] = $this->parseTsoDateRange($tsoDate);
 
-        if ($tsoDate){
-            $date = explode("to",$tsoDate);
-            if(count($date)>1){
-                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-            }else{
-                $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = $fromDate;
-            }
-
-            // $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-            // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
-        }
-
-        $maxRev = $this->maxRevisionCount();
+        $maxRev = $this->maxRevisionCount([
+            'searchTso' => $searchTso,
+            'searchCustomer' => $searchCustomer,
+            'searchStatus' => $searchStatus,
+            'searchPeriode' => $searchPeriode,
+            'tsoDate' => $tsoDate,
+        ]);
 
         $query = DB::table('target_order_det as det')
         ->leftJoin('target_order_hdr','target_order_hdr.tso_code','det.tso_code')

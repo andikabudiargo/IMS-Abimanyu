@@ -187,24 +187,22 @@
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
-    showDataTables({
-      tableId:"detailedTable",
-      route:"{{ route('targetSo.list.detail') }}",
-      kolom:{!! $kolomDetail !!},
-      arrColPrint:{!! $arrColPrintDetail !!},
-      columnDefs :[
-        { width: '5%', targets: 0 },
-        { className: 'text-right','targets': {!! $textRightDetail !!} },
-      ],
-      dataSearch:  {
-        searchTso:searchTso,
-        searchCustomer:searchCustomer,
-        searchStatus:searchStatus,
-        searchPeriode:searchPeriode,
-        tsoDate:tsoDate
-      },
-      orderColumn:[[ 2, 'asc' ]],
-      excelFileName:'target_sales_order'
+    let dataSearch = { searchTso, searchCustomer, searchStatus, searchPeriode, tsoDate };
+    // kolom Qty R{n} jumlahnya ikut filter yang aktif, jadi ambil dulu sebelum render tabel
+    $.get("{{ route('targetSo.list.detail.columns') }}", dataSearch, function(cols){
+      showDataTables({
+        tableId:"detailedTable",
+        route:"{{ route('targetSo.list.detail') }}",
+        kolom:cols.kolom,
+        arrColPrint:cols.arrColPrint,
+        columnDefs :[
+          { width: '5%', targets: 0 },
+          { className: 'text-right','targets': cols.textRight },
+        ],
+        dataSearch,
+        orderColumn:[[ 2, 'asc' ]],
+        excelFileName:'target_sales_order'
+      });
     });
   }
 

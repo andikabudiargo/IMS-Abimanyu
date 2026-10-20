@@ -374,6 +374,7 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('targetSo/store',['as'=>'targetSo.store','uses'=>'TargetSoController@store']);
 	Route::get('targetSo/list',['as'=>'targetSo.list','uses'=>'TargetSoController@list']);
 	Route::get('targetSo/list/detail',['as'=>'targetSo.list.detail','uses'=>'TargetSoController@listDetail']);
+	Route::get('targetSo/list/detail/columns',['as'=>'targetSo.list.detail.columns','uses'=>'TargetSoController@listDetailColumns']);
 	Route::get('targetSo/show',['as'=>'targetSo.show','uses'=>'TargetSoController@show']);
 	Route::get('targetSo/edit',['as'=>'targetSo.edit','uses'=>'TargetSoController@edit','middleware' => ['permission:targetSo-edit']]);
 	Route::post('targetSo/update',['as'=>'targetSo.update','uses'=>'TargetSoController@update']);
