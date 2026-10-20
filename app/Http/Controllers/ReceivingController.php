@@ -806,7 +806,7 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
             try {
                 DB::select("SELECT pg_advisory_xact_lock(hashtext(?))", [$leadCode]);
                 $hasilUpdate = AppHelpers::resetCode($leadCode);
-                $recNumber = $this->getLastCode($leadCode, $recDate);
+                $recNumber = $this->getLastCode($leadCode, $doDate);
                     $idKu = DB::table('receiving_hdr')->insertGetId([
                         'rec_number' => $recNumber,
                         'do_number' => $doNumber,
