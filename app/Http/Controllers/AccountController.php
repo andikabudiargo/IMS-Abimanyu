@@ -28,12 +28,12 @@ class AccountController extends Controller
         [
             ['data'=> 'action', 'name'=>'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
             ['data'=> 'account', 'name'=>'account','title'=>'Account' ],
-            ['data'=> 'type_code', 'name'=>'type_code','title'=>'Account Type' ],
+            ['data'=> 'type', 'name'=>'type','title'=>'Account Type' ],
             ['data'=> 'description', 'name'=>'description','title'=>'Description' ],
             ['data'=> 'opening_balance', 'name'=>'opening_balance','title'=>'Opening Balance' ],
             ['data'=> 'acc_header', 'name'=>'acc_header','title'=>'Category' ],
-            ['data'=> 'type', 'name'=>'type','title'=>'Account Type' ],
             ['data'=> 'sub_account', 'name'=>'sub_account','title'=>'Sub Account' ],
+            ['data'=> 'header', 'name'=>'header','title'=>'Header' ],
             ['data'=> 'debit_credit', 'name'=>'debit_credit','title'=>'Normal Balance' ],
             ['data'=> 'final_statement', 'name'=>'final_statement','title'=>'Final Statement' ],
             ['data'=> 'note', 'name'=>'note','title'=>'Note' ]
@@ -307,14 +307,23 @@ class AccountController extends Controller
         $data=DB::table('accounts')
         ->leftJoin('acc_types', 'acc_types.code', '=', 'accounts.type_code')
         ->leftJoin('acc_sub', 'acc_sub.sub_code', '=', 'accounts.parent_id')
-        ->where('account','ilike','%'.$code.'%')
-        ->where('accounts.description','ilike','%'.$name.'%')  
-        ->select('accounts.*','acc_types.name as type','acc_sub.description as sub_account')
+        ->leftJoin('accounts as header_acc', function($join){
+            $join->on('header_acc.account', '=', 'accounts.parent_id')
+                ->where('header_acc.acc_header', '=', 'HEADER');
+        })
+        ->where('accounts.account','ilike','%'.$code.'%')
+        ->where('accounts.description','ilike','%'.$name.'%')
+        ->select(
+            'accounts.*',
+            DB::raw("CASE WHEN acc_types.code IS NOT NULL THEN acc_types.code || ' - ' || acc_types.name ELSE '' END AS type"),
+            DB::raw("CASE WHEN acc_sub.sub_code IS NOT NULL THEN acc_sub.sub_code || ' - ' || acc_sub.description ELSE '' END AS sub_account"),
+            DB::raw("CASE WHEN header_acc.account IS NOT NULL THEN header_acc.account || ' - ' || header_acc.description ELSE '' END AS header")
+        )
         ->orderByRaw("
-            NULLIF(split_part(account, '.', 1), '')::numeric,
-            NULLIF(split_part(account, '.', 2), '')::numeric,
-            NULLIF(split_part(account, '.', 3), '')::numeric,
-            account
+            NULLIF(split_part(accounts.account, '.', 1), '')::numeric,
+            NULLIF(split_part(accounts.account, '.', 2), '')::numeric,
+            NULLIF(split_part(accounts.account, '.', 3), '')::numeric,
+            accounts.account
         ");
 
         return Datatables::of($data)
@@ -366,10 +375,10 @@ class AccountController extends Controller
         ->orderColumn('account', function ($query, $order) {
             $order = strtolower($order) === 'desc' ? 'desc' : 'asc';
             $query->orderByRaw("
-                NULLIF(split_part(account, '.', 1), '')::numeric $order,
-                NULLIF(split_part(account, '.', 2), '')::numeric $order,
-                NULLIF(split_part(account, '.', 3), '')::numeric $order,
-                account $order
+                NULLIF(split_part(accounts.account, '.', 1), '')::numeric $order,
+                NULLIF(split_part(accounts.account, '.', 2), '')::numeric $order,
+                NULLIF(split_part(accounts.account, '.', 3), '')::numeric $order,
+                accounts.account $order
             ");
         })
         ->rawColumns(['action','blacklist'])
