@@ -239,10 +239,28 @@
 @section('scripts')
 <script src="{{ asset('assets/js/ui.1.13.0.jquery-ui.js') }}"></script>
 <script type="text/javascript">
-    let currentDate = todayDate('dd-mm-yyyy');   
+    let currentDate = todayDate('dd-mm-yyyy');
     let type = "{{ $type }}";
     let listCoa="";
-    
+    const REF_MANUAL_PREFIX = 'MANUAL::';
+    function stripManualRef(v) { return (v && v.indexOf(REF_MANUAL_PREFIX) === 0) ? v.substring(REF_MANUAL_PREFIX.length) : v; }
+    function initRefSelect2($el) {
+        $el.select2({
+            width: '100%',
+            placeholder: '- Pilih atau ketik Reference -',
+            allowClear: true,
+            tags: true,
+            createTag: function(params) {
+                const term = $.trim(params.term);
+                if (!term) return null;
+                return { id: REF_MANUAL_PREFIX + term, text: term, newOption: true };
+            },
+            templateResult: function(data) {
+                return (data.id && data.id.indexOf(REF_MANUAL_PREFIX) === 0) ? 'OTHER - ' + data.text : data.text;
+            }
+        });
+    }
+
     $(document).ready(function(){           
         validateFormToast('frmAdd');
         isiCoa('list_coa');
@@ -341,7 +359,7 @@
                     if ($this.val()){
                         let sAccount=$this.val();
                         let sDesc=objvcDesc.eq(i).val();
-                        let sRef=objVcRef.eq(i).val();
+                        let sRef=stripManualRef(objVcRef.eq(i).val());
                         let sCc=objVcCc.eq(i).val();
                         let sDebit=objVcDebit.eq(i).val().replace(/,/gi, '') || 0;
                         let sCredit=objVcCredit.eq(i).val().replace(/,/gi, '') || 0;
@@ -436,7 +454,13 @@
         
         $("#account"+cloneCount).select2();
         $("#vcCc"+cloneCount).select2();
-        $("#vcRef"+cloneCount).select2();
+        initRefSelect2($("#vcRef"+cloneCount));
+
+        // account selain 1100.40 tidak punya dropdown dependent, jadi reference
+        // lama harus ditambahkan manual sebagai option supaya tidak hilang saat disimpan ulang.
+        if(account!=='1100.40' && ref){
+            $("#vcRef"+cloneCount).append(new Option(ref, ref, true, true)).trigger('change');
+        }
 
         // $("#account"+cloneCount).val(account).trigger('change');;
         $("#vcCc"+cloneCount).val(cc).trigger('change');;

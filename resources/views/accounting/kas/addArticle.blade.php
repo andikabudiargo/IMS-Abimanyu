@@ -192,7 +192,8 @@
                 value:value
             },
             success:function(result){
-                objRef.eq(objIndex).html(result).select2();
+                objRef.eq(objIndex).html(result);
+                initRefSelect2(objRef.eq(objIndex));
                 objRef.eq(objIndex).val(ref).trigger('change');
                 // $('#'+obj).html(result).select2();
                 // $('#'+obj).val(ref).trigger('change');
@@ -205,8 +206,8 @@
         objRef.change(function(e){ 
             let objIndex = objRef.index(this);
             let vRef = objRef.eq(objIndex).val();
-            if(vRef){
-                getAmountValue(vRef,objIndex); 
+            if(vRef && vRef.indexOf(REF_MANUAL_PREFIX) !== 0){
+                getAmountValue(vRef,objIndex);
             }
         });
     }   

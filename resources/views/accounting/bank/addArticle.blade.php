@@ -256,7 +256,8 @@
                 value:value
             },
             success:function(result){
-                objRef.eq(objIndex).html(result).select2();
+                objRef.eq(objIndex).html(result);
+                initRefSelect2(objRef.eq(objIndex));
                 objRef.eq(objIndex).val(ref).trigger('change');
                 // $('#'+obj).html(result).select2();
                 // $('#'+obj).val(ref).trigger('change');
@@ -292,7 +293,7 @@
                 let objIndex = objRef.index(this);
                 let accountNumber = objAccount.eq(objIndex).val();
                 let vRef = objRef.eq(objIndex).val();
-                if(vRef){
+                if(vRef && vRef.indexOf(REF_MANUAL_PREFIX) !== 0){
                     if (accountNumber.substring(0,7) =='1100.40'){
                         jenis='piutang';
                     }
