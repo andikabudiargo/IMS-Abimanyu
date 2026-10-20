@@ -45,35 +45,49 @@ class TargetSoController extends Controller
         return json_encode($kolom, true);
     }
 
-    public function getTableColoumnDetail(){
+    // snapshot rows (status '7') are tagged with a fixed revision number at the time they're created, so this is the widest "Qty R{n}" pivot we'll ever need
+    private function maxRevisionCount(){
+        return (int) DB::table('target_order_hdr')->where('status','7')->max('num_revision');
+    }
+
+    public function getTableColoumnDetail($maxRev = 0){
         $kolom=
         [
             ['data'=>'tso_code','name'=>'tso_code','title'=>'TSO Code'],
             ['data'=>'tso_name','name'=>'tso_name','title'=>'Name'],
             ['data'=>'tso_date','name'=>'tso_date','title'=>'Date'],
-            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Total Revisi'],
             ['data'=>'customer','name'=>'customer','title'=>'Customer'],
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty_target','name'=>'qty_target','title'=>'Qty Target'],
+        ];
+        for ($n = 1; $n <= $maxRev; $n++) {
+            $kolom[] = ['data'=>"qty_r$n",'name'=>"qty_r$n",'title'=>"Qty R$n",'orderable'=>false,'searchable'=>false];
+        }
+        $kolom = array_merge($kolom, [
             ['data'=>'qty_forcast','name'=>'qty_forcast','title'=>'Qty Forcast'],
             ['data'=>'conversion','name'=>'conversion','title'=>'Conversion','orderable'=>false,'searchable'=>false],
             ['data'=>'total_conversion','name'=>'total_conversion','title'=>'Total Conversion','orderable'=>false,'searchable'=>false],
-            // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
             ['data'=>'created_at','name'=>'created_at','title'=>'Created Date'],
             ['data'=>'updated_by','name'=>'updated_by','title'=>'Updated By'],
             ['data'=>'updated_at','name'=>'updated_at','title'=>'Updated Date'],
-        ];
-        return json_encode($kolom, true);
+        ]);
+        return $kolom;
     }
 
     public function index(Request $request)
     {
         $data['title'] = "$this->title";
         $data['kolom'] = $this->getTableColoumn();
-        $data['kolomDetail'] = $this->getTableColoumnDetail();
+        $maxRev = $this->maxRevisionCount();
+        $kolomDetailArr = $this->getTableColoumnDetail($maxRev);
+        $data['kolomDetail'] = json_encode($kolomDetailArr, true);
+        // print semua kolom kecuali updated_by/updated_at; qty_target, tiap qty_r{n}, dan qty_forcast rata kanan
+        $data['arrColPrintDetail'] = json_encode(range(0, count($kolomDetailArr) - 3));
+        $data['textRightDetail'] = json_encode(array_keys(array_filter($kolomDetailArr, fn($k) => $k['data'] === 'qty_target' || $k['data'] === 'qty_forcast' || strpos($k['data'], 'qty_r') === 0)));
         $data['customer'] = DB::table('third_party')
         ->where ('third_party_type','=','cust')
         ->orderBy('nama')
@@ -763,14 +777,16 @@ class TargetSoController extends Controller
             // $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
         }
 
-        $data = DB::table('target_order_det')
-        ->leftJoin('target_order_hdr','target_order_hdr.tso_code','target_order_det.tso_code')
-        ->leftJoin('article','article.article_code','target_order_det.article_code')
+        $maxRev = $this->maxRevisionCount();
+
+        $query = DB::table('target_order_det as det')
+        ->leftJoin('target_order_hdr','target_order_hdr.tso_code','det.tso_code')
+        ->leftJoin('article','article.article_code','det.article_code')
         ->leftJoin('third_party','third_party.kode','article.third_party')
-        ->leftJoin('uom','uom.code','target_order_det.uom')
+        ->leftJoin('uom','uom.code','det.uom')
         ->where(function ($query) use ($searchTso,$searchStatus,$tsoDate,$fromDate,$toDate,$searchCustomer,$searchPeriode) {
             $searchCustomer ? $query->where('customer_id',$searchCustomer) : '';
-            $searchTso ? $query->where('target_order_det.tso_code','ilike','%'.$searchTso.'%') : '';
+            $searchTso ? $query->where('det.tso_code','ilike','%'.$searchTso.'%') : '';
             $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
             $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             if ($searchPeriode) {
@@ -779,41 +795,56 @@ class TargetSoController extends Controller
                       ->where('target_order_hdr.tso_tahun',(int)$tahun);
             }
         })
-        ->select('target_order_det.*'
+        // baris aktif (bukan snapshot revisi) saja; qty tiap revisi datang dari join di bawah
+        ->where('target_order_hdr.status','!=','7')
+        ->select('det.*'
         ,'target_order_hdr.*'
         ,'article_alternative_code'
         ,'article.article_desc'
         ,'third_party.nama as customer'
         ,'uom_group'
-        ,'qty_target'
-        ,'qty_forcast'
         // harga jual rata-rata tertimbang qty dari SO: bulan terakhir yang punya SO (s/d bulan tso_date), SO batal/revisi (5,8) dikecualikan
         ,DB::raw("(select sum(d.price*d.qty)/nullif(sum(d.qty),0) from sales_order_det d join sales_order_hdr h on h.so_code = d.so_code
-            where d.article_code = target_order_det.article_code and h.status not in ('5','8')
+            where d.article_code = det.article_code and h.status not in ('5','8')
             and date_trunc('month', to_date(h.so_date,'DD-MM-YYYY')) = (select max(date_trunc('month', to_date(h2.so_date,'DD-MM-YYYY')))
                 from sales_order_det d2 join sales_order_hdr h2 on h2.so_code = d2.so_code
-                where d2.article_code = target_order_det.article_code and h2.status not in ('5','8')
+                where d2.article_code = det.article_code and h2.status not in ('5','8')
                 and to_date(h2.so_date,'DD-MM-YYYY') < date_trunc('month', to_date(target_order_hdr.tso_date,'DD-MM-YYYY')) + interval '1 month')) as so_avg_price")
         // material price + conversion value dari Conversion Report bulan sebelumnya tso_date (bukan Price List) -- avg_purchase_price sudah dihitung live dari BOM/receiving saat report dibuat, jadi tidak stale seperti Price List
         ,DB::raw("(select crd.avg_purchase_price from conversion_report_det crd
             join conversion_report_hdr crh on crh.id = crd.report_id
-            where crd.article_code = target_order_det.article_code and crh.status not in (5,8)
+            where crd.article_code = det.article_code and crh.status not in (5,8)
             and make_date(crh.tahun, crh.periode, 1) < date_trunc('month', to_date(target_order_hdr.tso_date,'DD-MM-YYYY'))
             order by crh.tahun desc, crh.periode desc, crh.id desc limit 1) as cr_material_price")
         ,DB::raw("(select crh.conversion_value_used from conversion_report_det crd
             join conversion_report_hdr crh on crh.id = crd.report_id
-            where crd.article_code = target_order_det.article_code and crh.status not in (5,8)
+            where crd.article_code = det.article_code and crh.status not in (5,8)
             and make_date(crh.tahun, crh.periode, 1) < date_trunc('month', to_date(target_order_hdr.tso_date,'DD-MM-YYYY'))
             order by crh.tahun desc, crh.periode desc, crh.id desc limit 1) as cr_conversion_value")
         // fallback kalau artikel belum pernah ada di Conversion Report
-        ,DB::raw("(select material_price from price_list_fg where article_code = target_order_det.article_code and status = '1' order by id desc limit 1) as pl_material_price")
-        ,DB::raw("(select conversion_value from price_list_fg where article_code = target_order_det.article_code and status = '1' order by id desc limit 1) as pl_conversion_value")
-        // ,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_target,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_target,'999,999,999.999') end as qty_target")
-        //,DB::raw("case when uom_group = 'PIECE' then TO_CHAR(qty_forcast,'999,999,999') when uom_group <> 'PIECE' then TO_CHAR(qty_forcast,'999,999,999.999') end as qty_forcast")
-        )
-        ->orderBy('target_order_det.id')
-        ->get(); 
-       
+        ,DB::raw("(select material_price from price_list_fg where article_code = det.article_code and status = '1' order by id desc limit 1) as pl_material_price")
+        ,DB::raw("(select conversion_value from price_list_fg where article_code = det.article_code and status = '1' order by id desc limit 1) as pl_conversion_value")
+        );
+
+        // qty tiap revisi: snapshot (status 7) di-pivot jadi kolom qty_r1..qty_rN lewat join, bukan baris terpisah
+        for ($n = 1; $n <= $maxRev; $n++) {
+            $query->leftJoinSub(
+                DB::table('target_order_det as rd')
+                    ->join('target_order_hdr as rh','rh.tso_code','rd.tso_code')
+                    ->where('rh.status','7')
+                    ->where('rh.num_revision',$n)
+                    ->select('rd.article_code','rh.origin_tso_code',"rd.qty_target as qty_r$n"),
+                "rev$n",
+                function($join) use ($n) {
+                    $join->on("rev$n.origin_tso_code",'=','target_order_hdr.origin_tso_code')
+                         ->on("rev$n.article_code",'=','det.article_code');
+                }
+            );
+            $query->addSelect("rev$n.qty_r$n");
+        }
+
+        $data = $query->orderBy('det.id')->get();
+
         return Datatables::of($data)
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];
