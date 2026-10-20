@@ -51,7 +51,9 @@ class TargetSoController extends Controller
             ['data'=>'tso_code','name'=>'tso_code','title'=>'TSO Code'],
             ['data'=>'tso_name','name'=>'tso_name','title'=>'Name'],
             ['data'=>'tso_date','name'=>'tso_date','title'=>'Date'],
+            ['data'=>'num_revision','name'=>'num_revision','title'=>'Revision'],
             ['data'=>'customer','name'=>'customer','title'=>'Customer'],
+            ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty_target','name'=>'qty_target','title'=>'Qty Target'],
@@ -765,7 +767,6 @@ class TargetSoController extends Controller
             $searchStatus ? $query->where('target_order_hdr.status',$searchStatus) : '';
             $tsoDate ? $query->whereBetween(DB::raw("to_date(tso_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         })
-        ->where('target_order_hdr.status','!=','7')
         ->select('target_order_det.*'
         ,'target_order_hdr.*'
         ,'article_alternative_code'
@@ -802,11 +803,11 @@ class TargetSoController extends Controller
         ->get(); 
        
         return Datatables::of($data)
-        // ->addColumn('status', function ($data) {
-        //     $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];            
-        //     $statusTso = ['NEW','VALIDATED','APPROVED'];
-        //     return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
-        // })
+        ->addColumn('status', function ($data) {
+            $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];
+            $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED','','REVISED'];
+            return "<div class='badge ".$badges[$data->status - 1]."'>".$statusTso[$data->status - 1]."</div>";
+        })
         ->addColumn('conversion', fn($r) => number_format($r->conversion ?? ($r->conversion = self::soConversion($r)), 2))
         ->addColumn('total_conversion', fn($r) => number_format(($r->conversion ?? ($r->conversion = self::soConversion($r))) * $r->qty_target, 2))
         ->rawColumns(['status'])
