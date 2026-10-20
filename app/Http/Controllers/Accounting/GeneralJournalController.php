@@ -288,6 +288,8 @@ class GeneralJournalController extends Controller
         $paidToDesc = $request->paidToDesc;
         $invoiceDate = $request->invoiceDate;
         $taxNumber = $request->taxNumber;
+        $buktiPotong = $request->buktiPotong;
+        $bupotDate = $request->BupotDate;
 
         // === Lock Transaction guard: activity + periode ===
         if ($err = \AppHelpers::lockGuard($this->moduleCode, $vcDate)) {
@@ -355,6 +357,8 @@ class GeneralJournalController extends Controller
                     'updated_at' => date('Y-m-d H:i:s'),
                     'invoice_date' => $invoiceDate,
                     'tax_number' => $taxNumber,
+                    'bukti_potong' => $buktiPotong,
+                    'bupot_date' => $bupotDate,
                 ]);
 
                 $dataSet = [];
@@ -506,13 +510,15 @@ class GeneralJournalController extends Controller
         $paidToDesc = $request->paidToDesc;
         $invoiceDate = $request->invoiceDate;
         $taxNumber = $request->taxNumber;
-        
+        $buktiPotong = $request->buktiPotong;
+        $bupotDate = $request->BupotDate;
+
         $messages = [
             'required' => 'The field is required.',
-            'unique' => 'The code has already been taken', 
+            'unique' => 'The code has already been taken',
             // 'iunique' => "KM Number has already been taken",
         ];
-        
+
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) {
             $query = DB::table($parameters[0]);
             $column = $query->getGrammar()->wrap($parameters[1]);
@@ -524,7 +530,7 @@ class GeneralJournalController extends Controller
             // 'pcNumber'  => 'required',
             'period'  => 'required'
         ]);
-        
+
         $error_array = array();
         $success_output = '';
         // return $validation;
@@ -536,7 +542,7 @@ class GeneralJournalController extends Controller
             $alert ="error";
             return response()->json(array('status' => 0,'title' => $title, 'message' => $error_array,'alert' =>$alert));
         }else{
-                        
+
             DB::beginTransaction();
             try {
 
@@ -555,6 +561,8 @@ class GeneralJournalController extends Controller
                             'updated_at' => date('Y-m-d H:i:s'),
                             'invoice_date' => $invoiceDate,
                             'tax_number' => $taxNumber,
+                            'bukti_potong' => $buktiPotong,
+                            'bupot_date' => $bupotDate,
                         ]
                     );
 

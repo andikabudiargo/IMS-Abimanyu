@@ -73,6 +73,16 @@
                                 </div>
                             </div>
                             <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="buktiPotong">No Bukti Potong</label>
+                                    <input type="text" id="buktiPotong" name="buktiPotong" value="{{ $header->bukti_potong }}" class="form-control" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="BupotDate">Bukti Potong Date</label>
+                                    <input type="text" id="BupotDate" name="BupotDate" value="{{ $header->bupot_date }}" class="form-control" placeholder="DD-MM-YYYY" />
+                                </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-9">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>
@@ -329,6 +339,13 @@
             dateFormat: "d-m-Y",
         });
     }
+
+    bupotDate = $('#BupotDate');
+    if (bupotDate.length) {
+        bupotDate.flatpickr({
+            dateFormat: "d-m-Y",
+        });
+    }
     
     function reloadPage(){
         window.location.reload();
@@ -354,7 +371,9 @@
         let paidToDesc = $('#paidToDesc').val();
         let vInvoiceDate = $('#invoiceDate').val();
         let taxNumber = $('#taxNumber').val();
-    
+        let buktiPotong = $('#buktiPotong').val();
+        let bupotDate = $('#BupotDate').val();
+
         if (((parseFloat(objTotalVcDebit)-parseFloat(objTotalVcCredit)) == 0) && (parseFloat(objTotalVcCredit)==parseFloat(totalAmount))){
             if (!$("#frmAdd")[0].checkValidity()){
                 $("#frmAdd").submit();
@@ -418,7 +437,9 @@
                             vcNumber:vcNumber,
                             paidToDesc:paidToDesc,
                             invoiceDate:vInvoiceDate,
-                            taxNumber:taxNumber
+                            taxNumber:taxNumber,
+                            buktiPotong:buktiPotong,
+                            BupotDate:bupotDate
                         },
                         dataType: "json",
                         success: function(data) {
