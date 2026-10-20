@@ -23,6 +23,9 @@ class TrialBalanceController extends Controller
     private $title;
     private $moduleCode;
 
+    /** Tanggal mulai pembukuan yang diakui, sama seperti BukuBesarV2Controller::GL_EPOCH. */
+    const GL_EPOCH = '2024-01-01';
+
     public function __construct()
     {
         $this->title = "Trial Balance";
@@ -160,18 +163,30 @@ class TrialBalanceController extends Controller
             GROUP BY d.account, month
         ", [$year]);
 
-        $before = DB::select("
-            SELECT d.account, sum(d.debit) as debit, sum(d.credit) as credit
-            FROM kas_det d
-            JOIN kas_hdr h ON d.voucher_number = h.voucher_number
-            WHERE h.status <> '5'
-              AND to_date(h.voucher_date,'dd-mm-yyyy') < make_date(?,1,1)
-            GROUP BY d.account
-        ", [$year]);
-
+        // Saldo awal tahun = accounts.opening_balance (anchor di GL_EPOCH) + mutasi
+        // kas_det dari GL_EPOCH s/d sebelum tahun ini -- sama kayak BukuBesarV2Controller,
+        // biar mutasi sebelum 2024 (data gak bersih) gak ikut kehitung.
         $runningNet = [];
-        foreach ($before as $b) {
-            $runningNet[$b->account] = (float) $b->debit - (float) $b->credit;
+        foreach (DB::table('accounts')->select('account', 'debit_credit', 'opening_balance')->get() as $a) {
+            $sgn = strtoupper($a->debit_credit) === 'KREDIT' ? -1 : 1;
+            $runningNet[$a->account] = $sgn * (float) $a->opening_balance;
+        }
+
+        $yearStart = sprintf('%04d-01-01', $year);
+        if ($yearStart > self::GL_EPOCH) {
+            $before = DB::select("
+                SELECT d.account, sum(d.debit) as debit, sum(d.credit) as credit
+                FROM kas_det d
+                JOIN kas_hdr h ON d.voucher_number = h.voucher_number
+                WHERE h.status <> '5'
+                  AND to_date(h.voucher_date,'dd-mm-yyyy') >= ?
+                  AND to_date(h.voucher_date,'dd-mm-yyyy') < ?
+                GROUP BY d.account
+            ", [self::GL_EPOCH, $yearStart]);
+
+            foreach ($before as $b) {
+                $runningNet[$b->account] = ($runningNet[$b->account] ?? 0) + (float) $b->debit - (float) $b->credit;
+            }
         }
 
         $byAccount = [];
@@ -272,13 +287,37 @@ class TrialBalanceController extends Controller
             ORDER BY to_date(h.voucher_date,'dd-mm-yyyy'), h.voucher_number
         ", [$account]);
 
-        $editRoutes = ['KK' => 'kasKeluar.edit', 'KM' => 'kasPenerimaan.edit', 'BK' => 'bankKeluar.edit', 'BM' => 'bankPenerimaan.edit'];
+        // Sama kayak BukuBesarV2Controller::attachVoucherLinks -- KK/KM/BK/BM/GJ diterbitkan
+        // dari kas_hdr sendiri (pakai hdr_id), AP/INV-DN/INV/SCO diposting dari modul lain
+        // jadi id-nya dicari lewat voucher_number ke tabel sumbernya.
+        $directRoute = ['KK' => 'kasKeluar.edit', 'KM' => 'kasPenerimaan.edit', 'BK' => 'bankKeluar.edit', 'BM' => 'bankPenerimaan.edit', 'GJ' => 'jurnalUmum.edit'];
+        $lookupDef = [
+            'AP'     => ['accountPayable.edit', 'ap_invoice', 'ap_number'],
+            'INV-DN' => ['debitNote.edit', 'debit_note_hdr', 'dn_number'],
+            'INV'    => ['invoice.edit', 'invoice_hdr', 'invoice_number'],
+        ];
+
+        $idMaps = [];
+        foreach ($lookupDef as $type => [$route, $table, $col]) {
+            $numbers = collect($rows)->where('voucher_type', $type)->pluck('voucher_number')->unique()->all();
+            if ($numbers) {
+                $idMaps[$type] = DB::table($table)->whereIn($col, $numbers)->pluck('id', $col)->all();
+            }
+        }
+
         $totalDebit = 0;
         $totalCredit = 0;
         foreach ($rows as $row) {
-            $row->edit_url = isset($editRoutes[$row->voucher_type])
-                ? route($editRoutes[$row->voucher_type], ['id' => Crypt::encryptString($row->hdr_id)])
-                : null;
+            $type = $row->voucher_type;
+            if (isset($directRoute[$type])) {
+                $row->edit_url = route($directRoute[$type], ['id' => Crypt::encryptString($row->hdr_id)]);
+            } elseif ($type === 'SCO') {
+                $row->edit_url = route('stockConsumption.edit', ['id' => Crypt::encryptString($row->voucher_number)]);
+            } elseif (isset($lookupDef[$type]) && isset($idMaps[$type][$row->voucher_number])) {
+                $row->edit_url = route($lookupDef[$type][0], ['id' => Crypt::encryptString($idMaps[$type][$row->voucher_number])]);
+            } else {
+                $row->edit_url = null;
+            }
             $totalDebit += (float) $row->debit;
             $totalCredit += (float) $row->credit;
         }

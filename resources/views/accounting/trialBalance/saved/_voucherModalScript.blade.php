@@ -30,11 +30,11 @@
   }
 
   $(document).on('click', '.cell-value', function(){
+    const field = $(this).data('field');
+    if(!field.startsWith('mutasi')) return; // saldo awal/akhir bukan satu transaksi, gak ada vouchernya sendiri
     const account = $(this).closest('tr').attr('data-account');
     const month = $(this).data('month');
-    const field = $(this).data('field');
-    const bucket = field.startsWith('open') ? 'open' : (field.startsWith('mutasi') ? 'mutasi' : 'saldo');
     const side = field.endsWith('_credit') ? 'credit' : 'debit';
-    openVoucherModal(account, month, bucket, side);
+    openVoucherModal(account, month, 'mutasi', side);
   });
 </script>

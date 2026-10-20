@@ -44,42 +44,45 @@
     <div class="card-content">
       <div class="card-body">
         <small class="text-muted">Nilai diambil otomatis dari jurnal (kas/bank). Klik angka untuk lihat detail vouchernya.</small>
+        <div class="custom-control custom-checkbox mb-2">
+          <input type="checkbox" class="custom-control-input" id="chkHideZero">
+          <label class="custom-control-label" for="chkHideZero">Hide akun yang nilainya 0 sepanjang tahun</label>
+        </div>
         <div class="tbFixHead">
           <table class="table table-sm table-bordered tbGrid">
             <thead>
               <tr>
                 <th rowspan="3" class="sticky-col col1">Account</th>
                 <th rowspan="3" class="sticky-col col2">Description</th>
+                <th rowspan="3">Account Type</th>
                 <th rowspan="3">Normal Balance</th>
                 <th rowspan="3">Final Statement</th>
                 @foreach($months as $m)
-                  <th colspan="6" class="text-center">{{ \DateTime::createFromFormat('n',$m)->format('F') }}</th>
+                  <th colspan="6" class="text-center month-divider">{{ \DateTime::createFromFormat('n',$m)->format('F') }}</th>
                 @endforeach
               </tr>
               <tr>
                 @foreach($months as $m)
-                  <th colspan="2" class="text-center">Saldo Awal</th>
+                  <th colspan="2" class="text-center month-divider">Saldo Awal</th>
                   <th colspan="2" class="text-center">Pergerakan</th>
                   <th colspan="2" class="text-center">Saldo Akhir</th>
                 @endforeach
               </tr>
               <tr>
                 @foreach($months as $m)
-                  @foreach($fields as $label)
-                    <th class="text-center">{{ $label }}</th>
+                  @foreach($fields as $field => $label)
+                    <th class="text-center {{ $field === 'open_debit' ? 'month-divider' : '' }}">{{ $label }}</th>
                   @endforeach
                 @endforeach
               </tr>
             </thead>
             <tbody>
               @foreach($groups as $g)
-                <tr class="group-row" data-group="{{ $g->group_data }}">
-                  <td colspan="{{ 4 + count($months)*6 }}"><span class="toggle-sign">+</span> {{ $g->group_name }}</td>
-                </tr>
                 @foreach($accounts->where('group_data', $g->group_data)->values() as $i => $acc)
-                  <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-account="{{ $acc->account }}" style="display:none;">
+                  <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-account="{{ $acc->account }}">
                     <td class="sticky-col col1">{{ $acc->account }}</td>
                     <td class="sticky-col col2">{{ $acc->description }}</td>
+                    <td>{{ $acc->group_data }} - {{ $acc->group_name }}</td>
                     <td>{{ $acc->debit_credit }}</td>
                     <td>{{ $acc->final_statement }}</td>
                     @foreach($months as $m)
@@ -90,7 +93,7 @@
                   </tr>
                 @endforeach
                 <tr class="subtotal-row" data-subtotal-group="{{ $g->group_data }}">
-                  <td colspan="4">Subtotal {{ $g->group_name }}</td>
+                  <td colspan="5">Subtotal {{ $g->group_name }}</td>
                   @foreach($months as $m)
                     @foreach(array_keys($fields) as $field)
                       <td class="subtotal-cell text-right" data-subtotal-group="{{ $g->group_data }}" data-month="{{ $m }}" data-field="{{ $field }}">0</td>
@@ -101,7 +104,7 @@
             </tbody>
             <tfoot>
               <tr class="grandtotal-row">
-                <td colspan="4">Grand Total</td>
+                <td colspan="5">Grand Total</td>
                 @foreach($months as $m)
                   @foreach(array_keys($fields) as $field)
                     <td class="grandtotal-cell text-right" data-month="{{ $m }}" data-field="{{ $field }}">0</td>
@@ -131,16 +134,17 @@
   .col1 { left: 0; min-width: 90px; }
   .col2 { left: 90px; min-width: 150px; }
   .tbGrid thead th.sticky-col { z-index: 4; background: #eee; }
-  .group-row td { background: #d8d8d8; font-weight: bold; cursor: pointer; }
   .subtotal-row td { background: #f1f1f1; font-weight: 600; }
   .grandtotal-row td { background: #cfd8dc; font-weight: bold; }
   tr.row-even td { background: #ffffff; }
   tr.row-odd td { background: #f7f7f7; }
   .cell-value {
-    min-width: 95px; padding: 2px 6px; cursor: pointer;
+    min-width: 95px; padding: 2px 6px;
   }
-  .cell-value:hover { background: #fff3cd !important; text-decoration: underline; }
+  .cell-value[data-field^="mutasi"] { cursor: pointer; }
+  .cell-value[data-field^="mutasi"]:hover { background: #fff3cd !important; text-decoration: underline; }
   .text-right { text-align: right; }
+  .month-divider, [data-field="open_debit"] { border-left: 3px solid #6c757d !important; }
 </style>
 @endsection
 @section('scripts')
@@ -150,7 +154,22 @@
     return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  // Sembunyikan baris akun yang nilainya 0 di semua bulan & semua field sepanjang tahun.
+  function applyHideZero(){
+    const hide = $('#chkHideZero').is(':checked');
+    $('#tbTableWrap tr.child-row').each(function(){
+      if(!hide){ $(this).show(); return; }
+      let allZero = true;
+      $(this).find('.cell-value').each(function(){
+        if((parseFloat($(this).attr('data-raw')) || 0) !== 0){ allZero = false; return false; }
+      });
+      $(this).toggle(!allZero);
+    });
+  }
+
   $(document).ready(function(){
+    $('#chkHideZero').on('change', applyHideZero);
+
     $('#btnGenerate').on('click', function(){
       const year = $('#year').val();
       if(!year){
@@ -193,6 +212,7 @@
 
           $('#tbTableWrap').show();
           $('#btnExport').prop('disabled', false).data('year', year);
+          applyHideZero();
         })
         .fail(function(){
           swal.fire('Error', 'Gagal generate data dari jurnal', 'error');
@@ -205,12 +225,6 @@
     $('#btnExport').on('click', function(){
       const year = $(this).data('year');
       window.location.href = "{{ route('trialBalance.saved.exportExcel') }}?year=" + encodeURIComponent(year);
-    });
-
-    $(document).on('click', 'tr.group-row', function(){
-      const g = $(this).data('group');
-      $(`tr.child-row[data-group="${g}"]`).toggle();
-      $(this).find('.toggle-sign').text(function(i, old){ return old === '+' ? '-' : '+'; });
     });
 
     $('#btnSave').on('click', function(){
