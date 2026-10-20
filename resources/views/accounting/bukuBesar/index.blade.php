@@ -37,14 +37,15 @@
                     @endfor
                 </select>
               </div>
-              {{-- <div class="form-group col-md-2">
+              <div class="form-group col-md-2">
                 <label class="form-label" for="periodTahun">Tahun</label>
                 <select class="select2 form-control" id="periodTahun" name="periodTahun" >
-                    @for ($i = 2023; $i <= 2100; $i++)
+                    <option value=""></option>
+                    @for ($i = date('Y'); $i >= 2023; $i--)
                         <option value="{{ $i }}">{{ $i }}</option>
                     @endfor
                 </select>
-              </div> --}}
+              </div>
             </div>
             <div class="form-row">
               <div class="form-group col-md-4">
@@ -153,16 +154,17 @@
     let vcDate = $("#vcDate").val();
     let period1 = $("#period1").val();
     let period2 = $("#period2").val();
+    let periodTahun = $("#periodTahun").val();
     let dept = $("#departement").val();
     let perkiraan1 = $("#perkiraan1").val();
     let perkiraan2 = $("#perkiraan2").val();
     let searchStatus = $("#searchStatus").val();
     $(".loading-spinner-container").addClass("-show");
-    showList(vcDate,period1,period2,dept,perkiraan1,perkiraan2,searchStatus);
+    showList(vcDate,period1,period2,periodTahun,dept,perkiraan1,perkiraan2,searchStatus);
 
   });
 
-  const showList = (vcDate,period1,period2,dept,perkiraan1,perkiraan2,searchStatus) => {
+  const showList = (vcDate,period1,period2,periodTahun,dept,perkiraan1,perkiraan2,searchStatus) => {
     if ($('#detailedTable tr').length >0){
         let table= $('#detailedTable').DataTable();
         table.destroy();
@@ -187,6 +189,7 @@
         vcDate:vcDate,
         period1:period1,
         period2:period2,
+        periodTahun:periodTahun,
         dept:dept,
         perkiraan1:perkiraan1,
         perkiraan2:perkiraan2,

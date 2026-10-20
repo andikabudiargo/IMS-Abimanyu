@@ -104,6 +104,7 @@ class BukuBesarController extends Controller
         $vcDate = $request->vcDate;
         $period1 = $request->period1;
         $period2 = $request->period2;
+        $periodTahun = $request->periodTahun;
         $costCenter = $request->dept;
         $perkiraan1 = $request->perkiraan1;
         $perkiraan2 = $request->perkiraan2;
@@ -212,9 +213,10 @@ class BukuBesarController extends Controller
         ->leftJoin('kas_hdr','kas_hdr.voucher_number','kas_det.voucher_number')
         ->leftJoin('accounts','accounts.account','kas_det.account')
         ->leftJoin('depts','depts.code','kas_det.cost_center')
-        ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan,$status,$statusBaru) {
+        ->where(function ($query) use ($vcDate,$fromDate,$toDate,$period1,$period2,$periodTahun,$costCenter,$perkiraan1,$perkiraan2,$adaPerkiraan,$status,$statusBaru) {
             $vcDate ? $query->whereBetween(DB::raw("to_date(voucher_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $period1 ? $query->whereBetween(db::raw("period::integer"), [$period1, $period2]) : '';
+            $periodTahun ? $query->whereRaw("extract(year from to_date(voucher_date,'DD-MM-YYYY')) = ?", [$periodTahun]) : '';
             $costCenter ? $query->whereIn('cost_center', $costCenter) : '';
             $adaPerkiraan ? $query->whereBetween('kas_det.account', [$perkiraan1, $perkiraan2]) : '';
             $status ? $query->where('kas_hdr.status',$status) : '';
