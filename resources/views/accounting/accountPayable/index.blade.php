@@ -66,6 +66,15 @@
                   @endfor
                 </select>
               </div>
+              <div class="col-md-3 form-group">
+                <label class="form-label" for="apTahun">Tahun</label>
+                <select class="select2 form-control" id="apTahun" name="apTahun" >
+                  <option value=""></option>
+                  @for ($i = date('Y'); $i >= 2023; $i--)
+                      <option value="{{ $i }}">{{ $i }}</option>
+                  @endfor
+                </select>
+              </div>
                 <div class="form-group col-md-3">
     <label for="searchArticle">Article Code</label>
     <input type="text" class="form-control text-uppercase" id="searchArticle" name="searchArticle" placeholder="" />
@@ -274,6 +283,7 @@ function getExportDateTimeString(){
   let apDate = $("#apDate").val();
   let apPeriod1 = $("#apPeriod1").val();
   let apPeriod2 = $("#apPeriod2").val();
+  let apTahun = $("#apTahun").val();
   let searchArticle = $("#searchArticle").val();
 
   btnSummary.addClass('d-none');
@@ -282,11 +292,11 @@ function getExportDateTimeString(){
   $(".loading-spinner-container").addClass("-show");
 
   if($type == 'detail'){
-    showListDetail(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,searchArticle);
+    showListDetail(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,apTahun,searchArticle);
   }
 
   if($type == 'summary'){
-    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,searchArticle);  // BARU: tambah param
+    showList(searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,apTahun,searchArticle);  // BARU: tambah param
   }
 }
 
@@ -304,7 +314,7 @@ function getExportDateTimeString(){
     dataSearch('summary');
   });
 
-  const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,searchArticle) => {
+  const showList = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,apTahun,searchArticle) => {
   if ($('#detailedTable tr').length >0){
       let table= $('#detailedTable').DataTable();
       table.destroy();
@@ -344,6 +354,7 @@ function getExportDateTimeString(){
       apDate:apDate,
       apPeriod1:apPeriod1,
       apPeriod2:apPeriod2,
+      apTahun:apTahun,
       searchArticle:searchArticle
     },
     initComplete: function() {
@@ -359,7 +370,7 @@ function getExportDateTimeString(){
   });
 }
 
-  const showListDetail = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,searchArticle) => {
+  const showListDetail = (searchPo,searchAp,searchSupplier,searchStatus,apDate,apPeriod1,apPeriod2,apTahun,searchArticle) => {
   if ($('#detailedTable tr').length >0){
       let table= $('#detailedTable').DataTable();
       table.destroy();
@@ -393,6 +404,7 @@ function getExportDateTimeString(){
       apDate:apDate,
       apPeriod1:apPeriod1,
       apPeriod2:apPeriod2,
+      apTahun:apTahun,
       searchArticle:searchArticle
     },
     initComplete: function() {

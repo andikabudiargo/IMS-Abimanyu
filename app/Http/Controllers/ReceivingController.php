@@ -771,10 +771,11 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
         
         $customMessages = [
             'required' => 'The field is required.',
-            'unique' => 'The code has already been taken', 
+            'unique' => 'The code has already been taken',
             'iunique' => "DO Number :  $doNumber has already been taken on PO : $poNumber",
+            'regex' => 'DO Number hanya boleh huruf, angka, /, - , atau .',
         ];
-        
+
         Validator::extend('iunique', function ($attribute, $value, $parameters, $validator) use ($poNumber) {
             $query = DB::table($parameters[0]);
             $column = $query->getGrammar()->wrap($parameters[1]);
@@ -782,11 +783,11 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
             return !$query->whereRaw("lower({$column}) = lower(?)", [$value])
                           ->whereRaw("lower({$column2}) = lower(?)", [$poNumber])->count();
         });
-        
+
         $validation = Validator::make($request->all(),$messages = [
             // 'invNumber'=>'required|iunique:receiving_hdr,inv_number,po_number',
             // 'invDate'  => 'required',
-            'doNumber'=>'required|iunique:receiving_hdr,do_number,po_number',
+            'doNumber'=>['required','regex:/^(?=.*[A-Za-z0-9])[A-Za-z0-9\/\.\-]+$/','iunique:receiving_hdr,do_number,po_number'],
             'doDate'  => 'required',
             'recDate'  => 'required',
             // 'poNumber'  => 'required',
@@ -1078,6 +1079,7 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
         'required' => 'The field is required.',
         'unique'   => 'The code has already been taken',
         'iunique'  => "DO Number : $doNumber has already been taken on PO : $poNumber",
+        'regex'    => 'DO Number hanya boleh huruf, angka, /, - , atau .',
     ];
 
     // FIX: iunique untuk doNumber mengecek duplikat berdasarkan kombinasi
@@ -1111,9 +1113,9 @@ private function mapLocation(?string $articleType, ?string $groupOfMaterial, ?st
     $rules = ['recDate' => 'required'];
     if (!$isManual) {
         $rules['poNumber'] = 'required';
-        $rules['doNumber'] = 'required|iunique:receiving_hdr,do_number,po_number';
+        $rules['doNumber'] = ['required','regex:/^(?=.*[A-Za-z0-9])[A-Za-z0-9\/\.\-]+$/','iunique:receiving_hdr,do_number,po_number'];
     } else {
-        $rules['doNumber'] = 'required';
+        $rules['doNumber'] = ['required','regex:/^(?=.*[A-Za-z0-9])[A-Za-z0-9\/\.\-]+$/'];
     }
 
     $validation = Validator::make($request->all(), $rules, $customMessages);

@@ -2370,6 +2370,7 @@ class AccountPayableController extends Controller
     $toDate = "";
     $apPeriod1 = $request->apPeriod1;
     $apPeriod2 = $request->apPeriod2;
+    $apTahun = $request->apTahun;
     $searchArticle = $request->searchArticle;
 
     if ($apDate) {
@@ -2402,13 +2403,14 @@ $join->on('vch.reference', '=', 'ap_invoice.inv_number')
     ->leftJoin(DB::raw("(
         select id as po_id, po_number from purchase_order_hdr
     ) as po"), 'po.po_number', '=', 'ap_invoice.po_number')
-    ->where(function ($q) use ($searchAp, $searchPo, $searchSupplier, $searchStatus, $apDate, $fromDate, $toDate, $apPeriod1, $apPeriod2, $searchArticle) {
+    ->where(function ($q) use ($searchAp, $searchPo, $searchSupplier, $searchStatus, $apDate, $fromDate, $toDate, $apPeriod1, $apPeriod2, $apTahun, $searchArticle) {
         $searchPo ? $q->where('po_number', 'ilike', '%' . $searchPo . '%') : '';
         $searchAp ? $q->where('ap_number', 'ilike', '%' . $searchAp . '%') : '';
         $searchSupplier ? $q->where('supplier_id', 'ilike', '%' . $searchSupplier . '%') : '';
         $searchStatus ? $q->where('ap_invoice.status', '=', $searchStatus) : '';
         $apDate ? $q->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
         $apPeriod1 ? $q->whereBetween(DB::raw("period::integer"), [$apPeriod1, $apPeriod2]) : '';
+        $apTahun ? $q->whereRaw("extract(year from to_date(ap_invoice.inv_date,'DD-MM-YYYY')) = ?", [$apTahun]) : '';
 
         // BARU: AP header dianggap match kalau salah satu baris detailnya (PO maupun Non-PO) mengandung article code ini
         $searchArticle ? $q->where(function ($qArt) use ($searchArticle) {
@@ -2977,6 +2979,7 @@ DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vc
         $toDate = "";
         $apPeriod1 = $request->apPeriod1;
         $apPeriod2 = $request->apPeriod2;
+        $apTahun = $request->apTahun;
         $searchArticle = $request->searchArticle;
         // $apPeriod = $request->apPeriod;
 
@@ -2987,18 +2990,19 @@ DB::raw("grand_total - coalesce(case when ap_invoice.status in ('6','7') then vc
                 $toDate = implode("/", array_reverse(explode("-", trim($date[1]))));
             }else{
                 $fromDate = implode("/", array_reverse(explode("-", trim($date[0]))));
-                $toDate = $fromDate; 
+                $toDate = $fromDate;
             }
         }
 
         $apNumber = DB::table('ap_invoice')
-        ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate,$apPeriod1,$apPeriod2) {
+        ->where(function ($query) use ($searchAp,$searchPo,$searchSupplier,$searchStatus,$apDate,$fromDate,$toDate,$apPeriod1,$apPeriod2,$apTahun) {
             $searchPo ? $query->where('ap_invoice.po_number','ilike','%'.$searchPo.'%') : '';
             $searchAp ? $query->where('ap_invoice.ap_number','ilike','%'.$searchAp.'%') : '';
             $searchSupplier ? $query->where('supplier_id','ilike','%'.$searchSupplier.'%') : '';
             $searchStatus ? $query->where('ap_invoice.status','=',$searchStatus) : '';
             $apDate ? $query->whereBetween(DB::raw("to_date(ap_invoice.inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
             $apPeriod1 ? $query->whereBetween(db::raw("period::integer"),[$apPeriod1,$apPeriod2]) : '';
+            $apTahun ? $query->whereRaw("extract(year from to_date(ap_invoice.inv_date,'DD-MM-YYYY')) = ?", [$apTahun]) : '';
             // $apPeriod ? $query->where('ap_invoice.period',$apPeriod) : '';
         })
         ->whereNotIn('ap_invoice.status',['5'])

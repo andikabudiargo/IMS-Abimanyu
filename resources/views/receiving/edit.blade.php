@@ -61,7 +61,7 @@
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label for="doNumber">DO Number*</label>
-                                    <input type="text" id="doNumber" name="doNumber" class="form-control disabled-el" value="{{ $header->do_number }}" required/>
+                                    <input type="text" id="doNumber" name="doNumber" class="form-control disabled-el" value="{{ $header->do_number }}" pattern="(?=.*[A-Za-z0-9])[A-Za-z0-9/.\-]+" title="Harus ada minimal satu huruf/angka. Karakter lain yang diizinkan: /, - , ." required/>
                                 </div>
                                 <div class="form-group col-md-2 d-none">
                                     <label for="invDate">Invoice Date*</label>
