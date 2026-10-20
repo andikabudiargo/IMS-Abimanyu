@@ -106,7 +106,7 @@
         ],
         columnDefs :[
           {
-              targets: [ 4 ],
+              targets: [ 3 ],
               render: $.fn.dataTable.render.number(',','.',2,''),
               className: "text-right"
           },
