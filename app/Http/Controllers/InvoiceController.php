@@ -1920,10 +1920,10 @@ DB::raw("
             ,DB::raw("to_char(to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY'), 'DD/MM/YYYY') as invoice_date")
             ,DB::raw("to_date(invoice_hdr.invoice_date, 'DD-MM-YYYY') as invoice_date_2")
             ,DB::raw("max(invoice_hdr.period) as period")
-            ,DB::raw("max(invoice_det.so_number) as so_number")
+            ,DB::raw("string_agg(distinct invoice_det.so_number, ', ') as so_number")
             ,DB::raw("max((select po_number from sales_order_hdr where so_code = invoice_det.so_number)) as po_number")
             ,DB::raw("max(third_party.nama) as customer_name")
-            ,DB::raw("max(invoice_det.dn_number) as dn_number")
+            ,DB::raw("string_agg(distinct invoice_det.dn_number, ', ') as dn_number")
             ,DB::raw("max(invoice_hdr.status) as status")
             ,DB::raw("sum(qty) as qty")
             ,'price'
@@ -1937,9 +1937,7 @@ DB::raw("
         ->groupBy('price')
         ->groupBy('price_service')
         ->groupBy('article.article_alternative_code')
-        ->groupBy('article.article_desc')
-        ->groupBy('invoice_det.so_number')
-        ->groupBy('invoice_det.dn_number');
+        ->groupBy('article.article_desc');
         // ->orderBy('article.article_alternative_code')
 
         return Datatables::of($data)
