@@ -7,21 +7,39 @@
 @endphp
 <section>
   <div class="card">
-    <div class="card-header">
-      <h4 class="card-title">{{ $hdr->tb_number }} ({{ $hdr->year }})</h4>
-    </div>
     <div class="card-content">
       <div class="card-body">
         <div class="form-row">
-          <div class="form-group col-md-5">
+          <div class="form-group col-md-3">
+            <label class="form-label">Nomor</label>
+            <input type="text" class="form-control" value="{{ $hdr->tb_number }}" disabled>
+          </div>
+          <div class="form-group col-md-3">
+            <label class="form-label">Year</label>
+            <input type="text" class="form-control" value="{{ $hdr->year }}" disabled>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-6">
             <label class="form-label">Description</label>
             <input type="text" id="description" class="form-control" value="{{ $hdr->description }}">
           </div>
-          <div class="form-group col-md-5">
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-6">
             <label class="form-label">Note</label>
             <input type="text" id="note" class="form-control" value="{{ $hdr->note }}">
           </div>
         </div>
+        <button type="button" id="btnRecalculate" class="btn btn-warning">Recalculate</button>
+        <button type="button" id="btnExport" class="btn btn-success">Export Excel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-content">
+      <div class="card-body">
         <small class="text-muted">Nilai diambil otomatis dari jurnal saat dibuat. Klik angka untuk lihat detail vouchernya.</small>
         <div class="custom-control custom-checkbox mb-2">
           <input type="checkbox" class="custom-control-input" id="chkHideZero">
@@ -97,7 +115,6 @@
         </div>
 
         <button type="button" id="btnSave" class="btn btn-primary mt-2">Save</button>
-        <button type="button" id="btnRecalculate" class="btn btn-warning mt-2">Recalculate</button>
         <a href="{{ route('trialBalance.index') }}" class="btn btn-secondary mt-2">Back</a>
       </div>
     </div>
@@ -184,6 +201,10 @@
     recomputeTotals();
 
     $('#chkHideZero').on('change', applyHideZero);
+
+    $('#btnExport').on('click', function(){
+      window.location.href = "{{ route('trialBalance.saved.exportExcel') }}?year=" + encodeURIComponent(window.tbYear);
+    });
 
     $('#btnRecalculate').on('click', function(){
       $(".loading-spinner-container").addClass("-show");
