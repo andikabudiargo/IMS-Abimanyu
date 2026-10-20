@@ -263,7 +263,10 @@
                 </tr>
                 <tr>
                     <td  align="left" colspan="6">Note: {{ $header->note }}</td>
-                </tr>                                
+                </tr>
+                <tr>
+                    <td  align="left" colspan="6">No Bukti Potong: {{ $header->bukti_potong }} &nbsp;&nbsp; Tanggal Bukti Potong: {{ $header->bupot_date }}</td>
+                </tr>
             </tbody>
         </table>
         <br>

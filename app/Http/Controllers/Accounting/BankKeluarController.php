@@ -329,6 +329,8 @@ private $invoiceOpenStatus = '4'; // POSTED — sesuaikan sama filter dropdown i
         $status = '1';
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
+        $buktiPotong = $request->buktiPotong;
+        $bupotDate = $request->BupotDate;
 
         // === Lock Transaction guard: activity + periode ===
         if ($err = \AppHelpers::lockGuard($this->moduleCode, $vcDate)) {
@@ -406,7 +408,9 @@ DB::beginTransaction();
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'bukti_potong' => $buktiPotong,
+                        'bupot_date' => $bupotDate,
                     ]);
 
                     //reference itu no invoice bukan no ap
@@ -559,7 +563,9 @@ DB::beginTransaction();
         // $status = '1';
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
-        
+        $buktiPotong = $request->buktiPotong;
+        $bupotDate = $request->BupotDate;
+
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
@@ -620,6 +626,8 @@ try {
                             'amount' =>$totalAmount,
                             'period' =>$period,
                             'note' => $note,
+                            'bukti_potong' => $buktiPotong,
+                            'bupot_date' => $bupotDate,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
                         ]

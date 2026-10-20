@@ -47,6 +47,16 @@
                                 </div>
                             </div>
                             <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="buktiPotong">No Bukti Potong</label>
+                                    <input type="text" id="buktiPotong" name="buktiPotong" value="{{ $header->bukti_potong }}" class="form-control" disabled />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="BupotDate">Bukti Potong Date</label>
+                                    <input type="text" id="BupotDate" name="BupotDate" value="{{ $header->bupot_date }}" class="form-control" disabled />
+                                </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-10">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" >{{ $header->note }}</textarea>

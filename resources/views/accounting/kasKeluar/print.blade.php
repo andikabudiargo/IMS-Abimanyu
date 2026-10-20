@@ -284,6 +284,9 @@
                                 <tr class="border-atas">
                                     <td  align="left" class="border-atas" colspan="5">Note: {{ $header->note }}</td>
                                 </tr>
+                                <tr class="border-atas">
+                                    <td  align="left" class="border-atas" colspan="5">No Bukti Potong: {{ $header->bukti_potong }} &nbsp;&nbsp; Tanggal Bukti Potong: {{ $header->bupot_date }}</td>
+                                </tr>
                             </tbody>
                         </table>
                         

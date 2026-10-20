@@ -63,6 +63,16 @@
                                 </div>
                             </div>
                             <div class="form-row">
+                                <div class="form-group col-md-3">
+                                    <label for="buktiPotong">No Bukti Potong</label>
+                                    <input type="text" id="buktiPotong" name="buktiPotong" class="form-control" value="" />
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label for="BupotDate">Bukti Potong Date</label>
+                                    <input type="text" id="BupotDate" name="BupotDate" class="form-control" placeholder="DD-MM-YYYY" />
+                                </div>
+                            </div>
+                            <div class="form-row">
                                 <div class="form-group col-md-9">
                                     <label class="form-label" for="note">Notes</label>
                                     <textarea type="text" id="note" name="note" class="form-control" rows="1" ></textarea>
@@ -228,8 +238,15 @@
             dateFormat: "d-m-Y",
         });
     }
-    
-    $("#cmdSave").click(function(){  
+
+    bupotDate = $('#BupotDate');
+    if (bupotDate.length) {
+        bupotDate.flatpickr({
+            dateFormat: "d-m-Y",
+        });
+    }
+
+    $("#cmdSave").click(function(){
         let objTotalVcDebit= $('#vcTotalDebit').val().replace(/,/gi, '') || 0;
         let objTotalVcCredit= $('#vcTotalCredit').val().replace(/,/gi, '') || 0;
         let vcDate = $('#vcDate').val();
@@ -238,6 +255,8 @@
         let note = $('#note').val();
         let paidTo = $('#paidTo').val();
         let paidToDesc = $('#paidToDesc').val();
+        let buktiPotong = $('#buktiPotong').val();
+        let bupotDate = $('#BupotDate').val();
         if (!$("#frmAdd")[0].checkValidity()){
             $("#frmAdd").submit();
         }else{   
@@ -299,7 +318,9 @@
                             note:note,
                             totalAmount:totalAmount,
                             paidTo:paidTo,
-                            paidToDesc:paidToDesc
+                            paidToDesc:paidToDesc,
+                            buktiPotong:buktiPotong,
+                            BupotDate:bupotDate
                         },
                         dataType: "json",
                         success: function(data) {
@@ -307,7 +328,7 @@
                                 let message="";
                                 for(let i = 0; i < data.message.length; i++) {
                                     show_msg(data.title, data.message[i], data.alert);
-                                }                        
+                                }
                                 $('#voucherNumber').attr('disabled','disabled');
                             }else{
                                 show_msg(data.title, data.message, data.alert);

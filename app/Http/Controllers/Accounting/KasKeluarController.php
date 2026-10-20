@@ -273,6 +273,8 @@ class KasKeluarController extends Controller
         $status = '1';
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
+        $buktiPotong = $request->buktiPotong;
+        $bupotDate = $request->BupotDate;
 
         // === Lock Transaction guard: activity + periode ===
         if ($err = \AppHelpers::lockGuard($this->moduleCode, $vcDate)) {
@@ -335,7 +337,9 @@ class KasKeluarController extends Controller
                         'created_by' => Auth::user()->username,
                         'updated_by' => Auth::user()->username,
                         'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        'bukti_potong' => $buktiPotong,
+                        'bupot_date' => $bupotDate,
                     ]);
 
                     //reference itu no invoice bukan no ap
@@ -485,7 +489,9 @@ class KasKeluarController extends Controller
         // $status = '1';
         $leadCode =$this->moduleCode;
         $paidToDesc = $request->paidToDesc;
-        
+        $buktiPotong = $request->buktiPotong;
+        $bupotDate = $request->BupotDate;
+
         $messages = [
             'required' => 'The field is required.',
             'unique' => 'The code has already been taken', 
@@ -530,6 +536,8 @@ class KasKeluarController extends Controller
                             'amount' =>$totalAmount,
                             'period' =>$period,
                             'note' => $note,
+                            'bukti_potong' => $buktiPotong,
+                            'bupot_date' => $bupotDate,
                             'updated_by' => Auth::user()->username,
                             'updated_at' => date('Y-m-d H:i:s')
                         ]

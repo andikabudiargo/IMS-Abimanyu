@@ -56,8 +56,6 @@ class TargetSoController extends Controller
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
             ['data'=>'qty_target','name'=>'qty_target','title'=>'Qty Target'],
             ['data'=>'qty_forcast','name'=>'qty_forcast','title'=>'Qty Forcast'],
-            ['data'=>'qty_actual','name'=>'qty_actual','title'=>'Qty Actual'],
-            ['data'=>'uom','name'=>'uom','title'=>'UOM'],
             ['data'=>'conversion','name'=>'conversion','title'=>'Conversion','orderable'=>false,'searchable'=>false],
             ['data'=>'total_conversion','name'=>'total_conversion','title'=>'Total Conversion','orderable'=>false,'searchable'=>false],
             // ['data'=>'approval_by','name'=>'approval_by','title'=>'Approved By'],
