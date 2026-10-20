@@ -643,6 +643,10 @@
           extend: 'excel',
           name: 'excel',
           title: null,
+          // customizeExcel mengindeks cell per posisi kolom (cells[0] = kolom A, dst);
+          // tanpa ini, cell dengan value null/'' tidak dibuat sama sekali oleh buttons.html5
+          // sehingga index-nya loncat dan merge/label jadi salah tempat -> file jadi corrupt/kosong.
+          createEmptyCells: true,
           filename: function () { return 'buku_besar_v2_' + h.account + '_' + h.tahun + '_' + bb2Mode; },
           customize: customizeExcel
         },

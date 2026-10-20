@@ -1444,7 +1444,15 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 	Route::get('conversionPlanning/chart',['as'=>'conversionPlanning.chart','uses'=>'Conversion\ConversionReportController@chart']);
 
 	Route::get('balanceSheet',['as'=>'balanceSheet.index','uses'=>'Accounting\BalanceSheetController@index']);
-	Route::get('balanceSheet/print',['as'=>'balanceSheet.print','uses'=>'Accounting\BalanceSheetController@print']);
+	Route::get('balanceSheet/list',['as'=>'balanceSheet.list','uses'=>'Accounting\BalanceSheetController@list']);
+
+	Route::get('balanceSheet/saved/create',['as'=>'balanceSheet.saved.create','uses'=>'Accounting\BalanceSheetController@savedCreate']);
+	Route::get('balanceSheet/saved/generate-data',['as'=>'balanceSheet.saved.generateData','uses'=>'Accounting\BalanceSheetController@savedGenerateData']);
+	Route::get('balanceSheet/saved/export-excel',['as'=>'balanceSheet.saved.exportExcel','uses'=>'Accounting\BalanceSheetController@savedExportExcel']);
+	Route::get('balanceSheet/saved/voucher-list',['as'=>'balanceSheet.saved.voucherList','uses'=>'Accounting\BalanceSheetController@savedVoucherList']);
+	Route::post('balanceSheet/saved/store',['as'=>'balanceSheet.saved.store','uses'=>'Accounting\BalanceSheetController@savedStore']);
+	Route::get('balanceSheet/saved/edit',['as'=>'balanceSheet.saved.edit','uses'=>'Accounting\BalanceSheetController@savedEdit']);
+	Route::post('balanceSheet/saved/update',['as'=>'balanceSheet.saved.update','uses'=>'Accounting\BalanceSheetController@savedUpdate']);
 
 	Route::get('labaRugi',['as'=>'labaRugi.index','uses'=>'Accounting\LabaRugiController@index']);
 	Route::get('labaRugi/print',['as'=>'labaRugi.print','uses'=>'Accounting\LabaRugiController@print']);
