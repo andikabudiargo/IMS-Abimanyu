@@ -11,10 +11,9 @@
                 <i data-feather="info" class="font-medium-3 text-info"></i>
             </div>
             <div>
-                <h5 class="mb-25">Pengumuman: Alur Article Request berubah</h5>
+                <h5 class="mb-25">Pengumuman: Pengisian Article Child Part</h5>
                 <p class="mb-0">
-                    Alur sekarang: <strong>User</strong> mengajukan request &rarr; <strong>Atasan terkait</strong> approve &rarr; <strong>Accounting</strong> mengisi <strong>COA</strong> dan <strong>Cashflow Category</strong>, lalu submit.
-                    (Hubungi Accounting untuk submit Article Request).
+                   Saat membuat Article Request untuk article Child Part dengan type <strong>RMP/RMNP</strong> mohon untuk mengisi field Group of Material dengan <strong>Child Part & Assy (CPA)</strong> agar article child part dapat direceive ke gudang yang benar.
                 </p>
             </div>
         </div>
