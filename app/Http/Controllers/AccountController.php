@@ -44,16 +44,12 @@ class AccountController extends Controller
     public function index(Request $request)
     {
         $data['title'] = $this->title;
-        $data['flat'] = $this->flatList();
-        $data['tree'] = $this->buildTree();
+        $data['kolom'] = $this->getTableColoumn();
+        $data['flat'] = $this->flatList(); // for the Move COA dropdowns only
         return view("accounts.index",$data);
     }
 
-    /**
-     * Flat, denormalized list for the plain-table view: the same join/columns the old
-     * DataTable used, just rendered directly. Kept independent of buildTree() below so
-     * this view can never go empty because of a tree-nesting edge case.
-     */
+    /** Every account with its Type/Sub/Header as columns, used to populate the Move COA dropdowns. */
     private function flatList()
     {
         return DB::table('accounts')
@@ -76,68 +72,6 @@ class AccountController extends Controller
                 accounts.account
             ")
             ->get();
-    }
-
-    /**
-     * COA tree: Account Type -> Sub Account -> Header (recursive) -> Detail.
-     *
-     * A Sub's accounts are every account whose accounts.parent_id is that sub_code
-     * (reliable). Below that, Header/Detail are nested by dotted CODE PREFIX (e.g.
-     * "1100.13.23" under header "1100.13") instead of chasing parent_id further down:
-     * in production data, detail rows are very often parented straight to the Sub even
-     * when an intermediate header with a matching code prefix exists.
-     */
-    private function buildTree()
-    {
-        $subsByType = DB::table('acc_sub')->orderBy('sub_code')->get()->groupBy('type_code');
-        $accountsByParent = DB::table('accounts')->get()->groupBy('parent_id');
-
-        return DB::table('acc_types')->where('status', 1)->orderBy('code')->get()
-            ->map(function ($type) use ($subsByType, $accountsByParent) {
-                $type->subs = ($subsByType[$type->code] ?? collect())->map(function ($sub) use ($accountsByParent) {
-                    $sub->accounts = $this->nestByCodePrefix($accountsByParent[$sub->sub_code] ?? collect());
-                    return $sub;
-                });
-                return $type;
-            });
-    }
-
-    /** Nest a flat list of accounts into a tree by dotted code prefix, sorted naturally by code. */
-    private function nestByCodePrefix($accounts)
-    {
-        $byCode = [];
-        foreach ($accounts as $acc) {
-            $acc->children = collect();
-            $byCode[$acc->account] = $acc;
-        }
-
-        $roots = collect();
-        foreach ($accounts as $acc) {
-            $parts = explode('.', $acc->account);
-            $parentCode = null;
-            for ($i = count($parts) - 1; $i >= 1; $i--) {
-                $candidate = implode('.', array_slice($parts, 0, $i));
-                if ($candidate !== $acc->account && isset($byCode[$candidate])) {
-                    $parentCode = $candidate;
-                    break;
-                }
-            }
-            $parentCode !== null ? $byCode[$parentCode]->children->push($acc) : $roots->push($acc);
-        }
-
-        foreach ($byCode as $acc) {
-            $acc->children = $this->sortByCode($acc->children);
-        }
-
-        return $this->sortByCode($roots);
-    }
-
-    private function sortByCode($accounts)
-    {
-        return $accounts->sortBy(function ($acc) {
-            $pad = function ($seg) { return str_pad($seg, 10, '0', STR_PAD_LEFT); };
-            return implode('.', array_map($pad, explode('.', $acc->account)));
-        })->values();
     }
 
     public function create(Request $request)
