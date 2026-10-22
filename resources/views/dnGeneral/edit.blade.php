@@ -41,7 +41,7 @@
     $typeLabel = [
        'ot' => 'Return OT', 'box' => 'Box Kosong', 'troli' => 'Troli Kosong',
         'trial' => 'Trial & Sample', 'ms' => 'Material Support', 'cs' => 'Chemical Support', 'ngcm' => 'NG Chemical',
-        'lnb3' => 'Limbah Non B3', 'rig' => 'Return Isi Gas', 'other' => 'Other', 'jaeeco' => 'Jaeeco'
+        'lnb3' => 'Limbah Non B3', 'rig' => 'Return Isi Gas', 'jaeeco' => 'Jaeeco', 'other' => 'Other',
     ];
     $typeBadge = [
        'ot' => 'badge-info', 'ngcm' => 'badge-danger', 'box' => 'badge-secondary', 'troli' => 'badge-secondary',

@@ -46,8 +46,8 @@
                                             <option value="lb3">Limbah B3</option>
                                             <option value="lnb3">Limbah Non B3</option>
                                             <option value="rig">Return Isi Gas</option>
-                                            <option value="other">Other</option>
                                             <option value="jaeeco">Jaeeco</option>
+                                            <option value="other">Other</option>
                                         </select>
                                     </div>
                                 </div>
