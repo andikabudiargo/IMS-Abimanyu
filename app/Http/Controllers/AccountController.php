@@ -44,58 +44,58 @@ class AccountController extends Controller
     public function index(Request $request)
     {
         $data['title'] = $this->title;
+        $data['flat'] = $this->flatList();
         $data['tree'] = $this->buildTree();
-        $data['flat'] = $this->flattenTree($data['tree']);
         return view("accounts.index",$data);
     }
 
-    /** Flat list for the plain-table view: every account with its Type/Sub/Header as columns. */
-    private function flattenTree($tree)
+    /**
+     * Flat, denormalized list for the plain-table view: the same join/columns the old
+     * DataTable used, just rendered directly. Kept independent of buildTree() below so
+     * this view can never go empty because of a tree-nesting edge case.
+     */
+    private function flatList()
     {
-        $rows = collect();
-        foreach ($tree as $type) {
-            foreach ($type->subs as $sub) {
-                $this->flattenAccounts($sub->accounts, $type, $sub, null, $rows);
-            }
-        }
-        return $rows;
-    }
-
-    private function flattenAccounts($accounts, $type, $sub, $parentHeader, $rows)
-    {
-        foreach ($accounts as $acc) {
-            $acc->type_label = $type->code . ' - ' . $type->name;
-            $acc->sub_label = $sub->sub_code . ' - ' . $sub->description;
-            $acc->header_label = $parentHeader ? ($parentHeader->account . ' - ' . $parentHeader->description) : '';
-            $rows->push($acc);
-            if (strtoupper($acc->acc_header) === 'HEADER') {
-                $this->flattenAccounts($acc->children, $type, $sub, $acc, $rows);
-            }
-        }
+        return DB::table('accounts')
+            ->leftJoin('acc_types', 'acc_types.code', '=', 'accounts.type_code')
+            ->leftJoin('acc_sub', 'acc_sub.sub_code', '=', 'accounts.parent_id')
+            ->leftJoin('accounts as header_acc', function ($join) {
+                $join->on('header_acc.account', '=', 'accounts.parent_id')
+                    ->where('header_acc.acc_header', '=', 'HEADER');
+            })
+            ->select(
+                'accounts.*',
+                DB::raw("CASE WHEN acc_types.code IS NOT NULL THEN acc_types.code || ' - ' || acc_types.name ELSE '' END AS type_label"),
+                DB::raw("CASE WHEN acc_sub.sub_code IS NOT NULL THEN acc_sub.sub_code || ' - ' || acc_sub.description ELSE '' END AS sub_label"),
+                DB::raw("CASE WHEN header_acc.account IS NOT NULL THEN header_acc.account || ' - ' || header_acc.description ELSE '' END AS header_label")
+            )
+            ->orderByRaw("
+                NULLIF(split_part(accounts.account, '.', 1), '')::numeric NULLS FIRST,
+                NULLIF(split_part(accounts.account, '.', 2), '')::numeric NULLS FIRST,
+                NULLIF(split_part(accounts.account, '.', 3), '')::numeric NULLS FIRST,
+                accounts.account
+            ")
+            ->get();
     }
 
     /**
      * COA tree: Account Type -> Sub Account -> Header (recursive) -> Detail.
      *
-     * Everything below Sub Account is nested by dotted CODE PREFIX (e.g. "1100.13.23"
-     * under header "1100.13"), not by accounts.parent_id: in production data, detail
-     * rows are very often parented straight to the Sub even when an intermediate header
-     * with a matching code prefix exists, and parent_id chains aren't reliable past that
-     * point anyway. The account's own code is the one relationship this data always gets
-     * right, so a Sub's scope is every account whose code's first dot-segment is its
-     * sub_code.
+     * A Sub's accounts are every account whose accounts.parent_id is that sub_code
+     * (reliable). Below that, Header/Detail are nested by dotted CODE PREFIX (e.g.
+     * "1100.13.23" under header "1100.13") instead of chasing parent_id further down:
+     * in production data, detail rows are very often parented straight to the Sub even
+     * when an intermediate header with a matching code prefix exists.
      */
     private function buildTree()
     {
         $subsByType = DB::table('acc_sub')->orderBy('sub_code')->get()->groupBy('type_code');
-        $accountsBySubPrefix = DB::table('accounts')->get()->groupBy(function ($acc) {
-            return explode('.', $acc->account)[0];
-        });
+        $accountsByParent = DB::table('accounts')->get()->groupBy('parent_id');
 
         return DB::table('acc_types')->where('status', 1)->orderBy('code')->get()
-            ->map(function ($type) use ($subsByType, $accountsBySubPrefix) {
-                $type->subs = ($subsByType[$type->code] ?? collect())->map(function ($sub) use ($accountsBySubPrefix) {
-                    $sub->accounts = $this->nestByCodePrefix($accountsBySubPrefix[$sub->sub_code] ?? collect());
+            ->map(function ($type) use ($subsByType, $accountsByParent) {
+                $type->subs = ($subsByType[$type->code] ?? collect())->map(function ($sub) use ($accountsByParent) {
+                    $sub->accounts = $this->nestByCodePrefix($accountsByParent[$sub->sub_code] ?? collect());
                     return $sub;
                 });
                 return $type;

@@ -164,13 +164,23 @@
                     <div class="col-md-5">
                         <div class="form-group">
                             <label>Source account (akan dipindah)</label>
-                            <input type="text" id="sourceAccount" class="form-control text-uppercase" placeholder="kode COA lama">
+                            <select id="sourceAccount" class="select2 w-100">
+                                <option value=""></option>
+                                @foreach($flat as $acc)
+                                    <option value="{{ $acc->account }}">{{ $acc->account }} - {{ $acc->description }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-5">
                         <div class="form-group">
                             <label>Target account (tujuan)</label>
-                            <input type="text" id="targetAccount" class="form-control text-uppercase" placeholder="kode COA baru">
+                            <select id="targetAccount" class="select2 w-100">
+                                <option value=""></option>
+                                @foreach($flat as $acc)
+                                    <option value="{{ $acc->account }}">{{ $acc->account }} - {{ $acc->description }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-2">
