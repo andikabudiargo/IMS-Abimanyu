@@ -117,26 +117,87 @@ class PpnPkEqualisasiController extends Controller
             return response()->json(['status' => 2, 'title' => "Preview $this->title", 'message' => 'Tidak ada baris data yang terbaca dari Excel ini.', 'alert' => 'warning']);
         }
 
-        $totalDpp = round(array_sum(array_column($import->rows, 'dpp')), 2);
-        $totalPpn = round(array_sum(array_column($import->rows, 'ppn')), 2);
+        $rows = $this->matchRows($import->rows);
+        $totalDpp = round(array_sum(array_column($rows, 'dpp')), 2);
+        $totalPpn = round(array_sum(array_column($rows, 'ppn')), 2);
+        $matchedCount = count(array_filter($rows, fn ($r) => $r['match_status'] === 'MATCHED'));
         $gl = $this->glSummary($periode, $year);
         $selisih = round($totalPpn - $gl['mutasi_kredit'], 2);
 
         return response()->json([
             'status' => 1,
             'title' => "Preview $this->title",
-            'message' => count($import->rows) . ' baris terbaca.',
+            'message' => count($rows) . " baris terbaca, $matchedCount otomatis match.",
             'alert' => 'success',
             'filePath' => $path,
-            'rows' => $import->rows,
-            'totalRows' => count($import->rows),
+            'rows' => $rows,
+            'totalRows' => count($rows),
+            'matchedCount' => $matchedCount,
             'totalDpp' => $totalDpp,
             'totalPpn' => $totalPpn,
             'glMutasiKredit' => $gl['mutasi_kredit'],
             'selisih' => $selisih,
             'match' => abs($selisih) <= 0.01,
-            'glRows' => $this->glTransactions($periode, $year),
         ]);
+    }
+
+    // Cocokkan tiap baris Excel ke voucher yang menerbitkannya (Invoice/Debit Note, lewat
+    // kolom faktur_pajak), lalu ke posting kredit COA 2000.14.1 punya voucher itu di
+    // kas_det/kas_hdr -- mirip BankReconciliationController::matchRows(), tapi kuncinya
+    // nomor faktur (persis), bukan tanggal+nominal, karena di sini ada kolom pengenal yang
+    // eksak. Read-only (cuma SELECT), dipakai di preview() maupun store() biar hasil yang
+    // ditampilkan ke user sama persis dengan yang akhirnya disimpan.
+    private function matchRows(array $rows): array
+    {
+        foreach ($rows as &$row) {
+            $norm = preg_replace('/[^0-9A-Za-z]/', '', (string) $row['doc_number']);
+            $candidate = null;
+            $voucherType = null;
+
+            if ($norm !== '') {
+                $candidate = DB::table('invoice_hdr')
+                    ->whereRaw("regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g') ilike ?", [$norm])
+                    ->where('status', '<>', '5')
+                    ->select('id', 'invoice_number as voucher_number')
+                    ->first();
+                $voucherType = 'INV';
+
+                if (!$candidate) {
+                    $candidate = DB::table('debit_note_hdr')
+                        ->whereRaw("regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g') ilike ?", [$norm])
+                        ->where('status', '<>', '5')
+                        ->select('id', 'dn_number as voucher_number')
+                        ->first();
+                    $voucherType = 'INV-DN';
+                }
+            }
+
+            if ($candidate) {
+                $glCredit = (float) DB::table('kas_det as d')
+                    ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
+                    ->where('d.account', self::COA_ACCOUNT)
+                    ->where('h.status', '<>', '5')
+                    ->where('d.voucher_number', $candidate->voucher_number)
+                    ->sum('d.credit');
+
+                $row['matched_voucher_type'] = $voucherType;
+                $row['matched_voucher_number'] = $candidate->voucher_number;
+                $row['matched_voucher_id'] = $candidate->id;
+                $row['voucher_link'] = route($voucherType === 'INV' ? 'invoice.edit' : 'debitNote.edit', ['id' => Crypt::encryptString((string) $candidate->id)]);
+                $row['gl_credit'] = $glCredit;
+                $row['match_status'] = abs(round($row['ppn'] - $glCredit, 2)) <= 0.01 ? 'MATCHED' : 'UNMATCHED';
+            } else {
+                $row['matched_voucher_type'] = null;
+                $row['matched_voucher_number'] = null;
+                $row['matched_voucher_id'] = null;
+                $row['voucher_link'] = null;
+                $row['gl_credit'] = null;
+                $row['match_status'] = 'UNMATCHED';
+            }
+        }
+        unset($row);
+
+        return $rows;
     }
 
     // Tahap 2: user sudah lihat hasil preview dan klik Save sendiri -- baru di sini
@@ -186,8 +247,9 @@ class PpnPkEqualisasiController extends Controller
             return response()->json(['status' => 2, 'title' => "Save $this->title", 'message' => 'Tidak ada baris data yang terbaca dari Excel ini.', 'alert' => 'warning']);
         }
 
-        $totalDpp = round(array_sum(array_column($import->rows, 'dpp')), 2);
-        $totalPpn = round(array_sum(array_column($import->rows, 'ppn')), 2);
+        $rows = $this->matchRows($import->rows);
+        $totalDpp = round(array_sum(array_column($rows, 'dpp')), 2);
+        $totalPpn = round(array_sum(array_column($rows, 'ppn')), 2);
 
         AppHelpers::resetCode($this->moduleCode);
         $equalNumber = $this->getLastCode($this->moduleCode);
@@ -208,7 +270,8 @@ class PpnPkEqualisasiController extends Controller
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-            foreach ($import->rows as $row) {
+            $matchedCount = 0;
+            foreach ($rows as $row) {
                 DB::table('ppn_pk_equalisasi_det')->insertOrIgnore([
                     'equal_number' => $equalNumber,
                     'masa_pajak' => $row['masa_pajak'],
@@ -221,14 +284,22 @@ class PpnPkEqualisasiController extends Controller
                     'sifat' => $row['sifat'],
                     'dpp' => $row['dpp'],
                     'ppn' => $row['ppn'],
+                    'match_status' => $row['match_status'],
+                    'matched_voucher_type' => $row['matched_voucher_type'],
+                    'matched_voucher_number' => $row['matched_voucher_number'],
+                    'matched_voucher_id' => $row['matched_voucher_id'],
+                    'gl_credit' => $row['gl_credit'],
                     'created_by' => $username,
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
+                if ($row['match_status'] === 'MATCHED') {
+                    $matchedCount++;
+                }
             }
 
             DB::commit();
             $title = "Save $this->title";
-            $message = "$equalNumber tersimpan. " . count($import->rows) . ' baris, total PPN ' . number_format($totalPpn, 2) . '.';
+            $message = "$equalNumber tersimpan. " . count($rows) . " baris, $matchedCount otomatis match, total PPN " . number_format($totalPpn, 2) . '.';
             \LogActivity::addToLog($title, "username: $username Status $message");
             return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success', 'equalNumber' => $equalNumber]);
         } catch (\Exception $e) {
@@ -261,73 +332,6 @@ class PpnPkEqualisasiController extends Controller
             'mutasi_debet' => (float) $period->debet,
             'mutasi_kredit' => (float) $period->kredit,
         ];
-    }
-
-    // Daftar transaksi kredit COA 2000.14.1 di periode ybs -- ini isi dari glSummary()
-    // di atas (mutasi_kredit cuma angka total, ini rincian transaksi-nya), supaya user
-    // bisa lihat posting yang mana saja yang membentuk angka Buku Besar yang dibandingkan.
-    private function glTransactions(int $periode, int $year): array
-    {
-        $from = sprintf('%04d-%02d-01', $year, $periode);
-        $to = date('Y-m-t', strtotime($from));
-
-        $rows = DB::table('kas_det as d')
-            ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
-            ->where('d.account', self::COA_ACCOUNT)
-            ->where('h.status', '<>', '5')
-            ->where('d.credit', '>', 0)
-            ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') between ? and ?", [$from, $to])
-            ->select(
-                'h.id as voucher_id',
-                'h.voucher_type',
-                'd.voucher_number',
-                DB::raw("to_char(to_date(h.voucher_date,'DD-MM-YYYY'),'DD-MM-YYYY') as voucher_date"),
-                'd.description',
-                'd.credit'
-            )
-            ->orderByRaw("to_date(h.voucher_date,'DD-MM-YYYY')")
-            ->orderBy('d.id')
-            ->get();
-
-        // voucher_type -> [route name, tabel sumber, kolom nomor] buat yang diposting dari
-        // modul lain (voucher_number-nya nomor dokumen modul itu, bukan id kas_hdr) -- sama
-        // dengan BukuBesarV2Controller::attachVoucherLinks(), PPN Keluaran customer biasanya
-        // dari Invoice (INV) / Debit Note (INV-DN), KK/KM/BK/BM/GJ dari kas_hdr sendiri.
-        $lookupDef = [
-            'AP' => ['accountPayable.edit', 'ap_invoice', 'ap_number'],
-            'INV-DN' => ['debitNote.edit', 'debit_note_hdr', 'dn_number'],
-            'INV' => ['invoice.edit', 'invoice_hdr', 'invoice_number'],
-        ];
-        $directRoute = [
-            'KK' => 'kasKeluar.edit', 'KM' => 'kasPenerimaan.edit',
-            'BK' => 'bankKeluar.edit', 'BM' => 'bankPenerimaan.edit',
-            'GJ' => 'jurnalUmum.edit',
-        ];
-        $idMaps = [];
-        foreach ($lookupDef as $type => [, $table, $col]) {
-            $numbers = $rows->where('voucher_type', $type)->pluck('voucher_number')->unique()->all();
-            if ($numbers) {
-                $idMaps[$type] = DB::table($table)->whereIn($col, $numbers)->pluck('id', $col)->all();
-            }
-        }
-
-        return $rows->map(function ($r) use ($lookupDef, $directRoute, $idMaps) {
-            $type = $r->voucher_type;
-            $link = null;
-            if (isset($directRoute[$type])) {
-                $link = route($directRoute[$type], ['id' => Crypt::encryptString((string) $r->voucher_id)]);
-            } elseif (isset($lookupDef[$type]) && isset($idMaps[$type][$r->voucher_number])) {
-                $link = route($lookupDef[$type][0], ['id' => Crypt::encryptString((string) $idMaps[$type][$r->voucher_number])]);
-            }
-            return [
-                'voucher_type' => $type,
-                'voucher_number' => $r->voucher_number,
-                'voucher_date' => $r->voucher_date,
-                'description' => $r->description,
-                'credit' => (float) $r->credit,
-                'voucher_link' => $link,
-            ];
-        })->values()->all();
     }
 
     public function list(Request $request)
@@ -382,18 +386,18 @@ class PpnPkEqualisasiController extends Controller
         $data['id'] = $id;
         $data['periodes'] = $this->periodes;
         $data['gl'] = $this->glSummary((int) $data['header']->periode, (int) $data['header']->year);
-        $data['glRows'] = $this->glTransactions((int) $data['header']->periode, (int) $data['header']->year);
 
         $data['kolomDetail'] = json_encode([
             ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'title' => 'No', 'orderable' => false, 'searchable' => false],
             ['data' => 'masa_pajak', 'name' => 'masa_pajak', 'title' => 'Masa Pajak'],
-            ['data' => 'doc_number', 'name' => 'doc_number', 'title' => 'Nomor Dokumen'],
-            ['data' => 'status', 'name' => 'status', 'title' => 'Status'],
+            ['data' => 'doc_number', 'name' => 'doc_number', 'title' => 'Nomor Faktur'],
             ['data' => 'npwp', 'name' => 'npwp', 'title' => 'NPWP'],
             ['data' => 'nama', 'name' => 'nama', 'title' => 'Nama'],
-            ['data' => 'jenis_pajak', 'name' => 'jenis_pajak', 'title' => 'Jenis Pajak'],
             ['data' => 'dpp', 'name' => 'dpp', 'title' => 'DPP'],
-            ['data' => 'ppn', 'name' => 'ppn', 'title' => 'PPN'],
+            ['data' => 'ppn', 'name' => 'ppn', 'title' => 'PPN (Excel)'],
+            ['data' => 'match_status', 'name' => 'match_status', 'title' => 'Status'],
+            ['data' => 'matched_voucher_number', 'name' => 'matched_voucher_number', 'title' => 'Voucher GL'],
+            ['data' => 'gl_credit', 'name' => 'gl_credit', 'title' => 'Kredit GL'],
         ]);
 
         return view('accounting.ppnPkEqualisasi.show', $data);
@@ -416,6 +420,21 @@ class PpnPkEqualisasiController extends Controller
             ->addIndexColumn()
             ->addColumn('dpp', function ($d) { return number_format($d->dpp, 2); })
             ->addColumn('ppn', function ($d) { return number_format($d->ppn, 2); })
+            ->addColumn('match_status', function ($d) {
+                $color = $d->match_status === 'MATCHED' ? 'success' : 'danger';
+                $label = $d->match_status === 'MATCHED' ? 'MATCH' : 'NOT MATCH';
+                return "<div class='badge badge-{$color}'>{$label}</div>";
+            })
+            ->addColumn('matched_voucher_number', function ($d) {
+                if (!$d->matched_voucher_number) {
+                    return '-';
+                }
+                $route = $d->matched_voucher_type === 'INV-DN' ? 'debitNote.edit' : 'invoice.edit';
+                $url = route($route, ['id' => Crypt::encryptString((string) $d->matched_voucher_id)]);
+                return "<a href='$url' target='_blank'>{$d->matched_voucher_number}</a> ({$d->matched_voucher_type})";
+            })
+            ->addColumn('gl_credit', function ($d) { return $d->gl_credit !== null ? number_format($d->gl_credit, 2) : '-'; })
+            ->rawColumns(['match_status', 'matched_voucher_number'])
             ->make(true);
     }
 

@@ -88,38 +88,13 @@
   </div>
 </section>
 
-{{-- Rincian transaksi Buku Besar (kredit akun 2000.14.1) yang membentuk angka "Mutasi Kredit"
-     di atas -- ini jawaban "dimatchingin ke transaksi yang mana", bukan matching per baris
-     Excel (nilai tiap faktur beda granularitasnya dengan posting GL), tapi daftar posting
-     yang jumlahnya dibandingkan ke total Excel. --}}
-<section id="glrows-ppnPkEqualisasi" class="d-none">
-  <div class="card">
-    <div class="card-header">
-      <h4 class="card-title">Transaksi Buku Besar (Kredit Akun 2000.14.1)</h4>
-    </div>
-    <div class="card-body">
-      <div class="table-responsive bankrecon-scroll">
-        <table class="table table-striped bankrecon-table">
-          <thead class="thead-light">
-            <tr>
-              <th>Tanggal</th>
-              <th>Voucher</th>
-              <th>Keterangan</th>
-              <th class="text-right">Kredit</th>
-            </tr>
-          </thead>
-          <tbody id="glRows"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</section>
-
-{{-- Hasil preview (parse) -- belum tersimpan sampai user klik Save manual --}}
+{{-- Hasil preview (parse + match per baris ke voucher Invoice/Debit Note lewat nomor faktur,
+     lalu ke posting kredit COA 2000.14.1 punya voucher itu) -- belum tersimpan sampai user
+     klik Save manual. --}}
 <section id="preview-ppnPkEqualisasi" class="d-none">
   <div class="card">
     <div class="card-header">
-      <h4 class="card-title">Preview Hasil Parse</h4>
+      <h4 class="card-title">Preview Hasil Parse &amp; Match</h4>
       <span id="previewSummary" class="badge badge-light-info"></span>
     </div>
     <div class="card-body">
@@ -128,13 +103,12 @@
           <thead class="thead-light">
             <tr>
               <th>No</th>
-              <th>Masa Pajak</th>
-              <th>Nomor Dokumen</th>
-              <th>Status</th>
-              <th>NPWP</th>
+              <th>Nomor Faktur</th>
               <th>Nama</th>
-              <th class="text-right">DPP</th>
-              <th class="text-right">PPN</th>
+              <th class="text-right">PPN (Excel)</th>
+              <th>Status</th>
+              <th>Voucher GL</th>
+              <th class="text-right">Kredit GL</th>
             </tr>
           </thead>
           <tbody id="previewRows"></tbody>
@@ -181,7 +155,6 @@
       previewFilePath = null;
       $('#preview-ppnPkEqualisasi').addClass('d-none');
       $('#info-ppnPkEqualisasi').addClass('d-none');
-      $('#glrows-ppnPkEqualisasi').addClass('d-none');
     });
   });
 
@@ -191,20 +164,27 @@
 
   function renderPreview(data) {
     let rows = data.rows.map(function (r, i) {
+      let statusBadge = r.match_status === 'MATCHED'
+        ? '<span class="badge badge-success">MATCH</span>'
+        : '<span class="badge badge-danger">NOT MATCH</span>';
+      let voucherCell = r.matched_voucher_number
+        ? (r.voucher_link
+            ? `<a href="${r.voucher_link}" target="_blank">${r.matched_voucher_number}</a> (${r.matched_voucher_type})`
+            : `${r.matched_voucher_number} (${r.matched_voucher_type})`)
+        : '-';
       return `<tr>
         <td>${i + 1}</td>
-        <td>${r.masa_pajak}</td>
         <td>${r.doc_number}</td>
-        <td>${r.status}</td>
-        <td>${r.npwp}</td>
         <td>${r.nama}</td>
-        <td class="text-right">${fmtNumber(r.dpp)}</td>
         <td class="text-right">${fmtNumber(r.ppn)}</td>
+        <td>${statusBadge}</td>
+        <td>${voucherCell}</td>
+        <td class="text-right">${r.gl_credit !== null ? fmtNumber(r.gl_credit) : '-'}</td>
       </tr>`;
     }).join('');
 
     $('#previewRows').html(rows);
-    $('#previewSummary').text(`${data.totalRows} baris`);
+    $('#previewSummary').text(`${data.totalRows} baris, ${data.matchedCount} otomatis match`);
 
     $('#i-total-dpp').text(fmtNumber(data.totalDpp));
     $('#i-total-ppn').text(fmtNumber(data.totalPpn));
@@ -218,20 +198,6 @@
       .toggleClass('badge-success', data.match)
       .toggleClass('badge-danger', !data.match);
     $('#info-ppnPkEqualisasi').removeClass('d-none');
-
-    let glRows = (data.glRows || []).map(function (r) {
-      let voucherCell = r.voucher_link
-        ? `<a href="${r.voucher_link}" target="_blank">${r.voucher_number}</a> (${r.voucher_type})`
-        : `${r.voucher_number} (${r.voucher_type})`;
-      return `<tr>
-        <td>${r.voucher_date}</td>
-        <td>${voucherCell}</td>
-        <td>${r.description ?? ''}</td>
-        <td class="text-right">${fmtNumber(r.credit)}</td>
-      </tr>`;
-    }).join('') || '<tr><td colspan="4" class="text-center">Tidak ada transaksi kredit di Buku Besar untuk periode ini.</td></tr>';
-    $('#glRows').html(glRows);
-    $('#glrows-ppnPkEqualisasi').removeClass('d-none');
 
     $('#preview-ppnPkEqualisasi').removeClass('d-none');
     document.getElementById('info-ppnPkEqualisasi').scrollIntoView({ behavior: 'smooth' });

@@ -74,46 +74,9 @@
     </div>
   </div>
 
-  {{-- Rincian transaksi Buku Besar (kredit akun ybs) yang membentuk angka "Buku Besar" di
-       summary di atas -- supaya kelihatan posting mana saja yang dibandingkan ke total Excel. --}}
-  <div class="card">
-    <div class="card-header">
-      <h4 class="card-title">Transaksi Buku Besar (Kredit Akun {{ $header->coa_account }})</h4>
-    </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-sm table-striped bb2-info mb-0">
-          <thead class="thead-light">
-            <tr>
-              <th>Tanggal</th>
-              <th>Voucher</th>
-              <th>Keterangan</th>
-              <th class="text-right">Kredit</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse ($glRows as $r)
-              <tr>
-                <td>{{ $r['voucher_date'] }}</td>
-                <td>
-                  @if ($r['voucher_link'])
-                    <a href="{{ $r['voucher_link'] }}" target="_blank">{{ $r['voucher_number'] }}</a> ({{ $r['voucher_type'] }})
-                  @else
-                    {{ $r['voucher_number'] }} ({{ $r['voucher_type'] }})
-                  @endif
-                </td>
-                <td>{{ $r['description'] }}</td>
-                <td class="text-right">{{ number_format($r['credit'], 2) }}</td>
-              </tr>
-            @empty
-              <tr><td colspan="4" class="text-center">Tidak ada transaksi kredit di Buku Besar untuk periode ini.</td></tr>
-            @endforelse
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
+  {{-- Tiap baris Excel di-match langsung ke voucher GL-nya (lewat nomor faktur ->
+       invoice_hdr/debit_note_hdr -> posting kredit COA ybs), kolom Status/Voucher GL/Kredit
+       GL ada di tabel ini -- bukan daftar Buku Besar terpisah. --}}
   <div class="card">
     <div class="card-header">
       <h4 class="card-title">Detail Faktur Pajak Keluaran</h4>
@@ -161,10 +124,10 @@
       tableId: "ppnPkEqualisasiDetailTable",
       route: "{{ route('ppnPkEqualisasi.list.detail', ['id' => $id]) }}",
       kolom: {!! $kolomDetail !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8],
+      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9],
       columnDefs: [
         { width: '4%', targets: 0 },
-        { className: 'text-right', targets: [7, 8] },
+        { className: 'text-right', targets: [5, 6, 9] },
       ],
       // dataSearch wajib diisi (walau kosong) -- tanpa ini draw/start/length dari
       // DataTables tidak terkirim dengan benar dan tabel macet di "Processing...".
