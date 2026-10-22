@@ -653,7 +653,7 @@ class BudgetingController extends Controller
         $sheet->fromArray(['Previous: ' . $this->periodeText($d['hdr']->previous_from, $d['hdr']->previous_to) . '  |  Budget Period: ' . $this->periodeText($d['hdr']->budget_from, $d['hdr']->budget_to) . '  |  Actual Sales (Previous Period): ' . number_format($d['hdr']->actual_sales, 2) . ' (' . $d['cards']['sales_used_pct'] . '% terpakai dept)' . '  |  Target Sales: ' . number_format($d['hdr']->target_sales, 2)], null, 'A2');
 
         $headers = array_merge(
-            ['Unbudget', 'OPEX/CAPEX', 'Account', 'Name', 'Debit', 'Average', 'Target %', 'Inflasi %', 'CR %', 'Monthly Budget', 'Additional Budget', 'Final Budget (Total)'],
+            ['Unbudget', 'OPEX/CAPEX', 'Account', 'Name', 'Debit', 'Average', 'Sales %', 'Inflasi %', 'CR %', 'Monthly Budget', 'Additional Budget', 'Final Budget (Total)'],
             $d['months'],
             ['Total Realisasi', 'Selisih', 'Realisasi %']
         );

@@ -60,7 +60,7 @@
     </colgroup>
     <thead>
       <tr>
-        <th>Unbudget</th><th>OPEX/CAPEX</th><th>Account</th><th>Name</th><th>Debit</th><th>Average</th><th>Target %</th><th>Inflasi %</th><th>CR %</th>
+        <th>Unbudget</th><th>OPEX/CAPEX</th><th>Account</th><th>Name</th><th>Debit</th><th>Average</th><th>Sales %</th><th>Inflasi %</th><th>CR %</th>
         <th>Monthly Budget</th><th>Additional Budget</th><th>Final Budget (Total)</th>
         @foreach($months as $m)
           <th>{{ $m }}</th>

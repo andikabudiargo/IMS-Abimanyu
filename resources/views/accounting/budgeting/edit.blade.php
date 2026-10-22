@@ -166,7 +166,7 @@
       + '<th rowspan="2" class="col-stickyT">OPEX/CAPEX</th>'
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
-      + '<th rowspan="2" class="text-right" title="Porsi COA ini dari Actual Sales (Previous Period) = Debit / Actual Sales">Target %</th>'
+      + '<th rowspan="2" class="text-right" title="Porsi COA ini dari Actual Sales (Previous Period) = Debit / Actual Sales">Sales %</th>'
       + '<th rowspan="2" class="col-cr" title="Persen penambah ke Average (kebalikan Cost Reduction)">Inflasi</th>'
       + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
       + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period, ikut berubah tiap Final Budget diedit">Monthly Budget</th>'
