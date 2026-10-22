@@ -123,6 +123,14 @@
           <thead class="thead-light"></thead>
         </table>
       </div>
+      <div class="form-row mt-1 d-none" id="saveMatchesRow">
+        <div class="col-12">
+          <button class="btn btn-success" type="button" id="cmdSaveMatches">
+            <i data-feather="save" class="align-middle mr-sm-25 mr-0"></i>
+            <span class="align-middle d-sm-inline-block d-none">Simpan Perubahan (<span class="save-count">0</span>)</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -147,6 +155,32 @@
 
   let currentDetId = null;
   let reconNumber = "{{ $header->recon_number }}";
+  // Match/Unmatch manual tidak langsung disimpan -- supaya tabel tidak reload tiap klik
+  // (bikin baris hilang dari view kalau sedang difilter status). Perubahan ditampung di
+  // sini, baru benar-benar disimpan ke DB saat klik tombol "Simpan Perubahan" di bawah tabel.
+  let pendingChanges = {}; // detId -> {action: 'match'|'unmatch', kasDetId?}
+
+  function updateSaveButton() {
+    let n = Object.keys(pendingChanges).length;
+    $('#saveMatchesRow').toggleClass('d-none', n === 0);
+    $('#saveMatchesRow .save-count').text(n);
+  }
+
+  function markRowPending(detId, label) {
+    let row = $('[data-det-id="' + detId + '"]').closest('tr');
+    let tds = row.addClass('table-warning').find('td');
+    tds.eq(6).html('<span class="badge badge-warning">PENDING</span>');
+    tds.eq(tds.length - 1).html(
+      '<a href="javascript:;" class="btn btn-sm btn-outline-secondary" onclick="cancelPending(' + detId + ')">Batal</a>'
+      + '<div><small class="text-muted">' + label + '</small></div>'
+    );
+  }
+
+  function cancelPending(detId) {
+    delete pendingChanges[detId];
+    updateSaveButton();
+    $('#bankReconciliationDetailTable').DataTable().ajax.reload(null, false);
+  }
 
   function destroyTable() {
     if ($('#bankReconciliationDetailTable tr').length > 0) {
@@ -240,35 +274,54 @@
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        $.ajax({
-          url: "{{ route('bankReconciliation.match.manual') }}",
-          method: "POST",
-          data: { detId: currentDetId, kasDetId: result.value },
-          success: function (data) {
-            show_msg(data.title, data.message, data.alert);
-            showListDetail();
-          }
-        });
+        pendingChanges[currentDetId] = { action: 'match', kasDetId: result.value };
+        markRowPending(currentDetId, 'Akan di-match');
+        updateSaveButton();
       }
     });
   }
 
   function unmatchRow(detId) {
-    $.ajax({
-      url: "{{ route('bankReconciliation.unmatch') }}",
-      method: "POST",
-      data: { detId: detId },
-      success: function (data) {
-        show_msg(data.title, data.message, data.alert);
-        showListDetail();
-      }
-    });
+    pendingChanges[detId] = { action: 'unmatch' };
+    markRowPending(detId, 'Akan di-unmatch');
+    updateSaveButton();
   }
+
+  // Kirim semua perubahan yang ditampung (match + unmatch) sekaligus, baru reload tabel
+  // sekali di akhir.
+  $(document).on('click', '#cmdSaveMatches', function () {
+    let ids = Object.keys(pendingChanges);
+    if (!ids.length) return;
+
+    $(".loading-spinner-container").addClass("-show");
+    $('#cmdSaveMatches').attr('disabled', 'disabled');
+
+    let requests = ids.map(function (detId) {
+      let c = pendingChanges[detId];
+      if (c.action === 'match') {
+        return $.ajax({ url: "{{ route('bankReconciliation.match.manual') }}", method: "POST", data: { detId: detId, kasDetId: c.kasDetId } });
+      }
+      return $.ajax({ url: "{{ route('bankReconciliation.unmatch') }}", method: "POST", data: { detId: detId } });
+    });
+
+    $.when.apply($, requests).always(function () {
+      pendingChanges = {};
+      $(".loading-spinner-container").removeClass("-show");
+      $('#cmdSaveMatches').removeAttr('disabled');
+      updateSaveButton();
+      show_msg('Simpan Perubahan', 'Perubahan berhasil disimpan.', 'success');
+      showListDetail();
+    });
+  });
 
   // Cocokkan ulang semua baris dari nol (status/match lama diabaikan, persis seperti upload
   // ulang CSV yang sama) -- lalu reload halaman supaya section summary & tabel detail
   // sama-sama kebaca ulang dari DB, bukan cuma ditambal di client.
   $('#cmdRecalculate').on('click', function () {
+    if (Object.keys(pendingChanges).length) {
+      Swal.fire('Perhatian', 'Ada perubahan match manual yang belum disimpan. Simpan atau batalkan dulu.', 'warning');
+      return;
+    }
     Swal.fire({
       title: 'Recalculate?',
       text: 'Semua baris akan dicocokkan ulang dari awal (hasil Match Manual sebelumnya ikut ditimpa kalau hasil otomatisnya beda).',

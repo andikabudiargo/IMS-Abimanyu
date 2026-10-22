@@ -116,6 +116,13 @@
       <span id="previewSummary" class="badge badge-light-info"></span>
     </div>
     <div class="card-body">
+      {{-- Baris yang kelihatan seperti transaksi (tanggal dd/mm cocok) tapi format Jumlah-nya
+           tidak dikenali parser -- tidak ikut ke tabel di bawah, ditampilkan di sini mentah
+           supaya kelihatan baris mana yang "hilang" dan kenapa. --}}
+      <div id="skippedLinesBox" class="alert alert-warning d-none">
+        <strong>Baris yang tidak ikut terbaca:</strong>
+        <ul id="skippedLinesList" class="mb-0"></ul>
+      </div>
       <div class="table-responsive bankrecon-scroll">
         <table class="table table-striped bankrecon-table">
           <thead class="thead-light">
@@ -176,6 +183,7 @@
       manualMatches = {};
       $('#preview-bankReconciliation').addClass('d-none');
       $('#info-bankReconciliation').addClass('d-none');
+      $('#skippedLinesBox').addClass('d-none');
     });
 
     // Akun COA yang muncul cuma yang sub accountnya Kas/Bank sesuai Type yang dipilih --
@@ -246,6 +254,16 @@
     $('#preview-bankReconciliation').removeClass('d-none');
     document.getElementById('info-bankReconciliation').scrollIntoView({ behavior: 'smooth' });
     initManualVoucherSelects();
+
+    let skipped = data.skippedLines || [];
+    if (skipped.length) {
+      $('#skippedLinesList').html(skipped.map(function (line) {
+        return '<li><code>' + $('<div>').text(line).html() + '</code></li>';
+      }).join(''));
+      $('#skippedLinesBox').removeClass('d-none');
+    } else {
+      $('#skippedLinesBox').addClass('d-none');
+    }
   }
 
   // Dropdown pilih voucher manual buat baris NOT MATCH -- search langsung pakai

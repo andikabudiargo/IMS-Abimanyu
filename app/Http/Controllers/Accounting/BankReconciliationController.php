@@ -142,7 +142,11 @@ class BankReconciliationController extends Controller
         $rows = $this->matchRows($parsed['rows'], $type, $periode, $year, $coaAccount);
         $matchedCount = count(array_filter($rows, fn ($r) => $r['status'] === 'MATCHED'));
         $checksumWarning = $this->checksumWarning($parsed['rows'], $parsed['summary']);
+        $skipped = $parsed['skipped'] ?? [];
         $message = count($rows) . " baris terbaca, $matchedCount otomatis match.";
+        if ($skipped) {
+            $message .= ' PERINGATAN: ' . count($skipped) . ' baris terlihat seperti transaksi tapi formatnya tidak dikenali, jadi tidak ikut terbaca. Cek kolom skippedLines.';
+        }
         if ($checksumWarning) {
             $message .= ' PERINGATAN: ' . $checksumWarning;
         }
@@ -151,11 +155,12 @@ class BankReconciliationController extends Controller
             'status' => 1,
             'title' => "Preview $this->title",
             'message' => $message,
-            'alert' => $checksumWarning ? 'warning' : 'success',
+            'alert' => ($checksumWarning || $skipped) ? 'warning' : 'success',
             'filePath' => $path,
             'rows' => array_values($rows),
             'totalRows' => count($rows),
             'matchedCount' => $matchedCount,
+            'skippedLines' => $skipped,
             'accountNumber' => $parsed['accountNumber'],
             'accountName' => $parsed['accountName'],
             'saldoAwal' => $parsed['summary']['saldo_awal'],
@@ -588,9 +593,9 @@ class BankReconciliationController extends Controller
             ->addIndexColumn()
             ->addColumn('action', function ($d) {
                 if ($d->status === 'MATCHED') {
-                    return "<a href='javascript:;' class='btn btn-sm btn-outline-warning' onclick='unmatchRow({$d->id})'>Unmatch</a>";
+                    return "<a href='javascript:;' data-det-id='{$d->id}' class='btn btn-sm btn-outline-warning' onclick='unmatchRow({$d->id})'>Unmatch</a>";
                 }
-                return "<a href='javascript:;' class='btn btn-sm btn-outline-primary' onclick='openManualMatch({$d->id}, \"{$d->stmt_date}\", {$d->amount}, \"{$d->mutation_type}\")'>Match Manual</a>";
+                return "<a href='javascript:;' data-det-id='{$d->id}' class='btn btn-sm btn-outline-primary' onclick='openManualMatch({$d->id}, \"{$d->stmt_date}\", {$d->amount}, \"{$d->mutation_type}\")'>Match Manual</a>";
             })
             ->addColumn('stmt_date', function ($d) { return date('d-m-Y', strtotime($d->stmt_date)); })
             ->addColumn('amount', function ($d) { return number_format($d->amount, 2); })

@@ -29,7 +29,7 @@ class BcaStatementParser
     }
 
     /**
-     * @return array{year:int|null, month:int|null, accountNumber:?string, accountName:?string, rows: array<int, array{stmt_date:string, description:string, amount:float, mutation_type:string, saldo:?float}>, summary: array{saldo_awal:?float, mutasi_cr:?float, count_cr:?int, mutasi_db:?float, count_db:?int, saldo_akhir:?float}}
+     * @return array{year:int|null, month:int|null, accountNumber:?string, accountName:?string, rows: array<int, array{stmt_date:string, description:string, amount:float, mutation_type:string, saldo:?float}>, summary: array{saldo_awal:?float, mutasi_cr:?float, count_cr:?int, mutasi_db:?float, count_db:?int, saldo_akhir:?float}, skipped: array<int, string>}
      */
     private function parseHandle($handle): array
     {
@@ -39,6 +39,10 @@ class BcaStatementParser
         $accountNumber = null;
         $accountName = null;
         $rows = [];
+        // Baris yang kolom tanggalnya (dd/mm) cocok -- jadi jelas niatnya baris transaksi --
+        // tapi gagal di cek lain (kolom kurang / format Jumlah tak dikenal) dicatat di sini
+        // dan dilaporkan ke user, bukan di-skip diam-diam, supaya ketahuan ada baris hilang.
+        $skipped = [];
         $summary = ['saldo_awal' => null, 'mutasi_cr' => null, 'count_cr' => null, 'mutasi_db' => null, 'count_db' => null, 'saldo_akhir' => null];
 
         while (($cols = fgetcsv($handle, 0, ',', '"', '')) !== false) {
@@ -68,10 +72,15 @@ class BcaStatementParser
             }
 
             // Baris transaksi: Tanggal Transaksi(dd/mm), Keterangan, Cabang, Jumlah, Saldo.
-            if (count($cols) >= 5 && preg_match('/^(\d{2})\/(\d{2})$/', $first, $dm)) {
+            if (preg_match('/^(\d{2})\/(\d{2})$/', $first, $dm)) {
+                if (count($cols) < 5) {
+                    $skipped[] = implode(',', $cols);
+                    continue;
+                }
                 $jumlah = trim((string) $cols[3]);
-                if (!preg_match('/^([\d,]+\.\d{2})\s+(DB|CR)$/i', $jumlah, $am)) {
-                    continue; // format tak dikenal, skip baris ini daripada salah tangkap
+                if (!preg_match('/^(-?[\d,]+\.\d{2})\s+(DB|CR)$/i', $jumlah, $am)) {
+                    $skipped[] = implode(',', $cols); // format Jumlah tak dikenal, dicatat daripada salah tangkap
+                    continue;
                 }
                 $rowYear = ($endYear !== null && $endYear !== $year && (int) $dm[2] === $endMonth) ? $endYear : $year;
                 $rows[] = [
@@ -99,7 +108,7 @@ class BcaStatementParser
             }
         }
 
-        return ['year' => $year, 'month' => null, 'accountNumber' => $accountNumber, 'accountName' => $accountName, 'rows' => $rows, 'summary' => $summary];
+        return ['year' => $year, 'month' => null, 'accountNumber' => $accountNumber, 'accountName' => $accountName, 'rows' => $rows, 'summary' => $summary, 'skipped' => $skipped];
     }
 
     private function toNumber(string $raw): float
