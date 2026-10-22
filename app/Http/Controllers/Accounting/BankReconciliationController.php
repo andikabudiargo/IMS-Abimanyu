@@ -488,12 +488,10 @@ class BankReconciliationController extends Controller
                 $id = Crypt::encryptString($d->id);
                 $buttons = '<div class="d-inline-flex"><a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
                 $buttons .= '<a href="' . route('bankReconciliation.show', ['id' => $id]) . '" class="dropdown-item"><i data-feather="list"></i> ' . __('Detail') . '</a>';
-                if (Auth::user()->can('bankReconciliation-delete')) {
-                    $buttons .= "<a href='javascript:;' class='dropdown-item' data-size='sm' data-ajax-delete='true'
-                        data-confirm='Are you sure want to Delete?|This action can not be undone. Do you want to continue?'
-                        data-confirm-yes='document.getElementById(\"delete-form-{$d->id}\").submit();' data-modal-id='{$d->id}'
-                        data-url='" . route('bankReconciliation.destroy', ['id' => $id]) . "'><i data-feather='trash-2' class='feather-14-red'></i> " . __('Delete') . '</a>';
-                }
+                $buttons .= "<a href='javascript:;' class='dropdown-item' data-size='sm' data-ajax-delete='true'
+                    data-confirm='Are you sure want to Delete?|This action can not be undone. Do you want to continue?'
+                    data-confirm-yes='document.getElementById(\"delete-form-{$d->id}\").submit();' data-modal-id='{$d->id}'
+                    data-url='" . route('bankReconciliation.destroy', ['id' => $id]) . "'><i data-feather='trash-2' class='feather-14-red'></i> " . __('Delete') . '</a>';
                 return $buttons . '</div></div>';
             })
             ->addColumn('recon_number', function ($d) {
@@ -595,9 +593,7 @@ class BankReconciliationController extends Controller
                 } else {
                     $btns .= "<a href='javascript:;' class='btn btn-sm btn-outline-primary mr-1' onclick='openManualMatch({$d->id}, \"{$d->stmt_date}\", {$d->amount}, \"{$d->mutation_type}\")'>Match Manual</a>";
                 }
-                if (Auth::user()->can('bankReconciliation-delete')) {
-                    $btns .= "<a href='javascript:;' class='btn btn-sm btn-outline-danger' onclick='deleteDetailRow({$d->id})'>Delete</a>";
-                }
+                $btns .= "<a href='javascript:;' class='btn btn-sm btn-outline-danger' onclick='deleteDetailRow({$d->id})'>Delete</a>";
                 return $btns . '</div>';
             })
             ->addColumn('stmt_date', function ($d) { return date('d-m-Y', strtotime($d->stmt_date)); })
