@@ -265,28 +265,6 @@
     });
   }
 
-  function deleteDetailRow(detId) {
-    Swal.fire({
-      title: 'Delete baris ini?',
-      text: 'Baris mutasi ini akan dihapus permanen, tidak bisa dibatalkan.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Ya, hapus',
-      cancelButtonText: 'Batal'
-    }).then((result) => {
-      if (!result.isConfirmed) return;
-      $.ajax({
-        url: "{{ route('bankReconciliation.det.destroy') }}",
-        method: "POST",
-        data: { detId: detId },
-        success: function (data) {
-          show_msg(data.title, data.message, data.alert);
-          showListDetail();
-        }
-      });
-    });
-  }
-
   // Cocokkan ulang semua baris dari nol (status/match lama diabaikan, persis seperti upload
   // ulang CSV yang sama) -- lalu reload halaman supaya section summary & tabel detail
   // sama-sama kebaca ulang dari DB, bukan cuma ditambal di client.

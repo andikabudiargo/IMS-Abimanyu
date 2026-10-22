@@ -587,14 +587,10 @@ class BankReconciliationController extends Controller
         return Datatables::of($data)
             ->addIndexColumn()
             ->addColumn('action', function ($d) {
-                $btns = '<div class="d-flex">';
                 if ($d->status === 'MATCHED') {
-                    $btns .= "<a href='javascript:;' class='btn btn-sm btn-outline-warning mr-1' onclick='unmatchRow({$d->id})'>Unmatch</a>";
-                } else {
-                    $btns .= "<a href='javascript:;' class='btn btn-sm btn-outline-primary mr-1' onclick='openManualMatch({$d->id}, \"{$d->stmt_date}\", {$d->amount}, \"{$d->mutation_type}\")'>Match Manual</a>";
+                    return "<a href='javascript:;' class='btn btn-sm btn-outline-warning' onclick='unmatchRow({$d->id})'>Unmatch</a>";
                 }
-                $btns .= "<a href='javascript:;' class='btn btn-sm btn-outline-danger' onclick='deleteDetailRow({$d->id})'>Delete</a>";
-                return $btns . '</div>';
+                return "<a href='javascript:;' class='btn btn-sm btn-outline-primary' onclick='openManualMatch({$d->id}, \"{$d->stmt_date}\", {$d->amount}, \"{$d->mutation_type}\")'>Match Manual</a>";
             })
             ->addColumn('stmt_date', function ($d) { return date('d-m-Y', strtotime($d->stmt_date)); })
             ->addColumn('amount', function ($d) { return number_format($d->amount, 2); })
@@ -811,22 +807,6 @@ class BankReconciliationController extends Controller
         $title = "Recalculate $this->title";
         $message = "$header->recon_number dicocokkan ulang. " . count($matched) . " baris, $matchedCount match.";
         \LogActivity::addToLog($title, "username: $username Status $message");
-        return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success']);
-    }
-
-    // Hapus 1 baris mutasi (bank_reconciliation_det) -- dipakai dari tombol Delete di
-    // action kolom Detail Mutasi, pakai permission yang sama dengan delete header.
-    public function destroyDetail(Request $request)
-    {
-        $username = Auth::user()->username;
-        $det = DB::table('bank_reconciliation_det')->where('id', $request->detId)->first();
-        abort_unless($det, 404);
-
-        DB::table('bank_reconciliation_det')->where('id', $det->id)->delete();
-
-        $title = "Delete $this->title";
-        $message = 'Baris mutasi berhasil dihapus.';
-        \LogActivity::addToLog($title, "username: $username detId: $det->id recon_number: $det->recon_number");
         return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success']);
     }
 
