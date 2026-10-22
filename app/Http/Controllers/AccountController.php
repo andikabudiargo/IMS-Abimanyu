@@ -65,21 +65,33 @@ class AccountController extends Controller
             ->get()
             ->groupBy('parent_id');
 
-        // $ancestry guards against bad data where a HEADER's parent_id chain loops back on itself.
-        $children = function ($parentId, $ancestry = []) use (&$children, $accountsByParent) {
-            return ($accountsByParent[$parentId] ?? collect())->map(function ($acc) use (&$children, $ancestry) {
-                $isHeader = strtoupper($acc->acc_header) === 'HEADER';
-                $acc->children = ($isHeader && !in_array($acc->account, $ancestry, true))
-                    ? $children($acc->account, array_merge($ancestry, [$acc->account]))
-                    : collect();
-                return $acc;
-            });
+        // ponytail: parent_id data is known to be messy (see memory: booth-ledger-drift-style issues).
+        // A cycle or a runaway-deep chain must not be able to hang this page, so cap depth and total
+        // nodes walked; upgrade path if the COA ever legitimately exceeds this is to raise the caps.
+        $maxDepth = 15;
+        $maxNodes = 5000;
+        $nodeCount = 0;
+
+        $children = function ($parentId, array $ancestry, int $depth) use (&$children, &$nodeCount, $accountsByParent, $maxDepth, $maxNodes) {
+            if ($depth >= $maxDepth || $nodeCount >= $maxNodes) {
+                return collect();
+            }
+            return ($accountsByParent[$parentId] ?? collect())
+                ->reject(fn ($acc) => in_array($acc->account, $ancestry, true))
+                ->map(function ($acc) use (&$children, &$nodeCount, $ancestry, $depth) {
+                    $nodeCount++;
+                    $isHeader = strtoupper($acc->acc_header) === 'HEADER';
+                    $acc->children = $isHeader
+                        ? $children($acc->account, array_merge($ancestry, [$acc->account]), $depth + 1)
+                        : collect();
+                    return $acc;
+                });
         };
 
         return DB::table('acc_types')->where('status', 1)->orderBy('code')->get()
             ->map(function ($type) use ($subsByType, $children) {
                 $type->subs = ($subsByType[$type->code] ?? collect())->map(function ($sub) use ($children) {
-                    $sub->accounts = $children($sub->sub_code);
+                    $sub->accounts = $children($sub->sub_code, [], 0);
                     return $sub;
                 });
                 return $type;
