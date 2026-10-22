@@ -1520,7 +1520,8 @@ class InvoiceController extends Controller
             if ($searchCustomer) $q->where('customer_id', 'ilike', '%'.$searchCustomer.'%');
             if ($searchStatus)   $q->where('invoice_hdr.status', '=', $searchStatus);
             if ($invDate)        $q->whereBetween(DB::raw("to_date(invoice_date,'DD-MM-YYYY')"), [$fromDate, $toDate]);
-            if ($searchPeriod1)  $q->whereBetween(DB::raw("invoice_hdr.period::integer"), [$searchPeriod1, $searchPeriod2]);
+            if ($searchPeriod1 && $searchPeriod2) $q->whereBetween(DB::raw("invoice_hdr.period::integer"), [$searchPeriod1, $searchPeriod2]);
+            elseif ($searchPeriod1 || $searchPeriod2) $q->where(DB::raw("invoice_hdr.period::integer"), '=', $searchPeriod1 ?: $searchPeriod2);
             if ($searchYear)     $q->whereRaw("date_part('year', to_date(invoice_date,'DD-MM-YYYY')) = ?", [$searchYear]);
             if ($searchArticle)  $q->whereExists(function ($sub) use ($searchArticle) {
                 $sub->select(DB::raw(1))

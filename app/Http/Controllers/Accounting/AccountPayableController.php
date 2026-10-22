@@ -2409,7 +2409,8 @@ $join->on('vch.reference', '=', 'ap_invoice.inv_number')
         $searchSupplier ? $q->where('supplier_id', 'ilike', '%' . $searchSupplier . '%') : '';
         $searchStatus ? $q->where('ap_invoice.status', '=', $searchStatus) : '';
         $apDate ? $q->whereBetween(DB::raw("to_date(inv_date,'DD-MM-YYYY')"), [$fromDate, $toDate]) : '';
-        $apPeriod1 ? $q->whereBetween(DB::raw("period::integer"), [$apPeriod1, $apPeriod2]) : '';
+        if ($apPeriod1 && $apPeriod2) $q->whereBetween(DB::raw("period::integer"), [$apPeriod1, $apPeriod2]);
+        elseif ($apPeriod1 || $apPeriod2) $q->where(DB::raw("period::integer"), '=', $apPeriod1 ?: $apPeriod2);
         $apTahun ? $q->whereRaw("extract(year from to_date(ap_invoice.inv_date,'DD-MM-YYYY')) = ?", [$apTahun]) : '';
 
         // BARU: AP header dianggap match kalau salah satu baris detailnya (PO maupun Non-PO) mengandung article code ini
