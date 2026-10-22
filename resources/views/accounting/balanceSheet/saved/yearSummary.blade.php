@@ -198,7 +198,7 @@
     $('#chkHideZero').on('change', applyHideZero);
     $('#btnLoad').on('click', loadYear);
     $('#btnExport').on('click', function(){
-      window.location.href = "{{ route('balanceSheet.saved.exportExcel') }}?year=" + encodeURIComponent($(this).data('year'));
+      window.location.href = "{{ route('balanceSheet.saved.yearSummaryExportExcel') }}?year=" + encodeURIComponent($(this).data('year'));
     });
 
     @if($year)

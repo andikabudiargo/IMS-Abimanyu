@@ -1454,8 +1454,10 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 	Route::post('balanceSheet/saved/store',['as'=>'balanceSheet.saved.store','uses'=>'Accounting\BalanceSheetController@savedStore']);
 	Route::get('balanceSheet/saved/edit',['as'=>'balanceSheet.saved.edit','uses'=>'Accounting\BalanceSheetController@savedEdit']);
 	Route::post('balanceSheet/saved/update',['as'=>'balanceSheet.saved.update','uses'=>'Accounting\BalanceSheetController@savedUpdate']);
+	Route::post('balanceSheet/saved/destroy',['as'=>'balanceSheet.saved.destroy','uses'=>'Accounting\BalanceSheetController@savedDestroy']);
 	Route::get('balanceSheet/saved/year-summary',['as'=>'balanceSheet.saved.yearSummary','uses'=>'Accounting\BalanceSheetController@savedYearSummary']);
 	Route::get('balanceSheet/saved/year-summary-data',['as'=>'balanceSheet.saved.yearSummaryData','uses'=>'Accounting\BalanceSheetController@savedYearSummaryData']);
+	Route::get('balanceSheet/saved/year-summary-export-excel',['as'=>'balanceSheet.saved.yearSummaryExportExcel','uses'=>'Accounting\BalanceSheetController@savedYearSummaryExportExcel']);
 
 	Route::get('labaRugi',['as'=>'labaRugi.index','uses'=>'Accounting\LabaRugiController@index']);
 	Route::get('labaRugi/print',['as'=>'labaRugi.print','uses'=>'Accounting\LabaRugiController@print']);

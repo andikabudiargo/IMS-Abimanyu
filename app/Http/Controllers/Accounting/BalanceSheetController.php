@@ -68,7 +68,30 @@ class BalanceSheetController extends Controller
 
         return Datatables::of($data)
             ->addColumn('action', function ($row) {
-                return '<a href="'.route('balanceSheet.saved.edit', ['id' => Crypt::encryptString($row->id)]).'" class="btn btn-sm btn-outline-primary">Edit</a>';
+                $buttons = '<div class="d-inline-flex">
+                                <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                                    <i data-feather="menu"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-right">';
+
+                $buttons .= '<a href="' . route('balanceSheet.saved.edit', ['id' => Crypt::encryptString($row->id)]) . '" class="dropdown-item">
+                                <i data-feather="file-text"></i>
+                                <span>' . __("Edit") . '</span>
+                            </a>';
+
+                $buttons .= "<a href='javascript:;'
+                                id='deleteButton'
+                                class='dropdown-item'
+                                data-toggle='modal'
+                                data-target='#smallModal'
+                                data-href='" . route("balanceSheet.saved.destroy", ["id" => Crypt::encryptString($row->id)]) . "'>
+                                <i data-feather='trash-2' class='feather-14-red'></i>
+                                Delete
+                            </a>";
+
+                $buttons .= '</div></div>';
+
+                return $buttons;
             })
             ->addColumn('month_name', function ($row) {
                 return $row->month ? \DateTime::createFromFormat('n', $row->month)->format('F') : '-';
@@ -269,6 +292,27 @@ class BalanceSheetController extends Controller
         }
 
         return response()->json(['status' => 1, 'data' => $this->yearSummaryData($year)]);
+    }
+
+    // Export ringkasan tahunan dari data yang sudah disimpan per bulan (bukan hitung ulang
+    // dari jurnal seperti savedExportExcel) -- bulan yang belum pernah disave keluar 0.
+    public function savedYearSummaryExportExcel(Request $request)
+    {
+        $year = (int) $request->year;
+        if (!$year) {
+            return redirect()->back()->with(['status' => 1, 'alert' => 'warning', 'message' => 'Year wajib diisi']);
+        }
+
+        [$accounts, $groups] = $this->groupedAccounts();
+        $monthlyData = $this->yearSummaryData($year);
+        foreach ($accounts as $acc) {
+            $monthlyData[$acc->account] = ($monthlyData[$acc->account] ?? []) + $this->emptyMonthly();
+        }
+
+        return Excel::download(
+            new BalanceSheetGridExport($year, $accounts, $groups, $monthlyData, $this->months),
+            "neraca_ringkasan_$year.xlsx"
+        );
     }
 
     public function savedExportExcel(Request $request)
@@ -501,5 +545,21 @@ class BalanceSheetController extends Controller
             DB::rollBack();
             return response()->json(['status' => 0, 'alert' => 'warning', 'message' => $e->getMessage()]);
         }
+    }
+
+    public function savedDestroy(Request $request)
+    {
+        $username = Auth::user()->username;
+        $id = Crypt::decryptString($request->id);
+        $hdr = DB::table('neraca_hdr')->where('id', $id)->first();
+
+        if (!$hdr) {
+            return redirect()->back()->with(['status' => 0, 'alert' => 'warning', 'message' => 'Data tidak ditemukan']);
+        }
+
+        DB::table('neraca_hdr')->where('id', $id)->delete(); // neraca_det ikut terhapus (ON DELETE CASCADE)
+
+        \LogActivity::addToLog("Delete Neraca", "username: $username Status $hdr->nrc_number successfully deleted");
+        return redirect()->back()->with(['status' => 1, 'alert' => 'success', 'message' => "$hdr->nrc_number successfully deleted"]);
     }
 }
