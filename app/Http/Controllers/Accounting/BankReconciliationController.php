@@ -545,11 +545,13 @@ class BankReconciliationController extends Controller
             ['data' => 'stmt_date', 'name' => 'stmt_date', 'title' => 'Tanggal'],
             ['data' => 'description', 'name' => 'description', 'title' => 'Keterangan'],
             ['data' => 'amount', 'name' => 'amount', 'title' => 'Mutasi'],
+            ['data' => 'mutation_type', 'name' => 'mutation_type', 'title' => 'Db/Cr Rek'],
             ['data' => 'saldo', 'name' => 'saldo', 'title' => 'Saldo'],
             ['data' => 'status', 'name' => 'status', 'title' => 'Status'],
-            ['data' => 'voucher_number', 'name' => 'voucher_number', 'title' => 'Voucher GL'],
-            ['data' => 'voucher_date', 'name' => 'voucher_date', 'title' => 'Tanggal GL'],
-            ['data' => 'gl_amount', 'name' => 'gl_amount', 'title' => 'Nilai GL'],
+            ['data' => 'voucher_number', 'name' => 'voucher_number', 'title' => 'Voucher BB'],
+            ['data' => 'voucher_date', 'name' => 'voucher_date', 'title' => 'Tanggal BB'],
+            ['data' => 'gl_amount', 'name' => 'gl_amount', 'title' => 'Nilai BB'],
+            ['data' => 'bb_dc', 'name' => 'bb_dc', 'title' => 'Db/Cr BB'],
             ['data' => 'action', 'name' => 'action', 'title' => 'action', 'orderable' => false, 'searchable' => false],
         ]);
 
@@ -587,13 +589,20 @@ class BankReconciliationController extends Controller
         return Datatables::of($data)
             ->addIndexColumn()
             ->addColumn('action', function ($d) {
+                $btns = '<div class="d-flex">';
                 if ($d->status === 'MATCHED') {
-                    return "<a href='javascript:;' class='btn btn-sm btn-outline-warning' onclick='unmatchRow({$d->id})'>Unmatch</a>";
+                    $btns .= "<a href='javascript:;' class='btn btn-sm btn-outline-warning mr-1' onclick='unmatchRow({$d->id})'>Unmatch</a>";
+                } else {
+                    $btns .= "<a href='javascript:;' class='btn btn-sm btn-outline-primary mr-1' onclick='openManualMatch({$d->id}, \"{$d->stmt_date}\", {$d->amount}, \"{$d->mutation_type}\")'>Match Manual</a>";
                 }
-                return "<a href='javascript:;' class='btn btn-sm btn-outline-primary' onclick='openManualMatch({$d->id}, \"{$d->stmt_date}\", {$d->amount}, \"{$d->mutation_type}\")'>Match Manual</a>";
+                if (Auth::user()->can('bankReconciliation-delete')) {
+                    $btns .= "<a href='javascript:;' class='btn btn-sm btn-outline-danger' onclick='deleteDetailRow({$d->id})'>Delete</a>";
+                }
+                return $btns . '</div>';
             })
             ->addColumn('stmt_date', function ($d) { return date('d-m-Y', strtotime($d->stmt_date)); })
-            ->addColumn('amount', function ($d) { return number_format($d->amount, 2) . ' ' . $d->mutation_type; })
+            ->addColumn('amount', function ($d) { return number_format($d->amount, 2); })
+            ->addColumn('mutation_type', function ($d) { return $d->mutation_type; })
             ->addColumn('saldo', function ($d) { return $d->saldo !== null ? number_format($d->saldo, 2) : '-'; })
             ->addColumn('status', function ($d) {
                 $color = $d->status === 'MATCHED' ? 'success' : 'danger';
@@ -614,10 +623,19 @@ class BankReconciliationController extends Controller
             ->addColumn('voucher_date', function ($d) { return $d->voucher_date ?: '-'; })
             ->addColumn('gl_amount', function ($d) {
                 if ((float) $d->gl_debit > 0) {
-                    return number_format($d->gl_debit, 2) . ' DB';
+                    return number_format($d->gl_debit, 2);
                 }
                 if ((float) $d->gl_kredit > 0) {
-                    return number_format($d->gl_kredit, 2) . ' CR';
+                    return number_format($d->gl_kredit, 2);
+                }
+                return '-';
+            })
+            ->addColumn('bb_dc', function ($d) {
+                if ((float) $d->gl_debit > 0) {
+                    return 'DB';
+                }
+                if ((float) $d->gl_kredit > 0) {
+                    return 'CR';
                 }
                 return '-';
             })
@@ -797,6 +815,22 @@ class BankReconciliationController extends Controller
         $title = "Recalculate $this->title";
         $message = "$header->recon_number dicocokkan ulang. " . count($matched) . " baris, $matchedCount match.";
         \LogActivity::addToLog($title, "username: $username Status $message");
+        return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success']);
+    }
+
+    // Hapus 1 baris mutasi (bank_reconciliation_det) -- dipakai dari tombol Delete di
+    // action kolom Detail Mutasi, pakai permission yang sama dengan delete header.
+    public function destroyDetail(Request $request)
+    {
+        $username = Auth::user()->username;
+        $det = DB::table('bank_reconciliation_det')->where('id', $request->detId)->first();
+        abort_unless($det, 404);
+
+        DB::table('bank_reconciliation_det')->where('id', $det->id)->delete();
+
+        $title = "Delete $this->title";
+        $message = 'Baris mutasi berhasil dihapus.';
+        \LogActivity::addToLog($title, "username: $username detId: $det->id recon_number: $det->recon_number");
         return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success']);
     }
 

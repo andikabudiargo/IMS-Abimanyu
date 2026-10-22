@@ -1173,6 +1173,7 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::post('bankReconciliation/unmatch',['as'=>'bankReconciliation.unmatch','uses'=>'Accounting\BankReconciliationController@unmatch']);
 	Route::post('bankReconciliation/recalculate',['as'=>'bankReconciliation.recalculate','uses'=>'Accounting\BankReconciliationController@recalculate']);
 	Route::post('bankReconciliation/delete',['as'=>'bankReconciliation.destroy','uses'=>'Accounting\BankReconciliationController@destroy']);
+	Route::post('bankReconciliation/det/delete',['as'=>'bankReconciliation.det.destroy','uses'=>'Accounting\BankReconciliationController@destroyDetail']);
 	Route::get('kasPenerimaan',['as'=>'kasPenerimaan.index','uses'=>'Accounting\KasPenerimaanController@index']);
 	Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create']);
 	Route::post('kasPenerimaan/store',['as'=>'kasPenerimaan.store','uses'=>'Accounting\KasPenerimaanController@store']);

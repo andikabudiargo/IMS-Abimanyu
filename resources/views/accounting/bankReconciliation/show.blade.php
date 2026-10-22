@@ -164,10 +164,11 @@
       tableId: "bankReconciliationDetailTable",
       route: "{{ route('bankReconciliation.list.detail', ['id' => $id]) }}",
       kolom: {!! $kolomDetail !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8],
+      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       columnDefs: [
         { width: '4%', targets: 0 },
-        { className: 'text-right', targets: [3, 4, 8] },
+        { className: 'text-right', targets: [3, 5, 9] },
+        { className: 'text-center', targets: [4, 10] },
       ],
       // dataSearch wajib diisi (walau kosong) -- tanpa ini draw/start/length dari
       // DataTables tidak terkirim dengan benar dan tabel macet di "Processing...".
@@ -261,6 +262,28 @@
         show_msg(data.title, data.message, data.alert);
         showListDetail();
       }
+    });
+  }
+
+  function deleteDetailRow(detId) {
+    Swal.fire({
+      title: 'Delete baris ini?',
+      text: 'Baris mutasi ini akan dihapus permanen, tidak bisa dibatalkan.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, hapus',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      $.ajax({
+        url: "{{ route('bankReconciliation.det.destroy') }}",
+        method: "POST",
+        data: { detId: detId },
+        success: function (data) {
+          show_msg(data.title, data.message, data.alert);
+          showListDetail();
+        }
+      });
     });
   }
 
