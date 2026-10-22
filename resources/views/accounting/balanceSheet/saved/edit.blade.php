@@ -10,15 +10,15 @@
     <div class="card-content">
       <div class="card-body">
         <div class="form-row">
-          <div class="form-group col-md-3">
+          <div class="form-group col-md-4">
             <label class="form-label">Neraca Number</label>
             <input type="text" class="form-control" value="{{ $hdr->nrc_number }}" disabled>
           </div>
-          <div class="form-group col-md-3">
+          <div class="form-group col-md-1">
             <label class="form-label">Year</label>
             <input type="text" class="form-control" value="{{ $hdr->year }}" disabled>
           </div>
-          <div class="form-group col-md-3">
+          <div class="form-group col-md-1">
             <label class="form-label">Month</label>
             <input type="text" class="form-control" value="{{ $hdr->month ? \DateTime::createFromFormat('n', $hdr->month)->format('F') : '-' }}" disabled>
           </div>

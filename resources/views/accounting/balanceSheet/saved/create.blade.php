@@ -13,11 +13,11 @@
     <div class="card-content">
       <div class="card-body">
         <div class="form-row">
-          <div class="form-group col-md-3">
+          <div class="form-group col-md-4">
             <label class="form-label">Neraca Number</label>
             <input type="text" id="nrcNumber" class="form-control" value="{{ $nextCode }}" disabled>
           </div>
-          <div class="form-group col-md-3">
+          <div class="form-group col-md-1">
             <label class="form-label">Year *</label>
             <select id="year" class="form-control" required>
               @for($y = date('Y'); $y >= 2023; $y--)
@@ -25,7 +25,7 @@
               @endfor
             </select>
           </div>
-          <div class="form-group col-md-3">
+          <div class="form-group col-md-1">
             <label class="form-label">Month *</label>
             <select id="month" class="form-control" required>
               @foreach(range(1,12) as $m)
