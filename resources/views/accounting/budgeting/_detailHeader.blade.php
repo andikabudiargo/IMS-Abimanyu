@@ -34,6 +34,10 @@
         <label class="form-label" for="description">Description</label>
         <input type="text" id="description" class="form-control" value="{{ $hdr->description }}" @if($locked) disabled @endif>
       </div>
+      <div class="form-group col-md-3">
+        <label class="form-label" for="targetSales">Target Sales</label>
+        <input type="text" inputmode="decimal" id="targetSales" class="form-control text-right" value="{{ number_format($hdr->target_sales, 2, ',', '.') }}" @if($locked) disabled @endif>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group col-md-3">

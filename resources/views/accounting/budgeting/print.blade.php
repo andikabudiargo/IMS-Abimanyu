@@ -27,12 +27,13 @@
     &nbsp;|&nbsp; Total Budget: {{ number_format($cards['total_budget'], 2) }}
     &nbsp;|&nbsp; Actual Expenses: {{ number_format($cards['actual_expenses'], 2) }}
     &nbsp;|&nbsp; Margin: {{ number_format($cards['margin'], 2) }} ({{ $cards['margin_pct'] }}%)
+    &nbsp;|&nbsp; Target Sales: {{ number_format($hdr->target_sales, 2) }}
   </div>
 
   @php
     // Lebar kolom tetap (Account s/d Realisasi %) dalam %, sisanya dibagi rata ke kolom bulan
     // supaya tabel tetap muat 1 halaman landscape walau budget period-nya panjang.
-    $fixedColsPct = ['unbudget' => 4, 'type' => 4, 'account' => 6, 'name' => 7, 'debit' => 5, 'average' => 5, 'inflasi' => 3, 'cr' => 3, 'monthly' => 5, 'additional' => 5, 'final' => 6, 'target_sales' => 5, 'total_real' => 6, 'selisih' => 6, 'pct' => 4];
+    $fixedColsPct = ['unbudget' => 4, 'type' => 4, 'account' => 6, 'name' => 10, 'debit' => 6, 'average' => 6, 'inflasi' => 3, 'cr' => 3, 'monthly' => 6, 'additional' => 6, 'final' => 7, 'total_real' => 6, 'selisih' => 6, 'pct' => 4];
     $monthPct = count($months) > 0 ? round((100 - array_sum($fixedColsPct)) / count($months), 2) : 0;
   @endphp
   <table>
@@ -48,7 +49,6 @@
       <col style="width:{{ $fixedColsPct['monthly'] }}%">
       <col style="width:{{ $fixedColsPct['additional'] }}%">
       <col style="width:{{ $fixedColsPct['final'] }}%">
-      <col style="width:{{ $fixedColsPct['target_sales'] }}%">
       @foreach($months as $m)
         <col style="width:{{ $monthPct }}%">
       @endforeach
@@ -59,7 +59,7 @@
     <thead>
       <tr>
         <th>Unbudget</th><th>OPEX/CAPEX</th><th>Account</th><th>Name</th><th>Debit</th><th>Average</th><th>Inflasi %</th><th>CR %</th>
-        <th>Monthly Budget</th><th>Additional Budget</th><th>Final Budget (Total)</th><th>Target Sales</th>
+        <th>Monthly Budget</th><th>Additional Budget</th><th>Final Budget (Total)</th>
         @foreach($months as $m)
           <th>{{ $m }}</th>
         @endforeach
@@ -80,7 +80,6 @@
         <td class="num">{{ number_format($r['final_budget_monthly'], 2) }}</td>
         <td class="num">{{ number_format($r['additional_budget'], 2) }}</td>
         <td class="num">{{ number_format($r['final_budget'], 2) }}</td>
-        <td class="num">{{ number_format($r['target_sales'] ?? 0, 2) }}</td>
         @foreach($months as $m)
           <td class="num">{{ number_format($r['realisasi'][$m] ?? 0, 2) }}</td>
         @endforeach

@@ -295,6 +295,7 @@ class BudgetingController extends Controller
                 'previous_to'      => $prevTo,
                 'budget_from'      => $budgFrom,
                 'budget_to'        => $budgTo,
+                'target_sales'     => (float) $request->target_sales,
                 'created_by'       => $username,
                 'updated_by'       => $username,
                 'created_at'       => now(),
@@ -313,7 +314,6 @@ class BudgetingController extends Controller
                 // yang historisnya jarang muncul (mis. sekali dalam setahun) tidak diproyeksikan jadi bulanan.
                 $final = $unbudget ? 0 : (($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : round($budget * $r['active_months'], 2));
                 $additional = $edit ? (float) ($edit['additional_budget'] ?? 0) : 0;
-                $targetSales = $edit ? (float) ($edit['target_sales'] ?? 0) : 0;
 
                 DB::table('budgeting_det')->insert([
                     'budgeting_hdr_id'  => $hdrId,
@@ -327,7 +327,6 @@ class BudgetingController extends Controller
                     'budget'            => $budget,
                     'final_budget'      => $final,
                     'additional_budget' => $additional,
-                    'target_sales'      => $targetSales,
                     'is_unbudget'       => $unbudget,
                     'budget_type'       => $budgetType,
                     'realisasi_json'   => json_encode($r['realisasi']),
@@ -410,7 +409,6 @@ class BudgetingController extends Controller
                 // final_budget = TOTAL untuk seluruh budget period (bukan bulanan).
                 $final = $unbudget ? 0 : (isset($e['final_budget']) ? (float) $e['final_budget'] : round($budget * $monthsCount, 2));
                 $additional = (float) ($e['additional_budget'] ?? 0);
-                $targetSales = isset($e['target_sales']) ? (float) $e['target_sales'] : (float) ($det->target_sales ?? 0);
 
                 $payload = [
                     'nama_akun'         => $e['nama_akun'] ?? ($det->nama_akun ?? $e['account']),
@@ -424,7 +422,6 @@ class BudgetingController extends Controller
                     'budget'            => $budget,
                     'final_budget'      => $final,
                     'additional_budget' => $additional,
-                    'target_sales'      => $targetSales,
                     'is_unbudget'       => $unbudget,
                     'budget_type'       => $budgetType,
                     'updated_at'        => now(),
@@ -449,11 +446,12 @@ class BudgetingController extends Controller
             }
 
             DB::table('budgeting_hdr')->where('id', $id)->update([
-                'fiscal_year' => $fiscalYear,
-                'description' => $request->description,
-                'note'        => $request->note,
-                'updated_by'  => optional(Auth::user())->username,
-                'updated_at'  => now(),
+                'fiscal_year'  => $fiscalYear,
+                'description'  => $request->description,
+                'note'         => $request->note,
+                'target_sales' => (float) $request->target_sales,
+                'updated_by'   => optional(Auth::user())->username,
+                'updated_at'   => now(),
             ]);
 
             DB::commit();
@@ -506,7 +504,6 @@ class BudgetingController extends Controller
             $cr = min(100, max(0, $cr));
             $inflation = $ui ? (float) ($ui['inflation'] ?? 0) : ($ex ? (float) $ex->inflation : 0);
             $additional = $ui ? (float) ($ui['additional_budget'] ?? 0) : ($ex ? (float) $ex->additional_budget : 0);
-            $targetSales = $ui ? (float) ($ui['target_sales'] ?? 0) : ($ex ? (float) $ex->target_sales : 0);
             $budgetType = $ui && in_array($ui['budget_type'] ?? null, ['OPEX', 'CAPEX']) ? $ui['budget_type'] : ($ex ? $ex->budget_type : 'OPEX');
             $budget = $unbudget ? 0 : round($r['average'] * (1 - $cr / 100 + $inflation / 100), 2);
             $finalBudget = $unbudget ? 0 : round($budget * $r['active_months'], 2);
@@ -519,7 +516,6 @@ class BudgetingController extends Controller
                 'final_budget'   => $finalBudget,
                 'final_budget_monthly' => count($months) > 0 ? round($finalBudget / count($months), 2) : 0,
                 'additional_budget' => $additional,
-                'target_sales'   => $targetSales,
                 'is_unbudget'    => $unbudget,
                 'budget_type'    => $budgetType,
                 'selisih'        => $unbudget ? null : round($finalBudget - $r['realisasi_total'], 2),
@@ -620,10 +616,10 @@ class BudgetingController extends Controller
         $sheet->setTitle('Budgeting');
 
         $sheet->fromArray([$d['hdr']->budgeting_number . ' - ' . $d['hdr']->dept_name], null, 'A1');
-        $sheet->fromArray(['Previous: ' . $this->periodeText($d['hdr']->previous_from, $d['hdr']->previous_to) . '  |  Budget Period: ' . $this->periodeText($d['hdr']->budget_from, $d['hdr']->budget_to)], null, 'A2');
+        $sheet->fromArray(['Previous: ' . $this->periodeText($d['hdr']->previous_from, $d['hdr']->previous_to) . '  |  Budget Period: ' . $this->periodeText($d['hdr']->budget_from, $d['hdr']->budget_to) . '  |  Target Sales: ' . number_format($d['hdr']->target_sales, 2)], null, 'A2');
 
         $headers = array_merge(
-            ['Unbudget', 'OPEX/CAPEX', 'Account', 'Name', 'Debit', 'Average', 'Inflasi %', 'CR %', 'Monthly Budget', 'Additional Budget', 'Final Budget (Total)', 'Target Sales'],
+            ['Unbudget', 'OPEX/CAPEX', 'Account', 'Name', 'Debit', 'Average', 'Inflasi %', 'CR %', 'Monthly Budget', 'Additional Budget', 'Final Budget (Total)'],
             $d['months'],
             ['Total Realisasi', 'Selisih', 'Realisasi %']
         );
@@ -637,7 +633,7 @@ class BudgetingController extends Controller
             $sheet->setCellValueExplicit('C' . $rowNum, (string) $r['account'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
 
             $line = array_merge(
-                [$r['is_unbudget'] ? 'YA' : '', $r['budget_type'] ?? 'OPEX', $r['nama_akun'], $r['debit'], $r['average'], $r['inflation'] / 100, $r['cost_reduction'] / 100, $r['final_budget_monthly'], $r['additional_budget'], $r['final_budget'], $r['target_sales'] ?? 0],
+                [$r['is_unbudget'] ? 'YA' : '', $r['budget_type'] ?? 'OPEX', $r['nama_akun'], $r['debit'], $r['average'], $r['inflation'] / 100, $r['cost_reduction'] / 100, $r['final_budget_monthly'], $r['additional_budget'], $r['final_budget']],
                 array_map(function ($m) use ($r) {
                     return $r['realisasi'][$m] ?? 0;
                 }, $d['months']),
@@ -742,7 +738,6 @@ class BudgetingController extends Controller
                 'final_budget'   => $budgetTotal,
                 'final_budget_monthly' => count($months) > 0 ? round($budgetTotal / count($months), 2) : 0,
                 'additional_budget' => (float) $r->additional_budget,
-                'target_sales'   => (float) $r->target_sales,
                 'is_unbudget'    => $unbudget,
                 'budget_type'    => $r->budget_type,
                 'realisasi'      => $realisasi,

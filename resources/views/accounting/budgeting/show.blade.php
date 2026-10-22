@@ -117,7 +117,6 @@
       + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period">Monthly Budget</th>'
       + '<th rowspan="2" class="text-right" title="Tambahan budget yang disetujui kalau dept ini over-budget">Additional Budget</th>'
       + '<th rowspan="2" class="text-right" title="Total untuk seluruh Budget Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
-      + '<th rowspan="2" class="text-right">Target Sales</th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
@@ -128,7 +127,7 @@
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (12 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
+      html = '<tr><td colspan="' + (11 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       html += '<tr class="bg-row" data-r="' + ri + '">'
@@ -141,8 +140,7 @@
             + '<td class="text-right">' + r.cost_reduction + '%</td>'
             + '<td class="text-right">' + (r.is_unbudget ? '-' : nf(r.final_budget_monthly)) + '</td>'
             + '<td class="text-right">' + nf(r.additional_budget) + '</td>'
-            + '<td class="text-right">' + (r.is_unbudget ? '-' : nf(r.final_budget)) + '</td>'
-            + '<td class="text-right">' + nf(r.target_sales || 0) + '</td>';
+            + '<td class="text-right">' + (r.is_unbudget ? '-' : nf(r.final_budget)) + '</td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '">' + nf((r.realisasi || {})[m] || 0) + '</a></td>';
       });

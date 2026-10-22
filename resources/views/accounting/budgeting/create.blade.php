@@ -30,6 +30,10 @@
           <label class="form-label" for="description">Description <span class="text-danger">*</span></label>
           <input type="text" id="description" class="form-control" />
         </div>
+        <div class="form-group col-md-3">
+          <label class="form-label" for="targetSales">Target Sales</label>
+          <input type="text" inputmode="decimal" id="targetSales" class="form-control text-right" placeholder="0" />
+        </div>
       </div>
       <div class="form-row">
  <div class="form-group col-md-3">
@@ -220,6 +224,11 @@
   $('#fiscalYear, #dept').on('change', updateNumberPlaceholder);
   updateNumberPlaceholder();
 
+  $('#targetSales').on('blur', function () {
+    const v = parseId(this.value);
+    this.value = v !== null ? nf(v) : '';
+  });
+
   $('#btnPull').click(function () {
     const dept = $('#dept').val();
     if (!dept) { toast('warning', 'Department wajib dipilih.'); return; }
@@ -239,7 +248,6 @@
         r.budget = round2(r.average * (1 - r.cost_reduction / 100));
         r.final_budget = round2(r.budget * r.active_months);
         r.additional_budget = 0;
-        r.target_sales = 0;
         return r;
       });
       $('#bg-title').text('Department: ' + res.dept_name + '  |  Previous: ' + res.previous_text + '  |  Budget Period: ' + res.budget_text);
@@ -266,7 +274,6 @@
       + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period, ikut berubah tiap Final Budget diedit">Monthly Budget</th>'
       + '<th rowspan="2" class="col-add" title="Tambahan budget yang disetujui kalau dept ini over-budget">Additional Budget</th>'
       + '<th rowspan="2" class="col-final" title="Total untuk seluruh Budget Period, default = Average x (1 - Cost Reduction%) x jumlah bulan aktif di Previous Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
-      + '<th rowspan="2" class="col-add" title="Target penjualan manual per COA">Target Sales</th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
@@ -287,7 +294,7 @@
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (12 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data pada filter ini.</td></tr>';
+      html = '<tr><td colspan="' + (11 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data pada filter ini.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       const dis = r.is_unbudget ? 'disabled' : '';
@@ -304,8 +311,7 @@
             + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" ' + dis + ' class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="text-right bg-budget"></td>'
             + '<td class="col-add"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-additional" value="' + nf(r.additional_budget) + '"></td>'
-            + '<td class="col-final"><input type="text" ' + dis + ' inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + (r.is_unbudget ? '-' : nf(r.final_budget)) + '"></td>'
-            + '<td class="col-add"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-targetsales" value="' + nf(r.target_sales) + '"></td>';
+            + '<td class="col-final"><input type="text" ' + dis + ' inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + (r.is_unbudget ? '-' : nf(r.final_budget)) + '"></td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '"></a></td>';
       });
@@ -324,7 +330,6 @@
     const tReal = rows.reduce((s, r) => s + (r.is_unbudget ? 0 : r.realisasi_total), 0);
     const tSelisih = round2(tFinal - tReal);
     const tPct = tFinal > 0 ? round2(tReal / tFinal * 100) : (tReal > 0 ? -100 : 0);
-    const tTargetSales = rows.reduce((s, r) => s + (r.target_sales || 0), 0);
 
     let html = '<tr class="bg-foot">'
       + '<td class="col-sticky0"></td>'
@@ -336,8 +341,7 @@
       + '<td></td>'
       + '<td class="text-right">' + nf(tMonthly) + '</td>'
       + '<td></td>'
-      + '<td class="text-right">' + nf(tFinal) + '</td>'
-      + '<td class="text-right">' + nf(tTargetSales) + '</td>';
+      + '<td class="text-right">' + nf(tFinal) + '</td>';
     months.forEach(function (m) {
       const s = rows.reduce((sum, r) => sum + (r.realisasi[m] || 0), 0);
       html += '<td class="text-right">' + nf(s) + '</td>';
@@ -461,20 +465,7 @@
     r.additional_budget = v !== null ? v : 0;
     this.value = nf(r.additional_budget);
   });
-  $('#bg-body').on('focus', '.bg-targetsales', function () {
-    const r = rows[$(this).closest('tr').data('r')];
-    this.value = String(round2(r.target_sales)).replace('.', ',');
-    this.select();
-  });
-  $('#bg-body').on('blur', '.bg-targetsales', function () {
-    const ri = $(this).closest('tr').data('r');
-    const r = rows[ri];
-    const v = parseId(this.value);
-    r.target_sales = v !== null ? v : 0;
-    this.value = nf(r.target_sales);
-    renderFooter();
-  });
-  $('#bg-body').on('keydown', '.bg-final, .bg-cr, .bg-additional, .bg-inflasi, .bg-targetsales', function (e) {
+  $('#bg-body').on('keydown', '.bg-final, .bg-cr, .bg-additional, .bg-inflasi', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); this.blur(); }
   });
 
@@ -495,7 +486,7 @@
     if (!rows.length) { toast('warning', 'Tidak ada data untuk disimpan.'); return; }
     if (!$('#description').val().trim()) { toast('warning', 'Description wajib diisi.'); return; }
 
-    const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, target_sales: r.target_sales, is_unbudget: r.is_unbudget, budget_type: r.budget_type }));
+    const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget, budget_type: r.budget_type }));
     $('.loading-spinner-container').addClass('-show');
 
     $.ajax({
@@ -503,6 +494,7 @@
       data: {
         previous: $('#previous').val(), budget: $('#budget').val(), dept: deptCode, coa: $('#coa').val(),
         fiscal_year: $('#fiscalYear').val(), description: $('#description').val(), note: $('#note').val(),
+        target_sales: parseId($('#targetSales').val()) || 0,
         rows: JSON.stringify(payload)
       },
       headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
