@@ -68,20 +68,21 @@
   .bg-pos { color:#28c76f; font-weight:600; }
   .bg-neg { color:#ea5455; font-weight:600; }
 
-  /* Unbudget + Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
-  .col-sticky0, .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
+  /* Unbudget + Type + Account + Name sticky di kiri (pakai class, bukan nth-child -- header row 2 kolomnya beda) */
+  .col-sticky0, .col-stickyT, .col-sticky1, .col-sticky2 { position:sticky; z-index:2; }
   .col-sticky0 { left:0; min-width:60px; text-align:center; }
-  .col-sticky1 { left:60px; min-width:110px; }
-  .col-sticky2 { left:170px; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
-  #bgTable thead .col-sticky0, #bgTable thead .col-sticky1, #bgTable thead .col-sticky2 { z-index:4; background:#f3f2f7; }
+  .col-stickyT { left:60px; min-width:100px; }
+  .col-sticky1 { left:160px; min-width:110px; }
+  .col-sticky2 { left:270px; min-width:220px; box-shadow:2px 0 4px rgba(0,0,0,.08); }
+  #bgTable thead .col-sticky0, #bgTable thead .col-stickyT, #bgTable thead .col-sticky1, #bgTable thead .col-sticky2 { z-index:4; background:#f3f2f7; }
 
   /* Zebra + hover (ikut mewarnai kolom sticky) */
   #bgTable tbody tr.bg-row:nth-child(odd) { background:#fff; }
   #bgTable tbody tr.bg-row:nth-child(even) { background:#f8f9fc; }
-  #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky0, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky2 { background:#fff; }
-  #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky0, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky2 { background:#f8f9fc; }
+  #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky0, #bgTable tbody tr.bg-row:nth-child(odd) td.col-stickyT, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(odd) td.col-sticky2 { background:#fff; }
+  #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky0, #bgTable tbody tr.bg-row:nth-child(even) td.col-stickyT, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky2 { background:#f8f9fc; }
   #bgTable tbody tr.bg-row:hover { background:#eef1fd; }
-  #bgTable tbody tr.bg-row:hover td.col-sticky0, #bgTable tbody tr.bg-row:hover td.col-sticky1, #bgTable tbody tr.bg-row:hover td.col-sticky2 { background:#eef1fd; }
+  #bgTable tbody tr.bg-row:hover td.col-sticky0, #bgTable tbody tr.bg-row:hover td.col-stickyT, #bgTable tbody tr.bg-row:hover td.col-sticky1, #bgTable tbody tr.bg-row:hover td.col-sticky2 { background:#eef1fd; }
 </style>
 @endsection
 
@@ -140,6 +141,7 @@
   function buildHead() {
     let r1 = '<tr>'
       + '<th rowspan="2" class="col-sticky0" title="Keluarkan COA ini dari budget">Unbudget</th>'
+      + '<th rowspan="2" class="col-stickyT">OPEX/CAPEX</th>'
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
       + '<th rowspan="2" class="col-cr" title="Persen penambah ke Average (kebalikan Cost Reduction)">Inflasi</th>'
@@ -167,12 +169,16 @@
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (10 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
+      html = '<tr><td colspan="' + (11 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       const dis = r.is_unbudget ? 'disabled' : '';
       html += '<tr class="bg-row' + (r.is_unbudget ? ' bg-row-unbudget' : '') + '" data-r="' + ri + '">'
             + '<td class="col-sticky0"><input type="checkbox" class="bg-unbudget" ' + (r.is_unbudget ? 'checked' : '') + '></td>'
+            + '<td class="col-stickyT"><select class="form-control form-control-sm bg-type">'
+            + '<option value="OPEX"' + (r.budget_type === 'CAPEX' ? '' : ' selected') + '>OPEX</option>'
+            + '<option value="CAPEX"' + (r.budget_type === 'CAPEX' ? ' selected' : '') + '>CAPEX</option>'
+            + '</select></td>'
             + '<td class="bg-acc col-sticky1">' + esc(r.account) + '</td><td class="col-sticky2">' + esc(r.nama_akun) + '</td>'
             + '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-debit"></a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
@@ -263,6 +269,10 @@
     render();
     paintCards(computeCards());
   });
+  $('#bg-body').on('change', '.bg-type', function () {
+    const ri = $(this).closest('tr').data('r');
+    rows[ri].budget_type = this.value;
+  });
 
   $('#defaultCr').on('input', function () {
     let v = parseFloat(this.value);
@@ -322,7 +332,7 @@
       if (!result.isConfirmed) return;
       $('.loading-spinner-container').addClass('-show');
       const oldRows = rows;
-      const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget }));
+      const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget, budget_type: r.budget_type }));
       $.post("{{ route('budgeting.recalculate', $hdr->id) }}", { rows: payload }).done(function (res) {
         months = res.months;
         rows = res.rows;
@@ -337,7 +347,7 @@
   });
 
   $('#btnSave').click(function () {
-    const payload = rows.map((r) => ({ account: r.account, nama_akun: r.nama_akun, debit: r.debit, average: r.average, active_months: r.active_months, realisasi: r.realisasi, realisasi_total: r.realisasi_total, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget }));
+    const payload = rows.map((r) => ({ account: r.account, nama_akun: r.nama_akun, debit: r.debit, average: r.average, active_months: r.active_months, realisasi: r.realisasi, realisasi_total: r.realisasi_total, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget, budget_type: r.budget_type }));
     $('.loading-spinner-container').addClass('-show');
     $.ajax({
       url: "{{ route('budgeting.update', $hdr->id) }}", type: 'PUT',

@@ -17,11 +17,12 @@ class LocationController extends Controller
     private function locationTypes()
     {
         return [
-            'area'    => 'Area / Gudang',
-            'wip'     => 'WIP (Work In Process)',
-            'booth'   => 'Spray Booth',
-            'transit' => 'Transit/Temporary',
-            'dept'    => 'Departemen',
+            'area'       => 'Area / Gudang',
+            'wip'        => 'WIP (Work In Process)',
+            'booth'      => 'Spray Booth',
+            'transit'    => 'Transit/Temporary',
+            'dept'       => 'Departemen',
+            'konsinyasi' => 'Konsinyasi',
         ];
     }
 
