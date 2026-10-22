@@ -41,12 +41,12 @@
     $typeLabel = [
        'ot' => 'Return OT', 'box' => 'Box Kosong', 'troli' => 'Troli Kosong',
         'trial' => 'Trial & Sample', 'ms' => 'Material Support', 'cs' => 'Chemical Support', 'ngcm' => 'NG Chemical',
-        'lnb3' => 'Limbah Non B3', 'rig' => 'Return Isi Gas', 'other' => 'Other'
+        'lnb3' => 'Limbah Non B3', 'rig' => 'Return Isi Gas', 'other' => 'Other', 'jaeeco' => 'Jaeeco'
     ];
     $typeBadge = [
        'ot' => 'badge-info', 'ngcm' => 'badge-danger', 'box' => 'badge-secondary', 'troli' => 'badge-secondary',
         'trial' => 'badge-primary', 'ms' => 'badge-light-primary', 'cs' => 'badge-warning',
-        'lnb3' => 'badge-dark', 'rig' => 'badge-info', 'other' => 'badge-warning'
+        'lnb3' => 'badge-dark', 'rig' => 'badge-info', 'other' => 'badge-warning', 'jaeeco' => 'badge-light-info'
     ];
 @endphp
                                     <div class="form-control" style="background:#f8f8f8;">

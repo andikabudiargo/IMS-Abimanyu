@@ -47,6 +47,7 @@
                                             <option value="lnb3">Limbah Non B3</option>
                                             <option value="rig">Return Isi Gas</option>
                                             <option value="other">Other</option>
+                                            <option value="jaeeco">Jaeeco</option>
                                         </select>
                                     </div>
                                 </div>
@@ -179,7 +180,8 @@
     lb3 : @json($allParties),
     lnb3 : @json($allParties),
     rig  : @json($allParties),
-    other: @json($allParties)
+    other: @json($allParties),
+    jaeeco: @json($customers)
 };
 
     // ─── State ────────────────────────────────────────────────────────────────────
@@ -197,15 +199,15 @@
     var label = {
         rm:'Return RM', ot:'Return OT', ngcm:'NG Chemical', box:'Box Kosong', troli:'Troli Kosong',
         trial:'Trial & Sample', ms:'Material Support', cs:'Chemical Support',  lb3:'Limbah B3',
-        lnb3:'Limbah Non B3', rig:'Return Isi Gas', other:'Other'
+        lnb3:'Limbah Non B3', rig:'Return Isi Gas', other:'Other', jaeeco:'Jaeeco'
     };
     var color = {
         rm:'badge-danger', ot:'badge-info', ngcm:'badge-danger', box:'badge-secondary', troli:'badge-secondary',
         trial:'badge-primary', ms:'badge-light-primary', cs:'badge-warning',  lb3:'badge-dark',
-        lnb3:'badge-dark', rig:'badge-info', other:'badge-warning'
+        lnb3:'badge-dark', rig:'badge-info', other:'badge-warning', jaeeco:'badge-light-info'
     };
     $('#typeBadge')
-        .removeClass('badge-danger badge-info badge-warning badge-secondary badge-primary badge-light-primary badge-dark')
+        .removeClass('badge-danger badge-info badge-warning badge-secondary badge-primary badge-light-primary badge-dark badge-light-info')
         .addClass(color[type] || 'badge-secondary')
         .text(label[type] || '')
         .toggle(!!type);
@@ -292,7 +294,7 @@ initDatePicker('#deliveryDate', { maxDate: "today" });
             $('#cust').html(opts).val('').trigger('change.select2');
 
             // Update label
-            var custLabels = { rm: 'Supplier', ot: 'Customer', other: 'Customer / Supplier' };
+            var custLabels = { rm: 'Supplier', ot: 'Customer', other: 'Customer / Supplier', jaeeco: 'Customer' };
             $('#custLabel').text(custLabels[currentType] || 'Customer / Supplier');
 
             currentCust = null;

@@ -82,7 +82,14 @@ class PpnPkEqualisasiController extends Controller
         $validation = Validator::make($request->all(), [
             'periode' => 'required|integer|min:1|max:12',
             'year' => 'required|integer',
-            'statement' => 'required|file|mimes:xls,xlsx',
+            // mimes:xls,xlsx di-skip -- content-sniffed MIME untuk xlsx export dari portal
+            // pajak kadang tidak kebaca sebagai office format (false reject), jadi dicek
+            // dari ekstensi nama file saja, sama seperti yang sebenarnya dibutuhkan.
+            'statement' => ['required', 'file', function ($attr, $value, $fail) {
+                if (!in_array(strtolower($value->getClientOriginalExtension()), ['xls', 'xlsx'])) {
+                    $fail('The statement must be a file of type: xls, xlsx.');
+                }
+            }],
         ]);
 
         if ($validation->fails()) {

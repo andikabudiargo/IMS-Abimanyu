@@ -32,7 +32,14 @@ class DnGeneralController extends Controller
     'lb3'    => '011',   // Chemical Support -> TODO: konfirmasi kode lokasi asli
     'lnb3'  => '011',   // Limbah Non B3  -> TODO: konfirmasi kode lokasi asli
     'rig'   => '011',   // Return Isi Gas -> TODO: konfirmasi kode lokasi asli
+    'jaeeco' => '007',  // Jaeeco -> Finish Goods (sumber transfer ke PT Yusen)
 ];
+
+    /** Lokasi tujuan transfer khusus type Jaeeco (PT Yusen Logistic Interlink Indonesia) */
+    const LOCATION_YUSEN = '060';
+
+    /** Artikel yang diizinkan untuk type Jaeeco (article_alternative_code) */
+    const JAEECO_ARTICLES = ['FGAPI0146', 'FGAPI0144'];
 
     /** Jenis movement dipakai konsisten di store/update/destroy */
     const MOVEMENT_TYPE        = 'DN UMUM';
@@ -242,6 +249,7 @@ private function visibleDepts()
         'lnb3'  => "<span class='badge badge-dark'>LIMBAH NON B3</span>",
         'rig'   => "<span class='badge badge-info'>RETURN ISI GAS</span>",
         'other' => "<span class='badge badge-warning'>OTHER</span>",
+        'jaeeco' => "<span class='badge badge-light-info'>JAEECO</span>",
     ];
     return $map[$type] ?? "<span class='badge badge-secondary'>" . strtoupper((string) $type) . "</span>";
 }
@@ -616,12 +624,17 @@ $leadCode = $this->codeKeyMap[$prefix];
                 continue;
             }
 
-            $exists = DB::table('article')
+            $altCode = DB::table('article')
                 ->where('article_code', $val->article_code)
-                ->exists();
+                ->value('article_alternative_code');
 
-            if (!$exists) {
+            if ($altCode === null) {
                 $validErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
+                continue;
+            }
+
+            if ($dnType === 'jaeeco' && !in_array($altCode, self::JAEECO_ARTICLES, true)) {
+                $validErrors[] = "Article {$altCode} tidak diizinkan untuk type Jaeeco.";
             }
         }
 
@@ -741,6 +754,51 @@ $leadCode = $this->codeKeyMap[$prefix];
                     'location_number'   => $location,
                     'last_qty'          => $lastQtyAfter,
                 ];
+
+                // ── Jaeeco: barang tidak hilang dari stock, pindah ke lokasi PT Yusen ──
+                if ($dnType === 'jaeeco') {
+                    DB::table('warehouse_stock')->updateOrInsert(
+                        [
+                            'site_code'       => $siteCode,
+                            'article_code'    => $val->article_code,
+                            'location_number' => self::LOCATION_YUSEN,
+                        ],
+                        [
+                            'dept_code' => $articleInfo->article_type,
+                            'uom'       => $articleInfo->uom,
+                        ]
+                    );
+
+                    DB::table('warehouse_stock')
+                        ->where('site_code', $siteCode)
+                        ->where('article_code', $val->article_code)
+                        ->where('location_number', self::LOCATION_YUSEN)
+                        ->update(['article_qty' => DB::raw('coalesce(article_qty,0) + ' . $qty)]);
+
+                    $yusenQtyAfter = $this->currentStock($val->article_code, self::LOCATION_YUSEN);
+
+                    $seq++;
+                    $movementSet[] = [
+                        'movement_code'     => $seq,
+                        'movement_date'     => $deliveryDate,
+                        'artikel_code'      => $val->article_code,
+                        'artikel_desc'      => $articleInfo->article_desc,
+                        'movement_min'      => 0,
+                        'movement_plus'     => $qty,
+                        'movement_price'    => 0,
+                        'movement_transnno' => $tDnNumber,
+                        'movement_type'     => self::MOVEMENT_TYPE,
+                        'movement_desc'     => $perihal,
+                        'movement_from'     => $location,
+                        'partner_type'      => $partnerType,
+                        'movement_to'       => $customerId,
+                        'created_by'        => $username,
+                        'created_at'        => date('Y-m-d H:i:s'),
+                        'site_code'         => $siteCode,
+                        'location_number'   => self::LOCATION_YUSEN,
+                        'last_qty'          => $yusenQtyAfter,
+                    ];
+                }
             }
 
             DB::table('dn_general_det')->insert($dataSet);
@@ -904,12 +962,17 @@ $leadCode = $this->codeKeyMap[$prefix];
             continue;
         }
 
-        $exists = DB::table('article')
+        $altCode = DB::table('article')
             ->where('article_code', $val->article_code)
-            ->exists();
+            ->value('article_alternative_code');
 
-        if (!$exists) {
+        if ($altCode === null) {
             $validErrors[] = "Article {$val->article_code} tidak ditemukan di master.";
+            continue;
+        }
+
+        if ($dnType === 'jaeeco' && !in_array($altCode, self::JAEECO_ARTICLES, true)) {
+            $validErrors[] = "Article {$altCode} tidak diizinkan untuk type Jaeeco.";
         }
     }
 
@@ -1061,6 +1124,36 @@ try {
             'location_number'   => $location,
             'last_qty'          => 0, // placeholder — ditimpa recalculate di bawah
         ];
+
+        // ── Jaeeco: barang tidak hilang dari stock, pindah ke lokasi PT Yusen ──
+        if ($dnType === 'jaeeco') {
+            DB::table('warehouse_stock')->updateOrInsert(
+                ['site_code' => $siteCode, 'article_code' => $val->article_code, 'location_number' => self::LOCATION_YUSEN],
+                ['dept_code' => $articleInfo->article_type, 'uom' => $articleInfo->uom]
+            );
+
+            $seq++;
+            $movementSet[] = [
+                'movement_code'     => $seq,
+                'movement_date'     => $deliveryDate,
+                'artikel_code'      => $val->article_code,
+                'artikel_desc'      => $articleInfo->article_desc,
+                'movement_min'      => 0,
+                'movement_plus'     => $qty,
+                'movement_price'    => 0,
+                'movement_transnno' => $tDnNumber,
+                'movement_type'     => self::MOVEMENT_TYPE,
+                'movement_desc'     => $perihal,
+                'movement_from'     => $location,
+                'partner_type'      => $partnerType,
+                'movement_to'       => $customerId,
+                'created_by'        => $username,
+                'created_at'        => date('Y-m-d H:i:s'),
+                'site_code'         => $siteCode,
+                'location_number'   => self::LOCATION_YUSEN,
+                'last_qty'          => 0, // placeholder — ditimpa recalculate di bawah
+            ];
+        }
     }
 
     DB::table('dn_general_det')->insert($dataSet);
@@ -1089,6 +1182,9 @@ try {
     // backdate sudah diblokir Guard 2, jadi tanggal lama pasti <= tanggal baru.
     foreach ($affectedArticles as $code) {
         $this->recalculateMovementAndStock($code, $location, $dnHdr->delivery_date);
+        if ($dnType === 'jaeeco') {
+            $this->recalculateMovementAndStock($code, self::LOCATION_YUSEN, $dnHdr->delivery_date);
+        }
     }
 
     DB::commit();
@@ -1233,6 +1329,9 @@ try {
     foreach ($affected as $det) {
         $loc = $det->location_number ?? $location;
         $this->recalculateMovementAndStock($det->article_code, $loc, $dnHdr->delivery_date);
+        if ($dnType === 'jaeeco') {
+            $this->recalculateMovementAndStock($det->article_code, self::LOCATION_YUSEN, $dnHdr->delivery_date);
+        }
     }
 
     DB::commit();
@@ -1496,7 +1595,7 @@ try {
 
     // Type yang: (1) tampilkan semua supplier & customer, (2) artikel TIDAK
     // bergantung pada customer yang dipilih (list-nya sama untuk semua)
-    $customerIndependentTypes = ['other', 'box', 'troli', 'trial', 'ms', 'cs', 'lb3', 'lnb3', 'rig'];
+    $customerIndependentTypes = ['other', 'box', 'troli', 'trial', 'ms', 'cs', 'lb3', 'lnb3', 'rig', 'jaeeco'];
 
     if (in_array($type, $customerIndependentTypes, true)) {
         $query = DB::table('article as a')
@@ -1545,6 +1644,11 @@ try {
     case 'rig':
         // Hanya article_type GA
         $query->where('a.article_type', 'GA');
+        break;
+
+    case 'jaeeco':
+        // Hanya 2 artikel FG yang boleh ditransfer ke PT Yusen
+        $query->whereIn('a.article_alternative_code', self::JAEECO_ARTICLES);
         break;
 }
 
