@@ -1476,6 +1476,7 @@ Route::post('conversion/price-list/import-excel', 'Conversion\PriceListControlle
 	Route::post('trialBalance/saved/store',['as'=>'trialBalance.saved.store','uses'=>'Accounting\TrialBalanceController@savedStore']);
 	Route::get('trialBalance/saved/edit',['as'=>'trialBalance.saved.edit','uses'=>'Accounting\TrialBalanceController@savedEdit']);
 	Route::post('trialBalance/saved/update',['as'=>'trialBalance.saved.update','uses'=>'Accounting\TrialBalanceController@savedUpdate']);
+	Route::post('trialBalance/saved/destroy',['as'=>'trialBalance.saved.destroy','uses'=>'Accounting\TrialBalanceController@savedDestroy']);
 
 	Route::get('masterPpn',['as'=>'masterPpn.index','uses'=>'Accounting\MasterPpnController@index']);
 	Route::get('masterPpn/create',['as'=>'masterPpn.create','uses'=>'Accounting\MasterPpnController@create']);

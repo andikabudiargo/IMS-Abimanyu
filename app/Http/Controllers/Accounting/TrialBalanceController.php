@@ -57,7 +57,10 @@ class TrialBalanceController extends Controller
             ['data'=> 'year', 'name'=>'year','title'=>'Year' ],
             ['data'=> 'description', 'name'=>'description','title'=>'Description' ],
             ['data'=> 'note', 'name'=>'note','title'=>'Note' ],
+            ['data'=> 'created_by', 'name'=>'created_by','title'=>'Created By' ],
+            ['data'=> 'updated_by', 'name'=>'updated_by','title'=>'Updated By' ],
             ['data'=> 'created_at', 'name'=>'created_at','title'=>'Created At' ],
+            ['data'=> 'updated_at', 'name'=>'updated_at','title'=>'Updated At' ],
         ];
         return json_encode($kolom, true);
     }
@@ -82,7 +85,30 @@ class TrialBalanceController extends Controller
 
         return Datatables::of($data)
             ->addColumn('action', function ($row) {
-                return '<a href="'.route('trialBalance.saved.edit', ['id' => Crypt::encryptString($row->id)]).'" class="btn btn-sm btn-outline-primary">Edit</a>';
+                $buttons = '<div class="d-inline-flex">
+                                <a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown">
+                                    <i data-feather="menu"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-right">';
+
+                $buttons .= '<a href="' . route('trialBalance.saved.edit', ['id' => Crypt::encryptString($row->id)]) . '" class="dropdown-item">
+                                <i data-feather="file-text"></i>
+                                <span>' . __("Edit") . '</span>
+                            </a>';
+
+                $buttons .= "<a href='javascript:;'
+                                id='deleteButton'
+                                class='dropdown-item'
+                                data-toggle='modal'
+                                data-target='#smallModal'
+                                data-href='" . route("trialBalance.saved.destroy", ["id" => Crypt::encryptString($row->id)]) . "'>
+                                <i data-feather='trash-2' class='feather-14-red'></i>
+                                Delete
+                            </a>";
+
+                $buttons .= '</div></div>';
+
+                return $buttons;
             })
             ->rawColumns(['action'])
             ->make(true);
@@ -350,6 +376,9 @@ class TrialBalanceController extends Controller
         if (!$year || empty($rows)) {
             return response()->json(['status' => 0, 'alert' => 'warning', 'message' => 'Year dan data COA wajib diisi'], 422);
         }
+        if (!trim($payload['description'] ?? '')) {
+            return response()->json(['status' => 0, 'alert' => 'warning', 'message' => 'Description wajib diisi'], 422);
+        }
 
         $username = Auth::user()->username;
 
@@ -437,10 +466,14 @@ class TrialBalanceController extends Controller
         $payload = json_decode($request->getContent(), true) ?? [];
         $rows = $payload['rows'] ?? [];
 
+        if (!trim($payload['description'] ?? '')) {
+            return response()->json(['status' => 0, 'alert' => 'warning', 'message' => 'Description wajib diisi'], 422);
+        }
+
         DB::beginTransaction();
         try {
             DB::table('trial_balance_hdr')->where('id', $id)->update([
-                'description' => $request->input('description') ?? DB::raw('description'),
+                'description' => $payload['description'],
                 'note' => $request->input('note') ?? DB::raw('note'),
                 'updated_by' => $username,
                 'updated_at' => date('Y-m-d H:i:s'),
@@ -465,5 +498,21 @@ class TrialBalanceController extends Controller
             DB::rollBack();
             return response()->json(['status' => 0, 'alert' => 'warning', 'message' => $e->getMessage()]);
         }
+    }
+
+    public function savedDestroy(Request $request)
+    {
+        $username = Auth::user()->username;
+        $id = Crypt::decryptString($request->id);
+        $hdr = DB::table('trial_balance_hdr')->where('id', $id)->first();
+
+        if (!$hdr) {
+            return redirect()->back()->with(['status' => 0, 'alert' => 'warning', 'message' => 'Data tidak ditemukan']);
+        }
+
+        DB::table('trial_balance_hdr')->where('id', $id)->delete(); // trial_balance_det ikut terhapus (ON DELETE CASCADE)
+
+        \LogActivity::addToLog("Delete Trial Balance", "username: $username Status $hdr->tb_number successfully deleted");
+        return redirect()->back()->with(['status' => 1, 'alert' => 'success', 'message' => "$hdr->tb_number successfully deleted"]);
     }
 }

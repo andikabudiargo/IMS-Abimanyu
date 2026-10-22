@@ -60,11 +60,17 @@
     </div>
   </div>
 </section>
+@include('partials.delete-modal')
 @endsection
 @section('scripts')
 <script type="text/javascript">
   $(document).ready(function(){
     showList();
+
+    $(document).on('click', '#deleteButton', function(event) {
+      event.preventDefault();
+      $('#modalConfirmation').attr('action', $(this).data('href'));
+    });
   });
 
   $('a[data-action="reload"]').on('click', function () {

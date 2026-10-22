@@ -6,25 +6,25 @@
       <th rowspan="3">Normal Balance</th>
       <th rowspan="3">Final Statement</th>
       @foreach($months as $m)
-        <th colspan="6">{{ \DateTime::createFromFormat('n',$m)->format('F') }} {{ $year }}</th>
+        <th colspan="5">{{ \DateTime::createFromFormat('n',$m)->format('F') }} {{ $year }}</th>
       @endforeach
     </tr>
     <tr>
       @foreach($months as $m)
         <th colspan="2">Saldo Awal</th>
         <th colspan="2">Pergerakan</th>
-        <th colspan="2">Saldo Akhir</th>
+        <th>Saldo Akhir</th>
       @endforeach
     </tr>
     <tr>
       @foreach($months as $m)
-        <th>Debit</th><th>Credit</th><th>Debit</th><th>Credit</th><th>Debit</th><th>Credit</th>
+        <th>Debit</th><th>Credit</th><th>Debit</th><th>Credit</th><th></th>
       @endforeach
     </tr>
   </thead>
   <tbody>
     @php
-      $fieldKeys = ['open_debit','open_credit','mutasi_debit','mutasi_credit','saldo_debit','saldo_credit'];
+      $fieldKeys = ['open_debit','open_credit','mutasi_debit','mutasi_credit','saldo_akhir'];
       $grandTotals = [];
     @endphp
     @foreach($groups as $g)
@@ -33,7 +33,7 @@
         $groupTotals = [];
       @endphp
       <tr>
-        <td colspan="{{ 4 + count($months)*6 }}"><strong>{{ $g->group_name }}</strong></td>
+        <td colspan="{{ 4 + count($months)*5 }}"><strong>{{ $g->group_name }}</strong></td>
       </tr>
       @foreach($groupAccounts as $acc)
         <tr>
@@ -41,10 +41,17 @@
           <td>{{ $acc->description }}</td>
           <td>{{ $acc->debit_credit }}</td>
           <td>{{ $acc->final_statement }}</td>
+          @php $isKredit = strtoupper($acc->debit_credit) === 'KREDIT'; @endphp
           @foreach($months as $m)
             @foreach($fieldKeys as $field)
               @php
-                $val = $monthlyData[$acc->account][$m][$field] ?? 0;
+                if ($field === 'saldo_akhir') {
+                  $sd = $monthlyData[$acc->account][$m]['saldo_debit'] ?? 0;
+                  $sc = $monthlyData[$acc->account][$m]['saldo_credit'] ?? 0;
+                  $val = $isKredit ? ($sc - $sd) : ($sd - $sc);
+                } else {
+                  $val = $monthlyData[$acc->account][$m][$field] ?? 0;
+                }
                 $groupTotals["$m|$field"] = ($groupTotals["$m|$field"] ?? 0) + $val;
                 $grandTotals["$m|$field"] = ($grandTotals["$m|$field"] ?? 0) + $val;
               @endphp

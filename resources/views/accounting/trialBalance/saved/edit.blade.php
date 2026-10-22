@@ -3,7 +3,7 @@
 @section('content')
 @include('layouts.breadcrumb')
 @php
-  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_debit'=>'Debit','saldo_credit'=>'Credit'];
+  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_akhir'=>'Saldo Akhir'];
 @endphp
 <section>
   <div class="card">
@@ -11,7 +11,7 @@
       <div class="card-body">
         <div class="form-row">
           <div class="form-group col-md-3">
-            <label class="form-label">Nomor</label>
+            <label class="form-label">TB Number</label>
             <input type="text" class="form-control" value="{{ $hdr->tb_number }}" disabled>
           </div>
           <div class="form-group col-md-3">
@@ -21,8 +21,8 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label class="form-label">Description</label>
-            <input type="text" id="description" class="form-control" value="{{ $hdr->description }}">
+            <label class="form-label">Description *</label>
+            <input type="text" id="description" class="form-control" value="{{ $hdr->description }}" required>
           </div>
         </div>
         <div class="form-row">
@@ -56,14 +56,14 @@
                 <th rowspan="3">Normal Balance</th>
                 <th rowspan="3">Final Statement</th>
                 @foreach($months as $m)
-                  <th colspan="6" class="text-center month-divider">{{ \DateTime::createFromFormat('n',$m)->format('F') }}</th>
+                  <th colspan="5" class="text-center month-divider">{{ \DateTime::createFromFormat('n',$m)->format('F') }}</th>
                 @endforeach
               </tr>
               <tr>
                 @foreach($months as $m)
                   <th colspan="2" class="text-center month-divider">Saldo Awal</th>
                   <th colspan="2" class="text-center">Pergerakan</th>
-                  <th colspan="2" class="text-center">Saldo Akhir</th>
+                  <th class="text-center">Saldo Akhir</th>
                 @endforeach
               </tr>
               <tr>
@@ -77,7 +77,18 @@
             <tbody>
               @foreach($groups as $g)
                 @foreach($details->where('group_data', $g->group_data)->values() as $i => $d)
-                  @php $monthly = json_decode($d->monthly, true) ?? []; @endphp
+                  @php
+                    $monthly = json_decode($d->monthly, true) ?? [];
+                    $isKredit = strtoupper($d->debit_credit ?? '') === 'KREDIT';
+                    foreach ($monthly as &$_row) {
+                      if (!isset($_row['saldo_akhir'])) {
+                        $sd = $_row['saldo_debit'] ?? 0;
+                        $sc = $_row['saldo_credit'] ?? 0;
+                        $_row['saldo_akhir'] = $isKredit ? ($sc - $sd) : ($sd - $sc);
+                      }
+                    }
+                    unset($_row);
+                  @endphp
                   <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-account="{{ $d->account }}" data-det-id="{{ $d->id }}">
                     <td class="sticky-col col1">{{ $d->account }}</td>
                     <td class="sticky-col col2">{{ $d->description }}</td>
@@ -213,11 +224,19 @@
           const data = res.data || {};
           $('tr.child-row').each(function(){
             const account = $(this).attr('data-account');
+            const normal = ($(this).find('td').eq(3).text() || '').toUpperCase();
             const monthly = data[account] || {};
             $(this).find('.cell-value').each(function(){
               const m = $(this).data('month');
               const field = $(this).data('field');
-              const val = (monthly[m] && monthly[m][field]) ? monthly[m][field] : 0;
+              let val;
+              if (field === 'saldo_akhir') {
+                const sd = (monthly[m] && monthly[m].saldo_debit) || 0;
+                const sc = (monthly[m] && monthly[m].saldo_credit) || 0;
+                val = normal.indexOf('KREDIT') !== -1 ? (sc - sd) : (sd - sc);
+              } else {
+                val = (monthly[m] && monthly[m][field]) ? monthly[m][field] : 0;
+              }
               $(this).attr('data-raw', val).text(fmt(val));
             });
           });
@@ -234,6 +253,10 @@
     });
 
     $('#btnSave').on('click', function(){
+      if(!$('#description').val().trim()){
+        swal.fire('Warning', 'Description wajib diisi', 'warning');
+        return;
+      }
       const id = "{{ $id }}";
       const rows = [];
       $('tr.child-row').each(function(){
@@ -241,7 +264,7 @@
         $(this).find('.cell-value').each(function(){
           const m = $(this).data('month');
           const field = $(this).data('field');
-          if(!monthly[m]) monthly[m] = {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_debit:0,saldo_credit:0};
+          if(!monthly[m]) monthly[m] = {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_akhir:0};
           monthly[m][field] = parseFloat($(this).attr('data-raw')) || 0;
         });
         rows.push({ id: $(this).data('det-id'), monthly: monthly });
