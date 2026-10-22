@@ -65,9 +65,13 @@ class AccountController extends Controller
             ->get()
             ->groupBy('parent_id');
 
-        $children = function ($parentId) use (&$children, $accountsByParent) {
-            return ($accountsByParent[$parentId] ?? collect())->map(function ($acc) use (&$children) {
-                $acc->children = strtoupper($acc->acc_header) === 'HEADER' ? $children($acc->account) : collect();
+        // $ancestry guards against bad data where a HEADER's parent_id chain loops back on itself.
+        $children = function ($parentId, $ancestry = []) use (&$children, $accountsByParent) {
+            return ($accountsByParent[$parentId] ?? collect())->map(function ($acc) use (&$children, $ancestry) {
+                $isHeader = strtoupper($acc->acc_header) === 'HEADER';
+                $acc->children = ($isHeader && !in_array($acc->account, $ancestry, true))
+                    ? $children($acc->account, array_merge($ancestry, [$acc->account]))
+                    : collect();
                 return $acc;
             });
         };
