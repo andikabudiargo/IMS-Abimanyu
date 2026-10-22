@@ -135,6 +135,7 @@ class PpnPkEqualisasiController extends Controller
             'glMutasiKredit' => $gl['mutasi_kredit'],
             'selisih' => $selisih,
             'match' => abs($selisih) <= 0.01,
+            'glRows' => $this->glTransactions($periode, $year),
         ]);
     }
 
@@ -262,6 +263,73 @@ class PpnPkEqualisasiController extends Controller
         ];
     }
 
+    // Daftar transaksi kredit COA 2000.14.1 di periode ybs -- ini isi dari glSummary()
+    // di atas (mutasi_kredit cuma angka total, ini rincian transaksi-nya), supaya user
+    // bisa lihat posting yang mana saja yang membentuk angka Buku Besar yang dibandingkan.
+    private function glTransactions(int $periode, int $year): array
+    {
+        $from = sprintf('%04d-%02d-01', $year, $periode);
+        $to = date('Y-m-t', strtotime($from));
+
+        $rows = DB::table('kas_det as d')
+            ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
+            ->where('d.account', self::COA_ACCOUNT)
+            ->where('h.status', '<>', '5')
+            ->where('d.credit', '>', 0)
+            ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') between ? and ?", [$from, $to])
+            ->select(
+                'h.id as voucher_id',
+                'h.voucher_type',
+                'd.voucher_number',
+                DB::raw("to_char(to_date(h.voucher_date,'DD-MM-YYYY'),'DD-MM-YYYY') as voucher_date"),
+                'd.description',
+                'd.credit'
+            )
+            ->orderByRaw("to_date(h.voucher_date,'DD-MM-YYYY')")
+            ->orderBy('d.id')
+            ->get();
+
+        // voucher_type -> [route name, tabel sumber, kolom nomor] buat yang diposting dari
+        // modul lain (voucher_number-nya nomor dokumen modul itu, bukan id kas_hdr) -- sama
+        // dengan BukuBesarV2Controller::attachVoucherLinks(), PPN Keluaran customer biasanya
+        // dari Invoice (INV) / Debit Note (INV-DN), KK/KM/BK/BM/GJ dari kas_hdr sendiri.
+        $lookupDef = [
+            'AP' => ['accountPayable.edit', 'ap_invoice', 'ap_number'],
+            'INV-DN' => ['debitNote.edit', 'debit_note_hdr', 'dn_number'],
+            'INV' => ['invoice.edit', 'invoice_hdr', 'invoice_number'],
+        ];
+        $directRoute = [
+            'KK' => 'kasKeluar.edit', 'KM' => 'kasPenerimaan.edit',
+            'BK' => 'bankKeluar.edit', 'BM' => 'bankPenerimaan.edit',
+            'GJ' => 'jurnalUmum.edit',
+        ];
+        $idMaps = [];
+        foreach ($lookupDef as $type => [, $table, $col]) {
+            $numbers = $rows->where('voucher_type', $type)->pluck('voucher_number')->unique()->all();
+            if ($numbers) {
+                $idMaps[$type] = DB::table($table)->whereIn($col, $numbers)->pluck('id', $col)->all();
+            }
+        }
+
+        return $rows->map(function ($r) use ($lookupDef, $directRoute, $idMaps) {
+            $type = $r->voucher_type;
+            $link = null;
+            if (isset($directRoute[$type])) {
+                $link = route($directRoute[$type], ['id' => Crypt::encryptString((string) $r->voucher_id)]);
+            } elseif (isset($lookupDef[$type]) && isset($idMaps[$type][$r->voucher_number])) {
+                $link = route($lookupDef[$type][0], ['id' => Crypt::encryptString((string) $idMaps[$type][$r->voucher_number])]);
+            }
+            return [
+                'voucher_type' => $type,
+                'voucher_number' => $r->voucher_number,
+                'voucher_date' => $r->voucher_date,
+                'description' => $r->description,
+                'credit' => (float) $r->credit,
+                'voucher_link' => $link,
+            ];
+        })->values()->all();
+    }
+
     public function list(Request $request)
     {
         $search = strtolower($request->searchEqualNumber);
@@ -314,6 +382,7 @@ class PpnPkEqualisasiController extends Controller
         $data['id'] = $id;
         $data['periodes'] = $this->periodes;
         $data['gl'] = $this->glSummary((int) $data['header']->periode, (int) $data['header']->year);
+        $data['glRows'] = $this->glTransactions((int) $data['header']->periode, (int) $data['header']->year);
 
         $data['kolomDetail'] = json_encode([
             ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'title' => 'No', 'orderable' => false, 'searchable' => false],

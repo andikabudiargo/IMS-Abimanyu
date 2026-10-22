@@ -67,6 +67,10 @@
 {{-- Ringkasan Excel vs Buku Besar -- muncul begitu preview berhasil, sebelum tabel detail --}}
 <section id="info-ppnPkEqualisasi" class="d-none">
   <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">Summary Equalisasi</h4>
+      <span id="i-status-badge" class="badge"></span>
+    </div>
     <div class="card-body">
       <table class="table table-sm table-bordered bb2-info mb-0">
         <tbody>
@@ -80,6 +84,33 @@
           </tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</section>
+
+{{-- Rincian transaksi Buku Besar (kredit akun 2000.14.1) yang membentuk angka "Mutasi Kredit"
+     di atas -- ini jawaban "dimatchingin ke transaksi yang mana", bukan matching per baris
+     Excel (nilai tiap faktur beda granularitasnya dengan posting GL), tapi daftar posting
+     yang jumlahnya dibandingkan ke total Excel. --}}
+<section id="glrows-ppnPkEqualisasi" class="d-none">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">Transaksi Buku Besar (Kredit Akun 2000.14.1)</h4>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive bankrecon-scroll">
+        <table class="table table-striped bankrecon-table">
+          <thead class="thead-light">
+            <tr>
+              <th>Tanggal</th>
+              <th>Voucher</th>
+              <th>Keterangan</th>
+              <th class="text-right">Kredit</th>
+            </tr>
+          </thead>
+          <tbody id="glRows"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </section>
@@ -150,6 +181,7 @@
       previewFilePath = null;
       $('#preview-ppnPkEqualisasi').addClass('d-none');
       $('#info-ppnPkEqualisasi').addClass('d-none');
+      $('#glrows-ppnPkEqualisasi').addClass('d-none');
     });
   });
 
@@ -181,7 +213,25 @@
       .text(fmtNumber(data.selisih))
       .toggleClass('text-danger', !data.match)
       .toggleClass('text-success', data.match);
+    $('#i-status-badge')
+      .text(data.match ? 'MATCH' : 'NOT MATCH')
+      .toggleClass('badge-success', data.match)
+      .toggleClass('badge-danger', !data.match);
     $('#info-ppnPkEqualisasi').removeClass('d-none');
+
+    let glRows = (data.glRows || []).map(function (r) {
+      let voucherCell = r.voucher_link
+        ? `<a href="${r.voucher_link}" target="_blank">${r.voucher_number}</a> (${r.voucher_type})`
+        : `${r.voucher_number} (${r.voucher_type})`;
+      return `<tr>
+        <td>${r.voucher_date}</td>
+        <td>${voucherCell}</td>
+        <td>${r.description ?? ''}</td>
+        <td class="text-right">${fmtNumber(r.credit)}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="4" class="text-center">Tidak ada transaksi kredit di Buku Besar untuk periode ini.</td></tr>';
+    $('#glRows').html(glRows);
+    $('#glrows-ppnPkEqualisasi').removeClass('d-none');
 
     $('#preview-ppnPkEqualisasi').removeClass('d-none');
     document.getElementById('info-ppnPkEqualisasi').scrollIntoView({ behavior: 'smooth' });

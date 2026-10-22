@@ -611,8 +611,13 @@ $data['locationsTo'] = DB::table('stock_location_master')
                     throw new \RuntimeException("Kaleng $barcodeCode harus dipindah utuh (qty harus sama dengan sisa kaleng: $unit->remaining_qty).");
                 }
                 DB::table('receiving_chemical_unit')->where('id', $unit->id)->update([
-                    'status'     => 'out_at_workstation',
-                    'updated_at' => date('Y-m-d H:i:s'),
+                    'status'          => 'out_at_workstation',
+                    // lokasi akuntansi (pool) -- sama seperti warehouse_stock, lihat
+                    // getStockLocation(). Tanpa ini kaleng "menghilang" dari Detail
+                    // Lot begitu disupply ke booth, karena location_number lama
+                    // tidak pernah ketemu pool yang jadi filter di UI Stock.
+                    'location_number' => $this->getStockLocation($locationTo),
+                    'updated_at'      => date('Y-m-d H:i:s'),
                 ]);
             } elseif (!$isFromChem && $isToChem) {
                 // RETUR: balik dari workstation/non-chemical ke gudang chemical
@@ -625,7 +630,7 @@ $data['locationsTo'] = DB::table('stock_location_master')
                 DB::table('receiving_chemical_unit')->where('id', $unit->id)->update([
                     'remaining_qty'   => $qty,
                     'status'          => $qty > 0.0005 ? 'active' : 'empty',
-                    'location_number' => $locationTo,
+                    'location_number' => $this->getStockLocation($locationTo),
                     'updated_at'      => date('Y-m-d H:i:s'),
                 ]);
             } elseif ($isFromChem && $isToChem) {
@@ -637,7 +642,7 @@ $data['locationsTo'] = DB::table('stock_location_master')
                     throw new \RuntimeException("Kaleng $barcodeCode harus dipindah utuh (qty harus sama dengan sisa kaleng: $unit->remaining_qty).");
                 }
                 DB::table('receiving_chemical_unit')->where('id', $unit->id)->update([
-                    'location_number' => $locationTo,
+                    'location_number' => $this->getStockLocation($locationTo),
                     'updated_at'      => date('Y-m-d H:i:s'),
                 ]);
             }
