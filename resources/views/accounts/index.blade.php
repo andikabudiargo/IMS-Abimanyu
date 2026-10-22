@@ -32,11 +32,9 @@
                         @can('account-create')
                         <a href="{{ route('account.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                         @endcan
-                        @can('coa-move')
                         <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#moveCoaModal">
                             <i class="fa fa-exchange"></i> Move COA
                         </button>
-                        @endcan
                     </div>
                 </div>
             </form>
@@ -51,6 +49,12 @@
         <h4 class="card-title">List @yield('title')</h4>
         <div class="heading-elements">
             <ul class="list-inline mb-0">
+                <li>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary active" id="viewFlatBtn">Tabel</button>
+                        <button type="button" class="btn btn-outline-primary" id="viewTreeBtn">Hierarki</button>
+                    </div>
+                </li>
                 <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
             </ul>
         </div>
@@ -59,7 +63,55 @@
         <div class="card-body">
           <div class="row">
               <div class="col-sm-12">
-                <div class="card-datatable table-responsive pt-0">
+                <div id="coaFlatWrap" class="card-datatable table-responsive pt-0">
+                  <table id="coaTableFlat" class="table">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width:5%">Action</th>
+                            <th>Account</th>
+                            <th>Description</th>
+                            <th class="text-right">Opening Balance</th>
+                            <th>Account Type</th>
+                            <th>Sub Account</th>
+                            <th>Category</th>
+                            <th>Header</th>
+                            <th>Normal Balance</th>
+                            <th>Final Statement</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($flat as $acc)
+                            <tr>
+                                <td class="coa-actions">
+                                    @can('account-edit')
+                                    <a href="{{ route('account.edit', ['id' => Crypt::encryptString($acc->id)]) }}" title="Edit">
+                                        <i data-feather="file-text"></i>
+                                    </a>
+                                    @endcan
+                                    @can('account-delete')
+                                    <a href="javascript:;" id="deleteButton" data-toggle="modal" data-target="#smallModal"
+                                       data-href="{{ route('account.destroy', ['id' => Crypt::encryptString($acc->id)]) }}" title="Delete">
+                                        <i data-feather="trash-2" class="feather-14-red"></i>
+                                    </a>
+                                    @endcan
+                                </td>
+                                <td>{{ $acc->account }}</td>
+                                <td>{{ $acc->description }}</td>
+                                <td class="text-right">{{ number_format($acc->opening_balance, 2) }}</td>
+                                <td>{{ $acc->type_label }}</td>
+                                <td>{{ $acc->sub_label }}</td>
+                                <td>{{ $acc->acc_header }}</td>
+                                <td>{{ $acc->header_label }}</td>
+                                <td>{{ $acc->debit_credit }}</td>
+                                <td>{{ $acc->final_statement }}</td>
+                                <td>{{ $acc->note }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                  </table>
+                </div>
+                <div id="coaTreeWrap" class="card-datatable table-responsive pt-0" style="display:none;">
                   <table id="coaTable" class="table coa-table">
                     <thead class="thead-light">
                         <tr>
@@ -95,7 +147,6 @@
 </section>
 @include('partials.delete-modal')
 
-@can('coa-move')
 <div class="modal fade" id="moveCoaModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -157,7 +208,6 @@
         </div>
     </div>
 </div>
-@endcan
 @endsection
 @section('styles')
 <style>
@@ -182,11 +232,42 @@
         location.reload();
     });
 
-    $("#btnSearch").click(function(e){
-        filterTable($("#searchAcc").val(), $("#searchAccCode").val());
+    //flat table / hierarchical view toggle
+    $('#viewFlatBtn').on('click', function () {
+        $(this).addClass('active').siblings().removeClass('active');
+        $('#coaFlatWrap').show();
+        $('#coaTreeWrap').hide();
+    });
+    $('#viewTreeBtn').on('click', function () {
+        $(this).addClass('active').siblings().removeClass('active');
+        $('#coaTreeWrap').show();
+        $('#coaFlatWrap').hide();
     });
 
-    const filterTable = (nama, code) => {
+    $("#btnSearch").click(function(e){
+        filterFlatTable($("#searchAcc").val(), $("#searchAccCode").val());
+        filterTree($("#searchAcc").val(), $("#searchAccCode").val());
+    });
+
+    const filterFlatTable = (nama, code) => {
+        nama = (nama || '').toLowerCase();
+        code = (code || '').toLowerCase();
+        const $rows = $('#coaTableFlat tbody tr');
+
+        if (!nama && !code) {
+            $rows.show();
+            return;
+        }
+
+        $rows.each(function () {
+            const acct = $(this).find('td').eq(1).text().trim().toLowerCase();
+            const desc = $(this).find('td').eq(2).text().trim().toLowerCase();
+            const match = (!code || acct.includes(code)) && (!nama || desc.includes(nama));
+            $(this).toggle(match);
+        });
+    }
+
+    const filterTree = (nama, code) => {
         nama = (nama || '').toLowerCase();
         code = (code || '').toLowerCase();
 
@@ -216,7 +297,6 @@
         });
     }
 
-    @can('coa-move')
     (function () {
         const token = document.querySelector('meta[name="csrf-token"]').content;
         const tbody = document.querySelector('#scanTable tbody');
@@ -269,6 +349,5 @@
             });
         });
     })();
-    @endcan
 </script>
 @endsection

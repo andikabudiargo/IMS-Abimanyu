@@ -45,57 +45,99 @@ class AccountController extends Controller
     {
         $data['title'] = $this->title;
         $data['tree'] = $this->buildTree();
+        $data['flat'] = $this->flattenTree($data['tree']);
         return view("accounts.index",$data);
     }
 
+    /** Flat list for the plain-table view: every account with its Type/Sub/Header as columns. */
+    private function flattenTree($tree)
+    {
+        $rows = collect();
+        foreach ($tree as $type) {
+            foreach ($type->subs as $sub) {
+                $this->flattenAccounts($sub->accounts, $type, $sub, null, $rows);
+            }
+        }
+        return $rows;
+    }
+
+    private function flattenAccounts($accounts, $type, $sub, $parentHeader, $rows)
+    {
+        foreach ($accounts as $acc) {
+            $acc->type_label = $type->code . ' - ' . $type->name;
+            $acc->sub_label = $sub->sub_code . ' - ' . $sub->description;
+            $acc->header_label = $parentHeader ? ($parentHeader->account . ' - ' . $parentHeader->description) : '';
+            $rows->push($acc);
+            if (strtoupper($acc->acc_header) === 'HEADER') {
+                $this->flattenAccounts($acc->children, $type, $sub, $acc, $rows);
+            }
+        }
+    }
+
     /**
-     * COA tree: Account Type -> Sub Account -> Header (recursive) -> Detail,
-     * following accounts.parent_id (sub_code or a header account's code).
+     * COA tree: Account Type -> Sub Account -> Header (recursive) -> Detail.
+     *
+     * Everything below Sub Account is nested by dotted CODE PREFIX (e.g. "1100.13.23"
+     * under header "1100.13"), not by accounts.parent_id: in production data, detail
+     * rows are very often parented straight to the Sub even when an intermediate header
+     * with a matching code prefix exists, and parent_id chains aren't reliable past that
+     * point anyway. The account's own code is the one relationship this data always gets
+     * right, so a Sub's scope is every account whose code's first dot-segment is its
+     * sub_code.
      */
     private function buildTree()
     {
         $subsByType = DB::table('acc_sub')->orderBy('sub_code')->get()->groupBy('type_code');
-        $accountsByParent = DB::table('accounts')
-            ->orderByRaw("
-                NULLIF(split_part(account, '.', 1), '')::numeric,
-                NULLIF(split_part(account, '.', 2), '')::numeric,
-                NULLIF(split_part(account, '.', 3), '')::numeric,
-                account
-            ")
-            ->get()
-            ->groupBy('parent_id');
-
-        // ponytail: parent_id data is known to be messy (see memory: booth-ledger-drift-style issues).
-        // A cycle or a runaway-deep chain must not be able to hang this page, so cap depth and total
-        // nodes walked; upgrade path if the COA ever legitimately exceeds this is to raise the caps.
-        $maxDepth = 15;
-        $maxNodes = 5000;
-        $nodeCount = 0;
-
-        $children = function ($parentId, array $ancestry, int $depth) use (&$children, &$nodeCount, $accountsByParent, $maxDepth, $maxNodes) {
-            if ($depth >= $maxDepth || $nodeCount >= $maxNodes) {
-                return collect();
-            }
-            return ($accountsByParent[$parentId] ?? collect())
-                ->reject(fn ($acc) => in_array($acc->account, $ancestry, true))
-                ->map(function ($acc) use (&$children, &$nodeCount, $ancestry, $depth) {
-                    $nodeCount++;
-                    $isHeader = strtoupper($acc->acc_header) === 'HEADER';
-                    $acc->children = $isHeader
-                        ? $children($acc->account, array_merge($ancestry, [$acc->account]), $depth + 1)
-                        : collect();
-                    return $acc;
-                });
-        };
+        $accountsBySubPrefix = DB::table('accounts')->get()->groupBy(function ($acc) {
+            return explode('.', $acc->account)[0];
+        });
 
         return DB::table('acc_types')->where('status', 1)->orderBy('code')->get()
-            ->map(function ($type) use ($subsByType, $children) {
-                $type->subs = ($subsByType[$type->code] ?? collect())->map(function ($sub) use ($children) {
-                    $sub->accounts = $children($sub->sub_code, [], 0);
+            ->map(function ($type) use ($subsByType, $accountsBySubPrefix) {
+                $type->subs = ($subsByType[$type->code] ?? collect())->map(function ($sub) use ($accountsBySubPrefix) {
+                    $sub->accounts = $this->nestByCodePrefix($accountsBySubPrefix[$sub->sub_code] ?? collect());
                     return $sub;
                 });
                 return $type;
             });
+    }
+
+    /** Nest a flat list of accounts into a tree by dotted code prefix, sorted naturally by code. */
+    private function nestByCodePrefix($accounts)
+    {
+        $byCode = [];
+        foreach ($accounts as $acc) {
+            $acc->children = collect();
+            $byCode[$acc->account] = $acc;
+        }
+
+        $roots = collect();
+        foreach ($accounts as $acc) {
+            $parts = explode('.', $acc->account);
+            $parentCode = null;
+            for ($i = count($parts) - 1; $i >= 1; $i--) {
+                $candidate = implode('.', array_slice($parts, 0, $i));
+                if ($candidate !== $acc->account && isset($byCode[$candidate])) {
+                    $parentCode = $candidate;
+                    break;
+                }
+            }
+            $parentCode !== null ? $byCode[$parentCode]->children->push($acc) : $roots->push($acc);
+        }
+
+        foreach ($byCode as $acc) {
+            $acc->children = $this->sortByCode($acc->children);
+        }
+
+        return $this->sortByCode($roots);
+    }
+
+    private function sortByCode($accounts)
+    {
+        return $accounts->sortBy(function ($acc) {
+            $pad = function ($seg) { return str_pad($seg, 10, '0', STR_PAD_LEFT); };
+            return implode('.', array_map($pad, explode('.', $acc->account)));
+        })->values();
     }
 
     public function create(Request $request)

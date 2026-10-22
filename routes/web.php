@@ -145,8 +145,8 @@ Route::group( ['middleware' => ['auth']], function() {
 	Route::post('accounts/update',['as'=>'account.update','uses'=>'AccountController@update']);
 	Route::post('accounts/delete',['as'=>'account.destroy','uses'=>'AccountController@destroy']);
 
-	Route::post('coaMove/scan',['as'=>'coaMove.scan','uses'=>'CoaMoveController@scan','middleware' => ['permission:coa-move']]);
-	Route::post('coaMove/execute',['as'=>'coaMove.execute','uses'=>'CoaMoveController@execute','middleware' => ['permission:coa-move']]);
+	Route::post('coaMove/scan',['as'=>'coaMove.scan','uses'=>'CoaMoveController@scan']);
+	Route::post('coaMove/execute',['as'=>'coaMove.execute','uses'=>'CoaMoveController@execute']);
 
 	Route::get('account/setting/barang',['as'=>'accountSetting.barang','uses'=>'AccountSettingController@barang']);
 	Route::post('account/setting/store',['as'=>'accountSetting.store','uses'=>'AccountSettingController@store']);
