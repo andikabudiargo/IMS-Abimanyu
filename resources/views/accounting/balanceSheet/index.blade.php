@@ -11,14 +11,19 @@
             <div class="form-row">
               <div class="col-md-4">
                 <div class="form-group">
-                  <label for="searchNrcNumber">Nomor</label>
+                  <label for="searchNrcNumber">Neraca Number</label>
                   <input type="text" class="form-control text-uppercase" id="searchNrcNumber" name="searchNrcNumber">
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="form-group">
                   <label for="searchYear">Year</label>
-                  <input type="number" class="form-control" id="searchYear" name="searchYear">
+                  <select class="form-control" id="searchYear" name="searchYear">
+                    <option value="">-- Semua --</option>
+                    @for($y = date('Y'); $y >= 2023; $y--)
+                      <option value="{{ $y }}">{{ $y }}</option>
+                    @endfor
+                  </select>
                 </div>
               </div>
               <div class="col-md-4">

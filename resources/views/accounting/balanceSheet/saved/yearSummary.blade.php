@@ -3,7 +3,7 @@
 @section('content')
 @include('layouts.breadcrumb')
 @php
-  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_debit'=>'Debit','saldo_credit'=>'Credit'];
+  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_akhir'=>'Balance'];
 @endphp
 <section>
   <div class="card">
@@ -15,7 +15,11 @@
         <div class="form-row">
           <div class="form-group col-md-3">
             <label class="form-label">Year *</label>
-            <input type="number" id="year" class="form-control" value="{{ $year ?: date('Y') }}" min="2000" max="2100" required>
+            <select id="year" class="form-control" required>
+              @for($y = date('Y'); $y >= 2023; $y--)
+                <option value="{{ $y }}" {{ $y == ($year ?: date('Y')) ? 'selected' : '' }}>{{ $y }}</option>
+              @endfor
+            </select>
           </div>
         </div>
         <button type="button" id="btnLoad" class="btn btn-primary">Tampilkan</button>
@@ -43,14 +47,14 @@
                 <th rowspan="3">Normal Balance</th>
                 <th rowspan="3">Final Statement</th>
                 @foreach($months as $m)
-                  <th colspan="6" class="text-center month-divider">{{ \DateTime::createFromFormat('n',$m)->format('F') }}</th>
+                  <th colspan="5" class="text-center month-divider">{{ \DateTime::createFromFormat('n',$m)->format('F') }}</th>
                 @endforeach
               </tr>
               <tr>
                 @foreach($months as $m)
                   <th colspan="2" class="text-center month-divider">Saldo Awal</th>
                   <th colspan="2" class="text-center">Pergerakan</th>
-                  <th colspan="2" class="text-center">Saldo Akhir</th>
+                  <th class="text-center">Saldo Akhir</th>
                 @endforeach
               </tr>
               <tr>
@@ -64,7 +68,7 @@
             <tbody>
               @foreach($groups as $g)
                 @foreach($accounts->where('group_data', $g->group_data)->values() as $i => $acc)
-                  <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-account="{{ $acc->account }}">
+                  <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-account="{{ $acc->account }}" data-normal="{{ $acc->debit_credit }}">
                     <td class="sticky-col col1">{{ $acc->account }}</td>
                     <td class="sticky-col col2">{{ $acc->description }}</td>
                     <td>{{ $acc->group_data }} - {{ $acc->group_name }}</td>
@@ -159,11 +163,19 @@
         $('#nrcTableWrap tr.child-row').each(function(){
           const account = $(this).attr('data-account');
           const group = $(this).data('group');
+          const normal = ($(this).attr('data-normal') || '').toUpperCase();
           const monthly = data[account] || {};
           $(this).find('.cell-value').each(function(){
             const m = $(this).data('month');
             const field = $(this).data('field');
-            const val = (monthly[m] && monthly[m][field]) ? monthly[m][field] : 0;
+            let val;
+            if (field === 'saldo_akhir' && monthly[m] && monthly[m].saldo_akhir === undefined) {
+              const sd = (monthly[m] && monthly[m].saldo_debit) || 0;
+              const sc = (monthly[m] && monthly[m].saldo_credit) || 0;
+              val = normal.indexOf('KREDIT') !== -1 ? (sc - sd) : (sd - sc);
+            } else {
+              val = (monthly[m] && monthly[m][field]) ? monthly[m][field] : 0;
+            }
             $(this).attr('data-raw', val).text(fmt(val));
 
             const key = `${group}|${m}|${field}`;

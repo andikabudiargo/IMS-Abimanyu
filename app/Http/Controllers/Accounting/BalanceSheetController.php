@@ -36,12 +36,15 @@ class BalanceSheetController extends Controller
         $kolom=
         [
             ['data'=> 'action', 'name'=>'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
-            ['data'=> 'nrc_number', 'name'=>'nrc_number','title'=>'Nomor' ],
+            ['data'=> 'nrc_number', 'name'=>'nrc_number','title'=>'Neraca Number' ],
             ['data'=> 'year', 'name'=>'year','title'=>'Year' ],
             ['data'=> 'month_name', 'name'=>'month_name','title'=>'Month' ],
             ['data'=> 'description', 'name'=>'description','title'=>'Description' ],
             ['data'=> 'note', 'name'=>'note','title'=>'Note' ],
+            ['data'=> 'created_by', 'name'=>'created_by','title'=>'Created By' ],
             ['data'=> 'created_at', 'name'=>'created_at','title'=>'Created At' ],
+            ['data'=> 'updated_by', 'name'=>'updated_by','title'=>'Updated By' ],
+            ['data'=> 'updated_at', 'name'=>'updated_at','title'=>'Updated At' ],
         ];
         return json_encode($kolom, true);
     }
@@ -424,6 +427,9 @@ class BalanceSheetController extends Controller
         if (!$year || !$month || empty($rows)) {
             return response()->json(['status' => 0, 'alert' => 'warning', 'message' => 'Year, Month, dan data COA wajib diisi'], 422);
         }
+        if (!trim($payload['description'] ?? '')) {
+            return response()->json(['status' => 0, 'alert' => 'warning', 'message' => 'Description wajib diisi'], 422);
+        }
 
         $username = Auth::user()->username;
 
@@ -514,6 +520,9 @@ class BalanceSheetController extends Controller
         $month = (int) DB::table('neraca_hdr')->where('id', $id)->value('month');
         if (!$month) {
             return response()->json(['status' => 0, 'alert' => 'warning', 'message' => 'Neraca lama (format tahunan) tidak bisa diedit, buat ulang per bulan lewat menu Create'], 422);
+        }
+        if (!trim($payload['description'] ?? '')) {
+            return response()->json(['status' => 0, 'alert' => 'warning', 'message' => 'Description wajib diisi'], 422);
         }
         $emptyMonth = $this->emptyMonthly()[$month];
 

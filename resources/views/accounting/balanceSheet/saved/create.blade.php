@@ -3,7 +3,7 @@
 @section('content')
 @include('layouts.breadcrumb')
 @php
-  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_debit'=>'Debit','saldo_credit'=>'Credit'];
+  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_akhir'=>'Balance'];
 @endphp
 <section>
   <div class="card">
@@ -14,12 +14,16 @@
       <div class="card-body">
         <div class="form-row">
           <div class="form-group col-md-3">
-            <label class="form-label">Nomor</label>
+            <label class="form-label">Neraca Number</label>
             <input type="text" id="nrcNumber" class="form-control" value="{{ $nextCode }}" disabled>
           </div>
           <div class="form-group col-md-3">
             <label class="form-label">Year *</label>
-            <input type="number" id="year" class="form-control" value="{{ date('Y') }}" min="2000" max="2100" required>
+            <select id="year" class="form-control" required>
+              @for($y = date('Y'); $y >= 2023; $y--)
+                <option value="{{ $y }}" {{ $y == date('Y') ? 'selected' : '' }}>{{ $y }}</option>
+              @endfor
+            </select>
           </div>
           <div class="form-group col-md-3">
             <label class="form-label">Month *</label>
@@ -32,8 +36,8 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label class="form-label">Description</label>
-            <input type="text" id="description" class="form-control">
+            <label class="form-label">Description *</label>
+            <input type="text" id="description" class="form-control" required>
           </div>
         </div>
         <div class="form-row">
@@ -66,7 +70,7 @@
                 <th rowspan="2">Final Statement</th>
                 <th colspan="2" class="text-center month-divider">Saldo Awal</th>
                 <th colspan="2" class="text-center">Pergerakan</th>
-                <th colspan="2" class="text-center">Saldo Akhir</th>
+                <th class="text-center">Saldo Akhir</th>
               </tr>
               <tr>
                 @foreach($fields as $field => $label)
@@ -77,7 +81,7 @@
             <tbody>
               @foreach($groups as $g)
                 @foreach($accounts->where('group_data', $g->group_data)->values() as $i => $acc)
-                  <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-account="{{ $acc->account }}">
+                  <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-account="{{ $acc->account }}" data-normal="{{ $acc->debit_credit }}">
                     <td class="sticky-col col1">{{ $acc->account }}</td>
                     <td class="sticky-col col2">{{ $acc->description }}</td>
                     <td>{{ $acc->group_data }} - {{ $acc->group_name }}</td>
@@ -179,11 +183,19 @@
           $('#nrcTableWrap tr.child-row').each(function(){
             const account = $(this).attr('data-account');
             const group = $(this).data('group');
+            const normal = ($(this).attr('data-normal') || '').toUpperCase();
             const monthly = (data[account] && data[account][month]) ? data[account][month] : {};
             $(this).attr('data-month', month);
             $(this).find('.cell-value').each(function(){
               const field = $(this).data('field');
-              const val = monthly[field] ? monthly[field] : 0;
+              let val;
+              if (field === 'saldo_akhir') {
+                const sd = monthly.saldo_debit || 0;
+                const sc = monthly.saldo_credit || 0;
+                val = normal.indexOf('KREDIT') !== -1 ? (sc - sd) : (sd - sc);
+              } else {
+                val = monthly[field] ? monthly[field] : 0;
+              }
               $(this).attr('data-month', month).attr('data-raw', val).text(fmt(val));
 
               const key = `${group}|${field}`;
@@ -212,11 +224,15 @@
     });
 
     $('#btnSave').on('click', function(){
+      if(!$('#description').val().trim()){
+        swal.fire('Warning', 'Description wajib diisi', 'warning');
+        return;
+      }
       const month = $('#month').val();
       const rows = [];
       $('#nrcTableWrap tr.child-row').each(function(){
         const account = $(this).attr('data-account');
-        const monthly = {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_debit:0,saldo_credit:0};
+        const monthly = {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_akhir:0};
         $(this).find('.cell-value').each(function(){
           monthly[$(this).data('field')] = parseFloat($(this).attr('data-raw')) || 0;
         });

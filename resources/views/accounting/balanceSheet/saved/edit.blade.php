@@ -3,7 +3,7 @@
 @section('content')
 @include('layouts.breadcrumb')
 @php
-  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_debit'=>'Debit','saldo_credit'=>'Credit'];
+  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_akhir'=>'Balance'];
 @endphp
 <section>
   <div class="card">
@@ -11,7 +11,7 @@
       <div class="card-body">
         <div class="form-row">
           <div class="form-group col-md-3">
-            <label class="form-label">Nomor</label>
+            <label class="form-label">Neraca Number</label>
             <input type="text" class="form-control" value="{{ $hdr->nrc_number }}" disabled>
           </div>
           <div class="form-group col-md-3">
@@ -25,8 +25,8 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label class="form-label">Description</label>
-            <input type="text" id="description" class="form-control" value="{{ $hdr->description }}">
+            <label class="form-label">Description *</label>
+            <input type="text" id="description" class="form-control" value="{{ $hdr->description }}" required>
           </div>
         </div>
         <div class="form-row">
@@ -60,7 +60,7 @@
                 <th rowspan="2">Final Statement</th>
                 <th colspan="2" class="text-center month-divider">Saldo Awal</th>
                 <th colspan="2" class="text-center">Pergerakan</th>
-                <th colspan="2" class="text-center">Saldo Akhir</th>
+                <th class="text-center">Saldo Akhir</th>
               </tr>
               <tr>
                 @foreach($fields as $field => $label)
@@ -74,8 +74,14 @@
                   @php
                     $decoded = json_decode($d->monthly, true) ?: [];
                     $monthly = $decoded[$hdr->month] ?? reset($decoded) ?: [];
+                    if (!isset($monthly['saldo_akhir'])) {
+                      $isKredit = strtoupper($d->debit_credit ?? '') === 'KREDIT';
+                      $sd = $monthly['saldo_debit'] ?? 0;
+                      $sc = $monthly['saldo_credit'] ?? 0;
+                      $monthly['saldo_akhir'] = $isKredit ? ($sc - $sd) : ($sd - $sc);
+                    }
                   @endphp
-                  <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-account="{{ $d->account }}" data-det-id="{{ $d->id }}">
+                  <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-account="{{ $d->account }}" data-det-id="{{ $d->id }}" data-normal="{{ $d->debit_credit }}">
                     <td class="sticky-col col1">{{ $d->account }}</td>
                     <td class="sticky-col col2">{{ $d->description }}</td>
                     <td>{{ $g->group_data }} - {{ $g->group_name }}</td>
@@ -195,10 +201,18 @@
           const data = res.data || {};
           $('tr.child-row').each(function(){
             const account = $(this).attr('data-account');
+            const normal = ($(this).attr('data-normal') || '').toUpperCase();
             const monthly = (data[account] && data[account][window.nrcMonth]) ? data[account][window.nrcMonth] : {};
             $(this).find('.cell-value').each(function(){
               const field = $(this).data('field');
-              const val = monthly[field] ? monthly[field] : 0;
+              let val;
+              if (field === 'saldo_akhir') {
+                const sd = monthly.saldo_debit || 0;
+                const sc = monthly.saldo_credit || 0;
+                val = normal.indexOf('KREDIT') !== -1 ? (sc - sd) : (sd - sc);
+              } else {
+                val = monthly[field] ? monthly[field] : 0;
+              }
               $(this).attr('data-raw', val).text(fmt(val));
             });
           });
@@ -215,11 +229,15 @@
     });
 
     $('#btnSave').on('click', function(){
+      if(!$('#description').val().trim()){
+        swal.fire('Warning', 'Description wajib diisi', 'warning');
+        return;
+      }
       const id = "{{ $id }}";
       const month = window.nrcMonth;
       const rows = [];
       $('tr.child-row').each(function(){
-        const monthly = {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_debit:0,saldo_credit:0};
+        const monthly = {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_akhir:0};
         $(this).find('.cell-value').each(function(){
           monthly[$(this).data('field')] = parseFloat($(this).attr('data-raw')) || 0;
         });
