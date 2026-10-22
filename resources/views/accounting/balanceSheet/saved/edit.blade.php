@@ -18,6 +18,10 @@
             <label class="form-label">Year</label>
             <input type="text" class="form-control" value="{{ $hdr->year }}" disabled>
           </div>
+          <div class="form-group col-md-3">
+            <label class="form-label">Month</label>
+            <input type="text" class="form-control" value="{{ $hdr->month ? \DateTime::createFromFormat('n', $hdr->month)->format('F') : '-' }}" disabled>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group col-md-6">
@@ -32,7 +36,6 @@
           </div>
         </div>
         <button type="button" id="btnRecalculate" class="btn btn-warning">Recalculate</button>
-        <button type="button" id="btnExport" class="btn btn-success">Export Excel</button>
       </div>
     </div>
   </div>
@@ -43,60 +46,50 @@
         <small class="text-muted">Nilai diambil otomatis dari jurnal saat dibuat. Klik angka untuk lihat detail vouchernya.</small>
         <div class="custom-control custom-checkbox mb-2">
           <input type="checkbox" class="custom-control-input" id="chkHideZero">
-          <label class="custom-control-label" for="chkHideZero">Hide akun yang nilainya 0 sepanjang tahun</label>
+          <label class="custom-control-label" for="chkHideZero">Hide akun yang nilainya 0</label>
         </div>
 
         <div class="nrcFixHead">
           <table class="table table-sm table-bordered nrcGrid">
             <thead>
               <tr>
-                <th rowspan="3" class="sticky-col col1">Account</th>
-                <th rowspan="3" class="sticky-col col2">Description</th>
-                <th rowspan="3">Account Type</th>
-                <th rowspan="3">Normal Balance</th>
-                <th rowspan="3">Final Statement</th>
-                @foreach($months as $m)
-                  <th colspan="6" class="text-center month-divider">{{ \DateTime::createFromFormat('n',$m)->format('F') }}</th>
-                @endforeach
+                <th rowspan="2" class="sticky-col col1">Account</th>
+                <th rowspan="2" class="sticky-col col2">Description</th>
+                <th rowspan="2">Account Type</th>
+                <th rowspan="2">Normal Balance</th>
+                <th rowspan="2">Final Statement</th>
+                <th colspan="2" class="text-center month-divider">Saldo Awal</th>
+                <th colspan="2" class="text-center">Pergerakan</th>
+                <th colspan="2" class="text-center">Saldo Akhir</th>
               </tr>
               <tr>
-                @foreach($months as $m)
-                  <th colspan="2" class="text-center month-divider">Saldo Awal</th>
-                  <th colspan="2" class="text-center">Pergerakan</th>
-                  <th colspan="2" class="text-center">Saldo Akhir</th>
-                @endforeach
-              </tr>
-              <tr>
-                @foreach($months as $m)
-                  @foreach($fields as $field => $label)
-                    <th class="text-center {{ $field === 'open_debit' ? 'month-divider' : '' }}">{{ $label }}</th>
-                  @endforeach
+                @foreach($fields as $field => $label)
+                  <th class="text-center {{ $field === 'open_debit' ? 'month-divider' : '' }}">{{ $label }}</th>
                 @endforeach
               </tr>
             </thead>
             <tbody>
               @foreach($groups as $g)
                 @foreach($details->where('group_data', $g->group_data)->values() as $i => $d)
-                  @php $monthly = json_decode($d->monthly, true) ?? []; @endphp
+                  @php
+                    $decoded = json_decode($d->monthly, true) ?: [];
+                    $monthly = $decoded[$hdr->month] ?? reset($decoded) ?: [];
+                  @endphp
                   <tr class="child-row {{ $i % 2 == 0 ? 'row-even' : 'row-odd' }}" data-group="{{ $g->group_data }}" data-account="{{ $d->account }}" data-det-id="{{ $d->id }}">
                     <td class="sticky-col col1">{{ $d->account }}</td>
                     <td class="sticky-col col2">{{ $d->description }}</td>
                     <td>{{ $g->group_data }} - {{ $g->group_name }}</td>
                     <td>{{ $d->debit_credit }}</td>
                     <td>{{ $d->final_statement }}</td>
-                    @foreach($months as $m)
-                      @foreach(array_keys($fields) as $field)
-                        <td class="cell-value text-right" data-month="{{ $m }}" data-field="{{ $field }}" data-raw="{{ $monthly[$m][$field] ?? 0 }}">{{ number_format($monthly[$m][$field] ?? 0, 2, ',', '.') }}</td>
-                      @endforeach
+                    @foreach(array_keys($fields) as $field)
+                      <td class="cell-value text-right" data-field="{{ $field }}" data-month="{{ $hdr->month }}" data-raw="{{ $monthly[$field] ?? 0 }}">{{ number_format($monthly[$field] ?? 0, 2, ',', '.') }}</td>
                     @endforeach
                   </tr>
                 @endforeach
                 <tr class="subtotal-row" data-subtotal-group="{{ $g->group_data }}">
                   <td colspan="5">Subtotal {{ $g->group_name }}</td>
-                  @foreach($months as $m)
-                    @foreach(array_keys($fields) as $field)
-                      <td class="subtotal-cell text-right" data-subtotal-group="{{ $g->group_data }}" data-month="{{ $m }}" data-field="{{ $field }}">0</td>
-                    @endforeach
+                  @foreach(array_keys($fields) as $field)
+                    <td class="subtotal-cell text-right" data-subtotal-group="{{ $g->group_data }}" data-field="{{ $field }}">0</td>
                   @endforeach
                 </tr>
               @endforeach
@@ -104,10 +97,8 @@
             <tfoot>
               <tr class="grandtotal-row">
                 <td colspan="5">Grand Total</td>
-                @foreach($months as $m)
-                  @foreach(array_keys($fields) as $field)
-                    <td class="grandtotal-cell text-right" data-month="{{ $m }}" data-field="{{ $field }}">0</td>
-                  @endforeach
+                @foreach(array_keys($fields) as $field)
+                  <td class="grandtotal-cell text-right" data-field="{{ $field }}">0</td>
                 @endforeach
               </tr>
             </tfoot>
@@ -129,7 +120,6 @@
   .nrcGrid th, .nrcGrid td { white-space: nowrap; vertical-align: middle; }
   .nrcGrid thead th { position: sticky; top: 0; background: #eee; z-index: 3; }
   .nrcGrid thead tr:nth-child(2) th { top: 24px; }
-  .nrcGrid thead tr:nth-child(3) th { top: 48px; }
   .sticky-col { position: sticky; z-index: 2; background: inherit; }
   .col1 { left: 0; min-width: 90px; }
   .col2 { left: 90px; min-width: 150px; }
@@ -144,17 +134,16 @@
   .cell-value[data-field^="mutasi"] { cursor: pointer; }
   .cell-value[data-field^="mutasi"]:hover { background: #fff3cd !important; text-decoration: underline; }
   .text-right { text-align: right; }
-  .month-divider, [data-field="open_debit"] { border-left: 3px solid #6c757d !important; }
+  .month-divider { border-left: 3px solid #6c757d !important; }
 </style>
 @endsection
 @section('scripts')
 <script type="text/javascript">
   window.nrcYear = {{ $hdr->year }};
+  window.nrcMonth = {{ $hdr->month ?? 'null' }};
 </script>
 @include('accounting.balanceSheet.saved._voucherModalScript')
 <script type="text/javascript">
-  // window.nrcYear sudah di-set di atas
-
   function fmt(n){
     return (n || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
@@ -165,26 +154,23 @@
     $('tr.child-row').each(function(){
       const group = $(this).data('group');
       $(this).find('.cell-value').each(function(){
-        const m = $(this).data('month');
         const field = $(this).data('field');
         const val = parseFloat($(this).attr('data-raw')) || 0;
-        const key = `${group}|${m}|${field}`;
+        const key = `${group}|${field}`;
         groupTotals[key] = (groupTotals[key] || 0) + val;
-        const gkey = `${m}|${field}`;
-        grandTotals[gkey] = (grandTotals[gkey] || 0) + val;
+        grandTotals[field] = (grandTotals[field] || 0) + val;
       });
     });
     $('.subtotal-cell').each(function(){
-      const key = `${$(this).data('subtotal-group')}|${$(this).data('month')}|${$(this).data('field')}`;
+      const key = `${$(this).data('subtotal-group')}|${$(this).data('field')}`;
       $(this).text(fmt(groupTotals[key] || 0));
     });
     $('.grandtotal-cell').each(function(){
-      const key = `${$(this).data('month')}|${$(this).data('field')}`;
-      $(this).text(fmt(grandTotals[key] || 0));
+      $(this).text(fmt(grandTotals[$(this).data('field')] || 0));
     });
   }
 
-  // Sembunyikan baris akun yang nilainya 0 di semua bulan & semua field sepanjang tahun.
+  // Sembunyikan baris akun yang nilainya 0 di semua field bulan ini.
   function applyHideZero(){
     const hide = $('#chkHideZero').is(':checked');
     $('tr.child-row').each(function(){
@@ -202,22 +188,17 @@
 
     $('#chkHideZero').on('change', applyHideZero);
 
-    $('#btnExport').on('click', function(){
-      window.location.href = "{{ route('balanceSheet.saved.exportExcel') }}?year=" + encodeURIComponent(window.nrcYear);
-    });
-
     $('#btnRecalculate').on('click', function(){
       $(".loading-spinner-container").addClass("-show");
-      $.get("{{ route('balanceSheet.saved.generateData') }}", { year: window.nrcYear })
+      $.get("{{ route('balanceSheet.saved.generateData') }}", { year: window.nrcYear, month: window.nrcMonth })
         .done(function(res){
           const data = res.data || {};
           $('tr.child-row').each(function(){
             const account = $(this).attr('data-account');
-            const monthly = data[account] || {};
+            const monthly = (data[account] && data[account][window.nrcMonth]) ? data[account][window.nrcMonth] : {};
             $(this).find('.cell-value').each(function(){
-              const m = $(this).data('month');
               const field = $(this).data('field');
-              const val = (monthly[m] && monthly[m][field]) ? monthly[m][field] : 0;
+              const val = monthly[field] ? monthly[field] : 0;
               $(this).attr('data-raw', val).text(fmt(val));
             });
           });
@@ -235,16 +216,14 @@
 
     $('#btnSave').on('click', function(){
       const id = "{{ $id }}";
+      const month = window.nrcMonth;
       const rows = [];
       $('tr.child-row').each(function(){
-        const monthly = {};
+        const monthly = {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_debit:0,saldo_credit:0};
         $(this).find('.cell-value').each(function(){
-          const m = $(this).data('month');
-          const field = $(this).data('field');
-          if(!monthly[m]) monthly[m] = {open_debit:0,open_credit:0,mutasi_debit:0,mutasi_credit:0,saldo_debit:0,saldo_credit:0};
-          monthly[m][field] = parseFloat($(this).attr('data-raw')) || 0;
+          monthly[$(this).data('field')] = parseFloat($(this).attr('data-raw')) || 0;
         });
-        rows.push({ id: $(this).data('det-id'), monthly: monthly });
+        rows.push({ id: $(this).data('det-id'), monthly: { [month]: monthly } });
       });
 
       $.ajax({

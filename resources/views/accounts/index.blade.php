@@ -55,14 +55,25 @@
         <div class="card-body">
           <div class="row">
               <div class="col-sm-12">
-                <div class="card-datatable table-responsive pt-0">
-                  <table id="detailedTable" class="table">
-                    <thead class="thead-light">
-                    </thead>
-                  </table>
+                <div id="coaTree" class="coa-tree">
+                  @foreach($tree as $type)
+                    <details class="coa-node coa-branch coa-type" open>
+                        <summary>{{ $type->code }} - {{ $type->name }}</summary>
+                        <div class="coa-children">
+                            @foreach($type->subs as $sub)
+                                <details class="coa-node coa-branch coa-sub">
+                                    <summary>{{ $sub->sub_code }} - {{ $sub->description }}</summary>
+                                    <div class="coa-children">
+                                        @include('accounts.partials.account-node', ['accounts' => $sub->accounts])
+                                    </div>
+                                </details>
+                            @endforeach
+                        </div>
+                    </details>
+                  @endforeach
                 </div>
               </div>
-          </div>  
+          </div>
         </div>
       </div>
     </div>
@@ -71,54 +82,64 @@
 @endsection
 @section('styles')
 <style>
+    .coa-tree .coa-node { margin-left: 1.25rem; }
+    .coa-tree > .coa-node { margin-left: 0; }
+    .coa-tree summary { cursor: pointer; padding: .25rem 0; }
+    .coa-tree .coa-detail { padding: .25rem 0 .25rem 1.25rem; }
+    .coa-tree .coa-actions a { margin-left: .5rem; }
+    .coa-tree .coa-hidden { display: none; }
 </style>
 @endsection
 @section('scripts')
 <script type="text/javascript">
-    $(document).ready(function(){  
+    $(document).ready(function(){
       let href;
       $(document).on('click', '#deleteButton', function(event) {
           event.preventDefault();
           href = $(this).data('href');
-          console.log(href);
           $('#modalConfirmation').attr("action", href);
       });
-      showList();
+      feather.replace();
     });
 
-     //refresh di cards
+    //expand/collapse all
+    $('a[data-action="collapse"]').on('click', function () {
+        const anyClosed = $('#coaTree details').is(':not([open])');
+        $('#coaTree details').prop('open', anyClosed);
+    });
+
     $('a[data-action="reload"]').on('click', function () {
-        showList();
+        location.reload();
     });
 
     $("#btnSearch").click(function(e){
-        showList($("#searchAcc").val(),$("#searchAccCode").val());
+        filterTree($("#searchAcc").val(), $("#searchAccCode").val());
     });
 
-    const showList = (nama,code) => {
-      showDataTables({
-        tableId:"detailedTable",
-        route:"{{ route('account.list') }}",
-        kolom:{!! $kolom !!},
-        arrColPrint:[1,2,3,4,5,6,7,8,9,10],
-        columnDefs :[
-          { width: '5%', targets: 0 }
-        ],
-        columnDefs :[
-          {
-              targets: [ 3 ],
-              render: $.fn.dataTable.render.number(',','.',2,''),
-              className: "text-right"
-          },
-        ],
-        dataSearch:  {
-          name:nama,
-          code:code
-        },
-        orderColumn:[[ 1, 'asc' ]],
-        excelFileName:'accounts'
-      });
+    const filterTree = (nama, code) => {
+        nama = (nama || '').toLowerCase();
+        code = (code || '').toLowerCase();
+
+        if (!nama && !code) {
+            $('#coaTree .coa-node').removeClass('coa-hidden');
+            return;
+        }
+
+        $('#coaTree .coa-detail').each(function () {
+            const text = $(this).text().toLowerCase();
+            const parts = text.split(' - ');
+            const acctCode = (parts[0] || '').trim();
+            const desc = parts.slice(1).join(' - ').trim();
+            const match = (!code || acctCode.includes(code)) && (!nama || desc.includes(nama));
+            $(this).toggleClass('coa-hidden', !match);
+        });
+
+        //a branch (header/sub/type) stays visible only if it still has a visible leaf underneath;
+        //walk deepest-first so a parent's visibility can rely on its children already being decided
+        $('#coaTree .coa-branch').get().reverse().forEach(function (branch) {
+            const visible = $(branch).find('.coa-detail, .coa-branch').not('.coa-hidden').length > 0;
+            $(branch).toggleClass('coa-hidden', !visible).prop('open', visible);
+        });
     }
-    
 </script>
 @endsection

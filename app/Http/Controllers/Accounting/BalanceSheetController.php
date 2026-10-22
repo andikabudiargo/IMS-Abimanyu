@@ -38,6 +38,7 @@ class BalanceSheetController extends Controller
             ['data'=> 'action', 'name'=>'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
             ['data'=> 'nrc_number', 'name'=>'nrc_number','title'=>'Nomor' ],
             ['data'=> 'year', 'name'=>'year','title'=>'Year' ],
+            ['data'=> 'month_name', 'name'=>'month_name','title'=>'Month' ],
             ['data'=> 'description', 'name'=>'description','title'=>'Description' ],
             ['data'=> 'note', 'name'=>'note','title'=>'Note' ],
             ['data'=> 'created_at', 'name'=>'created_at','title'=>'Created At' ],
@@ -56,16 +57,21 @@ class BalanceSheetController extends Controller
     {
         $nrcNumber = $request->nrcNumber;
         $year = $request->year;
+        $month = $request->month;
 
         $data = DB::table('neraca_hdr')
             ->when($nrcNumber, fn($q) => $q->where('nrc_number', 'ilike', "%$nrcNumber%"))
             ->when($year, fn($q) => $q->where('year', $year))
+            ->when($month, fn($q) => $q->where('month', $month))
             ->orderByDesc('id')
             ->get();
 
         return Datatables::of($data)
             ->addColumn('action', function ($row) {
                 return '<a href="'.route('balanceSheet.saved.edit', ['id' => Crypt::encryptString($row->id)]).'" class="btn btn-sm btn-outline-primary">Edit</a>';
+            })
+            ->addColumn('month_name', function ($row) {
+                return $row->month ? \DateTime::createFromFormat('n', $row->month)->format('F') : '-';
             })
             ->rawColumns(['action'])
             ->make(true);
@@ -201,11 +207,68 @@ class BalanceSheetController extends Controller
     public function savedGenerateData(Request $request)
     {
         $year = (int) $request->year;
+        $month = (int) $request->month; // optional: 0 = semua bulan (dipakai ringkasan tahunan/export)
         if (!$year) {
             return response()->json(['status' => 0, 'message' => 'Year wajib diisi'], 422);
         }
 
-        return response()->json(['status' => 1, 'data' => $this->monthlyDataForYear($year)]);
+        $data = $this->monthlyDataForYear($year);
+        if ($month) {
+            foreach ($data as $account => $months) {
+                $data[$account] = [$month => $months[$month] ?? null];
+            }
+        }
+
+        return response()->json(['status' => 1, 'data' => $data]);
+    }
+
+    // Gabungkan neraca_hdr+det per bulan (tiap bulan hdr terpisah) jadi satu grid 12 bulan,
+    // dipakai toggle "Ringkasan Tahunan" di halaman list. Kalau ada lebih dari satu hdr untuk
+    // bulan yang sama, dipakai yang paling baru (id terbesar).
+    private function yearSummaryData(int $year): array
+    {
+        $hdrIdByMonth = DB::table('neraca_hdr')
+            ->where('year', $year)
+            ->whereNotNull('month')
+            ->select('month', DB::raw('max(id) as id'))
+            ->groupBy('month')
+            ->pluck('id', 'month');
+
+        $result = [];
+        if ($hdrIdByMonth->isEmpty()) {
+            return $result;
+        }
+
+        $details = DB::table('neraca_det')->whereIn('nrc_hdr_id', $hdrIdByMonth->values())->get();
+        $monthByHdrId = $hdrIdByMonth->flip();
+
+        foreach ($details as $d) {
+            $month = (int) $monthByHdrId[$d->nrc_hdr_id];
+            $monthly = json_decode($d->monthly, true) ?? [];
+            $result[$d->account][$month] = $monthly[$month] ?? reset($monthly) ?: null;
+        }
+
+        return $result;
+    }
+
+    public function savedYearSummary(Request $request)
+    {
+        $year = (int) $request->year;
+        $data['title'] = "Neraca - Ringkasan Tahunan";
+        $data['year'] = $year;
+        [$data['accounts'], $data['groups']] = $this->groupedAccounts();
+        $data['months'] = $this->months;
+        return view('accounting.balanceSheet.saved.yearSummary', $data);
+    }
+
+    public function savedYearSummaryData(Request $request)
+    {
+        $year = (int) $request->year;
+        if (!$year) {
+            return response()->json(['status' => 0, 'message' => 'Year wajib diisi'], 422);
+        }
+
+        return response()->json(['status' => 1, 'data' => $this->yearSummaryData($year)]);
     }
 
     public function savedExportExcel(Request $request)
@@ -304,7 +367,6 @@ class BalanceSheetController extends Controller
         $data['title'] = "Create Neraca";
         $data['nextCode'] = $this->previewLastCode($this->moduleCode);
         [$data['accounts'], $data['groups']] = $this->groupedAccounts();
-        $data['months'] = $this->months;
         return view('accounting.balanceSheet.saved.create', $data);
     }
 
@@ -312,10 +374,11 @@ class BalanceSheetController extends Controller
     {
         $payload = json_decode($request->getContent(), true) ?? [];
         $year = $payload['year'] ?? null;
+        $month = (int) ($payload['month'] ?? 0);
         $rows = $payload['rows'] ?? [];
 
-        if (!$year || empty($rows)) {
-            return response()->json(['status' => 0, 'alert' => 'warning', 'message' => 'Year dan data COA wajib diisi'], 422);
+        if (!$year || !$month || empty($rows)) {
+            return response()->json(['status' => 0, 'alert' => 'warning', 'message' => 'Year, Month, dan data COA wajib diisi'], 422);
         }
 
         $username = Auth::user()->username;
@@ -324,12 +387,14 @@ class BalanceSheetController extends Controller
         $nrcNumber = $this->getLastCode($this->moduleCode);
 
         $accounts = DB::table('accounts')->orderBy('account')->get()->keyBy('account');
+        $emptyMonth = $this->emptyMonthly()[$month];
 
         DB::beginTransaction();
         try {
             $hdrId = DB::table('neraca_hdr')->insertGetId([
                 'nrc_number' => $nrcNumber,
                 'year' => $year,
+                'month' => $month,
                 'description' => $payload['description'] ?? null,
                 'note' => $payload['note'] ?? null,
                 'created_by' => $username,
@@ -351,7 +416,7 @@ class BalanceSheetController extends Controller
                     'description' => $acc->description ?? null,
                     'debit_credit' => $acc->debit_credit ?? null,
                     'final_statement' => $acc->final_statement ?? null,
-                    'monthly' => json_encode($row['monthly'] ?? $this->emptyMonthly()),
+                    'monthly' => json_encode([$month => $row['monthly'][$month] ?? $emptyMonth]),
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
@@ -393,7 +458,6 @@ class BalanceSheetController extends Controller
 
         $data['details'] = $details;
         $data['groups'] = $groups;
-        $data['months'] = $this->months;
         return view('accounting.balanceSheet.saved.edit', $data);
     }
 
@@ -403,6 +467,11 @@ class BalanceSheetController extends Controller
         $username = Auth::user()->username;
         $payload = json_decode($request->getContent(), true) ?? [];
         $rows = $payload['rows'] ?? [];
+        $month = (int) DB::table('neraca_hdr')->where('id', $id)->value('month');
+        if (!$month) {
+            return response()->json(['status' => 0, 'alert' => 'warning', 'message' => 'Neraca lama (format tahunan) tidak bisa diedit, buat ulang per bulan lewat menu Create'], 422);
+        }
+        $emptyMonth = $this->emptyMonthly()[$month];
 
         DB::beginTransaction();
         try {
@@ -421,7 +490,7 @@ class BalanceSheetController extends Controller
                     ->where('id', $row['id'])
                     ->where('nrc_hdr_id', $id)
                     ->update([
-                        'monthly' => json_encode($row['monthly'] ?? $this->emptyMonthly()),
+                        'monthly' => json_encode([$month => $row['monthly'][$month] ?? $emptyMonth]),
                         'updated_at' => date('Y-m-d H:i:s'),
                     ]);
             }

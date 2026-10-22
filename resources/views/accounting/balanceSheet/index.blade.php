@@ -21,11 +21,23 @@
                   <input type="number" class="form-control" id="searchYear" name="searchYear">
                 </div>
               </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="searchMonth">Month</label>
+                  <select class="form-control" id="searchMonth" name="searchMonth">
+                    <option value="">-- Semua --</option>
+                    @foreach(range(1,12) as $m)
+                      <option value="{{ $m }}">{{ \DateTime::createFromFormat('n',$m)->format('F') }}</option>
+                    @endforeach
+                  </select>
+                </div>
+              </div>
             </div>
             <div class="form-row">
               <div class="col-12">
                 <button type="button" class="btn btn-primary" id="btnSearch" name="btnSearch">Search</button>
                 <a href="{{ route('balanceSheet.saved.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
+                <button type="button" class="btn btn-outline-secondary" id="btnYearSummary"><i class="fa fa-table"></i> Ringkasan Tahunan</button>
               </div>
             </div>
           </form>
@@ -72,10 +84,19 @@
   });
 
   $("#btnSearch").click(function(e){
-    showList($("#searchNrcNumber").val(), $("#searchYear").val());
+    showList($("#searchNrcNumber").val(), $("#searchYear").val(), $("#searchMonth").val());
   });
 
-  const showList = (nrcNumber, year) => {
+  $("#btnYearSummary").click(function(e){
+    const year = $("#searchYear").val();
+    if(!year){
+      swal.fire('Warning', 'Isi Year dulu untuk lihat ringkasan tahunan', 'warning');
+      return;
+    }
+    window.location.href = "{{ route('balanceSheet.saved.yearSummary') }}?year=" + encodeURIComponent(year);
+  });
+
+  const showList = (nrcNumber, year, month) => {
     showDataTables({
       tableId: "detailedTable",
       route: "{{ route('balanceSheet.list') }}",
@@ -83,7 +104,8 @@
       orderColumn: [[ 1, 'desc' ]],
       dataSearch: {
         nrcNumber: nrcNumber,
-        year: year
+        year: year,
+        month: month
       },
       excelFileName: 'neraca'
     });

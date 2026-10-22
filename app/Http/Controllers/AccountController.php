@@ -44,8 +44,42 @@ class AccountController extends Controller
     public function index(Request $request)
     {
         $data['title'] = $this->title;
-        $data['kolom'] = $this->getTableColoumn();
+        $data['tree'] = $this->buildTree();
         return view("accounts.index",$data);
+    }
+
+    /**
+     * COA tree: Account Type -> Sub Account -> Header (recursive) -> Detail,
+     * following accounts.parent_id (sub_code or a header account's code).
+     */
+    private function buildTree()
+    {
+        $subsByType = DB::table('acc_sub')->orderBy('sub_code')->get()->groupBy('type_code');
+        $accountsByParent = DB::table('accounts')
+            ->orderByRaw("
+                NULLIF(split_part(account, '.', 1), '')::numeric,
+                NULLIF(split_part(account, '.', 2), '')::numeric,
+                NULLIF(split_part(account, '.', 3), '')::numeric,
+                account
+            ")
+            ->get()
+            ->groupBy('parent_id');
+
+        $children = function ($parentId) use (&$children, $accountsByParent) {
+            return ($accountsByParent[$parentId] ?? collect())->map(function ($acc) use (&$children) {
+                $acc->children = strtoupper($acc->acc_header) === 'HEADER' ? $children($acc->account) : collect();
+                return $acc;
+            });
+        };
+
+        return DB::table('acc_types')->where('status', 1)->orderBy('code')->get()
+            ->map(function ($type) use ($subsByType, $children) {
+                $type->subs = ($subsByType[$type->code] ?? collect())->map(function ($sub) use ($children) {
+                    $sub->accounts = $children($sub->sub_code);
+                    return $sub;
+                });
+                return $type;
+            });
     }
 
     public function create(Request $request)
