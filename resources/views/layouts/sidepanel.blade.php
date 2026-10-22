@@ -742,7 +742,7 @@
         @can('accounting-menu')
           <li class=" navigation-header"><span data-i18n="Finance Accounting">Finance, Accounting & Tax</span><i data-feather="more-horizontal"></i>
           </li>
-          <li class=" {{ in_array(\Request::segment(1), ['aps','balanceSheet','labaRugi','trialBalance','invoice','cashbook','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc','dnMonitoring','jurnalUmum','accountPayable','debitnote','bankReconciliation']) ? 'active' : '' }} nav-item">
+          <li class=" {{ in_array(\Request::segment(1), ['aps','balanceSheet','labaRugi','trialBalance','invoice','cashbook','kasPenerimaan','kasKeluar','bankPenerimaan','bankKeluar','deliveryReportAcc','deliveryReportSoAcc','dnMonitoring','jurnalUmum','accountPayable','debitnote','bankReconciliation','ppnPkEqualisasi']) ? 'active' : '' }} nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
               <i data-feather="dollar-sign"></i>
               <span class="menu-title text-truncate" data-i18n="Form Elements">Finance
@@ -791,6 +791,8 @@
                       <li class="{{ \Request::segment(1) == 'deliveryReportAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('delivery.report.acc') }}"><span class="menu-item text-truncate" data-i18n="Dn Report Acc">DN Report</span></a>
                     </li>
                       <li class="{{ \Request::segment(1) == 'dnMonitoringAcc'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('dnMonitoring.index') }}"><span class="menu-item text-truncate" data-i18n="DN Monitoring Acc">DN Outstanding</span></a>
+                    </li>
+                    <li class="{{ \Request::segment(1) == 'ppnPkEqualisasi'  ? 'active' : '' }}"><a class="d-flex align-items-center" href="{{ route('ppnPkEqualisasi.index') }}"><span class="menu-item text-truncate" data-i18n="Equalisasi PPN PK">Equalisasi PPN PK</span></a>
                     </li>
                   </ul>
                 </li>
@@ -862,13 +864,6 @@
                 </a>
               </li>
               @endcan
-                </ul>
-              </li>
-              
-               <li><a class="d-flex align-items-center" href="#"><i data-feather="circle"></i><span class="menu-item text-truncate" data-i18n="Tax">Tax Management</span></a>
-                <ul class="menu-content">
-                
-                 
                 </ul>
               </li>
 
@@ -943,6 +938,85 @@
             </ul>
           </li>
         @endcan
+
+        <li class="nav-item">
+            <a class="d-flex align-items-center" href="javascript:void(0);">
+              <i data-feather="book"></i>
+              <span class="menu-title text-truncate" data-i18n="Form Elements">Tax
+              </span>
+            </a>
+            <ul class="menu-content">
+
+
+              <li>
+                <a class="d-flex align-items-center" href="#">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi PPn-PK</span>
+                </a>
+              </li>
+
+
+
+              <li>
+                <a class="d-flex align-items-center" href="#">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi PPn-PM</span>
+                </a>
+              </li>
+
+                <li>
+                <a class="d-flex align-items-center" href="#">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi Unifikasi PPh 23</span>
+                </a>
+              </li>
+
+               <li>
+                <a class="d-flex align-items-center" href="#">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi Unifikasi PPh 4(2)</span>
+                </a>
+              </li>
+
+               <li>
+                <a class="d-flex align-items-center" href="#">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi Unifikasi PPh 23 Customer</span>
+                </a>
+              </li>
+
+               <li>
+                <a class="d-flex align-items-center" href="#">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi Unifikasi PPh 21 (Non Pegawai)</span>
+                </a>
+              </li>
+
+               <li>
+                <a class="d-flex align-items-center" href="#">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Normatif Entertainment</span>
+                </a>
+              </li>
+
+               <li>
+                <a class="d-flex align-items-center" href="#">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Normatif Promosi</span>
+                </a>
+              </li>
+
+               <li>
+                <a class="d-flex align-items-center" href="#">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Badan Fiskal</span>
+                </a>
+              </li>
+
+
+
+            </ul>
+          </li>
 
         <li class=" navigation-header"><span data-i18n="hrm">ENVIRONMENT</span><i data-feather="more-horizontal"></i>
         </li>

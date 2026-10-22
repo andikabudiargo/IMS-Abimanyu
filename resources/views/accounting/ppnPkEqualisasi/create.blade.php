@@ -1,0 +1,269 @@
+@extends('layouts.app')
+@section('title', $title)
+@section('content')
+@include('layouts.breadcrumb')
+
+<section id="add-ppnPkEqualisasi">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">Equalisasi PPN PK — Upload Faktur Pajak Keluaran</h4>
+    </div>
+    <div class="card-content collapse show">
+      <div class="card-body">
+        <form id="frmAdd" name="frmAdd" autocomplete="off" enctype="multipart/form-data">
+          @csrf
+          <div class="form-row">
+            <div class="form-group col-md-4">
+              <label for="equalNumber" class="form-label">
+                Equal Number
+                <small class="text-muted">automatic</small>
+              </label>
+              <input type="text" id="equalNumber" name="equalNumber" class="form-control text-hitam disabled-el" disabled>
+            </div>
+            <div class="form-group col-md-2">
+              <label class="form-label" for="periode">Periode*</label>
+              <select class="select2 form-control" id="periode" name="periode" required>
+                <option value=""></option>
+                @foreach ($periodes as $val => $label)
+                  <option value="{{ $val }}">{{ $label }}</option>
+                @endforeach
+              </select>
+            </div>
+            <div class="form-group col-md-2">
+              <label class="form-label" for="year">Tahun*</label>
+              <input type="number" id="year" name="year" class="form-control" value="{{ date('Y') }}" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-8">
+              <label class="form-label" for="description">Description</label>
+              <input type="text" id="description" name="description" class="form-control" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-8">
+              <label class="form-label" for="statement">Data Faktur Pajak Keluaran (Excel)*</label>
+              <div class="custom-file">
+                <input type="file" class="custom-file-input" name="statement" id="statement" accept=".xls,.xlsx" required />
+                <label class="custom-file-label" for="statement" id="statementLabel">Choose file</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-row mt-1">
+            <div class="col-12">
+              <button class="btn btn-primary" type="button" id="cmdPreview">
+                <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
+                <span class="align-middle d-sm-inline-block d-none">Upload &amp; Equalisasi</span>
+              </button>
+              <a href="{{ route('ppnPkEqualisasi.index') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+{{-- Ringkasan Excel vs Buku Besar -- muncul begitu preview berhasil, sebelum tabel detail --}}
+<section id="info-ppnPkEqualisasi" class="d-none">
+  <div class="card">
+    <div class="card-body">
+      <table class="table table-sm table-bordered bb2-info mb-0">
+        <tbody>
+          <tr>
+            <th width="20%">Total DPP (Excel)</th><td width="30%" class="text-right" id="i-total-dpp"></td>
+            <th width="20%">Total PPN (Excel)</th><td class="text-right" id="i-total-ppn"></td>
+          </tr>
+          <tr>
+            <th>Mutasi Kredit COA 2000.14.1 (Buku Besar)</th><td class="text-right" id="i-gl-kredit"></td>
+            <th>Selisih</th><td class="text-right font-weight-bold" id="i-selisih"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+{{-- Hasil preview (parse) -- belum tersimpan sampai user klik Save manual --}}
+<section id="preview-ppnPkEqualisasi" class="d-none">
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title">Preview Hasil Parse</h4>
+      <span id="previewSummary" class="badge badge-light-info"></span>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive bankrecon-scroll">
+        <table class="table table-striped bankrecon-table">
+          <thead class="thead-light">
+            <tr>
+              <th>No</th>
+              <th>Masa Pajak</th>
+              <th>Nomor Dokumen</th>
+              <th>Status</th>
+              <th>NPWP</th>
+              <th>Nama</th>
+              <th class="text-right">DPP</th>
+              <th class="text-right">PPN</th>
+            </tr>
+          </thead>
+          <tbody id="previewRows"></tbody>
+        </table>
+      </div>
+      <div class="form-row mt-1">
+        <div class="col-12">
+          <button class="btn btn-success" type="button" id="cmdSave">
+            <i data-feather="save" class="align-middle mr-sm-25 mr-0"></i>
+            <span class="align-middle d-sm-inline-block d-none">Save</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+@endsection
+
+@section('styles')
+<style>
+  .bankrecon-scroll { max-height: 32rem; overflow-y: auto; }
+  .bankrecon-table th, .bankrecon-table td { padding: 0.9rem 0.75rem; vertical-align: middle; }
+  .bankrecon-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: #f8f8f8;
+  }
+</style>
+@endsection
+
+@section('scripts')
+<script type="text/javascript">
+
+  let previewFilePath = null;
+
+  $(document).ready(function () {
+    validateFormToast("frmAdd");
+
+    $('#statement').on('change', function () {
+      let name = $(this).val().split('\\').pop() || 'Choose file';
+      $('#statementLabel').text(name);
+      // Ganti file -> preview lama (kalau ada) jadi tidak valid lagi.
+      previewFilePath = null;
+      $('#preview-ppnPkEqualisasi').addClass('d-none');
+      $('#info-ppnPkEqualisasi').addClass('d-none');
+    });
+  });
+
+  function fmtNumber(n) {
+    return Number(n).toLocaleString('id-ID', { minimumFractionDigits: 2 });
+  }
+
+  function renderPreview(data) {
+    let rows = data.rows.map(function (r, i) {
+      return `<tr>
+        <td>${i + 1}</td>
+        <td>${r.masa_pajak}</td>
+        <td>${r.doc_number}</td>
+        <td>${r.status}</td>
+        <td>${r.npwp}</td>
+        <td>${r.nama}</td>
+        <td class="text-right">${fmtNumber(r.dpp)}</td>
+        <td class="text-right">${fmtNumber(r.ppn)}</td>
+      </tr>`;
+    }).join('');
+
+    $('#previewRows').html(rows);
+    $('#previewSummary').text(`${data.totalRows} baris`);
+
+    $('#i-total-dpp').text(fmtNumber(data.totalDpp));
+    $('#i-total-ppn').text(fmtNumber(data.totalPpn));
+    $('#i-gl-kredit').text(fmtNumber(data.glMutasiKredit));
+    $('#i-selisih')
+      .text(fmtNumber(data.selisih))
+      .toggleClass('text-danger', !data.match)
+      .toggleClass('text-success', data.match);
+    $('#info-ppnPkEqualisasi').removeClass('d-none');
+
+    $('#preview-ppnPkEqualisasi').removeClass('d-none');
+    document.getElementById('info-ppnPkEqualisasi').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  $('#cmdPreview').on('click', function () {
+    if (!$('#frmAdd')[0].checkValidity()) {
+      $('#frmAdd')[0].reportValidity();
+      return;
+    }
+
+    $(".loading-spinner-container").addClass("-show");
+    $('#cmdPreview').attr('disabled', 'disabled');
+    $('#preview-ppnPkEqualisasi').addClass('d-none');
+
+    $.ajax({
+      url: "{{ route('ppnPkEqualisasi.preview') }}",
+      method: "POST",
+      data: new FormData(document.getElementById('frmAdd')),
+      dataType: "json",
+      contentType: false,
+      cache: false,
+      processData: false,
+      success: function (data) {
+        $('#cmdPreview').removeAttr('disabled');
+        $(".loading-spinner-container").removeClass("-show");
+        show_msg(data.title, data.message, data.alert);
+        if (data.status == 1) {
+          previewFilePath = data.filePath;
+          renderPreview(data);
+        }
+      },
+      error: function (xhr) {
+        $('#cmdPreview').removeAttr('disabled');
+        $(".loading-spinner-container").removeClass("-show");
+        let err = JSON.parse(xhr.responseText);
+        Swal.fire('Error..', err.message ? JSON.stringify(err.message) : 'Failed to preview', 'error');
+      }
+    });
+  });
+
+  $('#cmdSave').on('click', function () {
+    if (!previewFilePath) {
+      Swal.fire('Warning', 'Preview dulu sebelum Save.', 'warning');
+      return;
+    }
+
+    $(".loading-spinner-container").addClass("-show");
+    $('#cmdSave').attr('disabled', 'disabled');
+
+    $.ajax({
+      url: "{{ route('ppnPkEqualisasi.store') }}",
+      method: "POST",
+      data: {
+        periode: $('#periode').val(),
+        year: $('#year').val(),
+        description: $('#description').val(),
+        filePath: previewFilePath,
+      },
+      dataType: "json",
+      success: function (data) {
+        $('#cmdSave').removeAttr('disabled');
+        $(".loading-spinner-container").removeClass("-show");
+        show_msg(data.title, data.message, data.alert);
+        if (data.status == 1) {
+          setTimeout(function () {
+            window.location.href = "{{ route('ppnPkEqualisasi.index') }}";
+          }, 1500);
+        }
+      },
+      error: function (xhr) {
+        $('#cmdSave').removeAttr('disabled');
+        $(".loading-spinner-container").removeClass("-show");
+        let err = JSON.parse(xhr.responseText);
+        Swal.fire('Error..', err.message ? JSON.stringify(err.message) : 'Failed to save', 'error');
+      }
+    });
+  });
+
+  $.ajaxSetup({
+    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+  });
+
+</script>
+@endsection

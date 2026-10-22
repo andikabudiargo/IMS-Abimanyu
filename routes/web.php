@@ -1173,6 +1173,16 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::post('bankReconciliation/unmatch',['as'=>'bankReconciliation.unmatch','uses'=>'Accounting\BankReconciliationController@unmatch']);
 	Route::post('bankReconciliation/recalculate',['as'=>'bankReconciliation.recalculate','uses'=>'Accounting\BankReconciliationController@recalculate']);
 	Route::post('bankReconciliation/delete',['as'=>'bankReconciliation.destroy','uses'=>'Accounting\BankReconciliationController@destroy']);
+
+	Route::get('ppnPkEqualisasi',['as'=>'ppnPkEqualisasi.index','uses'=>'Accounting\PpnPkEqualisasiController@index']);
+	Route::get('ppnPkEqualisasi/list',['as'=>'ppnPkEqualisasi.list','uses'=>'Accounting\PpnPkEqualisasiController@list']);
+	Route::get('ppnPkEqualisasi/create',['as'=>'ppnPkEqualisasi.create','uses'=>'Accounting\PpnPkEqualisasiController@create']);
+	Route::post('ppnPkEqualisasi/preview',['as'=>'ppnPkEqualisasi.preview','uses'=>'Accounting\PpnPkEqualisasiController@preview']);
+	Route::post('ppnPkEqualisasi/store',['as'=>'ppnPkEqualisasi.store','uses'=>'Accounting\PpnPkEqualisasiController@store']);
+	Route::get('ppnPkEqualisasi/show',['as'=>'ppnPkEqualisasi.show','uses'=>'Accounting\PpnPkEqualisasiController@show']);
+	Route::get('ppnPkEqualisasi/list/detail',['as'=>'ppnPkEqualisasi.list.detail','uses'=>'Accounting\PpnPkEqualisasiController@listDetail']);
+	Route::post('ppnPkEqualisasi/delete',['as'=>'ppnPkEqualisasi.destroy','uses'=>'Accounting\PpnPkEqualisasiController@destroy']);
+
 	Route::get('kasPenerimaan',['as'=>'kasPenerimaan.index','uses'=>'Accounting\KasPenerimaanController@index']);
 	Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create']);
 	Route::post('kasPenerimaan/store',['as'=>'kasPenerimaan.store','uses'=>'Accounting\KasPenerimaanController@store']);
