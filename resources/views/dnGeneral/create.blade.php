@@ -189,6 +189,9 @@
     var currentCust    = null;
     var articleOptions = [];
 
+    // Jaeeco: customer bukan dari master third_party, teks tetap
+    var JAEECO_CUSTOMER_TEXT = 'PT YUSEN LOGISTIC INTERLINK INDONESIA';
+
     // ─── Helpers UI ───────────────────────────────────────────────────────────────
     function showWarning(id) {
         $('#typeWarning, #custWarning, #articleLoading, #articleSection').hide();
@@ -285,19 +288,28 @@ initDatePicker('#deliveryDate', { maxDate: "today" });
         $('#type').on('change', function() {
             currentType = $(this).val() || null;
 
-            // Rebuild opsi customer sesuai type
-            var list = currentType ? (partyData[currentType] || []) : [];
-            var opts = '<option value="">Choose Customer / Supplier</option>';
-            $.each(list, function(i, p) {
-                opts += '<option value="' + p.kode + '">' + p.kode + ' - ' + p.nama + '</option>';
-            });
-            $('#cust').html(opts).val('').trigger('change.select2');
+            if (currentType === 'jaeeco') {
+                // Customer fix (bukan dari master third_party), tidak bisa diubah
+                var opts = '<option value="' + JAEECO_CUSTOMER_TEXT + '" selected>' + JAEECO_CUSTOMER_TEXT + '</option>';
+                $('#cust').html(opts).val(JAEECO_CUSTOMER_TEXT).trigger('change.select2');
+                $('#cust').prop('disabled', true).trigger('change.select2');
+            } else {
+                $('#cust').prop('disabled', false);
+
+                // Rebuild opsi customer sesuai type
+                var list = currentType ? (partyData[currentType] || []) : [];
+                var opts = '<option value="">Choose Customer / Supplier</option>';
+                $.each(list, function(i, p) {
+                    opts += '<option value="' + p.kode + '">' + p.kode + ' - ' + p.nama + '</option>';
+                });
+                $('#cust').html(opts).val('').trigger('change.select2');
+            }
 
             // Update label
             var custLabels = { rm: 'Supplier', ot: 'Customer', other: 'Customer / Supplier', jaeeco: 'Customer' };
             $('#custLabel').text(custLabels[currentType] || 'Customer / Supplier');
 
-            currentCust = null;
+            currentCust = currentType === 'jaeeco' ? JAEECO_CUSTOMER_TEXT : null;
             tryLoadArticles();
         });
 

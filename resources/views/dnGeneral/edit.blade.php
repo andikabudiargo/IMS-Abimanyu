@@ -63,33 +63,38 @@
                                 <div class="form-group col-md-4">
                                     <label class="form-label" for="cust">
                                         @if ($header->dn_type === 'rm') Supplier
-                                        @elseif ($header->dn_type === 'ot') Customer
+                                        @elseif ($header->dn_type === 'ot' || $header->dn_type === 'jaeeco') Customer
                                         @else Customer / Supplier
                                         @endif *
                                     </label>
-                                    <select class="select2 form-control" id="cust" name="cust" required>
-                                        <option value="">Pilih</option>
-                                        @if ($header->dn_type === 'rm')
-                                            @foreach ($suppliers as $val)
-                                                <option value="{{ $val->kode }}"
-                                                    {{ $val->kode == $header->customer_id ? 'selected' : '' }}>
-                                                    {{ $val->kode }} - {{ $val->nama }}
-                                                </option>
-                                            @endforeach
-                                        @elseif ($header->dn_type === 'ot')
-                                            @foreach ($customers as $val)
-                                                <option value="{{ $val->kode }}"
-                                                    {{ $val->kode == $header->customer_id ? 'selected' : '' }}>
-                                                    {{ $val->kode }} - {{ $val->nama }}
-                                                </option>
-                                            @endforeach
+                                    <select class="select2 form-control" id="cust" name="cust" required
+                                            {{ $header->dn_type === 'jaeeco' ? 'disabled' : '' }}>
+                                        @if ($header->dn_type === 'jaeeco')
+                                            <option value="{{ $header->customer_id }}" selected>{{ $header->customer_id }}</option>
                                         @else
-                                            @foreach ($allParties as $val)
-                                                <option value="{{ $val->kode }}"
-                                                    {{ $val->kode == $header->customer_id ? 'selected' : '' }}>
-                                                    {{ $val->kode }} - {{ $val->nama }}
-                                                </option>
-                                            @endforeach
+                                            <option value="">Pilih</option>
+                                            @if ($header->dn_type === 'rm')
+                                                @foreach ($suppliers as $val)
+                                                    <option value="{{ $val->kode }}"
+                                                        {{ $val->kode == $header->customer_id ? 'selected' : '' }}>
+                                                        {{ $val->kode }} - {{ $val->nama }}
+                                                    </option>
+                                                @endforeach
+                                            @elseif ($header->dn_type === 'ot')
+                                                @foreach ($customers as $val)
+                                                    <option value="{{ $val->kode }}"
+                                                        {{ $val->kode == $header->customer_id ? 'selected' : '' }}>
+                                                        {{ $val->kode }} - {{ $val->nama }}
+                                                    </option>
+                                                @endforeach
+                                            @else
+                                                @foreach ($allParties as $val)
+                                                    <option value="{{ $val->kode }}"
+                                                        {{ $val->kode == $header->customer_id ? 'selected' : '' }}>
+                                                        {{ $val->kode }} - {{ $val->nama }}
+                                                    </option>
+                                                @endforeach
+                                            @endif
                                         @endif
                                     </select>
                                 </div>

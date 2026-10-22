@@ -208,7 +208,7 @@ private function visibleDepts()
         if ($dnType === 'rm') {
             return 'SUPP';
         }
-        if ($dnType === 'ot') {
+        if ($dnType === 'ot' || $dnType === 'jaeeco') {
             return 'CUST';
         }
 
@@ -369,7 +369,7 @@ private function visibleDepts()
             ->where('dn_general_hdr.id', $id)
             ->select(
                 'dn_general_hdr.*',
-                DB::raw("concat(third_party.kode, ' - ', third_party.nama) as customer_name"),
+                DB::raw("case when third_party.kode is null then dn_general_hdr.customer_id else concat(third_party.kode, ' - ', third_party.nama) end as customer_name"),
                 'third_party.alamat_kirim_1'
             )
             ->first();
@@ -475,6 +475,10 @@ $tDnNumber = $header->tdn_number;
             ->get();
 
         $customer = DB::table('third_party')->where('kode', $dnHdr->customer_id)->first();
+        if (!$customer) {
+            // Customer teks bebas (mis. type Jaeeco: "PT Yusen..."), bukan dari master third_party
+            $customer = (object) ['kode' => null, 'nama' => $dnHdr->customer_id, 'alamat_kirim_1' => null];
+        }
 
         $data['dnHdr']    = $dnHdr;
         $data['details']  = $details;
@@ -1433,7 +1437,7 @@ try {
                 if ($searchCustomer) $query->where('dn_general_hdr.customer_id', $searchCustomer);
             })
             ->where('dn_general_hdr.status', '!=', '4')
-            ->select('dn_general_hdr.*', DB::raw("concat(third_party.kode,'-',third_party.nama) as customer_name"))
+            ->select('dn_general_hdr.*', DB::raw("case when third_party.kode is null then dn_general_hdr.customer_id else concat(third_party.kode,'-',third_party.nama) end as customer_name"))
             ->orderBy('dn_general_hdr.id', 'desc');
 
         // Filter berdasarkan dept user pembuat
@@ -1441,7 +1445,7 @@ try {
 
         return \DataTables::of($data)
             ->filterColumn('customer_name', function ($query, $keyword) {
-                $query->whereRaw("concat(third_party.kode,'-',third_party.nama) ilike ?", ["%{$keyword}%"]);
+                $query->whereRaw("coalesce(concat(third_party.kode,'-',third_party.nama), dn_general_hdr.customer_id) ilike ?", ["%{$keyword}%"]);
             })
             ->orderColumn('customer_name', "third_party.nama \$1")
             ->addColumn('action', function ($data) {
@@ -1529,7 +1533,7 @@ try {
                 'dn_general_hdr.note',
                  'dn_general_hdr.armada',
                 'dn_general_hdr.status',
-                DB::raw("concat(third_party.kode,'-',third_party.nama) as customer_name")
+                DB::raw("case when third_party.kode is null then dn_general_hdr.customer_id else concat(third_party.kode,'-',third_party.nama) end as customer_name")
             )
             ->orderBy('dn_general_det.id')
             ->orderBy('dn_general_det.tdn_number');
@@ -1539,7 +1543,7 @@ try {
 
         return \DataTables::of($data)
             ->filterColumn('customer_name', function ($query, $keyword) {
-                $query->whereRaw("concat(third_party.kode,'-',third_party.nama) ilike ?", ["%{$keyword}%"]);
+                $query->whereRaw("coalesce(concat(third_party.kode,'-',third_party.nama), dn_general_hdr.customer_id) ilike ?", ["%{$keyword}%"]);
             })
             ->filterColumn('article_alternative_code', function ($query, $keyword) {
                 $query->whereRaw("coalesce(article.article_alternative_code, dn_general_det.article_code) ilike ?", ["%{$keyword}%"]);
