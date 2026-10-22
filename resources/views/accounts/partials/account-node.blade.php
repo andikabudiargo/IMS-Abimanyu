@@ -1,15 +1,12 @@
 @foreach($accounts as $acc)
     @if(strtoupper($acc->acc_header) === 'HEADER')
-        <details class="coa-node coa-branch coa-header">
-            <summary>{{ $acc->account }} - {{ $acc->description }}</summary>
-            <div class="coa-children">
-                @include('accounts.partials.account-node', ['accounts' => $acc->children])
-            </div>
-        </details>
+        <tr class="coa-group coa-header-row" data-level="{{ $level }}">
+            <td colspan="7" style="padding-left: {{ $level * 1.5 }}rem">{{ $acc->account }} - {{ $acc->description }}</td>
+        </tr>
+        @include('accounts.partials.account-node', ['accounts' => $acc->children, 'level' => $level + 1])
     @else
-        <div class="coa-node coa-detail d-flex justify-content-between align-items-center">
-            <span>{{ $acc->account }} - {{ $acc->description }}</span>
-            <span class="coa-actions">
+        <tr class="coa-detail-row" data-level="{{ $level }}">
+            <td class="coa-actions">
                 @can('account-edit')
                 <a href="{{ route('account.edit', ['id' => Crypt::encryptString($acc->id)]) }}" title="Edit">
                     <i data-feather="file-text"></i>
@@ -21,7 +18,13 @@
                     <i data-feather="trash-2" class="feather-14-red"></i>
                 </a>
                 @endcan
-            </span>
-        </div>
+            </td>
+            <td style="padding-left: {{ $level * 1.5 }}rem">{{ $acc->account }}</td>
+            <td>{{ $acc->description }}</td>
+            <td class="text-right">{{ number_format($acc->opening_balance, 2) }}</td>
+            <td>{{ $acc->debit_credit }}</td>
+            <td>{{ $acc->final_statement }}</td>
+            <td>{{ $acc->note }}</td>
+        </tr>
     @endif
 @endforeach

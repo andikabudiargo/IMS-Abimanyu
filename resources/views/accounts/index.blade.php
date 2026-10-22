@@ -32,6 +32,11 @@
                         @can('account-create')
                         <a href="{{ route('account.create') }}" class="btn btn-info"><i class="fa fa-plus"></i> Create</a>
                         @endcan
+                        @can('coa-move')
+                        <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#moveCoaModal">
+                            <i class="fa fa-exchange"></i> Move COA
+                        </button>
+                        @endcan
                     </div>
                 </div>
             </form>
@@ -46,7 +51,6 @@
         <h4 class="card-title">List @yield('title')</h4>
         <div class="heading-elements">
             <ul class="list-inline mb-0">
-                <li><a data-action="collapse"><i data-feather="chevron-down"></i></a></li>
                 <li><a data-action="reload"><i data-feather="rotate-cw"></i></a></li>
             </ul>
         </div>
@@ -55,22 +59,33 @@
         <div class="card-body">
           <div class="row">
               <div class="col-sm-12">
-                <div id="coaTree" class="coa-tree">
-                  @foreach($tree as $type)
-                    <details class="coa-node coa-branch coa-type" open>
-                        <summary>{{ $type->code }} - {{ $type->name }}</summary>
-                        <div class="coa-children">
+                <div class="card-datatable table-responsive pt-0">
+                  <table id="coaTable" class="table coa-table">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width:5%">Action</th>
+                            <th>Account</th>
+                            <th>Description</th>
+                            <th class="text-right">Opening Balance</th>
+                            <th>Normal Balance</th>
+                            <th>Final Statement</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($tree as $type)
+                            <tr class="coa-group coa-type-row" data-level="0">
+                                <td colspan="7"><strong>{{ $type->code }} - {{ $type->name }}</strong></td>
+                            </tr>
                             @foreach($type->subs as $sub)
-                                <details class="coa-node coa-branch coa-sub">
-                                    <summary>{{ $sub->sub_code }} - {{ $sub->description }}</summary>
-                                    <div class="coa-children">
-                                        @include('accounts.partials.account-node', ['accounts' => $sub->accounts])
-                                    </div>
-                                </details>
+                                <tr class="coa-group coa-sub-row" data-level="1">
+                                    <td colspan="7" style="padding-left: 1.5rem">{{ $sub->sub_code }} - {{ $sub->description }}</td>
+                                </tr>
+                                @include('accounts.partials.account-node', ['accounts' => $sub->accounts, 'level' => 2])
                             @endforeach
-                        </div>
-                    </details>
-                  @endforeach
+                        @endforeach
+                    </tbody>
+                  </table>
                 </div>
               </div>
           </div>
@@ -79,15 +94,76 @@
     </div>
 </section>
 @include('partials.delete-modal')
+
+@can('coa-move')
+<div class="modal fade" id="moveCoaModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Move COA</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    Pindah/merge COA: semua dokumen yang masih memakai kode akun <b>Source</b> akan diubah
+                    menjadi <b>Target</b>, termasuk dokumen di periode yang sudah di-lock. Tidak bisa dibatalkan
+                    otomatis &mdash; cek checklist di bawah dengan teliti sebelum klik Move.
+                </div>
+                <div class="form-row">
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Source account (akan dipindah)</label>
+                            <input type="text" id="sourceAccount" class="form-control text-uppercase" placeholder="kode COA lama">
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Target account (tujuan)</label>
+                            <input type="text" id="targetAccount" class="form-control text-uppercase" placeholder="kode COA baru">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="button" id="scanBtn" class="btn btn-primary form-control">Scan</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="scanResult" style="display:none;">
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <a href="javascript:void(0)" id="checkAll">Check all</a> |
+                            <a href="javascript:void(0)" id="uncheckAll">Uncheck all</a>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="deactivateSource">
+                            <label class="form-check-label" for="deactivateSource">Deactivate source account after move</label>
+                        </div>
+                    </div>
+                    <table class="table table-sm table-bordered" id="scanTable">
+                        <thead>
+                            <tr><th style="width:40px"></th><th>Table</th><th>Column</th><th>Rows affected</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" id="moveBtn" class="btn btn-danger">Move selected</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endcan
 @endsection
 @section('styles')
 <style>
-    .coa-tree .coa-node { margin-left: 1.25rem; }
-    .coa-tree > .coa-node { margin-left: 0; }
-    .coa-tree summary { cursor: pointer; padding: .25rem 0; }
-    .coa-tree .coa-detail { padding: .25rem 0 .25rem 1.25rem; }
-    .coa-tree .coa-actions a { margin-left: .5rem; }
-    .coa-tree .coa-hidden { display: none; }
+    .coa-table .coa-group { background-color: rgba(0,0,0,.03); }
+    .coa-table .coa-type-row { font-weight: 600; }
+    .coa-table .coa-actions a, .coa-table td:first-child a { margin-right: .5rem; }
 </style>
 @endsection
 @section('scripts')
@@ -102,44 +178,97 @@
       feather.replace();
     });
 
-    //expand/collapse all
-    $('a[data-action="collapse"]').on('click', function () {
-        const anyClosed = $('#coaTree details').is(':not([open])');
-        $('#coaTree details').prop('open', anyClosed);
-    });
-
     $('a[data-action="reload"]').on('click', function () {
         location.reload();
     });
 
     $("#btnSearch").click(function(e){
-        filterTree($("#searchAcc").val(), $("#searchAccCode").val());
+        filterTable($("#searchAcc").val(), $("#searchAccCode").val());
     });
 
-    const filterTree = (nama, code) => {
+    const filterTable = (nama, code) => {
         nama = (nama || '').toLowerCase();
         code = (code || '').toLowerCase();
 
+        const $rows = $('#coaTable tbody tr');
+
         if (!nama && !code) {
-            $('#coaTree .coa-node').removeClass('coa-hidden');
+            $rows.show();
             return;
         }
 
-        $('#coaTree .coa-detail').each(function () {
-            const text = $(this).text().toLowerCase();
-            const parts = text.split(' - ');
-            const acctCode = (parts[0] || '').trim();
-            const desc = parts.slice(1).join(' - ').trim();
-            const match = (!code || acctCode.includes(code)) && (!nama || desc.includes(nama));
-            $(this).toggleClass('coa-hidden', !match);
+        $rows.filter('.coa-group').hide();
+        $rows.filter('.coa-detail-row').each(function () {
+            const acct = $(this).find('td').eq(1).text().trim().toLowerCase();
+            const desc = $(this).find('td').eq(2).text().trim().toLowerCase();
+            const match = (!code || acct.includes(code)) && (!nama || desc.includes(nama));
+            $(this).toggle(match);
         });
 
-        //a branch (header/sub/type) stays visible only if it still has a visible leaf underneath;
-        //walk deepest-first so a parent's visibility can rely on its children already being decided
-        $('#coaTree .coa-branch').get().reverse().forEach(function (branch) {
-            const visible = $(branch).find('.coa-detail, .coa-branch').not('.coa-hidden').length > 0;
-            $(branch).toggleClass('coa-hidden', !visible).prop('open', visible);
+        //reveal every ancestor group row (type/sub/header) that still has a visible detail under it
+        const ancestorsByLevel = {};
+        $rows.each(function () {
+            if ($(this).hasClass('coa-group')) {
+                ancestorsByLevel[$(this).data('level')] = $(this);
+            } else if ($(this).is(':visible')) {
+                Object.values(ancestorsByLevel).forEach($row => $row.show());
+            }
         });
     }
+
+    @can('coa-move')
+    (function () {
+        const token = document.querySelector('meta[name="csrf-token"]').content;
+        const tbody = document.querySelector('#scanTable tbody');
+        let currentSource = '', currentTarget = '';
+
+        function post(url, body) {
+            return fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
+                body: JSON.stringify(body),
+            }).then(r => r.json().then(data => ({ ok: r.ok, data })));
+        }
+
+        document.getElementById('scanBtn').addEventListener('click', function () {
+            currentSource = document.getElementById('sourceAccount').value.trim();
+            currentTarget = document.getElementById('targetAccount').value.trim();
+            if (!currentSource || !currentTarget) { alert('Isi source dan target.'); return; }
+
+            post("{{ route('coaMove.scan') }}", { source: currentSource, target: currentTarget }).then(function (res) {
+                if (!res.ok) { alert(res.data.message); return; }
+                tbody.innerHTML = '';
+                res.data.rows.forEach(function (row) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td><input type="checkbox" class="rowChk" data-pair="' + row.table + '.' + row.column + '"' +
+                        (row.checked ? ' checked' : '') + '></td>' +
+                        '<td>' + row.table + '</td><td>' + row.column + '</td><td>' + row.count + '</td>';
+                    tbody.appendChild(tr);
+                });
+                document.getElementById('scanResult').style.display = 'block';
+            });
+        });
+
+        document.getElementById('checkAll').addEventListener('click', () => document.querySelectorAll('.rowChk').forEach(c => c.checked = true));
+        document.getElementById('uncheckAll').addEventListener('click', () => document.querySelectorAll('.rowChk').forEach(c => c.checked = false));
+
+        document.getElementById('moveBtn').addEventListener('click', function () {
+            const selected = Array.from(document.querySelectorAll('.rowChk:checked')).map(c => c.dataset.pair);
+            if (selected.length === 0) { alert('Pilih minimal satu baris.'); return; }
+            if (!confirm('Pindahkan ' + currentSource + ' -> ' + currentTarget + ' untuk ' + selected.length + ' tabel/kolom? Tidak bisa dibatalkan otomatis.')) return;
+
+            post("{{ route('coaMove.execute') }}", {
+                source: currentSource,
+                target: currentTarget,
+                selected: selected,
+                deactivateSource: document.getElementById('deactivateSource').checked,
+            }).then(function (res) {
+                alert(res.data.message + (res.data.summary ? '\n\n' + res.data.summary.join('\n') : ''));
+                if (res.ok) location.reload();
+            });
+        });
+    })();
+    @endcan
 </script>
 @endsection
