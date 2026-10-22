@@ -89,7 +89,7 @@
                     <div class="col-md-5">
                         <div class="form-group">
                             <label>Source account (akan dipindah)</label>
-                            <select id="sourceAccount" class="select2 w-100">
+                            <select id="sourceAccount" class="coa-move-select2 w-100">
                                 <option value=""></option>
                                 @foreach($flat as $acc)
                                     <option value="{{ $acc->account }}">{{ $acc->account }} - {{ $acc->description }}</option>
@@ -100,7 +100,7 @@
                     <div class="col-md-5">
                         <div class="form-group">
                             <label>Target account (tujuan)</label>
-                            <select id="targetAccount" class="select2 w-100">
+                            <select id="targetAccount" class="coa-move-select2 w-100">
                                 <option value=""></option>
                                 @foreach($flat as $acc)
                                     <option value="{{ $acc->account }}">{{ $acc->account }} - {{ $acc->description }}</option>
@@ -163,6 +163,14 @@
     //refresh di cards
     $('a[data-action="reload"]').on('click', function () {
         showList();
+    });
+
+    $('#moveCoaModal').on('shown.bs.modal', function () {
+        $('.coa-move-select2').each(function () {
+            if (!$(this).hasClass('select2-hidden-accessible')) {
+                $(this).select2({ dropdownParent: $('#moveCoaModal'), width: '100%' });
+            }
+        });
     });
 
     $("#btnSearch").click(function(e){
