@@ -55,6 +55,20 @@
       </div>
     </div>
   </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border shadow-none mb-1">
+      <div class="card-body d-flex align-items-center p-1">
+        <div class="avatar bg-light-primary p-50 mr-1" style="border-radius:8px;">
+          <i data-feather="dollar-sign" class="font-medium-3 text-primary"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 font-weight-bolder text-nowrap" id="bg-c-sales">0</h4>
+          <small class="text-muted text-nowrap">Sales (Previous Period) <span id="bg-c-sales-pct" class="font-weight-bold"></span></small>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script type="text/javascript">
@@ -70,5 +84,8 @@
     $('#bg-c-margin').text(nf(c.margin)).toggleClass('text-danger', c.margin < 0).toggleClass('text-success', c.margin >= 0);
     $('#bg-c-margin-pct').text('(' + c.margin_pct + '% sisa)')
       .toggleClass('text-danger', c.margin_pct < 0).toggleClass('text-success', c.margin_pct >= 0);
+
+    $('#bg-c-sales').text(nf(c.actual_sales || 0));
+    $('#bg-c-sales-pct').text(c.actual_sales > 0 ? '(debit ' + (c.sales_used_pct ?? 0) + '% dari sales)' : '');
   }
 </script>

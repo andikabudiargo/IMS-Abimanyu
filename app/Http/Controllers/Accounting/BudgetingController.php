@@ -242,6 +242,7 @@ class BudgetingController extends Controller
             return response()->json(['error' => 'Department wajib dipilih.'], 422);
         }
         $coas = array_values(array_filter((array) $request->coa, 'strlen'));
+        $actualSales = $this->pullActualSales($prevFrom, $prevTo);
 
         return response()->json([
             'dept_name'      => DB::table('depts')->where('code', $dept)->value('name') ?: $dept,
@@ -249,8 +250,25 @@ class BudgetingController extends Controller
             'budget_text'    => $this->periodeText($budgFrom, $budgTo),
             'months'         => $budgMonths,
             'cost_reduction' => self::DEFAULT_COST_REDUCTION,
-            'rows'           => $this->computeDet($dept, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo),
+            'actual_sales'   => $actualSales,
+            'rows'           => $this->decorateTargetPct($this->computeDet($dept, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo), $actualSales),
         ]);
+    }
+
+    /** Tambahkan 'target_pct' = debit (Previous Period) / actual_sales x 100 ke tiap row. */
+    private function decorateTargetPct(array $rows, float $actualSales): array
+    {
+        foreach ($rows as &$r) {
+            $debit = is_array($r) ? ($r['debit'] ?? 0) : $r->debit;
+            $pct = $actualSales > 0 ? round(((float) $debit / $actualSales) * 100, 2) : 0;
+            if (is_array($r)) {
+                $r['target_pct'] = $pct;
+            } else {
+                $r->target_pct = $pct;
+            }
+        }
+
+        return $rows;
     }
 
     public function store(Request $request)
@@ -277,7 +295,9 @@ class BudgetingController extends Controller
             return response()->json(['status' => 0, 'message' => 'Description wajib diisi.'], 422);
         }
         $coas = array_values(array_filter((array) $request->coa, 'strlen'));
-        $rows = $this->computeDet($dept, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo);
+        $actualSales = $this->pullActualSales($prevFrom, $prevTo);
+        $targetSalesMonthly = (float) $request->target_sales;
+        $rows = $this->decorateTargetPct($this->computeDet($dept, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo), $actualSales);
         $edits = collect(json_decode($request->rows, true) ?: [])->keyBy('account');
 
         DB::beginTransaction();
@@ -295,7 +315,8 @@ class BudgetingController extends Controller
                 'previous_to'      => $prevTo,
                 'budget_from'      => $budgFrom,
                 'budget_to'        => $budgTo,
-                'target_sales'     => (float) $request->target_sales,
+                'target_sales'     => $targetSalesMonthly,
+                'actual_sales'     => $actualSales,
                 'created_by'       => $username,
                 'updated_by'       => $username,
                 'created_at'       => now(),
@@ -309,10 +330,13 @@ class BudgetingController extends Controller
                 $cr = $edit ? min(100, max(0, (float) $edit['cost_reduction'])) : self::DEFAULT_COST_REDUCTION;
                 $inflation = $edit ? max(0, (float) ($edit['inflation'] ?? 0)) : 0;
                 $budget = $unbudget ? 0 : round($r['average'] * (1 - $cr / 100 + $inflation / 100), 2);
+                // Tambahan dari Target Sales: target_pct (porsi COA ini dari actual_sales) x Target Sales
+                // bulanan, dikalikan jumlah bulan Budget Period -- pembandingnya sales target, bukan average.
+                $extraMonthly = ($r['target_pct'] / 100) * $targetSalesMonthly;
                 // final_budget = TOTAL untuk seluruh budget period (bukan bulanan).
                 // Default diskalakan ke active_months (bukan seluruh bulan budget period), supaya pengeluaran
                 // yang historisnya jarang muncul (mis. sekali dalam setahun) tidak diproyeksikan jadi bulanan.
-                $final = $unbudget ? 0 : (($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : round($budget * $r['active_months'], 2));
+                $final = $unbudget ? 0 : (($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : round($budget * $r['active_months'] + $extraMonthly * count($budgMonths), 2));
                 $additional = $edit ? (float) ($edit['additional_budget'] ?? 0) : 0;
 
                 DB::table('budgeting_det')->insert([
@@ -387,6 +411,8 @@ class BudgetingController extends Controller
 
         $edits = collect(json_decode($request->rows, true) ?: []);
         $monthsCount = count($this->monthsBetween($hdr->budget_from, $hdr->budget_to));
+        $actualSales = $request->filled('actual_sales') ? (float) $request->actual_sales : (float) $hdr->actual_sales;
+        $targetSalesMonthly = $request->filled('target_sales') ? (float) $request->target_sales : (float) $hdr->target_sales;
 
         DB::beginTransaction();
         try {
@@ -404,10 +430,12 @@ class BudgetingController extends Controller
                 $activeMonths = isset($e['active_months']) ? (int) $e['active_months'] : (int) ($det->active_months ?? 0);
                 $realisasiTotal = isset($e['realisasi_total']) ? (float) $e['realisasi_total'] : (float) ($det->realisasi_total ?? 0);
                 $realisasiJson = isset($e['realisasi']) ? json_encode($e['realisasi']) : ($det->realisasi_json ?? json_encode([]));
+                $targetPct = $actualSales > 0 ? round($debit / $actualSales * 100, 2) : 0;
 
                 $budget = $unbudget ? 0 : round($average * (1 - $cr / 100 + $inflation / 100), 2);
+                $extraMonthly = ($targetPct / 100) * $targetSalesMonthly;
                 // final_budget = TOTAL untuk seluruh budget period (bukan bulanan).
-                $final = $unbudget ? 0 : (isset($e['final_budget']) ? (float) $e['final_budget'] : round($budget * $monthsCount, 2));
+                $final = $unbudget ? 0 : (isset($e['final_budget']) ? (float) $e['final_budget'] : round($budget * $monthsCount + $extraMonthly * $monthsCount, 2));
                 $additional = (float) ($e['additional_budget'] ?? 0);
 
                 $payload = [
@@ -449,7 +477,8 @@ class BudgetingController extends Controller
                 'fiscal_year'  => $fiscalYear,
                 'description'  => $request->description,
                 'note'         => $request->note,
-                'target_sales' => (float) $request->target_sales,
+                'target_sales' => $targetSalesMonthly,
+                'actual_sales' => $actualSales,
                 'updated_by'   => optional(Auth::user())->username,
                 'updated_at'   => now(),
             ]);
@@ -488,7 +517,9 @@ class BudgetingController extends Controller
 
         $coas = $hdr->coa_filter ? explode(',', $hdr->coa_filter) : [];
         $months = $this->monthsBetween($hdr->budget_from, $hdr->budget_to);
-        $fresh = $this->computeDet($hdr->dept_code, $coas, $hdr->previous_from, $hdr->previous_to, $months, $hdr->budget_from, $hdr->budget_to);
+        $actualSales = $this->pullActualSales($hdr->previous_from, $hdr->previous_to);
+        $targetSalesMonthly = $request->filled('target_sales') ? (float) $request->target_sales : (float) $hdr->target_sales;
+        $fresh = $this->decorateTargetPct($this->computeDet($hdr->dept_code, $coas, $hdr->previous_from, $hdr->previous_to, $months, $hdr->budget_from, $hdr->budget_to), $actualSales);
         $existing = DB::table('budgeting_det')->where('budgeting_hdr_id', $id)->get()->keyBy('account');
 
         // Cost reduction % dari rows yang sedang diedit di UI (belum disimpan) kalau dikirim,
@@ -506,7 +537,8 @@ class BudgetingController extends Controller
             $additional = $ui ? (float) ($ui['additional_budget'] ?? 0) : ($ex ? (float) $ex->additional_budget : 0);
             $budgetType = $ui && in_array($ui['budget_type'] ?? null, ['OPEX', 'CAPEX']) ? $ui['budget_type'] : ($ex ? $ex->budget_type : 'OPEX');
             $budget = $unbudget ? 0 : round($r['average'] * (1 - $cr / 100 + $inflation / 100), 2);
-            $finalBudget = $unbudget ? 0 : round($budget * $r['active_months'], 2);
+            $extraMonthly = ($r['target_pct'] / 100) * $targetSalesMonthly;
+            $finalBudget = $unbudget ? 0 : round($budget * $r['active_months'] + $extraMonthly * count($months), 2);
 
             $rows[] = $r + [
                 'id'             => $ex->id ?? null,
@@ -536,9 +568,11 @@ class BudgetingController extends Controller
             'actual_pct'        => $totalBudget > 0 ? round($actual / $totalBudget * 100, 2) : ($actual > 0 ? -100 : 0),
             'margin'            => $margin,
             'margin_pct'        => $totalBudget > 0 ? round($margin / $totalBudget * 100, 2) : ($margin < 0 ? -100 : 0),
+            'actual_sales'      => $actualSales,
+            'sales_used_pct'    => $actualSales > 0 ? round($previous / $actualSales * 100, 2) : 0,
         ];
 
-        return response()->json(['status' => 1, 'message' => 'Data berhasil ditarik ulang.', 'months' => $months, 'rows' => $rows, 'cards' => $cards]);
+        return response()->json(['status' => 1, 'message' => 'Data berhasil ditarik ulang.', 'months' => $months, 'actual_sales' => $actualSales, 'rows' => $rows, 'cards' => $cards]);
     }
 
     /** AJAX: list transaksi untuk modal hyperlink Debit / Realisasi. */
@@ -616,10 +650,10 @@ class BudgetingController extends Controller
         $sheet->setTitle('Budgeting');
 
         $sheet->fromArray([$d['hdr']->budgeting_number . ' - ' . $d['hdr']->dept_name], null, 'A1');
-        $sheet->fromArray(['Previous: ' . $this->periodeText($d['hdr']->previous_from, $d['hdr']->previous_to) . '  |  Budget Period: ' . $this->periodeText($d['hdr']->budget_from, $d['hdr']->budget_to) . '  |  Target Sales: ' . number_format($d['hdr']->target_sales, 2)], null, 'A2');
+        $sheet->fromArray(['Previous: ' . $this->periodeText($d['hdr']->previous_from, $d['hdr']->previous_to) . '  |  Budget Period: ' . $this->periodeText($d['hdr']->budget_from, $d['hdr']->budget_to) . '  |  Actual Sales (Previous Period): ' . number_format($d['hdr']->actual_sales, 2) . ' (' . $d['cards']['sales_used_pct'] . '% terpakai dept)' . '  |  Target Sales: ' . number_format($d['hdr']->target_sales, 2)], null, 'A2');
 
         $headers = array_merge(
-            ['Unbudget', 'OPEX/CAPEX', 'Account', 'Name', 'Debit', 'Average', 'Inflasi %', 'CR %', 'Monthly Budget', 'Additional Budget', 'Final Budget (Total)'],
+            ['Unbudget', 'OPEX/CAPEX', 'Account', 'Name', 'Debit', 'Average', 'Target %', 'Inflasi %', 'CR %', 'Monthly Budget', 'Additional Budget', 'Final Budget (Total)'],
             $d['months'],
             ['Total Realisasi', 'Selisih', 'Realisasi %']
         );
@@ -633,7 +667,7 @@ class BudgetingController extends Controller
             $sheet->setCellValueExplicit('C' . $rowNum, (string) $r['account'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
 
             $line = array_merge(
-                [$r['is_unbudget'] ? 'YA' : '', $r['budget_type'] ?? 'OPEX', $r['nama_akun'], $r['debit'], $r['average'], $r['inflation'] / 100, $r['cost_reduction'] / 100, $r['final_budget_monthly'], $r['additional_budget'], $r['final_budget']],
+                [$r['is_unbudget'] ? 'YA' : '', $r['budget_type'] ?? 'OPEX', $r['nama_akun'], $r['debit'], $r['average'], $r['target_pct'] / 100, $r['inflation'] / 100, $r['cost_reduction'] / 100, $r['final_budget_monthly'], $r['additional_budget'], $r['final_budget']],
                 array_map(function ($m) use ($r) {
                     return $r['realisasi'][$m] ?? 0;
                 }, $d['months']),
@@ -649,6 +683,7 @@ class BudgetingController extends Controller
         $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
         $sheet->getStyle("G5:G{$lastRow}")->getNumberFormat()->setFormatCode('0.00%');
         $sheet->getStyle("H5:H{$lastRow}")->getNumberFormat()->setFormatCode('0.00%');
+        $sheet->getStyle("I5:I{$lastRow}")->getNumberFormat()->setFormatCode('0.00%');
         $sheet->getStyle("{$lastCol}5:{$lastCol}{$lastRow}")->getNumberFormat()->setFormatCode('0.00%');
 
         foreach (range('A', $sheet->getHighestColumn()) as $col) {
@@ -738,6 +773,7 @@ class BudgetingController extends Controller
                 'final_budget'   => $budgetTotal,
                 'final_budget_monthly' => count($months) > 0 ? round($budgetTotal / count($months), 2) : 0,
                 'additional_budget' => (float) $r->additional_budget,
+                'target_pct'     => $hdr->actual_sales > 0 ? round((float) $r->debit / $hdr->actual_sales * 100, 2) : 0,
                 'is_unbudget'    => $unbudget,
                 'budget_type'    => $r->budget_type,
                 'realisasi'      => $realisasi,
@@ -761,6 +797,8 @@ class BudgetingController extends Controller
             'actual_pct'        => $totalBudget > 0 ? round($actual / $totalBudget * 100, 2) : ($actual > 0 ? -100 : 0),
             'margin'            => $margin,
             'margin_pct'        => $totalBudget > 0 ? round($margin / $totalBudget * 100, 2) : ($margin < 0 ? -100 : 0),
+            'actual_sales'      => (float) $hdr->actual_sales,
+            'sales_used_pct'    => $hdr->actual_sales > 0 ? round($previous / $hdr->actual_sales * 100, 2) : 0,
         ];
 
         return ['hdr' => $hdr, 'months' => $months, 'rows' => $rows, 'cards' => $cards];
@@ -879,6 +917,38 @@ class BudgetingController extends Controller
         }
 
         return $months;
+    }
+
+    /**
+     * Total "nilai konversi painting" (conversion_report_det.conversion x conversion_value_used,
+     * baris painting saja) pada rentang bulan $from-$to. Company-wide, tidak difilter department --
+     * dept cuma dipakai belakangan sbg pembanding (debit dept / actual_sales).
+     * Report berstatus CANCELED(5)/REVISED(8) diabaikan.
+     */
+    private function pullActualSales($from, $to): float
+    {
+        $pairs = array_map(fn ($ym) => array_map('intval', explode('-', $ym)), $this->monthsBetween($from, $to));
+        if (!$pairs) {
+            return 0.0;
+        }
+
+        $total = DB::table('conversion_report_det as crd')
+            ->join('conversion_report_hdr as crh', 'crh.id', 'crd.report_id')
+            ->leftJoin('article as a', 'a.article_code', 'crd.article_code')
+            ->whereNotIn('crh.status', [5, 8])
+            ->where(function ($w) use ($pairs) {
+                foreach ($pairs as [$y, $m]) {
+                    $w->orWhere(function ($w2) use ($y, $m) {
+                        $w2->where('crh.tahun', $y)->where('crh.periode', $m);
+                    });
+                }
+            })
+            ->whereRaw("upper(trim(crd.uom)) in ('PCS','SET')")
+            ->whereRaw("coalesce(upper(trim(a.group_of_material)),'') not in ('MAKLON','MKL')")
+            ->selectRaw('coalesce(sum(crd.conversion * crh.conversion_value_used), 0) as total')
+            ->value('total');
+
+        return round((float) $total, 2);
     }
 
     /**

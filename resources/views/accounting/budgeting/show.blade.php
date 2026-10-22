@@ -17,8 +17,11 @@
     </div>
   </div>
   <div class="card-body pt-0">
-    <small class="text-muted d-block mb-1">Klik nilai Debit / Realisasi untuk melihat rincian transaksi.</small>
-    <div class="mb-2"><span class="text-muted small mr-1">Target Sales:</span> <strong>{{ number_format($hdr->target_sales, 2, ',', '.') }}</strong></div>
+    <small class="text-muted d-block mb-1">Klik nilai Debit / Realisasi untuk melihat rincian transaksi. Angka realisasi bulanan yang melebihi Monthly Budget baris itu ditandai <strong class="text-danger">merah</strong>.</small>
+    <div class="mb-2">
+      <span class="text-muted small mr-1">Target Sales:</span> <strong>{{ number_format($hdr->target_sales, 2, ',', '.') }}</strong>
+      <span class="text-muted small mr-1 ml-3" id="bg-sales-info"></span>
+    </div>
     <div class="table-responsive bg-scroll">
       <table id="bgTable" class="table table-sm">
         <thead class="thead-light" id="bg-thead"></thead>
@@ -71,6 +74,7 @@
   const PREVIOUS_TO = {!! json_encode($hdr->previous_to) !!};
   let months = {!! json_encode($months) !!};
   let rows = {!! json_encode($rows) !!};
+  let actualSales = {!! json_encode((float) $hdr->actual_sales) !!};
 
   const nf = (v) => new Intl.NumberFormat('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2}).format(v || 0);
   const esc = (s) => $('<div>').text(s === null || s === undefined ? '' : s).html();
@@ -113,6 +117,7 @@
       + '<th rowspan="2" class="col-stickyT">OPEX/CAPEX</th>'
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
+      + '<th rowspan="2" class="text-right" title="Porsi COA ini dari Actual Sales (Previous Period) = Debit / Actual Sales">Target %</th>'
       + '<th rowspan="2" class="text-right">Inflasi</th>'
       + '<th rowspan="2" class="text-right">Cost Reduction</th>'
       + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period">Monthly Budget</th>'
@@ -128,22 +133,26 @@
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (11 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
+      html = '<tr><td colspan="' + (12 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
     }
     rows.forEach(function (r, ri) {
+      const monthlyBudget = months.length > 0 ? r.final_budget / months.length : 0;
       html += '<tr class="bg-row" data-r="' + ri + '">'
             + '<td class="col-sticky0"><input type="checkbox" disabled ' + (r.is_unbudget ? 'checked' : '') + '> <small class="text-muted">' + (r.is_unbudget ? 'Ya' : 'Tidak') + '</small></td>'
             + '<td class="col-stickyT">' + esc(r.budget_type || 'OPEX') + '</td>'
             + '<td class="bg-acc col-sticky1">' + esc(r.account) + '</td><td class="col-sticky2">' + esc(r.nama_akun) + '</td>'
             + '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-debit">' + nf(r.debit) + '</a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
+            + '<td class="text-right">' + (r.target_pct || 0) + '%</td>'
             + '<td class="text-right">' + r.inflation + '%</td>'
             + '<td class="text-right">' + r.cost_reduction + '%</td>'
             + '<td class="text-right">' + (r.is_unbudget ? '-' : nf(r.final_budget_monthly)) + '</td>'
             + '<td class="text-right">' + nf(r.additional_budget) + '</td>'
             + '<td class="text-right">' + (r.is_unbudget ? '-' : nf(r.final_budget)) + '</td>';
       months.forEach(function (m) {
-        html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '">' + nf((r.realisasi || {})[m] || 0) + '</a></td>';
+        const v = (r.realisasi || {})[m] || 0;
+        const over = !r.is_unbudget && v > monthlyBudget;
+        html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real' + (over ? ' bg-neg font-weight-bold' : '') + '" data-m="' + m + '">' + nf(v) + '</a></td>';
       });
       html += '<td class="text-right">' + (r.is_unbudget ? '-' : nf(r.realisasi_total)) + '</td>'
             + '<td class="text-right ' + (r.selisih !== null && r.selisih >= 0 ? 'bg-pos' : (r.selisih !== null ? 'bg-neg' : '')) + '">' + (r.selisih === null ? '-' : nf(r.selisih)) + '</td>'
@@ -153,7 +162,10 @@
   }
 
   let cards = {!! json_encode($cards) !!};
-  function renderAll() { buildHead(); render(); paintCards(cards); if (window.feather) feather.replace({ width: 14, height: 14 }); }
+  function updateSalesInfo() {
+    $('#bg-sales-info').text('Sales Aktual (Previous Period): ' + nf(actualSales) + (actualSales > 0 ? '  |  Debit vs Sales: ' + (cards.sales_used_pct ?? 0) + '%' : ''));
+  }
+  function renderAll() { buildHead(); render(); paintCards(cards); updateSalesInfo(); if (window.feather) feather.replace({ width: 14, height: 14 }); }
   renderAll();
 
   $('#bg-body').on('click', '.bg-debit', function () {
@@ -187,6 +199,7 @@
         months = res.months;
         rows = res.rows;
         cards = res.cards;
+        actualSales = res.actual_sales || 0;
         renderAll();
         showRecalcDiff(diffRecalc(oldRows, rows));
       }).fail(function (xhr) {

@@ -95,7 +95,9 @@
         Final Budget inilah yang dibandingkan dengan Total Realisasi untuk Selisih &amp; Realisasi %.
         Klik nilai Debit / Realisasi untuk melihat rincian transaksi.
         Centang <strong>Unbudget</strong> untuk keluarkan COA itu dari budget (realisasi bulanannya tetap tampil sebagai referensi, tapi tidak dihitung ke Total Realisasi).
+        Angka realisasi bulanan yang melebihi Monthly Budget baris itu ditandai <strong class="text-danger">merah</strong>.
       </small>
+      <small class="text-muted d-block mb-2" id="bg-sales-info"></small>
       <div class="d-flex flex-wrap align-items-end mb-2" style="gap:1rem">
         <div>
           <label class="mb-0 small" for="defaultCr">Default Cost Reduction</label>
@@ -196,6 +198,7 @@
   let rows = [];
   let months = [];
   let deptCode = '';
+  let actualSales = 0;
   let previousRange = null, budgetRange = null;
 
   $('#budget').flatpickr({ mode: 'range', dateFormat: 'm-Y', defaultDate: BUDGET_DEFAULT.split(' to '), locale: { rangeSeparator: ' to ' } });
@@ -228,6 +231,12 @@
     const v = parseId(this.value);
     this.value = v !== null ? nf(v) : '';
   });
+  $('#targetSales').on('input', function () {
+    if (!rows.length) return;
+    rows.forEach((r) => recomputeBudget(r));
+    render();
+    paintCards(computeCards());
+  });
 
   $('#btnPull').click(function () {
     const dept = $('#dept').val();
@@ -240,17 +249,18 @@
     }).done(function (res) {
       deptCode = dept;
       months = res.months;
+      actualSales = res.actual_sales || 0;
       rows = res.rows.map(function (r) {
         r.cost_reduction = CR_DEFAULT;
         r.inflation = 0;
         r.is_unbudget = false;
         r.budget_type = 'OPEX';
-        r.budget = round2(r.average * (1 - r.cost_reduction / 100));
-        r.final_budget = round2(r.budget * r.active_months);
         r.additional_budget = 0;
+        recomputeBudget(r);
         return r;
       });
       $('#bg-title').text('Department: ' + res.dept_name + '  |  Previous: ' + res.previous_text + '  |  Budget Period: ' + res.budget_text);
+      $('#bg-sales-info').text('Sales Aktual (Previous Period): ' + nf(actualSales) + (actualSales > 0 ? '  |  Debit vs Sales: ' + round2(rows.reduce((s, r) => s + r.debit, 0) / actualSales * 100) + '%' : ''));
       buildHead();
       render();
       paintCards(computeCards());
@@ -269,6 +279,7 @@
       + '<th rowspan="2" class="col-stickyT">OPEX/CAPEX</th>'
       + '<th rowspan="2" class="col-sticky1">Account</th><th rowspan="2" class="col-sticky2">Name</th>'
       + '<th rowspan="2" class="text-right">Debit</th><th rowspan="2" class="text-right">Average</th>'
+      + '<th rowspan="2" class="text-right" title="Porsi COA ini dari Actual Sales (Previous Period) = Debit / Actual Sales">Target %</th>'
       + '<th rowspan="2" class="col-cr" title="Persen penambah ke Average (kebalikan Cost Reduction)">Inflasi</th>'
       + '<th rowspan="2" class="col-cr">Cost Reduction</th>'
       + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period, ikut berubah tiap Final Budget diedit">Monthly Budget</th>'
@@ -285,16 +296,20 @@
   function rowPct(r) { if (r.final_budget > 0) return round2(r.realisasi_total / r.final_budget * 100); return r.realisasi_total > 0 ? -100 : 0; }
 
   // budget = Average x (1 - Cost Reduction% + Inflasi%); Inflasi menambah, Cost Reduction mengurangi.
+  // Final Budget ditambah porsi dari Target Sales: target_pct (porsi COA ini dari actual_sales) x
+  // Target Sales bulanan x jumlah bulan Budget Period -- pembandingnya sales target, bukan average.
   function recomputeBudget(r) {
     if (r.is_unbudget) { r.budget = 0; r.final_budget = 0; return; }
     r.budget = round2(r.average * (1 - r.cost_reduction / 100 + r.inflation / 100));
-    r.final_budget = round2(r.budget * r.active_months);
+    const targetSales = parseId($('#targetSales').val()) || 0;
+    const extraMonthly = ((r.target_pct || 0) / 100) * targetSales;
+    r.final_budget = round2(r.budget * r.active_months + extraMonthly * months.length);
   }
 
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (11 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data pada filter ini.</td></tr>';
+      html = '<tr><td colspan="' + (12 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data pada filter ini.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       const dis = r.is_unbudget ? 'disabled' : '';
@@ -307,6 +322,7 @@
             + '<td class="bg-acc col-sticky1">' + esc(r.account) + '</td><td class="col-sticky2">' + esc(r.nama_akun) + '</td>'
             + '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-debit"></a></td>'
             + '<td class="text-right">' + nf(r.average) + '</td>'
+            + '<td class="text-right">' + (r.target_pct || 0) + '%</td>'
             + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" ' + dis + ' class="form-control text-right bg-inflasi" min="0" step="0.01" value="' + r.inflation + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" ' + dis + ' class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="text-right bg-budget"></td>'
@@ -339,6 +355,7 @@
       + '<td class="text-right">' + nf(tAvg) + '</td>'
       + '<td></td>'
       + '<td></td>'
+      + '<td></td>'
       + '<td class="text-right">' + nf(tMonthly) + '</td>'
       + '<td></td>'
       + '<td class="text-right">' + nf(tFinal) + '</td>';
@@ -355,16 +372,18 @@
   function paintRow(ri) {
     const r = rows[ri];
     const $tr = $('#bg-body tr.bg-row[data-r="' + ri + '"]');
+    const monthlyBudget = months.length > 0 ? r.final_budget / months.length : 0;
     $tr.find('.bg-debit').text(nf(r.debit));
     $tr.find('.bg-real').each(function () {
       const m = $(this).data('m');
-      $(this).text(nf(r.realisasi[m] || 0));
+      const v = r.realisasi[m] || 0;
+      $(this).text(nf(v)).toggleClass('bg-neg font-weight-bold', !r.is_unbudget && v > monthlyBudget);
     });
     if (r.is_unbudget) {
       $tr.find('.bg-budget, .bg-total, .bg-selisih, .bg-pct').text('-').removeClass('bg-pos bg-neg');
       return;
     }
-    $tr.find('.bg-budget').text(nf(months.length > 0 ? r.final_budget / months.length : 0));
+    $tr.find('.bg-budget').text(nf(monthlyBudget));
     $tr.find('.bg-total').text(nf(r.realisasi_total));
     const selisih = rowSelisih(r), pct = rowPct(r);
     $tr.find('.bg-selisih').text(nf(selisih)).removeClass('bg-pos bg-neg').addClass(selisih >= 0 ? 'bg-pos' : 'bg-neg');
@@ -479,6 +498,7 @@
       total_budget: round2(totalBudget), budget_growth_pct: previous > 0 ? round2((totalBudget - previous) / previous * 100) : 0,
       actual_expenses: round2(actual), actual_pct: totalBudget > 0 ? round2(actual / totalBudget * 100) : 0,
       margin: round2(margin), margin_pct: totalBudget > 0 ? round2(margin / totalBudget * 100) : 0,
+      actual_sales: round2(actualSales), sales_used_pct: actualSales > 0 ? round2(previous / actualSales * 100) : 0,
     };
   }
 

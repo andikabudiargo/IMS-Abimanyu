@@ -27,13 +27,14 @@
     &nbsp;|&nbsp; Total Budget: {{ number_format($cards['total_budget'], 2) }}
     &nbsp;|&nbsp; Actual Expenses: {{ number_format($cards['actual_expenses'], 2) }}
     &nbsp;|&nbsp; Margin: {{ number_format($cards['margin'], 2) }} ({{ $cards['margin_pct'] }}%)
+    &nbsp;|&nbsp; Actual Sales (Previous Period): {{ number_format($hdr->actual_sales, 2) }} (debit {{ $cards['sales_used_pct'] }}% dari sales)
     &nbsp;|&nbsp; Target Sales: {{ number_format($hdr->target_sales, 2) }}
   </div>
 
   @php
     // Lebar kolom tetap (Account s/d Realisasi %) dalam %, sisanya dibagi rata ke kolom bulan
     // supaya tabel tetap muat 1 halaman landscape walau budget period-nya panjang.
-    $fixedColsPct = ['unbudget' => 4, 'type' => 4, 'account' => 6, 'name' => 10, 'debit' => 6, 'average' => 6, 'inflasi' => 3, 'cr' => 3, 'monthly' => 6, 'additional' => 6, 'final' => 7, 'total_real' => 6, 'selisih' => 6, 'pct' => 4];
+    $fixedColsPct = ['unbudget' => 4, 'type' => 4, 'account' => 6, 'name' => 8, 'debit' => 6, 'average' => 6, 'target_pct' => 4, 'inflasi' => 3, 'cr' => 3, 'monthly' => 6, 'additional' => 6, 'final' => 7, 'total_real' => 6, 'selisih' => 6, 'pct' => 4];
     $monthPct = count($months) > 0 ? round((100 - array_sum($fixedColsPct)) / count($months), 2) : 0;
   @endphp
   <table>
@@ -44,6 +45,7 @@
       <col style="width:{{ $fixedColsPct['name'] }}%">
       <col style="width:{{ $fixedColsPct['debit'] }}%">
       <col style="width:{{ $fixedColsPct['average'] }}%">
+      <col style="width:{{ $fixedColsPct['target_pct'] }}%">
       <col style="width:{{ $fixedColsPct['inflasi'] }}%">
       <col style="width:{{ $fixedColsPct['cr'] }}%">
       <col style="width:{{ $fixedColsPct['monthly'] }}%">
@@ -58,7 +60,7 @@
     </colgroup>
     <thead>
       <tr>
-        <th>Unbudget</th><th>OPEX/CAPEX</th><th>Account</th><th>Name</th><th>Debit</th><th>Average</th><th>Inflasi %</th><th>CR %</th>
+        <th>Unbudget</th><th>OPEX/CAPEX</th><th>Account</th><th>Name</th><th>Debit</th><th>Average</th><th>Target %</th><th>Inflasi %</th><th>CR %</th>
         <th>Monthly Budget</th><th>Additional Budget</th><th>Final Budget (Total)</th>
         @foreach($months as $m)
           <th>{{ $m }}</th>
@@ -68,6 +70,7 @@
     </thead>
     <tbody>
       @foreach($rows as $r)
+      @php($monthlyBudget = count($months) > 0 ? $r['final_budget'] / count($months) : 0)
       <tr>
         <td style="text-align:center">{{ $r['is_unbudget'] ? 'YA' : '' }}</td>
         <td>{{ $r['budget_type'] ?? 'OPEX' }}</td>
@@ -75,13 +78,15 @@
         <td>{{ $r['nama_akun'] }}</td>
         <td class="num">{{ number_format($r['debit'], 2) }}</td>
         <td class="num">{{ number_format($r['average'], 2) }}</td>
+        <td class="num">{{ $r['target_pct'] ?? 0 }}</td>
         <td class="num">{{ $r['inflation'] }}</td>
         <td class="num">{{ $r['cost_reduction'] }}</td>
         <td class="num">{{ number_format($r['final_budget_monthly'], 2) }}</td>
         <td class="num">{{ number_format($r['additional_budget'], 2) }}</td>
         <td class="num">{{ number_format($r['final_budget'], 2) }}</td>
         @foreach($months as $m)
-          <td class="num">{{ number_format($r['realisasi'][$m] ?? 0, 2) }}</td>
+          @php($realV = $r['realisasi'][$m] ?? 0)
+          <td class="num" @if(!$r['is_unbudget'] && $realV > $monthlyBudget) style="color:#c0392b;font-weight:bold" @endif>{{ number_format($realV, 2) }}</td>
         @endforeach
         <td class="num">{{ $r['is_unbudget'] ? '-' : number_format($r['realisasi_total'], 2) }}</td>
         <td class="num">{{ $r['selisih'] === null ? '-' : number_format($r['selisih'], 2) }}</td>
