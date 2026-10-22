@@ -3,7 +3,7 @@
 @section('content')
 @include('layouts.breadcrumb')
 @php
-  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_akhir'=>'Saldo Akhir'];
+  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_akhir'=>'Balance'];
 @endphp
 <section>
   <div class="card">

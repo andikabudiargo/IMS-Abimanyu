@@ -3,7 +3,7 @@
 @section('content')
 @include('layouts.breadcrumb')
 @php
-  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_akhir'=>'Saldo Akhir'];
+  $fields = ['open_debit'=>'Debit','open_credit'=>'Credit','mutasi_debit'=>'Debit','mutasi_credit'=>'Credit','saldo_akhir'=>'Balance'];
 @endphp
 <section>
   <div class="card">
@@ -19,7 +19,11 @@
           </div>
           <div class="form-group col-md-3">
             <label class="form-label">Year *</label>
-            <input type="number" id="year" class="form-control" value="{{ date('Y') }}" min="2000" max="2100" required>
+            <select id="year" class="form-control" required>
+              @for($y = date('Y'); $y >= 2023; $y--)
+                <option value="{{ $y }}" {{ $y == date('Y') ? 'selected' : '' }}>{{ $y }}</option>
+              @endfor
+            </select>
           </div>
           </div>
           <div class="form-row">

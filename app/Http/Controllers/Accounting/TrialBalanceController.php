@@ -53,13 +53,13 @@ class TrialBalanceController extends Controller
         $kolom=
         [
             ['data'=> 'action', 'name'=>'action','title'=>'action', 'orderable'=> false, 'searchable'=> false ],
-            ['data'=> 'tb_number', 'name'=>'tb_number','title'=>'Nomor' ],
+            ['data'=> 'tb_number', 'name'=>'tb_number','title'=>'TB Number' ],
             ['data'=> 'year', 'name'=>'year','title'=>'Year' ],
             ['data'=> 'description', 'name'=>'description','title'=>'Description' ],
             ['data'=> 'note', 'name'=>'note','title'=>'Note' ],
             ['data'=> 'created_by', 'name'=>'created_by','title'=>'Created By' ],
-            ['data'=> 'updated_by', 'name'=>'updated_by','title'=>'Updated By' ],
             ['data'=> 'created_at', 'name'=>'created_at','title'=>'Created At' ],
+            ['data'=> 'updated_by', 'name'=>'updated_by','title'=>'Updated By' ],
             ['data'=> 'updated_at', 'name'=>'updated_at','title'=>'Updated At' ],
         ];
         return json_encode($kolom, true);
