@@ -39,6 +39,7 @@
       <table id="bgTable" class="table table-sm">
         <thead class="thead-light" id="bg-thead"></thead>
         <tbody id="bg-body"></tbody>
+        <tfoot id="bg-tfoot"></tfoot>
       </table>
     </div>
     <div class="d-flex flex-wrap mt-2" style="gap:.5rem">
@@ -83,6 +84,10 @@
   #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky0, #bgTable tbody tr.bg-row:nth-child(even) td.col-stickyT, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky1, #bgTable tbody tr.bg-row:nth-child(even) td.col-sticky2 { background:#f8f9fc; }
   #bgTable tbody tr.bg-row:hover { background:#eef1fd; }
   #bgTable tbody tr.bg-row:hover td.col-sticky0, #bgTable tbody tr.bg-row:hover td.col-stickyT, #bgTable tbody tr.bg-row:hover td.col-sticky1, #bgTable tbody tr.bg-row:hover td.col-sticky2 { background:#eef1fd; }
+
+  /* Footer total */
+  #bgTable tfoot tr.bg-foot > td { position:sticky; bottom:0; z-index:3; background:#f1f3f5; font-weight:700; box-shadow:inset 0 1px 0 #9ca3af, inset 0 -2px 0 #9ca3af; }
+  #bgTable tfoot tr.bg-foot td.col-sticky0, #bgTable tfoot tr.bg-foot td.col-stickyT, #bgTable tfoot tr.bg-foot td.col-sticky1, #bgTable tfoot tr.bg-foot td.col-sticky2 { z-index:5; background:#f1f3f5; }
 </style>
 @endsection
 
@@ -149,6 +154,7 @@
       + '<th rowspan="2" class="text-right" title="Final Budget dibagi jumlah bulan Budget Period, ikut berubah tiap Final Budget diedit">Monthly Budget</th>'
       + '<th rowspan="2" class="col-add" title="Tambahan budget yang disetujui kalau dept ini over-budget">Additional Budget</th>'
       + '<th rowspan="2" class="col-final" title="Total untuk seluruh Budget Period">Final Budget<br><small class="text-muted">(Total ' + months.length + ' bln)</small></th>'
+      + '<th rowspan="2" class="col-add" title="Target penjualan manual per COA">Target Sales</th>'
       + '<th colspan="' + (months.length + 3) + '" class="text-center">Budget Period</th></tr>';
     let r2 = '<tr>';
     months.forEach((m) => r2 += '<th class="text-right">' + monthLabel(m) + '</th>');
@@ -169,7 +175,7 @@
   function render() {
     let html = '';
     if (!rows.length) {
-      html = '<tr><td colspan="' + (11 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
+      html = '<tr><td colspan="' + (12 + months.length + 3) + '" class="text-center text-muted py-2">Tidak ada data.</td></tr>';
     }
     rows.forEach(function (r, ri) {
       const dis = r.is_unbudget ? 'disabled' : '';
@@ -186,7 +192,8 @@
             + '<td class="col-cr"><div class="input-group input-group-sm"><input type="number" ' + dis + ' class="form-control text-right bg-cr" min="0" max="100" step="0.01" value="' + r.cost_reduction + '"><div class="input-group-append"><span class="input-group-text">%</span></div></div></td>'
             + '<td class="text-right bg-budget"></td>'
             + '<td class="col-add"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-additional" value="' + nf(r.additional_budget) + '"></td>'
-            + '<td class="col-final"><input type="text" ' + dis + ' inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + (r.is_unbudget ? '-' : nf(r.final_budget)) + '"></td>';
+            + '<td class="col-final"><input type="text" ' + dis + ' inputmode="decimal" class="form-control form-control-sm text-right bg-final" value="' + (r.is_unbudget ? '-' : nf(r.final_budget)) + '"></td>'
+            + '<td class="col-add"><input type="text" inputmode="decimal" class="form-control form-control-sm text-right bg-targetsales" value="' + nf(r.target_sales || 0) + '"></td>';
       months.forEach(function (m) {
         html += '<td class="text-right"><a href="javascript:void(0)" class="bg-link bg-real" data-m="' + m + '"></a></td>';
       });
@@ -194,6 +201,39 @@
     });
     $('#bg-body').html(html);
     rows.forEach((r, ri) => paintRow(ri));
+    renderFooter();
+  }
+
+  function renderFooter() {
+    const tDebit = rows.reduce((s, r) => s + r.debit, 0);
+    const tAvg = rows.reduce((s, r) => s + r.average, 0);
+    const tFinal = rows.reduce((s, r) => s + (r.is_unbudget ? 0 : r.final_budget), 0);
+    const tMonthly = months.length > 0 ? tFinal / months.length : 0;
+    const tReal = rows.reduce((s, r) => s + (r.is_unbudget ? 0 : r.realisasi_total), 0);
+    const tSelisih = round2(tFinal - tReal);
+    const tPct = tFinal > 0 ? round2(tReal / tFinal * 100) : (tReal > 0 ? -100 : 0);
+    const tTargetSales = rows.reduce((s, r) => s + (r.target_sales || 0), 0);
+
+    let html = '<tr class="bg-foot">'
+      + '<td class="col-sticky0"></td>'
+      + '<td class="col-stickyT"></td>'
+      + '<td class="col-sticky1">TOTAL</td><td class="col-sticky2">' + rows.length + ' COA</td>'
+      + '<td class="text-right">' + nf(tDebit) + '</td>'
+      + '<td class="text-right">' + nf(tAvg) + '</td>'
+      + '<td></td>'
+      + '<td></td>'
+      + '<td class="text-right">' + nf(tMonthly) + '</td>'
+      + '<td></td>'
+      + '<td class="text-right">' + nf(tFinal) + '</td>'
+      + '<td class="text-right">' + nf(tTargetSales) + '</td>';
+    months.forEach(function (m) {
+      const s = rows.reduce((sum, r) => sum + ((r.realisasi || {})[m] || 0), 0);
+      html += '<td class="text-right">' + nf(s) + '</td>';
+    });
+    html += '<td class="text-right">' + nf(tReal) + '</td>'
+          + '<td class="text-right ' + (tSelisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + nf(tSelisih) + '</td>'
+          + '<td class="text-right ' + (tSelisih >= 0 ? 'bg-pos' : 'bg-neg') + '">' + tPct + '%</td></tr>';
+    $('#bg-tfoot').html(html);
   }
 
   function paintRow(ri) {
@@ -250,6 +290,7 @@
     $(this).closest('tr').find('.bg-final').val(nf(r.final_budget));
     paintRow(ri);
     paintCards(computeCards());
+    renderFooter();
   });
   $('#bg-body').on('input', '.bg-inflasi', function () {
     const ri = $(this).closest('tr').data('r');
@@ -260,6 +301,7 @@
     $(this).closest('tr').find('.bg-final').val(nf(r.final_budget));
     paintRow(ri);
     paintCards(computeCards());
+    renderFooter();
   });
   $('#bg-body').on('change', '.bg-unbudget', function () {
     const ri = $(this).closest('tr').data('r');
@@ -301,6 +343,7 @@
     this.value = nf(r.final_budget);
     paintRow(ri);
     paintCards(computeCards());
+    renderFooter();
   });
   $('#bg-body').on('focus', '.bg-additional', function () {
     const r = rows[$(this).closest('tr').data('r')];
@@ -314,7 +357,20 @@
     r.additional_budget = v !== null ? v : 0;
     this.value = nf(r.additional_budget);
   });
-  $('#bg-body').on('keydown', '.bg-final, .bg-cr, .bg-additional, .bg-inflasi', function (e) {
+  $('#bg-body').on('focus', '.bg-targetsales', function () {
+    const r = rows[$(this).closest('tr').data('r')];
+    this.value = String(round2(r.target_sales || 0)).replace('.', ',');
+    this.select();
+  });
+  $('#bg-body').on('blur', '.bg-targetsales', function () {
+    const ri = $(this).closest('tr').data('r');
+    const r = rows[ri];
+    const v = parseId(this.value);
+    r.target_sales = v !== null ? v : 0;
+    this.value = nf(r.target_sales);
+    renderFooter();
+  });
+  $('#bg-body').on('keydown', '.bg-final, .bg-cr, .bg-additional, .bg-inflasi, .bg-targetsales', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); this.blur(); }
   });
 
@@ -332,7 +388,7 @@
       if (!result.isConfirmed) return;
       $('.loading-spinner-container').addClass('-show');
       const oldRows = rows;
-      const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget, budget_type: r.budget_type }));
+      const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, additional_budget: r.additional_budget, target_sales: r.target_sales, is_unbudget: r.is_unbudget, budget_type: r.budget_type }));
       $.post("{{ route('budgeting.recalculate', $hdr->id) }}", { rows: payload }).done(function (res) {
         months = res.months;
         rows = res.rows;
@@ -347,7 +403,7 @@
   });
 
   $('#btnSave').click(function () {
-    const payload = rows.map((r) => ({ account: r.account, nama_akun: r.nama_akun, debit: r.debit, average: r.average, active_months: r.active_months, realisasi: r.realisasi, realisasi_total: r.realisasi_total, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget, budget_type: r.budget_type }));
+    const payload = rows.map((r) => ({ account: r.account, nama_akun: r.nama_akun, debit: r.debit, average: r.average, active_months: r.active_months, realisasi: r.realisasi, realisasi_total: r.realisasi_total, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, target_sales: r.target_sales, is_unbudget: r.is_unbudget, budget_type: r.budget_type }));
     $('.loading-spinner-container').addClass('-show');
     $.ajax({
       url: "{{ route('budgeting.update', $hdr->id) }}", type: 'PUT',
