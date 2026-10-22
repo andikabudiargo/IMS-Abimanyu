@@ -30,10 +30,6 @@
           <label class="form-label" for="description">Description <span class="text-danger">*</span></label>
           <input type="text" id="description" class="form-control" />
         </div>
-        <div class="form-group col-md-3">
-          <label class="form-label" for="targetSales">Target Sales</label>
-          <input type="text" inputmode="decimal" id="targetSales" class="form-control text-right" placeholder="0" />
-        </div>
       </div>
       <div class="form-row">
  <div class="form-group col-md-3">
@@ -114,6 +110,10 @@
             <input type="number" id="defaultInflasi" class="form-control text-right" min="0" step="0.01" placeholder="%">
             <div class="input-group-append"><span class="input-group-text">%</span></div>
           </div>
+        </div>
+        <div>
+          <label class="mb-0 small" for="targetSales">Target Sales</label>
+          <input type="text" inputmode="decimal" id="targetSales" class="form-control form-control-sm text-right" style="width:160px" placeholder="0">
         </div>
         <small class="text-muted">Mengubah seluruh baris di tabel secara langsung; tetap bisa dioverride per baris.</small>
       </div>

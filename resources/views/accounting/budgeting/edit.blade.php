@@ -33,6 +33,10 @@
           <div class="input-group-append"><span class="input-group-text">%</span></div>
         </div>
       </div>
+      <div>
+        <label class="mb-0 small" for="targetSales">Target Sales</label>
+        <input type="text" inputmode="decimal" id="targetSales" class="form-control form-control-sm text-right" style="width:160px" value="{{ number_format($hdr->target_sales, 2, ',', '.') }}">
+      </div>
       <small class="text-muted">Mengubah seluruh baris di tabel secara langsung; tetap bisa dioverride per baris.</small>
     </div>
     <div class="table-responsive bg-scroll">

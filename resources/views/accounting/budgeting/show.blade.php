@@ -18,6 +18,7 @@
   </div>
   <div class="card-body pt-0">
     <small class="text-muted d-block mb-1">Klik nilai Debit / Realisasi untuk melihat rincian transaksi.</small>
+    <div class="mb-2"><span class="text-muted small mr-1">Target Sales:</span> <strong>{{ number_format($hdr->target_sales, 2, ',', '.') }}</strong></div>
     <div class="table-responsive bg-scroll">
       <table id="bgTable" class="table table-sm">
         <thead class="thead-light" id="bg-thead"></thead>
