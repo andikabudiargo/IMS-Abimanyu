@@ -36,7 +36,7 @@ class DnGeneralController extends Controller
 ];
 
     /** Lokasi tujuan transfer khusus type Jaeeco (PT Yusen Logistic Interlink Indonesia) */
-    const LOCATION_YUSEN = '060';
+    const LOCATION_YUSEN = '061';
 
     /** Artikel yang diizinkan untuk type Jaeeco (article_alternative_code) */
     const JAEECO_ARTICLES = ['FGAPI0146', 'FGAPI0144'];
