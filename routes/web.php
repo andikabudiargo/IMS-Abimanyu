@@ -506,6 +506,7 @@ Route::prefix('supplier-replace')->group(function () {
 	Route::post('delivery/preStore',['as'=>'delivery.preStore','uses'=>'DeliveryController@preStore']);
 
 	Route::post('delivery/check-fg-stock', ['as'=>'delivery.checkFGStock','uses'=>'DeliveryController@checkFgStock']);
+	Route::get('delivery/jaeeco-dn-list', ['as'=>'delivery.jaeecoDnList','uses'=>'DeliveryController@jaeecoDnList']);
 
 	Route::get('delivery/postingAllData',['as'=>'delivery.postingAllData','uses'=>'DeliveryController@postingAllData']);	
 

@@ -22,13 +22,20 @@
                             <form id="frmAdd" name="frmAdd" autocomplete="off">
                                 @csrf
                                 <div class="form-row">
-                                    <div class="form-group col-md-4">
+                                    <div class="form-group col-md-3">
                                         <label for="dnNumber">Delivery Note Number</label> <small class="text-muted"> automatic</small>
                                         <input type="text" id="dnNumber" name="dnNumber" class="form-control text-hitam disabled-el"  disabled />
                                     </div>
-                                    <div class="form-group col-md-3">
+                                    <div class="form-group col-md-2">
                                         <label for="dnDate">Delivery Date*</label>
                                         <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" required />
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        <label class="form-label" for="deliveryType"> DNType*</label>
+                                        <select class="select2 form-control" id="deliveryType" name="deliveryType" required>
+                                            <option value="standard">Standard</option>
+                                            <option value="jaeeco">Jaeeco</option>
+                                        </select>
                                     </div>
                                 </div>
                                  <div class="form-row">
@@ -189,6 +196,8 @@
         let currentDate = todayDate('dd-mm-yyyy');    
         let fromEdit = 'false';
         let lockedAt = "{{ $lockDate }}";
+        window.deliveryType = 'standard';
+
         $(document).ready(function(){
             validateFormToast("frmAdd");
             $("#totalRow").val(0);
@@ -197,6 +206,17 @@
             $('#dnDate').val(currentDate);
             $('#cmdSave').show();
             $('#cmdPrint').hide();
+            toggleJaeecoColumn();
+        });
+
+        // Lokasi sumber stok beda per type (FG vs gudang Yusen) -- artikel yang
+        // sudah ke-load dari type sebelumnya jadi tidak valid, reset & minta pilih SO ulang.
+        $('#deliveryType').on('change', function(){
+            window.deliveryType = $(this).val() || 'standard';
+            toggleJaeecoColumn();
+            $('#article_row').empty();
+            hitungGrandTotal();
+            if ($('#soNumber').val()) searchSoDet($('#soNumber').val());
         });
 
         dnDate = $('#dnDate');
@@ -224,7 +244,8 @@
             type: "post",
             url: "{{ route('delivery.checkFGStock') }}",
             data: {
-                article_codes: JSON.stringify(articleCodes)
+                article_codes: JSON.stringify(articleCodes),
+                deliveryType: window.deliveryType
             },
             dataType: "json",
             success: function(data) {
@@ -451,11 +472,12 @@
                 let objQty= $('#article_row input[name="qtyInv[]"]');
                 let objUom= $('#article_row span[name="uom[]"]'); 
                 let objSisaSo  = $('#article_row input[name="sisaSo[]"]');  // ← TAMBAHKAN INI
-                let articles = []; 
-                let flag=0; 
+                let objJaeecoDn = $('#article_row select[name="jaeecoDnNumber[]"]');
+                let articles = [];
+                let flag=0;
                 let pesan="";
 
-                $("#article_row input[name='articleId[]']").map(function(i) {  
+                $("#article_row input[name='articleId[]']").map(function(i) {
                     let $this=$(this);
                     if ($this.val()){
                         let articleCode = $this.data("code");
@@ -470,7 +492,12 @@
                         let sisaSoVal = objSisaSo.eq(i).length
                             ? (objSisaSo.eq(i).val().replace(/,/gi, '') || 0)
                             : (parseFloat(qtySo) - parseFloat(qty));
-                        
+
+                        if (window.deliveryType === 'jaeeco' && (qty > 0) && !objJaeecoDn.eq(i).val()) {
+                            pesan += "Items " + articleDesc + " belum dipilih sumber DN Umum Jaeeco-nya<br>";
+                            flag = 1;
+                        }
+
                         if ((articleCode!=='') && (qty> 0)){
                             articles.push({
                                 "article_code":articleCode,
@@ -479,15 +506,16 @@
                                 "so_number":articleSoCode,
                                 "po_number":poNumber,
                                 "qty_so":qtySo,
-                                "sisa_so":sisaSoVal 
+                                "sisa_so":sisaSoVal,
+                                "jaeecoDnNumber": objJaeecoDn.eq(i).val() || null
                             });
                         }
 
                         if (parseInt(qty) > parseInt(qtySo)){
-                            pesan +="Items "+ articleDesc +"-"+qty+"-"+qtySo+" QTY Delivery is higher than QTY SO<br>"; 
+                            pesan +="Items "+ articleDesc +"-"+qty+"-"+qtySo+" QTY Delivery is higher than QTY SO<br>";
                             flag=1;
                         }
-                        
+
                     }
                 });
 
@@ -519,6 +547,7 @@
                             note:note,
                             osNumber:osNumber,
                             armada:armada,   // baru
+                            deliveryType: window.deliveryType,
                             opnamePosition: $('#opnamePosition').val()
                         },
                         dataType: "json",

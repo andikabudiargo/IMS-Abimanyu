@@ -2,7 +2,8 @@
     <table class="" style="width:98%;table-layout: fixed;">
         <tbody>
             <tr>
-                <td class="" style="width: 35%"><label>Article Code</label></td>
+                <td class="" style="width: 25%"><label>Article Code</label></td>
+                <td class="isian jaeeco-col" style="width: 15%"><label>Sumber DN Jaeeco</label></td>
                 <td class="isian text-right" style="width: 5%"><label>Qty SO</label></td>
                 <td class="isian text-right" style="width: 5%"><label>Stock</label></td>
                 <td class="isian text-right" style="width: 5%"><label>Qty Delivery</label></td>

@@ -32,7 +32,11 @@
     .table-bordered td {
         border: 1px solid #68676a;
     }
-    
+
+    .jaeeco-col{
+        display: none;
+    }
+
 </style>
 {{-- table row untuk di clone--}}  
 <div id="new_row" name="new_row[]" class="d-none">
@@ -40,8 +44,11 @@
         <table class="table-bordered" id="listData" style="width: 98%;table-layout: fixed;">
             <tbody>
                 <tr>
-                   <td class="isian disabled" style="width: 35%">
+                   <td class="isian disabled" style="width: 25%">
     <input type="text" class="form-control-plaintext text-hitam" id="articleId" name="articleId[]" data-code="" data-uom="" data-price="" data-po-number="" disabled>
+</td>
+<td class="isian jaeeco-col" style="width: 15%">
+    <select class="form-control form-control-sm" id="jaeecoDnNumber" name="jaeecoDnNumber[]"></select>
 </td>
 <td class="isian disabled" style="width: 5%">
     <input type="text" class="form-control-plaintext text-hitam numeral-mask-digit text-right" id="qtySo" name="qtySo[]" disabled>
@@ -127,7 +134,8 @@
                 method:"GET",
                 data:{
                     value:value,
-                    dariEdit : fromEdit
+                    dariEdit : fromEdit,
+                    deliveryType: (window.deliveryType || 'standard')
                 },
                 success:function(result){
                     if (cloneCount > 1){
@@ -167,6 +175,40 @@
         }
     }
 
+    // ============================================================
+    // Jaeeco: picker sumber DN Umum per baris artikel (sisa qty)
+    // ============================================================
+    function loadJaeecoOptions(selectEl, articleCode, preselectDn) {
+        var $sel = $(selectEl);
+        $sel.html('<option value="">Memuat...</option>').prop('disabled', true);
+
+        $.ajax({
+            url: "{{ route('delivery.jaeecoDnList') }}",
+            method: "GET",
+            data: {
+                articleCode: articleCode,
+                excludeDeliveryNumber: $('#dnNumber').val() || null
+            },
+            success: function(result) {
+                var opts = '<option value="">-- Pilih DN Umum --</option>';
+                (result || []).forEach(function(r) {
+                    var label = r.tdn_number + ' (sisa ' + humanizeNumber(r.qty_sisa) + ' ' + r.uom + ')';
+                    var selected = (preselectDn && preselectDn === r.tdn_number) ? 'selected' : '';
+                    opts += '<option value="' + r.tdn_number + '" data-sisa="' + r.qty_sisa + '" ' + selected + '>' + label + '</option>';
+                });
+                $sel.html(opts).prop('disabled', false);
+                if (preselectDn) $sel.val(preselectDn);
+            },
+            error: function() {
+                $sel.html('<option value="">Gagal memuat</option>').prop('disabled', false);
+            }
+        });
+    }
+
+    function toggleJaeecoColumn() {
+        $('.jaeeco-col').toggle((window.deliveryType || 'standard') === 'jaeeco');
+    }
+
     let cloneCount=1;
     function add_new_row(article,articleCode,articleDesc,qtySo,uomGroup,uom,price,priceJasa,soCode,poNumber,stockFg) {
     $("#article_row").append($("#new_row").clone().html());
@@ -177,6 +219,7 @@
     $("#new_row"+ cloneCount).find('#articleId').attr('id', 'articleId'+ cloneCount);
     $("#new_row"+ cloneCount).find('#qtyInv').attr('id', 'qtyInv'+ cloneCount);
     $("#new_row"+ cloneCount).find('#sisaSo').attr('id', 'sisaSo'+ cloneCount);
+    $("#new_row"+ cloneCount).find('#jaeecoDnNumber').attr('id', 'jaeecoDnNumber'+ cloneCount);
     $('#articleId'+ cloneCount).attr('data-code', article);
     $('#articleId'+ cloneCount).attr('data-desc', articleDesc);
     $('#articleId'+ cloneCount).attr('data-uom', uom);
@@ -190,6 +233,10 @@
     $('#qtySo'+ cloneCount).val(qtySo);
     $("#new_row"+ cloneCount).find('input[name="qtyStock[]"]').val(stockFg);   // ← set stok FG
     $('#sisaSo'+ cloneCount).val(humanizeNumber(parseFloat(qtySo) || 0));      // sisa SO awal = qty SO penuh
+    if ((window.deliveryType || 'standard') === 'jaeeco') {
+        loadJaeecoOptions('#jaeecoDnNumber'+ cloneCount, article, null);
+    }
+    toggleJaeecoColumn();
     tombolPanah('qtyInv');
     mask_thousand();
     mask_thousand_digit(2);
@@ -198,13 +245,14 @@
 }
 
     let cloneCountEdit=0;
-function add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo,stockFg) {
+function add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo,stockFg,jaeecoDn) {
     // console.log(article,articleCode,articleDesc,qtyDel,uomGroup,uom);
     $("#article_row").append($("#new_row").clone().html());
     cloneCountEdit++;
     $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCountEdit);
     $("#new_row"+ cloneCountEdit).find('#qtySo').attr('id', 'qtySo'+ cloneCountEdit);
     $("#new_row"+ cloneCountEdit).find('#articleId').attr('id', 'articleId'+ cloneCountEdit);
+    $("#new_row"+ cloneCountEdit).find('#jaeecoDnNumber').attr('id', 'jaeecoDnNumber'+ cloneCountEdit);
     $('#articleId'+ cloneCountEdit).attr('data-code', article);
     $('#articleId'+ cloneCountEdit).attr('data-desc', articleDesc);
     $('#articleId'+ cloneCountEdit).attr('data-uom', uom);
@@ -222,6 +270,10 @@ function add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,so
     // ← BARU: isi qtyStock[] sama seperti add_new_row()
     $("#new_row"+ cloneCountEdit).find('input[name="qtyStock[]"]').val(stockFg || 0);
     listUom('uom'+ cloneCountEdit,uomGroup,uom,uom);
+    if ((window.deliveryType || 'standard') === 'jaeeco') {
+        loadJaeecoOptions('#jaeecoDnNumber'+ cloneCountEdit, article, jaeecoDn || null);
+    }
+    toggleJaeecoColumn();
     tombolPanah('qtyInv');
     mask_thousand();
     mask_thousand_digit(2);   // ← BARU: konsisten dengan add_new_row()

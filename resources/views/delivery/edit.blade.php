@@ -20,14 +20,20 @@
                             @csrf
                             <input type="hidden" id="opnamePosition" name="opnamePosition" value="{{ $header->opname_position ?? '' }}" />
                             <div class="form-row">
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-3">
                                     <label for="dnNumber">Delivery Note Number</label> <small class="text-muted"> automatic</small>
                                     <input type="text" id="dnNumber" name="dnNumber" class="form-control text-hitam disabled-el" value="{{ $header->delivery_number }}" disabled />
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label for="dnDate">Delivery Date*</label>
                                     <input type="text" id="dnDate" name="dnDate" class="form-control disabled-el" placeholder="DD-MM-YYYY" value="{{ $header->delivery_date }}" required />
-                                </div>   
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label class="form-label d-block">DN Type</label>
+                                    <span class="badge {{ ($header->delivery_type ?? 'standard') === 'jaeeco' ? 'badge-light-info' : 'badge-secondary' }}">
+                                        {{ strtoupper($header->delivery_type ?? 'standard') }}
+                                    </span>
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
@@ -234,6 +240,7 @@
     let currentDate = todayDate('dd-mm-yyyy');
     let fromEdit = 'true';
     let lockedAt = "{{ $lockDate }}";
+    window.deliveryType = "{{ $header->delivery_type ?? 'standard' }}";
     const approveBtn = document.querySelector('#cmdApprove');
 
     if (approveBtn) {
@@ -299,7 +306,7 @@ for(let i=0;i<detail.length;i++){
     poNumber = detail[i].po_number;
     qtySo = detail[i].qty_so;
     stockFg = detail[i].stock_fg;   // ← BARU
-    add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo,stockFg);
+    add_new_row_edit(article,articleCode,articleDesc,qtyDel,uomGroup,uom,soCode,poNumber,qtySo,stockFg,detail[i].jaeeco_dn_number);
 }
 
 // supaya yang sisa SO nya juga keluar datanya bukan hanya yang di delivery saja
@@ -385,11 +392,12 @@ for(let i=0;i<detailSo.length;i++){
         let objQty= $('#article_row input[name="qtyInv[]"]');
         let objUom= $('#article_row span[name="uom[]"]'); 
         let objSisaSo  = $('#article_row input[name="sisaSo[]"]');  // ← BARU
-        let articles = []; 
-        let flag=0; 
+        let objJaeecoDn = $('#article_row select[name="jaeecoDnNumber[]"]');
+        let articles = [];
+        let flag=0;
         let pesan="";
 
-        $("#article_row input[name='articleId[]']").map(function(i) {  
+        $("#article_row input[name='articleId[]']").map(function(i) {
             let $this=$(this);
             if ($this.val()){
                 let articleCode = $this.data("code");
@@ -403,7 +411,12 @@ for(let i=0;i<detailSo.length;i++){
                 let sisaSoVal = objSisaSo.eq(i).length
                     ? (objSisaSo.eq(i).val().replace(/,/gi, '') || 0)
                     : (parseFloat(qtySo) - parseFloat(qty));
-                
+
+                if (window.deliveryType === 'jaeeco' && (qty > 0) && !objJaeecoDn.eq(i).val()) {
+                    pesan += "Items " + articleDesc + " belum dipilih sumber DN Umum Jaeeco-nya<br>";
+                    flag = 1;
+                }
+
                 if ((articleCode!=='') && (qty> 0)){
                     articles.push({
                         "article_code":articleCode,
@@ -412,7 +425,8 @@ for(let i=0;i<detailSo.length;i++){
                         "so_number":articleSoCode,
                         "po_number":poNumber,
                         "qty_so":qtySo,
-                        "sisa_so":sisaSoVal   // ← BARU
+                        "sisa_so":sisaSoVal,   // ← BARU
+                        "jaeecoDnNumber": objJaeecoDn.eq(i).val() || null
                     });
                 }
 

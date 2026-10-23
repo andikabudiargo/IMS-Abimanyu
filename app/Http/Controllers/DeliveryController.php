@@ -25,6 +25,58 @@ class DeliveryController extends Controller
     private $moduleCode;
     private $lockDate;
     private $lockDateIndex;
+
+    /** Lokasi stok sumber per delivery_type. Standard = Finish Goods, Jaeeco = gudang konsinyasi PT Yusen. */
+    const LOCATION_FG     = '007';
+    const LOCATION_YUSEN  = '061';
+
+    private function resolveLocation(?string $deliveryType): string
+    {
+        return $deliveryType === 'jaeeco' ? self::LOCATION_YUSEN : self::LOCATION_FG;
+    }
+
+    /**
+     * Sisa qty DN Umum (tdn_number+article) yang belum ditarik ke delivery lain
+     * (delivery berstatus CANCELED '5' tidak dihitung). $excludeDeliveryNumber
+     * dipakai saat edit, supaya qty milik delivery itu sendiri tidak dihitung dobel.
+     */
+    private function jaeecoRemainingQty(string $tdnNumber, string $articleCode, ?string $excludeDeliveryNumber = null): float
+    {
+        $sourceQty = (float) (DB::table('dn_general_det')
+            ->where('tdn_number', $tdnNumber)
+            ->where('article_code', $articleCode)
+            ->value('qty') ?? 0);
+
+        $pulledQuery = DB::table('delivery_det')
+            ->join('delivery_hdr', 'delivery_hdr.delivery_number', 'delivery_det.delivery_number')
+            ->where('delivery_det.jaeeco_dn_number', $tdnNumber)
+            ->where('delivery_det.article_code', $articleCode)
+            ->where('delivery_hdr.status', '<>', '5');
+
+        if ($excludeDeliveryNumber) {
+            $pulledQuery->where('delivery_det.delivery_number', '<>', $excludeDeliveryNumber);
+        }
+
+        $pulled = (float) ($pulledQuery->sum('delivery_det.qty') ?? 0);
+
+        return $sourceQty - $pulled;
+    }
+
+    /** @param array $articles decoded JSON payload */
+    private function validateJaeecoLinks(array $articles, ?string $excludeDeliveryNumber = null): ?string
+    {
+        foreach ($articles as $val) {
+            if (empty($val->jaeecoDnNumber)) {
+                return "Artikel {$val->article_code} belum dipilih sumber DN Umum Jaeeco-nya.";
+            }
+
+            $remaining = $this->jaeecoRemainingQty($val->jaeecoDnNumber, $val->article_code, $excludeDeliveryNumber);
+            if ((float) $val->qty > $remaining + 0.000001) {
+                return "Qty {$val->article_code} ({$val->qty}) melebihi sisa DN Umum {$val->jaeecoDnNumber} (sisa: {$remaining}).";
+            }
+        }
+        return null;
+    }
     public function __construct()
     {
         $this->title = "Delivery";
@@ -233,6 +285,7 @@ class DeliveryController extends Controller
     {
         $so = $request->value;
         $edit = $request->dariEdit;
+        $location = $this->resolveLocation($request->deliveryType);
 
         /*
             ambil data SO yang belum closed tapi total delivery nya belum 0
@@ -248,7 +301,7 @@ class DeliveryController extends Controller
             ,'sales_order_hdr.po_number'
             ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
             ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_so")
-            ,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = a.article_code and location_number = '007'),0)) as stock_fg")
+            ,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = a.article_code and location_number = '{$location}'),0)) as stock_fg")
             )
             ->where('a.status','1')
             ->where('a.so_code',$so)
@@ -264,7 +317,7 @@ class DeliveryController extends Controller
             ,'sales_order_hdr.po_number'
             ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7','10')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
             ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7','10')) and article_code = a.article_code group by article_code),0)) as qty_so")
-            ,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = a.article_code and location_number = '007'),0)) as stock_fg")
+            ,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = a.article_code and location_number = '{$location}'),0)) as stock_fg")
             )
             ->where('a.status','1')
             ->where('a.so_code',$so)
@@ -278,13 +331,13 @@ class DeliveryController extends Controller
     public function checkFGStock(Request $request)
 {
     $articleCodes = json_decode($request->article_codes, true);
+    $location     = $this->resolveLocation($request->deliveryType);
     $result = [];
 
     foreach ($articleCodes as $item) {
-        // Sesuaikan nama tabel/kolom dengan struktur DB Anda
-        $stock = DB::table('warehouse_stock')          // ganti nama tabel
+        $stock = DB::table('warehouse_stock')
             ->where('article_code', $item['article_code'])
-            ->where('location_number', '007')            // ganti kode gudang FG Anda
+            ->where('location_number', $location)
             ->value('article_qty') ?? 0;
 
         $result[] = [
@@ -297,6 +350,53 @@ class DeliveryController extends Controller
 
     return response()->json($result);
 }
+
+    /**
+     * Picker: baris DN Umum (type Jaeeco, status aktif) yang masih punya sisa qty
+     * belum ditarik ke Delivery manapun. $excludeDn dipakai di mode edit supaya
+     * baris yang sudah dipakai delivery INI SENDIRI tetap muncul (qty-nya dilepas
+     * dulu dari hitungan "sudah ditarik").
+     */
+    public function jaeecoDnList(Request $request)
+    {
+        $excludeDn = $request->excludeDeliveryNumber;
+
+        $rows = DB::table('dn_general_det as d')
+            ->join('dn_general_hdr as h', 'h.tdn_number', '=', 'd.tdn_number')
+            ->leftJoin('article as a', 'a.article_code', '=', 'd.article_code')
+            ->where('h.dn_type', 'jaeeco')
+            ->where('h.status', '<>', '4') // 4 = CANCELED
+            ->where('d.article_code', '<>', 'OTHER') // artikel manual DN Umum (DnGeneralController::MANUAL_CODE), tanpa stok, tidak bisa ditarik
+            ->when($request->articleCode, fn($q) => $q->where('d.article_code', $request->articleCode))
+            ->select(
+                'd.tdn_number', 'd.article_code', 'd.qty', 'd.uom',
+                'h.delivery_date', 'h.customer_id',
+                DB::raw('coalesce(a.article_alternative_code, d.article_code) as article_alt_code'),
+                DB::raw('coalesce(a.article_desc, d.article_desc) as article_desc')
+            )
+            ->orderBy('h.delivery_date')
+            ->get();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $sisa = $this->jaeecoRemainingQty($row->tdn_number, $row->article_code, $excludeDn ?: null);
+            if ($sisa <= 0.000001) continue;
+
+            $result[] = [
+                'tdn_number'      => $row->tdn_number,
+                'article_code'    => $row->article_code,
+                'article_alt_code'=> $row->article_alt_code,
+                'article_desc'    => $row->article_desc,
+                'uom'             => $row->uom,
+                'qty'             => (float) $row->qty,
+                'qty_sisa'        => $sisa,
+                'delivery_date'   => $row->delivery_date,
+                'customer_id'     => $row->customer_id,
+            ];
+        }
+
+        return response()->json($result);
+    }
 
     public function store(Request $request)
     {
@@ -312,6 +412,8 @@ class DeliveryController extends Controller
         $kurs = 1;
         $osNumber = $request->osNumber;
         $armada = $request->armada;
+        $deliveryType = in_array($request->deliveryType, ['standard', 'jaeeco'], true) ? $request->deliveryType : 'standard';
+        $location = $this->resolveLocation($deliveryType);
 
         // before/after opname (STO 08:00-17:00), diisi lewat modal di form kalau
         // dnDate bertepatan dengan tanggal OB/SYSTEM CORRECTION aktif. Lihat
@@ -328,12 +430,19 @@ class DeliveryController extends Controller
         }
         foreach ($stockNeeds as $code => &$row) {
             $row['avail'] = (float) (DB::table('warehouse_stock')
-                ->where('article_code', $code)->where('location_number', '007')
+                ->where('article_code', $code)->where('location_number', $location)
                 ->value('article_qty') ?? 0);
         }
         unset($row);
         if ($err = AppHelpers::lockGuard($this->moduleCode, $dnDate, array_values($stockNeeds))) {
             return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
+
+        // === Jaeeco: qty tiap baris tidak boleh melebihi sisa DN Umum sumbernya ===
+        if ($deliveryType === 'jaeeco') {
+            if ($err = $this->validateJaeecoLinks($articles)) {
+                return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => [$err], 'alert' => 'warning']);
+            }
         }
 
         $periodNomor=(int)explode('-', $dnDate)[1];
@@ -389,7 +498,8 @@ class DeliveryController extends Controller
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s'),
                         'os_number' => $osNumber,
-                        'armada' => $armada
+                        'armada' => $armada,
+                        'delivery_type' => $deliveryType,
                     ]);
 
                     // so_number/po_number baris detail ikut header ($soNumber/$poNumber),
@@ -399,6 +509,7 @@ class DeliveryController extends Controller
                         $dataSet[] = [
                             'delivery_number' => $dnCode,
                             'article_code' => $val->article_code,
+                            'jaeeco_dn_number' => $deliveryType === 'jaeeco' ? ($val->jaeecoDnNumber ?? null) : null,
                             'so_number' => $soNumber,
                             'po_number' => $poNumber,
                             'qty' => $val->qty,
@@ -623,6 +734,7 @@ class DeliveryController extends Controller
 
         $dnNumber = $data['header']->delivery_number;
         $soNumber = $data['header']->so_number;
+        $location = $this->resolveLocation($data['header']->delivery_type);
 
 
        //ambil data dari SO semua barang SO kecuali yang sudah di delivery dengan nomor yang sama
@@ -636,7 +748,7 @@ $data['detailSo'] = DB::table('sales_order_det as a')
 ,'sales_order_hdr.po_number'
 ,DB::RAW("(coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_delivery")
 ,DB::RAW("(a.qty - coalesce((select sum(qty) as qty_delivery from delivery_det where delivery_number in (select delivery_number from delivery_hdr where so_number = a.so_code and status not in ('5','7')) and article_code = a.article_code group by article_code),0)) as qty_so")
-,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = a.article_code and location_number = '007'),0)) as stock_fg")
+,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = a.article_code and location_number = '{$location}'),0)) as stock_fg")
 )
 ->whereNotIn('a.article_code', function($query) use($dnNumber){
     $query->select('article_code')
@@ -671,7 +783,7 @@ $data['detail'] = DB::table('delivery_det')
           ),0)
         as qty_so
     ")
-    ,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = delivery_det.article_code and location_number = '007'),0)) as stock_fg")
+    ,DB::RAW("(coalesce((select article_qty from warehouse_stock where article_code = delivery_det.article_code and location_number = '{$location}'),0)) as stock_fg")
 )
 ->where('delivery_det.delivery_number',$dnNumber)
 ->orderBy('delivery_det.id')
@@ -713,6 +825,11 @@ $data['detail'] = DB::table('delivery_det')
         $osNumber = $request->osNumber;
         $armada = $request->armada;
 
+        // Type dikunci sejak dibuat (sama seperti dn_type di DN Umum) -- tidak
+        // diambil dari request, supaya tidak bisa diganti Standard<->Jaeeco lewat edit.
+        $deliveryType = DB::table('delivery_hdr')->where('delivery_number', $dnNumber)->value('delivery_type') ?? 'standard';
+        $location     = $this->resolveLocation($deliveryType);
+
         // before/after opname -- lihat catatan yang sama di store(). Diisi dari
         // modal di form edit kalau dnDate BARU bertepatan dengan tanggal OB aktif.
         $opnamePosition = in_array($request->opnamePosition, ['before', 'after'], true)
@@ -727,12 +844,19 @@ $data['detail'] = DB::table('delivery_det')
         }
         foreach ($stockNeeds as $code => &$row) {
             $row['avail'] = (float) (DB::table('warehouse_stock')
-                ->where('article_code', $code)->where('location_number', '007')
+                ->where('article_code', $code)->where('location_number', $location)
                 ->value('article_qty') ?? 0);
         }
         unset($row);
         if ($err = AppHelpers::lockGuard($this->moduleCode, $dnDate, array_values($stockNeeds))) {
             return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [[$err]], 'alert' => 'error']);
+        }
+
+        // === Jaeeco: qty tiap baris tidak boleh melebihi sisa DN Umum sumbernya ===
+        if ($deliveryType === 'jaeeco') {
+            if ($err = $this->validateJaeecoLinks($articles, $dnNumber)) {
+                return response()->json(['status' => 0, 'title' => "Update $this->title", 'message' => [$err], 'alert' => 'warning']);
+            }
         }
         // $status = '2';
         // status
@@ -802,7 +926,7 @@ $data['detail'] = DB::table('delivery_det')
                     // satunya sumber kebenaran "apa yang benar-benar sudah masuk stok".
                     $movRows = DB::table('warehouse_movement')
                         ->where('movement_transnno', $dnNumber)
-                        ->where('location_number', '007')
+                        ->where('location_number', $location)
                         ->where('movement_type', 'DELIVERY')
                         ->get(['artikel_code', 'movement_plus', 'movement_min']);
 
@@ -812,8 +936,8 @@ $data['detail'] = DB::table('delivery_det')
                         $signed = (float) $mv->movement_plus - (float) $mv->movement_min;
                         if (abs($signed) < 0.000001) continue;
 
-                        $wasCovered = $adj->obBoundaryFor($mv->artikel_code, '007', $oldDt->format('Y-m-d'), $oldHdr->opname_position);
-                        $isCovered  = $adj->obBoundaryFor($mv->artikel_code, '007', $newDt->format('Y-m-d'), $opnamePosition);
+                        $wasCovered = $adj->obBoundaryFor($mv->artikel_code, $location, $oldDt->format('Y-m-d'), $oldHdr->opname_position);
+                        $isCovered  = $adj->obBoundaryFor($mv->artikel_code, $location, $newDt->format('Y-m-d'), $opnamePosition);
 
                         if ($wasCovered === $isCovered) continue; // tidak menyeberang anchor OB, aman
 
@@ -825,7 +949,7 @@ $data['detail'] = DB::table('delivery_det')
                         $delta   = $isCovered ? $signed : -$signed;
                         $context = "Delivery {$dnNumber} tanggal diubah {$oldHdr->delivery_date} -> {$dnDate}";
 
-                        if ($adj->absorbIntoLatestOpeningBalance($mv->artikel_code, '007', $delta, $username, $context)) {
+                        if ($adj->absorbIntoLatestOpeningBalance($mv->artikel_code, $location, $delta, $username, $context)) {
                             $touchedArticles[] = $mv->artikel_code;
                         }
                     }
@@ -835,11 +959,11 @@ $data['detail'] = DB::table('delivery_det')
                     if ($movRows->isNotEmpty()) {
                         DB::table('warehouse_movement')
                             ->where('movement_transnno', $dnNumber)
-                            ->where('location_number', '007')
+                            ->where('location_number', $location)
                             ->where('movement_type', 'DELIVERY')
                             ->update(['movement_date' => $dnDate]);
 
-                        $adj->recalcLastQtyFor($movRows->pluck('artikel_code')->unique()->values()->all(), '007');
+                        $adj->recalcLastQtyFor($movRows->pluck('artikel_code')->unique()->values()->all(), $location);
                     }
                 }
             }
@@ -873,8 +997,9 @@ $data['detail'] = DB::table('delivery_det')
                     // ditarik/ditemukan lagi oleh Invoice (join by so_number).
                     $dataset=[];
                     foreach ($articles as $val) {
+                        $jaeecoDn = $deliveryType === 'jaeeco' ? ($val->jaeecoDnNumber ?? '') : '';
                         $dataSet[] = [
-                            $dnNumber.$val->article_code.$poNumber.$soNumber
+                            $dnNumber.$val->article_code.$poNumber.$soNumber.$jaeecoDn
                         ];
 
                     }
@@ -882,17 +1007,26 @@ $data['detail'] = DB::table('delivery_det')
                     //Delete kalo article tidak ada di DN $dnNumber dan article nya $val->article_code
                     //berdasarkan 2 kondisi
                     DB::table('delivery_det')
-                        ->whereNotIn(DB::raw("CONCAT(delivery_number,article_code,po_number,so_number)"),$dataSet)
+                        ->whereNotIn(DB::raw("CONCAT(delivery_number,article_code,po_number,so_number,coalesce(jaeeco_dn_number,''))"),$dataSet)
                         ->where('delivery_number',$dnNumber)
                         ->delete();
 
                     foreach ($articles as $val) {
+                        $jaeecoDn = $deliveryType === 'jaeeco' ? ($val->jaeecoDnNumber ?? null) : null;
+                        // null tidak dimasukkan ke match key: where('col', null) tidak pernah match
+                        // baris existing (col = NULL selalu unknown di SQL), jadi delivery standard
+                        // (jaeeco_dn_number selalu null) tetap match 2 kolom seperti semula.
+                        $matchKey = ['delivery_number' => $dnNumber, 'article_code' => $val->article_code];
+                        if ($jaeecoDn !== null) {
+                            $matchKey['jaeeco_dn_number'] = $jaeecoDn;
+                        }
                         DB::table('delivery_det')
                         ->updateOrInsert(
-                            ['delivery_number' => $dnNumber,'article_code' => $val->article_code],
+                            $matchKey,
                             [
                                 'delivery_number' => $dnNumber,
                                 'article_code' => $val->article_code,
+                                'jaeeco_dn_number' => $jaeecoDn,
                                 'so_number' => $soNumber,
                                 'po_number' => $poNumber,
                                 'qty' => $val->qty,
@@ -1030,7 +1164,7 @@ public function posting(Request $request)
     $dnNumber   = $hdrQ->delivery_number;
     $lastStatus = $hdrQ->status;
     $siteCode   = 'HO';
-    $location   = '007'; // Gudang Finish Goods
+    $location   = $this->resolveLocation($hdrQ->delivery_type); // FG (007) atau gudang Yusen (061) utk Jaeeco
     $status     = '4';
     $todayDate  = date('Y-m-d');
     $dariNew    = $request->dariNew;
@@ -1555,7 +1689,7 @@ public function posting(Request $request)
     $dnNumber = $dnNumber;
     $recType = "NORMAL";
     $siteCode = 'HO';
-    $location ='007'; // gudang FG
+    $location = $this->resolveLocation(DB::table('delivery_hdr')->where('delivery_number', $dnNumber)->value('delivery_type'));
 
     $moduleCode = $this->moduleCode;
     $todayDate = date('Y-m-d');
@@ -1655,8 +1789,8 @@ public function posting(Request $request)
     $dnNumber = $dnNumber;
     $recType = "NORMAL";
     $siteCode = 'HO';
-    $location ='007'; // sebelumnya: 'WH' -- disamakan dengan lokasi gudang FG di posting()
-    
+    $location = $this->resolveLocation(DB::table('delivery_hdr')->where('delivery_number', $dnNumber)->value('delivery_type'));
+
     $moduleCode = $this->moduleCode;
     $todayDate = date('Y-m-d');
     // $movementDate = date("d-m-Y");
@@ -3957,12 +4091,12 @@ private function recalculateMovementAndStock(string $articleCode, string $locati
  */
 private function reverseStock(string $dnNumber, string $reasonLabel, ?string $username = null): array
 {
-    $location = '007'; // Gudang FG, sama seperti posting()
-
     $hdr = DB::table('delivery_hdr')->where('delivery_number', $dnNumber)->first();
     if (!$hdr) {
         return ['success' => false, 'message' => "Delivery $dnNumber tidak ditemukan"];
     }
+
+    $location = $this->resolveLocation($hdr->delivery_type); // sama seperti posting()
 
     $articleCodes = DB::table('delivery_det')
         ->where('delivery_number', $dnNumber)
