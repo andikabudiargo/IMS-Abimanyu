@@ -31,7 +31,7 @@
                                         <input type="text" id="dnDate" name="dnDate" class="form-control" placeholder="DD-MM-YYYY" required />
                                     </div>
                                     <div class="form-group col-md-2">
-                                        <label class="form-label" for="deliveryType"> DNType*</label>
+                                        <label class="form-label" for="deliveryType"> DN Type*</label>
                                         <select class="select2 form-control" id="deliveryType" name="deliveryType" required>
                                             <option value="standard">Standard</option>
                                             <option value="jaeeco">Jaeeco</option>

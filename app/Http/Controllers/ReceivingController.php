@@ -367,6 +367,15 @@ public function chemicalUnitStoreByRec(Request $request)
                 return response()->json(['status' => 0, 'message' => "Baris tidak valid untuk receiving_det_id {$g->receiving_det_id}"]);
             }
 
+            // location_number tidak ada di receiving_hdr/receiving_det -- baru kebentuk
+            // di warehouse_movement saat receiving diposting. Tanpa ini, lot tidak
+            // kelihatan di Detail Lot Stock (query-nya filter by location_number).
+            $locationNumber = DB::table('warehouse_movement')
+                ->where('movement_transnno', $recNumber)
+                ->where('artikel_code', $detail->article_code)
+                ->where('movement_type', 'RECEIVING')
+                ->value('location_number');
+
             $dataSet = [];
             foreach ($g->units as $u) {
                 $barcodeCode    = $currentBarcode;
@@ -378,6 +387,9 @@ public function chemicalUnitStoreByRec(Request $request)
                     'article_code'     => $detail->article_code,
                     'unit_sequence'    => $u->unit_sequence,
                     'qty'              => $u->qty,
+                    'remaining_qty'    => $u->qty,
+                    'location_number'  => $locationNumber,
+                    'source'           => 'receiving',
                     'barcode_code'     => $barcodeCode,
                     'expired_date'     => date('Y-m-d', strtotime($u->expired_date)),
                     'status'           => 'active',
