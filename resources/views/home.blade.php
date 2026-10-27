@@ -1973,6 +1973,18 @@
                                             </div>
                                         </div>
                                         <div class="card-body">
+                                            <div class="form-row mb-2">
+                                                @foreach(['005'=>'Chemical','007'=>'Finish Goods','006'=>'Consumable','009'=>'Raw Material'] as $locCode => $locLabel)
+                                                    <div class="col-lg-3 col-6 mb-2">
+                                                        <div class="card border-danger mb-0">
+                                                            <div class="card-body text-center py-2">
+                                                                <h4 class="text-danger mb-0">{{ $criticalStockCountByLocation[$locCode] ?? 0 }}</h4>
+                                                                <small>{{ $locLabel }}</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                            <div class="table-responsive" style="max-height:300px; overflow-y:auto; overflow-x:hidden;">
                 <table class="table table-hover table-sm mb-0" style="font-size:0.82rem; table-layout:fixed; width:100%;">
                     <colgroup>

@@ -819,6 +819,7 @@ if ($data['showCriticalStock']) {
             'a.min_package',
             DB::raw('coalesce(a.safety_stock,0) as safety_stock'),
             'loc.location_name',
+            'ws.location_number',
             DB::raw('coalesce(ws.article_qty,0) as stock_qty'),
             'tp.nama as supplier_name'
         )
@@ -835,6 +836,7 @@ if ($data['showCriticalStock']) {
     $data['listCriticalStock'] = collect();
 }
 $data['criticalStockCount'] = $data['listCriticalStock']->count();
+$data['criticalStockCountByLocation'] = $data['listCriticalStock']->countBy('location_number');
 
         // ===== Transfer Stock yang perlu diposting (masuk ke gudang dept saya) =====
 $userDepts = DB::table('user_dept')
