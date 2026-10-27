@@ -1962,9 +1962,9 @@
                                                 <div class="badge badge-pill badge-danger">{{ $criticalStockCount }}</div>
                                             </strong>
                                             <div class="ml-auto">
-                                                <a class="btn btn-outline-primary btn-sm" href="{{ route('warehouse.articlev2') }}">
-                                                    <i data-feather='package'></i>
-                                                    Lihat Stock
+                                                <a class="btn btn-outline-success btn-sm" href="{{ route('home.criticalStock.export') }}">
+                                                    <i data-feather='file-text'></i>
+                                                    Export Excel
                                                 </a>
                                                 <a class="btn btn-danger btn-sm" href="{{ route('purchaseRequest.create') }}">
                                                     <i data-feather='plus-circle'></i>

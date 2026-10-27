@@ -28,6 +28,49 @@ class HomeController extends Controller
         $this->middleware('auth');
     }
 
+    private function criticalStockQuery()
+    {
+        $allowedLocations = ['009', '005', '006', '007']; // RM, Chemical, Consumable, FG
+        $excludedThirdPartyAtFG = ['STI00001CUST', 'STI00002CUST'];
+
+        return DB::table('warehouse_stock as ws')
+            ->join('article as a', 'a.article_code', '=', 'ws.article_code')
+            ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
+            ->leftJoin('stock_location_master as loc', 'loc.location_code', '=', 'ws.location_number')
+            ->whereIn('ws.location_number', $allowedLocations)
+            ->where(function($q) use ($excludedThirdPartyAtFG) {
+                $q->where('ws.location_number', '!=', '007')
+                  ->orWhereNotIn('a.third_party', $excludedThirdPartyAtFG)
+                  ->orWhereNull('a.third_party');
+            })
+            ->select(
+                'a.article_code',
+                'a.article_alternative_code as code',
+                'a.article_desc as name',
+                'a.uom',
+                'a.min_package',
+                DB::raw('coalesce(a.safety_stock,0) as safety_stock'),
+                'loc.location_name',
+                'ws.location_number',
+                DB::raw('coalesce(ws.article_qty,0) as stock_qty'),
+                'tp.nama as supplier_name'
+            )
+            ->where(function($q){
+                $q->whereRaw('coalesce(ws.article_qty,0) < coalesce(a.safety_stock,0)')
+                  ->orWhere(function($q2){
+                      $q2->whereNull('a.safety_stock')->where('ws.article_qty', '<=', 0);
+                  });
+            })
+            ->orderBy('ws.location_number', 'asc')
+            ->orderBy('a.article_alternative_code', 'asc')
+            ->get();
+    }
+
+    public function exportCriticalStock()
+    {
+        return \Excel::download(new \App\Exports\CriticalStockExport($this->criticalStockQuery()), 'critical_stock_' . date('YmdHis') . '.xlsx');
+    }
+
     /**
      * Show the application dashboard.
      *
@@ -798,40 +841,7 @@ $hasPrivilegedRole = Auth::user()->hasAnyRole(['Superuser', 'accounting']);
 $data['showCriticalStock'] = $hasAllowedDept || $hasPrivilegedRole;
 
 if ($data['showCriticalStock']) {
-    $allowedLocations = ['009', '005', '006', '007']; // RM, Chemical, Consumable, FG
-    $excludedThirdPartyAtFG = ['STI00001CUST', 'STI00002CUST'];
-
-    $data['listCriticalStock'] = DB::table('warehouse_stock as ws')
-        ->join('article as a', 'a.article_code', '=', 'ws.article_code')
-        ->leftJoin('third_party as tp', 'tp.kode', '=', 'a.third_party')
-        ->leftJoin('stock_location_master as loc', 'loc.location_code', '=', 'ws.location_number')
-        ->whereIn('ws.location_number', $allowedLocations)
-        ->where(function($q) use ($excludedThirdPartyAtFG) {
-            $q->where('ws.location_number', '!=', '007')
-              ->orWhereNotIn('a.third_party', $excludedThirdPartyAtFG)
-              ->orWhereNull('a.third_party');
-        })
-        ->select(
-            'a.article_code',
-            'a.article_alternative_code as code',
-            'a.article_desc as name',
-            'a.uom',
-            'a.min_package',
-            DB::raw('coalesce(a.safety_stock,0) as safety_stock'),
-            'loc.location_name',
-            'ws.location_number',
-            DB::raw('coalesce(ws.article_qty,0) as stock_qty'),
-            'tp.nama as supplier_name'
-        )
-        ->where(function($q){
-            $q->whereRaw('coalesce(ws.article_qty,0) < coalesce(a.safety_stock,0)')
-              ->orWhere(function($q2){
-                  $q2->whereNull('a.safety_stock')->where('ws.article_qty', '<=', 0);
-              });
-        })
-        ->orderBy('ws.location_number', 'asc')
-        ->orderBy('a.article_alternative_code', 'asc')
-        ->get();
+    $data['listCriticalStock'] = $this->criticalStockQuery();
 } else {
     $data['listCriticalStock'] = collect();
 }
