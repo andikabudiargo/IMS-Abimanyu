@@ -29,7 +29,7 @@
                 @endforeach
               </select>
             </div>
-            <div class="form-group col-md-2">
+            <div class="form-group col-md-1">
               <label class="form-label" for="periode">Periode*</label>
               <select class="select2 form-control" id="periode" name="periode" required>
                 <option value=""></option>
@@ -38,7 +38,7 @@
                 @endforeach
               </select>
             </div>
-            <div class="form-group col-md-2">
+            <div class="form-group col-md-1">
               <label class="form-label" for="year">Tahun*</label>
               <input type="number" id="year" name="year" class="form-control" value="{{ date('Y') }}" required />
             </div>
