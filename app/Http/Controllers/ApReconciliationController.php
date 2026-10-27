@@ -24,7 +24,10 @@ use PDF;
                      dipakai untuk Balance.
       - "Penambah" (Receiving/AP Invoice) : TOTAL termasuk pajak (ap_invoice.grand_total)
                      -- ini yang dipakai untuk Balance, karena Opening Balance (lihat
-                     bawah) juga grand_total-based.
+                     bawah) juga grand_total-based. Basis 'receiving': PPN dihitung
+                     per baris dari purchase_order_hdr.ppn, formula SAMA PERSIS dengan
+                     Receiving Report Acc (ReceivingController::listReportAcc) -- lihat
+                     receivingPpnExpr().
     Tidak ada kolom kedua seperti Debit Note di sisi AR -- AP cuma satu
     sumber Penambah.
     Pengurang pakai aturan match yang sama persis dengan
@@ -77,12 +80,34 @@ class ApReconciliationController extends Controller
         ";
     }
 
+    /** PPN per baris receiving -- SAMA PERSIS dengan formula di Receiving Report Acc
+     *  (ReceivingController::listReportAcc, kolom total_dpp/total_ppn/total_plus_ppn):
+     *  tarif PPN diambil dari purchase_order_hdr.ppn (bukan dari ap_invoice), prorata
+     *  via dpp_lain_pembilang/penyebut buat kasus DPP Lain. Dipakai juga karena
+     *  receiving yang belum di-AP-invoice-kan tetap harus punya nilai (vs prorate
+     *  dari ap_invoice yang butuh AP Invoice-nya sudah ada). */
+    private function receivingPpnExpr()
+    {
+        $dpp = "(receiving_det.qty * receiving_det.price)";
+        return "$dpp * (COALESCE(purchase_order_hdr.dpp_lain_pembilang / purchase_order_hdr.dpp_lain_penyebut, 1) * COALESCE(purchase_order_hdr.ppn::numeric, 0)) / 100";
+    }
+
     /** Nilai Total (kolom "Penambah", termasuk pajak) -- yang dipakai untuk Balance,
      *  supaya konsisten dengan Opening Balance yang juga grand_total-based. */
     private function additionTotalSql($basis)
     {
         if ($basis === 'receiving') {
-            return $this->additionDppSql('receiving');
+            $ppn = $this->receivingPpnExpr();
+            return "
+                SELECT to_char(to_date(receiving_hdr.rec_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
+                       SUM((receiving_det.qty * receiving_det.price) + $ppn) as amount
+                FROM receiving_det
+                JOIN receiving_hdr ON receiving_hdr.rec_number = receiving_det.rec_number
+                LEFT JOIN purchase_order_hdr ON purchase_order_hdr.po_number = receiving_hdr.po_number
+                WHERE receiving_hdr.status <> '5'
+                  AND to_date(receiving_hdr.rec_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
+                GROUP BY 1
+            ";
         }
         $anchor = "COALESCE(
                 to_date(NULLIF(ap_invoice.ap_date,''),'DD-MM-YYYY'),
@@ -231,11 +256,16 @@ class ApReconciliationController extends Controller
                 ORDER BY to_date(kas_hdr.voucher_date,'DD-MM-YYYY')
             ";
         } elseif ($basis === 'receiving') {
+            // $column di sini cuma 'addition' (DPP tidak clickable, lihat apReconciliation/
+            // index.blade.php), jadi amount-nya pakai formula PPN yang sama kayak
+            // additionTotalSql('receiving') -- lihat receivingPpnExpr().
+            $ppn = $this->receivingPpnExpr();
             $sql = "
                 SELECT receiving_hdr.id, receiving_hdr.rec_number as doc, receiving_hdr.rec_date as doc_date,
-                       SUM(receiving_det.qty * receiving_det.price) as amount, 'Receiving' as doc_type
+                       SUM((receiving_det.qty * receiving_det.price) + $ppn) as amount, 'Receiving' as doc_type
                 FROM receiving_det
                 JOIN receiving_hdr ON receiving_hdr.rec_number = receiving_det.rec_number
+                LEFT JOIN purchase_order_hdr ON purchase_order_hdr.po_number = receiving_hdr.po_number
                 WHERE receiving_hdr.status <> '5'
                   AND to_date(receiving_hdr.rec_date,'DD-MM-YYYY') $dateCond
                 GROUP BY receiving_hdr.id, receiving_hdr.rec_number, receiving_hdr.rec_date
