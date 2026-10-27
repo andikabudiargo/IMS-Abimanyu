@@ -80,6 +80,8 @@
                             <th id="thPenambah" colspan="2">Penambah</th>
                             <th rowspan="2" class="align-middle">Pengurang<br>(Bank/Kas)</th>
                             <th rowspan="2" class="align-middle">Balance</th>
+                            <th rowspan="2" class="align-middle" id="thOtherBalance">Balance (basis lain)</th>
+                            <th rowspan="2" class="align-middle">Control</th>
                         </tr>
                         <tr>
                             <th id="thAddition">Delivery Note</th>
@@ -87,7 +89,7 @@
                         </tr>
                     </thead>
                     <tbody id="reconBody">
-                        <tr><td colspan="6" class="text-center text-muted py-2">Pilih tahun lalu klik Generate Report.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-2">Pilih tahun lalu klik Generate Report.</td></tr>
                     </tbody>
                     <tfoot>
                         <tr class="font-weight-bold">
@@ -97,6 +99,8 @@
                             <td id="tDebitNote">0</td>
                             <td id="tPayment">0</td>
                             <td id="tBalance">0</td>
+                            <td id="tOtherBalance">0</td>
+                            <td id="tControl">0</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -191,16 +195,22 @@ $(document).ready(function () {
         return '<td class="' + cls + ' recon-clickable" data-col="' + col + '" data-month="' + (month === null ? '' : month) + '">' + fmt(val) + '</td>';
     }
 
+    let basisLabel = { invoice: 'AR Invoice', delivery: 'Delivery Note' };
+
     function renderReport(res) {
         let showDn = res.showDebitNote !== false;
         $('#thPenambah').attr('colspan', showDn ? 2 : 1);
         $('#thDebitNote, #tDebitNote').toggle(showDn);
+        $('#thOtherBalance').text('Balance ' + (basisLabel[res.otherBasis] || res.otherBasis));
 
         let body = '';
+        let openingControl = res.openingBalance - res.otherOpeningBalance;
         body += '<tr class="row-opening font-weight-bold">'
             + '<td class="text-left">Saldo Awal</td>'
             + '<td>-</td><td>-</td>' + (showDn ? '<td>-</td>' : '') + '<td>-</td>'
             + '<td class="' + balanceClass(res.openingBalance) + '">' + fmt(res.openingBalance) + '</td>'
+            + '<td>' + fmt(res.otherOpeningBalance) + '</td>'
+            + '<td class="' + balanceClass(openingControl) + '">' + fmt(openingControl) + '</td>'
             + '</tr>';
 
         res.rows.forEach(function (r) {
@@ -211,6 +221,8 @@ $(document).ready(function () {
                 + (showDn ? cell('', 'debitNote', r.month, r.debitNote) : '')
                 + cell('', 'payment', r.month, r.payment)
                 + '<td class="' + balanceClass(r.balance) + '">' + fmt(r.balance) + '</td>'
+                + '<td>' + fmt(r.otherBalance) + '</td>'
+                + '<td class="' + balanceClass(r.control) + '">' + fmt(r.control) + '</td>'
                 + '</tr>';
         });
         $('#reconBody').html(body);
@@ -221,6 +233,8 @@ $(document).ready(function () {
         $('#tDebitNote').text(fmt(t.debitNote));
         $('#tPayment').text(fmt(t.payment));
         $('#tBalance').removeClass('balance-pos balance-neg').addClass(balanceClass(res.closingBalance)).text(fmt(res.closingBalance));
+        $('#tOtherBalance').text(fmt(res.otherClosingBalance));
+        $('#tControl').removeClass('balance-pos balance-neg').addClass(balanceClass(res.controlClosing)).text(fmt(res.controlClosing));
     }
 
     let colLabels = { addition: 'Penambah', debitNote: 'Debit Note', payment: 'Pengurang (Bank/Kas)' };

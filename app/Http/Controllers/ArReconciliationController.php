@@ -240,12 +240,34 @@ class ArReconciliationController extends Controller
         ];
     }
 
+    /** Tempel Balance basis satunya + Control (selisihnya) ke tiap baris & ke opening/closing --
+     *  basisnya cuma 'invoice' vs 'delivery' jadi otherBasis tinggal ditukar, dan rows kedua
+     *  basis selalu 12 baris berurutan per bulan, jadi aman di-zip per index. */
+    private function attachControl($report, $year)
+    {
+        $otherBasis = $report['basis'] === 'delivery' ? 'invoice' : 'delivery';
+        $other = $this->buildReport($year, $otherBasis);
+
+        foreach ($report['rows'] as $i => &$row) {
+            $row['otherBalance'] = $other['rows'][$i]['balance'];
+            $row['control']      = $row['balance'] - $row['otherBalance'];
+        }
+        unset($row);
+
+        $report['otherBasis']          = $otherBasis;
+        $report['otherOpeningBalance'] = $other['openingBalance'];
+        $report['otherClosingBalance'] = $other['closingBalance'];
+        $report['controlClosing']      = $report['closingBalance'] - $other['closingBalance'];
+
+        return $report;
+    }
+
     public function data(Request $request)
     {
         $year  = (int) ($request->year ?: date('Y'));
         $basis = $request->basis === 'delivery' ? 'delivery' : 'invoice';
 
-        return response()->json(['status' => 1] + $this->buildReport($year, $basis));
+        return response()->json(['status' => 1] + $this->attachControl($this->buildReport($year, $basis), $year));
     }
 
     /**
