@@ -788,6 +788,8 @@ class StockAdjustmentController extends Controller
 
             DB::table('stock_adjustment_hdr')->where('id', $hdr->id)->update([
                 'status'        => self::ST_POSTED,
+                // Dokumen baru = aturan fisik (lihat absorbIntoLatestOpeningBalance()).
+                'physical_lock' => true,
                 'authorized_by' => $username,
                 'authorized_at' => date('Y-m-d H:i:s'),
                 'updated_by'    => $username,
@@ -854,14 +856,21 @@ class StockAdjustmentController extends Controller
 
                 $oldSigned = (float) $baseline->get($code, 0);
 
-                if ($hdr->adj_type === 'OPENING BALANCE' && $new) {
+                // Dokumen lama (aturan lama): stock_after-nya sudah ikut bergeser
+                // oleh absorb, jadi BUKAN hasil fisik -- tetap pakai delta form.
+                $isSc = $hdr->adj_type === 'SYSTEM CORRECTION' && $hdr->physical_lock
+                    && $new && $new->stock_after !== null;
+
+                if (($hdr->adj_type === 'OPENING BALANCE' && $new) || $isSc) {
                     // Sama seperti postFresh: hitung ulang terhadap ledger LIVE,
                     // bukan angka form yang mungkin sudah basi. qtyAt(adjDate)
                     // di titik ini SUDAH termasuk kontribusi lama dokumen ini
                     // sendiri (oldSigned, karena movement-nya dated adjDate) —
                     // jadi dikurangi dulu supaya dapat saldo "tanpa dokumen ini".
-                    $freshLedger     = $this->qtyAt($code, $adjDateYmd, $location);
-                    $qtyExcludingDoc = $freshLedger - $oldSigned;
+                    // scBaseline() (H-1) memang tidak memuatnya.
+                    $qtyExcludingDoc = $isSc
+                        ? $this->scBaseline($code, $adjDateYmd, $location)
+                        : $this->qtyAt($code, $adjDateYmd, $location) - $oldSigned;
                     $stockAfterNew   = (float) $new->stock_after;
                     $newSigned       = $stockAfterNew - $qtyExcludingDoc;
 
@@ -939,8 +948,9 @@ class StockAdjustmentController extends Controller
      * LIVE (qtyAt adjDate) — bukan angka form lama — supaya hasil akhirnya
      * selalu "stock_after" yang benar apa pun yang terjadi di antaranya.
      *
-     * SYSTEM CORRECTION / tipe lain tetap delta murni: qty_adjustment yang
-     * diinput user diterapkan apa adanya terhadap saldo current.
+     * SYSTEM CORRECTION sama-sama absolut (stock_after = hasil fisik STO,
+     * dikunci), tapi baseline-nya scBaseline() (H-1), bukan saldo adjDate.
+     * Tipe lain tetap delta murni: qty_adjustment diterapkan apa adanya.
      */
     private function applyAdjustmentToStock(
         object $val, object $hdr, string $adjDateYmd, string $username, int $movementSeq
@@ -953,9 +963,14 @@ class StockAdjustmentController extends Controller
         $qtyAtAdjDate = $this->qtyAt($val->article_code, $adjDateYmd, $location);
         $avgNow       = $this->currentAvg($val->article_code, $location);
 
-        if ($hdr->adj_type === 'OPENING BALANCE') {
+        $isSc = $hdr->adj_type === 'SYSTEM CORRECTION' && $val->stock_after !== null;
+
+        if ($hdr->adj_type === 'OPENING BALANCE' || $isSc) {
+            $stockBefore = $isSc
+                ? $this->scBaseline($val->article_code, $adjDateYmd, $location)
+                : $qtyAtAdjDate;
             $stockAfter = (float) $val->stock_after;
-            $delta      = $stockAfter - $qtyAtAdjDate;
+            $delta      = $stockAfter - $stockBefore;
             $direction  = $delta >= 0 ? '+' : '-';
             $qty        = round(abs($delta), 4);
 
@@ -965,7 +980,7 @@ class StockAdjustmentController extends Controller
                 ->where('adj_code', $hdr->adj_code)
                 ->where('article_code', $val->article_code)
                 ->update([
-                    'stock_before'   => $qtyAtAdjDate,
+                    'stock_before'   => $stockBefore,
                     'qty_adjustment' => $qty,
                     'direction'      => $direction,
                     'updated_by'     => $username,
@@ -1404,6 +1419,12 @@ class StockAdjustmentController extends Controller
             return response()->json(['stock' => 0]);
         }
 
+        if ($this->usesScBaseline($request)) {
+            return response()->json([
+                'stock' => $this->scBaseline($request->article_code, $adjDateYmd, $request->location_code),
+            ]);
+        }
+
         $stock = $this->qtyAt($request->article_code, $adjDateYmd, $request->location_code);
 
         if ($request->adjCode) {
@@ -1437,6 +1458,10 @@ class StockAdjustmentController extends Controller
 
         if (empty($articleCodes)) {
             return response()->json(['stocks' => (object) []]);
+        }
+
+        if ($this->usesScBaseline($request)) {
+            return response()->json(['stocks' => (object) $this->scBaselines($articleCodes, $adjDateYmd, $locationCode)]);
         }
 
         $placeholders = implode(',', array_fill(0, count($articleCodes), '?'));
@@ -1699,6 +1724,60 @@ class StockAdjustmentController extends Controller
         )->qty;
     }
 
+    /**
+     * Stock before SYSTEM CORRECTION (hasil STO, fisik dihitung pagi hari):
+     * saldo akhir H-1 + transaksi hari itu yang ditandai 'before'. Sama dengan
+     * dasar "Stock System" di STO (StockCountController::getLastQty()). Movement
+     * dokumen ini sendiri (bertanggal adjDate) tidak pernah ikut terhitung.
+     * ponytail: 'before' cuma dibaca dari warehouse_movement.opname_position --
+     * modul yang menyimpannya di header saja (mis. Delivery) dianggap 'after'.
+     *
+     * @return array<string,float> article_code => qty
+     */
+    private function scBaselines(array $articleCodes, string $adjDateYmd, string $location): array
+    {
+        if (empty($articleCodes)) return [];
+
+        $hMinus1 = date('Y-m-d', strtotime($adjDateYmd . ' -1 day'));
+        $ph      = implode(',', array_fill(0, count($articleCodes), '?'));
+
+        $rows = DB::select("
+            SELECT t.ac AS article_code,
+                   get_last_qty_new(t.ac, ?, ?, ?)
+                   + COALESCE((SELECT SUM(m.movement_plus - m.movement_min)
+                               FROM warehouse_movement m
+                               WHERE m.artikel_code = t.ac
+                                 AND m.site_code = ?
+                                 AND m.location_number = ?
+                                 AND TO_DATE(m.movement_date, 'DD-MM-YYYY') = TO_DATE(?, 'YYYY-MM-DD')
+                                 AND m.opname_position = 'before'), 0) AS qty
+            FROM (SELECT unnest(ARRAY[{$ph}]) AS ac) t
+        ", array_merge(
+            [$hMinus1, $this->siteCode, $location, $this->siteCode, $location, $adjDateYmd],
+            $articleCodes
+        ));
+
+        $out = [];
+        foreach ($rows as $r) {
+            $out[$r->article_code] = (float) $r->qty;
+        }
+        return $out;
+    }
+
+    private function scBaseline(string $articleCode, string $adjDateYmd, string $location): float
+    {
+        return $this->scBaselines([$articleCode], $adjDateYmd, $location)[$articleCode] ?? 0.0;
+    }
+
+    // Revisi dokumen lama (aturan lama) tetap pakai stock before lama, sama seperti postRevision().
+    private function usesScBaseline(Request $request): bool
+    {
+        if ($request->adjType !== 'SYSTEM CORRECTION') return false;
+        if (!$request->adjCode) return true;
+
+        return (bool) DB::table('stock_adjustment_hdr')->where('adj_code', $request->adjCode)->value('physical_lock');
+    }
+
     private function currentAvg(string $articleCode, string $location): float
     {
         return (float) (DB::table('warehouse_stock')
@@ -1872,12 +1951,16 @@ class StockAdjustmentController extends Controller
             ->where('h.location_code', $location)
             ->where('d.article_code', $articleCode)
             ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC, h.id DESC")
-            ->selectRaw("h.adj_type, TO_CHAR(TO_DATE(h.adj_date,'dd-mm-yyyy'), 'YYYY-MM-DD') as adj_date")
+            ->selectRaw("h.adj_type, h.physical_lock, TO_CHAR(TO_DATE(h.adj_date,'dd-mm-yyyy'), 'YYYY-MM-DD') as adj_date")
             ->first();
 
         if (!$latest) {
             return false;
         }
+
+        // Movement <= floor tidak pernah masuk ledger maupun warehouse_stock,
+        // jadi tidak ada efek yang perlu dinetralkan.
+        if ($latest->physical_lock && $dateYmd <= self::stockFloorYmd()) return false;
 
         if ($dateYmd < $latest->adj_date) return true;
         if ($dateYmd > $latest->adj_date) return false;
@@ -1891,17 +1974,18 @@ class StockAdjustmentController extends Controller
     }
 
     /**
-     * Sesuaikan stock_after adjustment AKTIF TERBARU (OPENING BALANCE atau
-     * SYSTEM CORRECTION -- yang mana pun tanggalnya paling akhir, lihat
-     * obBoundaryFor()) untuk artikel+lokasi ini sebesar $delta (bertanda).
-     * Dipanggil PERSIS saat sebuah movement di modul lain baru saja MASUK ke
-     * cakupannya (delta = -efek movement itu, "diserap") atau baru saja
-     * KELUAR dari cakupannya (delta = +efek movement itu, "dilepas" supaya
-     * kembali dihitung normal sebagai net movement sesudahnya). stock_before
-     * TIDAK diubah — itu snapshot historis saat adjustment terakhir kali
-     * diposting; hanya stock_after (dan qty_adjustment/direction turunannya)
-     * yang bergerak, supaya adjustment tetap jadi "kesimpulan akhir" yang
-     * benar tanpa perlu direvisi/diposting ulang manual oleh user.
+     * Dipanggil saat movement modul lain (efek bertanda $delta) MASUK cakupan
+     * anchor OB/SYSTEM CORRECTION terbaru, atau dengan -efek saat KELUAR
+     * (cancel/edit). Caller sudah menerapkan efek itu ke warehouse_stock.
+     *
+     * physical_lock (aturan fisik): stock_after = hasil hitung, DIKUNCI.
+     * Transaksinya sudah ikut terhitung fisik, jadi efeknya dinetralkan:
+     * stock_before += delta, movement SYSTEM CORRECTION -= delta (OB tidak
+     * perlu: get_last_qty_new sudah mengabaikan movement <= tanggal OB), dan
+     * warehouse_stock -= delta. Saldo akhir tetap = hasil fisik.
+     *
+     * Dokumen lama (physical_lock false): aturan lama, stock_after ikut
+     * bergeser sebesar delta.
      *
      * @return bool true kalau ada adjustment yang disesuaikan (false = tidak ada OB/SYSTEM CORRECTION aktif untuk artikel/lokasi ini)
      */
@@ -1919,23 +2003,53 @@ class StockAdjustmentController extends Controller
             ->where('h.location_code', $location)
             ->where('d.article_code', $articleCode)
             ->orderByRaw("TO_DATE(h.adj_date,'dd-mm-yyyy') DESC, h.id DESC")
-            ->select('h.adj_code', 'h.note', 'd.id as det_id', 'd.stock_before', 'd.stock_after')
+            ->select('h.adj_code', 'h.adj_type', 'h.physical_lock', 'h.note', 'd.id as det_id', 'd.stock_before', 'd.stock_after')
             ->first();
 
         if (!$ob) {
             return false;
         }
 
-        $newStockAfter = (float) $ob->stock_after + $delta;
-        $newQtyAdj     = $newStockAfter - (float) $ob->stock_before;
+        if ($ob->physical_lock) {
+            // Atomic di SQL: sisi kanan SET Postgres selalu membaca nilai LAMA baris.
+            $d = (float) $delta;
+            DB::table('stock_adjustment_det')->where('id', $ob->det_id)->update([
+                'stock_before'   => DB::raw("stock_before + ({$d})"),
+                'qty_adjustment' => DB::raw("ROUND(ABS(stock_after - (stock_before + ({$d}))), 4)"),
+                'direction'      => DB::raw("CASE WHEN stock_after - (stock_before + ({$d})) >= 0 THEN '+' ELSE '-' END"),
+                'updated_by'     => $username,
+                'updated_at'     => date('Y-m-d H:i:s'),
+            ]);
 
-        DB::table('stock_adjustment_det')->where('id', $ob->det_id)->update([
-            'stock_after'    => $newStockAfter,
-            'qty_adjustment' => round(abs($newQtyAdj), 4),
-            'direction'      => $newQtyAdj >= 0 ? '+' : '-',
-            'updated_by'     => $username,
-            'updated_at'     => date('Y-m-d H:i:s'),
-        ]);
+            if ($ob->adj_type === 'SYSTEM CORRECTION') {
+                DB::table('warehouse_movement')
+                    ->where('movement_transnno', $ob->adj_code)
+                    ->where('artikel_code', $articleCode)
+                    ->where('location_number', $location)
+                    ->where('movement_type', self::MV_ADJUSTMENT)
+                    ->update([
+                        'movement_plus' => DB::raw("GREATEST(movement_plus - movement_min - ({$d}), 0)"),
+                        'movement_min'  => DB::raw("GREATEST(movement_min - movement_plus + ({$d}), 0)"),
+                    ]);
+            }
+
+            DB::table('warehouse_stock')
+                ->where('site_code', $this->siteCode)
+                ->where('article_code', $articleCode)
+                ->where('location_number', $location)
+                ->update(['article_qty' => DB::raw("coalesce(article_qty,0) - ({$d})")]);
+        } else {
+            $newStockAfter = (float) $ob->stock_after + $delta;
+            $newQtyAdj     = $newStockAfter - (float) $ob->stock_before;
+
+            DB::table('stock_adjustment_det')->where('id', $ob->det_id)->update([
+                'stock_after'    => $newStockAfter,
+                'qty_adjustment' => round(abs($newQtyAdj), 4),
+                'direction'      => $newQtyAdj >= 0 ? '+' : '-',
+                'updated_by'     => $username,
+                'updated_at'     => date('Y-m-d H:i:s'),
+            ]);
+        }
 
         $stamp = '[AUTO-SYNC ' . date('d-m-Y H:i') . " oleh {$username}] {$context} (artikel {$articleCode}, "
                . ($delta >= 0 ? '+' : '') . round($delta, 4) . ')';

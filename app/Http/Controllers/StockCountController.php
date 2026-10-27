@@ -2459,6 +2459,7 @@ private function buildAuditRawRows(Request $request)
             'd.article_code', 'd.article_desc', 'd.min_package', 'd.uom',
             'd.location_number',
             'd.qty_counter1', 'd.qty_counter2', 'd.qty_counter3',
+            'd.qty_system as stored_qty_system',
             'h.sto_number',
             'u1.name as counter1_name', 'd.counter1_at',
             'u2.name as counter2_name', 'd.counter2_at',
@@ -2846,9 +2847,15 @@ private function resolveGroupStatus($items)
 
     $anchorLoc = $this->resolveLocationAnchor($first->location_number); // ← BARU
 
+    // Snapshot saat count (dasar variance & adjustment) menang atas hitung ulang
+    // live -- ledger bisa berubah sesudah count (backdate, data-fix).
+    $stored = $items->first(fn($r) => isset($r->stored_qty_system));
+
     $qtySystem = isset($first->stock_qty)
         ? (float) $first->stock_qty
-        : (float) $this->getLastQty($first->article_code, $anchorLoc, $first->sto_date, $first); // ← anchor
+        : ($stored
+            ? (float) $stored->stored_qty_system
+            : (float) $this->getLastQty($first->article_code, $anchorLoc, $first->sto_date, $first)); // ← anchor
     $realItems = $items->filter(fn($r) => !$this->isPhantomRow($r));
 
     if ($realItems->isEmpty()) {
