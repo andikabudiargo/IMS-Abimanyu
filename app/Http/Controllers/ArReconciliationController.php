@@ -30,16 +30,17 @@ use PDF;
     Debit Note hanya dihitung untuk basis 'invoice' -- basis 'delivery' murni melacak
     nilai barang lewat Surat Jalan, bukan siklus AR Invoice/Debit Note, jadi Debit Note
     disembunyikan di basis itu.
-    Pengurang = kas_det.credit (voucher APPROVED, status='3') yang reference-nya
-    cocok ke invoice_number atau dn_number -- Bank (BM/BK) & Kas (KM/KK) digabung
-    jadi satu kolom, sama seperti pola balance invoice yang sudah established
-    di ArAgingReportController (tanpa filter voucher_type).
+    Pengurang = kas_det.credit (voucher status <> '5'/CANCEL, DRAFT ikut kehitung)
+    yang reference-nya cocok ke invoice_number atau dn_number -- Bank (BM/BK) &
+    Kas (KM/KK) digabung jadi satu kolom, sama seperti pola balance invoice yang
+    sudah established di ArAgingReportController (tanpa filter voucher_type).
     Saldo Awal dihitung lewat ArAgingReportController::totalOutstanding() --
     rumus yang SAMA dipakai di card "Opening Balance" halaman Invoice Customer
     (InvoiceController::analyticsAr) -- supaya kedua angka itu selalu cocok.
     Status dokumen: DRAFT (status '1') ikut dihitung (cuma status '5'/CANCEL yang
-    disingkirkan), sama seperti InvoiceController::analyticsAr -- supaya Sales &
-    Balance di sini selalu cocok dengan card Sales/Balance di AR Dashboard.
+    disingkirkan) baik di Penambah maupun Pengurang, sama seperti
+    InvoiceController::analyticsAr -- supaya Sales & Balance di sini selalu cocok
+    dengan card Sales/Balance di AR Dashboard.
     ================================================================
 */
 
@@ -159,7 +160,7 @@ class ArReconciliationController extends Controller
                    SUM(kas_det.credit) as amount
             FROM kas_det
             JOIN kas_hdr ON kas_hdr.voucher_number = kas_det.voucher_number
-            WHERE kas_hdr.status = '3'
+            WHERE kas_hdr.status <> '5'
               AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
               AND (
                     EXISTS (SELECT 1 FROM invoice_hdr WHERE invoice_hdr.invoice_number = kas_det.reference)
@@ -304,7 +305,7 @@ class ArReconciliationController extends Controller
                        kas_hdr.voucher_type as doc_type, kas_det.reference as reference
                 FROM kas_det
                 JOIN kas_hdr ON kas_hdr.voucher_number = kas_det.voucher_number
-                WHERE kas_hdr.status = '3'
+                WHERE kas_hdr.status <> '5'
                   AND to_date(kas_hdr.voucher_date,'DD-MM-YYYY') $dateCond
                   AND (
                         EXISTS (SELECT 1 FROM invoice_hdr WHERE invoice_hdr.invoice_number = kas_det.reference)
