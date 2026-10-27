@@ -114,10 +114,13 @@
               <th>No</th>
               <th>Nomor Faktur</th>
               <th>Nama</th>
+              <th>Tanggal</th>
+              <th class="text-right">DPP</th>
+              <th class="text-right">DPP Nilai Lain</th>
               <th class="text-right">PPN (Excel)</th>
               <th>Status</th>
-              <th>Voucher GL</th>
-              <th class="text-right">Kredit GL</th>
+              <th id="previewVoucherLabel">Voucher BB</th>
+              <th class="text-right" id="previewGlLabel">Kredit BB</th>
             </tr>
           </thead>
           <tbody id="previewRows"></tbody>
@@ -171,6 +174,8 @@
       let t = equalTypes[$(this).val()];
       $('#statementFieldLabel').text(t ? `Data ${t.file_label} (Excel)*` : 'Data Faktur Pajak (Excel)*');
       $('#i-gl-label').text(t ? `${t.mutasi_label} COA (Buku Besar)` : 'Mutasi Buku Besar');
+      $('#previewVoucherLabel').text('Voucher BB');
+      $('#previewGlLabel').text(t ? t.gl_label : 'Kredit BB');
     });
   });
 
@@ -192,6 +197,9 @@
         <td>${i + 1}</td>
         <td>${r.doc_number}</td>
         <td>${r.nama}</td>
+        <td>${r.tanggal}</td>
+        <td class="text-right">${fmtNumber(r.dpp)}</td>
+        <td class="text-right">${fmtNumber(r.dpp_lain)}</td>
         <td class="text-right">${fmtNumber(r.ppn)}</td>
         <td>${statusBadge}</td>
         <td>${voucherCell}</td>

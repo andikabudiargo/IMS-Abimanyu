@@ -1183,6 +1183,10 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::get('ppnPkEqualisasi/show',['as'=>'ppnPkEqualisasi.show','uses'=>'Accounting\PpnPkEqualisasiController@show']);
 	Route::get('ppnPkEqualisasi/list/detail',['as'=>'ppnPkEqualisasi.list.detail','uses'=>'Accounting\PpnPkEqualisasiController@listDetail']);
 	Route::post('ppnPkEqualisasi/delete',['as'=>'ppnPkEqualisasi.destroy','uses'=>'Accounting\PpnPkEqualisasiController@destroy']);
+	Route::get('ppnPkEqualisasi/search/voucher',['as'=>'ppnPkEqualisasi.search.voucher','uses'=>'Accounting\PpnPkEqualisasiController@searchVoucher']);
+	Route::post('ppnPkEqualisasi/match/manual',['as'=>'ppnPkEqualisasi.match.manual','uses'=>'Accounting\PpnPkEqualisasiController@matchManual']);
+	Route::post('ppnPkEqualisasi/unmatch',['as'=>'ppnPkEqualisasi.unmatch','uses'=>'Accounting\PpnPkEqualisasiController@unmatch']);
+	Route::post('ppnPkEqualisasi/recalculate',['as'=>'ppnPkEqualisasi.recalculate','uses'=>'Accounting\PpnPkEqualisasiController@recalculate']);
 
 	Route::get('kasPenerimaan',['as'=>'kasPenerimaan.index','uses'=>'Accounting\KasPenerimaanController@index']);
 	Route::get('kasPenerimaan/create',['as'=>'kasPenerimaan.create','uses'=>'Accounting\KasPenerimaanController@create']);

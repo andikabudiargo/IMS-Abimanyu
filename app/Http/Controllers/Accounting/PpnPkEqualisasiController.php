@@ -36,6 +36,7 @@ class PpnPkEqualisasiController extends Controller
             'coa_account' => '2000.14.1',
             'mutasi_field' => 'mutasi_kredit',
             'mutasi_label' => 'Mutasi Kredit',
+            'gl_label' => 'Kredit BB',
             'file_label' => 'Faktur Pajak Keluaran',
         ],
         'PM' => [
@@ -44,6 +45,7 @@ class PpnPkEqualisasiController extends Controller
             'coa_account' => '1100.73',
             'mutasi_field' => 'mutasi_debet',
             'mutasi_label' => 'Mutasi Debet',
+            'gl_label' => 'Debit BB',
             'file_label' => 'Faktur Pajak Masukan',
         ],
     ];
@@ -329,6 +331,7 @@ class PpnPkEqualisasiController extends Controller
                 DB::table('ppn_pk_equalisasi_det')->insertOrIgnore([
                     'equal_number' => $equalNumber,
                     'masa_pajak' => $row['masa_pajak'],
+                    'tanggal' => $row['tanggal'],
                     'doc_number' => $row['doc_number'],
                     'status' => $row['status'],
                     'npwp' => $row['npwp'],
@@ -337,6 +340,7 @@ class PpnPkEqualisasiController extends Controller
                     'jenis_pajak' => $row['jenis_pajak'],
                     'sifat' => $row['sifat'],
                     'dpp' => $row['dpp'],
+                    'dpp_lain' => $row['dpp_lain'],
                     'ppn' => $row['ppn'],
                     'match_status' => $row['match_status'],
                     'matched_voucher_type' => $row['matched_voucher_type'],
@@ -455,11 +459,14 @@ class PpnPkEqualisasiController extends Controller
             ['data' => 'doc_number', 'name' => 'doc_number', 'title' => 'Nomor Faktur'],
             ['data' => 'npwp', 'name' => 'npwp', 'title' => 'NPWP'],
             ['data' => 'nama', 'name' => 'nama', 'title' => 'Nama'],
+            ['data' => 'tanggal', 'name' => 'tanggal', 'title' => 'Tanggal'],
             ['data' => 'dpp', 'name' => 'dpp', 'title' => 'DPP'],
+            ['data' => 'dpp_lain', 'name' => 'dpp_lain', 'title' => 'DPP Nilai Lain'],
             ['data' => 'ppn', 'name' => 'ppn', 'title' => 'PPN (Excel)'],
             ['data' => 'match_status', 'name' => 'match_status', 'title' => 'Status'],
-            ['data' => 'matched_voucher_number', 'name' => 'matched_voucher_number', 'title' => 'Voucher GL'],
-            ['data' => 'gl_credit', 'name' => 'gl_credit', 'title' => 'Kredit GL'],
+            ['data' => 'matched_voucher_number', 'name' => 'matched_voucher_number', 'title' => 'Voucher BB'],
+            ['data' => 'gl_credit', 'name' => 'gl_credit', 'title' => $data['typeInfo']['gl_label']],
+            ['data' => 'action', 'name' => 'action', 'title' => 'action', 'orderable' => false, 'searchable' => false],
         ]);
 
         return view('accounting.ppnPkEqualisasi.show', $data);
@@ -475,12 +482,16 @@ class PpnPkEqualisasiController extends Controller
 
         $data = DB::table('ppn_pk_equalisasi_det')
             ->where('equal_number', $header->equal_number)
+            ->when($request->status, function ($q) use ($request) {
+                $q->where('match_status', $request->status);
+            })
             ->orderBy('id')
             ->get();
 
         return Datatables::of($data)
             ->addIndexColumn()
             ->addColumn('dpp', function ($d) { return number_format($d->dpp, 2); })
+            ->addColumn('dpp_lain', function ($d) { return number_format($d->dpp_lain, 2); })
             ->addColumn('ppn', function ($d) { return number_format($d->ppn, 2); })
             ->addColumn('match_status', function ($d) {
                 $color = $d->match_status === 'MATCHED' ? 'success' : 'danger';
@@ -496,8 +507,162 @@ class PpnPkEqualisasiController extends Controller
                 return "<a href='$url' target='_blank'>{$d->matched_voucher_number}</a> ({$d->matched_voucher_type})";
             })
             ->addColumn('gl_credit', function ($d) { return $d->gl_credit !== null ? number_format($d->gl_credit, 2) : '-'; })
-            ->rawColumns(['match_status', 'matched_voucher_number'])
+            ->addColumn('action', function ($d) {
+                if ($d->match_status === 'MATCHED') {
+                    return "<a href='javascript:;' data-det-id='{$d->id}' class='btn btn-sm btn-outline-warning' onclick='unmatchRow({$d->id})'>Unmatch</a>";
+                }
+                $docNumber = e($d->doc_number);
+                return "<a href='javascript:;' data-det-id='{$d->id}' class='btn btn-sm btn-outline-primary' onclick='openManualMatch({$d->id}, \"{$docNumber}\", {$d->ppn})'>Match Manual</a>";
+            })
+            ->rawColumns(['match_status', 'matched_voucher_number', 'action'])
             ->make(true);
+    }
+
+    // Pencarian voucher kandidat untuk Match Manual di halaman detail -- bebas ketik nomor
+    // voucher ATAU nomor faktur (tidak dibatasi suffix-match otomatis di matchRows()),
+    // supaya user bisa pasang tangan kalau auto-match gagal karena nomor faktur beda format.
+    // PK cari di invoice_hdr+debit_note_hdr, PM cari di ap_invoice.
+    public function searchVoucher(Request $request)
+    {
+        $header = DB::table('ppn_pk_equalisasi_hdr')->where('equal_number', $request->equalNumber)->first();
+        abort_unless($header, 404);
+        $search = $request->search;
+
+        if ($header->type === 'PM') {
+            $rows = DB::table('ap_invoice')
+                ->where('status', '<>', '5')
+                ->when($search, fn ($q) => $q->where(fn ($s) => $s->where('ap_number', 'ilike', "%$search%")->orWhere('tax_inv_number', 'ilike', "%$search%")))
+                ->orderBy('ap_date', 'desc')->limit(20)
+                ->select('id', 'ap_number as voucher_number', 'ap_date as voucher_date', 'tax_inv_number as faktur_pajak', DB::raw("'AP' as voucher_type"))
+                ->get()->all();
+        } else {
+            $rows = array_merge(
+                DB::table('invoice_hdr')
+                    ->where('status', '<>', '5')
+                    ->when($search, fn ($q) => $q->where(fn ($s) => $s->where('invoice_number', 'ilike', "%$search%")->orWhere('faktur_pajak', 'ilike', "%$search%")))
+                    ->orderBy('invoice_date', 'desc')->limit(20)
+                    ->select('id', 'invoice_number as voucher_number', 'invoice_date as voucher_date', 'faktur_pajak', DB::raw("'INV' as voucher_type"))
+                    ->get()->all(),
+                DB::table('debit_note_hdr')
+                    ->where('status', '<>', '5')
+                    ->when($search, fn ($q) => $q->where(fn ($s) => $s->where('dn_number', 'ilike', "%$search%")->orWhere('faktur_pajak', 'ilike', "%$search%")))
+                    ->orderBy('dn_date', 'desc')->limit(20)
+                    ->select('id', 'dn_number as voucher_number', 'dn_date as voucher_date', 'faktur_pajak', DB::raw("'INV-DN' as voucher_type"))
+                    ->get()->all()
+            );
+        }
+
+        usort($rows, fn ($a, $b) => strcmp((string) $b->voucher_date, (string) $a->voucher_date));
+        $rows = array_slice($rows, 0, 20);
+
+        $mutasiCol = $header->type === 'PM' ? 'debit' : 'credit';
+        foreach ($rows as $r) {
+            $r->gl_amount = (float) DB::table('kas_det as d')
+                ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
+                ->where('d.account', $header->coa_account)
+                ->where('h.status', '<>', '5')
+                ->where('d.voucher_number', $r->voucher_number)
+                ->sum("d.$mutasiCol");
+        }
+
+        return response()->json($rows);
+    }
+
+    public function matchManual(Request $request)
+    {
+        $username = Auth::user()->username;
+        $det = DB::table('ppn_pk_equalisasi_det')->where('id', $request->detId)->first();
+        abort_unless($det, 404);
+        $header = DB::table('ppn_pk_equalisasi_hdr')->where('equal_number', $det->equal_number)->first();
+        abort_unless($header, 404);
+
+        $voucherType = $request->voucherType;
+        $table = ['INV' => 'invoice_hdr', 'INV-DN' => 'debit_note_hdr', 'AP' => 'ap_invoice'][$voucherType] ?? null;
+        $numberCol = ['INV' => 'invoice_number', 'INV-DN' => 'dn_number', 'AP' => 'ap_number'][$voucherType] ?? null;
+        abort_unless($table, 422);
+
+        $voucher = DB::table($table)->where('id', $request->voucherId)->first();
+        abort_unless($voucher, 404);
+        $voucherNumber = $voucher->$numberCol;
+
+        $mutasiCol = $header->type === 'PM' ? 'debit' : 'credit';
+        $glAmount = (float) DB::table('kas_det as d')
+            ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
+            ->where('d.account', $header->coa_account)
+            ->where('h.status', '<>', '5')
+            ->where('d.voucher_number', $voucherNumber)
+            ->sum("d.$mutasiCol");
+
+        DB::table('ppn_pk_equalisasi_det')->where('id', $det->id)->update([
+            'match_status' => abs(round($det->ppn - $glAmount, 2)) <= 0.01 ? 'MATCHED' : 'UNMATCHED',
+            'matched_voucher_type' => $voucherType,
+            'matched_voucher_number' => $voucherNumber,
+            'matched_voucher_id' => $voucher->id,
+            'gl_credit' => $glAmount,
+        ]);
+
+        $title = "Match Manual $this->title";
+        \LogActivity::addToLog($title, "username: $username detId: $det->id voucherType: $voucherType voucherId: $request->voucherId");
+        return response()->json(['status' => 1, 'title' => $title, 'message' => 'Baris berhasil di-match.', 'alert' => 'success']);
+    }
+
+    public function unmatch(Request $request)
+    {
+        DB::table('ppn_pk_equalisasi_det')->where('id', $request->detId)->update([
+            'match_status' => 'UNMATCHED',
+            'matched_voucher_type' => null,
+            'matched_voucher_number' => null,
+            'matched_voucher_id' => null,
+            'gl_credit' => null,
+        ]);
+        return response()->json(['status' => 1, 'title' => "Unmatch $this->title", 'message' => 'Match dibatalkan.', 'alert' => 'success']);
+    }
+
+    // Cocokkan ulang SEMUA baris dari nol lewat matchRows() -- hasil Match Manual sebelumnya
+    // ikut ditimpa kalau auto-match sekarang dapat hasil berbeda. Dipakai kalau user sudah
+    // upload Excel tapi auto-match-nya baru diperbaiki belakangan (tidak perlu upload ulang).
+    public function recalculate(Request $request)
+    {
+        $username = Auth::user()->username;
+        $header = DB::table('ppn_pk_equalisasi_hdr')->where('id', $request->id)->first();
+        abort_unless($header, 404);
+
+        $rows = DB::table('ppn_pk_equalisasi_det')
+            ->where('equal_number', $header->equal_number)
+            ->get()
+            ->map(fn ($d) => ['id' => $d->id, 'doc_number' => $d->doc_number, 'ppn' => (float) $d->ppn])
+            ->all();
+
+        if (empty($rows)) {
+            return response()->json(['status' => 2, 'title' => "Recalculate $this->title", 'message' => 'Tidak ada baris untuk dicocokkan ulang.', 'alert' => 'warning']);
+        }
+
+        $matched = $this->matchRows($rows, $header->type);
+
+        DB::beginTransaction();
+        try {
+            foreach ($matched as $row) {
+                DB::table('ppn_pk_equalisasi_det')->where('id', $row['id'])->update([
+                    'match_status' => $row['match_status'],
+                    'matched_voucher_type' => $row['matched_voucher_type'],
+                    'matched_voucher_number' => $row['matched_voucher_number'],
+                    'matched_voucher_id' => $row['matched_voucher_id'],
+                    'gl_credit' => $row['gl_credit'],
+                ]);
+            }
+            DB::commit();
+            $title = "Recalculate $this->title";
+            $matchedCount = count(array_filter($matched, fn ($r) => $r['match_status'] === 'MATCHED'));
+            $message = count($matched) . " baris dicocokkan ulang, $matchedCount otomatis match.";
+            \LogActivity::addToLog($title, "username: $username equalNumber: $header->equal_number Status $message");
+            return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $title = "Recalculate $this->title";
+            $message = 'Gagal recalculate: ' . $e->getMessage();
+            \LogActivity::addToLog($title, "username: $username Status $message");
+            return response()->json(['status' => -1, 'title' => $title, 'message' => $message, 'alert' => 'error']);
+        }
     }
 
     public function destroy(Request $request)

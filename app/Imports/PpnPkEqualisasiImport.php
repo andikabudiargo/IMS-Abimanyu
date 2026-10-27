@@ -26,18 +26,25 @@ class PpnPkEqualisasiImport implements ToCollection
             if ($docNumber === '' && $nama === '') {
                 continue; // baris kosong
             }
-            $tanggal = $row[4] ?? null;
-            $masaPajak = '';
-            if ($tanggal instanceof \DateTimeInterface) {
-                $masaPajak = $tanggal->format('m/Y');
-            } elseif (is_numeric($tanggal)) {
-                $masaPajak = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($tanggal)->format('m/Y');
-            } elseif (trim((string) $tanggal) !== '') {
-                $ts = strtotime((string) $tanggal);
-                $masaPajak = $ts !== false ? date('m/Y', $ts) : '';
+            $rawTanggal = $row[4] ?? null;
+            $tanggalObj = null;
+            if ($rawTanggal instanceof \DateTimeInterface) {
+                $tanggalObj = $rawTanggal;
+            } elseif (is_numeric($rawTanggal)) {
+                $tanggalObj = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($rawTanggal);
+            } elseif (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', (string) $rawTanggal, $m)) {
+                // String ISO kadang ikut terbawa jam+offset timezone ("...T00:00:00+07:00")
+                // -- ambil bagian tanggalnya langsung, JANGAN lewat strtotime(): itu
+                // mengonversi ke UTC dulu baru date() format ulang pakai timezone default
+                // server, bisa mundur 1 hari padahal jamnya memang selalu 00:00 di zona asal.
+                $tanggalObj = \DateTime::createFromFormat('Y-m-d', "{$m[1]}-{$m[2]}-{$m[3]}");
+            } elseif (trim((string) $rawTanggal) !== '') {
+                $ts = strtotime((string) $rawTanggal);
+                $tanggalObj = $ts !== false ? (new \DateTime())->setTimestamp($ts) : null;
             }
             $this->rows[] = [
-                'masa_pajak' => $masaPajak,
+                'masa_pajak' => $tanggalObj ? $tanggalObj->format('m/Y') : '',
+                'tanggal' => $tanggalObj ? $tanggalObj->format('d-m-Y') : '',
                 'doc_number' => $docNumber,
                 'status' => '',
                 'npwp' => trim((string) ($row[2] ?? '')),
@@ -46,6 +53,7 @@ class PpnPkEqualisasiImport implements ToCollection
                 'jenis_pajak' => '',
                 'sifat' => '',
                 'dpp' => is_numeric($row[5] ?? null) ? (float) $row[5] : 0,
+                'dpp_lain' => is_numeric($row[6] ?? null) ? (float) $row[6] : 0,
                 'ppn' => is_numeric($row[7] ?? null) ? (float) $row[7] : 0,
             ];
         }
