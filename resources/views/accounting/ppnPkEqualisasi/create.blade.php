@@ -97,9 +97,9 @@
   </div>
 </section>
 
-{{-- Hasil preview (tipe PK: parse + match per baris ke voucher Invoice/Debit Note lewat
-     nomor faktur, lalu ke posting kredit COA PPN Keluaran punya voucher itu; tipe PM: parse
-     saja, belum ada matching per baris) -- belum tersimpan sampai user klik Save manual. --}}
+{{-- Hasil preview (parse + match per baris ke voucher penerbitnya lewat nomor faktur --
+     Invoice/Debit Note untuk PK, AP Invoice untuk PM -- lalu ke posting COA PPN punya
+     voucher itu) -- belum tersimpan sampai user klik Save manual. --}}
 <section id="preview-ppnPkEqualisasi" class="d-none">
   <div class="card">
     <div class="card-header">

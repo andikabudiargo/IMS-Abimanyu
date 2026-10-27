@@ -166,64 +166,76 @@ class PpnPkEqualisasiController extends Controller
         ]);
     }
 
-    // Cocokkan tiap baris Excel ke voucher yang menerbitkannya (Invoice/Debit Note, lewat
-    // kolom faktur_pajak), lalu ke posting kredit COA PPN Keluaran punya voucher itu di
-    // kas_det/kas_hdr -- mirip BankReconciliationController::matchRows(), tapi kuncinya
-    // nomor faktur (persis), bukan tanggal+nominal, karena di sini ada kolom pengenal yang
-    // eksak. Read-only (cuma SELECT), dipakai di preview() maupun store() biar hasil yang
-    // ditampilkan ke user sama persis dengan yang akhirnya disimpan.
-    // Hanya jalan untuk tipe PK -- sisi pembelian (PM) belum ada kolom faktur_pajak di
-    // voucher manapun, jadi tidak ada yang bisa di-match per baris (cuma totalnya yang
-    // dibandingkan ke Buku Besar, lihat preview()/show()).
+    // Nomor faktur yang disimpan di voucher (faktur_pajak/tax_inv_number) selalu lebih
+    // pendek daripada nomor lengkap di Excel -- prefix Kode Transaksi+Status DJP-nya tidak
+    // ikut tersimpan, dan panjangnya beda-beda antar periode (pernah 10 digit, pernah 13
+    // digit). Jadi dicocokkan sebagai AKHIRAN dari nomor faktur lengkap di Excel (bukan
+    // exact match). Guard panjang >= 8 biar suffix pendek tidak nyangkut ke banyak faktur.
+    private function findBySuffix(string $table, string $numberColumn, string $norm)
+    {
+        if (strlen($norm) < 8) {
+            return null;
+        }
+
+        return DB::table($table)
+            ->whereRaw("$numberColumn is not null and $numberColumn <> '' and length(regexp_replace($numberColumn, '[^0-9A-Za-z]', '', 'g')) >= 8 and ? ilike '%' || regexp_replace($numberColumn, '[^0-9A-Za-z]', '', 'g')", [$norm])
+            ->where('status', '<>', '5')
+            ->first();
+    }
+
+    // Cocokkan tiap baris Excel ke voucher yang menerbitkannya, lalu ke posting COA PPN
+    // (kredit untuk PK, debet untuk PM) punya voucher itu di kas_det/kas_hdr -- mirip
+    // BankReconciliationController::matchRows(), tapi kuncinya nomor faktur (suffix match,
+    // lihat findBySuffix()), bukan tanggal+nominal. Read-only (cuma SELECT), dipakai di
+    // preview() maupun store() biar hasil yang ditampilkan ke user sama persis dengan yang
+    // akhirnya disimpan.
+    // PK -> invoice_hdr/debit_note_hdr.faktur_pajak, posting kredit. PM -> ap_invoice.
+    // tax_inv_number, posting debet (lihat AccountPayableController, posting VAT AP invoice).
     private function matchRows(array $rows, string $type): array
     {
         $coaAccount = self::TYPES[$type]['coa_account'];
+        $mutasiCol = $type === 'PM' ? 'd.debit' : 'd.credit';
 
         foreach ($rows as &$row) {
             $candidate = null;
             $voucherType = null;
+            $norm = preg_replace('/[^0-9A-Za-z]/', '', (string) $row['doc_number']);
 
             if ($type === 'PK') {
-                $norm = preg_replace('/[^0-9A-Za-z]/', '', (string) $row['doc_number']);
-
-                // invoice_hdr/debit_note_hdr.faktur_pajak tersimpan tanpa prefix Kode
-                // Transaksi+Status DJP (panjangnya beda-beda antar periode, pernah 10 digit,
-                // pernah 13 digit) -- jadi dicocokkan sebagai AKHIRAN dari nomor faktur
-                // lengkap di Excel, bukan exact match. Guard panjang >= 8 biar suffix pendek
-                // tidak nyangkut ke banyak faktur sekaligus.
-                if (strlen($norm) >= 8) {
-                    $candidate = DB::table('invoice_hdr')
-                        ->whereRaw("faktur_pajak is not null and faktur_pajak <> '' and length(regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g')) >= 8 and ? ilike '%' || regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g')", [$norm])
-                        ->where('status', '<>', '5')
-                        ->select('id', 'invoice_number as voucher_number')
-                        ->first();
-                    $voucherType = 'INV';
-
-                    if (!$candidate) {
-                        $candidate = DB::table('debit_note_hdr')
-                            ->whereRaw("faktur_pajak is not null and faktur_pajak <> '' and length(regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g')) >= 8 and ? ilike '%' || regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g')", [$norm])
-                            ->where('status', '<>', '5')
-                            ->select('id', 'dn_number as voucher_number')
-                            ->first();
-                        $voucherType = 'INV-DN';
+                $candidate = $this->findBySuffix('invoice_hdr', 'faktur_pajak', $norm);
+                $voucherType = 'INV';
+                if ($candidate) {
+                    $candidate->voucher_number = $candidate->invoice_number;
+                } else {
+                    $candidate = $this->findBySuffix('debit_note_hdr', 'faktur_pajak', $norm);
+                    $voucherType = 'INV-DN';
+                    if ($candidate) {
+                        $candidate->voucher_number = $candidate->dn_number;
                     }
+                }
+            } elseif ($type === 'PM') {
+                $candidate = $this->findBySuffix('ap_invoice', 'tax_inv_number', $norm);
+                $voucherType = 'AP';
+                if ($candidate) {
+                    $candidate->voucher_number = $candidate->ap_number;
                 }
             }
 
             if ($candidate) {
-                $glCredit = (float) DB::table('kas_det as d')
+                $glAmount = (float) DB::table('kas_det as d')
                     ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
                     ->where('d.account', $coaAccount)
                     ->where('h.status', '<>', '5')
                     ->where('d.voucher_number', $candidate->voucher_number)
-                    ->sum('d.credit');
+                    ->sum($mutasiCol);
 
+                $route = ['INV' => 'invoice.edit', 'INV-DN' => 'debitNote.edit', 'AP' => 'accountPayable.edit'][$voucherType];
                 $row['matched_voucher_type'] = $voucherType;
                 $row['matched_voucher_number'] = $candidate->voucher_number;
                 $row['matched_voucher_id'] = $candidate->id;
-                $row['voucher_link'] = route($voucherType === 'INV' ? 'invoice.edit' : 'debitNote.edit', ['id' => Crypt::encryptString((string) $candidate->id)]);
-                $row['gl_credit'] = $glCredit;
-                $row['match_status'] = abs(round($row['ppn'] - $glCredit, 2)) <= 0.01 ? 'MATCHED' : 'UNMATCHED';
+                $row['voucher_link'] = route($route, ['id' => Crypt::encryptString((string) $candidate->id)]);
+                $row['gl_credit'] = $glAmount;
+                $row['match_status'] = abs(round($row['ppn'] - $glAmount, 2)) <= 0.01 ? 'MATCHED' : 'UNMATCHED';
             } else {
                 $row['matched_voucher_type'] = null;
                 $row['matched_voucher_number'] = null;
@@ -479,7 +491,7 @@ class PpnPkEqualisasiController extends Controller
                 if (!$d->matched_voucher_number) {
                     return '-';
                 }
-                $route = $d->matched_voucher_type === 'INV-DN' ? 'debitNote.edit' : 'invoice.edit';
+                $route = ['INV' => 'invoice.edit', 'INV-DN' => 'debitNote.edit', 'AP' => 'accountPayable.edit'][$d->matched_voucher_type] ?? 'invoice.edit';
                 $url = route($route, ['id' => Crypt::encryptString((string) $d->matched_voucher_id)]);
                 return "<a href='$url' target='_blank'>{$d->matched_voucher_number}</a> ({$d->matched_voucher_type})";
             })

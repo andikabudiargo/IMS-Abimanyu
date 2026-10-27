@@ -74,10 +74,9 @@
     </div>
   </div>
 
-  {{-- Tipe PK: tiap baris Excel di-match langsung ke voucher GL-nya (lewat nomor faktur ->
-       invoice_hdr/debit_note_hdr -> posting kredit COA ybs), kolom Status/Voucher GL/Kredit
-       GL ada di tabel ini -- bukan daftar Buku Besar terpisah. Tipe PM: belum ada matching
-       per baris (sisi pembelian belum tracking nomor faktur), semua baris UNMATCHED. --}}
+  {{-- Tiap baris Excel di-match langsung ke voucher GL-nya lewat nomor faktur -- PK ke
+       invoice_hdr/debit_note_hdr (posting kredit), PM ke ap_invoice (posting debet) --
+       kolom Status/Voucher GL/Kredit GL ada di tabel ini, bukan daftar Buku Besar terpisah. --}}
   <div class="card">
     <div class="card-header">
       <h4 class="card-title">Detail {{ $typeInfo['file_label'] }}</h4>
