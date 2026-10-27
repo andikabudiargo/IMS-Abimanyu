@@ -6,7 +6,7 @@
 <section id="show-ppnPkEqualisasi">
   <div class="card">
     <div class="card-header">
-      <h4 class="card-title">Detail Equalisasi PPN PK</h4>
+      <h4 class="card-title">Detail Equalisasi PPN — {{ $typeInfo['title'] }}</h4>
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
@@ -46,20 +46,20 @@
           <thead class="thead-light">
             <tr>
               <th>Keterangan</th>
-              <th class="text-right">Excel (Faktur Keluaran)</th>
+              <th class="text-right">Excel ({{ $typeInfo['file_label'] }})</th>
               <th class="text-right">Buku Besar (Akun {{ $header->coa_account }})</th>
               <th class="text-right">Selisih</th>
             </tr>
           </thead>
           <tbody>
             @php
-              $selisih = round($header->total_ppn - $gl['mutasi_kredit'], 2);
+              $selisih = round($header->total_ppn - $glMutasi, 2);
               $match = abs($selisih) <= 0.01;
             @endphp
             <tr>
-              <th>Total PPN Keluaran (Kredit)</th>
+              <th>Total PPN {{ $typeInfo['label'] }} ({{ $typeInfo['mutasi_label'] }})</th>
               <td class="text-right">{{ number_format($header->total_ppn, 2) }}</td>
-              <td class="text-right">{{ number_format($gl['mutasi_kredit'], 2) }}</td>
+              <td class="text-right">{{ number_format($glMutasi, 2) }}</td>
               <td class="text-right {{ $match ? 'text-success' : 'text-danger font-weight-bold' }}">{{ number_format($selisih, 2) }}</td>
             </tr>
             <tr>
@@ -74,12 +74,13 @@
     </div>
   </div>
 
-  {{-- Tiap baris Excel di-match langsung ke voucher GL-nya (lewat nomor faktur ->
+  {{-- Tipe PK: tiap baris Excel di-match langsung ke voucher GL-nya (lewat nomor faktur ->
        invoice_hdr/debit_note_hdr -> posting kredit COA ybs), kolom Status/Voucher GL/Kredit
-       GL ada di tabel ini -- bukan daftar Buku Besar terpisah. --}}
+       GL ada di tabel ini -- bukan daftar Buku Besar terpisah. Tipe PM: belum ada matching
+       per baris (sisi pembelian belum tracking nomor faktur), semua baris UNMATCHED. --}}
   <div class="card">
     <div class="card-header">
-      <h4 class="card-title">Detail Faktur Pajak Keluaran</h4>
+      <h4 class="card-title">Detail {{ $typeInfo['file_label'] }}</h4>
     </div>
     <div class="card-body">
       <div class="card-datatable table-responsive pt-0">

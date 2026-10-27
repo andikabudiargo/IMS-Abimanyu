@@ -16,9 +16,6 @@ use AppHelpers;
 class PpnPkEqualisasiController extends Controller
 {
     private $title;
-    private $moduleCode;
-    // Akun COA PPN KELUARAN (CUSTOMER) -- satu-satunya akun yang dibandingkan di modul ini.
-    const COA_ACCOUNT = '2000.14.1';
     // Sama dengan BankReconciliationController/BukuBesarV2Controller: tanggal mulai pembukuan
     // yang diakui, mutasi sebelum ini diabaikan.
     const GL_EPOCH = '2024-01-01';
@@ -28,10 +25,32 @@ class PpnPkEqualisasiController extends Controller
         9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
     ];
 
+    // Satu modul, dua tipe equalisasi -- dibedakan dari akun COA & arah mutasi yang
+    // dibandingkan (PK/Keluaran = kredit COA penjualan, PM/Masukan = debet COA pembelian).
+    // Layout kolom Excel-nya sama persis (lihat PpnPkEqualisasiImport), jadi tidak perlu
+    // import class terpisah.
+    const TYPES = [
+        'PK' => [
+            'label' => 'PPN Keluaran',
+            'title' => 'Equalisasi PPn-PK',
+            'coa_account' => '2000.14.1',
+            'mutasi_field' => 'mutasi_kredit',
+            'mutasi_label' => 'Mutasi Kredit',
+            'file_label' => 'Faktur Pajak Keluaran',
+        ],
+        'PM' => [
+            'label' => 'PPN Masukan',
+            'title' => 'Equalisasi PPn-PM',
+            'coa_account' => '1100.73',
+            'mutasi_field' => 'mutasi_debet',
+            'mutasi_label' => 'Mutasi Debet',
+            'file_label' => 'Faktur Pajak Masukan',
+        ],
+    ];
+
     public function __construct()
     {
-        $this->title = 'Equalisasi PPN PK';
-        $this->moduleCode = 'PK';
+        $this->title = 'Equalisasi PPN';
     }
 
     public function getLastCode($key)
@@ -46,7 +65,7 @@ class PpnPkEqualisasiController extends Controller
         $month = $months[date('n') - 1];
         $year = date('Y');
         $padded = str_pad($newCode, 4, '0', STR_PAD_LEFT);
-        return "PK-ASN-$year-$month-$padded";
+        return "$key-ASN-$year-$month-$padded";
     }
 
     public function index()
@@ -56,6 +75,7 @@ class PpnPkEqualisasiController extends Controller
         $data['kolom'] = json_encode([
             ['data' => 'action', 'name' => 'action', 'title' => 'action', 'orderable' => false, 'searchable' => false],
             ['data' => 'equal_number', 'name' => 'equal_number', 'title' => 'Equal Number'],
+            ['data' => 'type', 'name' => 'type', 'title' => 'Type'],
             ['data' => 'periode', 'name' => 'periode', 'title' => 'Periode'],
             ['data' => 'description', 'name' => 'description', 'title' => 'Description'],
             ['data' => 'total_ppn', 'name' => 'total_ppn', 'title' => 'Total PPN (Excel)'],
@@ -71,6 +91,7 @@ class PpnPkEqualisasiController extends Controller
         $data['title'] = "Create $this->title";
         $data['subtitle'] = "Create $this->title";
         $data['periodes'] = $this->periodes;
+        $data['types'] = self::TYPES;
         return view('accounting.ppnPkEqualisasi.create', $data);
     }
 
@@ -80,6 +101,7 @@ class PpnPkEqualisasiController extends Controller
     public function preview(Request $request)
     {
         $validation = Validator::make($request->all(), [
+            'type' => 'required|in:PK,PM',
             'periode' => 'required|integer|min:1|max:12',
             'year' => 'required|integer',
             // mimes:xls,xlsx di-skip -- content-sniffed MIME untuk xlsx export dari portal
@@ -100,6 +122,8 @@ class PpnPkEqualisasiController extends Controller
             return response()->json(['status' => 0, 'title' => "Preview $this->title", 'message' => $error_array, 'alert' => 'error']);
         }
 
+        $type = $request->type;
+        $typeInfo = self::TYPES[$type];
         $periode = (int) $request->periode;
         $year = (int) $request->year;
 
@@ -117,12 +141,13 @@ class PpnPkEqualisasiController extends Controller
             return response()->json(['status' => 2, 'title' => "Preview $this->title", 'message' => 'Tidak ada baris data yang terbaca dari Excel ini.', 'alert' => 'warning']);
         }
 
-        $rows = $this->matchRows($import->rows);
+        $rows = $this->matchRows($import->rows, $type);
         $totalDpp = round(array_sum(array_column($rows, 'dpp')), 2);
         $totalPpn = round(array_sum(array_column($rows, 'ppn')), 2);
         $matchedCount = count(array_filter($rows, fn ($r) => $r['match_status'] === 'MATCHED'));
-        $gl = $this->glSummary($periode, $year);
-        $selisih = round($totalPpn - $gl['mutasi_kredit'], 2);
+        $gl = $this->glSummary($periode, $year, $typeInfo['coa_account']);
+        $glMutasi = $gl[$typeInfo['mutasi_field']];
+        $selisih = round($totalPpn - $glMutasi, 2);
 
         return response()->json([
             'status' => 1,
@@ -135,47 +160,55 @@ class PpnPkEqualisasiController extends Controller
             'matchedCount' => $matchedCount,
             'totalDpp' => $totalDpp,
             'totalPpn' => $totalPpn,
-            'glMutasiKredit' => $gl['mutasi_kredit'],
+            'glMutasiKredit' => $glMutasi,
             'selisih' => $selisih,
             'match' => abs($selisih) <= 0.01,
         ]);
     }
 
     // Cocokkan tiap baris Excel ke voucher yang menerbitkannya (Invoice/Debit Note, lewat
-    // kolom faktur_pajak), lalu ke posting kredit COA 2000.14.1 punya voucher itu di
+    // kolom faktur_pajak), lalu ke posting kredit COA PPN Keluaran punya voucher itu di
     // kas_det/kas_hdr -- mirip BankReconciliationController::matchRows(), tapi kuncinya
     // nomor faktur (persis), bukan tanggal+nominal, karena di sini ada kolom pengenal yang
     // eksak. Read-only (cuma SELECT), dipakai di preview() maupun store() biar hasil yang
     // ditampilkan ke user sama persis dengan yang akhirnya disimpan.
-    private function matchRows(array $rows): array
+    // Hanya jalan untuk tipe PK -- sisi pembelian (PM) belum ada kolom faktur_pajak di
+    // voucher manapun, jadi tidak ada yang bisa di-match per baris (cuma totalnya yang
+    // dibandingkan ke Buku Besar, lihat preview()/show()).
+    private function matchRows(array $rows, string $type): array
     {
+        $coaAccount = self::TYPES[$type]['coa_account'];
+
         foreach ($rows as &$row) {
-            $norm = preg_replace('/[^0-9A-Za-z]/', '', (string) $row['doc_number']);
             $candidate = null;
             $voucherType = null;
 
-            if ($norm !== '') {
-                $candidate = DB::table('invoice_hdr')
-                    ->whereRaw("regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g') ilike ?", [$norm])
-                    ->where('status', '<>', '5')
-                    ->select('id', 'invoice_number as voucher_number')
-                    ->first();
-                $voucherType = 'INV';
+            if ($type === 'PK') {
+                $norm = preg_replace('/[^0-9A-Za-z]/', '', (string) $row['doc_number']);
 
-                if (!$candidate) {
-                    $candidate = DB::table('debit_note_hdr')
+                if ($norm !== '') {
+                    $candidate = DB::table('invoice_hdr')
                         ->whereRaw("regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g') ilike ?", [$norm])
                         ->where('status', '<>', '5')
-                        ->select('id', 'dn_number as voucher_number')
+                        ->select('id', 'invoice_number as voucher_number')
                         ->first();
-                    $voucherType = 'INV-DN';
+                    $voucherType = 'INV';
+
+                    if (!$candidate) {
+                        $candidate = DB::table('debit_note_hdr')
+                            ->whereRaw("regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g') ilike ?", [$norm])
+                            ->where('status', '<>', '5')
+                            ->select('id', 'dn_number as voucher_number')
+                            ->first();
+                        $voucherType = 'INV-DN';
+                    }
                 }
             }
 
             if ($candidate) {
                 $glCredit = (float) DB::table('kas_det as d')
                     ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
-                    ->where('d.account', self::COA_ACCOUNT)
+                    ->where('d.account', $coaAccount)
                     ->where('h.status', '<>', '5')
                     ->where('d.voucher_number', $candidate->voucher_number)
                     ->sum('d.credit');
@@ -208,6 +241,7 @@ class PpnPkEqualisasiController extends Controller
         $username = Auth::user()->username;
 
         $validation = Validator::make($request->all(), [
+            'type' => 'required|in:PK,PM',
             'periode' => 'required|integer|min:1|max:12',
             'year' => 'required|integer',
             'filePath' => 'required|string',
@@ -221,6 +255,8 @@ class PpnPkEqualisasiController extends Controller
             return response()->json(['status' => 0, 'title' => "Save $this->title", 'message' => $error_array, 'alert' => 'error']);
         }
 
+        $type = $request->type;
+        $typeInfo = self::TYPES[$type];
         $periode = (int) $request->periode;
         $year = (int) $request->year;
         $description = $request->description;
@@ -247,20 +283,21 @@ class PpnPkEqualisasiController extends Controller
             return response()->json(['status' => 2, 'title' => "Save $this->title", 'message' => 'Tidak ada baris data yang terbaca dari Excel ini.', 'alert' => 'warning']);
         }
 
-        $rows = $this->matchRows($import->rows);
+        $rows = $this->matchRows($import->rows, $type);
         $totalDpp = round(array_sum(array_column($rows, 'dpp')), 2);
         $totalPpn = round(array_sum(array_column($rows, 'ppn')), 2);
 
-        AppHelpers::resetCode($this->moduleCode);
-        $equalNumber = $this->getLastCode($this->moduleCode);
+        AppHelpers::resetCode($type);
+        $equalNumber = $this->getLastCode($type);
 
         DB::beginTransaction();
         try {
             DB::table('ppn_pk_equalisasi_hdr')->insert([
                 'equal_number' => $equalNumber,
+                'type' => $type,
                 'periode' => $periode,
                 'year' => $year,
-                'coa_account' => self::COA_ACCOUNT,
+                'coa_account' => $typeInfo['coa_account'],
                 'description' => $description,
                 'total_dpp' => $totalDpp,
                 'total_ppn' => $totalPpn,
@@ -311,18 +348,19 @@ class PpnPkEqualisasiController extends Controller
         }
     }
 
-    // Mutasi KREDIT akun COA 2000.14.1 di ledger (kas_det/kas_hdr, lihat BukuBesarV2Controller)
-    // untuk 1 periode -- dihitung on the fly, tidak disimpan, supaya selalu sinkron dengan
-    // posting baru. Sama dengan BankReconciliationController::glSummary(), dipersempit cuma
-    // ambil mutasi_kredit karena itu saja yang dipakai buat equalisasi PPN Keluaran.
-    private function glSummary(int $periode, int $year): array
+    // Mutasi akun COA (PPN Keluaran/Masukan tergantung tipe) di ledger (kas_det/kas_hdr,
+    // lihat BukuBesarV2Controller) untuk 1 periode -- dihitung on the fly, tidak disimpan,
+    // supaya selalu sinkron dengan posting baru. Sama dengan
+    // BankReconciliationController::glSummary(), tetap kembalikan debet & kredit, dipilih
+    // salah satunya sesuai mutasi_field tipe yang bersangkutan.
+    private function glSummary(int $periode, int $year, string $coaAccount): array
     {
         $from = sprintf('%04d-%02d-01', $year, $periode);
         $to = date('Y-m-t', strtotime($from));
 
         $period = DB::table('kas_det as d')
             ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
-            ->where('d.account', self::COA_ACCOUNT)
+            ->where('d.account', $coaAccount)
             ->where('h.status', '<>', '5')
             ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') between ? and ?", [$from, $to])
             ->selectRaw('coalesce(sum(d.debit), 0) as debet, coalesce(sum(d.credit), 0) as kredit')
@@ -359,6 +397,9 @@ class PpnPkEqualisasiController extends Controller
             ->addColumn('equal_number', function ($d) {
                 return '<a href="' . route('ppnPkEqualisasi.show', ['id' => Crypt::encryptString($d->id)]) . '">' . $d->equal_number . '</a>';
             })
+            ->addColumn('type', function ($d) {
+                return self::TYPES[$d->type]['label'] ?? $d->type;
+            })
             ->addColumn('periode', function ($d) {
                 return ($this->periodes[(int) $d->periode] ?? $d->periode) . ' / ' . $d->year;
             })
@@ -366,8 +407,9 @@ class PpnPkEqualisasiController extends Controller
                 return number_format($d->total_ppn, 2);
             })
             ->addColumn('match_status', function ($d) {
-                $gl = $this->glSummary((int) $d->periode, (int) $d->year);
-                $match = abs(round($d->total_ppn - $gl['mutasi_kredit'], 2)) <= 0.01;
+                $typeInfo = self::TYPES[$d->type] ?? self::TYPES['PK'];
+                $gl = $this->glSummary((int) $d->periode, (int) $d->year, $d->coa_account);
+                $match = abs(round($d->total_ppn - $gl[$typeInfo['mutasi_field']], 2)) <= 0.01;
                 $color = $match ? 'success' : 'danger';
                 $label = $match ? 'MATCH' : 'NOT MATCH';
                 return "<div class='badge badge-{$color}'>{$label}</div>";
@@ -385,7 +427,10 @@ class PpnPkEqualisasiController extends Controller
         abort_unless($data['header'], 404);
         $data['id'] = $id;
         $data['periodes'] = $this->periodes;
-        $data['gl'] = $this->glSummary((int) $data['header']->periode, (int) $data['header']->year);
+        $data['typeInfo'] = self::TYPES[$data['header']->type] ?? self::TYPES['PK'];
+        $gl = $this->glSummary((int) $data['header']->periode, (int) $data['header']->year, $data['header']->coa_account);
+        $data['gl'] = $gl;
+        $data['glMutasi'] = $gl[$data['typeInfo']['mutasi_field']];
 
         $data['kolomDetail'] = json_encode([
             ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'title' => 'No', 'orderable' => false, 'searchable' => false],

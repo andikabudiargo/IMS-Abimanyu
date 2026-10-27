@@ -6,7 +6,7 @@
 <section id="add-ppnPkEqualisasi">
   <div class="card">
     <div class="card-header">
-      <h4 class="card-title">Equalisasi PPN PK — Upload Faktur Pajak Keluaran</h4>
+      <h4 class="card-title">Equalisasi PPN — Upload Faktur Pajak</h4>
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
@@ -19,6 +19,15 @@
                 <small class="text-muted">automatic</small>
               </label>
               <input type="text" id="equalNumber" name="equalNumber" class="form-control text-hitam disabled-el" disabled>
+            </div>
+            <div class="form-group col-md-2">
+              <label class="form-label" for="type">Type*</label>
+              <select class="select2 form-control" id="type" name="type" required>
+                <option value=""></option>
+                @foreach ($types as $val => $t)
+                  <option value="{{ $val }}">{{ $t['title'] }}</option>
+                @endforeach
+              </select>
             </div>
             <div class="form-group col-md-2">
               <label class="form-label" for="periode">Periode*</label>
@@ -42,7 +51,7 @@
           </div>
           <div class="form-row">
             <div class="form-group col-md-8">
-              <label class="form-label" for="statement">Data Faktur Pajak Keluaran (Excel)*</label>
+              <label class="form-label" for="statement" id="statementFieldLabel">Data Faktur Pajak (Excel)*</label>
               <div class="custom-file">
                 <input type="file" class="custom-file-input" name="statement" id="statement" accept=".xls,.xlsx" required />
                 <label class="custom-file-label" for="statement" id="statementLabel">Choose file</label>
@@ -79,7 +88,7 @@
             <th width="20%">Total PPN (Excel)</th><td class="text-right" id="i-total-ppn"></td>
           </tr>
           <tr>
-            <th>Mutasi Kredit COA 2000.14.1 (Buku Besar)</th><td class="text-right" id="i-gl-kredit"></td>
+            <th id="i-gl-label">Mutasi Buku Besar</th><td class="text-right" id="i-gl-kredit"></td>
             <th>Selisih</th><td class="text-right font-weight-bold" id="i-selisih"></td>
           </tr>
         </tbody>
@@ -88,9 +97,9 @@
   </div>
 </section>
 
-{{-- Hasil preview (parse + match per baris ke voucher Invoice/Debit Note lewat nomor faktur,
-     lalu ke posting kredit COA 2000.14.1 punya voucher itu) -- belum tersimpan sampai user
-     klik Save manual. --}}
+{{-- Hasil preview (tipe PK: parse + match per baris ke voucher Invoice/Debit Note lewat
+     nomor faktur, lalu ke posting kredit COA PPN Keluaran punya voucher itu; tipe PM: parse
+     saja, belum ada matching per baris) -- belum tersimpan sampai user klik Save manual. --}}
 <section id="preview-ppnPkEqualisasi" class="d-none">
   <div class="card">
     <div class="card-header">
@@ -144,6 +153,7 @@
 <script type="text/javascript">
 
   let previewFilePath = null;
+  const equalTypes = {!! json_encode($types) !!};
 
   $(document).ready(function () {
     validateFormToast("frmAdd");
@@ -155,6 +165,12 @@
       previewFilePath = null;
       $('#preview-ppnPkEqualisasi').addClass('d-none');
       $('#info-ppnPkEqualisasi').addClass('d-none');
+    });
+
+    $('#type').on('change', function () {
+      let t = equalTypes[$(this).val()];
+      $('#statementFieldLabel').text(t ? `Data ${t.file_label} (Excel)*` : 'Data Faktur Pajak (Excel)*');
+      $('#i-gl-label').text(t ? `${t.mutasi_label} COA (Buku Besar)` : 'Mutasi Buku Besar');
     });
   });
 
@@ -252,6 +268,7 @@
       url: "{{ route('ppnPkEqualisasi.store') }}",
       method: "POST",
       data: {
+        type: $('#type').val(),
         periode: $('#periode').val(),
         year: $('#year').val(),
         description: $('#description').val(),

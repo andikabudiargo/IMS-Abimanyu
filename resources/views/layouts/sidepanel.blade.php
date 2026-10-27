@@ -949,7 +949,7 @@
               <li class="{{ \Request::segment(1) == 'ppnPkEqualisasi' ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('ppnPkEqualisasi.index') }}">
                   <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi PPn-PK</span>
+                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi PPn</span>
                 </a>
               </li>
 
