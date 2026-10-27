@@ -186,9 +186,14 @@ class PpnPkEqualisasiController extends Controller
             if ($type === 'PK') {
                 $norm = preg_replace('/[^0-9A-Za-z]/', '', (string) $row['doc_number']);
 
-                if ($norm !== '') {
+                // invoice_hdr/debit_note_hdr.faktur_pajak tersimpan tanpa prefix Kode
+                // Transaksi+Status DJP (panjangnya beda-beda antar periode, pernah 10 digit,
+                // pernah 13 digit) -- jadi dicocokkan sebagai AKHIRAN dari nomor faktur
+                // lengkap di Excel, bukan exact match. Guard panjang >= 8 biar suffix pendek
+                // tidak nyangkut ke banyak faktur sekaligus.
+                if (strlen($norm) >= 8) {
                     $candidate = DB::table('invoice_hdr')
-                        ->whereRaw("regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g') ilike ?", [$norm])
+                        ->whereRaw("faktur_pajak is not null and faktur_pajak <> '' and length(regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g')) >= 8 and ? ilike '%' || regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g')", [$norm])
                         ->where('status', '<>', '5')
                         ->select('id', 'invoice_number as voucher_number')
                         ->first();
@@ -196,7 +201,7 @@ class PpnPkEqualisasiController extends Controller
 
                     if (!$candidate) {
                         $candidate = DB::table('debit_note_hdr')
-                            ->whereRaw("regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g') ilike ?", [$norm])
+                            ->whereRaw("faktur_pajak is not null and faktur_pajak <> '' and length(regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g')) >= 8 and ? ilike '%' || regexp_replace(faktur_pajak, '[^0-9A-Za-z]', '', 'g')", [$norm])
                             ->where('status', '<>', '5')
                             ->select('id', 'dn_number as voucher_number')
                             ->first();
