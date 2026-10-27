@@ -461,7 +461,6 @@ class PpnPkEqualisasiController extends Controller
             ['data' => 'nama', 'name' => 'nama', 'title' => 'Nama'],
             ['data' => 'tanggal', 'name' => 'tanggal', 'title' => 'Tanggal'],
             ['data' => 'dpp', 'name' => 'dpp', 'title' => 'DPP'],
-            ['data' => 'dpp_lain', 'name' => 'dpp_lain', 'title' => 'DPP Nilai Lain'],
             ['data' => 'ppn', 'name' => 'ppn', 'title' => 'PPN (Excel)'],
             ['data' => 'match_status', 'name' => 'match_status', 'title' => 'Status'],
             ['data' => 'matched_voucher_number', 'name' => 'matched_voucher_number', 'title' => 'Voucher BB'],
@@ -491,7 +490,6 @@ class PpnPkEqualisasiController extends Controller
         return Datatables::of($data)
             ->addIndexColumn()
             ->addColumn('dpp', function ($d) { return number_format($d->dpp, 2); })
-            ->addColumn('dpp_lain', function ($d) { return number_format($d->dpp_lain, 2); })
             ->addColumn('ppn', function ($d) { return number_format($d->ppn, 2); })
             ->addColumn('match_status', function ($d) {
                 $color = $d->match_status === 'MATCHED' ? 'success' : 'danger';

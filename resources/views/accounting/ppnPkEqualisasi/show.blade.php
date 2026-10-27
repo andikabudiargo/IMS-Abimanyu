@@ -150,7 +150,7 @@
   function markRowPending(detId, label) {
     let row = $('[data-det-id="' + detId + '"]').closest('tr');
     let tds = row.addClass('table-warning').find('td');
-    tds.eq(9).html('<span class="badge badge-warning">PENDING</span>');
+    tds.eq(8).html('<span class="badge badge-warning">PENDING</span>');
     tds.eq(tds.length - 1).html(
       '<a href="javascript:;" class="btn btn-sm btn-outline-secondary" onclick="cancelPending(' + detId + ')">Batal</a>'
       + '<div><small class="text-muted">' + label + '</small></div>'
@@ -179,11 +179,11 @@
       tableId: "ppnPkEqualisasiDetailTable",
       route: "{{ route('ppnPkEqualisasi.list.detail', ['id' => $id]) }}",
       kolom: {!! $kolomDetail !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       columnDefs: [
         { width: '4%', targets: 0 },
-        { className: 'text-right', targets: [6, 7, 8, 11] },
-        { className: 'text-center', targets: [9, 12] },
+        { className: 'text-right', targets: [6, 7, 10] },
+        { className: 'text-center', targets: [8, 11] },
       ],
       // dataSearch wajib diisi (walau kosong) -- tanpa ini draw/start/length dari
       // DataTables tidak terkirim dengan benar dan tabel macet di "Processing...".

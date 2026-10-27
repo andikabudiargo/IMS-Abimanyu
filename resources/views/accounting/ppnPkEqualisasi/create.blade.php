@@ -83,14 +83,10 @@
     <div class="card-body">
       <table class="table table-sm table-bordered bb2-info mb-0">
         <tbody>
-          <tr>
-            <th width="20%">Total DPP (Excel)</th><td width="30%" class="text-right" id="i-total-dpp"></td>
-            <th width="20%">Total PPN (Excel)</th><td class="text-right" id="i-total-ppn"></td>
-          </tr>
-          <tr>
-            <th id="i-gl-label">Mutasi Buku Besar</th><td class="text-right" id="i-gl-kredit"></td>
-            <th>Selisih</th><td class="text-right font-weight-bold" id="i-selisih"></td>
-          </tr>
+          <tr><th width="30%">Total DPP (Excel)</th><td class="text-right" id="i-total-dpp"></td></tr>
+          <tr><th>Total PPN (Excel)</th><td class="text-right" id="i-total-ppn"></td></tr>
+          <tr><th id="i-gl-label">Mutasi Buku Besar</th><td class="text-right" id="i-gl-kredit"></td></tr>
+          <tr><th>Selisih</th><td class="text-right font-weight-bold" id="i-selisih"></td></tr>
         </tbody>
       </table>
     </div>
@@ -116,7 +112,6 @@
               <th>Nama</th>
               <th>Tanggal</th>
               <th class="text-right">DPP</th>
-              <th class="text-right">DPP Nilai Lain</th>
               <th class="text-right">PPN (Excel)</th>
               <th>Status</th>
               <th id="previewVoucherLabel">Voucher BB</th>
@@ -199,7 +194,6 @@
         <td>${r.nama}</td>
         <td>${r.tanggal}</td>
         <td class="text-right">${fmtNumber(r.dpp)}</td>
-        <td class="text-right">${fmtNumber(r.dpp_lain)}</td>
         <td class="text-right">${fmtNumber(r.ppn)}</td>
         <td>${statusBadge}</td>
         <td>${voucherCell}</td>
