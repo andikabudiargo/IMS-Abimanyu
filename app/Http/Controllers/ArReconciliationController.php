@@ -85,11 +85,38 @@ class ArReconciliationController extends Controller
     }
 
     /** Nilai Total (kolom "Penambah", termasuk pajak) -- yang dipakai untuk Balance,
-     *  supaya konsisten dengan Opening Balance yang juga grand_total-based. */
+     *  supaya konsisten dengan Opening Balance yang juga grand_total-based.
+     *  Basis 'delivery': PPN cuma tersimpan di level invoice_hdr (bukan per SJ), jadi
+     *  di-prorate ke tiap SJ sesuai porsi nilainya -- (qty*(price+price_service)) *
+     *  (grand_total/dpp) -- sama seperti alokasi landed cost/discount per item di ERP,
+     *  supaya SUM(Penambah) tetap persis sama dengan SUM(grand_total) invoice terkait
+     *  (dan Balance basis Delivery konsisten dgn basis Invoice/AR Dashboard).
+     *  Catatan: dpp pembagi dihitung ulang dari invoice_det (SUM per invoice_number),
+     *  BUKAN dibaca dari invoice_hdr.dpp -- kolom itu snapshot sekali pas invoice
+     *  dibuat dan bisa basi/0 kalau invoice-nya diedit belakangan, yang bikin rasio
+     *  jatuh ke fallback 1 (PPN hilang dari Penambah). Dihitung dari sumber yang sama
+     *  dengan pembilang supaya selalu konsisten. */
     private function additionTotalSql($basis)
     {
         if ($basis === 'delivery') {
-            return $this->additionDppSql('delivery');
+            return "
+                SELECT to_char(to_date(delivery_hdr.delivery_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
+                       SUM(
+                            (invoice_det.qty * (invoice_det.price + invoice_det.price_service))
+                            * CASE WHEN inv_dpp.dpp > 0 THEN invoice_hdr.grand_total / inv_dpp.dpp ELSE 1 END
+                       ) as amount
+                FROM invoice_det
+                JOIN invoice_hdr ON invoice_hdr.invoice_number = invoice_det.invoice_number
+                JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.dn_number
+                JOIN (
+                    SELECT invoice_number, SUM(qty * (price + price_service)) as dpp
+                    FROM invoice_det
+                    GROUP BY invoice_number
+                ) inv_dpp ON inv_dpp.invoice_number = invoice_det.invoice_number
+                WHERE invoice_hdr.status <> '5'
+                  AND to_date(delivery_hdr.delivery_date,'DD-MM-YYYY') BETWEEN to_date(:from,'DD-MM-YYYY') AND to_date(:to,'DD-MM-YYYY')
+                GROUP BY 1
+            ";
         }
         return "
             SELECT to_char(to_date(invoice_hdr.invoice_date,'DD-MM-YYYY'),'YYYY-MM') as ym,
@@ -264,12 +291,23 @@ class ArReconciliationController extends Controller
                 ORDER BY to_date(kas_hdr.voucher_date,'DD-MM-YYYY')
             ";
         } elseif ($basis === 'delivery') {
+            // $column di sini cuma 'addition' (DPP tidak clickable, lihat arReconciliation/
+            // index.blade.php cell() -- cuma addition/debitNote/payment yang dikasih class
+            // recon-clickable), jadi amount-nya di-prorate sama kayak additionTotalSql('delivery').
             $sql = "
                 SELECT delivery_hdr.id, delivery_hdr.delivery_number as doc, delivery_hdr.delivery_date as doc_date,
-                       SUM(invoice_det.qty * (invoice_det.price + invoice_det.price_service)) as amount, 'Delivery Note' as doc_type
+                       SUM(
+                            (invoice_det.qty * (invoice_det.price + invoice_det.price_service))
+                            * CASE WHEN inv_dpp.dpp > 0 THEN invoice_hdr.grand_total / inv_dpp.dpp ELSE 1 END
+                       ) as amount, 'Delivery Note' as doc_type
                 FROM invoice_det
                 JOIN invoice_hdr ON invoice_hdr.invoice_number = invoice_det.invoice_number
                 JOIN delivery_hdr ON delivery_hdr.delivery_number = invoice_det.dn_number
+                JOIN (
+                    SELECT invoice_number, SUM(qty * (price + price_service)) as dpp
+                    FROM invoice_det
+                    GROUP BY invoice_number
+                ) inv_dpp ON inv_dpp.invoice_number = invoice_det.invoice_number
                 WHERE invoice_hdr.status <> '5'
                   AND to_date(delivery_hdr.delivery_date,'DD-MM-YYYY') $dateCond
                 GROUP BY delivery_hdr.id, delivery_hdr.delivery_number, delivery_hdr.delivery_date
