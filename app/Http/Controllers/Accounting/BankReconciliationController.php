@@ -361,7 +361,8 @@ class BankReconciliationController extends Controller
                     ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
                     ->whereIn('kas_hdr.voucher_type', $types ?? $voucherTypes)
                     ->where('kas_hdr.status', '<>', '5')
-                    ->where('kas_det.account', $coaAccount)
+                    // BK (recon KAS) jurnalnya di akun bank -- filter akun cuma buat voucher tipe normal.
+                    ->when($types === null, function ($q) use ($coaAccount) { $q->where('kas_det.account', $coaAccount); })
                     ->whereRaw('kas_hdr.period::integer = ?', [$periode])
                     ->where('kas_hdr.year', $year)
                     ->where(function ($q) use ($row, $amountMode) {
@@ -712,12 +713,16 @@ class BankReconciliationController extends Controller
 
         $candidates = DB::table('kas_det')
             ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
-            ->where(function ($q) use ($voucherTypes, $withBk, $bkSide, $sideColumn, $amount, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
+            ->where(function ($q) use ($coaAccount, $voucherTypes, $withBk, $bkSide, $sideColumn, $amount, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
                 // Voucher normal (KM/KK atau BM/BK): sisi lawan dari rekening koran, dan sisa
                 // nilai (dikurangi yang sudah terpakai di batch type+periode+tahun yang sama)
                 // masih > 0 -- kecuali ketikannya persis voucher_number-nya.
-                $q->where(function ($n) use ($voucherTypes, $sideColumn, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
+                $q->where(function ($n) use ($coaAccount, $voucherTypes, $sideColumn, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
                     $n->whereIn('kas_hdr.voucher_type', $voucherTypes);
+                    // $coaAccount bisa null buat recon lama (sebelum kolom coa_account ada) -- filter akun di-skip.
+                    if ($coaAccount) {
+                        $n->where('kas_det.account', $coaAccount);
+                    }
                     if ($sideColumn) {
                         $n->where($sideColumn, '>', 0)
                           ->where(function ($s) use ($sideColumn, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
@@ -728,6 +733,7 @@ class BankReconciliationController extends Controller
                           });
                     }
                 });
+                // BK di recon KAS: baris jurnalnya di akun bank, bukan akun kas -- tanpa filter akun COA.
                 if ($withBk) {
                     $q->orWhere(function ($b) use ($bkSide, $amount, $usedAmountSub, $type, $year, $periode) {
                         $b->where('kas_hdr.voucher_type', 'BK')
@@ -737,9 +743,6 @@ class BankReconciliationController extends Controller
                 }
             })
             ->where('kas_hdr.status', '<>', '5')
-            // $coaAccount bisa null buat recon lama yang dibuat sebelum kolom coa_account
-            // ada -- biar tetap jalan, filter akun di-skip (fallback ke behavior lama).
-            ->when($coaAccount, function ($q) use ($coaAccount) { $q->where('kas_det.account', $coaAccount); })
             // Cuma voucher dari periode yang sama persis dengan recon ini -- periode
             // sebelum/sesudah disembunyikan dari dropdown.
             ->where('kas_hdr.year', $year)
