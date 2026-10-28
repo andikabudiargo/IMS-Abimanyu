@@ -12,7 +12,8 @@
         <thead>
           <tr>
             <th>File</th>
-            <th>Tanggal &amp; Jam</th>
+            <th>Mulai</th>
+            <th>Selesai</th>
             <th>Status</th>
             <th>Durasi</th>
             <th>Ukuran</th>
@@ -29,7 +30,10 @@
                 {{ $row->file }}
               @endif
             </td>
-            <td>{{ \Carbon\Carbon::parse($row->started_at)->format('d-m-Y H:i:s') }}</td>
+            {{-- backup lama tanpa log: waktu file = waktu selesai, waktu mulai tidak diketahui --}}
+            @php $start = \Carbon\Carbon::parse($row->started_at); @endphp
+            <td>{{ $row->duration === null ? '-' : $start->format('d-m-Y H:i:s') }}</td>
+            <td>{{ $start->copy()->addSeconds($row->duration ?? 0)->format('d-m-Y H:i:s') }}</td>
             <td>
               @if($row->status === 'success')
                 <span class="badge badge-success">Sukses</span>
