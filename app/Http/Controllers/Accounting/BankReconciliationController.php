@@ -229,6 +229,7 @@ class BankReconciliationController extends Controller
             if ($kasDetId !== null && $kasDetId !== '' && isset($rows[$index])) {
                 $rows[$index]['status'] = 'MATCHED';
                 $rows[$index]['matched_kas_det_id'] = (int) $kasDetId;
+                $rows[$index]['manual_snapshot'] = $this->kasDetSnapshot((int) $kasDetId);
             }
         }
 
@@ -266,6 +267,7 @@ class BankReconciliationController extends Controller
                     'saldo' => $row['saldo'],
                     'status' => $row['status'],
                     'matched_kas_det_id' => $row['matched_kas_det_id'],
+                    'manual_snapshot' => $row['manual_snapshot'] ?? null,
                     'created_by' => $username,
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
@@ -337,8 +339,13 @@ class BankReconciliationController extends Controller
             ->where('bank_reconciliation_hdr.type', $type)
             ->where('bank_reconciliation_hdr.periode', $periode)
             ->where('bank_reconciliation_hdr.year', $year)
+            // Match manual milik recon ini sendiri tetap dihitung "kepakai" -- recalculate()
+            // tidak mencocokkan ulang baris manual, jadi voucher-nya jangan diambil baris lain.
             ->when($excludeReconNumber, function ($q) use ($excludeReconNumber) {
-                $q->where('bank_reconciliation_det.recon_number', '<>', $excludeReconNumber);
+                $q->where(function ($s) use ($excludeReconNumber) {
+                    $s->where('bank_reconciliation_det.recon_number', '<>', $excludeReconNumber)
+                      ->orWhereNotNull('bank_reconciliation_det.manual_snapshot');
+                });
             })
             ->pluck('bank_reconciliation_det.matched_kas_det_id')
             ->all();
@@ -346,12 +353,13 @@ class BankReconciliationController extends Controller
         foreach ($rows as &$row) {
             // $amountMode: 'strict' = nominal cuma dicocokkan ke 1 sisi sesuai arah normal
             // (statement CR -> kas_det debit, statement DB -> kas_det credit), 'loose' = boleh
-            // sisi manapun. Query dibungkus closure supaya gampang dipanggil ulang per strategi
-            // dengan kombinasi syarat berbeda, tanpa duplikasi select/exclude/order.
-            $baseQuery = function (string $amountMode) use ($voucherTypes, $periode, $year, $row, $usedKasDetIds, $coaAccount) {
+            // sisi manapun, 'same' = sisi yang SAMA dengan statement (CR -> credit, DB -> debit),
+            // dipakai buat voucher BK di recon KAS. Query dibungkus closure supaya gampang
+            // dipanggil ulang per strategi dengan kombinasi syarat berbeda, tanpa duplikasi.
+            $baseQuery = function (string $amountMode, ?array $types = null) use ($voucherTypes, $periode, $year, $row, $usedKasDetIds, $coaAccount) {
                 return DB::table('kas_det')
                     ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
-                    ->whereIn('kas_hdr.voucher_type', $voucherTypes)
+                    ->whereIn('kas_hdr.voucher_type', $types ?? $voucherTypes)
                     ->where('kas_hdr.status', '<>', '5')
                     ->where('kas_det.account', $coaAccount)
                     ->whereRaw('kas_hdr.period::integer = ?', [$periode])
@@ -359,6 +367,8 @@ class BankReconciliationController extends Controller
                     ->where(function ($q) use ($row, $amountMode) {
                         if ($amountMode === 'strict') {
                             $q->where($row['mutation_type'] === 'CR' ? 'kas_det.debit' : 'kas_det.credit', $row['amount']);
+                        } elseif ($amountMode === 'same') {
+                            $q->where($row['mutation_type'] === 'CR' ? 'kas_det.credit' : 'kas_det.debit', $row['amount']);
                         } else {
                             $q->where('kas_det.debit', $row['amount'])->orWhere('kas_det.credit', $row['amount']);
                         }
@@ -376,8 +386,9 @@ class BankReconciliationController extends Controller
             // voucher_number + nominal (sisi manapun, voucher_number-nya sendiri sudah cukup
             // spesifik jadi risiko salah ambil kecil), tanpa syarat tanggal persis sama.
             $candidate = null;
-            if (preg_match('/\b(KM|KK|BM|BK)-[A-Za-z0-9-]+/', $row['description'], $m)) {
-                $candidate = $baseQuery('loose')->where('kas_det.voucher_number', rtrim($m[0], '-'))->first();
+            $descVoucher = preg_match('/\b(KM|KK|BM|BK)-[A-Za-z0-9-]+/', $row['description'], $m) ? rtrim($m[0], '-') : null;
+            if ($descVoucher) {
+                $candidate = $baseQuery('loose')->where('kas_det.voucher_number', $descVoucher)->first();
             }
 
             // Strategi 2: tanggal + nominal, SISI KETAT dulu (CR->debit, DB->credit) -- ini
@@ -396,6 +407,20 @@ class BankReconciliationController extends Controller
                 $candidate = $baseQuery('loose')
                     ->whereRaw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY') = ?", [$row['stmt_date']])
                     ->first();
+            }
+
+            // Strategi 4 (khusus KAS): sebagian transaksi kas dicatat pakai voucher BK.
+            // Baru dicoba setelah semua strategi KM/KK gagal, dan sisinya SAMA dengan
+            // statement (CR -> BK credit, DB -> BK debit), bukan lawan seperti KM/KK.
+            if (!$candidate && $type === 'KAS') {
+                if ($descVoucher) {
+                    $candidate = $baseQuery('same', ['BK'])->where('kas_det.voucher_number', $descVoucher)->first();
+                }
+                if (!$candidate) {
+                    $candidate = $baseQuery('same', ['BK'])
+                        ->whereRaw("to_date(kas_hdr.voucher_date,'DD-MM-YYYY') = ?", [$row['stmt_date']])
+                        ->first();
+                }
             }
 
             if ($candidate) {
@@ -680,9 +705,37 @@ class BankReconciliationController extends Controller
             join bank_reconciliation_hdr brh on brh.recon_number = brd.recon_number
             where brd.matched_kas_det_id = kas_det.id and brh.type = ? and brh.year = ? and brh.periode::integer = ?)";
 
+        // Recon KAS juga menampilkan voucher BK, tapi cuma yang sisinya SAMA dengan statement,
+        // nominalnya PERSIS sama, dan belum terpakai (periode sama difilter di bawah).
+        $bkSide = $mutationType === 'CR' ? 'kas_det.credit' : ($mutationType === 'DB' ? 'kas_det.debit' : null);
+        $withBk = $type === 'KAS' && $bkSide && $amount !== null;
+
         $candidates = DB::table('kas_det')
             ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
-            ->whereIn('kas_hdr.voucher_type', $voucherTypes)
+            ->where(function ($q) use ($voucherTypes, $withBk, $bkSide, $sideColumn, $amount, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
+                // Voucher normal (KM/KK atau BM/BK): sisi lawan dari rekening koran, dan sisa
+                // nilai (dikurangi yang sudah terpakai di batch type+periode+tahun yang sama)
+                // masih > 0 -- kecuali ketikannya persis voucher_number-nya.
+                $q->where(function ($n) use ($voucherTypes, $sideColumn, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
+                    $n->whereIn('kas_hdr.voucher_type', $voucherTypes);
+                    if ($sideColumn) {
+                        $n->where($sideColumn, '>', 0)
+                          ->where(function ($s) use ($sideColumn, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
+                              $s->whereRaw("$sideColumn - $usedAmountSub > 0.01", [$type, $year, $periode]);
+                              if ($exactVoucher) {
+                                  $s->orWhereRaw('lower(kas_det.voucher_number) = lower(?)', [$exactVoucher]);
+                              }
+                          });
+                    }
+                });
+                if ($withBk) {
+                    $q->orWhere(function ($b) use ($bkSide, $amount, $usedAmountSub, $type, $year, $periode) {
+                        $b->where('kas_hdr.voucher_type', 'BK')
+                          ->where($bkSide, $amount)
+                          ->whereRaw("$usedAmountSub = 0", [$type, $year, $periode]);
+                    });
+                }
+            })
             ->where('kas_hdr.status', '<>', '5')
             // $coaAccount bisa null buat recon lama yang dibuat sebelum kolom coa_account
             // ada -- biar tetap jalan, filter akun di-skip (fallback ke behavior lama).
@@ -691,18 +744,6 @@ class BankReconciliationController extends Controller
             // sebelum/sesudah disembunyikan dari dropdown.
             ->where('kas_hdr.year', $year)
             ->whereRaw('kas_hdr.period::integer = ?', [$periode])
-            // Cuma sisi lawan dari rekening koran.
-            ->when($sideColumn, function ($q) use ($sideColumn) { $q->where($sideColumn, '>', 0); })
-            // Sisa nilai (nilai sisi tsb dikurangi yang sudah terpakai di batch type+periode+
-            // tahun yang sama) harus masih > 0 -- kecuali ketikannya persis voucher_number-nya.
-            ->when($sideColumn, function ($q) use ($sideColumn, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
-                $q->where(function ($s) use ($sideColumn, $usedAmountSub, $type, $year, $periode, $exactVoucher) {
-                    $s->whereRaw("$sideColumn - $usedAmountSub > 0.01", [$type, $year, $periode]);
-                    if ($exactVoucher) {
-                        $s->orWhereRaw('lower(kas_det.voucher_number) = lower(?)', [$exactVoucher]);
-                    }
-                });
-            })
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function ($s) use ($request) {
                     $s->where('kas_det.voucher_number', 'ilike', '%' . $request->search . '%')
@@ -737,9 +778,13 @@ class BankReconciliationController extends Controller
         $det = DB::table('bank_reconciliation_det')->where('id', $request->detId)->first();
         abort_unless($det, 404);
 
+        $snapshot = $this->kasDetSnapshot((int) $request->kasDetId);
+        abort_unless($snapshot, 404);
+
         DB::table('bank_reconciliation_det')->where('id', $det->id)->update([
             'status' => 'MATCHED',
             'matched_kas_det_id' => $request->kasDetId,
+            'manual_snapshot' => $snapshot,
         ]);
 
         $title = "Match Manual $this->title";
@@ -752,15 +797,16 @@ class BankReconciliationController extends Controller
         DB::table('bank_reconciliation_det')->where('id', $request->detId)->update([
             'status' => 'UNMATCHED',
             'matched_kas_det_id' => null,
+            'manual_snapshot' => null,
         ]);
         return response()->json(['status' => 1, 'title' => "Unmatch $this->title", 'message' => 'Match dibatalkan.', 'alert' => 'success']);
     }
 
-    // Cocokkan ulang SEMUA baris recon ini dari nol -- status/matched_kas_det_id yang sudah
-    // ada (hasil otomatis maupun Match Manual) diabaikan sepenuhnya, persis seperti upload
-    // ulang CSV yang sama. matchRows() dipanggil dengan excludeReconNumber supaya voucher
-    // yang tadinya sudah di-match ke recon ini sendiri tidak dianggap "kepakai" dan malah
-    // gagal ke-match ulang.
+    // Cocokkan ulang baris hasil auto-match/UNMATCHED dari nol. Baris Match Manual
+    // (manual_snapshot terisi) TIDAK dicocokkan ulang: kalau voucher-nya masih sama persis
+    // dengan saat di-match, dibiarkan; kalau berubah/hilang/cancel -> jadi NOT MATCH.
+    // matchRows() dipanggil dengan excludeReconNumber supaya voucher hasil auto-match
+    // recon ini sendiri tidak dianggap "kepakai" dan malah gagal ke-match ulang.
     public function recalculate(Request $request)
     {
         $username = Auth::user()->username;
@@ -789,10 +835,26 @@ class BankReconciliationController extends Controller
             return response()->json(['status' => 2, 'title' => "Recalculate $this->title", 'message' => 'Tidak ada baris untuk dicocokkan ulang.', 'alert' => 'warning']);
         }
 
-        $matched = $this->matchRows($rows, $header->type, (int) $header->periode, (int) $header->year, $header->coa_account, $header->recon_number);
+        $manualRows = array_filter($rows, fn ($r) => $r['manual_snapshot'] !== null);
+        $autoRows = array_values(array_filter($rows, fn ($r) => $r['manual_snapshot'] === null));
 
         DB::beginTransaction();
         try {
+            $brokenManual = 0;
+            foreach ($manualRows as $row) {
+                if ($this->kasDetSnapshot((int) $row['matched_kas_det_id']) !== $row['manual_snapshot']) {
+                    $brokenManual++;
+                    DB::table('bank_reconciliation_det')->where('id', $row['id'])->update([
+                        'status' => 'UNMATCHED',
+                        'matched_kas_det_id' => null,
+                        'manual_snapshot' => null,
+                    ]);
+                }
+            }
+
+            // Dihitung setelah update di atas (masih dalam transaksi) supaya voucher dari
+            // match manual yang batal tidak lagi dianggap "kepakai".
+            $matched = $this->matchRows($autoRows, $header->type, (int) $header->periode, (int) $header->year, $header->coa_account, $header->recon_number);
             foreach ($matched as $row) {
                 DB::table('bank_reconciliation_det')->where('id', $row['id'])->update([
                     'status' => $row['status'],
@@ -809,10 +871,25 @@ class BankReconciliationController extends Controller
         }
 
         $matchedCount = count(array_filter($matched, fn ($r) => $r['status'] === 'MATCHED'));
+        $keptManual = count($manualRows) - $brokenManual;
         $title = "Recalculate $this->title";
-        $message = "$header->recon_number dicocokkan ulang. " . count($matched) . " baris, $matchedCount match.";
+        $message = "$header->recon_number dicocokkan ulang. " . count($matched) . " baris, $matchedCount match. Match manual: $keptManual dipertahankan, $brokenManual jadi NOT MATCH karena voucher berubah.";
         \LogActivity::addToLog($title, "username: $username Status $message");
         return response()->json(['status' => 1, 'title' => $title, 'message' => $message, 'alert' => 'success']);
+    }
+
+    // Sidik jari kas_det saat di-Match Manual -- dibandingkan lagi saat recalculate() buat
+    // deteksi voucher yang berubah. null = kas_det sudah hilang (voucher di-edit ulang) atau cancel.
+    private function kasDetSnapshot(int $kasDetId): ?string
+    {
+        $d = DB::table('kas_det')
+            ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
+            ->where('kas_det.id', $kasDetId)
+            ->where('kas_hdr.status', '<>', '5')
+            ->select('kas_det.voucher_number', 'kas_hdr.voucher_date', 'kas_det.account', 'kas_det.debit', 'kas_det.credit')
+            ->first();
+
+        return $d ? implode('|', [$d->voucher_number, $d->voucher_date, $d->account, (float) $d->debit, (float) $d->credit]) : null;
     }
 
     public function destroy(Request $request)

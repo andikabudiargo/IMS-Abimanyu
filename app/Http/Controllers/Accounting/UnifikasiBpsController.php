@@ -15,7 +15,7 @@ use AppHelpers;
 
 // Equalisasi Unifikasi BPS -- bukti potong dari customer (export BPS portal pajak), dicocokkan
 // lewat Nomor Pemotongan ke bukti_potong voucher (invoice_hdr, kas_hdr BM/KM/GJ, debit_note_hdr)
-// yang posting DEBET ke COA 1100.74. Pola sama dengan UnifikasiBppuController.
+// yang posting DEBET ke COA 1100.75. Pola sama dengan UnifikasiBppuController.
 class UnifikasiBpsController extends Controller
 {
     private $title;
@@ -28,7 +28,7 @@ class UnifikasiBpsController extends Controller
     ];
 
     const TYPES = [
-        'BPS' => ['title' => 'Equalisasi Unifikasi BPS', 'coa_account' => '1100.74', 'code_key' => 'BPS', 'group' => 'bps', 'debit' => true],
+        'BPS' => ['title' => 'Equalisasi Unifikasi BPS', 'coa_account' => '1100.75', 'code_key' => 'BPS', 'group' => 'bps', 'debit' => true],
     ];
 
     public function __construct()

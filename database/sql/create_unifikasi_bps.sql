@@ -1,6 +1,6 @@
 -- Equalisasi Unifikasi BPS: upload export BPS (bukti potong dari customer), dicocokkan per
 -- Nomor Pemotongan ke bukti_potong voucher (invoice_hdr/kas_hdr/debit_note_hdr) yang posting
--- debet ke COA 1100.74. Lihat UnifikasiBpsController.
+-- debet ke COA 1100.75. Lihat UnifikasiBpsController.
 -- Butuh add_bukti_potong_columns.sql + add_bukti_potong_to_debit_note.sql sudah jalan.
 
 CREATE TABLE IF NOT EXISTS unifikasi_bps_hdr (
