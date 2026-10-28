@@ -49,7 +49,7 @@ class FilesController extends Controller
     }
 
     public function download(Request $request){
-        $filename = $request->file;
+        $filename = basename((string) $request->file);
         $filePath = storage_path() . "/app/backup/".$filename;
         return response()->download($filePath);
     }

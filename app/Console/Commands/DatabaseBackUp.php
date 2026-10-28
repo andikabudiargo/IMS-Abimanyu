@@ -73,6 +73,14 @@ class DatabaseBackUp extends Command
             Log::info('[PROCESS BACKUP DATA] convert to zip failed ...'   );
         }
 
+        // retensi: harian 30 hari, backup tanggal 1 disimpan permanen
+        foreach (File::files(storage_path('app/backup')) as $f) {
+            $isMonthly = preg_match('/^backup-\d{4}-\d{2}-01-/', $f->getFilename());
+            if (!$isMonthly && $f->getMTime() < Carbon::now()->subDays(30)->timestamp) {
+                File::delete($f->getPathname());
+            }
+        }
+
     }
 
     public function converToZip($sourceFile,$zipFile)
