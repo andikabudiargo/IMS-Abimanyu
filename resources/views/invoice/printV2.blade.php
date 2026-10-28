@@ -254,6 +254,10 @@
                     @endfor
                 </tbody>
             </table>
+            @unless($loop->last)
+                {{-- nomor halaman ikut alur tepat di bawah tabel, jaraknya selalu pas --}}
+                <div style="text-align:right;margin-top:4px;">Page {{ $loop->iteration }} of {{ $loop->count }}</div>
+            @endunless
         </div>
 
         @if($loop->last)
@@ -320,15 +324,6 @@
                             <span class="arial" style="font-size: 10pt;"><i>Lembar Asli untuk Penagihan kepada Customer</i></span><br>
                             <span class="arial" style="font-size: 10pt;"><i>Lembar Copy untuk Arsip</i></span>
                         </td>
-                        <td align="right" valign="top" style="white-space:nowrap;width:110px;">Page {{ $loop->iteration }} of {{ $loop->count }}</td>
-                    </tr>
-                </table>
-            </div>
-        @else
-            <div class="sub_div">
-                <table>
-                    <tr>
-                        <td></td>
                         <td align="right" valign="top" style="white-space:nowrap;width:110px;">Page {{ $loop->iteration }} of {{ $loop->count }}</td>
                     </tr>
                 </table>

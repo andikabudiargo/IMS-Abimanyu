@@ -2149,8 +2149,10 @@ $limits = $data['duaHalaman'] === 'yes' ? $page1Capacity : $jumlahData;
     } else {
         $rest = $allDetails;
         while ($rest->count() > $lastPageCapacity) {
-            $pages[] = $rest->take($page1Capacity)->values();
-            $rest    = $rest->slice($page1Capacity)->values();
+            // sisakan minimal 1 baris untuk halaman terakhir (hindari halaman Total kosong)
+            $take    = min($page1Capacity, $rest->count() - 1);
+            $pages[] = $rest->take($take)->values();
+            $rest    = $rest->slice($take)->values();
         }
         $pages[] = $rest;
     }
