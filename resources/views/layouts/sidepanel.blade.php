@@ -953,6 +953,13 @@
                 </a>
               </li>
 
+              <li class="{{ \Request::segment(1) == 'unifikasiBppu' ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('unifikasiBppu.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Unifikasi BPPU</span>
+                </a>
+              </li>
+
 
 
               <li>
