@@ -64,6 +64,9 @@ class DatabaseBackUp extends Command
         if ($returnVar !== 0) {
             $error = trim(implode("\n", $output)) ?: "pg_dump exit code $returnVar";
             File::delete($storagePath . $sourceFile);
+        } elseif (!File::exists($storagePath . $sourceFile) || File::size($storagePath . $sourceFile) === 0) {
+            $error = "Hasil pg_dump kosong";
+            File::delete($storagePath . $sourceFile);
         } elseif (!$this->converToZip($sourceFile, $zipFile)) {
             $error = "Convert to zip gagal";
         }

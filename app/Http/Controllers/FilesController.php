@@ -36,12 +36,17 @@ class FilesController extends Controller
         // file yang ada di disk; backup lama (sebelum ada log) pakai waktu file
         foreach (File::files(storage_path('app/backup')) as $f) {
             $isMonthly = (bool) preg_match('/^backup-\d{4}-\d{2}-01-/', $f->getFilename());
+            // zip dari dump kosong cuma ~150 byte; versi lama command tidak cek exit code pg_dump
+            $isEmpty = $f->getSize() < 1024;
+            // backup lama tanpa log: anggap mulai 02:00 sesuai jadwal di Kernel
+            $assumedStart = strtotime(date('Y-m-d 02:00:00', $f->getMTime()));
+            $hasAssumedStart = $f->getMTime() >= $assumedStart;
             $rows[$f->getFilename()] = (object) [
                 'file' => $f->getFilename(),
-                'started_at' => date('Y-m-d H:i:s', $f->getMTime()),
-                'duration' => null,
-                'status' => 'success',
-                'error' => null,
+                'started_at' => date('Y-m-d H:i:s', $hasAssumedStart ? $assumedStart : $f->getMTime()),
+                'duration' => $hasAssumedStart ? $f->getMTime() - $assumedStart : null,
+                'status' => $isEmpty ? 'failed' : 'success',
+                'error' => $isEmpty ? 'File backup kosong, pg_dump kemungkinan gagal' : null,
                 'size' => $f->getSize(),
                 'monthly' => $isMonthly,
                 // sama dengan retensi di DatabaseBackUp: mtime + 30 hari
