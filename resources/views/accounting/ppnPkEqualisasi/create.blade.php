@@ -101,6 +101,13 @@
     <div class="card-header">
       <h4 class="card-title">Preview Hasil Parse &amp; Match</h4>
       <span id="previewSummary" class="badge badge-light-info"></span>
+      <div class="form-group mb-0" style="min-width:200px">
+        <select id="previewStatusFilter" class="form-control form-control-sm">
+          <option value="">Semua Status</option>
+          <option value="MATCHED">MATCH</option>
+          <option value="UNMATCHED">NOT MATCH</option>
+        </select>
+      </div>
     </div>
     <div class="card-body">
       <div class="table-responsive bankrecon-scroll">
@@ -180,6 +187,16 @@
     return Number(n).toLocaleString('id-ID', { minimumFractionDigits: 2 });
   }
 
+  // Filter di sisi browser saja (baris disembunyikan, bukan dibuang) supaya pilihan Match
+  // Manual di dropdown baris yang sedang tersembunyi tidak hilang.
+  function applyPreviewFilter() {
+    let status = $('#previewStatusFilter').val();
+    $('#previewRows tr').each(function () {
+      $(this).toggle(!status || $(this).attr('data-status') === status);
+    });
+  }
+  $(document).on('change', '#previewStatusFilter', applyPreviewFilter);
+
   function renderPreview(data) {
     let rows = data.rows.map(function (r, i) {
       let statusBadge = r.match_status === 'MATCHED'
@@ -193,7 +210,7 @@
             ? `<a href="${r.voucher_link}" target="_blank">${r.matched_voucher_number}</a> (${r.matched_voucher_type})`
             : `${r.matched_voucher_number} (${r.matched_voucher_type})`)
         : '-';
-      return `<tr>
+      return `<tr data-status="${r.match_status}">
         <td>${i + 1}</td>
         <td>${r.doc_number}</td>
         <td>${r.nama}</td>
@@ -207,6 +224,7 @@
     }).join('');
 
     $('#previewRows').html(rows);
+    applyPreviewFilter();
     $('#previewSummary').text(`${data.totalRows} baris, ${data.matchedCount} otomatis match`);
 
     $('#i-total-dpp').text(fmtNumber(data.totalDpp));
