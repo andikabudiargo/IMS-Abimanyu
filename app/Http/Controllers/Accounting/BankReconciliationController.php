@@ -705,10 +705,10 @@ class BankReconciliationController extends Controller
             join bank_reconciliation_hdr brh on brh.recon_number = brd.recon_number
             where brd.matched_kas_det_id = kas_det.id and brh.type = ? and brh.year = ? and brh.periode::integer = ?)";
 
-        // Recon KAS juga menampilkan voucher BK, tapi cuma yang sisinya SAMA dengan statement,
-        // nominalnya PERSIS sama, dan belum terpakai (periode sama difilter di bawah).
+        // Recon KAS juga menampilkan voucher BK periode yang sama (difilter di bawah), sisinya
+        // SAMA dengan statement dan sisa nilainya belum habis terpakai -- nominal bebas.
         $bkSide = $mutationType === 'CR' ? 'kas_det.credit' : ($mutationType === 'DB' ? 'kas_det.debit' : null);
-        $withBk = $type === 'KAS' && $bkSide && $amount !== null;
+        $withBk = $type === 'KAS' && $bkSide;
 
         $candidates = DB::table('kas_det')
             ->join('kas_hdr', 'kas_hdr.voucher_number', '=', 'kas_det.voucher_number')
@@ -731,8 +731,8 @@ class BankReconciliationController extends Controller
                 if ($withBk) {
                     $q->orWhere(function ($b) use ($bkSide, $amount, $usedAmountSub, $type, $year, $periode) {
                         $b->where('kas_hdr.voucher_type', 'BK')
-                          ->where($bkSide, $amount)
-                          ->whereRaw("$usedAmountSub = 0", [$type, $year, $periode]);
+                          ->where($bkSide, '>', 0)
+                          ->whereRaw("$bkSide - $usedAmountSub > 0.01", [$type, $year, $periode]);
                     });
                 }
             })
