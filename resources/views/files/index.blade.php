@@ -12,10 +12,11 @@
         <thead>
           <tr>
             <th>File</th>
-            <th>Mulai</th>
-            <th>Selesai</th>
-            <th>Status</th>
+            <th>Tanggal</th>
+            <th>Jam Mulai</th>
+            <th>Jam Selesai</th>
             <th>Durasi</th>
+            <th>Status</th>
             <th>Ukuran</th>
             <th>Berlaku sampai</th>
           </tr>
@@ -32,8 +33,10 @@
             </td>
             {{-- backup lama tanpa log: waktu file = waktu selesai, waktu mulai tidak diketahui --}}
             @php $start = \Carbon\Carbon::parse($row->started_at); @endphp
-            <td>{{ $row->duration === null ? '-' : $start->format('d-m-Y H:i:s') }}</td>
-            <td>{{ $start->copy()->addSeconds($row->duration ?? 0)->format('d-m-Y H:i:s') }}</td>
+            <td>{{ $start->format('d-m-Y') }}</td>
+            <td>{{ $row->duration === null ? '-' : $start->format('H:i:s') }}</td>
+            <td>{{ $start->copy()->addSeconds($row->duration ?? 0)->format('H:i:s') }}</td>
+            <td>{{ $row->duration === null ? '-' : gmdate('H:i:s', $row->duration) }}</td>
             <td>
               @if($row->status === 'success')
                 <span class="badge badge-success">Sukses</span>
@@ -42,7 +45,6 @@
                 <div class="text-danger small" style="white-space: pre-wrap">{{ $row->error }}</div>
               @endif
             </td>
-            <td>{{ $row->duration === null ? '-' : gmdate('H:i:s', $row->duration) }}</td>
             <td>{{ $row->size === null ? '-' : number_format($row->size / 1048576, 1) . ' MB' }}</td>
             <td>
               @if($row->monthly)
