@@ -2108,7 +2108,8 @@ DB::raw("
     // banyak baris. Harus sama dengan $totalBaris di blade yang dipakai:
     // - print.blade.php   (kolom ganda, printType 12): 37
     // - printV2.blade.php (kolom tunggal, printType 1/2): 36
-    $page1Capacity = ($printType === '12') ? 37 : 36;
+    // printV2: 36 terbukti baris ke-36 + garis bawah ketutup kotak "Page x of N" (.sub_div putih)
+    $page1Capacity = ($printType === '12') ? 37 : 34;
 
    // ── Hitung jumlah baris ──────────────────────────────────────────────────
 $jumlahData = DB::table('invoice_det')

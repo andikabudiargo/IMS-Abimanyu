@@ -242,7 +242,7 @@
                         </tr>
                     @endforeach
 
-                    <?php $totalBaris = $loop->last ? 27 : 36; ?>
+                    <?php $totalBaris = $loop->last ? 27 : 34; ?>
                     @for ($i=1; $i < $totalBaris-(count($rows)); $i++)
                         <tr style="height:23px">
                             <td></td>
