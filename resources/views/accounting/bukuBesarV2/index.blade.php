@@ -353,8 +353,8 @@
     if (bb2Table) bb2Table.draw();
   });
 
-  $("#bb2-export-excel").on('click', function (e) { e.preventDefault(); if (bb2Table) bb2Table.button('name:excel').trigger(); });
-  $("#bb2-export-pdf").on('click', function (e) { e.preventDefault(); if (bb2Table) bb2Table.button('name:pdf').trigger(); });
+  $("#bb2-export-excel").on('click', function (e) { e.preventDefault(); if (bb2Table) bb2Table.button('excel:name').trigger(); });
+  $("#bb2-export-pdf").on('click', function (e) { e.preventDefault(); if (bb2Table) bb2Table.button('pdf:name').trigger(); });
 
   const renderHeader = (h) => {
     $("#bb2-title").text(h.account + ' — ' + h.description + '  |  Periode: ' + h.periode_text);
