@@ -56,7 +56,15 @@
             <td>{{ $start->format('d-m-Y') }}</td>
             <td>{{ $row->duration === null ? '-' : $start->format('H:i:s') }}</td>
             <td>{{ $start->copy()->addSeconds($row->duration ?? 0)->format('H:i:s') }}</td>
-            <td>{{ $row->duration === null ? '-' : gmdate('H:i:s', $row->duration) }}</td>
+            @php
+              $dur = $row->duration;
+              $durText = $dur === null ? '-' : trim(
+                ($dur >= 3600 ? intdiv($dur, 3600) . ' jam ' : '') .
+                ($dur % 3600 >= 60 ? intdiv($dur % 3600, 60) . ' menit ' : '') .
+                ($dur % 60 || $dur === 0 ? $dur % 60 . ' detik' : '')
+              );
+            @endphp
+            <td>{{ $durText }}</td>
             <td>
               @if($row->status === 'success')
                 <span class="badge badge-success">Sukses</span>
