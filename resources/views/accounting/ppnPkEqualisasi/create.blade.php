@@ -151,6 +151,7 @@
 <script type="text/javascript">
 
   let previewFilePath = null;
+  let manualMatches = {}; // Nomor Faktur -> "TIPE|id voucher" dipilih manual di preview
   const equalTypes = {!! json_encode($types) !!};
 
   $(document).ready(function () {
@@ -161,6 +162,7 @@
       $('#statementLabel').text(name);
       // Ganti file -> preview lama (kalau ada) jadi tidak valid lagi.
       previewFilePath = null;
+      manualMatches = {};
       $('#preview-ppnPkEqualisasi').addClass('d-none');
       $('#info-ppnPkEqualisasi').addClass('d-none');
     });
@@ -183,7 +185,10 @@
       let statusBadge = r.match_status === 'MATCHED'
         ? '<span class="badge badge-success">MATCH</span>'
         : '<span class="badge badge-danger">NOT MATCH</span>';
-      let voucherCell = r.matched_voucher_number
+      let voucherCell = r.match_status !== 'MATCHED'
+        ? `<select class="form-control form-control-sm manual-voucher-select" data-doc-number="${$('<div>').text(r.doc_number).html()}" style="min-width:260px"></select>`
+          + (r.matched_voucher_number ? `<small class="text-muted">Auto: ${r.matched_voucher_number}</small>` : '')
+        : r.matched_voucher_number
         ? (r.voucher_link
             ? `<a href="${r.voucher_link}" target="_blank">${r.matched_voucher_number}</a> (${r.matched_voucher_type})`
             : `${r.matched_voucher_number} (${r.matched_voucher_type})`)
@@ -219,6 +224,42 @@
 
     $('#preview-ppnPkEqualisasi').removeClass('d-none');
     document.getElementById('info-ppnPkEqualisasi').scrollIntoView({ behavior: 'smooth' });
+    initManualVoucherSelects();
+  }
+
+  // Dropdown Match Manual untuk baris NOT MATCH di preview (sama pola Bank Reconciliation) --
+  // belum ada equal number, jadi search pakai type dari form.
+  function initManualVoucherSelects() {
+    $('.manual-voucher-select').select2({
+      placeholder: 'Ketik nomor voucher / nomor faktur...',
+      allowClear: true,
+      ajax: {
+        url: "{{ route('ppnPkEqualisasi.search.voucher') }}",
+        dataType: 'json',
+        delay: 300,
+        data: function (params) {
+          return { type: $('#type').val(), search: params.term };
+        },
+        processResults: function (rows) {
+          return {
+            results: rows.map(function (r) {
+              return {
+                id: r.voucher_type + '|' + r.id,
+                text: r.voucher_number + ' | ' + r.voucher_date + ' | ' + (r.faktur_pajak ?? '-') + ' | BB ' + fmtNumber(r.gl_amount),
+              };
+            })
+          };
+        }
+      }
+    }).on('change', function () {
+      let doc = $(this).attr('data-doc-number');
+      let val = $(this).val();
+      if (val) {
+        manualMatches[doc] = val;
+      } else {
+        delete manualMatches[doc];
+      }
+    });
   }
 
   $('#cmdPreview').on('click', function () {
@@ -275,6 +316,7 @@
         year: $('#year').val(),
         description: $('#description').val(),
         filePath: previewFilePath,
+        manualMatches: manualMatches,
       },
       dataType: "json",
       success: function (data) {

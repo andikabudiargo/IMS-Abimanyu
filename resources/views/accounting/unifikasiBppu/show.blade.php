@@ -189,11 +189,11 @@
       tableId: "unifikasiBppuDetailTable",
       route: "{{ route($route . '.list.detail', ['id' => $id]) }}",
       kolom: {!! $kolomDetail !!},
-      arrColPrint: Array.from({ length: dppCol + 4 }, (_, i) => i + 1),
+      arrColPrint: Array.from({ length: dppCol + 5 }, (_, i) => i + 1),
       columnDefs: [
         { width: '4%', targets: 0 },
-        { className: 'text-right', targets: [dppCol, dppCol + 1, dppCol + 4] },
-        { className: 'text-center', targets: [dppCol + 2, dppCol + 5] },
+        { className: 'text-right', targets: [dppCol, dppCol + 1, dppCol + 5] },
+        { className: 'text-center', targets: [dppCol + 2, dppCol + 6] },
       ],
       dataSearch: { status: $('#statusFilter').val() },
       initComplete: function () {

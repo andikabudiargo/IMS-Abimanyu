@@ -129,6 +129,7 @@
               <th class="text-right">PPh (Rp)</th>
               <th>Match</th>
               <th>Voucher BB</th>
+              <th>No Bukti Potong</th>
               <th class="text-right">Nilai BB</th>
             </tr>
           </thead>
@@ -165,11 +166,13 @@
 <script type="text/javascript">
 
   let previewFilePath = null;
+  let manualMatches = {}; // Nomor Pemotongan -> voucher_number dipilih manual di preview
   const equalTypes = {!! json_encode($types) !!};
   const isBps = {{ $isBps ? 'true' : 'false' }};
 
   function resetPreview() {
     previewFilePath = null;
+    manualMatches = {};
     $('#preview-unifikasiBps').addClass('d-none');
     $('#info-unifikasiBps').addClass('d-none');
   }
@@ -201,7 +204,7 @@
   function renderPreview(data) {
     let rows = data.rows.map(function (r, i) {
       let statusBadge = r.match_status === 'MATCHED'
-        ? '<span class="badge badge-success">MATCH</span>'
+        ? '<span class="badge badge-success">MATCH</span>' + (Math.abs(r.pph - r.gl_amount) >= 0.005 ? ' <small class="text-muted">(pembulatan)</small>' : '')
         : '<span class="badge badge-danger">NOT MATCH</span>';
       return `<tr>
         <td>${i + 1}</td>
@@ -213,9 +216,11 @@
         <td class="text-right">${fmtNumber(r.dpp)}</td>
         <td class="text-right">${fmtNumber(r.pph)}</td>
         <td>${statusBadge}</td>
-        <td>${r.matched_voucher_number
+        <td>${r.match_status === 'MATCHED'
           ? (r.voucher_link ? `<a href="${r.voucher_link}" target="_blank">${esc(r.matched_voucher_number)}</a>` : esc(r.matched_voucher_number))
-          : '-'}</td>
+          : `<select class="form-control form-control-sm manual-voucher-select" data-doc-number="${esc(r.doc_number)}" style="min-width:260px"></select>`
+            + (r.matched_voucher_number ? `<small class="text-muted">Auto: ${esc(r.matched_voucher_number)}</small>` : '')}</td>
+        <td>${esc(r.voucher_bukti_potong) || '-'}</td>
         <td class="text-right">${r.gl_amount !== null ? fmtNumber(r.gl_amount) : '-'}</td>
       </tr>`;
     }).join('');
@@ -230,6 +235,42 @@
     $('#info-unifikasiBps').removeClass('d-none');
     $('#preview-unifikasiBps').removeClass('d-none');
     document.getElementById('info-unifikasiBps').scrollIntoView({ behavior: 'smooth' });
+    initManualVoucherSelects();
+  }
+
+  // Dropdown Match Manual untuk baris NOT MATCH di preview (sama pola Bank Reconciliation) --
+  // belum ada equal number, jadi search pakai type dari form.
+  function initManualVoucherSelects() {
+    $('.manual-voucher-select').select2({
+      placeholder: 'Ketik nomor voucher / bukti potong...',
+      allowClear: true,
+      ajax: {
+        url: "{{ route($route . '.search.voucher') }}",
+        dataType: 'json',
+        delay: 300,
+        data: function (params) {
+          return { type: $('#type').val(), search: params.term };
+        },
+        processResults: function (rows) {
+          return {
+            results: rows.map(function (r) {
+              return {
+                id: r.voucher_number,
+                text: r.voucher_number + ' | ' + r.voucher_date + ' | ' + (r.bukti_potong ?? '-') + ' | BB ' + fmtNumber(r.gl_amount),
+              };
+            })
+          };
+        }
+      }
+    }).on('change', function () {
+      let doc = $(this).attr('data-doc-number'); // attr, bukan data(): data() mengubah nomor angka jadi number
+      let val = $(this).val();
+      if (val) {
+        manualMatches[doc] = val;
+      } else {
+        delete manualMatches[doc];
+      }
+    });
   }
 
   function ajaxError(btn, fallback) {
@@ -288,6 +329,7 @@
         year: $('#year').val(),
         description: $('#description').val(),
         filePath: previewFilePath,
+        manualMatches: manualMatches,
       },
       dataType: "json",
       success: function (data) {

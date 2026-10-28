@@ -141,6 +141,22 @@ class UnifikasiBppuController extends Controller
         return $route ? route($route, ['id' => Crypt::encryptString((string) $kas->id)]) : null;
     }
 
+    // No bukti potong yang tercatat di voucher BB (diambil live, tidak disimpan) -- urutan sumber
+    // sama dengan glVoucherQuery().
+    private function voucherBuktiPotong(?string $voucherNumber): ?string
+    {
+        if (!$voucherNumber) {
+            return null;
+        }
+        foreach ([['kas_hdr', 'voucher_number'], ['ap_invoice', 'ap_number'], ['debit_note_hdr', 'dn_number'], ['invoice_hdr', 'invoice_number']] as [$table, $col]) {
+            $bupot = DB::table($table)->where($col, $voucherNumber)->value('bukti_potong');
+            if ($bupot !== null && trim($bupot) !== '') {
+                return $bupot;
+            }
+        }
+        return null;
+    }
+
     private function voucherCell(?string $voucherNumber): string
     {
         if (!$voucherNumber) {
@@ -217,7 +233,11 @@ class UnifikasiBppuController extends Controller
             ['data' => 'periode', 'name' => 'periode', 'title' => 'Periode'],
             ['data' => 'description', 'name' => 'description', 'title' => 'Description'],
             ['data' => 'total_pph', 'name' => 'total_pph', 'title' => 'Total PPh (Excel)'],
+            ['data' => 'gl_mutasi', 'name' => 'gl_mutasi', 'title' => 'Mutasi Buku Besar', 'orderable' => false, 'searchable' => false],
+            ['data' => 'selisih', 'name' => 'selisih', 'title' => 'Selisih', 'orderable' => false, 'searchable' => false],
+            ['data' => 'selisih_pct', 'name' => 'selisih_pct', 'title' => 'Selisih (%)', 'orderable' => false, 'searchable' => false],
             ['data' => 'match_status', 'name' => 'match_status', 'title' => 'Status'],
+            ['data' => 'match_summary', 'name' => 'match_summary', 'title' => 'Match', 'orderable' => false, 'searchable' => false],
             ['data' => 'created_by', 'name' => 'created_by', 'title' => 'Created By'],
             ['data' => 'created_at', 'name' => 'created_at', 'title' => 'Created At'],
         ]);
@@ -261,6 +281,7 @@ class UnifikasiBppuController extends Controller
         $rows = $this->matchRows($rows, $coaAccount);
         foreach ($rows as &$r) {
             $r['voucher_link'] = $this->voucherLink($r['matched_voucher_number']);
+            $r['voucher_bukti_potong'] = $this->voucherBuktiPotong($r['matched_voucher_number']);
         }
         unset($r);
         $totalPph = round(array_sum(array_column($rows, 'pph')), 2);
@@ -332,6 +353,16 @@ class UnifikasiBppuController extends Controller
         if (empty($rows)) {
             return response()->json(['status' => 2, 'title' => $title, 'message' => 'Tidak ada baris data yang terbaca dari Excel ini.', 'alert' => 'warning']);
         }
+        // Pilihan Match Manual dari dropdown di preview (Nomor Pemotongan => voucher) -- diproses
+        // lewat cabang MANUAL di matchRows(), jadi Nilai BB & status dihitung ulang di server.
+        $manualMatches = (array) $request->input('manualMatches', []);
+        foreach ($rows as &$r) {
+            if (!empty($manualMatches[$r['doc_number']])) {
+                $r['match_type'] = 'MANUAL';
+                $r['matched_voucher_number'] = (string) $manualMatches[$r['doc_number']];
+            }
+        }
+        unset($r);
         $rows = $this->matchRows($rows, $typeInfo['coa_account']);
 
         AppHelpers::resetCode($typeInfo['code_key']);
@@ -379,6 +410,20 @@ class UnifikasiBppuController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
+        // Mutasi Buku Besar dihitung on the fly per header (sama dengan halaman Detail), sekali saja
+        // per baris lalu dipakai ulang untuk kolom Mutasi, Selisih, Selisih (%), dan Status.
+        $counts = DB::table('unifikasi_bppu_det')
+            ->whereIn('equal_number', $data->pluck('equal_number'))
+            ->groupBy('equal_number')
+            ->selectRaw("equal_number, count(*) as total_row, count(*) filter (where match_status = 'MATCHED') as matched_row")
+            ->get()->keyBy('equal_number');
+        foreach ($data as $d) {
+            $d->gl_mutasi = $this->glMutasi((int) $d->periode, (int) $d->year, $d->coa_account);
+            $d->selisih = round($d->total_pph - $d->gl_mutasi, 2);
+            $d->total_row = (int) ($counts[$d->equal_number]->total_row ?? 0);
+            $d->matched_row = (int) ($counts[$d->equal_number]->matched_row ?? 0);
+        }
+
         return Datatables::of($data)
             ->addColumn('action', function ($d) {
                 $id = Crypt::encryptString($d->id);
@@ -394,11 +439,21 @@ class UnifikasiBppuController extends Controller
             ->addColumn('type', fn ($d) => self::TYPES[$d->type]['title'] ?? $d->type)
             ->addColumn('periode', fn ($d) => ($this->periodes[(int) $d->periode] ?? $d->periode) . ' / ' . $d->year)
             ->addColumn('total_pph', fn ($d) => number_format($d->total_pph, 2))
+            ->addColumn('gl_mutasi', fn ($d) => number_format($d->gl_mutasi, 2))
+            ->addColumn('selisih', fn ($d) => number_format($d->selisih, 2))
+            // Persentase terhadap Total PPh Excel.
+            ->addColumn('selisih_pct', fn ($d) => (float) $d->total_pph != 0 ? number_format($d->selisih / $d->total_pph * 100, 2) . '%' : '-')
             ->addColumn('match_status', function ($d) {
-                $match = abs(round($d->total_pph - $this->glMutasi((int) $d->periode, (int) $d->year, $d->coa_account), 2)) <= 0.01;
+                $match = abs($d->selisih) <= 0.01;
                 return "<div class='badge badge-" . ($match ? 'success' : 'danger') . "'>" . ($match ? 'MATCH' : 'NOT MATCH') . '</div>';
             })
-            ->rawColumns(['action', 'equal_number', 'match_status'])
+            // Sama dengan BankReconciliationController: jumlah baris match dari total baris Excel.
+            ->addColumn('match_summary', function ($d) {
+                $pct = $d->total_row > 0 ? round($d->matched_row / $d->total_row * 100, 1) : 0;
+                $color = $pct == 100 ? 'success' : ($pct >= 50 ? 'warning' : 'danger');
+                return "<div class='badge badge-{$color}'>{$d->matched_row}/{$d->total_row} ({$pct}%)</div>";
+            })
+            ->rawColumns(['action', 'equal_number', 'match_status', 'match_summary'])
             ->make(true);
     }
 
@@ -425,6 +480,7 @@ class UnifikasiBppuController extends Controller
             ['data' => 'pph', 'name' => 'pph', 'title' => 'PPh (Rp)'],
             ['data' => 'match_status', 'name' => 'match_status', 'title' => 'Match'],
             ['data' => 'matched_voucher_number', 'name' => 'matched_voucher_number', 'title' => 'Voucher BB'],
+            ['data' => 'voucher_bukti_potong', 'name' => 'voucher_bukti_potong', 'title' => 'No Bukti Potong', 'orderable' => false, 'searchable' => false],
             ['data' => 'gl_amount', 'name' => 'gl_amount', 'title' => 'Nilai BB'],
             ['data' => 'action', 'name' => 'action', 'title' => 'action', 'orderable' => false, 'searchable' => false],
         ]));
@@ -454,6 +510,7 @@ class UnifikasiBppuController extends Controller
                 return "<div class='badge badge-" . ($ok ? 'success' : 'danger') . "'>" . ($ok ? 'MATCH' : 'NOT MATCH') . "</div>$manual";
             })
             ->addColumn('matched_voucher_number', fn ($d) => $this->voucherCell($d->matched_voucher_number))
+            ->addColumn('voucher_bukti_potong', fn ($d) => $this->voucherBuktiPotong($d->matched_voucher_number) ?? '-')
             ->addColumn('gl_amount', fn ($d) => $d->gl_amount !== null ? number_format($d->gl_amount, 2) : '-')
             ->addColumn('action', function ($d) {
                 $btn = '';
@@ -472,11 +529,12 @@ class UnifikasiBppuController extends Controller
 
     public function searchVoucher(Request $request)
     {
-        $header = DB::table('unifikasi_bppu_hdr')->where('equal_number', $request->equalNumber)->first();
-        abort_unless($header, 404);
+        // Dari halaman Detail kirim equalNumber; dari preview Create (belum tersimpan) kirim type.
+        $header = $request->equalNumber ? DB::table('unifikasi_bppu_hdr')->where('equal_number', $request->equalNumber)->first() : null;
+        $coaAccount = $header->coa_account ?? ($this->groupTypes()[$request->type]['coa_account'] ?? abort(404));
         $search = $request->search;
 
-        $rows = DB::query()->fromSub($this->glVoucherQuery($header->coa_account), 'v')
+        $rows = DB::query()->fromSub($this->glVoucherQuery($coaAccount), 'v')
             ->when($search, fn ($q) => $q->where(fn ($s) => $s->where('voucher_number', 'ilike', "%$search%")->orWhere('bukti_potong', 'ilike', "%$search%")))
             ->orderByRaw("to_date(voucher_date,'DD-MM-YYYY') desc")
             ->limit(20)

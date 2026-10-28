@@ -252,6 +252,41 @@ class PpnPkEqualisasiController extends Controller
         return $rows;
     }
 
+    // Pilihan Match Manual dari dropdown di preview Create (Nomor Faktur => "TIPE|id voucher"),
+    // sama pola dengan BankReconciliationController::store(). Nilai BB dihitung ulang di server.
+    private function applyManualMatches(array $rows, string $type, array $manualMatches): array
+    {
+        $coaAccount = self::TYPES[$type]['coa_account'];
+        $mutasiCol = $type === 'PM' ? 'debit' : 'credit';
+        foreach ($rows as &$row) {
+            $pick = $manualMatches[$row['doc_number']] ?? null;
+            if (!$pick || strpos($pick, '|') === false) {
+                continue;
+            }
+            [$voucherType, $voucherId] = explode('|', $pick, 2);
+            $table = ['INV' => 'invoice_hdr', 'INV-DN' => 'debit_note_hdr', 'AP' => 'ap_invoice'][$voucherType] ?? null;
+            $numberCol = ['INV' => 'invoice_number', 'INV-DN' => 'dn_number', 'AP' => 'ap_number'][$voucherType] ?? null;
+            $voucher = $table ? DB::table($table)->where('id', (int) $voucherId)->first() : null;
+            if (!$voucher) {
+                continue;
+            }
+            $glAmount = (float) DB::table('kas_det as d')
+                ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
+                ->where('d.account', $coaAccount)
+                ->where('h.status', '<>', '5')
+                ->where('d.voucher_number', $voucher->$numberCol)
+                ->sum("d.$mutasiCol");
+            $row['matched_voucher_type'] = $voucherType;
+            $row['matched_voucher_number'] = $voucher->$numberCol;
+            $row['matched_voucher_id'] = $voucher->id;
+            $row['gl_credit'] = $glAmount;
+            $row['match_status'] = abs(round($row['ppn'] - $glAmount, 2)) <= 0.01 ? 'MATCHED' : 'UNMATCHED';
+        }
+        unset($row);
+
+        return $rows;
+    }
+
     // Tahap 2: user sudah lihat hasil preview dan klik Save sendiri -- baru di sini
     // ditulis ke DB. Parse diulang dari file yang sama supaya hasil final tetap
     // konsisten dengan data server (sama dengan BankReconciliationController::store()).
@@ -303,6 +338,7 @@ class PpnPkEqualisasiController extends Controller
         }
 
         $rows = $this->matchRows($import->rows, $type);
+        $rows = $this->applyManualMatches($rows, $type, (array) $request->input('manualMatches', []));
         $totalDpp = round(array_sum(array_column($rows, 'dpp')), 2);
         $totalPpn = round(array_sum(array_column($rows, 'ppn')), 2);
 
@@ -522,7 +558,10 @@ class PpnPkEqualisasiController extends Controller
     // PK cari di invoice_hdr+debit_note_hdr, PM cari di ap_invoice.
     public function searchVoucher(Request $request)
     {
-        $header = DB::table('ppn_pk_equalisasi_hdr')->where('equal_number', $request->equalNumber)->first();
+        // Dari halaman Detail kirim equalNumber; dari preview Create (belum tersimpan) kirim type.
+        $header = $request->equalNumber
+            ? DB::table('ppn_pk_equalisasi_hdr')->where('equal_number', $request->equalNumber)->first()
+            : (isset(self::TYPES[$request->type]) ? (object) ['type' => $request->type, 'coa_account' => self::TYPES[$request->type]['coa_account']] : null);
         abort_unless($header, 404);
         $search = $request->search;
 
