@@ -766,7 +766,6 @@ class BankReconciliationController extends Controller
             }, function ($q) {
                 $q->orderBy('kas_hdr.voucher_date', 'desc');
             })
-            ->limit(20)
             ->get();
 
         return response()->json($candidates);

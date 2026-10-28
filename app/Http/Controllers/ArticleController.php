@@ -1263,6 +1263,18 @@ if (!$isGlobal) {
                 ELSE NULL
             END AS hdr_status,
 
+            -- Urutan dalam satu tanggal: transaksi 'before' opname -> ADJUSTMENT -> sisanya.
+            -- Delivery/Transfer simpan opname_position di header, modul lain di movement.
+            CASE
+                WHEN m.movement_type = 'ADJUSTMENT' THEN 1
+                WHEN COALESCE(m.opname_position, CASE m.movement_type
+                        WHEN 'DELIVERY' THEN (SELECT opname_position FROM delivery_hdr       WHERE delivery_number = m.movement_transnno LIMIT 1)
+                        WHEN 'TRANSFER' THEN (SELECT opname_position FROM transfer_stock_hdr WHERE tr_number       = m.movement_transnno LIMIT 1)
+                        WHEN 'SUPPLY'   THEN (SELECT opname_position FROM transfer_stock_hdr WHERE tr_number       = m.movement_transnno LIMIT 1)
+                     END) = 'before' THEN 0
+                ELSE 2
+            END AS day_ord,
+
             (CASE WHEN m.movement_type IN ('ADJUSTMENT','CANCEL ADJUSTMENT') THEN
                 (SELECT det.direction FROM stock_adjustment_det det
                  WHERE det.adj_code = m.movement_transnno AND det.article_code = :art_dir LIMIT 1)
@@ -1309,10 +1321,10 @@ if (!$isGlobal) {
     base AS (
         SELECT k.*,
             $saldoAwal + SUM(k.counted_net) OVER (
-                ORDER BY TO_DATE(k.movement_date,'dd-mm-yyyy'), k.movement_code
+                ORDER BY TO_DATE(k.movement_date,'dd-mm-yyyy'), k.day_ord, k.movement_code
             ) AS balanceqty_calc,
             $saldoAwal + SUM(k.counted_net) OVER (
-                ORDER BY TO_DATE(k.movement_date,'dd-mm-yyyy'), k.movement_code
+                ORDER BY TO_DATE(k.movement_date,'dd-mm-yyyy'), k.day_ord, k.movement_code
             ) - k.counted_net AS last_qty_calc
         FROM kept k
     )
@@ -1334,13 +1346,13 @@ if (!$isGlobal) {
         END AS mv_to,
         b.balanceqty_calc AS balanceqty,
         b.last_qty_calc   AS last_qty,
-        ROW_NUMBER() OVER (ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy') DESC, b.movement_code DESC) AS urutan,
+        ROW_NUMBER() OVER (ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy') DESC, b.day_ord DESC, b.movement_code DESC) AS urutan,
         b.site_code, b.created_at,
         b.hdr_status AS trx_status
     FROM base b
     WHERE 1=1
     $inoutFilter
-    ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy'), b.movement_code";
+    ORDER BY TO_DATE(b.movement_date,'dd-mm-yyyy'), b.day_ord, b.movement_code";
 
     $data = DB::select($sqlku, $bind);
 
