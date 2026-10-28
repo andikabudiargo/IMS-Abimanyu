@@ -54,23 +54,32 @@ class DatabaseBackUp extends Command
             $command = "PGPASSWORD=".env('DB_PASSWORD')." pg_dump --no-owner -h 127.0.0.1  -p 5432 -U ".env('DB_USERNAME')." " . env('DB_DATABASE') . " > " . storage_path() . "/app/backup/" . $sourceFile;
         }
 
+        $startedAt = Carbon::now();
         $returnVar = NULL;
         $output = NULL;
-        exec($command, $output, $returnVar);
+        // stderr ditangkap ke $output, stdout tetap ke file dump
+        exec(str_replace(" > ", " 2>&1 > ", $command), $output, $returnVar);
 
-        $hasil="";
-        //kasih waktu untuk mencari file setelah backup selesai
-        for($i=0;$i<1000000;$i++){
-            if (file_exists(storage_path() . "/app/backup/" . $sourceFile)) {
-                $hasil  = $this->converToZip($sourceFile,$zipFile);
-                break;
-            }
+        $error = null;
+        if ($returnVar !== 0) {
+            $error = trim(implode("\n", $output)) ?: "pg_dump exit code $returnVar";
+            File::delete($storagePath . $sourceFile);
+        } elseif (!$this->converToZip($sourceFile, $zipFile)) {
+            $error = "Convert to zip gagal";
         }
 
-        if ($hasil){
-            Log::info('[PROCESS BACKUP DATA] ' . $sourceFile .' to '.$zipFile .' on '.storage_path() . "/app/backup/");
+        File::append(storage_path('app/backup_log.jsonl'), json_encode([
+            'file' => $zipFile,
+            'started_at' => $startedAt->toDateTimeString(),
+            'duration' => Carbon::now()->diffInSeconds($startedAt),
+            'status' => $error ? 'failed' : 'success',
+            'error' => $error,
+        ]) . "\n");
+
+        if ($error){
+            Log::error('[PROCESS BACKUP DATA] failed: ' . $error);
         }else{
-            Log::info('[PROCESS BACKUP DATA] convert to zip failed ...'   );
+            Log::info('[PROCESS BACKUP DATA] ' . $sourceFile .' to '.$zipFile .' on '.$storagePath);
         }
 
         // retensi: harian 30 hari, backup tanggal 1 disimpan permanen
