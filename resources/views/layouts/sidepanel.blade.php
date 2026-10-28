@@ -960,6 +960,13 @@
                 </a>
               </li>
 
+              <li class="{{ \Request::segment(1) == 'unifikasiBps' ? 'active' : '' }}">
+                <a class="d-flex align-items-center" href="{{ route('unifikasiBps.index') }}">
+                  <i data-feather="circle"></i>
+                  <span class="menu-item text-truncate" data-i18n="Input">Unifikasi BPS</span>
+                </a>
+              </li>
+
 
 
               <li>

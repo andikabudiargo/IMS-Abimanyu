@@ -18,7 +18,9 @@ use AppHelpers;
 // ap_invoice, debit_note_hdr) yang punya posting KREDIT ke COA hutang PPh tipe terpilih.
 class UnifikasiBppuController extends Controller
 {
-    private $title = 'Unifikasi BPPU';
+    private $title;
+    private $group = 'bppu';
+    private $route = 'unifikasiBppu';
     private $periodes = [
         1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
         5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
@@ -26,14 +28,35 @@ class UnifikasiBppuController extends Controller
     ];
 
     const TYPES = [
-        '23' => ['title' => 'Equalisasi Unifikasi PPh 23', 'coa_account' => '2000.14.3', 'code_key' => 'BP23'],
-        '42' => ['title' => 'Equalisasi Unifikasi PPh 4(2)', 'coa_account' => '2000.14.6', 'code_key' => 'BP42'],
+        '23' => ['title' => 'Equalisasi Unifikasi PPh 23', 'coa_account' => '2000.14.3', 'code_key' => 'BP23', 'group' => 'bppu'],
+        '42' => ['title' => 'Equalisasi Unifikasi PPh 4(2)', 'coa_account' => '2000.14.6', 'code_key' => 'BP42', 'group' => 'bppu'],
     ];
+
+    public function __construct()
+    {
+        $this->title = 'Unifikasi BPPU';
+    }
+
+    private function groupTypes(): array
+    {
+        return array_filter(self::TYPES, fn ($t) => $t['group'] === $this->group);
+    }
+
+    // Hutang PPh -> posting kredit.
+    private function glCol(string $coaAccount): string
+    {
+        foreach (self::TYPES as $t) {
+            if ($t['coa_account'] === $coaAccount) {
+                return empty($t['debit']) ? 'credit' : 'debit';
+            }
+        }
+        return 'credit';
+    }
 
     private function types(): array
     {
         $desc = DB::table('accounts')->whereIn('account', array_column(self::TYPES, 'coa_account'))->pluck('description', 'account');
-        $types = self::TYPES;
+        $types = $this->groupTypes();
         foreach ($types as &$t) {
             $t['coa_description'] = $desc[$t['coa_account']] ?? '';
         }
@@ -90,14 +113,15 @@ class UnifikasiBppuController extends Controller
             ->join('kas_hdr as h', 'h.voucher_number', '=', 'd.voucher_number')
             ->leftJoin('ap_invoice as ap', 'ap.ap_number', '=', 'd.voucher_number')
             ->leftJoin('debit_note_hdr as dn', 'dn.dn_number', '=', 'd.voucher_number')
+            ->leftJoin('invoice_hdr as inv', 'inv.invoice_number', '=', 'd.voucher_number')
             ->where('d.account', $coaAccount)
             ->where('h.status', '<>', '5')
-            ->groupBy('d.voucher_number', 'h.voucher_date', DB::raw("coalesce(nullif(h.bukti_potong, ''), nullif(ap.bukti_potong, ''), dn.bukti_potong)"))
-            ->select('d.voucher_number', 'h.voucher_date', DB::raw("coalesce(nullif(h.bukti_potong, ''), nullif(ap.bukti_potong, ''), dn.bukti_potong) as bukti_potong"), DB::raw('coalesce(sum(d.credit), 0) as gl_amount'));
+            ->groupBy('d.voucher_number', 'h.voucher_date', DB::raw("coalesce(nullif(h.bukti_potong, ''), nullif(ap.bukti_potong, ''), nullif(dn.bukti_potong, ''), inv.bukti_potong)"))
+            ->select('d.voucher_number', 'h.voucher_date', DB::raw("coalesce(nullif(h.bukti_potong, ''), nullif(ap.bukti_potong, ''), nullif(dn.bukti_potong, ''), inv.bukti_potong) as bukti_potong"), DB::raw('coalesce(sum(d.' . $this->glCol($coaAccount) . '), 0) as gl_amount'));
     }
 
-    // Link ke halaman edit modul asal voucher: AP Invoice / Debit Note pakai id tabelnya
-    // sendiri, BK/KK/GJ pakai kas_hdr.id. Voucher tipe lain tampil tanpa link.
+    // Link ke halaman edit modul asal voucher: AP Invoice / Invoice / Debit Note pakai id tabelnya
+    // sendiri, BK/KK/BM/KM/GJ pakai kas_hdr.id. Voucher tipe lain tampil tanpa link.
     private function voucherLink(?string $voucherNumber): ?string
     {
         if (!$voucherNumber) {
@@ -106,11 +130,14 @@ class UnifikasiBppuController extends Controller
         if ($id = DB::table('ap_invoice')->where('ap_number', $voucherNumber)->value('id')) {
             return route('accountPayable.edit', ['id' => Crypt::encryptString((string) $id)]);
         }
+        if ($id = DB::table('invoice_hdr')->where('invoice_number', $voucherNumber)->value('id')) {
+            return route('invoice.edit', ['id' => Crypt::encryptString((string) $id)]);
+        }
         if ($id = DB::table('debit_note_hdr')->where('dn_number', $voucherNumber)->value('id')) {
             return route('debitNote.edit', ['id' => Crypt::encryptString((string) $id)]);
         }
         $kas = DB::table('kas_hdr')->where('voucher_number', $voucherNumber)->first(['id', 'voucher_type']);
-        $route = ['BK' => 'bankKeluar.edit', 'KK' => 'kasKeluar.edit', 'GJ' => 'jurnalUmum.edit'][$kas->voucher_type ?? ''] ?? null;
+        $route = ['BK' => 'bankKeluar.edit', 'KK' => 'kasKeluar.edit', 'GJ' => 'jurnalUmum.edit', 'BM' => 'bankPenerimaan.edit', 'KM' => 'kasPenerimaan.edit'][$kas->voucher_type ?? ''] ?? null;
         return $route ? route($route, ['id' => Crypt::encryptString((string) $kas->id)]) : null;
     }
 
@@ -130,7 +157,7 @@ class UnifikasiBppuController extends Controller
             ->where('d.account', $coaAccount)
             ->where('h.status', '<>', '5')
             ->where('d.voucher_number', $voucherNumber)
-            ->sum('d.credit');
+            ->sum('d.' . $this->glCol($coaAccount));
     }
 
     // Baris dengan match_type MANUAL dipertahankan vouchernya (Nilai BB-nya saja yang
@@ -175,7 +202,7 @@ class UnifikasiBppuController extends Controller
             ->where('d.account', $coaAccount)
             ->where('h.status', '<>', '5')
             ->whereRaw("to_date(h.voucher_date,'DD-MM-YYYY') between ? and ?", [$from, date('Y-m-t', strtotime($from))])
-            ->sum('d.credit');
+            ->sum('d.' . $this->glCol($coaAccount));
     }
 
     public function index()
@@ -194,7 +221,8 @@ class UnifikasiBppuController extends Controller
             ['data' => 'created_by', 'name' => 'created_by', 'title' => 'Created By'],
             ['data' => 'created_at', 'name' => 'created_at', 'title' => 'Created At'],
         ]);
-        return view('accounting.unifikasiBppu.index', $data);
+        $data['types'] = $this->groupTypes();
+        return view('accounting.unifikasiBppu.index', $data + ['route' => $this->route, 'isBps' => $this->group === 'bps']);
     }
 
     public function create()
@@ -203,14 +231,14 @@ class UnifikasiBppuController extends Controller
         $data['subtitle'] = "Create $this->title";
         $data['periodes'] = $this->periodes;
         $data['types'] = $this->types();
-        return view('accounting.unifikasiBppu.create', $data);
+        return view('accounting.unifikasiBppu.create', $data + ['route' => $this->route, 'isBps' => $this->group === 'bps']);
     }
 
     public function preview(Request $request)
     {
         $title = "Preview $this->title";
         $validation = Validator::make($request->all(), [
-            'type' => 'required|in:23,42',
+            'type' => 'required|in:' . implode(',', array_keys($this->groupTypes())),
             'periode' => 'required|integer|min:1|max:12',
             'year' => 'required|integer',
             'statement' => array_merge(['required'], $this->excelRule()),
@@ -280,7 +308,7 @@ class UnifikasiBppuController extends Controller
         $username = Auth::user()->username;
         $title = "Save $this->title";
         $validation = Validator::make($request->all(), [
-            'type' => 'required|in:23,42',
+            'type' => 'required|in:' . implode(',', array_keys($this->groupTypes())),
             'periode' => 'required|integer|min:1|max:12',
             'year' => 'required|integer',
             'filePath' => 'required|string',
@@ -344,6 +372,7 @@ class UnifikasiBppuController extends Controller
     {
         $search = $request->searchEqualNumber;
         $data = DB::table('unifikasi_bppu_hdr')
+            ->whereIn('type', array_keys($this->groupTypes()))
             ->when($search, fn ($q) => $q->where('equal_number', 'ilike', "%$search%"))
             ->when($request->searchType, fn ($q) => $q->where('type', $request->searchType))
             ->when($request->searchPeriode, fn ($q) => $q->where('periode', $request->searchPeriode))
@@ -354,14 +383,14 @@ class UnifikasiBppuController extends Controller
             ->addColumn('action', function ($d) {
                 $id = Crypt::encryptString($d->id);
                 $buttons = '<div class="d-inline-flex"><a class="pr-1 dropdown-toggle hide-arrow" data-toggle="dropdown"><i data-feather="menu"></i></a><div class="dropdown-menu dropdown-menu-right">';
-                $buttons .= '<a href="' . route('unifikasiBppu.show', ['id' => $id]) . '" class="dropdown-item"><i data-feather="list"></i> ' . __('Detail') . '</a>';
+                $buttons .= '<a href="' . route($this->route . '.show', ['id' => $id]) . '" class="dropdown-item"><i data-feather="list"></i> ' . __('Detail') . '</a>';
                 $buttons .= "<a href='javascript:;' class='dropdown-item' data-size='sm' data-ajax-delete='true'
                     data-confirm='Are you sure want to Delete?|This action can not be undone. Do you want to continue?'
                     data-confirm-yes='document.getElementById(\"delete-form-{$d->id}\").submit();' data-modal-id='{$d->id}'
-                    data-url='" . route('unifikasiBppu.destroy', ['id' => $id]) . "'><i data-feather='trash-2' class='feather-14-red'></i> " . __('Delete') . '</a>';
+                    data-url='" . route($this->route . '.destroy', ['id' => $id]) . "'><i data-feather='trash-2' class='feather-14-red'></i> " . __('Delete') . '</a>';
                 return $buttons . '</div></div>';
             })
-            ->addColumn('equal_number', fn ($d) => '<a href="' . route('unifikasiBppu.show', ['id' => Crypt::encryptString($d->id)]) . '">' . $d->equal_number . '</a>')
+            ->addColumn('equal_number', fn ($d) => '<a href="' . route($this->route . '.show', ['id' => Crypt::encryptString($d->id)]) . '">' . $d->equal_number . '</a>')
             ->addColumn('type', fn ($d) => self::TYPES[$d->type]['title'] ?? $d->type)
             ->addColumn('periode', fn ($d) => ($this->periodes[(int) $d->periode] ?? $d->periode) . ' / ' . $d->year)
             ->addColumn('total_pph', fn ($d) => number_format($d->total_pph, 2))
@@ -382,24 +411,26 @@ class UnifikasiBppuController extends Controller
         abort_unless($data['header'], 404);
         $data['id'] = $id;
         $data['periodes'] = $this->periodes;
-        $data['typeInfo'] = $this->types()[$data['header']->type];
+        $data['typeInfo'] = $this->types()[$data['header']->type] ?? abort(404);
         $data['glMutasi'] = $this->glMutasi((int) $data['header']->periode, (int) $data['header']->year, $data['header']->coa_account);
-        $data['kolomDetail'] = json_encode([
-            ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'title' => 'No', 'orderable' => false, 'searchable' => false],
-            ['data' => 'masa_pajak', 'name' => 'masa_pajak', 'title' => 'Masa Pajak'],
-            ['data' => 'doc_number', 'name' => 'doc_number', 'title' => 'Nomor Pemotongan'],
-            ['data' => 'status', 'name' => 'status', 'title' => 'Status'],
-            ['data' => 'jenis_pajak', 'name' => 'jenis_pajak', 'title' => 'Jenis Pajak'],
-            ['data' => 'kode_objek_pajak', 'name' => 'kode_objek_pajak', 'title' => 'Kode Objek Pajak'],
-            ['data' => 'nama', 'name' => 'nama', 'title' => 'Nama'],
+        // Kolom mengikuti kolom kuning di masing-masing Excel (BPS tidak ada Status/Jenis Pajak).
+        $excelCols = $this->group === 'bps'
+            ? ['masa_pajak' => 'Masa Pajak', 'doc_number' => 'Nomor Pemotongan', 'nama' => 'Nama Pemotong', 'kode_objek_pajak' => 'Kode Objek Pajak']
+            : ['masa_pajak' => 'Masa Pajak', 'doc_number' => 'Nomor Pemotongan', 'status' => 'Status', 'jenis_pajak' => 'Jenis Pajak', 'kode_objek_pajak' => 'Kode Objek Pajak', 'nama' => 'Nama'];
+        $data['kolomDetail'] = json_encode(array_merge(
+            [['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'title' => 'No', 'orderable' => false, 'searchable' => false]],
+            array_map(fn ($k, $t) => ['data' => $k, 'name' => $k, 'title' => $t], array_keys($excelCols), $excelCols),
+            [
             ['data' => 'dpp', 'name' => 'dpp', 'title' => 'DPP (Rp)'],
             ['data' => 'pph', 'name' => 'pph', 'title' => 'PPh (Rp)'],
             ['data' => 'match_status', 'name' => 'match_status', 'title' => 'Match'],
             ['data' => 'matched_voucher_number', 'name' => 'matched_voucher_number', 'title' => 'Voucher BB'],
             ['data' => 'gl_amount', 'name' => 'gl_amount', 'title' => 'Nilai BB'],
             ['data' => 'action', 'name' => 'action', 'title' => 'action', 'orderable' => false, 'searchable' => false],
-        ]);
-        return view('accounting.unifikasiBppu.show', $data);
+        ]));
+        // Index kolom DPP pertama untuk JS (rata kanan, badge PENDING, dst).
+        $data['dppCol'] = count($excelCols) + 1;
+        return view('accounting.unifikasiBppu.show', $data + ['route' => $this->route, 'isBps' => $this->group === 'bps']);
     }
 
     public function listDetail(Request $request)

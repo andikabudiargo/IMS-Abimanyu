@@ -6,7 +6,7 @@
 <section id="add-unifikasiBppu">
   <div class="card">
     <div class="card-header">
-      <h4 class="card-title">Unifikasi BPPU — Upload Bukti Potong</h4>
+      <h4 class="card-title">{{ $isBps ? 'Unifikasi BPS' : 'Unifikasi BPPU' }} — Upload Bukti Potong</h4>
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
@@ -61,7 +61,7 @@
           </div>
           <div class="form-row">
             <div class="form-group col-md-8">
-              <label class="form-label" for="statement">Data BPPU (Excel)*</label>
+              <label class="form-label" for="statement">Data {{ $isBps ? 'BPS' : 'BPPU' }} (Excel)*</label>
               <div class="custom-file">
                 <input type="file" class="custom-file-input" name="statement" id="statement" accept=".xls,.xlsx" required />
                 <label class="custom-file-label" for="statement" id="statementLabel">Choose file</label>
@@ -74,7 +74,7 @@
                 <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
                 <span class="align-middle d-sm-inline-block d-none">Upload &amp; Equalisasi</span>
               </button>
-              <a href="{{ route('unifikasiBppu.index') }}" class="btn btn-secondary">Cancel</a>
+              <a href="{{ route($route . '.index') }}" class="btn btn-secondary">Cancel</a>
             </div>
           </div>
         </form>
@@ -94,7 +94,7 @@
         <tbody>
           <tr><th width="30%">Total DPP (Excel)</th><td class="text-right" id="i-total-dpp"></td></tr>
           <tr><th>Total PPh (Excel)</th><td class="text-right" id="i-total-pph"></td></tr>
-          <tr><th>Mutasi Kredit COA (Buku Besar)</th><td class="text-right" id="i-gl"></td></tr>
+          <tr><th>Mutasi {{ $isBps ? 'Debet' : 'Kredit' }} COA (Buku Besar)</th><td class="text-right" id="i-gl"></td></tr>
           <tr><th>Selisih</th><td class="text-right font-weight-bold" id="i-selisih"></td></tr>
         </tbody>
       </table>
@@ -116,10 +116,15 @@
               <th>No</th>
               <th>Masa Pajak</th>
               <th>Nomor Pemotongan</th>
+              @if ($isBps)
+              <th>Nama Pemotong</th>
+              <th>Kode Objek Pajak</th>
+              @else
               <th>Status</th>
               <th>Jenis Pajak</th>
               <th>Kode Objek Pajak</th>
               <th>Nama</th>
+              @endif
               <th class="text-right">DPP (Rp)</th>
               <th class="text-right">PPh (Rp)</th>
               <th>Match</th>
@@ -161,6 +166,7 @@
 
   let previewFilePath = null;
   const equalTypes = {!! json_encode($types) !!};
+  const isBps = {{ $isBps ? 'true' : 'false' }};
 
   function resetPreview() {
     previewFilePath = null;
@@ -201,10 +207,9 @@
         <td>${i + 1}</td>
         <td>${esc(r.masa_pajak)}</td>
         <td>${esc(r.doc_number)}</td>
-        <td>${esc(r.status)}</td>
-        <td>${esc(r.jenis_pajak)}</td>
-        <td>${esc(r.kode_objek_pajak)}</td>
-        <td>${esc(r.nama)}</td>
+        ${isBps
+          ? `<td>${esc(r.nama)}</td><td>${esc(r.kode_objek_pajak)}</td>`
+          : `<td>${esc(r.status)}</td><td>${esc(r.jenis_pajak)}</td><td>${esc(r.kode_objek_pajak)}</td><td>${esc(r.nama)}</td>`}
         <td class="text-right">${fmtNumber(r.dpp)}</td>
         <td class="text-right">${fmtNumber(r.pph)}</td>
         <td>${statusBadge}</td>
@@ -246,7 +251,7 @@
     resetPreview();
 
     $.ajax({
-      url: "{{ route('unifikasiBppu.preview') }}",
+      url: "{{ route($route . '.preview') }}",
       method: "POST",
       data: new FormData(document.getElementById('frmAdd')),
       dataType: "json",
@@ -275,7 +280,7 @@
     $('#cmdSave').attr('disabled', 'disabled');
 
     $.ajax({
-      url: "{{ route('unifikasiBppu.store') }}",
+      url: "{{ route($route . '.store') }}",
       method: "POST",
       data: {
         type: $('#type').val(),
@@ -290,7 +295,7 @@
         $(".loading-spinner-container").removeClass("-show");
         show_msg(data.title, data.message, data.alert);
         if (data.status == 1) {
-          setTimeout(function () { window.location.href = "{{ route('unifikasiBppu.index') }}"; }, 1500);
+          setTimeout(function () { window.location.href = "{{ route($route . '.index') }}"; }, 1500);
         }
       },
       error: ajaxError('#cmdSave', 'Failed to save')

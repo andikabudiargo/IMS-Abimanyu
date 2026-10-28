@@ -6,7 +6,7 @@
 <section id="show-unifikasiBppu">
   <div class="card">
     <div class="card-header">
-      <h4 class="card-title">Detail Unifikasi BPPU — {{ $typeInfo['title'] }}</h4>
+      <h4 class="card-title">Detail {{ $isBps ? 'Unifikasi BPS' : 'Unifikasi BPPU' }} — {{ $typeInfo['title'] }}</h4>
     </div>
     <div class="card-content collapse show">
       <div class="card-body">
@@ -42,7 +42,7 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-8">
-            <label class="form-label" for="statement">Excel BPPU Terbaru <small class="text-muted">opsional — isi kalau ada perubahan di Excel</small></label>
+            <label class="form-label" for="statement">Excel {{ $isBps ? 'BPS' : 'BPPU' }} Terbaru <small class="text-muted">opsional — isi kalau ada perubahan di Excel</small></label>
             <div class="custom-file">
               <input type="file" class="custom-file-input" id="statement" accept=".xls,.xlsx" />
               <label class="custom-file-label" for="statement" id="statementLabel">Choose file</label>
@@ -71,7 +71,7 @@
           <thead class="thead-light">
             <tr>
               <th>Keterangan</th>
-              <th class="text-right">Excel (BPPU)</th>
+              <th class="text-right">Excel ({{ $isBps ? 'BPS' : 'BPPU' }})</th>
               <th class="text-right">Buku Besar (Akun {{ $header->coa_account }})</th>
               <th class="text-right">Selisih</th>
             </tr>
@@ -82,7 +82,7 @@
               $match = abs($selisih) <= 0.01;
             @endphp
             <tr>
-              <th>Total PPh (Mutasi Kredit)</th>
+              <th>Total PPh (Mutasi {{ $isBps ? 'Debet' : 'Kredit' }})</th>
               <td class="text-right">{{ number_format($header->total_pph, 2) }}</td>
               <td class="text-right">{{ number_format($glMutasi, 2) }}</td>
               <td class="text-right {{ $match ? 'text-success' : 'text-danger font-weight-bold' }}">{{ number_format($selisih, 2) }}</td>
@@ -101,7 +101,7 @@
 
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-      <h4 class="card-title">Detail BPPU</h4>
+      <h4 class="card-title">Detail {{ $isBps ? 'BPS' : 'BPPU' }}</h4>
       <div class="form-group mb-0" style="min-width:200px">
         <select id="statusFilter" class="form-control form-control-sm">
           <option value="">Semua Status</option>
@@ -146,6 +146,7 @@
 <script type="text/javascript">
 
   let currentDetId = null;
+  const dppCol = {{ $dppCol }};
   let equalNumber = "{{ $header->equal_number }}";
   // Match/Unmatch ditampung dulu, baru disimpan saat klik Save (pola sama dengan Equalisasi PPN).
   let pendingChanges = {}; // detId -> {action: 'match'|'unmatch', voucherNumber?}
@@ -159,7 +160,7 @@
   function markRowPending(detId, label) {
     let row = $('[data-det-id="' + detId + '"]').closest('tr');
     let tds = row.addClass('table-warning').find('td');
-    tds.eq(9).html('<span class="badge badge-warning">PENDING</span>');
+    tds.eq(dppCol + 2).html('<span class="badge badge-warning">PENDING</span>');
     tds.eq(tds.length - 1).html(
       '<a href="javascript:;" class="btn btn-sm btn-outline-secondary" onclick="cancelPending(' + detId + ')">Batal</a>'
       + '<div><small class="text-muted">' + label + '</small></div>'
@@ -186,13 +187,13 @@
     $(".loading-spinner-container").addClass("-show");
     showDataTables({
       tableId: "unifikasiBppuDetailTable",
-      route: "{{ route('unifikasiBppu.list.detail', ['id' => $id]) }}",
+      route: "{{ route($route . '.list.detail', ['id' => $id]) }}",
       kolom: {!! $kolomDetail !!},
-      arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      arrColPrint: Array.from({ length: dppCol + 4 }, (_, i) => i + 1),
       columnDefs: [
         { width: '4%', targets: 0 },
-        { className: 'text-right', targets: [7, 8, 11] },
-        { className: 'text-center', targets: [9, 12] },
+        { className: 'text-right', targets: [dppCol, dppCol + 1, dppCol + 4] },
+        { className: 'text-center', targets: [dppCol + 2, dppCol + 5] },
       ],
       dataSearch: { status: $('#statusFilter').val() },
       initComplete: function () {
@@ -223,7 +224,7 @@
           dropdownParent: $(Swal.getPopup()),
           placeholder: 'Ketik nomor voucher / nomor bukti potong...',
           ajax: {
-            url: "{{ route('unifikasiBppu.search.voucher') }}",
+            url: "{{ route($route . '.search.voucher') }}",
             dataType: 'json',
             delay: 300,
             data: function (params) {
@@ -274,9 +275,9 @@
     let requests = ids.map(function (detId) {
       let c = pendingChanges[detId];
       if (c.action === 'match') {
-        return $.ajax({ url: "{{ route('unifikasiBppu.match.manual') }}", method: "POST", data: { detId: detId, voucherNumber: c.voucherNumber } });
+        return $.ajax({ url: "{{ route($route . '.match.manual') }}", method: "POST", data: { detId: detId, voucherNumber: c.voucherNumber } });
       }
-      return $.ajax({ url: "{{ route('unifikasiBppu.unmatch') }}", method: "POST", data: { detId: detId } });
+      return $.ajax({ url: "{{ route($route . '.unmatch') }}", method: "POST", data: { detId: detId } });
     });
 
     $.when.apply($, requests).always(function () {
@@ -317,7 +318,7 @@
       if (file) fd.append('statement', file);
       $(".loading-spinner-container").addClass("-show");
       $.ajax({
-        url: "{{ route('unifikasiBppu.reconcile') }}",
+        url: "{{ route($route . '.reconcile') }}",
         method: "POST",
         data: fd,
         dataType: "json",

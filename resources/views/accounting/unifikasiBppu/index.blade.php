@@ -25,8 +25,9 @@
               <label class="form-label" for="searchType">Type</label>
               <select class="select2 form-control" id="searchType" name="searchType">
                 <option value="">All</option>
-                <option value="23">Equalisasi Unifikasi PPh 23</option>
-                <option value="42">Equalisasi Unifikasi PPh 4(2)</option>
+                @foreach ($types as $val => $t)
+                  <option value="{{ $val }}">{{ $t['title'] }}</option>
+                @endforeach
               </select>
             </div>
             <div class="form-group col-md-3">
@@ -42,7 +43,7 @@
           <div class="form-row">
             <div class="col-12">
               <button type="button" class="btn btn-primary" id="btnSearch">Search</button>
-              <a href="{{ route('unifikasiBppu.create') }}" class="btn btn-info">
+              <a href="{{ route($route . '.create') }}" class="btn btn-info">
                 <i class="fa fa-plus"></i> Create
               </a>
             </div>
@@ -112,7 +113,7 @@
     $(".loading-spinner-container").addClass("-show");
     showDataTables({
       tableId: "unifikasiBppuTable",
-      route: "{{ route('unifikasiBppu.list') }}",
+      route: "{{ route($route . '.list') }}",
       kolom: {!! $kolom !!},
       arrColPrint: [1, 2, 3, 4, 5, 6, 7, 8, 9],
       columnDefs: [
@@ -123,7 +124,7 @@
         $(".loading-spinner-container").removeClass("-show");
       },
       orderColumn: [[1, 'desc']],
-      excelFileName: 'unifikasi_bppu'
+      excelFileName: '{{ $route }}'
     });
   };
 

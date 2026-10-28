@@ -254,7 +254,7 @@
                 article = detail[i].article_code;
                 qtyTarget = detail[i].qty_target;
                 qtyForcast =  detail[i].qty_forcast;
-                add_new_row_edit(article,qtyTarget,qtyForcast)
+                add_new_row_edit(article,qtyTarget,qtyForcast,detail[i].qty_forcast2,detail[i].qty_forcast3)
                 if (i==(data.length-1)){
                     $(".loading-spinner-container").removeClass("-show");
                     mask_thousand_satuan();

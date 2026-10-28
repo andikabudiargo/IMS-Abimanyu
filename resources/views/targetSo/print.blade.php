@@ -99,9 +99,11 @@
         <tr>
             <th width="5%">No</th>
             <th width="12%">Article Code</th>
-            <th width="58%">Article Desc</th>
+            <th width="38%">Article Desc</th>
             <th width="10%">Qty Target</th>
-            <th width="10%">Qty Forcast</th>
+            <th width="10%">Qty Forecast 1</th>
+            <th width="10%">Qty Forecast 2</th>
+            <th width="10%">Qty Forecast 3</th>
             <th width="5%">Uom</th>
         </tr>
         </thead>
@@ -113,6 +115,8 @@
                     <td class="border-bottom" align="left">{{ $val->article_desc }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->qty_target) }}</td>
                     <td class="border-bottom" align="right">{{ number_format($val->qty_forcast) }}</td>
+                    <td class="border-bottom" align="right">{{ isset($val->qty_forcast2) ? number_format($val->qty_forcast2) : "" }}</td>
+                    <td class="border-bottom" align="right">{{ isset($val->qty_forcast3) ? number_format($val->qty_forcast3) : "" }}</td>
                     <td class="border-bottom" align="center">{{ $val->uom }}</td>
                 </tr>
             @endforeach
@@ -123,12 +127,14 @@
                     <td class="border-bottom" align="left" colspan="3">Total</td>
                     <td class="border-bottom" align="right" >{{ number_format($val->total_target)}}</td>
                     <td class="border-bottom" align="right" >{{ number_format($val->total_forcast)}}</td>
+                    <td class="border-bottom" align="right" >{{ number_format($val->total_forcast2)}}</td>
+                    <td class="border-bottom" align="right" >{{ number_format($val->total_forcast3)}}</td>
                     <td class="border-bottom" align="left"></td>
                 </tr>
             @endforeach
         </tfoot>
         <tr>
-            <td colspan="7"> </td>
+            <td colspan="9"> </td>
         </tr>
         <tr>
             {{-- <td colspan="7">Keterangan:<br> {{ $keterangan }}</td> --}}

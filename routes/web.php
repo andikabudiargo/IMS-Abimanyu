@@ -1188,6 +1188,18 @@ Route::prefix('stockConsumption')->name('stockConsumption.')->group(function () 
 	Route::post('unifikasiBppu/match/manual',['as'=>'unifikasiBppu.match.manual','uses'=>'Accounting\UnifikasiBppuController@matchManual']);
 	Route::post('unifikasiBppu/unmatch',['as'=>'unifikasiBppu.unmatch','uses'=>'Accounting\UnifikasiBppuController@unmatch']);
 	Route::post('unifikasiBppu/reconcile',['as'=>'unifikasiBppu.reconcile','uses'=>'Accounting\UnifikasiBppuController@reconcile']);
+	Route::get('unifikasiBps',['as'=>'unifikasiBps.index','uses'=>'Accounting\UnifikasiBpsController@index']);
+	Route::get('unifikasiBps/list',['as'=>'unifikasiBps.list','uses'=>'Accounting\UnifikasiBpsController@list']);
+	Route::get('unifikasiBps/create',['as'=>'unifikasiBps.create','uses'=>'Accounting\UnifikasiBpsController@create']);
+	Route::post('unifikasiBps/preview',['as'=>'unifikasiBps.preview','uses'=>'Accounting\UnifikasiBpsController@preview']);
+	Route::post('unifikasiBps/store',['as'=>'unifikasiBps.store','uses'=>'Accounting\UnifikasiBpsController@store']);
+	Route::get('unifikasiBps/show',['as'=>'unifikasiBps.show','uses'=>'Accounting\UnifikasiBpsController@show']);
+	Route::get('unifikasiBps/list/detail',['as'=>'unifikasiBps.list.detail','uses'=>'Accounting\UnifikasiBpsController@listDetail']);
+	Route::post('unifikasiBps/delete',['as'=>'unifikasiBps.destroy','uses'=>'Accounting\UnifikasiBpsController@destroy']);
+	Route::get('unifikasiBps/search/voucher',['as'=>'unifikasiBps.search.voucher','uses'=>'Accounting\UnifikasiBpsController@searchVoucher']);
+	Route::post('unifikasiBps/match/manual',['as'=>'unifikasiBps.match.manual','uses'=>'Accounting\UnifikasiBpsController@matchManual']);
+	Route::post('unifikasiBps/unmatch',['as'=>'unifikasiBps.unmatch','uses'=>'Accounting\UnifikasiBpsController@unmatch']);
+	Route::post('unifikasiBps/reconcile',['as'=>'unifikasiBps.reconcile','uses'=>'Accounting\UnifikasiBpsController@reconcile']);
 	Route::get('ppnPkEqualisasi',['as'=>'ppnPkEqualisasi.index','uses'=>'Accounting\PpnPkEqualisasiController@index']);
 	Route::get('ppnPkEqualisasi/list',['as'=>'ppnPkEqualisasi.list','uses'=>'Accounting\PpnPkEqualisasiController@list']);
 	Route::get('ppnPkEqualisasi/create',['as'=>'ppnPkEqualisasi.create','uses'=>'Accounting\PpnPkEqualisasiController@create']);

@@ -111,6 +111,8 @@ let showDataTables = (opt) => {
       ],
       excelCustomize:"",
       excelMessageBottom:"",
+      excelFooter:false,
+      footerCallback:null,
       initComplete:""
     }, opt);
     let button = opt.buttons == true ? 'B' : '';
@@ -168,7 +170,8 @@ let showDataTables = (opt) => {
                   title:null,
                   filename:opt.excelFileName,
                   customize:opt.excelDates ? excelDateCustomize : opt.excelCustomize,
-                  messageBottom:opt.excelMessageBottom
+                  messageBottom:opt.excelMessageBottom,
+                  footer:opt.excelFooter
                 },
                 // {
                 //   extend: 'pdf',
@@ -211,6 +214,7 @@ let showDataTables = (opt) => {
           scrollX: true, //pakai ini supaya waktu responsive  bisa di scroll horizontal
           columns: opt.kolom,
           scrollY: opt.scrollY,
+          footerCallback: opt.footerCallback,
           initComplete: opt.initComplete
       });
     });

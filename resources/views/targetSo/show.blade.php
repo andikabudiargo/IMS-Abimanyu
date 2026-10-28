@@ -91,7 +91,9 @@
                                                     <th width="20%">Article Code</th>
                                                     <th class="text-right">Konversi</th>
                                                     <th class="text-right">Qty Target</th>
-                                                    <th class="text-right">Qty Forcast</th>
+                                                    <th class="text-right">Qty Forecast 1</th>
+                                                    <th class="text-right">Qty Forecast 2</th>
+                                                    <th class="text-right">Qty Forecast 3</th>
 
                                                     @if($key ==0)
                                                         <th class="text-left">Balance</th>
@@ -122,6 +124,8 @@
                                                         <td class="text-right">{{ number_format($item->conversion, 2) }} </td>
                                                         <td class="text-right">{{ number_format($item->qty_target) }} </td>
                                                         <td class="text-right">{{ number_format($item->qty_forcast) }} </td>
+                                                        <td class="text-right">{{ isset($item->qty_forcast2) ? number_format($item->qty_forcast2) : "" }} </td>
+                                                        <td class="text-right">{{ isset($item->qty_forcast3) ? number_format($item->qty_forcast3) : "" }} </td>
                                                         @php
                                                             {{ $histori = explode("->",$item->notes);}}
                                                         @endphp 
@@ -168,7 +172,9 @@
                                         <div class="col-md-4 text-right">
                                             <div>Total Konversi : <strong>{{ number_format($revisionDetails->sum('conversion'), 2) }}</strong></div>
                                             <div>Total Qty Target : <strong>{{ number_format($revisionDetails->sum('qty_target')) }}</strong></div>
-                                            <div>Total Qty Forcast : <strong>{{ number_format($revisionDetails->sum('qty_forcast')) }}</strong></div>
+                                            <div>Total Qty Forecast 1 : <strong>{{ number_format($revisionDetails->sum('qty_forcast')) }}</strong></div>
+                                            <div>Total Qty Forecast 2 : <strong>{{ number_format($revisionDetails->sum('qty_forcast2')) }}</strong></div>
+                                            <div>Total Qty Forecast 3 : <strong>{{ number_format($revisionDetails->sum('qty_forcast3')) }}</strong></div>
                                         </div>
                                     </div>
                                     <br>

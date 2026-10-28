@@ -7,7 +7,7 @@
                     <span class="input-group-text" id ="number" name="number[]"></span>
                 </div>
             </div>
-            <div class="col-md-4 col-12">
+            <div class="col-md-3 col-12">
                 <div class="form-group margin-nol">
                     <label  class="d-block d-md-none">Article</label>
                     <select class="form-control" id="articleId" name="articleId[]" data-dependent="articleId">
@@ -45,15 +45,37 @@
                         id ="qtyTarget" name="qtyTarget[]" maxlength="9" />
                 </div>
             </div>
-            <div class="col-md-2 col-12">
+            <div class="col-md-1 col-12">
                 <div class="form-group margin-nol">
-                    <label for="qtyForcast" class="d-block d-md-none">QTY Forcast</label>
+                    <label for="qtyForcast" class="d-block d-md-none">QTY Forecast 1</label>
                     <input type="text" class="form-control numeral-mask-satuan text-right tombol-panah"
                         data-type-el-kiri="input"
                         data-nama-el-kiri='qtyTarget'
+                        data-type-el-kanan='input'
+                        data-nama-el-kanan='qtyForcast2'
+                        id ="qtyForcast" name="qtyForcast[]" maxlength="9" />
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group margin-nol">
+                    <label class="d-block d-md-none">QTY Forecast 2</label>
+                    <input type="text" class="form-control numeral-mask-satuan text-right tombol-panah"
+                        data-type-el-kiri="input"
+                        data-nama-el-kiri='qtyForcast'
+                        data-type-el-kanan='input'
+                        data-nama-el-kanan='qtyForcast3'
+                        id ="qtyForcast2" name="qtyForcast2[]" maxlength="9" />
+                </div>
+            </div>
+            <div class="col-md-1 col-12">
+                <div class="form-group margin-nol">
+                    <label class="d-block d-md-none">QTY Forecast 3</label>
+                    <input type="text" class="form-control numeral-mask-satuan text-right tombol-panah"
+                        data-type-el-kiri="input"
+                        data-nama-el-kiri='qtyForcast2'
                         data-type-el-kanan='select'
                         data-nama-el-kanan='articleId'
-                        id ="qtyForcast" name="qtyForcast[]" maxlength="9" />
+                        id ="qtyForcast3" name="qtyForcast3[]" maxlength="9" />
                 </div>
             </div>
             <div class="col-md-1 col-12">
@@ -185,6 +207,8 @@
                                 "article_code":plu,
                                 "qtyTarget":qtyTarget,
                                 "qtyForcast":qtyForcast,
+                                "qtyForcast2":$this.closest('.tanda-baris').find('input[name="qtyForcast2[]"]').val().replace(/,/gi,''),
+                                "qtyForcast3":$this.closest('.tanda-baris').find('input[name="qtyForcast3[]"]').val().replace(/,/gi,''),
                                 "uom":uom,
                                 "totalConversion":totalConversion
                             });
@@ -298,6 +322,8 @@
                                 "article_code":plu,
                                 "qtyTarget":qtyTarget,
                                 "qtyForcast":qtyForcast,
+                                "qtyForcast2":$this.closest('.tanda-baris').find('input[name="qtyForcast2[]"]').val().replace(/,/gi,''),
+                                "qtyForcast3":$this.closest('.tanda-baris').find('input[name="qtyForcast3[]"]').val().replace(/,/gi,''),
                                 "uom":uom,
                                 "totalConversion":totalConversion
                             });
@@ -419,7 +445,7 @@
             $('[data-toggle="tooltip"]').tooltip();
     };
 
-    function add_new_row_edit(articleId,qtyTarget,qtyForcast) {
+    function add_new_row_edit(articleId,qtyTarget,qtyForcast,qtyForcast2,qtyForcast3) {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -430,6 +456,8 @@
         $("#new_row"+ cloneCount).find('#qtyForcast').attr('id', 'qtyForcast'+ cloneCount);
         $('#qtyTarget'+ cloneCount).val(qtyTarget);
         $('#qtyForcast'+ cloneCount).val(qtyForcast);
+        $("#new_row"+ cloneCount).find('input[name="qtyForcast2[]"]').val(qtyForcast2 ?? '');
+        $("#new_row"+ cloneCount).find('input[name="qtyForcast3[]"]').val(qtyForcast3 ?? '');
         $('#number'+ cloneCount).text(cloneCount);
         previewConversion($("#new_row"+ cloneCount));
         // $('#remove_button').tooltip();
@@ -446,7 +474,7 @@
     // server-side (bulk, per artikel unik) -- berbeda dari add_new_row_edit yang
     // selalu memanggil previewConversion() per baris, di sini sengaja dilewati
     // supaya upload ratusan baris tidak memicu ratusan ajax conversion terpisah.
-    function add_new_row_import(articleId, qtyTarget, qtyForcast, totalConversion) {
+    function add_new_row_import(articleId, qtyTarget, qtyForcast, totalConversion, qtyForcast2, qtyForcast3) {
         $("#article_row").append($("#new_row").clone().html());
         cloneCount++;
         $("#article_row").find('#baru').attr('id', 'new_row'+ cloneCount);
@@ -459,6 +487,8 @@
         $('#qtyForcast'+ cloneCount).val(qtyForcast);
         $('#number'+ cloneCount).text(cloneCount);
         $("#new_row"+ cloneCount).find('.conversion-preview').val(totalConversion);
+        $("#new_row"+ cloneCount).find('input[name="qtyForcast2[]"]').val(qtyForcast2 ?? '');
+        $("#new_row"+ cloneCount).find('input[name="qtyForcast3[]"]').val(qtyForcast3 ?? '');
     }
 
     function importRowsTargetSo(rows) {
@@ -475,9 +505,11 @@
                 if ($existing.length) {
                     $existing.find('input[name="qtyTarget[]"]').val(r.qty_target);
                     $existing.find('input[name="qtyForcast[]"]').val(r.qty_forcast);
+                    $existing.find('input[name="qtyForcast2[]"]').val(r.qty_forcast2 ?? '');
+                    $existing.find('input[name="qtyForcast3[]"]').val(r.qty_forcast3 ?? '');
                     $existing.find('.conversion-preview').val(r.total_conversion);
                 } else {
-                    add_new_row_import(r.article_code, r.qty_target, r.qty_forcast, r.total_conversion);
+                    add_new_row_import(r.article_code, r.qty_target, r.qty_forcast, r.total_conversion, r.qty_forcast2, r.qty_forcast3);
                 }
             });
             suppressConversionAjax = false;

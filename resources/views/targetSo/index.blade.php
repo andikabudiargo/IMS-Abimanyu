@@ -160,6 +160,7 @@
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
+    $('#detailedTable tfoot').remove();
     showDataTables({
       tableId:"detailedTable",
       route:"{{ route('targetSo.list') }}",
@@ -187,10 +188,21 @@
         $('#detailedTable tbody > tr').remove();
         $("#detailedTable thead > tr").remove();
     }
+    $('#detailedTable tfoot').remove();
     let dataSearch = { searchTso, searchCustomer, searchStatus, searchPeriode, tsoDate };
     // kolom Qty R{n} jumlahnya ikut filter yang aktif, jadi ambil dulu sebelum render tabel
     $.get("{{ route('targetSo.list.detail.columns') }}", dataSearch, function(cols){
+      $('#detailedTable').append('<tfoot><tr>' + cols.kolom.map(() => '<th></th>').join('') + '</tr></tfoot>');
       showDataTables({
+        excelFooter:true,
+        // totals dihitung server atas semua baris hasil filter, bukan cuma halaman aktif
+        footerCallback:function(){
+          let api = this.api(), totals = (api.ajax.json() || {}).totals || {};
+          cols.kolom.forEach((k, i) => {
+            let text = i === 0 ? 'TOTAL' : (k.data in totals ? Number(totals[k.data]).toLocaleString('en-US', {maximumFractionDigits: 2}) : '');
+            $(api.column(i).footer()).addClass(i ? 'text-right' : '').html(text);
+          });
+        },
         tableId:"detailedTable",
         route:"{{ route('targetSo.list.detail') }}",
         kolom:cols.kolom,

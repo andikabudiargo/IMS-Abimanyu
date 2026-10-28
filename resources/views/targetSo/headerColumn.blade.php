@@ -4,7 +4,7 @@
             <label class="d-none d-md-block">No</label>
         </div>
     </div>
-    <div class="col-md-4 col-12 d-none d-md-block">
+    <div class="col-md-3 col-12 d-none d-md-block">
         <div class="form-group">
             <label class="d-none d-md-block">Article Code</label>
         </div>
@@ -19,9 +19,19 @@
             <label class="d-none d-md-block text-right">QTY Target</label>
         </div>
     </div>
-    <div class="col-md-2 col-12 d-none d-md-block d-none">
+    <div class="col-md-1 col-12 d-none d-md-block">
         <div class="form-group">
-            <label class="d-none d-md-block text-right">Qty Forcast</label>
+            <label class="d-none d-md-block text-right">Forecast 1</label>
+        </div>
+    </div>
+    <div class="col-md-1 col-12 d-none d-md-block">
+        <div class="form-group">
+            <label class="d-none d-md-block text-right">Forecast 2</label>
+        </div>
+    </div>
+    <div class="col-md-1 col-12 d-none d-md-block">
+        <div class="form-group">
+            <label class="d-none d-md-block text-right">Forecast 3</label>
         </div>
     </div>
     <div class="col-md-1 col-12 d-none d-md-block">

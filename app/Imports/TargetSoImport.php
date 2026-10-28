@@ -39,7 +39,7 @@ class TargetSoTemplateImportSheet implements ToCollection, WithHeadingRow, WithC
     }
 
     /**
-     * Kolom template: article_code | qty_target | qty_forecast
+     * Kolom template: article_code | qty_target | qty_forecast_1 | qty_forecast_2 | qty_forecast_3 (qty_forecast = template lama)
      */
     public function collection(Collection $rows)
     {
@@ -49,7 +49,9 @@ class TargetSoTemplateImportSheet implements ToCollection, WithHeadingRow, WithC
         foreach ($rows as $row) {
             $artCode = trim($row['article_code'] ?? '');
             $qtyTarget = trim((string) ($row['qty_target'] ?? ''));
-            $qtyForcast = trim((string) ($row['qty_forecast'] ?? ''));
+            $qtyForcast = trim((string) ($row['qty_forecast_1'] ?? $row['qty_forecast'] ?? ''));
+            $qtyForcast2 = trim((string) ($row['qty_forecast_2'] ?? ''));
+            $qtyForcast3 = trim((string) ($row['qty_forecast_3'] ?? ''));
 
             if ($artCode === '' && $qtyTarget === '' && $qtyForcast === '') {
                 continue;
@@ -60,6 +62,8 @@ class TargetSoTemplateImportSheet implements ToCollection, WithHeadingRow, WithC
                 'article_code' => strtoupper($artCode),
                 'qty_target'   => is_numeric($qtyTarget) ? $qtyTarget : '0',
                 'qty_forcast'  => is_numeric($qtyForcast) ? $qtyForcast : '0',
+                'qty_forcast2' => is_numeric($qtyForcast2) ? $qtyForcast2 : null,
+                'qty_forcast3' => is_numeric($qtyForcast3) ? $qtyForcast3 : null,
                 'created_at'   => $now,
             ];
         }

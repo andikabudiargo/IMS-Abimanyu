@@ -44,7 +44,9 @@ class TargetSoTemplateSheet implements
         return [
             'article_code',
             'qty_target',
-            'qty_forecast',
+            'qty_forecast_1',
+            'qty_forecast_2',
+            'qty_forecast_3',
         ];
     }
 
@@ -73,6 +75,8 @@ class TargetSoTemplateSheet implements
             'A' => 25,
             'B' => 15,
             'C' => 15,
+            'D' => 15,
+            'E' => 15,
         ];
     }
 }

@@ -86,9 +86,12 @@ class TargetSoController extends Controller
         return [
             'kolom' => $kolom,
             'arrColPrint' => range(0, count($kolom) - 3),
-            'textRight' => array_values(array_keys(array_filter($kolom, fn($k) => $k['data'] === 'qty_target' || $k['data'] === 'qty_forcast' || strpos($k['data'], 'qty_r') === 0))),
+            'textRight' => array_values(array_keys(array_filter($kolom, fn($k) => in_array($k['data'], self::DETAIL_SUM_COLUMNS) || strpos($k['data'], 'qty_r') === 0))),
         ];
     }
+
+    // kolom angka di tabel detail yang dijumlah di footer (plus semua qty_r{n})
+    const DETAIL_SUM_COLUMNS = ['qty_forcast','qty_forcast2','qty_forcast3','qty_target','conversion','total_conversion'];
 
     public function getTableColoumnDetail($maxRev = 0){
         $kolom=
@@ -101,14 +104,15 @@ class TargetSoController extends Controller
             ['data'=>'status','name'=>'status','title'=>'Status'],
             ['data'=>'article_alternative_code','name'=>'article_alternative_code','title'=>'Article code'],
             ['data'=>'article_desc','name'=>'article_desc','title'=>'Article desc'],
-            ['data'=>'qty_target','name'=>'qty_target','title'=>'Qty Target'],
+            ['data'=>'qty_forcast','name'=>'qty_forcast','title'=>'Qty Forecast 1'],
+            ['data'=>'qty_forcast2','name'=>'qty_forcast2','title'=>'Qty Forecast 2'],
+            ['data'=>'qty_forcast3','name'=>'qty_forcast3','title'=>'Qty Forecast 3'],
         ];
-        // Qty Target (current/terbaru) sudah di depan, jadi revisi diurutkan mundur (terbaru ke terlama) biar searah
-        for ($n = $maxRev; $n >= 1; $n--) {
+        for ($n = 1; $n <= $maxRev; $n++) {
             $kolom[] = ['data'=>"qty_r$n",'name'=>"qty_r$n",'title'=>"Qty R$n",'orderable'=>false,'searchable'=>false];
         }
         $kolom = array_merge($kolom, [
-            ['data'=>'qty_forcast','name'=>'qty_forcast','title'=>'Qty Forcast'],
+            ['data'=>'qty_target','name'=>'qty_target','title'=>'Qty Target'],
             ['data'=>'conversion','name'=>'conversion','title'=>'Conversion','orderable'=>false,'searchable'=>false],
             ['data'=>'total_conversion','name'=>'total_conversion','title'=>'Total Conversion','orderable'=>false,'searchable'=>false],
             ['data'=>'created_by','name'=>'created_by','title'=>'Created By'],
@@ -244,6 +248,8 @@ class TargetSoController extends Controller
                             'article_code' => $val->article_code,
                             'qty_target' => $val->qtyTarget,
                             'qty_forcast' => $val->qtyForcast,
+                            'qty_forcast2' => ($val->qtyForcast2 ?? '') === '' ? null : $val->qtyForcast2,
+                            'qty_forcast3' => ($val->qtyForcast3 ?? '') === '' ? null : $val->qtyForcast3,
                             'uom' => $val->uom,
                             'conversion' => $val->totalConversion ?? 0,
                             'created_by' => Auth::user()->username,
@@ -489,6 +495,8 @@ class TargetSoController extends Controller
                             'article_code' => $val->article_code,
                             'qty_target' => $val->qtyTarget,
                             'qty_forcast' => $val->qtyForcast,
+                            'qty_forcast2' => ($val->qtyForcast2 ?? '') === '' ? null : $val->qtyForcast2,
+                            'qty_forcast3' => ($val->qtyForcast3 ?? '') === '' ? null : $val->qtyForcast3,
                             'uom' => $val->uom,
                             'conversion' => $val->totalConversion ?? 0,
                             'created_by' => Auth::user()->username,
@@ -884,7 +892,18 @@ class TargetSoController extends Controller
 
         $data = $query->orderBy('det.id')->get();
 
+        // total footer atas seluruh baris hasil filter (bukan cuma halaman aktif)
+        $totals = ['qty_forcast'=>0,'qty_forcast2'=>0,'qty_forcast3'=>0,'qty_target'=>0,'conversion'=>0,'total_conversion'=>0];
+        for ($n = 1; $n <= $maxRev; $n++) $totals["qty_r$n"] = 0;
+        foreach ($data as $r) {
+            $r->conversion ??= self::soConversion($r);
+            foreach ($totals as $k => $v) {
+                $totals[$k] += $k === 'total_conversion' ? $r->conversion * $r->qty_target : (float) $r->$k;
+            }
+        }
+
         return Datatables::of($data)
+        ->with('totals', $totals)
         ->addColumn('status', function ($data) {
             $badges=['badge-primary','badge-info','badge-success','badge-warning','badge-danger','badge-dark','badge-secondary','badge-danger'];
             $statusTso = ['NEW','VALIDATED','APPROVED','','CANCELED','','REVISED'];
@@ -992,7 +1011,7 @@ class TargetSoController extends Controller
             $rows = DB::table('import_target_so_tmp as t')
                 ->leftJoin('article as a', 'a.article_alternative_code', '=', 't.article_code')
                 ->where('t.batch_id', $batchId)
-                ->select('t.article_code as input_code', 't.qty_target', 't.qty_forcast', 'a.article_code', 'a.article_desc', 'a.uom')
+                ->select('t.article_code as input_code', 't.qty_target', 't.qty_forcast', 't.qty_forcast2', 't.qty_forcast3', 'a.article_code', 'a.article_desc', 'a.uom')
                 ->get();
 
             if ($rows->isEmpty()) {
@@ -1034,6 +1053,8 @@ class TargetSoController extends Controller
                     'article_desc'     => $r->article_desc,
                     'qty_target'       => $qtyTarget,
                     'qty_forcast'      => (float) $r->qty_forcast,
+                    'qty_forcast2'     => $r->qty_forcast2,
+                    'qty_forcast3'     => $r->qty_forcast3,
                     'uom'              => $r->uom,
                     'total_conversion' => number_format($conversion * $qtyTarget, 2, '.', ''),
                 ];
@@ -1125,6 +1146,8 @@ class TargetSoController extends Controller
             article_code,
             qty_target,
             qty_forcast,
+            qty_forcast2,
+            qty_forcast3,
             qty_actual,
             uom,
             created_by,
@@ -1137,6 +1160,8 @@ class TargetSoController extends Controller
             article_code,
             qty_target,
             qty_forcast,
+            qty_forcast2,
+            qty_forcast3,
             qty_actual,
             uom,
             '$username',
@@ -1216,6 +1241,8 @@ class TargetSoController extends Controller
             select tso_code
             ,sum(qty_target) as total_target
             ,sum(qty_forcast) as total_forcast
+            ,coalesce(sum(qty_forcast2),0) as total_forcast2
+            ,coalesce(sum(qty_forcast3),0) as total_forcast3
             from target_order_det
             where tso_code = '$tSoNumber'
             group by tso_code");

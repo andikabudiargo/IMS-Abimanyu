@@ -4,12 +4,25 @@ namespace App\Imports;
 
 use Maatwebsite\Excel\Concerns\ToCollection;
 
-// Export BPPU dari portal pajak, dibaca by posisi kolom. Yang dipakai cuma kolom yang
-// ditandai kuning: B = Masa Pajak | C = Nomor Pemotongan | D = Status | G = Jenis Pajak
-// | H = Kode Objek Pajak | J = Nama | K = DPP (Rp) | L = PPh (Rp).
+// Export BPPU / BPS dari portal pajak, dibaca by posisi kolom (0-based). Yang dipakai cuma
+// kolom yang ditandai kuning:
+// BPPU: B Masa Pajak | C Nomor Pemotongan | D Status | G Jenis Pajak | H Kode Objek Pajak
+//       | J Nama | K DPP | L PPh
+// BPS:  B Masa Pajak | C Nomor Pemotongan | F Nama Pemotong | G Kode Objek Pajak | J DPP | K PPh
 class UnifikasiBppuImport implements ToCollection
 {
+    const LAYOUTS = [
+        'bppu' => ['masa_pajak' => 1, 'doc_number' => 2, 'status' => 3, 'jenis_pajak' => 6, 'kode_objek_pajak' => 7, 'nama' => 9, 'dpp' => 10, 'pph' => 11],
+        'bps' => ['masa_pajak' => 1, 'doc_number' => 2, 'status' => null, 'jenis_pajak' => null, 'kode_objek_pajak' => 6, 'nama' => 5, 'dpp' => 9, 'pph' => 10],
+    ];
+
     public array $rows = [];
+    private array $cols;
+
+    public function __construct(string $group = 'bppu')
+    {
+        $this->cols = self::LAYOUTS[$group];
+    }
 
     public function collection($collection)
     {
@@ -17,19 +30,20 @@ class UnifikasiBppuImport implements ToCollection
             if ($i === 0) {
                 continue; // header row
             }
-            $docNumber = trim((string) ($row[2] ?? ''));
-            if ($docNumber === '') {
+            $get = fn ($k) => $this->cols[$k] === null ? '' : trim((string) ($row[$this->cols[$k]] ?? ''));
+            if ($get('doc_number') === '') {
                 continue;
             }
+            $num = fn ($k) => is_numeric($row[$this->cols[$k]] ?? null) ? (float) $row[$this->cols[$k]] : 0;
             $this->rows[] = [
-                'masa_pajak' => trim((string) ($row[1] ?? '')),
-                'doc_number' => $docNumber,
-                'status' => trim((string) ($row[3] ?? '')),
-                'jenis_pajak' => trim((string) ($row[6] ?? '')),
-                'kode_objek_pajak' => trim((string) ($row[7] ?? '')),
-                'nama' => trim((string) ($row[9] ?? '')),
-                'dpp' => is_numeric($row[10] ?? null) ? (float) $row[10] : 0,
-                'pph' => is_numeric($row[11] ?? null) ? (float) $row[11] : 0,
+                'masa_pajak' => $get('masa_pajak'),
+                'doc_number' => $get('doc_number'),
+                'status' => $get('status'),
+                'jenis_pajak' => $get('jenis_pajak'),
+                'kode_objek_pajak' => $get('kode_objek_pajak'),
+                'nama' => $get('nama'),
+                'dpp' => $num('dpp'),
+                'pph' => $num('pph'),
             ];
         }
     }
