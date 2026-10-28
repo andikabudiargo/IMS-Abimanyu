@@ -230,7 +230,7 @@ class BukuBesarController extends Controller
             ,'kas_det.account'
             ,'kas_hdr.period'
             ,'accounts.description as nama_akun'
-            ,'reference'
+            ,DB::raw(BukuBesarV2Controller::referenceSql('kas_det', 'kas_hdr') . ' as reference')
             ,'kas_det.voucher_number'
             ,'kas_det.description'
             ,'kas_hdr.voucher_date'

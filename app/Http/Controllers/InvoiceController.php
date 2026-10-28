@@ -2126,25 +2126,34 @@ $jumlahData = DB::table('invoice_det')
 // Kalau 2 halaman: ambil sebanyak $page1Capacity supaya halaman 1 terisi penuh dulu
 $limits = $data['duaHalaman'] === 'yes' ? $page1Capacity : $jumlahData;
 
-    // ── Details halaman 1 ────────────────────────────────────────────────────
-    $data['details'] = DB::table('invoice_det')
+    $allDetails = DB::table('invoice_det')
         ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
         ->select('article.article_desc', DB::raw('sum(qty) as qty'), 'price', 'price_service')
         ->where('invoice_number', $invNumber)
         ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
         ->orderBy('article.article_code')
-        ->limit($limits)
         ->get();
 
-    // ── Details halaman 2 ────────────────────────────────────────────────────
-    $data['details2'] = DB::table('invoice_det')
-        ->leftJoin('article', 'article.article_code', 'invoice_det.article_code')
-        ->select('article.article_desc', DB::raw('sum(qty) as qty'), 'price', 'price_service')
-        ->where('invoice_number', $invNumber)
-        ->groupBy(['article.article_code', 'article.article_desc', 'price', 'price_service'])
-        ->orderBy('article.article_code')
-        ->offset($limits)
-        ->get();
+    // print.blade.php (kolom ganda) masih format 2 halaman
+    $data['details']  = $allDetails->slice(0, $limits)->values();
+    $data['details2'] = $allDetails->slice($limits)->values();
+
+    // printV2 (kolom tunggal): halaman dinamis. Halaman non-terakhir muat 36 baris,
+    // halaman terakhir (ada kotak Total) hanya muat 21 baris -> kalau sisa > 21,
+    // buat halaman penuh dulu. Totals selalu di halaman terakhir.
+    $lastPageCapacity = 21;
+    $pages = [];
+    if ($data['duaHalaman'] === 'no') {
+        $pages[] = $allDetails;
+    } else {
+        $rest = $allDetails;
+        while ($rest->count() > $lastPageCapacity) {
+            $pages[] = $rest->take($page1Capacity)->values();
+            $rest    = $rest->slice($page1Capacity)->values();
+        }
+        $pages[] = $rest;
+    }
+    $data['pages'] = $pages;
 
         
 

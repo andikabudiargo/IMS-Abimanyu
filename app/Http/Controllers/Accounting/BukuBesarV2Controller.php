@@ -427,6 +427,28 @@ class BukuBesarV2Controller extends Controller
         return $q;
     }
 
+    /**
+     * Kolom Reference: COA PPN diisi no faktur pajak, COA PPh diisi no bukti potong
+     * dari dokumen sumber (AP/INV/INV-DN, selain itu kas_hdr). Kosong -> reference asli.
+     * Dipakai juga oleh Buku Besar v1. $d = alias kas_det, $h = alias kas_hdr.
+     */
+    public static function referenceSql($d, $h)
+    {
+        // [kolom ap_invoice, kolom invoice_hdr/debit_note_hdr, fallback voucher lain]
+        $src = function ($apCol, $invCol, $kasCol) use ($h) {
+            return "case $h.voucher_type"
+                . " when 'AP' then (select $apCol from ap_invoice where ap_number = $h.voucher_number limit 1)"
+                . " when 'INV' then (select $invCol from invoice_hdr where invoice_number = $h.voucher_number limit 1)"
+                . " when 'INV-DN' then (select $invCol from debit_note_hdr where dn_number = $h.voucher_number limit 1)"
+                . " else $kasCol end";
+        };
+
+        return "case"
+            . " when $d.account in ('2000.14.1','1100.73') then coalesce(nullif(trim(" . $src('tax_inv_number', 'faktur_pajak', 'null') . "),''), $d.reference)"
+            . " when $d.account in ('2000.14.3','2000.14.6','1100.75') then coalesce(nullif(trim(" . $src('bukti_potong', 'bukti_potong', "$h.bukti_potong") . "),''), $d.reference)"
+            . " else $d.reference end";
+    }
+
     /** Mutasi bersih (debit - credit) per COA sejak GL_EPOCH s/d sehari sebelum $from. */
     private function priorMovements(array $codes, Request $request, $from)
     {
@@ -455,7 +477,7 @@ class BukuBesarV2Controller extends Controller
                 DB::raw("coalesce(nullif(depts.name,''),(select name from depts where code='007'),'-') as nama_dept"),
                 'd.account',
                 'accounts.description as nama_akun',
-                'd.reference',
+                DB::raw(self::referenceSql('d', 'h') . ' as reference'),
                 'd.voucher_number',
                 'h.id as kas_hdr_id',
                 'h.voucher_type',
