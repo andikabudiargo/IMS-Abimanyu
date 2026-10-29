@@ -405,7 +405,7 @@
       + '<td class="col-sticky1">TOTAL</td><td class="col-sticky2">' + rows.length + ' COA</td>'
       + '<td class="text-right">' + nf(tDebit) + '</td>'
       + '<td class="text-right">' + nf(tAvg) + '</td>'
-      + '<td></td>'
+      + '<td class="text-right">' + (actualSales > 0 ? round2(tDebit / actualSales * 100) : 0) + '%</td>'
       + '<td></td>'
       + '<td></td>'
       + '<td class="text-right">' + nf(tMonthly) + '</td>'

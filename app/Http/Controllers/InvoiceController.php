@@ -2101,7 +2101,11 @@ DB::raw("
     // dipakai kode ukuran font baris (font-size 10pt) di blade — kemungkinan besar angka itu
     // hasil uji coba print beneran, bukan angka sembarang. WAJIB dites print langsung kalau
     // ada invoice 23-24 baris: pastikan baris terakhir tidak ketutup kotak Total.
-    $onePageCapacity = 24;
+    // Samakan dengan $lastPageCapacity di bawah: box Total selalu ada di halaman
+    // yang sama saat 1 halaman, jadi kapasitasnya sama dengan halaman terakhir
+    // pada mode 2 halaman (21), bukan 24 - itu sebabnya invoice 22-24 baris
+    // kemarin baris terakhirnya ketutup kotak Total walau dianggap "muat 1 halaman".
+    $onePageCapacity = 21;
 
     // Kapasitas halaman 1 saat dipecah 2 halaman: box yang sama tapi TIDAK ketutup kotak
     // Total (kotak Total pindah ke halaman 2), jadi lebih longgar dan aman dipakai lebih
@@ -2142,7 +2146,7 @@ $limits = $data['duaHalaman'] === 'yes' ? $page1Capacity : $jumlahData;
     // printV2 (kolom tunggal): halaman dinamis. Halaman non-terakhir muat 36 baris,
     // halaman terakhir (ada kotak Total) hanya muat 21 baris -> kalau sisa > 21,
     // buat halaman penuh dulu. Totals selalu di halaman terakhir.
-    $lastPageCapacity = 21;
+    $lastPageCapacity = $onePageCapacity;
     $pages = [];
     if ($data['duaHalaman'] === 'no') {
         $pages[] = $allDetails;
