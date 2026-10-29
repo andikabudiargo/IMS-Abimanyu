@@ -939,7 +939,7 @@
 
         <li class="nav-item">
             <a class="d-flex align-items-center" href="javascript:void(0);">
-              <i data-feather="book"></i>
+              <i data-feather="link"></i>
               <span class="menu-title text-truncate" data-i18n="Form Elements">Tax
               </span>
             </a>
@@ -949,7 +949,7 @@
               <li class="{{ \Request::segment(1) == 'ppnPkEqualisasi' ? 'active' : '' }}">
                 <a class="d-flex align-items-center" href="{{ route('ppnPkEqualisasi.index') }}">
                   <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi PPn</span>
+                  <span class="menu-item text-truncate" data-i18n="Input">Unifikasi PPn</span>
                 </a>
               </li>
 
@@ -964,64 +964,6 @@
                 <a class="d-flex align-items-center" href="{{ route('unifikasiBps.index') }}">
                   <i data-feather="circle"></i>
                   <span class="menu-item text-truncate" data-i18n="Input">Unifikasi BPS</span>
-                </a>
-              </li>
-
-
-
-              <li>
-                <a class="d-flex align-items-center" href="#">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi PPn-PM</span>
-                </a>
-              </li>
-
-                <li>
-                <a class="d-flex align-items-center" href="#">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi Unifikasi PPh 23</span>
-                </a>
-              </li>
-
-               <li>
-                <a class="d-flex align-items-center" href="#">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi Unifikasi PPh 4(2)</span>
-                </a>
-              </li>
-
-               <li>
-                <a class="d-flex align-items-center" href="#">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi Unifikasi PPh 23 Customer</span>
-                </a>
-              </li>
-
-               <li>
-                <a class="d-flex align-items-center" href="#">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Equalisasi Unifikasi PPh 21 (Non Pegawai)</span>
-                </a>
-              </li>
-
-               <li>
-                <a class="d-flex align-items-center" href="#">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Normatif Entertainment</span>
-                </a>
-              </li>
-
-               <li>
-                <a class="d-flex align-items-center" href="#">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Normatif Promosi</span>
-                </a>
-              </li>
-
-               <li>
-                <a class="d-flex align-items-center" href="#">
-                  <i data-feather="circle"></i>
-                  <span class="menu-item text-truncate" data-i18n="Input">Badan Fiskal</span>
                 </a>
               </li>
 
