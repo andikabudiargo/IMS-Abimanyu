@@ -57,6 +57,29 @@ private function isAccountingUser()
         || $user->hasRole('Superuser');
 }
 
+// Guard TULIS: setelah finish (mapping.finish_time / sto_hdr.status != 1) hanya Leo/Superuser
+// yang boleh ubah hasil hitung. Return pesan tolak, atau null kalau boleh.
+private function writeLockMessage($mappingId, $hdrStatus = null)
+{
+    $m = DB::table('sto_config_mapping as m')
+        ->join('sto_config as h', 'h.config_id', '=', 'm.config_id')
+        ->where('m.mapping_id', $mappingId)
+        ->select('m.finish_time', 'm.sto_date', 'h.status as config_status')
+        ->first();
+
+    if (!$m) return 'Target STO tidak ditemukan.';
+    if ($m->config_status == 5) return 'STO ini sudah dibatalkan (CANCELED).';
+    if ($this->isAccountingUser()) return null; // Leo / Superuser: bebas, termasuk setelah finish
+    // counter hanya boleh input di tanggal STO-nya
+    if ($m->sto_date !== date('d-m-Y')) {
+        return "Hari ini bukan tanggal STO untuk target ini ({$m->sto_date}). Counter hanya bisa input di tanggal STO.";
+    }
+    if ($m->finish_time || ($hdrStatus !== null && $hdrStatus != 1)) {
+        return 'Target ini sudah selesai (finish). Perubahan hasil hitung hanya bisa dilakukan oleh Leo atau Superuser.';
+    }
+    return null;
+}
+
 // role 'accounting' saat INPUT baris baru diarahkan ke slot DB counter1
 private function dbRole($role)
 {
@@ -264,6 +287,10 @@ private function getTableColoumnAuditDetail()
         return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Header STO tidak ditemukan.'],'alert'=>'error']);
     }
 
+    if ($msg = $this->writeLockMessage($stoHdr->mapping_id, $stoHdr->status)) {
+        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$msg],'alert'=>'error']);
+    }
+
     $userId       = Auth::id();
     $isAccounting = $this->isAccountingUser();
 
@@ -286,6 +313,10 @@ private function getTableColoumnAuditDetail()
 
     if ($isManual && trim((string) $request->uom) === '') {
         return response()->json(['status'=>0,'title'=>'Warning','message'=>['UOM wajib diisi untuk artikel manual.'],'alert'=>'warning']);
+    }
+
+    if ($isManual && ($m->is_blind ?? true) && ($msg = $this->blockManualIfKnownArticle($m, $request->article_desc))) {
+        return response()->json(['status'=>0,'title'=>'Warning','message'=>[$msg],'alert'=>'warning']);
     }
 
     $lineLocationNumber = $m->target_type === 'LOCATION'
@@ -424,19 +455,8 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
             DB::raw("COALESCE(l.location_name, tp.nama, m.target_ref) as target_name")
         );
 
-        if (!$isAcct) {
-    $query->where(function ($q) use ($today) {
-        $q->where('m.sto_date', $today)      // tetap tampilkan yang hari ini
-          ->orWhereNull('m.finish_time');    // ATAU yang belum ditandai selesai (kapan pun tanggalnya)
-    })
-    ->where(function ($q) use ($userId) {
-        $q->where('m.counter1_user', $userId)
-          ->orWhere('m.counter2_user', $userId)
-          ->orWhere('m.counter3_user', $userId);
-    });
-}
-
     if (!$isAcct) {
+        // counter hanya boleh input di tanggal STO-nya
         $query->where('m.sto_date', $today)
               ->where(function ($q) use ($userId) {
                   $q->where('m.counter1_user', $userId)
@@ -969,10 +989,14 @@ public function auditListDetail(Request $request)
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$access['message']],'alert'=>'error']);
         }
  
+        if ($msg = $this->writeLockMessage($mappingId)) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$msg],'alert'=>'error']);
+        }
+
         $m      = $access['mapping'];
         $userId = Auth::id();
         $isAuto = $this->isAutoNumber($m->target_ref);
- 
+
         $locationNumber = $m->target_type === 'LOCATION'
             ? $m->target_ref
             : ($request->location_number ?: null);
@@ -990,9 +1014,9 @@ public function auditListDetail(Request $request)
             return response()->json(['status'=>0,'title'=>'Warning','message'=>[$msg],'alert'=>'warning']);
         }
 
-        //if ($qty <= 0) {
-          //  return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY harus lebih dari 0.'],'alert'=>'warning']);
-        //}
+        if ($qty < 0) {
+            return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY tidak boleh negatif.'],'alert'=>'warning']);
+        }
  
         $now = date('Y-m-d H:i:s');
  
@@ -1105,7 +1129,7 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
             ]);
         }
 
-        if ($existingDtl->hdr_status != 1) {
+        if ($existingDtl->hdr_status != 1 && !$this->isAccountingUser()) {
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Sheet artikel ini sudah dikunci.'],'alert'=>'error']);
         }
 
@@ -1200,6 +1224,10 @@ private function storeLineInline($mappingId, $m, $access, $userId, $locationNumb
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>['Nomor STO tidak ditemukan atau bukan milik target ini.'],'alert'=>'error']);
         }
 
+        if ($msg = $this->writeLockMessage($mappingId, $stoHdr->status)) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$msg],'alert'=>'error']);
+        }
+
         // ── cek max 7 baris per sheet ──
         $currentCount = DB::table('sto_dtl')->where('sto_id', $stoHdr->sto_id)->count();
         if ($currentCount >= 7) {
@@ -1282,6 +1310,10 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
         return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$access['message']],'alert'=>'error']);
     }
 
+    if ($msg = $this->writeLockMessage($mappingId)) {
+        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$msg],'alert'=>'error']);
+    }
+
     $m      = $access['mapping'];
     $userId = Auth::id();
     $lines  = $request->lines ?? [];
@@ -1289,7 +1321,8 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
     $dbRole = $this->dbRole($access['role']); // accounting → counter1
 
     $filled = array_filter($lines, function ($l) {
-    $hasArticle = !empty($l['article'] ?? $l['article_desc'] ?? '');
+    // '' (artikel manual) tidak boleh menutupi article_desc — makanya dua cek terpisah, bukan ??
+    $hasArticle = !empty($l['article'] ?? null) || !empty($l['article_desc'] ?? null);
     $qtyRaw     = $l['qty'] ?? null;
     // qty dianggap "diisi" kalau bukan null/string kosong — 0 tetap valid,
     // bukan lagi ditandai "tidak diisi" seperti sebelumnya (>0).
@@ -1308,6 +1341,12 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
         $selectedNo = (int) $request->selected_number;
         if (!$selectedNo) {
             return response()->json(['status'=>0,'title'=>'Warning','message'=>['Pilih Nomor STO terlebih dahulu.'],'alert'=>'warning']);
+        }
+    }
+
+    foreach ($filled as $l) {
+        if ((float) str_replace(',', '', $l['qty']) < 0) {
+            return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY tidak boleh negatif.'],'alert'=>'warning']);
         }
     }
 
@@ -1343,6 +1382,19 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
 
     return DB::transaction(function () use ($mappingId, $m, $access, $userId, $filled, $isAuto, $selectedNo, $dbRole) {
         $now = date('Y-m-d H:i:s');
+
+        // Cek duplikat ulang SETELAH mapping terkunci — cek di atas jalan tanpa lock,
+        // dua submit bersamaan (lokasi auto-number) bisa sama-sama lolos.
+        DB::table('sto_config_mapping')->where('mapping_id', $mappingId)->lockForUpdate()->first();
+        foreach ($filled as $l) {
+            $isManualLine = filter_var($l['is_manual'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $articleLine  = $isManualLine ? null : ($l['article'] ?? null);
+            $descLine     = $l['article_desc'] ?? '';
+            $lineLoc      = $m->target_type === 'LOCATION' ? $m->target_ref : ($l['location_number'] ?? null);
+            if ($this->isDuplicateArticle($m, $mappingId, null, $articleLine, $isManualLine, $descLine, $lineLoc)) {
+                return response()->json(['status'=>0,'title'=>'Warning','message'=>[$this->duplicateArticleMessage($m, $articleLine ?: $descLine)],'alert'=>'warning']);
+            }
+        }
 
         if ($isAuto) {
             $stoNumber = $this->generateStoNumber($mappingId);
@@ -1650,7 +1702,14 @@ private function resolveTolerancePercent($targetPlanLoc)
 
     $now    = date('Y-m-d H:i:s');
     $stoHdr = DB::table('sto_hdr')->where('sto_id', $dtl->sto_id)->first();
+
+    if ($stoHdr && ($msg = $this->writeLockMessage($stoHdr->mapping_id, $stoHdr->status))) {
+        return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$msg],'alert'=>'error']);
+    }
     $m      = $stoHdr ? DB::table('sto_config_mapping')->where('mapping_id', $stoHdr->mapping_id)->first() : null; // ← tambah
+
+    // satu transaksi: delete dtl/hdr + turunkan no_current + sync status tidak boleh setengah jadi
+    return DB::transaction(function () use ($dtl, $dtlId, $role, $isAccounting, $stoHdr, $m, $now) {
 
     // Leo: paksa hapus SATU BARIS PENUH — semua qty 3 counter ikut hilang
     $forceWholeDelete = $isAccounting;
@@ -1772,6 +1831,7 @@ $dtl = DB::table('sto_dtl')->where('dtl_id', $dtlId)->first();
             'location_name'  => $this->resolveLocationName($dtl->location_number),
         ],
     ]);
+    });
 }
  
     // ══════════════════════════════════════════════
@@ -2220,6 +2280,10 @@ private function withinTolerance($counted, $qtySystem, $tolerance)
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$access['message']],'alert'=>'error']);
         }
 
+        if ($msg = $this->writeLockMessage($mappingId)) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$msg],'alert'=>'error']);
+        }
+
         // race condition guard: kunci baris mapping supaya dua klik Finish (atau
         // klik Finish bersamaan dengan Simpan & Selesaikan phantom) tidak dobel-proses.
         return DB::transaction(function () use ($mappingId, $access) {
@@ -2321,9 +2385,18 @@ private function withinTolerance($counted, $qtySystem, $tolerance)
             return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$access['message']],'alert'=>'error']);
         }
 
+        if ($msg = $this->writeLockMessage($mappingId)) {
+            return response()->json(['status'=>0,'title'=>'Ditolak','message'=>[$msg],'alert'=>'error']);
+        }
+
         $lines = $request->lines ?? [];
         if (empty($lines)) {
             return response()->json(['status'=>0,'title'=>'Warning','message'=>['Tidak ada artikel untuk disimpan.'],'alert'=>'warning']);
+        }
+        foreach ($lines as $l) {
+            if (isset($l['qty']) && $l['qty'] !== '' && (float) str_replace(',', '', $l['qty']) < 0) {
+                return response()->json(['status'=>0,'title'=>'Warning','message'=>['QTY tidak boleh negatif.'],'alert'=>'warning']);
+            }
         }
 
         return DB::transaction(function () use ($mappingId, $access, $lines) {

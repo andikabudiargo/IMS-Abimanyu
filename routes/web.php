@@ -43,20 +43,8 @@ Route::get('/monitoring', function () {
     $output   = Artisan::output();
 
     return response("<pre>{$output}</pre>Exit code: {$exitCode}");
-});
+})->middleware('auth');
 	
-Route::get('/tmp-recalc-sto-phantom', function () {
-    $configs = DB::table('sto_config')->where('status', '!=', 5)->pluck('config_id');
-    $ctrl = app(App\Http\Controllers\StockTakingOrderController::class);
-
-    foreach ($configs as $configId) {
-        $ctrl->recalcTargetAct($configId);
-        echo "Config $configId done<br>";
-    }
-
-    echo "Selesai.";
-});
-
 // Route::auth();
 Auth::routes();
 Route::group( ['middleware' => ['auth']], function() {

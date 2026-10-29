@@ -705,6 +705,26 @@ if (is_array($mappings)) {
             $pesan[] = "Baris $rowNo: target sudah punya progress counting, tipe/targetnya tidak bisa diubah.";
             $flag = 1;
         }
+
+        // STO Date & mode blind menentukan qty_system / count_status baris yang sudah
+        // diinput — ganti di tengah jalan bikin status lama basi.
+        if (in_array($oldKey, $progressCombos)) {
+            $rowNo = $i + 1;
+            if (($m['sto_date'] ?? null) !== $old->sto_date) {
+                $pesan[] = "Baris $rowNo: target sudah punya progress counting, STO Date tidak bisa diubah.";
+                $flag = 1;
+            }
+            if (filter_var($m['is_blind'] ?? true, FILTER_VALIDATE_BOOLEAN) !== (bool) $old->is_blind) {
+                $pesan[] = "Baris $rowNo: target sudah punya progress counting, mode Blind tidak bisa diubah.";
+                $flag = 1;
+            }
+            $maxUsedNo = DB::table('sto_hdr')->where('mapping_id', $mappingId)->pluck('sto_number')
+                ->map(fn($n) => (int) last(explode('/', $n)))->max();
+            if ($maxUsedNo && (int) ($m['no_sampai'] ?? 0) < $maxUsedNo) {
+                $pesan[] = "Baris $rowNo: No. Sampai tidak boleh di bawah nomor STO yang sudah terpakai ($maxUsedNo).";
+                $flag = 1;
+            }
+        }
     }
 }
 

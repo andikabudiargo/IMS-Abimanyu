@@ -566,6 +566,12 @@ class StockAdjustmentController extends Controller
         if ($err = AppHelpers::lockGuard($this->moduleCode, $hdr->adj_date)) {
             return $this->fail("Update {$this->title}", [$err]);
         }
+        // tanggal tujuan juga dicek — jangan bisa dipindah ke periode yang terkunci
+        $newAdjDate = $this->normalizeAdjDate($request->adjType, $request->adjDate, $request->periode);
+        if ($newAdjDate && $newAdjDate !== $hdr->adj_date
+            && ($err = AppHelpers::lockGuard($this->moduleCode, $newAdjDate))) {
+            return $this->fail("Update {$this->title}", [$err]);
+        }
 
         return in_array($hdr->status, self::ST_LIVE, true)
             ? $this->reviseDocument($request, $hdr)
@@ -740,6 +746,11 @@ class StockAdjustmentController extends Controller
         if ($hdr->status === self::ST_POSTED)   return $this->backWarn($title, 'Data sudah diposting.');
         if ($hdr->status === self::ST_CANCELED) return $this->backWarn($title, 'Data sudah CANCELED.');
 
+        // === Lock Transaction guard: activity + periode ===
+        if ($err = AppHelpers::lockGuard($this->moduleCode, $hdr->adj_date)) {
+            return $this->backWarn($title, $err);
+        }
+
         return $hdr->status === self::ST_REVISED
             ? $this->postRevision($hdr, $username)
             : $this->postFresh($hdr, $username);
@@ -796,6 +807,9 @@ class StockAdjustmentController extends Controller
                 'updated_at'    => date('Y-m-d H:i:s'),
             ]);
 
+            // Backdate: last_qty movement sesudah adjDate ikut basi.
+            $this->recalcLastQty($details->pluck('article_code')->all(), $hdr->location_code);
+
             DB::commit();
 
             $message = "{$title} {$hdr->adj_code} berhasil diposting.";
@@ -851,6 +865,17 @@ class StockAdjustmentController extends Controller
             $movSeq  = (int) DB::table('warehouse_movement')->max('movement_code');
             $applied = 0;
 
+            // Tanggal yang dipakai waktu posting sebelumnya (movement belum di-sync).
+            // Revisi bisa memindah adj_date melewati floor: efek lama & baru ke
+            // article_qty harus dinilai dengan tanggalnya masing-masing.
+            $oldMovDate = DB::table('warehouse_movement')
+                ->where('movement_transnno', $adjCode)
+                ->where('movement_type', self::MV_ADJUSTMENT)
+                ->value('movement_date') ?? $hdr->adj_date;
+            $isOb         = $hdr->adj_type === 'OPENING BALANCE';
+            $oldSkipStock = !$isOb && $this->isBeforeStockFloor((string) $oldMovDate);
+            $newSkipStock = !$isOb && $this->isBeforeStockFloor((string) $hdr->adj_date);
+
             foreach ($codes as $code) {
                 $new = $newDets->get($code);
 
@@ -888,16 +913,15 @@ class StockAdjustmentController extends Controller
                     $newSigned = $this->signedQty($new);
                 }
 
-                $delta = $newSigned - $oldSigned;
-
                 // OPENING BALANCE sengaja TIDAK kena floor -- itu titik reset
                 // ledger-nya sendiri (lihat catatan di applyAdjustmentToStock()).
                 // SYSTEM CORRECTION dkk mengikuti floor yang sama dengan modul
                 // lain: backdate <= 2026-06-30 tidak boleh menyentuh article_qty.
-                $skipStockTouch = $hdr->adj_type !== 'OPENING BALANCE'
-                    && $this->isBeforeStockFloor((string) $hdr->adj_date);
+                // Yang dulu tidak menyentuh stok tidak perlu dibalik; yang baru
+                // di bawah floor tidak diterapkan.
+                $delta = ($newSkipStock ? 0 : $newSigned) - ($oldSkipStock ? 0 : $oldSigned);
 
-                if (abs($delta) > self::EPSILON && !$skipStockTouch) {
+                if (abs($delta) > self::EPSILON) {
                     $this->ensureStockRow($code, $location, $new);
                     DB::table('warehouse_stock')
                         ->where('site_code', $this->siteCode)
