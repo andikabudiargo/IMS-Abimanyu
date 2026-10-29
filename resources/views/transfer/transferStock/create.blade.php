@@ -126,7 +126,7 @@
                                 </div>
                             </div>
                             <div class="col-lg-6 col-md-12">
-                                <a href="{{ route('transferOut.export.excel') }}" class="btn btn-light"><i class="fa fa-download"></i> Downlod Template</a>
+                                <a href="{{ route('transferStock.export.excel') }}" class="btn btn-light"><i class="fa fa-download"></i> Downlod Template</a>
                                 <button type="button" class="btn btn-primary" id="uploadExcel" disabled>
                                     <i data-feather="upload" class="align-middle mr-sm-25 mr-0"></i>
                                     <span class="align-middle d-sm-inline-block d-none" >Upload Excel</span>
@@ -372,7 +372,7 @@
 
         if ($('#file').val()) {
             $.ajax({
-                url: "{{ route('transferOut.import.excel') }}",
+                url: "{{ route('transferStock.import.excel') }}",
                 method: "POST",
                 data: new FormData(this),
                 dataType: "json",

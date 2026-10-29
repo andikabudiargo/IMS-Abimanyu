@@ -15,8 +15,8 @@ namespace App\Http\Controllers;
     use AppHelpers;
     use Approval;
     use Excel;
-    use App\Imports\TransferOutImport;
-    use App\Exports\TransferOutExport;
+    use App\Imports\TransferStockImport;
+    use App\Exports\TransferStockExport;
     use App\Traits\HasChemicalLotLocations;
 
         /*
@@ -2309,7 +2309,7 @@ return $pdf->stream("$trNumber.pdf");
                 $data['filename']=$namaFile;
                 db::table('import_stock_take_tmp')->delete();
 
-                Excel::import(new TransferOutImport($data), $file);
+                Excel::import(new TransferStockImport($data), $file);
 
                 $dataValidasi = DB::table('import_stock_take_tmp')
                 ->leftJoin('article','article.article_alternative_code','import_stock_take_tmp.article_code')
@@ -2317,8 +2317,7 @@ return $pdf->stream("$trNumber.pdf");
                 ,'import_stock_take_tmp.qty'
                 ,DB::RAW("concat(
                     case when import_stock_take_tmp.qty::text ~ '^[0-9.]+$' = false then concat('Urutan ',row_number() over(),': Qty salah - ',qty) end,
-                    case when article.article_code is null then concat('Urutan ',row_number() over(),': Article Code:',import_stock_take_tmp.article_code, ' tidak terdaftar') end,
-                    case when (select location_code from goods_location_master a where a.location_code = import_stock_take_tmp.location_code) is null then concat('Urutan ',row_number() over(),': Location Code:',import_stock_take_tmp.location_code, ' tidak terdaftar') end
+                    case when article.article_code is null then concat('Urutan ',row_number() over(),': Article Code:',import_stock_take_tmp.article_code, ' tidak terdaftar') end
                     ) as notes")
                 )
                 ->where('file_name', $namaFile)
@@ -2371,7 +2370,7 @@ return $pdf->stream("$trNumber.pdf");
 
             public function export()
             {
-                return Excel::download(new TransferOutExport, 'transfer_out_template.xls');
+                return Excel::download(new TransferStockExport, 'transfer_stock_template.xls');
             }
 
 

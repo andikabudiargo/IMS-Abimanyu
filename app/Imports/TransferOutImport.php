@@ -37,6 +37,10 @@ class ArticleSheetImport implements ToModel, WithStartRow, WithHeadingRow
 
     public function model(array $row)
     {
+        if (empty($row['article_code']) && empty($row['location_code']) && empty($row['qty'])) {
+            return null;
+        }
+
         return new ImportStake([
             'file_name'      => $this->data['filename'],
             'article_code'   => $row['article_code'],

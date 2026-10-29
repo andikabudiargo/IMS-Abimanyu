@@ -1004,6 +1004,8 @@ Route::post('location/delete',       'LocationController@destroy')->name('locati
 	Route::get('transferStock/print',['as'=>'transferStock.print','uses'=>'TransferStockController@print']);
 	Route::post('transferStock/delete',['as'=>'transferStock.destroy','uses'=>'TransferStockController@destroy']);
 	Route::post('transferStock/cancel',['as'=>'transferStock.cancel','uses'=>'TransferStockController@cancel']);
+	Route::post('transferStock/import-excel',['as'=>'transferStock.import.excel','uses'=>'TransferStockController@importExcel']);
+	Route::get('transferStock/export-excel',['as'=>'transferStock.export.excel','uses'=>'TransferStockController@export']);
 	// ── FG Target ──────────────────────────────────────────────────────────────
 Route::get('transferStock/check-location-type',['as'=>'transferStock.checkLocationType','uses'=>'TransferStockController@checkLocationType']);
 Route::get('transferStock/article-by-location',['as'=>'transferStock.articleByLocation','uses'=>'TransferStockController@articleByLocation']);

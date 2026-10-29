@@ -118,7 +118,7 @@
                                 </div>
                             </div>
                             <div class="col-lg-6 col-md-12">
-                                <a href="{{ route('transferOut.export.excel') }}" class="btn btn-light">
+                                <a href="{{ route('transferStock.export.excel') }}" class="btn btn-light">
                                     <i class="fa fa-download"></i> Download Template
                                 </a>
                                 <button type="button" class="btn btn-primary" id="uploadExcel">
