@@ -47,6 +47,7 @@ Route::middleware(['auth:sanctum','active'])->prefix('sto')->group(function () {
     Route::put('/count/line/{dtlId}',      [StoCountController::class, 'updateLine']);
     Route::delete('/count/line/{dtlId}',   [StoCountController::class, 'deleteLine']);
     Route::post('/count/finish',           [StoCountController::class, 'finish']);
+    Route::post('/count/fill-phantoms-and-finish', [StoCountController::class, 'fillPhantomsAndFinish']);
 });
 
 Route::middleware(['auth:sanctum','active'])->prefix('stock')->group(function () {

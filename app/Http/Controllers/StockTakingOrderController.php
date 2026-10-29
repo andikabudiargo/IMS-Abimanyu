@@ -463,10 +463,10 @@ if (!empty($m['counter3']) && !empty($m['counter2']) && $m['counter2'] == $m['co
     'target_ref'      => $m['target_ref'],
     'location_number' => $ttype === 'LOCATION' ? $m['target_ref'] : null,
     'sto_date'        => $m['sto_date'],
-    'no_dari'         => $m['no_dari'],       // ← tambah
-    'no_sampai'       => $m['no_sampai'],     // ← tambah
+    'no_dari'         => $m['no_dari'] ?? 1,       // ← tambah
+    'no_sampai'       => $m['no_sampai'] ?? 9999,  // ← tambah
     'finish_time'     => null,
-    'counter1_user'   => $m['counter1'],
+    'counter1_user'   => $m['counter1'] ?? null,
     'counter2_user'   => !empty($m['counter2']) ? $m['counter2'] : null,
     'counter3_user'   => !empty($m['counter3']) ? $m['counter3'] : null,
 'is_blind'        => filter_var($m['is_blind'] ?? true, FILTER_VALIDATE_BOOLEAN),
@@ -781,9 +781,9 @@ foreach ($mappings as $m) {
         'target_ref'      => $m['target_ref'],
         'location_number' => $ttype === 'LOCATION' ? $m['target_ref'] : null,
         'sto_date'        => $m['sto_date'],
-        'no_dari'         => $m['no_dari'],
-        'no_sampai'       => $m['no_sampai'],
-        'counter1_user'   => $m['counter1'],
+        'no_dari'         => $m['no_dari'] ?? 1,
+        'no_sampai'       => $m['no_sampai'] ?? 9999,
+        'counter1_user'   => $m['counter1'] ?? null,
         'counter2_user'   => !empty($m['counter2']) ? $m['counter2'] : null,
         'counter3_user'   => !empty($m['counter3']) ? $m['counter3'] : null,
         'is_blind'        => filter_var($m['is_blind'] ?? true, FILTER_VALIDATE_BOOLEAN),

@@ -787,12 +787,14 @@ class StockAdjustmentController extends Controller
 
             $this->lockStockRows($details->pluck('article_code')->all(), $hdr->location_code);
 
-            $movementSeq = (int) DB::table('warehouse_movement')->max('movement_code');
-            $rows        = [];
+            $rows = [];
 
+            // nextMovementCode() dipanggil PER BARIS -- tiap panggilan nextval()
+            // sudah pasti unik & reserved. Nge-increment di PHP sesudah cuma
+            // panggil sekali (gaya lama) membuat nomor ke-2 dst TIDAK direserve
+            // sequence, jadi tetap bisa tabrakan dengan transaksi lain.
             foreach ($details as $val) {
-                $movementSeq++;
-                $rows[] = $this->applyAdjustmentToStock($val, $hdr, $adjDateYmd, $username, $movementSeq);
+                $rows[] = $this->applyAdjustmentToStock($val, $hdr, $adjDateYmd, $username, $this->nextMovementCode());
             }
 
             DB::table('warehouse_movement')->insert($rows);
@@ -862,7 +864,6 @@ class StockAdjustmentController extends Controller
 
             $this->lockStockRows($codes->all(), $location);
 
-            $movSeq  = (int) DB::table('warehouse_movement')->max('movement_code');
             $applied = 0;
 
             // Tanggal yang dipakai waktu posting sebelumnya (movement belum di-sync).
@@ -931,7 +932,7 @@ class StockAdjustmentController extends Controller
                     $applied++;
                 }
 
-                $movSeq = $this->syncMovementRow($code, $new, $newSigned, $hdr, $username, $movSeq);
+                $this->syncMovementRow($code, $new, $newSigned, $hdr, $username);
             }
 
             DB::table('stock_adjustment_hdr')->where('id', $hdr->id)->update([
@@ -1047,21 +1048,24 @@ class StockAdjustmentController extends Controller
                     'article_qty' => DB::raw("coalesce(article_qty,0) + {$qty}"),
                     'avg_price'   => $avgBaru,
                 ]);
+
+                // Rata-rata cost cuma bergerak waktu stok BERTAMBAH. Mengurangi
+                // stok (arah '-') tidak mengubah avg cost -- jadi article.avgcost
+                // tidak disentuh di cabang itu (dulu salah ikut ditimpa $avgCost form).
+                if ($avgCost > 0) {
+                    DB::table('article')->where('article_code', $val->article_code)->update([
+                        'lastcost'   => $avgCost,
+                        'avgcost'    => $avgBaru,
+                        'updated_by' => $username,
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
+                }
             }
         } else {
             if (!$skipStockTouch) {
                 $stockQ()->update(['article_qty' => DB::raw("coalesce(article_qty,0) - {$qty}")]);
             }
             [$movMin, $movPlus] = [$qty, 0];
-        }
-
-        if ($avgCost > 0) {
-            DB::table('article')->where('article_code', $val->article_code)->update([
-                'lastcost'   => $avgCost,
-                'avgcost'    => $avgCost,
-                'updated_by' => $username,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
         }
 
         return [
@@ -1092,11 +1096,10 @@ class StockAdjustmentController extends Controller
 
     /**
      * Update / insert / delete satu baris warehouse_movement milik dokumen ini.
-     * Return movementSeq terbaru (naik hanya kalau ada insert).
      */
     private function syncMovementRow(
-        string $code, ?object $new, float $newSigned, object $hdr, string $username, int $movSeq
-    ): int {
+        string $code, ?object $new, float $newSigned, object $hdr, string $username
+    ): void {
         $location = $hdr->location_code;
 
         $mov = fn() => DB::table('warehouse_movement')
@@ -1107,7 +1110,7 @@ class StockAdjustmentController extends Controller
         // Artikel dibuang dari dokumen → baris movement-nya ikut hilang.
         if (!$new) {
             $mov()->delete();
-            return $movSeq;
+            return;
         }
 
         $revNo = (int) ($hdr->rev_no ?? 0);
@@ -1132,12 +1135,11 @@ class StockAdjustmentController extends Controller
 
         if ($mov()->exists()) {
             $mov()->update($payload);
-            return $movSeq;
+            return;
         }
 
-        $movSeq++;
         DB::table('warehouse_movement')->insert($payload + [
-            'movement_code'     => $movSeq,
+            'movement_code'     => $this->nextMovementCode(),
             'artikel_code'      => $code,
             'movement_transnno' => $hdr->adj_code,
             'movement_type'     => self::MV_ADJUSTMENT,
@@ -1148,8 +1150,6 @@ class StockAdjustmentController extends Controller
             'created_at'        => date('Y-m-d H:i:s'),
             'last_qty'          => 0,   // diisi ulang oleh recalcLastQty()
         ]);
-
-        return $movSeq;
     }
 
     // =========================================================================
@@ -1826,6 +1826,23 @@ class StockAdjustmentController extends Controller
      * Kunci baris stok sebelum dimutasi — mencegah race dengan posting DN /
      * transfer lain yang menyentuh artikel+lokasi sama di tengah transaksi.
      */
+    /**
+     * movement_code SEKARANG diambil dari sequence warehouse_movement_code_seq
+     * (lihat database/sql/add_sequence_for_warehouse_movement_code.sql) --
+     * nextval() atomik di level database, jadi dua posting Adjustment yang
+     * bersamaan tidak mungkin lagi dapat nomor yang sama.
+     *
+     * ponytail: 12 controller lain (Transfer, Receiving, dkk) masih pakai pola
+     * lama max(movement_code)+1 tanpa lock. Mereka TIDAK otomatis ikut aman --
+     * sequence ini baru menutup race lintas-modul kalau semuanya dimigrasikan
+     * ke nextval() yang sama. Upgrade itu kalau movement_code harus benar2 unik
+     * lintas modul, bukan cuma lintas-dokumen Adjustment.
+     */
+    private function nextMovementCode(): int
+    {
+        return (int) DB::selectOne("SELECT nextval('warehouse_movement_code_seq') AS v")->v;
+    }
+
     private function lockStockRows(array $articleCodes, string $location): void
     {
         if (empty($articleCodes)) return;

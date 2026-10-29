@@ -841,6 +841,9 @@ class StoReportController extends Controller
     {
         if (preg_match('/^(\d{4})-(\d{2})/', $periode, $m)) return [(int) $m[1], (int) $m[2]];
         if (preg_match('/^(\d{2})-(\d{4})/', $periode, $m)) return [(int) $m[2], (int) $m[1]];
+        // Format periode tidak dikenali -- jangan diam-diam pakai bulan berjalan,
+        // itu bikin laporan tampil "benar" tapi untuk periode yang salah.
+        \Log::warning("StoReport: periode tidak dikenali formatnya: " . var_export($periode, true));
         return [(int) date('Y'), (int) date('n')];
     }
 

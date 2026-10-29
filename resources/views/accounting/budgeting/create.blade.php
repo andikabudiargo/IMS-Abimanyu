@@ -36,6 +36,7 @@
           <label class="form-label" for="dept">Department <span class="text-danger">*</span></label>
           <select class="select2 form-control" id="dept" data-placeholder="Pilih department">
             <option value=""></option>
+            <option value="ALL">ALL DEPARTMENT</option>
             @foreach($depts as $val)
               <option value="{{ $val->code }}">{{ $val->name }}</option>
             @endforeach
@@ -143,6 +144,8 @@
   #bgTable { table-layout:auto; }
   #bgTable th, #bgTable td { white-space:nowrap; vertical-align:middle; padding:.6rem .9rem; }
   #bgTable thead th { position:sticky; top:0; z-index:3; background:#f3f2f7; box-shadow:inset 0 -1px 0 #dee2e6; }
+  #bgTable tbody tr.bg-deptrow { cursor:pointer; }
+  #bgTable tbody tr.bg-deptrow > td { background:#e9ecef; font-weight:700; border-top:2px solid #9ca3af; }
   #bgTable tbody tr.bg-group > td { background:#e9ecef; color:#1f2937; font-weight:700; border-top:2px solid #9ca3af; }
   .bg-acc { font-weight:600; color:#1f3a5f; }
   #bgTable th.col-cr, #bgTable td.col-cr { min-width:120px; }
@@ -198,6 +201,7 @@
   let rows = [];
   let months = [];
   let deptCode = '';
+  let allMode = false, openDepts = {};
   let actualSales = 0;
   let previousRange = null, budgetRange = null;
 
@@ -248,6 +252,8 @@
       previous: $('#previous').val(), budget: $('#budget').val(), dept: dept, coa: $('#coa').val()
     }).done(function (res) {
       deptCode = dept;
+      allMode = !!res.all;
+      openDepts = {};
       months = res.months;
       actualSales = res.actual_sales || 0;
       rows = res.rows.map(function (r) {
@@ -313,7 +319,19 @@
     }
     rows.forEach(function (r, ri) {
       const dis = r.is_unbudget ? 'disabled' : '';
-      html += '<tr class="bg-row' + (r.is_unbudget ? ' bg-row-unbudget' : '') + '" data-r="' + ri + '">'
+      // All Dept: baris total dept (klik untuk expand/collapse COA-nya) sebelum COA pertama dept itu.
+      if (allMode && (ri === 0 || rows[ri - 1].dept !== r.dept)) {
+        html += '<tr class="bg-deptrow" data-dept="' + esc(r.dept) + '">'
+              + '<td class="col-sticky0 text-center"><span class="bg-caret">' + (openDepts[r.dept] ? '&#9662;' : '&#9656;') + '</span></td>'
+              + '<td class="col-stickyT"></td><td class="col-sticky1">' + esc(r.dept) + '</td><td class="col-sticky2"><span class="g-name"></span></td>'
+              + '<td class="text-right g-debit"></td><td class="text-right g-avg"></td><td class="text-right g-sales"></td>'
+              + '<td class="text-right g-inflasi"></td><td class="text-right g-cr"></td><td class="text-right g-monthly"></td>'
+              + '<td class="text-right g-add"></td><td class="text-right g-final"></td>';
+        months.forEach((m) => html += '<td class="text-right g-real" data-m="' + m + '"></td>');
+        html += '<td class="text-right g-total"></td><td class="text-right g-selisih"></td><td class="text-right g-pct"></td></tr>';
+      }
+      const hide = allMode && !openDepts[r.dept] ? ' style="display:none"' : '';
+      html += '<tr class="bg-row' + (r.is_unbudget ? ' bg-row-unbudget' : '') + '" data-r="' + ri + '" data-dept="' + esc(r.dept) + '"' + hide + '>'
             + '<td class="col-sticky0"><input type="checkbox" class="bg-unbudget" ' + (r.is_unbudget ? 'checked' : '') + '></td>'
             + '<td class="col-stickyT"><select class="form-control form-control-sm bg-type">'
             + '<option value="OPEX"' + (r.budget_type === 'CAPEX' ? '' : ' selected') + '>OPEX</option>'
@@ -335,8 +353,42 @@
     });
     $('#bg-body').html(html);
     rows.forEach((r, ri) => paintRow(ri));
+    paintGroups();
     renderFooter();
   }
+
+  // Isi baris total per dept (All Dept): jumlah dari COA dept itu, Inflasi/CR = rata-rata.
+  function paintGroups() {
+    if (!allMode) return;
+    $('#bg-body tr.bg-deptrow').each(function () {
+      const d = String($(this).data('dept'));
+      const gr = rows.filter((r) => String(r.dept) === d);
+      const act = gr.filter((r) => !r.is_unbudget);
+      const sum = (arr, f) => arr.reduce((s, r) => s + (f(r) || 0), 0);
+      const debit = sum(gr, (r) => r.debit), fin = sum(act, (r) => r.final_budget), real = sum(act, (r) => r.realisasi_total);
+      const selisih = round2(fin - real), pct = fin > 0 ? round2(real / fin * 100) : (real > 0 ? -100 : 0);
+      const cls = selisih >= 0 ? 'bg-pos' : 'bg-neg';
+      $(this).find('.g-name').text(gr[0].dept_name + ' (' + gr.length + ' COA)');
+      $(this).find('.g-debit').text(nf(debit));
+      $(this).find('.g-avg').text(nf(sum(gr, (r) => r.average)));
+      $(this).find('.g-sales').text((actualSales > 0 ? round2(debit / actualSales * 100) : 0) + '%');
+      $(this).find('.g-inflasi').text(round2(sum(gr, (r) => r.inflation) / gr.length) + '%');
+      $(this).find('.g-cr').text(round2(sum(gr, (r) => r.cost_reduction) / gr.length) + '%');
+      $(this).find('.g-monthly').text(nf(months.length ? fin / months.length : 0));
+      $(this).find('.g-add').text(nf(sum(gr, (r) => r.additional_budget)));
+      $(this).find('.g-final').text(nf(fin));
+      $(this).find('.g-real').each(function () { $(this).text(nf(sum(act, (r) => r.realisasi[$(this).data('m')]))); });
+      $(this).find('.g-total').text(nf(real));
+      $(this).find('.g-selisih').text(nf(selisih)).removeClass('bg-pos bg-neg').addClass(cls);
+      $(this).find('.g-pct').text(pct + '%').removeClass('bg-pos bg-neg').addClass(cls);
+    });
+  }
+  $('#bg-body').on('click', 'tr.bg-deptrow', function () {
+    const d = String($(this).data('dept'));
+    openDepts[d] = !openDepts[d];
+    $('#bg-body tr.bg-row').filter(function () { return String($(this).data('dept')) === d; }).toggle(openDepts[d]);
+    $(this).find('.bg-caret').html(openDepts[d] ? '&#9662;' : '&#9656;');
+  });
 
   function renderFooter() {
     const tDebit = rows.reduce((s, r) => s + r.debit, 0);
@@ -393,12 +445,12 @@
   $('#bg-body').on('click', '.bg-debit', function () {
     const r = rows[$(this).closest('tr').data('r')];
     const [pf, pt] = previousFromTo();
-    openBgTxModal(deptCode, r.account, pf, pt, r.account + ' - Previous Period');
+    openBgTxModal(r.dept || deptCode, r.account, pf, pt, r.account + ' - Previous Period');
   });
   $('#bg-body').on('click', '.bg-real', function () {
     const r = rows[$(this).closest('tr').data('r')];
     const m = $(this).data('m');
-    openBgTxModal(deptCode, r.account, ymToDate(m, false), ymToDate(m, true), r.account + ' - ' + monthLabel(m));
+    openBgTxModal(r.dept || deptCode, r.account, ymToDate(m, false), ymToDate(m, true), r.account + ' - ' + monthLabel(m));
   });
 
   function previousFromTo() {
@@ -416,6 +468,7 @@
     recomputeBudget(r);
     $(this).closest('tr').find('.bg-final').val(nf(r.final_budget));
     paintRow(ri);
+    paintGroups();
     paintCards(computeCards());
     renderFooter();
   });
@@ -427,6 +480,7 @@
     recomputeBudget(r);
     $(this).closest('tr').find('.bg-final').val(nf(r.final_budget));
     paintRow(ri);
+    paintGroups();
     paintCards(computeCards());
     renderFooter();
   });
@@ -470,6 +524,7 @@
     if (v !== null) r.final_budget = v;
     this.value = nf(r.final_budget);
     paintRow(ri);
+    paintGroups();
     paintCards(computeCards());
   });
   $('#bg-body').on('focus', '.bg-additional', function () {
@@ -483,6 +538,7 @@
     const v = parseId(this.value);
     r.additional_budget = v !== null ? v : 0;
     this.value = nf(r.additional_budget);
+    paintGroups();
   });
   $('#bg-body').on('keydown', '.bg-final, .bg-cr, .bg-additional, .bg-inflasi', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); this.blur(); }
@@ -506,7 +562,7 @@
     if (!rows.length) { toast('warning', 'Tidak ada data untuk disimpan.'); return; }
     if (!$('#description').val().trim()) { toast('warning', 'Description wajib diisi.'); return; }
 
-    const payload = rows.map((r) => ({ account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget, budget_type: r.budget_type }));
+    const payload = rows.map((r) => ({ dept: r.dept, account: r.account, cost_reduction: r.cost_reduction, inflation: r.inflation, final_budget: r.final_budget, additional_budget: r.additional_budget, is_unbudget: r.is_unbudget, budget_type: r.budget_type }));
     $('.loading-spinner-container').addClass('-show');
 
     $.ajax({

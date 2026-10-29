@@ -273,6 +273,11 @@ public function articleByBarcode(Request $request)
         return $this->web()->deleteLine($request, $dtlId);
     }
 
+    public function fillPhantomsAndFinish(Request $request)
+    {
+        return $this->web()->fillPhantomsAndFinish($request);
+    }
+
     public function finish(Request $request)
     {
         return $this->web()->finish($request);

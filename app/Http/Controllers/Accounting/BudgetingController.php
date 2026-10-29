@@ -244,15 +244,34 @@ class BudgetingController extends Controller
         $coas = array_values(array_filter((array) $request->coa, 'strlen'));
         $actualSales = $this->pullActualSales($prevFrom, $prevTo);
 
+        // All Dept: row tiap COA diberi 'dept' + 'dept_name', di UI dikelompokkan per dept (accordion).
+        $rows = [];
+        foreach ($this->deptList($dept) as $code => $name) {
+            foreach ($this->decorateTargetPct($this->computeDet($code, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo), $actualSales) as $r) {
+                $rows[] = $r + ['dept' => $code, 'dept_name' => $name];
+            }
+        }
+
         return response()->json([
-            'dept_name'      => DB::table('depts')->where('code', $dept)->value('name') ?: $dept,
+            'dept_name'      => $dept === 'ALL' ? 'ALL DEPARTMENT' : (DB::table('depts')->where('code', $dept)->value('name') ?: $dept),
+            'all'            => $dept === 'ALL',
             'previous_text'  => $this->periodeText($prevFrom, $prevTo),
             'budget_text'    => $this->periodeText($budgFrom, $budgTo),
             'months'         => $budgMonths,
             'cost_reduction' => self::DEFAULT_COST_REDUCTION,
             'actual_sales'   => $actualSales,
-            'rows'           => $this->decorateTargetPct($this->computeDet($dept, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo), $actualSales),
+            'rows'           => $rows,
         ]);
+    }
+
+    /** [code => name] untuk 1 dept, atau semua dept kalau 'ALL'. */
+    private function deptList($dept)
+    {
+        if ($dept === 'ALL') {
+            return DB::table('depts')->orderBy('name')->pluck('name', 'code')->all();
+        }
+
+        return [$dept => DB::table('depts')->where('code', $dept)->value('name') ?: $dept];
     }
 
     /** Tambahkan 'target_pct' = debit (Previous Period) / actual_sales x 100 ke tiap row. */
@@ -297,70 +316,87 @@ class BudgetingController extends Controller
         $coas = array_values(array_filter((array) $request->coa, 'strlen'));
         $actualSales = $this->pullActualSales($prevFrom, $prevTo);
         $targetSalesMonthly = (float) $request->target_sales;
-        $rows = $this->decorateTargetPct($this->computeDet($dept, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo), $actualSales);
-        $edits = collect(json_decode($request->rows, true) ?: [])->keyBy('account');
+        // Key edit = dept|account (All Dept: akun yang sama bisa muncul di beberapa dept).
+        $edits = collect(json_decode($request->rows, true) ?: [])->keyBy(fn($e) => ($e['dept'] ?? $dept) . '|' . $e['account']);
 
         DB::beginTransaction();
         try {
-            $number = $this->generateNumber($fiscalYear, $dept);
+            $numbers = [];
+            // All Dept disimpan sebagai satu budgeting per department (dept tanpa transaksi dilewati).
+            foreach (array_keys($this->deptList($dept)) as $deptCode) {
+                $rows = $this->decorateTargetPct($this->computeDet($deptCode, $coas, $prevFrom, $prevTo, $budgMonths, $budgFrom, $budgTo), $actualSales);
+                if ($dept === 'ALL' && !$rows) {
+                    continue;
+                }
+                $number = $this->generateNumber($fiscalYear, $deptCode);
+                $numbers[] = $number;
 
-            $hdrId = DB::table('budgeting_hdr')->insertGetId([
-                'budgeting_number' => $number,
-                'fiscal_year'      => $fiscalYear,
-                'dept_code'        => $dept,
-                'description'      => $request->description,
-                'note'             => $request->note,
-                'coa_filter'       => $coas ? implode(',', $coas) : null,
-                'previous_from'    => $prevFrom,
-                'previous_to'      => $prevTo,
-                'budget_from'      => $budgFrom,
-                'budget_to'        => $budgTo,
-                'target_sales'     => $targetSalesMonthly,
-                'actual_sales'     => $actualSales,
-                'created_by'       => $username,
-                'updated_by'       => $username,
-                'created_at'       => now(),
-                'updated_at'       => now(),
-            ]);
-
-            foreach ($rows as $r) {
-                $edit = $edits->get($r['account']);
-                $unbudget = $edit ? (bool) ($edit['is_unbudget'] ?? false) : false;
-                $budgetType = $edit && in_array($edit['budget_type'] ?? null, ['OPEX', 'CAPEX']) ? $edit['budget_type'] : 'OPEX';
-                $cr = $edit ? min(100, max(0, (float) $edit['cost_reduction'])) : self::DEFAULT_COST_REDUCTION;
-                $inflation = $edit ? max(0, (float) ($edit['inflation'] ?? 0)) : 0;
-                $budget = $unbudget ? 0 : round($r['average'] * (1 - $cr / 100 + $inflation / 100), 2);
-                // Tambahan dari Target Sales: target_pct (porsi COA ini dari actual_sales) x Target Sales
-                // bulanan, dikalikan jumlah bulan Budget Period -- pembandingnya sales target, bukan average.
-                $extraMonthly = ($r['target_pct'] / 100) * $targetSalesMonthly;
-                // final_budget = TOTAL untuk seluruh budget period (bukan bulanan).
-                // Default diskalakan ke active_months (bukan seluruh bulan budget period), supaya pengeluaran
-                // yang historisnya jarang muncul (mis. sekali dalam setahun) tidak diproyeksikan jadi bulanan.
-                $final = $unbudget ? 0 : (($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : round($budget * $r['active_months'] + $extraMonthly * count($budgMonths), 2));
-                $additional = $edit ? (float) ($edit['additional_budget'] ?? 0) : 0;
-
-                DB::table('budgeting_det')->insert([
-                    'budgeting_hdr_id'  => $hdrId,
-                    'account'           => $r['account'],
-                    'nama_akun'         => $r['nama_akun'],
-                    'debit'             => $r['debit'],
-                    'average'           => $r['average'],
-                    'active_months'     => $r['active_months'],
-                    'cost_reduction'    => $cr,
-                    'inflation'         => $inflation,
-                    'budget'            => $budget,
-                    'final_budget'      => $final,
-                    'additional_budget' => $additional,
-                    'is_unbudget'       => $unbudget,
-                    'budget_type'       => $budgetType,
-                    'realisasi_json'   => json_encode($r['realisasi']),
-                    'realisasi_total'  => $r['realisasi_total'],
+                $hdrId = DB::table('budgeting_hdr')->insertGetId([
+                    'budgeting_number' => $number,
+                    'fiscal_year'      => $fiscalYear,
+                    'dept_code'        => $deptCode,
+                    'description'      => $request->description,
+                    'note'             => $request->note,
+                    'coa_filter'       => $coas ? implode(',', $coas) : null,
+                    'previous_from'    => $prevFrom,
+                    'previous_to'      => $prevTo,
+                    'budget_from'      => $budgFrom,
+                    'budget_to'        => $budgTo,
+                    'target_sales'     => $targetSalesMonthly,
+                    'actual_sales'     => $actualSales,
+                    'created_by'       => $username,
+                    'updated_by'       => $username,
                     'created_at'       => now(),
                     'updated_at'       => now(),
                 ]);
+
+                foreach ($rows as $r) {
+                    $edit = $edits->get($deptCode . '|' . $r['account']);
+                    $unbudget = $edit ? (bool) ($edit['is_unbudget'] ?? false) : false;
+                    $budgetType = $edit && in_array($edit['budget_type'] ?? null, ['OPEX', 'CAPEX']) ? $edit['budget_type'] : 'OPEX';
+                    $cr = $edit ? min(100, max(0, (float) $edit['cost_reduction'])) : self::DEFAULT_COST_REDUCTION;
+                    $inflation = $edit ? max(0, (float) ($edit['inflation'] ?? 0)) : 0;
+                    $budget = $unbudget ? 0 : round($r['average'] * (1 - $cr / 100 + $inflation / 100), 2);
+                    // Tambahan dari Target Sales: target_pct (porsi COA ini dari actual_sales) x Target Sales
+                    // bulanan, dikalikan jumlah bulan Budget Period -- pembandingnya sales target, bukan average.
+                    $extraMonthly = ($r['target_pct'] / 100) * $targetSalesMonthly;
+                    // final_budget = TOTAL untuk seluruh budget period (bukan bulanan).
+                    // Default diskalakan ke active_months (bukan seluruh bulan budget period), supaya pengeluaran
+                    // yang historisnya jarang muncul (mis. sekali dalam setahun) tidak diproyeksikan jadi bulanan.
+                    $final = $unbudget ? 0 : (($edit && isset($edit['final_budget'])) ? (float) $edit['final_budget'] : round($budget * $r['active_months'] + $extraMonthly * count($budgMonths), 2));
+                    $additional = $edit ? (float) ($edit['additional_budget'] ?? 0) : 0;
+
+                    DB::table('budgeting_det')->insert([
+                        'budgeting_hdr_id'  => $hdrId,
+                        'account'           => $r['account'],
+                        'nama_akun'         => $r['nama_akun'],
+                        'debit'             => $r['debit'],
+                        'average'           => $r['average'],
+                        'active_months'     => $r['active_months'],
+                        'cost_reduction'    => $cr,
+                        'inflation'         => $inflation,
+                        'budget'            => $budget,
+                        'final_budget'      => $final,
+                        'additional_budget' => $additional,
+                        'is_unbudget'       => $unbudget,
+                        'budget_type'       => $budgetType,
+                        'realisasi_json'   => json_encode($r['realisasi']),
+                        'realisasi_total'  => $r['realisasi_total'],
+                        'created_at'       => now(),
+                        'updated_at'       => now(),
+                    ]);
+                }
             }
 
             DB::commit();
+
+            if ($dept === 'ALL') {
+                return response()->json([
+                    'status'   => 1,
+                    'message'  => count($numbers) . ' budgeting department berhasil disimpan.',
+                    'redirect' => route('budgeting.index'),
+                ]);
+            }
 
             return response()->json([
                 'status'   => 1,
