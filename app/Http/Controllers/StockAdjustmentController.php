@@ -14,6 +14,8 @@ use AppHelpers;
 use App\Imports\StockAdjustmentImport;
 use App\Exports\StockAdjustmentExport;
 use App\Traits\HasStockFloorGuard;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
  * Stock Adjustment.
@@ -1642,6 +1644,53 @@ class StockAdjustmentController extends Controller
             'hdr'       => $hdr,
             'details'   => $this->detailRows($hdr->adj_code),
             'revisions' => $this->revisionRows($hdr->adj_code),
+        ]);
+    }
+
+    public function exportDetail(Request $request)
+    {
+        $id  = Crypt::decryptString($request->id);
+        $hdr = DB::table('stock_adjustment_hdr')->where('id', $id)->first();
+
+        if (!$hdr) abort(404);
+
+        $details = $this->detailRows($hdr->adj_code);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Adjustment Detail');
+
+        $sheet->setCellValue('A1', 'STOCK ADJUSTMENT — ' . $hdr->adj_code);
+        $sheet->mergeCells('A1:H1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(12);
+
+        $headers = ['Article Code', 'Article Name', 'UoM', 'Direction', 'Stock Before', 'Qty Adjustment', 'Saldo Akhir', 'Notes'];
+        $sheet->fromArray($headers, null, 'A3');
+        $sheet->getStyle('A3:H3')->getFont()->setBold(true);
+
+        $r = 4;
+        foreach ($details as $det) {
+            $sheet->fromArray([
+                $det->article_alternative_code,
+                $det->article_desc,
+                $det->uom,
+                $det->direction,
+                $det->stock_before,
+                $det->qty_adjustment,
+                $det->stock_after,
+                $det->notes,
+            ], null, "A{$r}");
+            $r++;
+        }
+
+        foreach (range('A', 'H') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            (new Xlsx($spreadsheet))->save('php://output');
+        }, $hdr->adj_code . '_detail.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
 

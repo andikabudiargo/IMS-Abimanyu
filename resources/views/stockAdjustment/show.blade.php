@@ -326,6 +326,11 @@
                                target="_blank" class="btn btn-primary">
                                 <i data-feather="printer" class="mr-25"></i> Print
                             </a>
+
+                            <a href="{{ route('stockAdjustment.exportDetail', ['id' => $encId]) }}"
+                               class="btn btn-outline-success">
+                                <i data-feather="file-text" class="mr-25"></i> Export Excel
+                            </a>
                         </div>
                     </div>
 

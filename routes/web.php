@@ -1031,6 +1031,7 @@ Route::get('stockAdjustment/edit',['as'=>'stockAdjustment.edit','uses'=>'StockAd
 Route::get('stockAdjustment/show',['as'=>'stockAdjustment.show','uses'=>'StockAdjustmentController@show']);
 Route::post('stockAdjustment/delete',['as'=>'stockAdjustment.destroy','uses'=>'StockAdjustmentController@destroy']);
 Route::get('stockAdjustment/print',['as'=>'stockAdjustment.print','uses'=>'StockAdjustmentController@print']);
+Route::get('stockAdjustment/exportDetail',['as'=>'stockAdjustment.exportDetail','uses'=>'StockAdjustmentController@exportDetail']);
 Route::post('stockAdjustment/posting',['as'=>'stockAdjustment.posting','uses'=>'StockAdjustmentController@posting']);
 Route::post('stockAdjustment/cancel',['as'=>'stockAdjustment.cancel','uses'=>'StockAdjustmentController@cancel']);
 Route::get('stockAdjustment/revisionHistory', ['as'=>'stockAdjustment.revisionHistory','uses'=>'StockAdjustmentController@revisionHistory']);
